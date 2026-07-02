@@ -89,7 +89,7 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
         self.assertGreaterEqual(report["summary"]["carried_forward_warning_count"], 8)
         self.assertTrue(any("No workflow YAML" in claim for claim in report["non_claims"]))
         self.assertEqual(report["artifact_contract"]["workflow_behavior"], "none")
-        self.assertEqual(report["surface_inventory"]["summary"]["total_surfaces"], 248)
+        self.assertEqual(report["surface_inventory"]["summary"]["total_surfaces"], 246)
         self.assertTrue(report["surface_inventory"]["excluded_paths"])
         self.assertTrue(report["surface_inventory"]["reference_paths"])
         self.assertTrue(
@@ -97,8 +97,8 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
         )
         self.assertEqual(report["evidence_channels"]["finding_governance"]["baseline_delta"]["baseline_record_count"], 0)
         self.assertEqual(report["evidence_channels"]["finding_governance"]["baseline_delta"]["suppression_count"], 0)
-        self.assertEqual(report["evidence_channels"]["function_reachability"]["function_count"], 167)
-        self.assertEqual(report["evidence_channels"]["function_reachability"]["classification_counts"]["literal_referenced"], 163)
+        self.assertEqual(report["evidence_channels"]["function_reachability"]["function_count"], 170)
+        self.assertEqual(report["evidence_channels"]["function_reachability"]["classification_counts"]["literal_referenced"], 166)
         self.assertEqual(report["evidence_channels"]["function_reachability"]["coverage_state"], "not_collected")
 
     def test_schema_validates_generated_report_and_seeded_good_example(self) -> None:
