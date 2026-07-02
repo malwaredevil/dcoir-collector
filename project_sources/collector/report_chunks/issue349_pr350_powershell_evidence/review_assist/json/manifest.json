@@ -1,55 +1,45 @@
 {
-  "chunk_count": 5,
+  "chunk_count": 4,
   "chunks": [
     {
-      "byte_end": 37992,
+      "byte_end": 39984,
       "byte_start": 0,
-      "bytes": 37992,
+      "bytes": 39984,
       "chunk_index": 0,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/chunk_000_text.json.txt",
-      "sha256": "29ea70207990bb05b7153085aa00a22e71924813a8ef9d3149a53dc67331b6c6"
+      "sha256": "ad847726c2111d93382c06c76a1b73e87a0dc9ccc54fa638f8acd36d38793e09"
     },
     {
-      "byte_end": 75973,
-      "byte_start": 37992,
-      "bytes": 37981,
+      "byte_end": 79975,
+      "byte_start": 39984,
+      "bytes": 39991,
       "chunk_index": 1,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/chunk_001_text.json.txt",
-      "sha256": "14690f459346333fae9ab279e90f679b22cf5ab7dc5294a5dee4e33745b859e0"
+      "sha256": "99a1b664890b4ffbfaac0a0bfa4e3db2eab20a7133bd9bd581c0eeb6105561ec"
     },
     {
-      "byte_end": 113956,
-      "byte_start": 75973,
-      "bytes": 37983,
+      "byte_end": 119923,
+      "byte_start": 79975,
+      "bytes": 39948,
       "chunk_index": 2,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/chunk_002_text.json.txt",
-      "sha256": "a67e7c7697451755706c6d2b32c598eaef17d4e22392cc99c48908dc82cf9e7e"
+      "sha256": "6ea965648beb1f495c5b0ce83cb048558aa9ea66089efbf4974f9630425ba92c"
     },
     {
-      "byte_end": 151955,
-      "byte_start": 113956,
-      "bytes": 37999,
+      "byte_end": 156450,
+      "byte_start": 119923,
+      "bytes": 36527,
       "chunk_index": 3,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/chunk_003_text.json.txt",
-      "sha256": "3ee339022451dbf091df88848497dd0617744438d0ba522820f9d11453e32e0c"
-    },
-    {
-      "byte_end": 156030,
-      "byte_start": 151955,
-      "bytes": 4075,
-      "chunk_index": 4,
-      "chunk_kind": "json_text_slice",
-      "format": "json",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/chunk_004_text.json.txt",
-      "sha256": "2fb75a9307fc42e50ef790edce33a8f44aea0933f896265a6acb68b035543910"
+      "sha256": "5a0dbcb7e7283d61379ccb8a4c23d612c52f691598bc81351acd66f5ece91373"
     }
   ],
   "max_chunk_bytes_target": 40000,
@@ -57,10 +47,10 @@
   "reassembly_note": "Concatenate json_text_slice chunks in manifest order. Each chunk declares a zero-based, end-exclusive byte range, and the full byte stream must parse as UTF-8 JSON.",
   "report_id": "review_assist",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 156030,
+  "source_bytes": 156450,
   "source_format": "json",
   "source_report": "project_sources/collector/powershell_review_assist_report.json",
-  "source_sha256": "7620ffe79722cbd0344bfc3acfa0eb131d971b4445aeaffa198303d9a598a4c4",
+  "source_sha256": "64b152e2a15a5786ffd048a865d9d9d657232c334334e9376f79d1db460c6a48",
   "text_slice_policy": {
     "byte_ranges": "contiguous_zero_based_end_exclusive",
     "encoding": "utf-8",
