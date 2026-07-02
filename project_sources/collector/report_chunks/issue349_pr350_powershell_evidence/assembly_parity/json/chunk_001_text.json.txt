@@ -1,33 +1,3 @@
-          "generated_line_end": 1093,
-          "mapping_basis": "deterministic_sorted_concatenation"
-        },
-        {
-          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
-          "source_line_start": 1,
-          "source_line_end": 97,
-          "generated_line_start": 1094,
-          "generated_line_end": 1190,
-          "mapping_basis": "deterministic_sorted_concatenation"
-        },
-        {
-          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
-          "source_line_start": 1,
-          "source_line_end": 160,
-          "generated_line_start": 1191,
-          "generated_line_end": 1350,
-          "mapping_basis": "deterministic_sorted_concatenation"
-        },
-        {
-          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
-          "source_line_start": 1,
-          "source_line_end": 271,
-          "generated_line_start": 1351,
-          "generated_line_end": 1621,
-          "mapping_basis": "deterministic_sorted_concatenation"
-        },
-        {
-          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
-          "source_line_start": 1,
           "source_line_end": 157,
           "generated_line_start": 1622,
           "generated_line_end": 1778,
@@ -98,7 +68,7 @@
           "mapping_basis": "deterministic_sorted_concatenation"
         }
       ],
-      "sha256": "61914542813822c2fd38efb0c4ecada94160c8928dc10fb6707a622798379fe5",
+      "sha256": "d68ecf53f75474fc2a69d8313c07b815e372edb530f136aae6c149ce75a1b946",
       "line_count": 2943,
       "parse": {
         "method": "static_balance_check",
@@ -177,7 +147,7 @@
     ]
   },
   "outputs": {
-    "json": "scratch_reports/powershell_assembly_parity_report.json",
-    "markdown": "scratch_reports/powershell_assembly_parity_report.md"
+    "json": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json",
+    "markdown": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.md"
   }
 }
