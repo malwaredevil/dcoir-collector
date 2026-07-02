@@ -203,6 +203,7 @@ $collectorPartFiles = @(
   "DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
   "DCOIR_Collector.05A1_Main_Entry.ps1",
   "DCOIR_Collector.05A2_Main_Entry.ps1",
+  "DCOIR_Collector.05A3_Main_Entry.ps1",
   "DCOIR_Collector.05B_Main_Entry.ps1",
   "DCOIR_Collector.05C_Main_Entry.ps1",
   "DCOIR_Collector.05_Main_Entry.ps1"
