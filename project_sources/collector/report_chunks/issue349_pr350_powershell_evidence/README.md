@@ -1,17 +1,7 @@
-# Issue 349 / PR 350 PowerShell Evidence Report Chunks
+# Issue #349 / PR #350 PowerShell Evidence Chunks
 
-This directory is an additive connector-sized sidecar for the generated PowerShell evidence reports.
+This directory contains connector-sized additive chunks for generated PowerShell evidence reports. The chunks are intentionally smaller than the canonical report files so future connector-only sessions can read, validate, and refresh evidence without relying on oversized monolithic report downloads.
 
-The canonical report files under `project_sources/collector/` remain unchanged by this sidecar. These chunks exist so future connector-only work can fetch, edit, and upload smaller functional fragments instead of moving large monolithic generated reports.
+These chunks do not replace the canonical generated reports under `project_sources/collector/*.json` and `project_sources/collector/*.md` unless a future validation lane explicitly requires canonical parity. Use `project_sources/collector/tools/reassemble_powershell_evidence_chunks.py` to validate chunk integrity and reconstruct reports for review.
 
-The chunks in this refresh were generated from rebuilt report outputs for PR source commit `c3671269e6749447406b575cc41682293fc6a702`. The `source_report` fields in manifests identify the canonical report path and report contract only; they are not a claim that the current branch's monolithic canonical report files match these chunks. Use `--compare-canonical` to test that boundary before treating the sidecar as a canonical report replacement.
-
-Chunk conventions:
-
-- Each report has separate `json/` and/or `markdown/` subdirectories.
-- Each subdirectory has a `manifest.json` with source report path, source SHA-256, source byte count, chunk order, and per-chunk hashes.
-- JSON reports use byte-exact text slices in this refresh.
-- `json_text_slice` chunks reassemble by concatenating contiguous byte ranges in manifest order.
-- Markdown chunks reassemble by concatenating files in manifest order.
-
-This sidecar is not a PR readiness claim and does not replace the canonical generated reports until a future loader/reassembly lane is explicitly implemented and validated.
+Current regenerated sidecar scope: collector 04F source split into 04F1/04F2, with loader, manifest, required-surface profile, harness capability metadata, event-window validator, and capability matrix references aligned.
