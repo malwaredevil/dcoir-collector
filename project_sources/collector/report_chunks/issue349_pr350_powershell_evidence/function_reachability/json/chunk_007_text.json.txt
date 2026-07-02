@@ -1,0 +1,290 @@
+          "line": 91,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 34,
+      "name": "Write-DCOIRCollectSkippedStatus",
+      "normalized_name": "write-dcoircollectskippedstatus",
+      "reference_count": 4,
+      "references": [
+        {
+          "column": 3,
+          "invocation_kind": "literal_token",
+          "line": 45,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        },
+        {
+          "column": 3,
+          "invocation_kind": "literal_token",
+          "line": 51,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        },
+        {
+          "column": 3,
+          "invocation_kind": "literal_token",
+          "line": 56,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        },
+        {
+          "column": 3,
+          "invocation_kind": "literal_token",
+          "line": 71,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 81,
+      "name": "New-DCOIRCollectState",
+      "normalized_name": "new-dcoircollectstate",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 10,
+          "invocation_kind": "literal_token",
+          "line": 78,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 34,
+      "name": "New-DCOIRCollectManifestInputSet",
+      "normalized_name": "new-dcoircollectmanifestinputset",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 30,
+          "invocation_kind": "literal_token",
+          "line": 121,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 110,
+      "name": "Reset-DCOIRCollectBundleStateAfterFailure",
+      "normalized_name": "reset-dcoircollectbundlestateafterfailure",
+      "reference_count": 2,
+      "references": [
+        {
+          "column": 5,
+          "invocation_kind": "literal_token",
+          "line": 153,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        },
+        {
+          "column": 3,
+          "invocation_kind": "literal_token",
+          "line": 166,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 144,
+      "name": "Write-DCOIRCollectFinalStatus",
+      "normalized_name": "write-dcoircollectfinalstatus",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 1,
+          "invocation_kind": "literal_token",
+          "line": 188,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 34,
+      "name": "Invoke-DCOIRCollectMode",
+      "normalized_name": "invoke-dcoircollectmode",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 7,
+          "invocation_kind": "literal_token",
+          "line": 41,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 34,
+      "name": "Invoke-DCOIREnrichMode",
+      "normalized_name": "invoke-dcoirenrichmode",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 7,
+          "invocation_kind": "literal_token",
+          "line": 46,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 34,
+      "name": "Invoke-DCOIRCleanupMode",
+      "normalized_name": "invoke-dcoircleanupmode",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 7,
+          "invocation_kind": "literal_token",
+          "line": 51,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    }
+  ],
+  "generated_from": {
+    "generated_at_utc": "2026-07-02T08:44:33+00:00",
+    "parser_mode": "python_lexical_fallback",
+    "tool": "project_sources/collector/tools/run_powershell_function_reachability_report.py"
+  },
+  "issue": 306,
+  "non_claims": [
+    "This report is not whole-program dead-code proof.",
+    "This report does not claim any function is safe to delete.",
+    "This report only covers manifest-declared collector runtime source.",
+    "Runtime-lane coverage is not collected unless explicit suite evidence is supplied by a later lane.",
+    "Static absence is reported as bounded evidence, not as proof of operator or dynamic invocation absence."
+  ],
+  "outputs": {
+    "json": "project_sources/collector/powershell_function_reachability_report.json",
+    "markdown": "project_sources/collector/powershell_function_reachability_report.md"
+  },
+  "parent_issue": 260,
+  "runtime_lane_coverage": {
+    "claim": "Runtime absence is not claimed; no suite trace evidence was supplied to this report.",
+    "observed_lanes": [],
+    "state": "not_collected"
+  },
+  "schema_version": "dcoir_powershell_function_reachability_report_v1",
+  "summary": {
+    "classification_counts": {
+      "dynamic_invocation_uncertain": 4,
+      "literal_referenced": 166
+    },
+    "coverage_state": "not_collected",
+    "dynamic_invocation_site_count": 1,
+    "function_count": 170,
+    "nested_function_count": 8,
+    "parser_mode": "python_lexical_fallback",
+    "reference_count": 612,
+    "source_file_count": 42,
+    "validation_success": true
+  },
+  "validation": {
+    "errors": [],
+    "success": true,
+    "warnings": []
+  }
+}
