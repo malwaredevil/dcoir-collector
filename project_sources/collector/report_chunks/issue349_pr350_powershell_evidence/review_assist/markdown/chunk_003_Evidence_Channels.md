@@ -8,6 +8,6 @@
 | assembly_parity | success | 2 generated outputs; pass |
 | finding_governance | success | 0 baseline records; 0 suppressions |
 | engine_boundary | success | 2 unclaimed blocking artifacts |
-| function_reachability | success | 159 functions; 155 literal referenced; 4 dynamic uncertain; coverage not_collected |
+| function_reachability | success | 167 functions; 163 literal referenced; 4 dynamic uncertain; coverage not_collected |
 | pester_boundary | supporting_non_blocking | Pester may support later runtime or wrapper evidence but is not blocking static-validation evidence in #268. |
 
