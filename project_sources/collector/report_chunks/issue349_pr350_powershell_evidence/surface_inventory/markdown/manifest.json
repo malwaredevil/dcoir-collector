@@ -2,13 +2,13 @@
   "chunk_count": 7,
   "chunks": [
     {
-      "bytes": 679,
+      "bytes": 601,
       "chunk_index": 0,
       "chunk_kind": "markdown_section",
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_000_front_matter.md",
       "section": "front_matter",
-      "sha256": "d9ab6fe0ea7450af59646127f7b27affbb388df01505ca82d8d885d7f61cdb37"
+      "sha256": "3ed0a5f9a427c26aed3e74bc8c1362c5633fa56038ce181f3ec7e793c67990ca"
     },
     {
       "bytes": 733,
@@ -17,7 +17,7 @@
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_001_Counts_By_Category.md",
       "section": "Counts_By_Category",
-      "sha256": "c9a05758f8d044304af85a6e77b45f8f86d986f56e7476e077ec8af9028d9652"
+      "sha256": "fad8fb5501ae537d831af8c872727757fdeffb451635bb0916a35ea102477b0e"
     },
     {
       "bytes": 179,
@@ -26,7 +26,7 @@
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_002_Counts_By_Source_Type.md",
       "section": "Counts_By_Source_Type",
-      "sha256": "903fc0e59e7217254d47e4823db335f95d2b207964648c6f36b6c6a1d858e1fa"
+      "sha256": "c847c4efb9fc5e64d2a05416298fb4926cb35306a830cb0064f7bd1dde5a8586"
     },
     {
       "bytes": 130,
@@ -35,7 +35,7 @@
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_003_Counts_By_Inclusion_Decision.md",
       "section": "Counts_By_Inclusion_Decision",
-      "sha256": "f7e976c01e9f8c0b0e2b8e8155f563310e622bc5faa1b0dfc2660c76205a19c8"
+      "sha256": "6f7662adcac95a36ffb57beb62df7a4a8cf7a6166a865938767ff7c5e36637e8"
     },
     {
       "bytes": 274,
@@ -44,7 +44,7 @@
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_004_Control_Totals.md",
       "section": "Control_Totals",
-      "sha256": "8c0424fda3e92ffe7414d84c5df94cda329c397ed99656b905dab3496ba7d998"
+      "sha256": "8bd5bbc59eacaba45da52cd8117bd71547e8fd5bff1b03787c48e798edcf993e"
     },
     {
       "bytes": 23316,
@@ -69,8 +69,8 @@
   "reassembly_note": "Concatenate Markdown chunks in manifest order.",
   "report_id": "surface_inventory",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 25359,
+  "source_bytes": 25281,
   "source_format": "markdown",
   "source_report": "project_sources/collector/powershell_surface_inventory.md",
-  "source_sha256": "93ab9551bbb524b6914fb86be052dec4f3dcd1ac8e7bd86a34c3f45fd65bbab2"
+  "source_sha256": "9d33313fc3e3c3086a15dba5206fd4bc4dd2b16e56e99eddff3629282ed0f906"
 }
