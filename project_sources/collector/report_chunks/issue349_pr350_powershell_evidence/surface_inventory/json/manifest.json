@@ -2,64 +2,64 @@
   "chunk_count": 6,
   "chunks": [
     {
-      "byte_end": 39912,
+      "byte_end": 39989,
       "byte_start": 0,
-      "bytes": 39912,
+      "bytes": 39989,
       "chunk_index": 0,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/chunk_000_text.json.txt",
-      "sha256": "1a20bf556ab211ce0fd15e6fadeab680be986469f539fce84483e3c6aeaed799"
+      "sha256": "7c4b45029a53141dc956968859833190fc2554ca8eeb4f4e0fb42eda13de473b"
     },
     {
-      "byte_end": 79889,
-      "byte_start": 39912,
-      "bytes": 39977,
+      "byte_end": 79935,
+      "byte_start": 39989,
+      "bytes": 39946,
       "chunk_index": 1,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/chunk_001_text.json.txt",
-      "sha256": "1df7ae678dfa3c832423c2fada55692154b49bc0ea62ef304eb009f618f1a9ea"
+      "sha256": "00f9f0f279435f0205fa7ff529d2ae45dd5dbda13c37881e51fd1cf1ef567f50"
     },
     {
-      "byte_end": 119874,
-      "byte_start": 79889,
-      "bytes": 39985,
+      "byte_end": 119927,
+      "byte_start": 79935,
+      "bytes": 39992,
       "chunk_index": 2,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/chunk_002_text.json.txt",
-      "sha256": "b38f13064c1065cc120701c3724bfe99f43af34fa5a75496249a701afa38fc86"
+      "sha256": "c84b31689d6512e27e6314f17c47ceee376ed564ad1e4255342e7f07f0237b5b"
     },
     {
-      "byte_end": 159806,
-      "byte_start": 119874,
-      "bytes": 39932,
+      "byte_end": 159917,
+      "byte_start": 119927,
+      "bytes": 39990,
       "chunk_index": 3,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/chunk_003_text.json.txt",
-      "sha256": "a0001410a0f0d34c4c9e823445cb4ed4a56638b209aac64c484668612adb7d9a"
+      "sha256": "0886808dd3fa4f8f34fb021978c5d35078f844000c2bdb54cb61df1d928e8bbb"
     },
     {
-      "byte_end": 199801,
-      "byte_start": 159806,
-      "bytes": 39995,
+      "byte_end": 199899,
+      "byte_start": 159917,
+      "bytes": 39982,
       "chunk_index": 4,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/chunk_004_text.json.txt",
-      "sha256": "94c0d90ab2508ee22f87ba329c1ad8ae63cebf6dc934bc488de5c51f6114c9ee"
+      "sha256": "47f22e118c1abde6818a17ea890a615691cec1cb5e393264b8d78181e371f811"
     },
     {
-      "byte_end": 213048,
-      "byte_start": 199801,
-      "bytes": 13247,
+      "byte_end": 213829,
+      "byte_start": 199899,
+      "bytes": 13930,
       "chunk_index": 5,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/chunk_005_text.json.txt",
-      "sha256": "4846938cbec7b063739599ab120aee4cc27c9565d37180787da105afe06b7994"
+      "sha256": "16871871422cf2c59f08fc68d21382c4938940c723c3c01d98d29a977efccefc"
     }
   ],
   "max_chunk_bytes_target": 40000,
@@ -67,10 +67,10 @@
   "reassembly_note": "Concatenate json_text_slice chunks in manifest order. Each chunk declares a zero-based, end-exclusive byte range, and the full byte stream must parse as UTF-8 JSON.",
   "report_id": "surface_inventory",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 213048,
+  "source_bytes": 213829,
   "source_format": "json",
   "source_report": "project_sources/collector/powershell_surface_inventory.json",
-  "source_sha256": "2929deb4c7fb687b4870fd5c890b550e61a1af0dc5e0957dd4d3b93bbddeacff",
+  "source_sha256": "2729ad214fa9d1023cf5d0cd3f44d6bf3d8aad9308f5ec93209ebbcf2853ba99",
   "text_slice_policy": {
     "byte_ranges": "contiguous_zero_based_end_exclusive",
     "encoding": "utf-8",
