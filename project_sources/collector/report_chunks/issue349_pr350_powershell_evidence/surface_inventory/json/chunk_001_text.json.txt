@@ -1,3 +1,7 @@
+          "step_or_action": "Smoke build collector package",
+          "shell": "pwsh",
+          "line_start": 11,
+          "line_end": 22,
           "command_sha256": "99081acbe6481bebb5bb12d1caba3c925c4914a895c88f4b250ac886fd5e9f24",
           "command_preview": "$ErrorActionPreference = 'Stop'\nRemove-Item -Recurse -Force $env:COLLECTOR_OUTPUT_DIR -ErrorAction SilentlyContinue\nNew-Item -ItemType Directory -Force -Path $env:COLLECTOR_OUTPUT_DIR | Out-Null\npython project_sources/collector/tools/build_"
         }
@@ -805,5 +809,3 @@
           "command_preview": "$pyFiles = @(\n  'project_sources/collector/tools/build_dcoir_collector_runtime_package.py',\n  'project_sources/collector/tools/validate_dcoir_collector_runtime_package.py',\n  'project_sources/collector/tools/compile_dcoir_collector_runtime."
         },
         {
-          "source_file": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
-          "step_or_action": "Normalize FailureGates EXE runtime-error guard",
