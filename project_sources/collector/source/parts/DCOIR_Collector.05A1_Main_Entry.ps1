@@ -3,7 +3,7 @@
 DCOIR collector collect-mode entry helpers.
 
 .DESCRIPTION
-Provides connector-sized helper routines used by the collect-mode entry function loaded in the following 05A2 part.
+Provides connector-sized helper routines used by the collect-mode entry function loaded after the 05A2 helper part.
 
 .FILE NAME
 DCOIR_Collector.05A1_Main_Entry.ps1
