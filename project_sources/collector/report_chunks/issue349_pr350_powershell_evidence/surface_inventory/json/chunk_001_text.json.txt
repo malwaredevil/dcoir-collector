@@ -1,35 +1,3 @@
-        {
-          "source_file": ".github/actions/run-validate-dcoir-fixtures/action.yml",
-          "step_or_action": "Run validate_DCOIR_Run fixture tests",
-          "shell": "pwsh",
-          "line_start": 11,
-          "line_end": 17,
-          "command_sha256": "a81205da5f2e7e1d68a042a92b2c63b1e3697a0efdd8984da1df87b38432f350",
-          "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\tools\\run_validate_dcoir_run_fixture_tests.ps1 -ValidatorPath .\\collector\\harness\\validate_DCOIR_Run.ps1 -OutputRoot $env:FIXTURE_OUTPUT_ROOT"
-        }
-      ],
-      "size_bytes": 840,
-      "line_count": 20,
-      "sha256": "9bbe863275be1b29dd1235acc9db8220bb307cff46bcf03700ac82b13b944540"
-    },
-    {
-      "path": ".github/actions/smoke-build-collector-package/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        11
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/smoke-build-collector-package/action.yml",
-          "step_or_action": "Smoke build collector package",
-          "shell": "pwsh",
-          "line_start": 11,
-          "line_end": 22,
           "command_sha256": "99081acbe6481bebb5bb12d1caba3c925c4914a895c88f4b250ac886fd5e9f24",
           "command_preview": "$ErrorActionPreference = 'Stop'\nRemove-Item -Recurse -Force $env:COLLECTOR_OUTPUT_DIR -ErrorAction SilentlyContinue\nNew-Item -ItemType Directory -Force -Path $env:COLLECTOR_OUTPUT_DIR | Out-Null\npython project_sources/collector/tools/build_"
         }
@@ -775,3 +743,67 @@
           "line_start": 81,
           "line_end": 93,
           "command_sha256": "5c864fd1583d4c2b7cf68f77fd43fce3061b7aace1b4a8b217388eff97a19f34",
+          "command_preview": "python project_sources/github_actions/tools/surface_delivery_zip.py `\n  --build-report project_sources/validation/out/build_dcoir_gemini_release_report.json `\n  --output-dir project_sources/validation/delivery_artifact/gemini-bundle `\n  --m"
+        },
+        {
+          "source_file": ".github/workflows/reusable-gemini-bundle-build.yml",
+          "step_or_action": "Set Gemini delivery artifact name",
+          "shell": "pwsh",
+          "line_start": 95,
+          "line_end": 103,
+          "command_sha256": "cc2f274be2946f28765925a9ce09152f414d2f532daa98d0893966e6ac5730f5",
+          "command_preview": "$manifest = Get-Content -Raw -Path project_sources/validation/out/delivery_manifest/delivery_manifest.json | ConvertFrom-Json\n$artifactName = [System.IO.Path]::GetFileNameWithoutExtension([string]$manifest.delivery_zip_name)\nif ([string]::I"
+        },
+        {
+          "source_file": ".github/workflows/reusable-gemini-bundle-build.yml",
+          "step_or_action": "Write ChatGPT workflow report section",
+          "shell": "pwsh",
+          "line_start": 126,
+          "line_end": 148,
+          "command_sha256": "3123fb64bab92c100ce349c5488e2a9716e2b525a2231864af92df6103cecef8",
+          "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## Gemini bundle build summary\n\n- workflow: manual-gemini-bundle-build\n- workflow_run_id: $env:GITHUB_RUN_ID\n- workflow_run_attempt: $env:GITHUB_RUN_ATT"
+        }
+      ],
+      "size_bytes": 6348,
+      "line_count": 156,
+      "sha256": "df9a1d0a118a41d5a9cf55ed31053cce5dae01d5f8634fc6cf0debe2744c3728"
+    },
+    {
+      "path": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        57,
+        78,
+        99,
+        116,
+        139,
+        183,
+        208
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
+          "step_or_action": "Verify checkout and FailureGates EXE harness patch",
+          "shell": "pwsh",
+          "line_start": 57,
+          "line_end": 71,
+          "command_sha256": "3f352628b7824e5d8efc4798d991de688acaee43939df9208d1cb6de4aeb9aa2",
+          "command_preview": "$head = git rev-parse HEAD\nWrite-Host \"CHECKED_OUT_COMMIT=$head\"\n$harnessPath = 'project_sources/collector/harness/run_DCOIR_Tests.generated.ps1'\nif (-not (Test-Path -LiteralPath $harnessPath)) {\n  throw \"Generated harness not found: $harne"
+        },
+        {
+          "source_file": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
+          "step_or_action": "Validate Python syntax",
+          "shell": "pwsh",
+          "line_start": 78,
+          "line_end": 96,
+          "command_sha256": "b2978a4f2e4855ec5f7b99bc173ef0497884f5715bffe23090bbb64c361032ba",
+          "command_preview": "$pyFiles = @(\n  'project_sources/collector/tools/build_dcoir_collector_runtime_package.py',\n  'project_sources/collector/tools/validate_dcoir_collector_runtime_package.py',\n  'project_sources/collector/tools/compile_dcoir_collector_runtime."
+        },
+        {
+          "source_file": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
+          "step_or_action": "Normalize FailureGates EXE runtime-error guard",
