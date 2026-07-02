@@ -2,7 +2,7 @@
 
 ### Carried Forward Warnings
 
-- #265 `project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json`: no baseline parity report supplied; shrink checks used current inventory controls only
+- #265 `project_sources/collector/powershell_assembly_parity_report.json`: no baseline parity report supplied; shrink checks used current inventory controls only
 - #266 `project_sources/collector/powershell_finding_governance_report.json`: optional PowerShell finding report not present: project_sources/collector/powershell_analyzer_report.json
 - #267 `project_sources/collector/powershell_engine_pester_boundary_report.json`: workflow readiness remains a later explicit gate; #267 only defines evidence ownership
 - #267 `project_sources/collector/powershell_engine_pester_boundary_report.json`: Windows PowerShell 5.1 runtime evidence remains separate from local static report generation
