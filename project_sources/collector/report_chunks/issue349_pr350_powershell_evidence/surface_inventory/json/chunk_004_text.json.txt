@@ -1,3 +1,7 @@
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8331,
+      "line_count": 170,
       "sha256": "1227d300afd3cb793f170a6aa76420d01d58e0bf164c979ff28e8053126892e5"
     },
     {
@@ -682,9 +686,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 7194,
-      "line_count": 217,
-      "sha256": "2ee2d6b8b688c5202067cf1546953834931b9ecc5e444f9d5455cb054df945d3"
+      "size_bytes": 7235,
+      "line_count": 218,
+      "sha256": "ca67c8d10f7898ad42c841d79e68d751e79e9152cf1cfa13478093476e5fcfd3"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -972,5 +976,3 @@
       "source_type": ".ps1",
       "status": "source",
       "inclusion_decision": "include",
-      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
-      "exists": true,
