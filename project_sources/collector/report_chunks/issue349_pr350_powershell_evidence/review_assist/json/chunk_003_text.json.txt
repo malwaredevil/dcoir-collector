@@ -1,5 +1,3 @@
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
         "source_type": ".ps1.txt",
         "status": "source_part"
@@ -314,6 +312,13 @@
       },
       {
         "category": "collector_runtime_source_part",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+        "reason": "Collector runtime source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_runtime_source_part",
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
         "reason": "Collector runtime source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
@@ -364,12 +369,12 @@
     ],
     "mode": "full",
     "outputs": {
-      "json": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json",
-      "markdown": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.md"
+      "json": "project_sources/collector/powershell_surface_inventory.json",
+      "markdown": "project_sources/collector/powershell_surface_inventory.md"
     },
     "path_decision_counts": {
       "exclude": 63,
-      "include": 132,
+      "include": 133,
       "reference": 50,
       "skip": 0
     },
@@ -731,7 +736,7 @@
         "archive_temp_vendor_artifact": 0,
         "collector_harness_script": 4,
         "collector_harness_source_part": 17,
-        "collector_runtime_source_part": 40,
+        "collector_runtime_source_part": 41,
         "collector_runtime_wrapper": 1,
         "collector_validation_tooling": 2,
         "fixture_or_example": 23,
@@ -749,11 +754,11 @@
       },
       "by_inclusion_decision": {
         "exclude": 63,
-        "include": 132,
+        "include": 133,
         "reference": 50
       },
       "by_source_type": {
-        ".ps1": 182,
+        ".ps1": 183,
         ".ps1.txt": 17,
         ".ps1xml": 0,
         ".psd1": 9,
@@ -762,14 +767,14 @@
       },
       "by_status": {
         "fixture": 23,
-        "source": 45,
+        "source": 46,
         "source_part": 17,
         "staging": 63,
         "tooling": 70,
         "workflow_embedded": 27
       },
       "embedded_snippet_count": 80,
-      "total_surfaces": 245
+      "total_surfaces": 246
     }
   },
   "unclaimed_artifacts": [
