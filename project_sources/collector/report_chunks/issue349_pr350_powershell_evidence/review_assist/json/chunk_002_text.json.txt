@@ -1,91 +1,3 @@
-  "surface_inventory": {
-    "excluded_paths": [
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121700Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T122700Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T123500Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-merge-delete-batch1-export-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-next-cleanup-export-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-post-first-four-export-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
         "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-remaining-normalization-export-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
@@ -869,5 +781,138 @@
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirApplyInPayload.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirChatGPTFriendlyZip.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirTargetedSnapshot.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirTextOnlyRepoSnapshot.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "collector_validation_tooling",
+        "path": "project_sources/collector/PSScriptAnalyzerSettings.psd1",
+        "reason": "Repository-owned PowerShell analyzer policy is maintained validation tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "collector_harness_script",
+        "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
+        "reason": "Collector harness script is a primary maintained PowerShell surface.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_harness_script",
+        "path": "project_sources/collector/harness/run_DCOIR_DefaultNoFlags_Regression.ps1",
+        "reason": "Collector harness script is a primary maintained PowerShell surface.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_harness_script",
+        "path": "project_sources/collector/harness/run_DCOIR_Tests.ps1",
+        "reason": "Collector harness script is a primary maintained PowerShell surface.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
       },
       {
