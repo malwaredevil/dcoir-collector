@@ -13,7 +13,7 @@ DIAGNOSTIC_CONTEXT_RELS = (
     'project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1',
 )
 DIAGNOSTIC_CONTEXT_REL = DIAGNOSTIC_CONTEXT_RELS[0]
-PR186_FIXES_REL = 'project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1'
+PR186_FIXES_REL = 'project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1'
 REPORT_NAME = 'validate_event_text_query_bound_policy_report.json'
 COUNT_CAP_PARAMETER_NAMES = ('Take', 'MaxEvents')
 
@@ -248,3 +248,4 @@ def add_missing_errors(prefix: str, checks: Dict[str, object], required_keys: Li
     for key in required_keys:
         if not checks.get(key):
             errors.append(prefix + key)
+
