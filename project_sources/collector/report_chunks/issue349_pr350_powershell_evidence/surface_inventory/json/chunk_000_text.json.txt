@@ -5,7 +5,7 @@
   "source_of_truth": "filesystem recursive scan fallback",
   "deterministic_report": true,
   "file_facts_policy": "text_bytes_with_line_endings_normalized_to_lf",
-  "discovery_command": "python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json --markdown-output project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.md",
+  "discovery_command": "python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output project_sources/collector/powershell_surface_inventory.json --markdown-output project_sources/collector/powershell_surface_inventory.md",
   "required_source_types": [
     ".ps1",
     ".psm1",
@@ -15,17 +15,17 @@
     "workflow_yaml"
   ],
   "outputs": {
-    "json": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json",
-    "markdown": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.md"
+    "json": "project_sources/collector/powershell_surface_inventory.json",
+    "markdown": "project_sources/collector/powershell_surface_inventory.md"
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 245,
+    "total_surfaces": 246,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
       "collector_harness_source_part": 17,
-      "collector_runtime_source_part": 40,
+      "collector_runtime_source_part": 41,
       "collector_runtime_wrapper": 1,
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
@@ -42,7 +42,7 @@
       "workflow_embedded_powershell": 27
     },
     "by_source_type": {
-      ".ps1": 182,
+      ".ps1": 183,
       ".ps1.txt": 17,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -51,7 +51,7 @@
     },
     "by_status": {
       "fixture": 23,
-      "source": 45,
+      "source": 46,
       "source_part": 17,
       "staging": 63,
       "tooling": 70,
@@ -59,7 +59,7 @@
     },
     "by_inclusion_decision": {
       "exclude": 63,
-      "include": 132,
+      "include": 133,
       "reference": 50
     },
     "embedded_snippet_count": 80
@@ -69,8 +69,8 @@
       "path": "project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json",
       "exists": true,
       "error": null,
-      "expected_path_count": 41,
-      "present_path_count": 41,
+      "expected_path_count": 42,
+      "present_path_count": 42,
       "paths": [
         {
           "path": "project_sources/collector/source/DCOIR_Collector.ps1",
@@ -78,7 +78,7 @@
           "in_inventory": true,
           "category": "collector_runtime_wrapper",
           "expected_category": "collector_runtime_wrapper",
-          "size_bytes": 7194
+          "size_bytes": 7235
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -374,7 +374,15 @@
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 17048
+          "size_bytes": 9998
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 10656
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
@@ -965,7 +973,3 @@
       "embedded_snippets": [
         {
           "source_file": ".github/actions/smoke-build-collector-package/action.yml",
-          "step_or_action": "Smoke build collector package",
-          "shell": "pwsh",
-          "line_start": 11,
-          "line_end": 22,
