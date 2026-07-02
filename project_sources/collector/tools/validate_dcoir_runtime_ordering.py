@@ -17,6 +17,7 @@ from validate_dcoir_runtime_common import (
 MAIN_ENTRY_PART_RELS = (
     'project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1',
     'project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1',
+    'project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1',
     'project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1',
     'project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1',
     'project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1',
