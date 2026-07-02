@@ -5,14 +5,14 @@
 - Parent issue: #260
 - Parser mode: `python_lexical_fallback`
 - Validation: `pass`
-- Functions: `167`
+- Functions: `170`
 
 ## Classification Summary
 
 | Classification | Count |
 | --- | ---: |
 | `entrypoint` | 0 |
-| `literal_referenced` | 163 |
+| `literal_referenced` | 166 |
 | `dynamic_invocation_uncertain` | 4 |
 | `static_unreferenced` | 0 |
 
@@ -50,13 +50,16 @@
   - `project_sources/collector/source/parts/DCOIR_Collector.04D3_Bounded_Parallel_Runtime.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.04E1_Diagnostic_Context_Overrides.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1`
-  - `project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1`
-  - `project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1`
+  - `project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1`
+  - `project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1`
+  - `project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1`
+  - `project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1`
+  - `project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1`
   - `project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1`
@@ -74,7 +77,7 @@
 
 | Kind | Source | Line | Context |
 | --- | --- | ---: | --- |
-| `dot_source_variable` | `project_sources/collector/source/DCOIR_Collector.ps1` | 214 | `. $partPath` |
+| `dot_source_variable` | `project_sources/collector/source/DCOIR_Collector.ps1` | 217 | `. $partPath` |
 
 ## Non-Claims
 
