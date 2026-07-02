@@ -29,13 +29,16 @@
       "project_sources/collector/source/parts/DCOIR_Collector.04D3_Bounded_Parallel_Runtime.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.04E1_Diagnostic_Context_Overrides.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1",
-      "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
-      "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
+      "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+      "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
+      "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
       "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
@@ -54,8 +57,8 @@
       {
         "load_order": 0,
         "path": "project_sources/collector/source/DCOIR_Collector.ps1",
-        "sha256": "dde0112918574d22d928dc47b54d6213f35160ed8fc2b473831f29b310b13c23",
-        "size_bytes": 7085
+        "sha256": "ca67c8d10f7898ad42c841d79e68d751e79e9152cf1cfa13478093476e5fcfd3",
+        "size_bytes": 7235
       },
       {
         "load_order": 1,
@@ -162,8 +165,8 @@
       {
         "load_order": 18,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.04A1_Quick_Interface_And_Output.ps1",
-        "sha256": "dabbced6b97877d65a1b056602f5d4078ec7538711bc4e5a46bd6f3613bf3c32",
-        "size_bytes": 13237
+        "sha256": "19626962ddee340988c6967db39db32e04c3d840ed6513d20819e7c0b1df7db5",
+        "size_bytes": 13236
       },
       {
         "load_order": 19,
@@ -227,60 +230,78 @@
       },
       {
         "load_order": 29,
-        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
-        "sha256": "be8a099cc9f3b97cb12dd797610142dde6d5127c76e1b4a7d80c2e46544d6406",
-        "size_bytes": 17049
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
+        "sha256": "67a27968ef73cb8f69328dc333a2c44fbfdf5bbe54a14181ba088dc2d2439605",
+        "size_bytes": 8701
       },
       {
         "load_order": 30,
-        "path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
-        "sha256": "831b6a908796801418bc8417bb6e41d0f96d1b6ff8e7add4ffcd940bd1efd9c5",
-        "size_bytes": 17925
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+        "sha256": "aec7e76aeaf3a5822ec8a9a258d9e3d59a74273d097775f1fa61b18416bb250d",
+        "size_bytes": 9041
       },
       {
         "load_order": 31,
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
+        "sha256": "0a8ab23259057dcc5f266a074964080e485ad0056ea0cb17e6e4918f1df5b029",
+        "size_bytes": 10507
+      },
+      {
+        "load_order": 32,
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
+        "sha256": "41000cb57a970c79163d9cca7bd2153fb452933bca425a93471ca1f08ac6529e",
+        "size_bytes": 7939
+      },
+      {
+        "load_order": 33,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
         "sha256": "60014873136f51c7d77eb378fb2ff8e1e980e183658309924ce2494a56b0199c",
         "size_bytes": 4841
       },
       {
-        "load_order": 32,
+        "load_order": 34,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
         "sha256": "ecf10ab8b88576c1158a5aa96475dd5813f077da3b2cf77213f764fe4e6dfcd2",
         "size_bytes": 9020
       },
       {
-        "load_order": 33,
+        "load_order": 35,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
         "sha256": "cdc7f9848721330655a671f1ae76c5fe2171380d1c044fc3503cf63d1fe82662",
         "size_bytes": 4963
       },
       {
-        "load_order": 34,
+        "load_order": 36,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
-        "sha256": "036d7f6187890273a6030da2a6d0483e30a045f9dfbc52e551f03a33639b0df0",
+        "sha256": "55d5b65247e0716286900e4c243c7462c2f54d033e2b9d51e74d93d19fdc0ba1",
         "size_bytes": 4192
       },
       {
-        "load_order": 35,
+        "load_order": 37,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
-        "sha256": "d33e304ea84fec19be0dab4eae44712ff3b6f5141a068b902f6e77bfc594f8a9",
-        "size_bytes": 17048
+        "sha256": "dcf15895d925fb66ed6945f7ababfd3b7c1e860307c98ca50cc8e26fa36d7553",
+        "size_bytes": 9998
       },
       {
-        "load_order": 36,
+        "load_order": 38,
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+        "sha256": "bab74a412da36f8841c224593fe5a202a6a3d535e9df012c262c00567281cde8",
+        "size_bytes": 10656
+      },
+      {
+        "load_order": 39,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
         "sha256": "00d16ef84cb9ae4e6ca5d096233a55cfc6f52506f2467604648b0f01b7421e30",
         "size_bytes": 7767
       },
       {
-        "load_order": 37,
+        "load_order": 40,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
         "sha256": "ab186272c8964cd0a85d314c7e2ab54f2e7d342a74bdc78bda6951498d8d5e96",
         "size_bytes": 4894
       },
       {
-        "load_order": 38,
+        "load_order": 41,
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1",
         "sha256": "02a38cb0936b87c6304d97937074e0ef79b540ab14ee1d9adc68d3db4a9278ca",
         "size_bytes": 1464
@@ -293,7 +314,7 @@
       "column": 3,
       "context": ". $partPath",
       "kind": "dot_source_variable",
-      "line": 214,
+      "line": 217,
       "source_path": "project_sources/collector/source/DCOIR_Collector.ps1"
     }
   ],
@@ -917,7 +938,7 @@
           "invocation_kind": "literal_token",
           "line": 265,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -1555,9 +1576,9 @@
         {
           "column": 45,
           "invocation_kind": "literal_token",
-          "line": 395,
+          "line": 119,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01B1_Json_State_And_Array_Utilities.ps1",
@@ -1757,7 +1778,7 @@
           "invocation_kind": "literal_token",
           "line": 244,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1",
@@ -1830,14 +1851,14 @@
           "invocation_kind": "literal_token",
           "line": 129,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1"
         },
         {
           "column": 26,
           "invocation_kind": "literal_token",
           "line": 79,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1",
@@ -1863,7 +1884,7 @@
           "invocation_kind": "literal_token",
           "line": 176,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1",
@@ -1887,9 +1908,9 @@
         {
           "column": 18,
           "invocation_kind": "literal_token",
-          "line": 219,
+          "line": 179,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         },
         {
           "column": 18,
@@ -2339,7 +2360,7 @@
           "invocation_kind": "literal_token",
           "line": 60,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
@@ -2365,7 +2386,7 @@
           "invocation_kind": "literal_token",
           "line": 49,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
@@ -2391,7 +2412,7 @@
           "invocation_kind": "literal_token",
           "line": 69,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
@@ -2424,7 +2445,7 @@
           "invocation_kind": "literal_token",
           "line": 255,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
@@ -3170,7 +3191,7 @@
           "invocation_kind": "literal_token",
           "line": 75,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         },
         {
           "column": 12,
@@ -3765,7 +3786,7 @@
           "invocation_kind": "literal_token",
           "line": 82,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1",
@@ -3791,7 +3812,7 @@
           "invocation_kind": "literal_token",
           "line": 115,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
@@ -3817,7 +3838,7 @@
           "invocation_kind": "literal_token",
           "line": 116,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
@@ -4023,9 +4044,9 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1"
         },
         {
-          "column": 50,
+          "column": 52,
           "invocation_kind": "literal_token",
-          "line": 252,
+          "line": 190,
           "parser": "python_lexical_fallback",
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
         },
@@ -4117,9 +4138,9 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1"
         },
         {
-          "column": 24,
+          "column": 26,
           "invocation_kind": "literal_token",
-          "line": 229,
+          "line": 167,
           "parser": "python_lexical_fallback",
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
         },
@@ -4488,9 +4509,9 @@
       "reference_count": 5,
       "references": [
         {
-          "column": 1,
+          "column": 3,
           "invocation_kind": "literal_token",
-          "line": 289,
+          "line": 227,
           "parser": "python_lexical_fallback",
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
         },
@@ -5096,7 +5117,7 @@
           "invocation_kind": "literal_token",
           "line": 83,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
@@ -5548,7 +5569,7 @@
           "invocation_kind": "literal_token",
           "line": 80,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04D3_Bounded_Parallel_Runtime.ps1",
@@ -5931,24 +5952,24 @@
           "invocation_kind": "literal_token",
           "line": 97,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1"
         },
         {
           "column": 13,
           "invocation_kind": "literal_token",
           "line": 42,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         },
         {
           "column": 12,
           "invocation_kind": "literal_token",
           "line": 81,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -5971,31 +5992,31 @@
           "invocation_kind": "literal_token",
           "line": 135,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1"
         },
         {
           "column": 22,
           "invocation_kind": "literal_token",
           "line": 163,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1"
         },
         {
           "column": 17,
           "invocation_kind": "literal_token",
           "line": 82,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         },
         {
           "column": 22,
           "invocation_kind": "literal_token",
           "line": 106,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6025,10 +6046,10 @@
           "invocation_kind": "literal_token",
           "line": 44,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6054,7 +6075,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6087,7 +6108,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6108,19 +6129,19 @@
         {
           "column": 13,
           "invocation_kind": "literal_token",
-          "line": 412,
+          "line": 174,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1"
         },
         {
           "column": 13,
           "invocation_kind": "literal_token",
-          "line": 439,
+          "line": 201,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6167,14 +6188,14 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1"
         },
         {
-          "column": 25,
+          "column": 27,
           "invocation_kind": "literal_token",
-          "line": 228,
+          "line": 166,
           "parser": "python_lexical_fallback",
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6187,7 +6208,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 277,
+      "line": 39,
       "name": "Get-CollectorEffectiveEventWindow",
       "normalized_name": "get-collectoreffectiveeventwindow",
       "reference_count": 7,
@@ -6230,19 +6251,19 @@
         {
           "column": 13,
           "invocation_kind": "literal_token",
-          "line": 367,
+          "line": 129,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1"
         },
         {
           "column": 13,
           "invocation_kind": "literal_token",
-          "line": 480,
+          "line": 242,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6255,7 +6276,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 364,
+      "line": 126,
       "name": "Get-TargetedCollectionScopeObject",
       "normalized_name": "get-targetedcollectionscopeobject",
       "reference_count": 1,
@@ -6268,7 +6289,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6281,7 +6302,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 411,
+      "line": 173,
       "name": "Get-ValidationSyntheticOversizeArtifactKB",
       "normalized_name": "get-validationsyntheticoversizeartifactkb",
       "reference_count": 1,
@@ -6294,7 +6315,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6307,7 +6328,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 437,
+      "line": 199,
       "name": "Get-TestTextPaddingFromEnvironment",
       "normalized_name": "get-testtextpaddingfromenvironment",
       "reference_count": 3,
@@ -6334,7 +6355,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6347,7 +6368,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 478,
+      "line": 240,
       "name": "Get-CollectorEventWindowTargetDetails",
       "normalized_name": "get-collectoreventwindowtargetdetails",
       "reference_count": 2,
@@ -6367,7 +6388,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.03C_Enrich_Actions_Retrieval.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6390,10 +6411,10 @@
           "invocation_kind": "literal_token",
           "line": 85,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6416,10 +6437,10 @@
           "invocation_kind": "literal_token",
           "line": 41,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6442,17 +6463,17 @@
           "invocation_kind": "literal_token",
           "line": 258,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         },
         {
           "column": 21,
           "invocation_kind": "literal_token",
-          "line": 435,
+          "line": 159,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6475,17 +6496,17 @@
           "invocation_kind": "literal_token",
           "line": 260,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         },
         {
           "column": 21,
           "invocation_kind": "literal_token",
-          "line": 436,
+          "line": 160,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6508,24 +6529,24 @@
           "invocation_kind": "literal_token",
           "line": 267,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         },
         {
           "column": 11,
           "invocation_kind": "literal_token",
           "line": 281,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1"
         },
         {
           "column": 19,
           "invocation_kind": "literal_token",
-          "line": 441,
+          "line": 165,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6684,7 +6705,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 25
     },
@@ -6697,7 +6718,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 313,
+      "line": 37,
       "name": "Get-Tier2DeepCheckManifestArtifactPaths",
       "normalized_name": "get-tier2deepcheckmanifestartifactpaths",
       "reference_count": 1,
@@ -6705,12 +6726,12 @@
         {
           "column": 30,
           "invocation_kind": "literal_token",
-          "line": 374,
+          "line": 98,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6723,7 +6744,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 355,
+      "line": 79,
       "name": "New-Manifest",
       "normalized_name": "new-manifest",
       "reference_count": 2,
@@ -6738,12 +6759,12 @@
         {
           "column": 24,
           "invocation_kind": "literal_token",
-          "line": 146,
+          "line": 122,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6756,7 +6777,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 424,
+      "line": 148,
       "name": "Sync-CollectionMetadataCompanionArtifact",
       "normalized_name": "sync-collectionmetadatacompanionartifact",
       "reference_count": 1,
@@ -6764,12 +6785,12 @@
         {
           "column": 34,
           "invocation_kind": "literal_token",
-          "line": 493,
+          "line": 217,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6782,7 +6803,7 @@
       "definition_kind": "top_level",
       "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
       "end_line": null,
-      "line": 471,
+      "line": 195,
       "name": "New-BundleZip",
       "normalized_name": "new-bundlezip",
       "reference_count": 2,
@@ -6797,12 +6818,12 @@
         {
           "column": 19,
           "invocation_kind": "literal_token",
-          "line": 152,
+          "line": 128,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -6910,7 +6931,7 @@
           "invocation_kind": "literal_token",
           "line": 86,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
@@ -6936,7 +6957,7 @@
           "invocation_kind": "literal_token",
           "line": 91,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
@@ -6962,28 +6983,28 @@
           "invocation_kind": "literal_token",
           "line": 45,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         },
         {
           "column": 3,
           "invocation_kind": "literal_token",
           "line": 51,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         },
         {
           "column": 3,
           "invocation_kind": "literal_token",
           "line": 56,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         },
         {
           "column": 3,
           "invocation_kind": "literal_token",
           "line": 71,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
@@ -7009,10 +7030,95 @@
           "invocation_kind": "literal_token",
           "line": 78,
           "parser": "python_lexical_fallback",
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1"
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
         }
       ],
       "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 34,
+      "name": "New-DCOIRCollectManifestInputSet",
+      "normalized_name": "new-dcoircollectmanifestinputset",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 30,
+          "invocation_kind": "literal_token",
+          "line": 121,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 110,
+      "name": "Reset-DCOIRCollectBundleStateAfterFailure",
+      "normalized_name": "reset-dcoircollectbundlestateafterfailure",
+      "reference_count": 2,
+      "references": [
+        {
+          "column": 5,
+          "invocation_kind": "literal_token",
+          "line": 153,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        },
+        {
+          "column": 3,
+          "invocation_kind": "literal_token",
+          "line": 166,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 144,
+      "name": "Write-DCOIRCollectFinalStatus",
+      "normalized_name": "write-dcoircollectfinalstatus",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 1,
+          "invocation_kind": "literal_token",
+          "line": 188,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -7038,7 +7144,7 @@
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
         }
       ],
-      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
       "static_reference_status": "literal_reference_found",
       "truncated_reference_count": 0
     },
@@ -7096,7 +7202,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-06-30T18:51:19+00:00",
+    "generated_at_utc": "2026-07-02T08:44:33+00:00",
     "parser_mode": "python_lexical_fallback",
     "tool": "project_sources/collector/tools/run_powershell_function_reachability_report.py"
   },
@@ -7122,15 +7228,15 @@
   "summary": {
     "classification_counts": {
       "dynamic_invocation_uncertain": 4,
-      "literal_referenced": 163
+      "literal_referenced": 166
     },
     "coverage_state": "not_collected",
     "dynamic_invocation_site_count": 1,
-    "function_count": 167,
+    "function_count": 170,
     "nested_function_count": 8,
     "parser_mode": "python_lexical_fallback",
-    "reference_count": 608,
-    "source_file_count": 39,
+    "reference_count": 612,
+    "source_file_count": 42,
     "validation_success": true
   },
   "validation": {
