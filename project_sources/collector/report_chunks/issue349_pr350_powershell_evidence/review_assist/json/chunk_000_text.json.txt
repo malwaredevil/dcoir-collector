@@ -36,7 +36,7 @@
   "carried_forward_warnings": [
     {
       "source_issue": 265,
-      "source_report": "project_sources/collector/_scratch_reports_04g/powershell_assembly_parity_report.json",
+      "source_report": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json",
       "warning": "no baseline parity report supplied; shrink checks used current inventory controls only"
     },
     {
@@ -121,7 +121,7 @@
           },
           "parse": {
             "errors": [],
-            "line_count": 9947,
+            "line_count": 9969,
             "method": "static_balance_check",
             "native_parser_available": false,
             "success": true
@@ -151,15 +151,15 @@
       "source_issue": 265,
       "state": "success",
       "summary": {
-        "collector_source_part_count": 39,
+        "collector_source_part_count": 40,
         "generated_output_count": 2,
         "harness_source_part_count": 17,
         "parity_status": "pass",
         "parity_success_count": 2,
         "parse_status": "pass",
         "parse_success_count": 2,
-        "source_input_count": 57,
-        "source_part_count": 56
+        "source_input_count": 58,
+        "source_part_count": 57
       }
     },
     "custom_checks": {
@@ -671,11 +671,11 @@
       "claim": "report-only reachability evidence; no function deletion readiness or runtime absence is claimed",
       "classification_counts": {
         "dynamic_invocation_uncertain": 4,
-        "literal_referenced": 155
+        "literal_referenced": 163
       },
       "coverage_state": "not_collected",
       "dynamic_invocation_site_count": 1,
-      "function_count": 159,
+      "function_count": 167,
       "parser_mode": "python_lexical_fallback",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "source_issue": 306,
@@ -925,3 +925,45 @@
       "observed_behavior": "Plaintext data is converted to SecureString.",
       "path": "project_sources/collector/fixtures/powershell_analysis/bad/plaintext_securestring.ps1",
       "recommended_fix_direction": "Avoid plaintext secret material and use a protected input path.",
+      "risk_classes": [
+        "secret_material_or_credential_handling"
+      ],
+      "rule_name": "PSAvoidUsingConvertToSecureStringWithPlainText",
+      "severity": "Warning",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "collector runtime",
+        "collector harness",
+        "operator tooling"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "50701c09a1ce350831596b956cbd51fe5d61801dfdad142b27215013edbec995",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "Generated scripts can diverge from source parts while validation still analyzes the stale generated artifact.",
+      "line": 2,
+      "observed_behavior": "Generated output marker indicates stale source-part assembly.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/source_part_drift.ps1",
+      "recommended_fix_direction": "Regenerate or compare source-part hashes before accepting analyzer evidence.",
+      "risk_classes": [
+        "source_part_assembly_drift_or_stale_generated_output"
+      ],
+      "rule_name": "DCOIR.SourcePartAssemblyDrift",
+      "severity": "Error",
+      "source_generated_target_kind": "fixture",
