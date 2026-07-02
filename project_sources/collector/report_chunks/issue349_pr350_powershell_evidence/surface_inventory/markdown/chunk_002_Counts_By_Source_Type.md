@@ -2,7 +2,7 @@
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 181 |
+| `.ps1` | 182 |
 | `.ps1.txt` | 17 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
