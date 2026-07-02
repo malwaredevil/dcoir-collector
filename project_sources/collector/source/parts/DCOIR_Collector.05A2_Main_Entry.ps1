@@ -1,290 +1,228 @@
 <#
 .SYNOPSIS
-DCOIR collector collect-mode entry function.
+DCOIR collector collect-mode finalization helpers.
 
 .DESCRIPTION
-Runs the collect-mode package preparation, run-structure initialization, baseline collection, upload guidance artifact creation, manifest finalization, bundle creation, and collect-mode status output.
+Provides connector-sized helper routines used by the collect-mode entry function loaded in the following 05A3 part.
 
 .FILE NAME
 DCOIR_Collector.05A2_Main_Entry.ps1
 
 .INPUTS
-Collector runtime parameters such as OutRoot, PackageName, RunId, Tier, targeted-collection flags, and WhatIf/ShouldProcess context.
+Collector runtime state, baseline artifact paths, metadata paths, targeted-collection flags, and collect-mode status values.
 
 .OUTPUTS
-Collect-mode status key-value lines, output artifact paths, quick next-step guidance, and persisted run state.
+Helper return values and final collect-mode status key-value lines.
 #>
 
 <#
 .SYNOPSIS
-Runs collect mode.
+Builds the collect-mode manifest inputs.
 
 .DESCRIPTION
-Contains the collect branch previously held in the main switch dispatcher. Keeping it as a function makes the source connector-sized while preserving the compiled runtime behavior and output contract.
+Centralizes the late-bound collect manifest file list and extra metadata after upload guidance artifacts and the final metadata report path are known.
 
 .FUNCTION NAME
-Invoke-DCOIRCollectMode
+New-DCOIRCollectManifestInputSet
 
 .INPUTS
-Collector runtime parameters and script-scoped state resolved by the main entry dispatcher.
+Collect run state, baseline report object, metadata report path, targeted-mode flag, and target profile name.
 
 .OUTPUTS
-Collect-mode status key-value lines and artifact paths.
+Hashtable containing Files and Extra values for New-Manifest.
 #>
-function Invoke-DCOIRCollectMode {
-$resolvedOutRoot = if ([System.IO.Path]::IsPathRooted($OutRoot)) {
-  [System.IO.Path]::GetFullPath($OutRoot)
-} else {
-  [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $OutRoot))
+function New-DCOIRCollectManifestInputSet {
+  param(
+    [hashtable]$State,
+    [object]$Baseline,
+    [string]$MetadataReportPath,
+    [bool]$TargetedMode,
+    [string]$TargetProfileName
+  )
+
+  $files = @(
+    $MetadataReportPath,
+    $State.AnalystOverviewPath,
+    $State.ParallelExecutionProofPath,
+    $State.ExecutionContextPath,
+    $State.SecurityAuditPolicyPath,
+    $State.SecurityFilteredPath,
+    $State.SecurityHighSignalSummaryPath,
+    $State.NetstatPidOnlyPath,
+    $State.UploadSummaryPath,
+    $State.UploadBudgetManifestPath,
+    $State.UploadSafeChunkManifestPath,
+    $State.CollectionScopePath,
+    $State.ParallelismAssessmentPath,
+    $State.TargetedCollectionPlanPath,
+    $Global:ExecutionTxtPath,
+    $Global:ExecutionJsonlPath,
+    $Global:ErrorsLogPath
+  ) + $Baseline.ArtifactPaths
+
+  $extra = @{
+    collect_bundle = $State.CollectBundlePath
+    analyst_overview = $State.AnalystOverviewPath
+    parallel_execution_proof = $State.ParallelExecutionProofPath
+    execution_context = $State.ExecutionContextPath
+    security_audit_policy = $State.SecurityAuditPolicyPath
+    audit_policy_access_status = $State.AuditPolicyAccessStatus
+    security_filtered = $State.SecurityFilteredPath
+    security_high_signal_summary = $State.SecurityHighSignalSummaryPath
+    netstat_owner_aware_status = $State.NetstatOwnerAwareStatus
+    netstat_pid_only = $State.NetstatPidOnlyPath
+    is_elevated = $State.IsElevated
+    upload_summary = $State.UploadSummaryPath
+    attachment_budget_manifest = $State.UploadBudgetManifestPath
+    default_gemini_upload_set_status = $State.DefaultGeminiUploadSetStatus
+    collection_scope = $State.CollectionScopePath
+    parallelism_assessment = $State.ParallelismAssessmentPath
+    targeted_collection_plan = $State.TargetedCollectionPlanPath
+    targeted_mode = [bool]$TargetedMode
+    target_profile = $TargetProfileName
+    synthetic_oversize_source = $State.SyntheticOversizeSourcePath
+    chunk_manifest = $State.ChunkManifestPath
+    upload_safe_chunk_manifest = $State.UploadSafeChunkManifestPath
+  }
+
+  return @{
+    Files = $files
+    Extra = $extra
+  }
 }
 
-$purgeCompleted = Purge-PreviousRuns -Root $resolvedOutRoot -CurrentPackageName $PackageName
-if (-not $purgeCompleted) {
-  $prepSkipReason = if ($script:CollectPrepSkipReason) { [string]$script:CollectPrepSkipReason } else { 'PACKAGE_PURGE_SKIPPED' }
-  $purgeStatusLine = if ($prepSkipReason -eq 'CUSTOM_RUN_PURGE_SKIPPED') { 'CUSTOM_RUN_PURGE_STATUS=SKIPPED' } else { 'PACKAGE_PURGE_STATUS=SKIPPED' }
-  Write-DCOIRCollectSkippedStatus -RunId $RunId -CollectorVersion $ScriptVersion -AdditionalStatusLines @($purgeStatusLine) -SkipReason $prepSkipReason -NextOptions "Re-run without -WhatIf and confirm previous package cleanup to continue collect mode."
-  return
+<#
+.SYNOPSIS
+Clears collect artifact paths after bundle creation is skipped or fails.
+
+.DESCRIPTION
+Keeps state cleanup consistent across the manifest/bundle failure path and the ShouldProcess skip path.
+
+.FUNCTION NAME
+Reset-DCOIRCollectBundleStateAfterFailure
+
+.INPUTS
+Collect run state.
+
+.OUTPUTS
+None. The state hashtable is updated in place.
+#>
+function Reset-DCOIRCollectBundleStateAfterFailure {
+  param([hashtable]$State)
+
+  foreach ($key in @(
+    'CollectBundlePath',
+    'MetadataReportPath',
+    'UploadSummaryPath',
+    'UploadBudgetManifestPath',
+    'UploadSafeChunkManifestPath',
+    'AnalystOverviewPath',
+    'CollectionScopePath',
+    'ParallelismAssessmentPath',
+    'TargetedCollectionPlanPath'
+  )) {
+    $State[$key] = $null
+  }
 }
 
-$packagePath = Move-PackageToOutRoot -Root $resolvedOutRoot -CurrentPackageName $PackageName
-if (-not $packagePath) {
-  Write-DCOIRCollectSkippedStatus -RunId $RunId -CollectorVersion $ScriptVersion -AdditionalStatusLines @('COLLECT_PACKAGE_STATUS=SKIPPED') -NextOptions "Re-run without -WhatIf and confirm package preparation to continue collect mode."
-  return
-}
+<#
+.SYNOPSIS
+Writes the final collect-mode status block.
 
-if ($WhatIfPreference) {
-  Write-DCOIRCollectSkippedStatus -RunId $RunId -CollectorVersion $ScriptVersion -AdditionalStatusLines @('COLLECT_SETUP_STATUS=SKIPPED') -NextOptions "Re-run without -WhatIf to create the collect run structure and continue collect mode."
-  return
-}
+.DESCRIPTION
+Preserves the existing collect-mode output ordering while keeping the entry function connector-sized.
 
-$dirs = Initialize-RunStructure -Root $resolvedOutRoot -CurrentRunId $RunId
-$Global:CurrentRunId = $RunId
-$Global:ExecutionTxtPath = Join-Path $dirs.LogsDir "collect_execution_log.txt"
-$Global:ExecutionJsonlPath = Join-Path $dirs.LogsDir "collect_execution_log.jsonl"
-$Global:ErrorsLogPath = Join-Path $dirs.LogsDir "errors.log"
-Set-Content -Path $Global:ExecutionTxtPath -Value ("DCOIR Collect Execution Log`r`nRunId={0}" -f $RunId) -Encoding UTF8 -ErrorAction Stop
-Set-Content -Path $Global:ExecutionJsonlPath -Value "" -Encoding UTF8 -ErrorAction Stop
-Set-Content -Path $Global:ErrorsLogPath -Value "" -Encoding UTF8 -ErrorAction Stop
+.FUNCTION NAME
+Write-DCOIRCollectFinalStatus
 
-$toolsExpanded = Expand-PackageToTools -PackagePath $packagePath -ToolsDir $dirs.ToolsDir
-if (-not $toolsExpanded) {
-  Write-DCOIRCollectSkippedStatus -RunId $RunId -CollectorVersion $ScriptVersion -AdditionalStatusLines @('TOOL_EXPANSION_STATUS=SKIPPED') -NextOptions "Re-run without -WhatIf and confirm tool expansion to continue collect mode."
-  return
-}
+.INPUTS
+Collect run state, run identifier, final status, bundle and metadata paths, and skip flags.
 
-$toolMap = Get-ToolMap -ToolsDir $dirs.ToolsDir
-$metadataReportPath = Join-Path $dirs.ReportsDir ("DCOIR_METADATA_{0}_{1}.txt" -f $env:COMPUTERNAME, $RunId)
+.OUTPUTS
+Collect-mode status key-value lines, artifact paths, Gemini upload guidance, collector errors, and quick next-step guidance.
+#>
+function Write-DCOIRCollectFinalStatus {
+  param(
+    [hashtable]$State,
+    [string]$RunId,
+    [string]$Status,
+    [string]$BundlePath,
+    [string]$MetadataReportPath,
+    [bool]$CollectPackageSkipped,
+    [bool]$CollectManifestSkipped,
+    [bool]$CollectManifestFinalizationSkipped,
+    [bool]$MetadataReportSkipped,
+    [bool]$StateSaveSkipped,
+    [bool]$UploadSummarySkipped,
+    [bool]$AttachmentBudgetManifestSkipped,
+    [bool]$UploadSafeChunkManifestSkipped,
+    [bool]$AnalystOverviewSkipped,
+    [bool]$CollectionScopeSkipped,
+    [bool]$ParallelismAssessmentSkipped,
+    [bool]$TargetedCollectionPlanSkipped,
+    [bool]$CollectGuidanceSkipped
+  )
 
-$state = New-DCOIRCollectState -RunId $RunId -ResolvedOutRoot $resolvedOutRoot -Dirs $dirs -PackagePath $packagePath -MetadataReportPath $metadataReportPath -CollectorVersion $ScriptVersion
+  $collectorCommandBase = Get-CollectorResponseActionCommandBase
+  $deleteScriptCommand = Get-CollectorDeleteScriptCommandText
 
-Initialize-ParallelBaselineCache -State $state
-
-$baseline = New-BaselineReport -State $state -ToolMap $toolMap
-Apply-FeatureWaveCollectEnhancements -State $state -Baseline $baseline
-$targetedPlanExpected = [bool]($Targeted -or (-not [string]::IsNullOrWhiteSpace($FocusProcess)) -or (-not [string]::IsNullOrWhiteSpace($FocusPath)) -or (-not [string]::IsNullOrWhiteSpace($FocusIndicator)) -or (-not [string]::IsNullOrWhiteSpace($UserReport)) -or (-not [string]::IsNullOrWhiteSpace($WindowStart)) -or (-not [string]::IsNullOrWhiteSpace($WindowEnd)))
-
-$uploadArtifacts = New-CollectUploadArtifactsWithLateMetadataReport -State $state -Baseline $baseline
-$state.UploadSummaryPath = $uploadArtifacts.UploadSummaryPath
-$state.UploadBudgetManifestPath = $uploadArtifacts.UploadManifestPath
-$state.DefaultGeminiUploadSetStatus = $uploadArtifacts.DefaultSetStatus
-$state.UploadSafeChunkManifestPath = $uploadArtifacts.UploadSafeChunkManifestPath
-$state.AnalystOverviewPath = New-AnalystOverviewArtifactWithLateMetadataReport -State $state -Baseline $baseline
-
-$uploadSafeChunkCompanionSkipped = [bool]($state.ContainsKey('UploadSafeChunkCompanionSkipped') -and [bool]$state.UploadSafeChunkCompanionSkipped)
-$uploadSafeChunkManifestExpected = [bool](($uploadArtifacts.ContainsKey('UploadSafeChunkCompanionCount') -and ([int]$uploadArtifacts.UploadSafeChunkCompanionCount -gt 0)) -or $uploadSafeChunkCompanionSkipped)
-$uploadSummarySkipped = -not $state.UploadSummaryPath
-$attachmentBudgetManifestSkipped = -not $state.UploadBudgetManifestPath
-$uploadSafeChunkManifestSkipped = [bool]($uploadSafeChunkManifestExpected -and -not $state.UploadSafeChunkManifestPath)
-$analystOverviewSkipped = -not $state.AnalystOverviewPath
-$collectionScopeSkipped = -not $state.CollectionScopePath
-$parallelismAssessmentSkipped = -not $state.ParallelismAssessmentPath
-$targetedCollectionPlanSkipped = [bool]($targetedPlanExpected -and -not $state.TargetedCollectionPlanPath)
-$collectGuidanceSkipped = [bool]($uploadSummarySkipped -or $attachmentBudgetManifestSkipped -or $uploadSafeChunkManifestSkipped -or $analystOverviewSkipped -or $collectionScopeSkipped -or $parallelismAssessmentSkipped -or $targetedCollectionPlanSkipped)
-
-$bundleName = ("DCOIR_COLLECT_BUNDLE_{0}_{1}.zip" -f $env:COMPUTERNAME, $RunId)
-$bundlePath = Join-Path $state.BundlesDir $bundleName
-$state.CollectBundlePath = $bundlePath
-$bundleCreationApproved = $PSCmdlet.ShouldProcess($bundlePath, 'Create collector ZIP bundle')
-$collectManifestSkipped = -not $bundleCreationApproved
-$collectManifestFinalized = $false
-$metadataReportSkipped = -not $bundleCreationApproved
-$collectManifest = $null
-
-if ($bundleCreationApproved) {
-  # Write metadata once after late-bound collect fields are populated and before manifest/bundle packaging.
-  $metadataText = New-MetadataReport -State $state -ToolMap $toolMap
-  $metadataReportPath = Write-ReportFile -Path $metadataReportPath -Text $metadataText
-  $metadataReportSkipped = -not $metadataReportPath
-  $state.MetadataReportPath = $metadataReportPath
-
-  if ($metadataReportPath) {
-    $collectManifestFiles = @($metadataReportPath, $state.AnalystOverviewPath, $state.ParallelExecutionProofPath, $state.ExecutionContextPath, $state.SecurityAuditPolicyPath, $state.SecurityFilteredPath, $state.SecurityHighSignalSummaryPath, $state.NetstatPidOnlyPath, $state.UploadSummaryPath, $state.UploadBudgetManifestPath, $state.UploadSafeChunkManifestPath, $state.CollectionScopePath, $state.ParallelismAssessmentPath, $state.TargetedCollectionPlanPath, $Global:ExecutionTxtPath, $Global:ExecutionJsonlPath, $Global:ErrorsLogPath) + $baseline.ArtifactPaths
-    $collectManifestExtra = @{
-      collect_bundle = $state.CollectBundlePath
-      analyst_overview = $state.AnalystOverviewPath
-      parallel_execution_proof = $state.ParallelExecutionProofPath
-      execution_context = $state.ExecutionContextPath
-      security_audit_policy = $state.SecurityAuditPolicyPath
-      audit_policy_access_status = $state.AuditPolicyAccessStatus
-      security_filtered = $state.SecurityFilteredPath
-      security_high_signal_summary = $state.SecurityHighSignalSummaryPath
-      netstat_owner_aware_status = $state.NetstatOwnerAwareStatus
-      netstat_pid_only = $state.NetstatPidOnlyPath
-      is_elevated = $state.IsElevated
-      upload_summary = $state.UploadSummaryPath
-      attachment_budget_manifest = $state.UploadBudgetManifestPath
-      default_gemini_upload_set_status = $state.DefaultGeminiUploadSetStatus
-      collection_scope = $state.CollectionScopePath
-      parallelism_assessment = $state.ParallelismAssessmentPath
-      targeted_collection_plan = $state.TargetedCollectionPlanPath
-      targeted_mode = [bool]$Targeted
-      target_profile = $TargetProfile
-      synthetic_oversize_source = $state.SyntheticOversizeSourcePath
-      chunk_manifest = $state.ChunkManifestPath
-      upload_safe_chunk_manifest = $state.UploadSafeChunkManifestPath
+  Write-Output ("STATUS={0}" -f $Status)
+  if ($CollectPackageSkipped) {
+    Write-Output "COLLECT_PACKAGE_STATUS=SKIPPED"
+    Write-Output "COLLECT_BUNDLE_STATUS=SKIPPED"
+  } elseif ($BundlePath) {
+    Write-Output "COLLECT_PACKAGE_STATUS=CREATED"
+    Write-Output "COLLECT_BUNDLE_STATUS=CREATED"
+  }
+  if ($CollectManifestSkipped) { Write-Output "COLLECT_MANIFEST_STATUS=SKIPPED" }
+  elseif ($CollectManifestFinalizationSkipped) { Write-Output "COLLECT_MANIFEST_STATUS=PARTIAL" }
+  if ($MetadataReportSkipped) { Write-Output "METADATA_REPORT_STATUS=SKIPPED" }
+  if ($StateSaveSkipped) { Write-Output "STATE_SAVE_STATUS=SKIPPED" }
+  if ($UploadSummarySkipped) { Write-Output "UPLOAD_SUMMARY_STATUS=SKIPPED" }
+  if ($AttachmentBudgetManifestSkipped) { Write-Output "ATTACHMENT_BUDGET_MANIFEST_STATUS=SKIPPED" }
+  if ($UploadSafeChunkManifestSkipped) { Write-Output "UPLOAD_SAFE_CHUNK_MANIFEST_STATUS=SKIPPED" }
+  if ($AnalystOverviewSkipped) { Write-Output "ANALYST_OVERVIEW_STATUS=SKIPPED" }
+  if ($CollectionScopeSkipped) { Write-Output "COLLECTION_SCOPE_STATUS=SKIPPED" }
+  if ($ParallelismAssessmentSkipped) { Write-Output "PARALLELISM_ASSESSMENT_STATUS=SKIPPED" }
+  if ($TargetedCollectionPlanSkipped) { Write-Output "TARGETED_COLLECTION_PLAN_STATUS=SKIPPED" }
+  Write-Output ("RUN_ID={0}" -f $RunId)
+  Write-Output ("COLLECTOR_VERSION={0}" -f $State.CollectorVersion)
+  Write-Output ("COLLECTOR_BUILD_IDENTITY={0}" -f (Get-CollectorBuildIdentity -Version $State.CollectorVersion))
+  if ($MetadataReportPath) { Write-Output ("METADATA_REPORT_PATH={0}" -f $MetadataReportPath) }
+  if ($State.ExecutionContextPath) { Write-Output ("EXECUTION_CONTEXT_PATH={0}" -f $State.ExecutionContextPath) }
+  if ($State.SecurityAuditPolicyPath) { Write-Output ("SECURITY_AUDIT_POLICY_PATH={0}" -f $State.SecurityAuditPolicyPath) }
+  Write-Output ("AUDIT_POLICY_ACCESS_STATUS={0}" -f $State.AuditPolicyAccessStatus)
+  if ($State.SecurityFilteredPath) { Write-Output ("SECURITY_FILTERED_PATH={0}" -f $State.SecurityFilteredPath) }
+  if ($State.SecurityHighSignalSummaryPath) { Write-Output ("SECURITY_HIGH_SIGNAL_SUMMARY_PATH={0}" -f $State.SecurityHighSignalSummaryPath) }
+  Write-Output ("IS_ELEVATED={0}" -f $State.IsElevated)
+  Write-Output ("NETSTAT_OWNER_AWARE_STATUS={0}" -f $State.NetstatOwnerAwareStatus)
+  if ($State.NetstatPidOnlyPath) { Write-Output ("NETSTAT_PID_ONLY_PATH={0}" -f $State.NetstatPidOnlyPath) }
+  if ($State.AnalystOverviewPath) { Write-Output ("ANALYST_OVERVIEW_PATH={0}" -f $State.AnalystOverviewPath) }
+  if ($State.ParallelExecutionProofPath) { Write-Output ("PARALLEL_EXECUTION_PROOF_PATH={0}" -f $State.ParallelExecutionProofPath) }
+  if ($State.UploadSummaryPath) { Write-Output ("UPLOAD_SUMMARY_PATH={0}" -f $State.UploadSummaryPath) }
+  if ($State.UploadBudgetManifestPath) { Write-Output ("ATTACHMENT_BUDGET_MANIFEST_PATH={0}" -f $State.UploadBudgetManifestPath) }
+  if ($State.UploadSafeChunkManifestPath) { Write-Output ("UPLOAD_SAFE_CHUNK_MANIFEST_PATH={0}" -f $State.UploadSafeChunkManifestPath) }
+  if ($State.CollectionScopePath) { Write-Output ("COLLECTION_SCOPE_PATH={0}" -f $State.CollectionScopePath) }
+  if ($State.ParallelismAssessmentPath) { Write-Output ("PARALLELISM_ASSESSMENT_PATH={0}" -f $State.ParallelismAssessmentPath) }
+  if ($State.TargetedCollectionPlanPath) { Write-Output ("TARGETED_COLLECTION_PLAN_PATH={0}" -f $State.TargetedCollectionPlanPath) }
+  if ($State.SyntheticOversizeSourcePath) { Write-Output ("SYNTHETIC_OVERSIZE_SOURCE_PATH={0}" -f $State.SyntheticOversizeSourcePath) }
+  if ($State.ChunkManifestPath) { Write-Output ("CHUNK_MANIFEST_PATH={0}" -f $State.ChunkManifestPath) }
+  Write-Output ("DEFAULT_GEMINI_UPLOAD_SET_STATUS={0}" -f $State.DefaultGeminiUploadSetStatus)
+  if ($BundlePath) {
+    Write-Output ("COLLECT_BUNDLE_PATH={0}" -f $BundlePath)
+    Write-Output ('NEXT_GET_FILE=get-file --path "{0}" --comment "Retrieve DCOIR collect bundle"' -f $BundlePath)
+  }
+  Write-Output ('CLEANUP_COMMAND=execute --command "{0} -Quick cleanup" --comment "Running Cleanup on DCOIR_Collector"' -f $collectorCommandBase)
+  Write-Output ("DELETE_SCRIPT_COMMAND={0}" -f $deleteScriptCommand)
+  if (-not $CollectGuidanceSkipped -and -not $MetadataReportSkipped) {
+    Write-Output ('GEMINI_UPLOAD_GUIDANCE=Prefer ANALYST_OVERVIEW_PATH, UPLOAD_SUMMARY_PATH, ATTACHMENT_BUDGET_MANIFEST_PATH, COLLECTION_SCOPE_PATH, PARALLELISM_ASSESSMENT_PATH, and representative final_artifacts slices. If UPLOAD_SAFE_CHUNK_MANIFEST_PATH exists, use it for full-fidelity oversized text artifacts after triage summaries. If TARGETED_COLLECTION_PLAN_PATH exists, include it for narrow incidents.')
+  } else {
+    Write-Output "GEMINI_UPLOAD_GUIDANCE_STATUS=SKIPPED"
+  }
+  foreach ($collectorError in @($Global:CollectorErrors)) {
+    if (-not [string]::IsNullOrWhiteSpace([string]$collectorError)) {
+      Write-Output ("COLLECTOR_ERROR={0}" -f $collectorError)
     }
-    $collectManifest = New-Manifest -ManifestPath (Join-Path $state.RunRoot "manifest_collect.json") -State $state -ModeName "Collect" -TierName $Tier -Files $collectManifestFiles -ToolMap $toolMap -Extra $collectManifestExtra
-    $collectManifestSkipped = -not $collectManifest
-    $collectManifestFinalized = [bool]$collectManifest
   }
-
-  if ($collectManifest) {
-    $bundlePath = New-BundleZip -BundlesDir $state.BundlesDir -BundleName $bundleName -Confirm:$false -Paths @(
-      $metadataReportPath,
-      $state.AnalystOverviewPath,
-      $state.ParallelExecutionProofPath,
-      $state.ExecutionContextPath,
-      $state.SecurityAuditPolicyPath,
-      $state.SecurityFilteredPath,
-      $state.SecurityHighSignalSummaryPath,
-      $state.NetstatPidOnlyPath,
-      $state.UploadSummaryPath,
-      $state.UploadBudgetManifestPath,
-      $state.UploadSafeChunkManifestPath,
-      $state.ArtifactsDir,
-      $Global:ExecutionTxtPath,
-      $Global:ExecutionJsonlPath,
-      $Global:ErrorsLogPath,
-      $collectManifest
-    )
-  } else {
-    $bundlePath = $null
-  }
-
-  if ($bundlePath) {
-    $state.CollectBundlePath = $bundlePath
-  } else {
-    $state.CollectBundlePath = $null
-    $metadataReportPath = $null
-    $state.MetadataReportPath = $null
-    $metadataReportSkipped = $true
-    $state.UploadSummaryPath = $null
-    $state.UploadBudgetManifestPath = $null
-    $state.UploadSafeChunkManifestPath = $null
-    $state.AnalystOverviewPath = $null
-    $state.CollectionScopePath = $null
-    $state.ParallelismAssessmentPath = $null
-    $state.TargetedCollectionPlanPath = $null
-    $uploadSummarySkipped = $true
-    $attachmentBudgetManifestSkipped = $true
-    $uploadSafeChunkManifestSkipped = [bool]$uploadSafeChunkManifestExpected
-    $analystOverviewSkipped = $true
-    $collectionScopeSkipped = $true
-    $parallelismAssessmentSkipped = $true
-    $targetedCollectionPlanSkipped = [bool]$targetedPlanExpected
-    $collectGuidanceSkipped = $true
-  }
-} else {
-  $metadataReportPath = $null
-  $state.MetadataReportPath = $null
-  $state.CollectBundlePath = $null
-  $state.UploadSummaryPath = $null
-  $state.UploadBudgetManifestPath = $null
-  $state.UploadSafeChunkManifestPath = $null
-  $state.AnalystOverviewPath = $null
-  $state.CollectionScopePath = $null
-  $state.ParallelismAssessmentPath = $null
-  $state.TargetedCollectionPlanPath = $null
-  $bundlePath = $null
-  $uploadSummarySkipped = $true
-  $attachmentBudgetManifestSkipped = $true
-  $uploadSafeChunkManifestSkipped = [bool]$uploadSafeChunkManifestExpected
-  $analystOverviewSkipped = $true
-  $collectionScopeSkipped = $true
-  $parallelismAssessmentSkipped = $true
-  $targetedCollectionPlanSkipped = [bool]$targetedPlanExpected
-  $collectGuidanceSkipped = $true
-}
-
-$stateSavePath = Save-State -State $state
-$collectPackageSkipped = -not $bundlePath
-$collectManifestFinalizationSkipped = -not $collectManifestFinalized
-$stateSaveSkipped = -not $stateSavePath
-
-$status = "SUCCESS"
-if ($collectPackageSkipped -or $collectManifestFinalizationSkipped -or $metadataReportSkipped -or $stateSaveSkipped -or $collectGuidanceSkipped) { $status = "PARTIAL_SUCCESS" }
-if ($status -eq "SUCCESS" -and @($Global:CollectorErrors).Count -gt 0) { $status = "PARTIAL_SUCCESS" }
-
-$collectorCommandBase = Get-CollectorResponseActionCommandBase
-$deleteScriptCommand = Get-CollectorDeleteScriptCommandText
-
-Write-Output ("STATUS={0}" -f $status)
-if ($collectPackageSkipped) {
-  Write-Output "COLLECT_PACKAGE_STATUS=SKIPPED"
-  Write-Output "COLLECT_BUNDLE_STATUS=SKIPPED"
-} elseif ($bundlePath) {
-  Write-Output "COLLECT_PACKAGE_STATUS=CREATED"
-  Write-Output "COLLECT_BUNDLE_STATUS=CREATED"
-}
-if ($collectManifestSkipped) { Write-Output "COLLECT_MANIFEST_STATUS=SKIPPED" }
-elseif ($collectManifestFinalizationSkipped) { Write-Output "COLLECT_MANIFEST_STATUS=PARTIAL" }
-if ($metadataReportSkipped) { Write-Output "METADATA_REPORT_STATUS=SKIPPED" }
-if ($stateSaveSkipped) { Write-Output "STATE_SAVE_STATUS=SKIPPED" }
-if ($uploadSummarySkipped) { Write-Output "UPLOAD_SUMMARY_STATUS=SKIPPED" }
-if ($attachmentBudgetManifestSkipped) { Write-Output "ATTACHMENT_BUDGET_MANIFEST_STATUS=SKIPPED" }
-if ($uploadSafeChunkManifestSkipped) { Write-Output "UPLOAD_SAFE_CHUNK_MANIFEST_STATUS=SKIPPED" }
-if ($analystOverviewSkipped) { Write-Output "ANALYST_OVERVIEW_STATUS=SKIPPED" }
-if ($collectionScopeSkipped) { Write-Output "COLLECTION_SCOPE_STATUS=SKIPPED" }
-if ($parallelismAssessmentSkipped) { Write-Output "PARALLELISM_ASSESSMENT_STATUS=SKIPPED" }
-if ($targetedCollectionPlanSkipped) { Write-Output "TARGETED_COLLECTION_PLAN_STATUS=SKIPPED" }
-Write-Output ("RUN_ID={0}" -f $RunId)
-Write-Output ("COLLECTOR_VERSION={0}" -f $state.CollectorVersion)
-Write-Output ("COLLECTOR_BUILD_IDENTITY={0}" -f (Get-CollectorBuildIdentity -Version $state.CollectorVersion))
-if ($metadataReportPath) { Write-Output ("METADATA_REPORT_PATH={0}" -f $metadataReportPath) }
-if ($state.ExecutionContextPath) { Write-Output ("EXECUTION_CONTEXT_PATH={0}" -f $state.ExecutionContextPath) }
-if ($state.SecurityAuditPolicyPath) { Write-Output ("SECURITY_AUDIT_POLICY_PATH={0}" -f $state.SecurityAuditPolicyPath) }
-Write-Output ("AUDIT_POLICY_ACCESS_STATUS={0}" -f $state.AuditPolicyAccessStatus)
-if ($state.SecurityFilteredPath) { Write-Output ("SECURITY_FILTERED_PATH={0}" -f $state.SecurityFilteredPath) }
-if ($state.SecurityHighSignalSummaryPath) { Write-Output ("SECURITY_HIGH_SIGNAL_SUMMARY_PATH={0}" -f $state.SecurityHighSignalSummaryPath) }
-Write-Output ("IS_ELEVATED={0}" -f $state.IsElevated)
-Write-Output ("NETSTAT_OWNER_AWARE_STATUS={0}" -f $state.NetstatOwnerAwareStatus)
-if ($state.NetstatPidOnlyPath) { Write-Output ("NETSTAT_PID_ONLY_PATH={0}" -f $state.NetstatPidOnlyPath) }
-if ($state.AnalystOverviewPath) { Write-Output ("ANALYST_OVERVIEW_PATH={0}" -f $state.AnalystOverviewPath) }
-if ($state.ParallelExecutionProofPath) { Write-Output ("PARALLEL_EXECUTION_PROOF_PATH={0}" -f $state.ParallelExecutionProofPath) }
-if ($state.UploadSummaryPath) { Write-Output ("UPLOAD_SUMMARY_PATH={0}" -f $state.UploadSummaryPath) }
-if ($state.UploadBudgetManifestPath) { Write-Output ("ATTACHMENT_BUDGET_MANIFEST_PATH={0}" -f $state.UploadBudgetManifestPath) }
-if ($state.UploadSafeChunkManifestPath) { Write-Output ("UPLOAD_SAFE_CHUNK_MANIFEST_PATH={0}" -f $state.UploadSafeChunkManifestPath) }
-if ($state.CollectionScopePath) { Write-Output ("COLLECTION_SCOPE_PATH={0}" -f $state.CollectionScopePath) }
-if ($state.ParallelismAssessmentPath) { Write-Output ("PARALLELISM_ASSESSMENT_PATH={0}" -f $state.ParallelismAssessmentPath) }
-if ($state.TargetedCollectionPlanPath) { Write-Output ("TARGETED_COLLECTION_PLAN_PATH={0}" -f $state.TargetedCollectionPlanPath) }
-if ($state.SyntheticOversizeSourcePath) { Write-Output ("SYNTHETIC_OVERSIZE_SOURCE_PATH={0}" -f $state.SyntheticOversizeSourcePath) }
-if ($state.ChunkManifestPath) { Write-Output ("CHUNK_MANIFEST_PATH={0}" -f $state.ChunkManifestPath) }
-Write-Output ("DEFAULT_GEMINI_UPLOAD_SET_STATUS={0}" -f $state.DefaultGeminiUploadSetStatus)
-if ($bundlePath) {
-  Write-Output ("COLLECT_BUNDLE_PATH={0}" -f $bundlePath)
-  Write-Output ('NEXT_GET_FILE=get-file --path "{0}" --comment "Retrieve DCOIR collect bundle"' -f $bundlePath)
-}
-Write-Output ('CLEANUP_COMMAND=execute --command "{0} -Quick cleanup" --comment "Running Cleanup on DCOIR_Collector"' -f $collectorCommandBase)
-Write-Output ("DELETE_SCRIPT_COMMAND={0}" -f $deleteScriptCommand)
-if (-not $collectGuidanceSkipped -and -not $metadataReportSkipped) {
-  Write-Output ('GEMINI_UPLOAD_GUIDANCE=Prefer ANALYST_OVERVIEW_PATH, UPLOAD_SUMMARY_PATH, ATTACHMENT_BUDGET_MANIFEST_PATH, COLLECTION_SCOPE_PATH, PARALLELISM_ASSESSMENT_PATH, and representative final_artifacts slices. If UPLOAD_SAFE_CHUNK_MANIFEST_PATH exists, use it for full-fidelity oversized text artifacts after triage summaries. If TARGETED_COLLECTION_PLAN_PATH exists, include it for narrow incidents.')
-} else {
-  Write-Output "GEMINI_UPLOAD_GUIDANCE_STATUS=SKIPPED"
-}
-foreach ($collectorError in @($Global:CollectorErrors)) {
-  if (-not [string]::IsNullOrWhiteSpace([string]$collectorError)) {
-    Write-Output ("COLLECTOR_ERROR={0}" -f $collectorError)
-  }
-}
-Write-QuickNextSteps -Phase "Collect"
+  Write-QuickNextSteps -Phase "Collect"
 }
