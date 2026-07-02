@@ -1,7 +1,7 @@
 ## Inventory Decisions
 
 - Full-scope inventory mode: `full`
-- Total PowerShell surfaces: `244`
+- Total PowerShell surfaces: `245`
 
 ### Excluded Paths
 
