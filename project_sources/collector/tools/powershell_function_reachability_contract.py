@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""Shared contract helpers for the PowerShell function reachability report."""
 from __future__ import annotations
 
 import json
@@ -5,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from powershell_analyzer_contract import AnalyzerContractError, repo_relative_input_path, sha256_file as _sha256_file
+from powershell_analyzer_contract import AnalyzerContractError, repo_relative_input_path, sha256_file
 
 SCHEMA_VERSION = "dcoir_powershell_function_reachability_report_v1"
 ISSUE_NUMBER = 306
@@ -28,6 +30,7 @@ NON_CLAIMS = [
     "Runtime-lane coverage is not collected unless explicit suite evidence is supplied by a later lane.",
     "Static absence is reported as bounded evidence, not as proof of operator or dynamic invocation absence.",
 ]
+
 
 class ReachabilityError(RuntimeError):
     """Raised for fail-closed reachability report errors."""
@@ -69,26 +72,8 @@ class Reference:
         return self.name.casefold()
 
 
-def sha256_file(path: Path) -> str:
-    return _sha256_file(path)
-
-
 def scalar(value: Any) -> str:
     return "" if value is None else str(value)
-
-
-def ast_definition_kind(value: Any) -> str:
-    definition_kind = scalar(value).strip()
-    if not definition_kind:
-        return "top_level"
-    return definition_kind
-
-
-def ast_invocation_kind(value: Any) -> str:
-    invocation_kind = scalar(value).strip()
-    if not invocation_kind:
-        return "not_extracted"
-    return invocation_kind
 
 
 def read_json(path: Path, label: str) -> Any:
@@ -124,6 +109,26 @@ def context_line(text: str, line: int) -> str:
     return ""
 
 
+def ast_definition_kind(value: Any) -> str:
+    normalized = scalar(value).strip()
+    return normalized or "top_level"
+
+
+def ast_invocation_kind(value: Any) -> str:
+    normalized = scalar(value).strip()
+    return normalized or "not_extracted"
+
+
+def safe_manifest_source_path(repo_root: Path, value: str | Path, label: str = "collector runtime source") -> Path:
+    try:
+        path = repo_relative_input_path(repo_root, value, label)
+    except AnalyzerContractError as exc:
+        raise ReachabilityError(str(exc)) from exc
+    if not path.is_file():
+        raise ReachabilityError(f"{label} is missing: {value}")
+    return path
+
+
 def safe_output_path(repo_root: Path, value: str | Path, label: str, suffix: str) -> tuple[Path, str]:
     try:
         path = repo_relative_input_path(repo_root, value, label)
@@ -140,22 +145,11 @@ def safe_output_path(repo_root: Path, value: str | Path, label: str, suffix: str
     return path, repo_path
 
 
-def safe_manifest_source_path(repo_root: Path, value: str) -> tuple[Path, str]:
-    try:
-        path = repo_relative_input_path(repo_root, value, "collector runtime source")
-    except AnalyzerContractError as exc:
-        raise ReachabilityError(str(exc)) from exc
-    try:
-        repo_path = path.resolve().relative_to(repo_root.resolve()).as_posix()
-    except (OSError, RuntimeError, ValueError) as exc:
-        raise ReachabilityError(f"collector runtime source must resolve inside the repository root: {value}") from exc
-    return path, repo_path
-
-
 def resolve_sources(repo_root: Path, manifest_path: Path) -> tuple[dict[str, Any], list[SourceFile], list[str]]:
     manifest = read_json(manifest_path, "collector runtime manifest")
     if not isinstance(manifest, dict):
         raise ReachabilityError("collector runtime manifest must be a JSON object")
+
     errors: list[str] = []
     source_values: list[str] = []
     wrapper = manifest.get("collector_wrapper_source")
@@ -163,6 +157,7 @@ def resolve_sources(repo_root: Path, manifest_path: Path) -> tuple[dict[str, Any
         errors.append("collector manifest: collector_wrapper_source must be a non-empty string")
     else:
         source_values.append(wrapper)
+
     part_files = manifest.get("collector_part_files")
     if not isinstance(part_files, list) or not part_files:
         errors.append("collector manifest: collector_part_files must be a non-empty list")
@@ -172,15 +167,22 @@ def resolve_sources(repo_root: Path, manifest_path: Path) -> tuple[dict[str, Any
                 errors.append(f"collector manifest: collector_part_files[{index}] must be a non-empty string")
             else:
                 source_values.append(item)
+
     sources: list[SourceFile] = []
     for load_order, raw in enumerate(source_values):
         try:
-            path, repo_path = safe_manifest_source_path(repo_root, raw)
-        except ReachabilityError as exc:
+            path = repo_relative_input_path(repo_root, raw, "collector runtime source")
+        except AnalyzerContractError as exc:
             errors.append(str(exc))
             continue
         if not path.is_file():
             errors.append(f"collector runtime source is missing: {raw}")
             continue
-        sources.append(SourceFile(repo_path=repo_path, path=path, load_order=load_order))
+        sources.append(
+            SourceFile(
+                repo_path=path.resolve().relative_to(repo_root.resolve()).as_posix(),
+                path=path,
+                load_order=load_order,
+            )
+        )
     return manifest, sources, errors
