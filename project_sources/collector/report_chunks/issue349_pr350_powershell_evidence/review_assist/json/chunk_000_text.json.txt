@@ -36,7 +36,7 @@
   "carried_forward_warnings": [
     {
       "source_issue": 265,
-      "source_report": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json",
+      "source_report": "project_sources/collector/powershell_assembly_parity_report.json",
       "warning": "no baseline parity report supplied; shrink checks used current inventory controls only"
     },
     {
@@ -121,7 +121,7 @@
           },
           "parse": {
             "errors": [],
-            "line_count": 9969,
+            "line_count": 10099,
             "method": "static_balance_check",
             "native_parser_available": false,
             "success": true
@@ -151,15 +151,15 @@
       "source_issue": 265,
       "state": "success",
       "summary": {
-        "collector_source_part_count": 40,
+        "collector_source_part_count": 41,
         "generated_output_count": 2,
         "harness_source_part_count": 17,
         "parity_status": "pass",
         "parity_success_count": 2,
         "parse_status": "pass",
         "parse_success_count": 2,
-        "source_input_count": 58,
-        "source_part_count": 57
+        "source_input_count": 59,
+        "source_part_count": 58
       }
     },
     "custom_checks": {
@@ -671,11 +671,11 @@
       "claim": "report-only reachability evidence; no function deletion readiness or runtime absence is claimed",
       "classification_counts": {
         "dynamic_invocation_uncertain": 4,
-        "literal_referenced": 163
+        "literal_referenced": 166
       },
       "coverage_state": "not_collected",
       "dynamic_invocation_site_count": 1,
-      "function_count": 167,
+      "function_count": 170,
       "parser_mode": "python_lexical_fallback",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "source_issue": 306,
