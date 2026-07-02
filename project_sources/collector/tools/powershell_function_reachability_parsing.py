@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+"""PowerShell parsing helpers for the function reachability report."""
 from __future__ import annotations
 
 import json
@@ -6,6 +8,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 from powershell_function_reachability_contract import (
     Definition,
@@ -94,6 +97,33 @@ foreach ($source in $payload.sources) {
 
 $items | ConvertTo-Json -Depth 10 | Out-File -LiteralPath $OutputJson -Encoding UTF8
 """
+
+
+def powershell_backtick_tolerant_literal(value: str) -> str:
+    return r"`*".join(re.escape(char) for char in value)
+
+
+FUNCTION_RE = re.compile(r"(?i)(?<![-\w])function\s+([A-Za-z_][A-Za-z0-9_-]*)")
+TOKEN_RE = re.compile(r"(?<![-\w])([A-Za-z_][A-Za-z0-9_-]*)(?![-\w])")
+INVOKE_EXPRESSION_RE = re.compile(
+    r"(?<![-\w])" + powershell_backtick_tolerant_literal("Invoke-Expression") + r"(?![-\w])",
+    re.IGNORECASE,
+)
+AST_DYNAMIC_TEXT_RE = re.compile(r"(?i)(^|\s)(Invoke-Expression|&\s*\$|\.\s*\$|\[ScriptBlock\]::Create)")
+DYNAMIC_PATTERNS = (
+    ("call_operator_variable", re.compile(r"&[ \t]*\$[A-Za-z_][A-Za-z0-9_]*", re.IGNORECASE)),
+    ("dot_source_variable", re.compile(r"\.[ \t]*\$[A-Za-z_][A-Za-z0-9_]*", re.IGNORECASE)),
+    ("invoke_expression", INVOKE_EXPRESSION_RE),
+    ("scriptblock_create", re.compile(r"\[ScriptBlock\]::Create", re.IGNORECASE)),
+)
+
+
+def captured_text(value: Any, limit: int = 240) -> str:
+    return scalar(value).strip()[:limit]
+
+
+def has_dynamic_command_text(text: str) -> bool:
+    return AST_DYNAMIC_TEXT_RE.search(text) is not None or any(pattern.search(text) for _kind, pattern in DYNAMIC_PATTERNS)
 
 
 def mask_powershell_non_code(text: str) -> str:
@@ -194,28 +224,6 @@ def brace_depths(masked: str) -> list[int]:
     return depths
 
 
-def powershell_backtick_tolerant_literal(value: str) -> str:
-    return "".join(r"`?" + re.escape(character) for character in value)
-
-
-FUNCTION_RE = re.compile(r"(?i)(?<![-\w])function\s+([A-Za-z_][A-Za-z0-9_-]*)")
-TOKEN_RE = re.compile(r"(?<![-\w])([A-Za-z_][A-Za-z0-9_-]*)(?![-\w])")
-INVOKE_EXPRESSION_RE = re.compile(
-    rf"(?i)(?<![-\w]){powershell_backtick_tolerant_literal('Invoke-Expression')}(?!`?[-\w])"
-)
-AST_DYNAMIC_TEXT_RE = re.compile(r"(?i)(^|\s)(&\s*\$|\.\s*\$|\[ScriptBlock\]::Create)")
-DYNAMIC_PATTERNS = (
-    ("call_operator_variable", re.compile(r"&[ \t]*\$[A-Za-z_][A-Za-z0-9_]*", re.IGNORECASE)),
-    ("dot_source_variable", re.compile(r"\.[ \t]*\$[A-Za-z_][A-Za-z0-9_]*", re.IGNORECASE)),
-    ("invoke_expression", INVOKE_EXPRESSION_RE),
-    ("scriptblock_create", re.compile(r"\[ScriptBlock\]::Create", re.IGNORECASE)),
-)
-
-
-def has_dynamic_command_text(text: str) -> bool:
-    return bool(INVOKE_EXPRESSION_RE.search(text) or AST_DYNAMIC_TEXT_RE.search(text))
-
-
 def fallback_function_keys(sources: list[SourceFile]) -> set[str]:
     keys: set[str] = set()
     for source in sources:
@@ -228,7 +236,7 @@ def fallback_function_keys(sources: list[SourceFile]) -> set[str]:
 def fallback_parse_source(
     source: SourceFile,
     all_function_keys: set[str] | None = None,
-) -> tuple[list[Definition], list[Reference], list[dict[str, object]], list[dict[str, object]]]:
+) -> tuple[list[Definition], list[Reference], list[dict[str, Any]], list[dict[str, Any]]]:
     text = normalize_newlines(source.path.read_text(encoding="utf-8", errors="ignore"))
     masked = mask_powershell_non_code(text)
     depths = brace_depths(masked)
@@ -250,6 +258,7 @@ def fallback_parse_source(
                 load_order=source.load_order,
             )
         )
+
     definition_name_spans = set(definition_spans)
     function_keys = all_function_keys if all_function_keys is not None else {definition.name.casefold() for definition in definitions}
     references: list[Reference] = []
@@ -276,7 +285,8 @@ def fallback_parse_source(
                 parser="python_lexical_fallback",
             )
         )
-    dynamic_sites: list[dict[str, object]] = []
+
+    dynamic_sites: list[dict[str, Any]] = []
     for kind, pattern in DYNAMIC_PATTERNS:
         for match in pattern.finditer(masked):
             line, column = line_column(masked, match.start())
@@ -293,29 +303,26 @@ def fallback_parse_source(
     return definitions, references, dynamic_sites, []
 
 
-def captured_text(value: str | bytes | None) -> str:
-    if value is None:
-        return ""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", errors="replace")
-    return value
-
-
 def powershell_executable() -> str | None:
     return shutil.which("pwsh") or shutil.which("powershell")
 
 
-def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definition], list[Reference], list[dict[str, object]], list[dict[str, object]], str]:
+def _text_from_timeout(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace")
+    return str(value)
+
+
+def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definition], list[Reference], list[dict[str, Any]], list[dict[str, Any]], str]:
     exe = powershell_executable()
     if not exe:
         return [], [], [], [{"message": "PowerShell parser executable not found; used Python lexical fallback."}], "python_lexical_fallback"
+
     payload = {
         "sources": [
-            {
-                "path": source.path.as_posix(),
-                "repo_path": source.repo_path,
-                "load_order": source.load_order,
-            }
+            {"path": source.path.as_posix(), "repo_path": source.repo_path, "load_order": source.load_order}
             for source in sources
         ]
     }
@@ -332,16 +339,17 @@ def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definitio
                 text=True,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                check=False,
                 timeout=60,
+                check=False,
             )
         except subprocess.TimeoutExpired as exc:
-            warning = {
-                "message": "PowerShell AST parse timed out after 60 seconds; used Python lexical fallback.",
-                "stdout": captured_text(exc.stdout)[-1000:],
-                "stderr": captured_text(exc.stderr)[-1000:],
-            }
-            return [], [], [], [warning], "python_lexical_fallback"
+            return [], [], [], [
+                {
+                    "message": "PowerShell AST parse timed out; used Python lexical fallback.",
+                    "stdout": _text_from_timeout(exc.output),
+                    "stderr": _text_from_timeout(exc.stderr),
+                }
+            ], "python_lexical_fallback"
         if proc.returncode != 0 or not output_json.exists():
             warning = {
                 "message": "PowerShell AST parse failed; used Python lexical fallback.",
@@ -350,15 +358,14 @@ def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definitio
             }
             return [], [], [], [warning], "python_lexical_fallback"
         raw = json.loads(output_json.read_text(encoding="utf-8-sig"))
-    if isinstance(raw, dict):
-        raw_items = [raw]
-    else:
-        raw_items = raw if isinstance(raw, list) else []
+
+    raw_items = [raw] if isinstance(raw, dict) else raw if isinstance(raw, list) else []
     definitions: list[Definition] = []
     references: list[Reference] = []
-    dynamic_sites: list[dict[str, object]] = []
-    parse_errors: list[dict[str, object]] = []
+    dynamic_sites: list[dict[str, Any]] = []
+    parse_errors: list[dict[str, Any]] = []
     function_names: set[str] = set()
+
     for item in raw_items:
         if not isinstance(item, dict):
             continue
@@ -383,6 +390,7 @@ def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definitio
                     load_order=int(raw_def.get("load_order") or 0),
                 )
             )
+
     for item in raw_items:
         if not isinstance(item, dict):
             continue
@@ -413,22 +421,18 @@ def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definitio
                         "source_path": source_path,
                         "line": line,
                         "column": column,
-                        "context": text[:240],
+                        "context": captured_text(text),
                         "claim": "PowerShell AST could not resolve this command to a literal local function name.",
                     }
                 )
     return definitions, references, dynamic_sites, parse_errors, "powershell_ast"
 
 
-def parse_sources(sources: list[SourceFile], parser_mode: str) -> tuple[list[Definition], list[Reference], list[dict[str, object]], list[dict[str, object]], str]:
-    if parser_mode in {"auto", "powershell_ast"}:
-        definitions, references, dynamic_sites, warnings, mode = parse_with_powershell_ast(sources)
-        if mode == "powershell_ast" or parser_mode == "powershell_ast":
-            return definitions, references, dynamic_sites, warnings, mode
+def parse_sources(sources: list[SourceFile], parser_mode: str) -> tuple[list[Definition], list[Reference], list[dict[str, Any]], list[dict[str, Any]], str]:
     definitions: list[Definition] = []
     references: list[Reference] = []
-    dynamic_sites: list[dict[str, object]] = []
-    warnings: list[dict[str, object]] = []
+    dynamic_sites: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
     all_function_keys = fallback_function_keys(sources)
     for source in sources:
         defs, refs, dynamic, parse_warnings = fallback_parse_source(source, all_function_keys)
