@@ -1,3 +1,18 @@
+          "generated_line_start": 1191,
+          "generated_line_end": 1350,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 271,
+          "generated_line_start": 1351,
+          "generated_line_end": 1621,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "source_line_start": 1,
           "source_line_end": 157,
           "generated_line_start": 1622,
           "generated_line_end": 1778,
@@ -147,7 +162,7 @@
     ]
   },
   "outputs": {
-    "json": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json",
-    "markdown": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.md"
+    "json": "project_sources/collector/powershell_assembly_parity_report.json",
+    "markdown": "project_sources/collector/powershell_assembly_parity_report.md"
   }
 }
