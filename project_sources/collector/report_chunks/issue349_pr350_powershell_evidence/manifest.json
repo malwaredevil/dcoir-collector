@@ -1,6 +1,6 @@
 {
   "canonical_reports_policy": "Canonical generated reports remain at project_sources/collector/*.json and *.md. These chunks do not replace those files without a future loader/reassembly validation lane.",
-  "file_count": 44,
+  "file_count": 43,
   "issue": 349,
   "max_chunk_bytes_target": 40000,
   "pull_request": 350,
@@ -12,29 +12,29 @@
       "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/manifest.json",
       "reassembly_mode": "byte_exact_text_slices",
       "report_id": "surface_inventory",
-      "source_bytes": 212003,
+      "source_bytes": 213048,
       "source_format": "json",
       "source_report": "project_sources/collector/powershell_surface_inventory.json",
-      "source_sha256": "ef935887c93a55597e44eae1173a77b036e02ce51a924f801fddcd5a83820561"
+      "source_sha256": "2929deb4c7fb687b4870fd5c890b550e61a1af0dc5e0957dd4d3b93bbddeacff"
     },
     {
       "chunk_count": 7,
       "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/manifest.json",
       "report_id": "surface_inventory",
-      "source_bytes": 25251,
+      "source_bytes": 25359,
       "source_format": "markdown",
       "source_report": "project_sources/collector/powershell_surface_inventory.md",
-      "source_sha256": "0a1d0aa2159d61083b5647719a2a4da1b929bd1795a067409402335ffa2d74a2"
+      "source_sha256": "93ab9551bbb524b6914fb86be052dec4f3dcd1ac8e7bd86a34c3f45fd65bbab2"
     },
     {
       "chunk_count": 2,
       "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/assembly_parity/json/manifest.json",
       "reassembly_mode": "byte_exact_text_slices",
       "report_id": "assembly_parity",
-      "source_bytes": 46022,
+      "source_bytes": 46811,
       "source_format": "json",
       "source_report": "project_sources/collector/powershell_assembly_parity_report.json",
-      "source_sha256": "adce952e2bd15318485637a8d52bdfbed8fb1f44d4a697ce920957d8e48e2905"
+      "source_sha256": "1f7f414794cc6ed2e922207480c5cb4eed5d574f855d230848efd55c15b2c584"
     },
     {
       "chunk_count": 5,
@@ -43,40 +43,40 @@
       "source_bytes": 2772,
       "source_format": "markdown",
       "source_report": "project_sources/collector/powershell_assembly_parity_report.md",
-      "source_sha256": "382bfb8b626d0ab4a57c029741355b196cedf7eac1686af1b3b9a3bc1ac5109b"
+      "source_sha256": "0ebe3bef1c818e2f90856aee0e5995def57fac1253057e8a98256bc69a1e50cd"
     },
     {
-      "chunk_count": 5,
+      "chunk_count": 4,
       "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/manifest.json",
       "reassembly_mode": "byte_exact_text_slices",
       "report_id": "review_assist",
-      "source_bytes": 156030,
+      "source_bytes": 156450,
       "source_format": "json",
       "source_report": "project_sources/collector/powershell_review_assist_report.json",
-      "source_sha256": "7620ffe79722cbd0344bfc3acfa0eb131d971b4445aeaffa198303d9a598a4c4"
+      "source_sha256": "64b152e2a15a5786ffd048a865d9d9d657232c334334e9376f79d1db460c6a48"
     },
     {
       "chunk_count": 11,
       "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/manifest.json",
       "report_id": "review_assist",
-      "source_bytes": 30305,
+      "source_bytes": 30320,
       "source_format": "markdown",
       "source_report": "project_sources/collector/powershell_review_assist_report.md",
-      "source_sha256": "0110985e97553ed0dad1fe3f3b57612beeb1390d384c257440f0d12add6dcb22"
+      "source_sha256": "228eecd04d68a55f79ccec760b50cd8fb3c6796d679f8e6d601cf7b9c73d93ab"
     }
   ],
   "schema_version": "dcoir_powershell_evidence_chunk_set_v1",
   "sidecar_commit_sha_policy": "This manifest does not self-reference the containing commit because each manifest edit changes that commit. Use live GitHub branch or commit readback for the current sidecar commit SHA.",
-  "source_report_path_policy": "source_report identifies the canonical report path and report contract. It is not a claim that the current branch's monolithic canonical report file matches the sidecar chunks while canonical_reports_policy says those files remain unchanged.",
-  "source_report_provenance_head_sha": "c3671269e6749447406b575cc41682293fc6a702",
-  "source_report_provenance_policy": "Chunks were generated from rebuilt report outputs for the named PR source commit. Require canonical parity before treating sidecar chunks as replacements for project_sources/collector/*.json or *.md.",
+  "source_report_path_policy": "source_report identifies the canonical report path and report contract. It is not a claim that the current branch monolithic canonical report file matches the sidecar chunks while canonical_reports_policy says those files remain unchanged.",
+  "source_report_provenance_head_sha": "759e525aa983281b5485df0e4b27abb0375abbee",
+  "source_report_provenance_policy": "Chunks were generated from rebuilt report outputs for source commit 759e525aa983281b5485df0e4b27abb0375abbee, after the 04F source split and coupled reference updates were connector-published. Require canonical parity before treating sidecar chunks as replacements for project_sources/collector/*.json or *.md.",
   "top_level_files": [
     {
-      "bytes": 1492,
+      "bytes": 927,
       "chunk_kind": "readme",
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/README.md",
-      "sha256": "495437ede861bc6c2206ba7c2a0041fde883a32a30a932e1c4b32cc48d1d5852"
+      "sha256": "0053cdce8a34cb9315a33e198673b3bc2564687f3698583f992d4f29480dc1a3"
     }
   ]
 }
