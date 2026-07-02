@@ -42,6 +42,7 @@
     "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+    "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
@@ -86,6 +87,7 @@
     "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+    "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
     "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1"
@@ -118,7 +120,7 @@
     "Part 02 baseline collection and reporting helpers are split into connector-friendly 02A, 02B, 02C, 02D1A, 02D1B, and 02D2 functional source parts while preserving the compiled single-runtime collector output.",
     "Part 04 quick-interface, next-step output, and cleanup helpers are split into connector-friendly 04A1 through 04A3 functional source parts before the existing 04B-H feature-wave parts.",
     "Part 04 bounded parallel runtime helpers are split into connector-friendly 04D1 through 04D3 functional source parts while preserving the compiled single-runtime collector output.",
-    "Part 05 main entry behavior is split into connector-friendly 05A1 collect helpers, 05A2 collect entry, 05B enrich, and 05C cleanup helpers before the final 05 dispatcher while preserving the compiled single-runtime collector output.",
+    "Part 05 main entry behavior is split into connector-friendly 05A1 and 05A2 collect helpers, 05A3 collect entry, 05B enrich, and 05C cleanup helpers before the final 05 dispatcher while preserving the compiled single-runtime collector output.",
     "Part 04B feature-wave targeted collection and chunk-validation helpers are split into connector-friendly 04B1 and 04B2 functional source parts while preserving the compiled single-runtime collector output.",
     "Part 04E diagnostic-context helpers are split into connector-friendly 04E1 and 04E2 functional source parts while preserving the compiled single-runtime collector output.",
     "Part 04H metadata finalization helpers are split into connector-friendly 04H1 through 04H3 functional source parts while preserving the compiled single-runtime collector output."
