@@ -1,3 +1,5 @@
+          "source_file": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
+          "step_or_action": "Normalize FailureGates EXE runtime-error guard",
           "shell": "pwsh",
           "line_start": 99,
           "line_end": 114,
@@ -834,6 +836,3 @@
       "sha256": "d62ad946befffda89be419efa1df8ed12ac1067f2f204067199841dc14e3f87d"
     },
     {
-      "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1",
-      "category": "staging_artifact",
-      "source_type": ".ps1",
