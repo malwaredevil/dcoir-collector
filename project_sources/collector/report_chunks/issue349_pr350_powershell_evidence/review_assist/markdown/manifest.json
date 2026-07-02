@@ -20,13 +20,13 @@
       "sha256": "918c02580a5d8d5f60f555e5184305012f92f7976aa39119d4ec7c2d20c607a7"
     },
     {
-      "bytes": 1408,
+      "bytes": 1356,
       "chunk_index": 2,
       "chunk_kind": "markdown_section",
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_002_Source_Reports.md",
       "section": "Source_Reports",
-      "sha256": "798de9a374eabfa397f7c70cc08542e3979d6d1b1c26af1e81fb3de88a6a52a9"
+      "sha256": "23c51ffa36916d03bec8c23918569fa3fb24a6145f4ac251719daced17caea18"
     },
     {
       "bytes": 1031,
@@ -35,7 +35,7 @@
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_003_Evidence_Channels.md",
       "section": "Evidence_Channels",
-      "sha256": "770c4fb4c5ab7cae77e366061ca6445a1f7d750b54cfbd85464b38fd425aca7b"
+      "sha256": "4219e3d0cd59ea4cbb9a23dfaa487e865dc76a78ba6859108dc9243add7ed3a1"
     },
     {
       "bytes": 3998,
@@ -53,7 +53,7 @@
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_005_Inventory_Decisions.md",
       "section": "Inventory_Decisions",
-      "sha256": "38ac47ec741f6d08ef258682cf05e24f29607a15f4599d29958adfcaaa6207d1"
+      "sha256": "e5067305fe84ca6c85b456fed997c8da424973866d2845d5571a9dafb0d93b72"
     },
     {
       "bytes": 134,
@@ -74,13 +74,13 @@
       "sha256": "fc67f80f23c987466795dc955ffebb151cf8e5fda939d00126b70c211b7bd1ec"
     },
     {
-      "bytes": 3592,
+      "bytes": 3566,
       "chunk_index": 8,
       "chunk_kind": "markdown_section",
       "format": "markdown",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_008_Warnings_Missing_Artifacts_And_Non_Claims.md",
       "section": "Warnings_Missing_Artifacts_And_Non_Claims",
-      "sha256": "8817990bd07619f701f04e01dda879f7ede0b32717f0e7f19b957c2b121fb56c"
+      "sha256": "91210aff5c2429e838a5102bf73e03521dea292d7af6e78a55138cfd1859dd7f"
     },
     {
       "bytes": 287,
@@ -105,8 +105,8 @@
   "reassembly_note": "Concatenate Markdown chunks in manifest order.",
   "report_id": "review_assist",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 30320,
+  "source_bytes": 30242,
   "source_format": "markdown",
   "source_report": "project_sources/collector/powershell_review_assist_report.md",
-  "source_sha256": "228eecd04d68a55f79ccec760b50cd8fb3c6796d679f8e6d601cf7b9c73d93ab"
+  "source_sha256": "0b37cf37183071dca7197e6cc3cbdf643c8b9ce05b9bf2f41a6daa1a35786dc5"
 }
