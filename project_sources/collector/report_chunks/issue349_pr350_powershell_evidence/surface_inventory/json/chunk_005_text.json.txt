@@ -1,3 +1,5 @@
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
       "size_bytes": 13028,
@@ -212,7 +214,7 @@
       "embedded_snippets": [],
       "size_bytes": 4192,
       "line_count": 134,
-      "sha256": "036d7f6187890273a6030da2a6d0483e30a045f9dfbc52e551f03a33639b0df0"
+      "sha256": "55d5b65247e0716286900e4c243c7462c2f54d033e2b9d51e74d93d19fdc0ba1"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
@@ -224,9 +226,23 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 17048,
-      "line_count": 290,
-      "sha256": "d33e304ea84fec19be0dab4eae44712ff3b6f5141a068b902f6e77bfc594f8a9"
+      "size_bytes": 9998,
+      "line_count": 228,
+      "sha256": "dcf15895d925fb66ed6945f7ababfd3b7c1e860307c98ca50cc8e26fa36d7553"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10656,
+      "line_count": 189,
+      "sha256": "bab74a412da36f8841c224593fe5a202a6a3d535e9df012c262c00567281cde8"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
