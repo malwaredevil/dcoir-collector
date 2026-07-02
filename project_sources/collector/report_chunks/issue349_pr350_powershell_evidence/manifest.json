@@ -87,8 +87,8 @@
   "schema_version": "dcoir_powershell_evidence_chunk_set_v1",
   "sidecar_commit_sha_policy": "This manifest does not self-reference the containing commit because each manifest edit changes that commit. Use live GitHub branch or commit readback for the current sidecar commit SHA.",
   "source_report_path_policy": "source_report identifies the canonical report path and report contract. Require canonical parity validation before treating sidecar chunks as replacement source for the canonical report files.",
-  "source_report_provenance_head_sha": "283fd452acdc779a2c7fae9a8675b1a210308462",
-  "source_report_provenance_policy": "Chunks were generated from rebuilt report outputs for source commit 283fd452acdc779a2c7fae9a8675b1a210308462, after the 05A2/05A3 source split and coupled reference updates. Require canonical parity before treating sidecar chunks as replacements for project_sources/collector/*.json or *.md.",
+  "source_report_provenance_head_sha": "8de70f6c041b4101df55f20a960bfec18b7e43d7",
+  "source_report_provenance_policy": "Chunks were generated from rebuilt report outputs for source commit 8de70f6c041b4101df55f20a960bfec18b7e43d7, after the 05A2/05A3 source split and coupled reference updates. Require canonical parity before treating sidecar chunks as replacements for project_sources/collector/*.json or *.md.",
   "top_level_files": [
     {
       "bytes": 896,
