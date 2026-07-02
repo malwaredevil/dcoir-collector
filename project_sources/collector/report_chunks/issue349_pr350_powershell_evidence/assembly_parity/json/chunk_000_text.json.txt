@@ -13,27 +13,27 @@
     "path": "project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json",
     "accepted": true,
     "exists": true,
-    "sha256": "a2e287b0857cae8062bb8385b4b5de3fce01d006e270f6ce5edd02f6c29eb5c4",
+    "sha256": "7fff7de7fd75cf91707067a1c626ab4692b84920d96fdbae01d10149ef3d5ad2",
     "source_strategy": "compile_single_runtime_then_package"
   },
   "inventory": {
-    "path": "project_sources/collector/powershell_surface_inventory.json",
+    "path": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json",
     "accepted": true,
     "exists": true,
-    "sha256": "1724d50b2bb1fcd6254a43f3cc6c0de7f0c42e15d508b0e94510ebe2dece5aba",
+    "sha256": "2929deb4c7fb687b4870fd5c890b550e61a1af0dc5e0957dd4d3b93bbddeacff",
     "schema_version": "dcoir_powershell_surface_inventory_v1",
     "control_counts": {
-      "collector_manifest_path_count": 39,
-      "collector_source_part_count": 38,
+      "collector_manifest_path_count": 41,
+      "collector_source_part_count": 40,
       "harness_source_part_count": 17,
       "generated_output_mapping_count": 1
     }
   },
   "summary": {
-    "collector_source_part_count": 39,
+    "collector_source_part_count": 40,
     "harness_source_part_count": 17,
-    "source_part_count": 56,
-    "source_input_count": 57,
+    "source_part_count": 57,
+    "source_input_count": 58,
     "generated_output_count": 2,
     "parse_success_count": 2,
     "parity_success_count": 2,
@@ -45,9 +45,9 @@
       {
         "path": "project_sources/collector/source/DCOIR_Collector.ps1",
         "exists": true,
-        "size_bytes": 7144,
-        "line_count": 216,
-        "sha256": "9d458695c9d6f44f7980ba392ed4ef58da2d47148bdbad0fe8e71204ac0d32bb",
+        "size_bytes": 7194,
+        "line_count": 217,
+        "sha256": "2ee2d6b8b688c5202067cf1546953834931b9ecc5e444f9d5455cb054df945d3",
         "empty": false,
         "role": "collector_runtime_wrapper"
       },
@@ -304,11 +304,20 @@
         "role": "collector_runtime_source_part"
       },
       {
-        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
         "exists": true,
-        "size_bytes": 17049,
-        "line_count": 491,
-        "sha256": "be8a099cc9f3b97cb12dd797610142dde6d5127c76e1b4a7d80c2e46544d6406",
+        "size_bytes": 8701,
+        "line_count": 257,
+        "sha256": "67a27968ef73cb8f69328dc333a2c44fbfdf5bbe54a14181ba088dc2d2439605",
+        "empty": false,
+        "role": "collector_runtime_source_part"
+      },
+      {
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+        "exists": true,
+        "size_bytes": 9041,
+        "line_count": 253,
+        "sha256": "aec7e76aeaf3a5822ec8a9a258d9e3d59a74273d097775f1fa61b18416bb250d",
         "empty": false,
         "role": "collector_runtime_source_part"
       },
@@ -497,9 +506,9 @@
       {
         "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
         "exists": true,
-        "size_bytes": 15183,
+        "size_bytes": 15355,
         "line_count": 25,
-        "sha256": "7e72ca15fed17734415c72bc09786afe8025f9d149e322d2f9f60ccf4cb73d45",
+        "sha256": "13402a2cb74878e1a222650fc4c94ca284c3220f05c5afb053ed2e582f4c2a55",
         "empty": false,
         "role": "collector_harness_source_part"
       },
@@ -565,7 +574,7 @@
       "path": "compiled_runtime/DCOIR_Collector.ps1",
       "repo_committed_path": null,
       "assembly_model": "compile_single_runtime_then_package",
-      "source_input_count": 39,
+      "source_input_count": 40,
       "line_mapping_status": "available",
       "line_mapping": [
         {
@@ -793,102 +802,110 @@
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
-          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
           "source_line_start": 1,
-          "source_line_end": 491,
+          "source_line_end": 257,
           "generated_line_start": 7566,
-          "generated_line_end": 8056,
+          "generated_line_end": 7822,
+          "mapping_basis": "compiler_begin_end_markers"
+        },
+        {
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+          "source_line_start": 1,
+          "source_line_end": 253,
+          "generated_line_start": 7826,
+          "generated_line_end": 8078,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
           "source_line_start": 1,
           "source_line_end": 293,
-          "generated_line_start": 8060,
-          "generated_line_end": 8352,
+          "generated_line_start": 8082,
+          "generated_line_end": 8374,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
           "source_line_start": 1,
           "source_line_end": 228,
-          "generated_line_start": 8356,
-          "generated_line_end": 8583,
+          "generated_line_start": 8378,
+          "generated_line_end": 8605,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
           "source_line_start": 1,
           "source_line_end": 131,
-          "generated_line_start": 8587,
-          "generated_line_end": 8717,
+          "generated_line_start": 8609,
+          "generated_line_end": 8739,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
           "source_line_start": 1,
           "source_line_end": 208,
-          "generated_line_start": 8721,
-          "generated_line_end": 8928,
+          "generated_line_start": 8743,
+          "generated_line_end": 8950,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
           "source_line_start": 1,
           "source_line_end": 109,
-          "generated_line_start": 8932,
-          "generated_line_end": 9040,
+          "generated_line_start": 8954,
+          "generated_line_end": 9062,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
           "source_line_start": 1,
           "source_line_end": 134,
-          "generated_line_start": 9044,
-          "generated_line_end": 9177,
+          "generated_line_start": 9066,
+          "generated_line_end": 9199,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
           "source_line_start": 1,
           "source_line_end": 290,
-          "generated_line_start": 9181,
-          "generated_line_end": 9470,
+          "generated_line_start": 9203,
+          "generated_line_end": 9492,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
           "source_line_start": 1,
           "source_line_end": 151,
-          "generated_line_start": 9474,
-          "generated_line_end": 9624,
+          "generated_line_start": 9496,
+          "generated_line_end": 9646,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
           "source_line_start": 1,
           "source_line_end": 88,
-          "generated_line_start": 9628,
-          "generated_line_end": 9715,
+          "generated_line_start": 9650,
+          "generated_line_end": 9737,
           "mapping_basis": "compiler_begin_end_markers"
         },
         {
           "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1",
           "source_line_start": 1,
           "source_line_end": 60,
-          "generated_line_start": 9719,
-          "generated_line_end": 9778,
+          "generated_line_start": 9741,
+          "generated_line_end": 9800,
           "mapping_basis": "compiler_begin_end_markers"
         }
       ],
-      "sha256": "2e2ce92a4ac42b6431971531b7d2c0f874b5f30c911ba6fb8cd9874257fc0835",
-      "line_count": 9947,
+      "sha256": "7b79251c90d787142643335311de3a5825dddfcf3a960fedf31f51be65b2eccc",
+      "line_count": 9969,
       "parse": {
         "method": "static_balance_check",
         "native_parser_available": false,
         "success": true,
         "errors": [],
-        "line_count": 9947
+        "line_count": 9969
       },
       "parity": {
         "status": "pass",
@@ -941,3 +958,33 @@
           "source_line_start": 1,
           "source_line_end": 181,
           "generated_line_start": 913,
+          "generated_line_end": 1093,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 97,
+          "generated_line_start": 1094,
+          "generated_line_end": 1190,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 160,
+          "generated_line_start": 1191,
+          "generated_line_end": 1350,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 271,
+          "generated_line_start": 1351,
+          "generated_line_end": 1621,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "source_line_start": 1,
