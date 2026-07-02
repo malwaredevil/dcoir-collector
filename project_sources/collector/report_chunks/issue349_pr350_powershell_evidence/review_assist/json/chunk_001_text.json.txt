@@ -1,45 +1,3 @@
-      "risk_classes": [
-        "secret_material_or_credential_handling"
-      ],
-      "rule_name": "PSAvoidUsingConvertToSecureStringWithPlainText",
-      "severity": "Warning",
-      "source_generated_target_kind": "fixture",
-      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
-      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
-      "suppression_state": "not_suppressed",
-      "target_surfaces": [
-        "collector runtime",
-        "collector harness",
-        "operator tooling"
-      ]
-    },
-    {
-      "baseline_state": "not_baselined",
-      "check_id": "",
-      "column": 1,
-      "evidence_kind": "deterministic_fixture_analyzer",
-      "fingerprint": "50701c09a1ce350831596b956cbd51fe5d61801dfdad142b27215013edbec995",
-      "governance": {
-        "decision": "advisory",
-        "matched_by": "classification_rule",
-        "owner": "DCOIR Collector maintainers",
-        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
-        "record_id": "fixture-negative-findings-are-advisory-evidence",
-        "review_date": "2026-06-10",
-        "reviewer": "DCOIR operator"
-      },
-      "governance_classification": "advisory",
-      "impact": "Generated scripts can diverge from source parts while validation still analyzes the stale generated artifact.",
-      "line": 2,
-      "observed_behavior": "Generated output marker indicates stale source-part assembly.",
-      "path": "project_sources/collector/fixtures/powershell_analysis/bad/source_part_drift.ps1",
-      "recommended_fix_direction": "Regenerate or compare source-part hashes before accepting analyzer evidence.",
-      "risk_classes": [
-        "source_part_assembly_drift_or_stale_generated_output"
-      ],
-      "rule_name": "DCOIR.SourcePartAssemblyDrift",
-      "severity": "Error",
-      "source_generated_target_kind": "fixture",
       "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
       "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
       "suppression_state": "not_suppressed",
@@ -592,14 +550,14 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-07-01T17:39:21+00:00",
+    "generated_at_utc": "2026-07-02T07:59:25+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
-      "project_sources/collector/_scratch_reports_04g/powershell_surface_inventory.json",
+      "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json",
       "project_sources/collector/powershell_rule_risk_fixture_report.json",
       "project_sources/collector/powershell_rule_risk_matrix.json",
       "project_sources/collector/powershell_custom_check_report.json",
-      "project_sources/collector/_scratch_reports_04g/powershell_assembly_parity_report.json",
+      "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json",
       "project_sources/collector/powershell_finding_governance_report.json",
       "project_sources/collector/powershell_engine_pester_boundary_report.json",
       "project_sources/collector/powershell_function_reachability_report.json",
@@ -637,7 +595,7 @@
       "expected_schema_version": "dcoir_powershell_surface_inventory_v1",
       "finding_count": null,
       "label": "#261 surface inventory",
-      "path": "project_sources/collector/_scratch_reports_04g/powershell_surface_inventory.json",
+      "path": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json",
       "present": true,
       "required": true,
       "schema_version": "dcoir_powershell_surface_inventory_v1",
@@ -697,7 +655,7 @@
       "expected_schema_version": "dcoir_powershell_assembly_parity_report_v1",
       "finding_count": null,
       "label": "#265 assembly parity report",
-      "path": "project_sources/collector/_scratch_reports_04g/powershell_assembly_parity_report.json",
+      "path": "project_sources/collector/_scratch_reports_04f_full/powershell_assembly_parity_report.json",
       "present": true,
       "required": true,
       "schema_version": "dcoir_powershell_assembly_parity_report_v1",
@@ -748,7 +706,7 @@
       "absent_reason": null,
       "errors": [],
       "expected_schema_version": "dcoir_powershell_function_reachability_report_v1",
-      "finding_count": 159,
+      "finding_count": 167,
       "label": "#306 function reachability report",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "present": true,
@@ -798,3 +756,91 @@
     "unclaimed_artifact_count": 3,
     "validation_success": true
   },
+  "surface_inventory": {
+    "excluded_paths": [
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121700Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T122700Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T123500Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-merge-delete-batch1-export-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-next-cleanup-export-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-post-first-four-export-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
