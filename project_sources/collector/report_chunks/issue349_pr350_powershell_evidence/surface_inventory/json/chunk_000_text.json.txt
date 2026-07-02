@@ -5,7 +5,7 @@
   "source_of_truth": "filesystem recursive scan fallback",
   "deterministic_report": true,
   "file_facts_policy": "text_bytes_with_line_endings_normalized_to_lf",
-  "discovery_command": "python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output scratch_reports/powershell_surface_inventory.json --markdown-output scratch_reports/powershell_surface_inventory.md",
+  "discovery_command": "python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json --markdown-output project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.md",
   "required_source_types": [
     ".ps1",
     ".psm1",
@@ -15,17 +15,17 @@
     "workflow_yaml"
   ],
   "outputs": {
-    "json": "scratch_reports/powershell_surface_inventory.json",
-    "markdown": "scratch_reports/powershell_surface_inventory.md"
+    "json": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.json",
+    "markdown": "project_sources/collector/_scratch_reports_04f_full/powershell_surface_inventory.md"
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 244,
+    "total_surfaces": 245,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
       "collector_harness_source_part": 17,
-      "collector_runtime_source_part": 39,
+      "collector_runtime_source_part": 40,
       "collector_runtime_wrapper": 1,
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
@@ -42,7 +42,7 @@
       "workflow_embedded_powershell": 27
     },
     "by_source_type": {
-      ".ps1": 181,
+      ".ps1": 182,
       ".ps1.txt": 17,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -51,7 +51,7 @@
     },
     "by_status": {
       "fixture": 23,
-      "source": 44,
+      "source": 45,
       "source_part": 17,
       "staging": 63,
       "tooling": 70,
@@ -59,7 +59,7 @@
     },
     "by_inclusion_decision": {
       "exclude": 63,
-      "include": 131,
+      "include": 132,
       "reference": 50
     },
     "embedded_snippet_count": 80
@@ -69,8 +69,8 @@
       "path": "project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json",
       "exists": true,
       "error": null,
-      "expected_path_count": 40,
-      "present_path_count": 40,
+      "expected_path_count": 41,
+      "present_path_count": 41,
       "paths": [
         {
           "path": "project_sources/collector/source/DCOIR_Collector.ps1",
@@ -78,7 +78,7 @@
           "in_inventory": true,
           "category": "collector_runtime_wrapper",
           "expected_category": "collector_runtime_wrapper",
-          "size_bytes": 7144
+          "size_bytes": 7194
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -305,12 +305,20 @@
           "size_bytes": 16246
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 17049
+          "size_bytes": 8701
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9041
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
@@ -480,7 +488,7 @@
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 15183
+          "size_bytes": 15355
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
@@ -590,7 +598,7 @@
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 15183
+          "size_bytes": 15355
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
@@ -929,3 +937,35 @@
         11
       ],
       "embedded_snippets": [
+        {
+          "source_file": ".github/actions/run-validate-dcoir-fixtures/action.yml",
+          "step_or_action": "Run validate_DCOIR_Run fixture tests",
+          "shell": "pwsh",
+          "line_start": 11,
+          "line_end": 17,
+          "command_sha256": "a81205da5f2e7e1d68a042a92b2c63b1e3697a0efdd8984da1df87b38432f350",
+          "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\tools\\run_validate_dcoir_run_fixture_tests.ps1 -ValidatorPath .\\collector\\harness\\validate_DCOIR_Run.ps1 -OutputRoot $env:FIXTURE_OUTPUT_ROOT"
+        }
+      ],
+      "size_bytes": 840,
+      "line_count": 20,
+      "sha256": "9bbe863275be1b29dd1235acc9db8220bb307cff46bcf03700ac82b13b944540"
+    },
+    {
+      "path": ".github/actions/smoke-build-collector-package/action.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        11
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/actions/smoke-build-collector-package/action.yml",
+          "step_or_action": "Smoke build collector package",
+          "shell": "pwsh",
+          "line_start": 11,
+          "line_end": 22,
