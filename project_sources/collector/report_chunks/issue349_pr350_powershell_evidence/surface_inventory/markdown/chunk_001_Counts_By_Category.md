@@ -5,7 +5,7 @@
 | `archive_temp_vendor_artifact` | 0 |
 | `collector_harness_script` | 4 |
 | `collector_harness_source_part` | 17 |
-| `collector_runtime_source_part` | 40 |
+| `collector_runtime_source_part` | 41 |
 | `collector_runtime_wrapper` | 1 |
 | `collector_validation_tooling` | 2 |
 | `fixture_or_example` | 23 |
