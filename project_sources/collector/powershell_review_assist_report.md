@@ -31,7 +31,7 @@
 | #265 project_sources/collector/powershell_assembly_parity_report.json | True | success | dcoir_powershell_assembly_parity_report_v1 |  |
 | #266 project_sources/collector/powershell_finding_governance_report.json | True | success | dcoir_powershell_finding_governance_report_v1 | 22 |
 | #267 project_sources/collector/powershell_engine_pester_boundary_report.json | True | success | dcoir_powershell_engine_pester_boundary_report_v1 |  |
-| #306 project_sources/collector/powershell_function_reachability_report.json | True | success | dcoir_powershell_function_reachability_report_v1 | 167 |
+| #306 project_sources/collector/powershell_function_reachability_report.json | True | success | dcoir_powershell_function_reachability_report_v1 | 170 |
 | #262 project_sources/collector/powershell_analyzer_report.json | False | optional_missing | not present | 0 |
 
 ## Evidence Channels
@@ -44,7 +44,7 @@
 | assembly_parity | success | 2 generated outputs; pass |
 | finding_governance | success | 0 baseline records; 0 suppressions |
 | engine_boundary | success | 2 unclaimed blocking artifacts |
-| function_reachability | success | 167 functions; 163 literal referenced; 4 dynamic uncertain; coverage not_collected |
+| function_reachability | success | 170 functions; 166 literal referenced; 4 dynamic uncertain; coverage not_collected |
 | pester_boundary | supporting_non_blocking | Pester may support later runtime or wrapper evidence but is not blocking static-validation evidence in #268. |
 
 ## Findings
@@ -77,7 +77,7 @@
 ## Inventory Decisions
 
 - Full-scope inventory mode: `full`
-- Total PowerShell surfaces: `248`
+- Total PowerShell surfaces: `246`
 
 ### Excluded Paths
 
@@ -175,20 +175,9 @@
 | .github/workflows/reusable-manual-collector-optional-exe-build.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/workflows/reusable-manual-github-artifact-readback.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/workflows/reusable-manual-test-framework-validate.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| .github/workflows/reusable-openrouter-pr-review.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/workflows/reusable-validate-on-pr.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/workflows/reusable-validate-on-push.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/workflows/reusable-windows-powershell-51.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| out/checkpoint59-compile-rerun/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint59-compile/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint59-package-rerun/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint59-package/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint70-compile-after-codi/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint70-compile-rerun/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint70-compile/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint70-package-after-codi/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint70-package/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| out/checkpoint72-compile/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
 | project_sources/collector/fixtures/powershell_analysis/bad/analyzer_skip_success.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | project_sources/collector/fixtures/powershell_analysis/bad/broad_baseline.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | project_sources/collector/fixtures/powershell_analysis/bad/fail_row_green_exit.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
@@ -212,11 +201,6 @@
 | project_sources/collector/fixtures/powershell_analysis/good/custom_fingerprint_bound_baseline.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | project_sources/collector/fixtures/powershell_analysis/good/custom_safe_root_delete.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | project_sources/collector/fixtures/powershell_analysis/good/custom_source_part_current.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
-| project_sources/collector/out/recheck/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| project_sources/collector/out/recheck05-compile-final/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| project_sources/collector/out/recheck05-compile/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| project_sources/collector/out/recheck2/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
-| project_sources/collector/out/recheck3/compiled_runtime/DCOIR_Collector.ps1 | Generated or assembled output is covered as parity/reference evidence, not source truth. |
 
 ### Skipped Paths
 
