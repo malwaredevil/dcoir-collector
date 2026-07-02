@@ -2,24 +2,24 @@
   "chunk_count": 2,
   "chunks": [
     {
-      "byte_end": 37995,
+      "byte_end": 39993,
       "byte_start": 0,
-      "bytes": 37995,
+      "bytes": 39993,
       "chunk_index": 0,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/assembly_parity/json/chunk_000_text.json.txt",
-      "sha256": "a8d10c75d3aac746eb6cdeff3833f3c0cf42b6e733fb413827e92ea26eee74af"
+      "sha256": "19294849bfc55f8a93b4e1efb8dda51fb592ea3c1730dd995f23cf138c07a4eb"
     },
     {
-      "byte_end": 46022,
-      "byte_start": 37995,
-      "bytes": 8027,
+      "byte_end": 46811,
+      "byte_start": 39993,
+      "bytes": 6818,
       "chunk_index": 1,
       "chunk_kind": "json_text_slice",
       "format": "json",
       "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/assembly_parity/json/chunk_001_text.json.txt",
-      "sha256": "d229951d4b653f08f065594a440cdf8df14f23ce21c31e25c2f4fd56c7f5752d"
+      "sha256": "ef35e47186f17864edf0dff8f92a76e489a0864c48cb38e5a6780fbd8501c8c6"
     }
   ],
   "max_chunk_bytes_target": 40000,
@@ -27,10 +27,10 @@
   "reassembly_note": "Concatenate json_text_slice chunks in manifest order. Each chunk declares a zero-based, end-exclusive byte range, and the full byte stream must parse as UTF-8 JSON.",
   "report_id": "assembly_parity",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 46022,
+  "source_bytes": 46811,
   "source_format": "json",
   "source_report": "project_sources/collector/powershell_assembly_parity_report.json",
-  "source_sha256": "adce952e2bd15318485637a8d52bdfbed8fb1f44d4a697ce920957d8e48e2905",
+  "source_sha256": "1f7f414794cc6ed2e922207480c5cb4eed5d574f855d230848efd55c15b2c584",
   "text_slice_policy": {
     "byte_ranges": "contiguous_zero_based_end_exclusive",
     "encoding": "utf-8",
