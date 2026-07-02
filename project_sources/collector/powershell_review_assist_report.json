@@ -121,7 +121,7 @@
           },
           "parse": {
             "errors": [],
-            "line_count": 9927,
+            "line_count": 10099,
             "method": "static_balance_check",
             "native_parser_available": false,
             "success": true
@@ -151,15 +151,15 @@
       "source_issue": 265,
       "state": "success",
       "summary": {
-        "collector_source_part_count": 38,
+        "collector_source_part_count": 41,
         "generated_output_count": 2,
-        "harness_source_part_count": 15,
+        "harness_source_part_count": 17,
         "parity_status": "pass",
         "parity_success_count": 2,
         "parse_status": "pass",
         "parse_success_count": 2,
-        "source_input_count": 54,
-        "source_part_count": 53
+        "source_input_count": 59,
+        "source_part_count": 58
       }
     },
     "custom_checks": {
@@ -671,11 +671,11 @@
       "claim": "report-only reachability evidence; no function deletion readiness or runtime absence is claimed",
       "classification_counts": {
         "dynamic_invocation_uncertain": 4,
-        "literal_referenced": 163
+        "literal_referenced": 166
       },
       "coverage_state": "not_collected",
       "dynamic_invocation_site_count": 1,
-      "function_count": 167,
+      "function_count": 170,
       "parser_mode": "python_lexical_fallback",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "source_issue": 306,
@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-06-30T18:51:20+00:00",
+    "generated_at_utc": "2026-07-02T08:45:12+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -1675,7 +1675,7 @@
       "absent_reason": null,
       "errors": [],
       "expected_schema_version": "dcoir_powershell_function_reachability_report_v1",
-      "finding_count": 167,
+      "finding_count": 170,
       "label": "#306 function reachability report",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "present": true,
@@ -2171,65 +2171,107 @@
     ],
     "included_paths": [
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-powershell-review-assist/Invoke-DcoirPowerShellReviewAssist.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorHarnessAndPesterBoundary.Tests.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorParserAndPublicContract.Tests.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorRiskContracts.Tests.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorRuntimeSmoke.Tests.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorSourceStructure.Tests.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorStaticSafety.Tests.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/DcoirPester.Helpers.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/Install-DcoirPesterPrereqs.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
-        "category": "validation_tooling",
+        "category": "github_workflow_support_script",
         "path": ".github/pester/Invoke-DcoirPester.ps1",
-        "reason": "GitHub Pester validation PowerShell is maintained repo tooling.",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Add-PowerShellReviewAssistSummary.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
       },
@@ -2242,7 +2284,28 @@
       },
       {
         "category": "github_workflow_support_script",
+        "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
         "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Write-ChatGptExecFinalReadback.ps1",
         "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
         "status": "tooling"
@@ -2696,6 +2759,20 @@
         "status": "source_part"
       },
       {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1.txt",
+        "status": "source_part"
+      },
+      {
         "category": "collector_harness_script",
         "path": "project_sources/collector/harness/validate_DCOIR_Run.ps1",
         "reason": "Collector harness script is a primary maintained PowerShell surface.",
@@ -2907,14 +2984,28 @@
       },
       {
         "category": "collector_runtime_source_part",
-        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
         "reason": "Collector runtime source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
         "status": "source"
       },
       {
         "category": "collector_runtime_source_part",
-        "path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+        "reason": "Collector runtime source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_runtime_source_part",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
+        "reason": "Collector runtime source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_runtime_source_part",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
         "reason": "Collector runtime source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
         "status": "source"
@@ -2950,6 +3041,13 @@
       {
         "category": "collector_runtime_source_part",
         "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+        "reason": "Collector runtime source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_runtime_source_part",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
         "reason": "Collector runtime source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
         "status": "source"
@@ -3011,8 +3109,8 @@
     },
     "path_decision_counts": {
       "exclude": 63,
-      "include": 119,
-      "reference": 66,
+      "include": 133,
+      "reference": 50,
       "skip": 0
     },
     "reference_paths": [
@@ -3186,13 +3284,6 @@
       },
       {
         "category": "workflow_embedded_powershell",
-        "path": ".github/workflows/reusable-openrouter-pr-review.yml",
-        "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-        "source_type": "workflow_yaml",
-        "status": "workflow_embedded"
-      },
-      {
-        "category": "workflow_embedded_powershell",
         "path": ".github/workflows/reusable-validate-on-pr.yml",
         "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
         "source_type": "workflow_yaml",
@@ -3211,76 +3302,6 @@
         "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
         "source_type": "workflow_yaml",
         "status": "workflow_embedded"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint59-compile-rerun/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint59-compile/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint59-package-rerun/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint59-package/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint70-compile-after-codi/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint70-compile-rerun/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint70-compile/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint70-package-after-codi/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint70-package/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "out/checkpoint72-compile/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
       },
       {
         "category": "fixture_or_example",
@@ -3442,41 +3463,6 @@
         "reason": "Fixture/example PowerShell is inventoried separately from maintained source targets.",
         "source_type": ".ps1",
         "status": "fixture"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "project_sources/collector/out/recheck/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "project_sources/collector/out/recheck05-compile-final/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "project_sources/collector/out/recheck05-compile/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "project_sources/collector/out/recheck2/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
-      },
-      {
-        "category": "generated_or_assembled_output",
-        "path": "project_sources/collector/out/recheck3/compiled_runtime/DCOIR_Collector.ps1",
-        "reason": "Generated or assembled output is covered as parity/reference evidence, not source truth.",
-        "source_type": ".ps1",
-        "status": "generated"
       }
     ],
     "skipped_paths": [],
@@ -3484,13 +3470,13 @@
       "by_category": {
         "archive_temp_vendor_artifact": 0,
         "collector_harness_script": 4,
-        "collector_harness_source_part": 15,
-        "collector_runtime_source_part": 38,
+        "collector_harness_source_part": 17,
+        "collector_runtime_source_part": 41,
         "collector_runtime_wrapper": 1,
         "collector_validation_tooling": 2,
         "fixture_or_example": 23,
-        "generated_or_assembled_output": 15,
-        "github_workflow_support_script": 2,
+        "generated_or_assembled_output": 0,
+        "github_workflow_support_script": 20,
         "invalid_workflow_surface": 0,
         "missing_authoritative_surface": 0,
         "missing_changed_powershell_surface": 0,
@@ -3498,33 +3484,32 @@
         "operator_tooling": 45,
         "staging_artifact": 63,
         "unclassified_powershell_surface": 0,
-        "validation_tooling": 12,
-        "workflow_embedded_powershell": 28
+        "validation_tooling": 3,
+        "workflow_embedded_powershell": 27
       },
       "by_inclusion_decision": {
         "exclude": 63,
-        "include": 119,
-        "reference": 66
+        "include": 133,
+        "reference": 50
       },
       "by_source_type": {
-        ".ps1": 186,
-        ".ps1.txt": 15,
+        ".ps1": 183,
+        ".ps1.txt": 17,
         ".ps1xml": 0,
         ".psd1": 9,
         ".psm1": 10,
-        "workflow_yaml": 28
+        "workflow_yaml": 27
       },
       "by_status": {
         "fixture": 23,
-        "generated": 15,
-        "source": 43,
-        "source_part": 15,
+        "source": 46,
+        "source_part": 17,
         "staging": 63,
-        "tooling": 61,
-        "workflow_embedded": 28
+        "tooling": 70,
+        "workflow_embedded": 27
       },
-      "embedded_snippet_count": 81,
-      "total_surfaces": 248
+      "embedded_snippet_count": 80,
+      "total_surfaces": 246
     }
   },
   "unclaimed_artifacts": [
