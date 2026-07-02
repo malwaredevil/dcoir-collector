@@ -70,9 +70,9 @@ class PowerShellFunctionReachabilityReportTests(unittest.TestCase):
         report = self.build(REPO_ROOT)
 
         self.assertTrue(report["validation"]["success"])
-        self.assertEqual(report["summary"]["source_file_count"], 39)
-        self.assertEqual(report["summary"]["function_count"], 167)
-        self.assertEqual(report["summary"]["classification_counts"]["literal_referenced"], 163)
+        self.assertEqual(report["summary"]["source_file_count"], 42)
+        self.assertEqual(report["summary"]["function_count"], 170)
+        self.assertEqual(report["summary"]["classification_counts"]["literal_referenced"], 166)
         self.assertEqual(report["summary"]["classification_counts"]["dynamic_invocation_uncertain"], 4)
         self.assertEqual(report["summary"]["classification_counts"].get("static_unreferenced", 0), 0)
         self.assertEqual(report["summary"]["coverage_state"], "not_collected")
