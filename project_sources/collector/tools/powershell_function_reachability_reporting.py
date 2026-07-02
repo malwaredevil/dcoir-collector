@@ -1,11 +1,12 @@
+#!/usr/bin/env python3
+"""Report rendering and classification helpers for PowerShell reachability."""
 from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
-from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from powershell_function_reachability_contract import (
     CLASSIFICATIONS,
@@ -15,11 +16,12 @@ from powershell_function_reachability_contract import (
     NON_CLAIMS,
     PARENT_ISSUE_NUMBER,
     SCHEMA_VERSION,
-    AnalyzerContractError,
     Definition,
     ReachabilityError,
     Reference,
     SourceFile,
+    AnalyzerContractError,
+    read_json,
     repo_relative_input_path,
     resolve_sources,
     safe_output_path,
@@ -27,7 +29,7 @@ from powershell_function_reachability_contract import (
     sha256_file,
     write_json,
 )
-from powershell_function_reachability_parsing import parse_sources
+
 
 def reference_entry(reference: Reference) -> dict[str, Any]:
     return {
@@ -71,7 +73,9 @@ def classify_functions(
                 "end_line": definition.end_line,
                 "definition_kind": definition.definition_kind,
                 "static_reference_status": "literal_reference_found" if refs else "no_literal_reference_found",
-                "dynamic_uncertainty_status": "dynamic_invocation_sites_present" if has_dynamic_uncertainty else "no_dynamic_invocation_sites_detected",
+                "dynamic_uncertainty_status": "dynamic_invocation_sites_present"
+                if has_dynamic_uncertainty
+                else "no_dynamic_invocation_sites_detected",
                 "reference_count": len(refs),
                 "references": [reference_entry(ref) for ref in refs[:20]],
                 "truncated_reference_count": max(0, len(refs) - 20),
@@ -161,10 +165,11 @@ def validate_report(report: dict[str, Any]) -> list[str]:
     return errors
 
 
-ParseSourcesFunc = Callable[[list[SourceFile], str], tuple[list[Definition], list[Reference], list[dict[str, Any]], list[dict[str, Any]], str]]
-
-
-def build_report(args: argparse.Namespace, parse_sources_func: ParseSourcesFunc = parse_sources) -> dict[str, Any]:
+def build_report(
+    args: argparse.Namespace,
+    *,
+    parse_sources_func: Callable[[list[SourceFile], str], tuple[list[Definition], list[Reference], list[dict[str, Any]], list[dict[str, Any]], str]],
+) -> dict[str, Any]:
     repo_root = Path(args.repo_root).resolve()
     errors: list[str] = []
     warnings: list[str] = []
@@ -174,20 +179,22 @@ def build_report(args: argparse.Namespace, parse_sources_func: ParseSourcesFunc 
         raise ReachabilityError(str(exc)) from exc
     manifest, sources, source_errors = resolve_sources(repo_root, manifest_path)
     errors.extend(source_errors)
+
     definitions: list[Definition] = []
     references: list[Reference] = []
     dynamic_sites: list[dict[str, Any]] = []
-    parser_warnings: list[dict[str, Any]] = []
     parser_mode = "python_lexical_fallback" if getattr(args, "no_powershell", False) else args.parser_mode
     if not errors:
         definitions, references, dynamic_sites, parser_warnings, parser_mode = parse_sources_func(sources, parser_mode)
         warnings.extend(scalar(item.get("message")) for item in parser_warnings if isinstance(item, dict) and item.get("message"))
+
     seen_defs: set[tuple[str, str, int]] = set()
     for definition in definitions:
         key = (definition.key, definition.source_path, definition.line)
         if key in seen_defs:
             errors.append(f"duplicate function definition record: {definition.name} {definition.source_path}:{definition.line}")
         seen_defs.add(key)
+
     entrypoints = {item.casefold() for item in args.entrypoint}
     function_records = classify_functions(definitions, references, dynamic_sites, entrypoints)
     classification_counts = Counter(item["classification"] for item in function_records)
