@@ -1,0 +1,99 @@
+{
+  "chunk_count": 8,
+  "chunks": [
+    {
+      "byte_end": 39888,
+      "byte_start": 0,
+      "bytes": 39888,
+      "chunk_index": 0,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_000_text.json.txt",
+      "sha256": "afdc2b5b61b16920291962074b395685f72a605d549b8c60b608c3eaebfabe52"
+    },
+    {
+      "byte_end": 79886,
+      "byte_start": 39888,
+      "bytes": 39998,
+      "chunk_index": 1,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_001_text.json.txt",
+      "sha256": "5281f0aa5be83df498622d1bf979ca0e6446841b6e093e031daf5e573b82f458"
+    },
+    {
+      "byte_end": 119837,
+      "byte_start": 79886,
+      "bytes": 39951,
+      "chunk_index": 2,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_002_text.json.txt",
+      "sha256": "92a043930f2bc930ea32719dfd784b6118227357a73aa1fef7fa6eded790cab4"
+    },
+    {
+      "byte_end": 159810,
+      "byte_start": 119837,
+      "bytes": 39973,
+      "chunk_index": 3,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_003_text.json.txt",
+      "sha256": "df18c0650f4bb07620ae25f013035f5bb4f110cc7bfc4821e909a8bc1cfdf999"
+    },
+    {
+      "byte_end": 199709,
+      "byte_start": 159810,
+      "bytes": 39899,
+      "chunk_index": 4,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_004_text.json.txt",
+      "sha256": "ffaf30262c330327c89c3818e8f95a56fc1e0e4d085c2ea9cb94ed79e294e1c2"
+    },
+    {
+      "byte_end": 239689,
+      "byte_start": 199709,
+      "bytes": 39980,
+      "chunk_index": 5,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_005_text.json.txt",
+      "sha256": "9ccee11c677c1c04940d148a25ccb0f97e7954fcc491b636c4ddc196b465fb82"
+    },
+    {
+      "byte_end": 279683,
+      "byte_start": 239689,
+      "bytes": 39994,
+      "chunk_index": 6,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_006_text.json.txt",
+      "sha256": "f00d4a87d4fe0e4737d4c0e5331a0623d0ff170bf83c4487a55cbab1ccc30e36"
+    },
+    {
+      "byte_end": 290762,
+      "byte_start": 279683,
+      "bytes": 11079,
+      "chunk_index": 7,
+      "chunk_kind": "json_text_slice",
+      "format": "json",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/chunk_007_text.json.txt",
+      "sha256": "9a065d87e9820323c23b7c2e86d8802798cae7f1ab4809f974dcdcacc0a53505"
+    }
+  ],
+  "max_chunk_bytes_target": 40000,
+  "reassembly_mode": "byte_exact_text_slices",
+  "reassembly_note": "Concatenate json_text_slice chunks in manifest order. Each chunk declares a zero-based, end-exclusive byte range, and the full byte stream must parse as UTF-8 JSON.",
+  "report_id": "function_reachability",
+  "schema_version": "dcoir_report_chunk_manifest_v1",
+  "source_bytes": 290762,
+  "source_format": "json",
+  "source_report": "project_sources/collector/powershell_function_reachability_report.json",
+  "source_sha256": "9df2bfed00870e252860167ca4a77b6631026b55a3156a25e8e22cf12ee821c4",
+  "text_slice_policy": {
+    "byte_ranges": "contiguous_zero_based_end_exclusive",
+    "encoding": "utf-8",
+    "split_policy": "line_boundary_when_possible"
+  }
+}
