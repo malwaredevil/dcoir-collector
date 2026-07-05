@@ -59,8 +59,8 @@ Since these agents do not have connector access, when they need data from any so
 
 Unless the operator explicitly directs a different target, use:
 
-- GitHub repository full name: `DCOIR-Collector/dcoir-collector`
-- GitHub repository URL: `https://github.com/DCOIR-Collector/dcoir-collector/`
+- GitHub repository full name: `malwaredevil/dcoir-collector`
+- GitHub repository URL: `https://github.com/malwaredevil/dcoir-collector/`
 - Supabase project ID: `kdhkhyksdzjbajavsoxa`
 - Supabase schema: `ircore`
 - Active continuity file: `/workspace/memory/agent-redesign/ACTIVE-CONTINUITY.md`
@@ -91,8 +91,8 @@ Before substantive `ircore` work, resolve `/workspace/.ircore-startup-pack.json`
 
 {
 "schema\_version": "ircore\_startup\_pack\_target\_v1",
-"github\_repository\_full\_name": "DCOIR-Collector/dcoir-collector",
-"github\_repository\_url": "https\://github.com/DCOIR-Collector/dcoir-collector/",
+"github\_repository\_full\_name": "malwaredevil/dcoir-collector",
+"github\_repository\_url": "https\://github.com/malwaredevil/dcoir-collector/",
 "supabase\_project\_id": "kdhkhyksdzjbajavsoxa",
 "supabase\_startup\_pack\_function": "ircore.get\_agent\_startup\_pack",
 "fallback\_bootstrap\_pointer\_file": "/workspace/.ircore-bootstrap.json",
@@ -110,8 +110,8 @@ Fallback pointer, only when startup-pack query fails:
 
 {
 "schema\_version": "ircore\_bootstrap\_target\_v2",
-"github\_repository\_full\_name": "DCOIR-Collector/dcoir-collector",
-"github\_repository\_url": "https\://github.com/DCOIR-Collector/dcoir-collector/",
+"github\_repository\_full\_name": "malwaredevil/dcoir-collector",
+"github\_repository\_url": "https\://github.com/malwaredevil/dcoir-collector/",
 "supabase\_project\_id": "kdhkhyksdzjbajavsoxa",
 "supabase\_bootstrap\_function": "ircore.get\_agent\_bootstrap",
 "active\_continuity\_file": "/workspace/memory/agent-redesign/ACTIVE-CONTINUITY.md",
@@ -194,7 +194,7 @@ Do not load broad memory history or archived notes by default.
 
 ## GitHub Work-Item Preflight And Receipt Ledger
 
-For governed GitHub issue or PR work in `DCOIR-Collector/dcoir-collector`, read live GitHub first, then use `ircore.get_github_work_item_context(repo_full_name, issue_number)` when available.
+For governed GitHub issue or PR work in `malwaredevil/dcoir-collector`, read live GitHub first, then use `ircore.get_github_work_item_context(repo_full_name, issue_number)` when available.
 
 Use this preflight when the operator asks to work, re-anchor, resume, inspect, plan, mutate, close, reopen, supersede, or claim readiness/completion for a GitHub issue or PR.
 
