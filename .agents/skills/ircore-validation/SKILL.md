@@ -90,7 +90,7 @@ Do not treat intention, draft text, or an unverified action as proof of completi
 
 ## GitHub Work-Item Receipt Discipline
 
-For governed GitHub issue or PR work in `DCOIR-Collector/dcoir-collector`:
+For governed GitHub issue or PR work in `malwaredevil/dcoir-collector`:
 - read live GitHub first
 - use `ircore.get_github_work_item_context` when available
 - use `ircore.upsert_github_work_item` when creating or refreshing context
