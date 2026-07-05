@@ -18,8 +18,8 @@ This file is the repository/workspace adapter. It keeps local bootstrapping and 
 
 ## Canonical connector targets
 
-* Default GitHub `repository_full_name`: `DCOIR-COLLECTOR/dcoir-collector`
-* Canonical GitHub repo URL: `https://github.com/DCOIR-COLLECTOR/dcoir-collector/`
+* Default GitHub `repository_full_name`: `malwaredevil/dcoir-collector`
+* Canonical GitHub repo URL: `https://github.com/malwaredevil/dcoir-collector/`
 * Default Supabase `project_id`: `kdhkhyksdzjbajavsoxa`
 * Default Supabase schema: `ircore`
 * Active continuity file: `/workspace/memory/agent-redesign/ACTIVE-CONTINUITY.md`
@@ -33,8 +33,8 @@ For substantive `ircore` work, materialize `/workspace/.ircore-startup-pack.json
 ```json
 {
   "schema_version": "ircore_startup_pack_target_v1",
-  "github_repository_full_name": "DCOIR-COLLECTOR/dcoir-collector",
-  "github_repository_url": "https://github.com/DCOIR-COLLECTOR/dcoir-collector/",
+  "github_repository_full_name": "malwaredevil/dcoir-collector",
+  "github_repository_url": "https://github.com/malwaredevil/dcoir-collector/",
   "supabase_project_id": "kdhkhyksdzjbajavsoxa",
   "supabase_startup_pack_function": "ircore.get_agent_startup_pack",
   "fallback_bootstrap_pointer_file": "/workspace/.ircore-bootstrap.json",
@@ -50,8 +50,8 @@ Materialize `/workspace/.ircore-bootstrap.json` only as the fallback pointer, wi
 ```json
 {
   "schema_version": "ircore_bootstrap_target_v2",
-  "github_repository_full_name": "DCOIR-COLLECTOR/dcoir-collector",
-  "github_repository_url": "https://github.com/DCOIR-COLLECTOR/dcoir-collector/",
+  "github_repository_full_name": "malwaredevil/dcoir-collector",
+  "github_repository_url": "https://github.com/malwaredevil/dcoir-collector/",
   "supabase_project_id": "kdhkhyksdzjbajavsoxa",
   "supabase_bootstrap_function": "ircore.get_agent_bootstrap",
   "active_continuity_file": "/workspace/memory/agent-redesign/ACTIVE-CONTINUITY.md",
@@ -240,7 +240,7 @@ Use `codex-pr-finish` instead of raw `git push`.
 1. Detect the current branch.
 2. Stage all changes.
 3. Commit changes when needed.
-4. Normalize `origin` to `https://github.com/DCOIR-COLLECTOR/dcoir-collector.git`.
+4. Normalize `origin` to `https://github.com/malwaredevil/dcoir-collector.git`.
 5. Push `HEAD` to the active PR branch.
 
 If the current branch cannot be detected, use the PR branch name from live PR context and run:
