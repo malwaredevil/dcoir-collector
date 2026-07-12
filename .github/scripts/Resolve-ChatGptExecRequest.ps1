@@ -39,7 +39,7 @@ if ([string]::IsNullOrWhiteSpace($requestPath)) {
     exit 0
 }
 
-if ($requestPath -notmatch '^.github/chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
+if ($requestPath -notmatch '^\.github/chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
     throw "Exec request path must match .github/chatgpt_staging/exec_requests/<request_id>.json. Got: $requestPath"
 }
 

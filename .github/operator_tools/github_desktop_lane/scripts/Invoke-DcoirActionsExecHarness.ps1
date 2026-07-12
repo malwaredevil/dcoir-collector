@@ -77,7 +77,7 @@ function Resolve-DcoirExecRequestPath {
     $needsPatch = $needsSchema
     if (-not $hasCommand -and $hasScriptPath) {
         $scriptPath = [string]$json.script_path
-        if ($scriptPath -notmatch '^.github/chatgpt_staging/exec_scripts/[A-Za-z0-9._/-]+\.ps1$') {
+        if ($scriptPath -notmatch '^\.github/chatgpt_staging/exec_scripts/[A-Za-z0-9._/-]+\.ps1$') {
             throw "script_path must point to .github/chatgpt_staging/exec_scripts/<name>.ps1. Got: $scriptPath"
         }
         $fullScriptPath = Join-Path $RepoRoot ($scriptPath -replace '/', '\')
