@@ -143,6 +143,19 @@ For Codex Desktop/CLI/IDE work in this repository, use repo-scoped skills from `
 
 If these repo-scoped skills are missing, unavailable, or not discovered in the active Codex session, follow the Supabase startup-pack and validation/readback rules in this file directly instead of blocking on skill availability.
 
+### Codex local-session operator adapter
+
+The operator approved the following durable exceptions on 2026-07-12 for Codex Desktop, Codex CLI, and Codex IDE sessions that have a local repository checkout and authenticated local Git/GitHub tooling. These exceptions apply only to Codex operating through that local lane. They do not apply to ChatGPT WebUI, connector-only ChatGPT sessions, Replit Agent, Gemini, or any other IDE, LLM, or agent runtime.
+
+* Codex may use local file edits, local validation, `git`, `gh`, and available authenticated tooling instead of the ChatGPT WebUI GitHub connector or ChatGPT staging workflows.
+* Codex does not need to create or invoke named `Prog`, `Adva`, or `Codi` review personas or subagents. Codex remains responsible for implementing carefully, reviewing its own diff, and running validation proportionate to risk.
+* Codex does not need to post `/dcoir-review` or an equivalent slash-command review as a prerequisite for its own completion, readiness recommendation, or PR work.
+* Codex must not draft or post an external comment that invokes the literal `@codex` handle merely to ask Codex to review or act on work Codex is already performing.
+* These exceptions remove redundant self-invocation and WebUI connector ceremony only. They do not waive branch protection, explicit workflow-mutation approval, required tests, GitHub Actions readback, review-thread disposition, source/readback evidence, secrets handling, operator approval to merge or move a governed draft PR to ready, or other safety boundaries that materially protect the repository.
+* If Codex identifies another step that appears specific to ChatGPT WebUI or redundant in the local Codex lane, Codex should explain the step and its tradeoff and obtain operator approval before treating it as a durable exception.
+
+The general review-gate language elsewhere in this file remains authoritative for ChatGPT WebUI and other runtimes unless their own explicitly scoped adapter says otherwise. When reporting Codex-local work, state that the Codex local-session adapter applied instead of reporting the skipped WebUI-only gates as evidence gaps.
+
 Do not vendor or install duplicate generic skills in this repository when equivalent Codex system or plugin skills are already available, including `openai-docs`, `yeet`, `gh-fix-ci`, and `supabase-postgres-best-practices`, unless the operator explicitly approves a current-session replacement or fork.
 
 ChatGPT staging workflows such as `chatgpt-exec`, `chatgpt-stage-out`, `chatgpt-apply-in`, artifact readback, and staging cleanup are webUI/GitHub connector enablement lanes. Use them when that staging lane is the task. For normal Codex local implementation work, prefer local repo edits, local validation, Git branches, and PRs.
@@ -353,6 +366,7 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 ## Working rules
 
 * Start substantive `ircore` work with compact preflight, startup-pack read, targeted retrieval, action, validation/readback, and optional short lesson capture only when reusable.
+* Use `15,000` bytes as the repository's conservative connector-safe maximum for maintained first-party source files intended for ChatGPT WebUI GitHub connector reading or updating. This is an operator-adopted repository policy and safety margin, not a claimed official OpenAI hard limit. Inventory and refactor files above the threshold through governed issue-sized work. Exempt third-party dependencies, generated artifacts, binary assets, sanitized evidence fixtures, and durable long-form documentation unless a scoped issue explicitly includes them; record exemptions instead of silently treating them as compliant.
 * Start GitHub issue and PR work read-only. Mutate only after scope, authority, lane, and validation expectations are clear.
 * For governed GitHub issue and PR creation, updates, or relabeling outside an operator-approved label taxonomy implementation task, use only labels that already exist in the live GitHub repository label inventory. Apply exactly one approved existing `area:` label and exactly one approved existing `type:` label unless the operator explicitly approves an exception for the current task. Do not invent, guess, create, or silently skip labels. If no existing approved label fits, stop and ask the operator. Treat GitHub as source truth for label existence; treat Supabase `ircore` as routing guidance only, not proof that a label exists.
 * Keep changes small, reviewable, and scoped to the task.
