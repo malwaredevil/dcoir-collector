@@ -17,7 +17,18 @@ from pathlib import Path
 from unittest import mock
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = next(
+    (
+        candidate
+        for candidate in [Path(__file__).resolve().parent, *Path(__file__).resolve().parents]
+        if candidate.name == "dcoir_review"
+        and (candidate / "scripts" / "openrouter_pr_review_pareto_context.py").is_file()
+        and (candidate / "schemas").is_dir()
+    ),
+    None,
+)
+if ROOT is None:
+    raise SystemExit("unable to locate .github/dcoir_review root")
 SCRIPT = ROOT / "scripts" / "openrouter_pr_review_pareto_context.py"
 
 spec = importlib.util.spec_from_file_location("openrouter_pr_review_pareto_context", SCRIPT)
@@ -32,7 +43,7 @@ os.environ["GITHUB_REPOSITORY"] = "DCOIR-Collector/dcoir-collector"
 os.environ["PR_NUMBER"] = "287"
 os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
-config = mod.load_pareto_context_config(str(ROOT / ".github" / "openrouter-pr-review-pareto.yml"))
+config = mod.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
 assert config.model == "openrouter/pareto-code"
 assert config.model_stack == ["openrouter/pareto-code", "openrouter/auto"]
 assert config.pareto_min_coding_score == 0.80
