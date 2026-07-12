@@ -3,7 +3,26 @@
 from collections import Counter
 from typing import Any
 
-from powershell_review_assist_findings import fixture_outcomes
+from powershell_review_assist_sources import scalar
+
+def fixture_outcomes(report: dict[str, Any]) -> dict[str, Any]:
+    fixtures = [item for item in report.get("fixtures", []) if isinstance(item, dict)]
+    counter = Counter(scalar(item.get("kind")).strip() or "unknown" for item in fixtures)
+    return {
+        "counts": dict(sorted(counter.items())),
+        "fixtures": [
+            {
+                "id": item.get("id"),
+                "kind": item.get("kind"),
+                "path": item.get("path"),
+                "expected_finding_count": item.get("expected_finding_count"),
+                "observed_finding_count": item.get("observed_finding_count"),
+                "observed_rules": item.get("observed_rules", []),
+            }
+            for item in fixtures
+        ],
+    }
+
 
 def evidence_channels(
     docs: dict[str, dict[str, Any]],

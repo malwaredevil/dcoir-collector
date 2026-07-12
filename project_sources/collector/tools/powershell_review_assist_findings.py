@@ -277,23 +277,6 @@ def surface_inventory_section(report: dict[str, Any]) -> dict[str, Any]:
         "skipped_paths": by_decision.get("skip", []),
     }
 
-def fixture_outcomes(report: dict[str, Any]) -> dict[str, Any]:
-    fixtures = [item for item in report.get("fixtures", []) if isinstance(item, dict)]
-    counter = Counter(scalar(item.get("kind")).strip() or "unknown" for item in fixtures)
-    return {
-        "counts": dict(sorted(counter.items())),
-        "fixtures": [
-            {
-                "id": item.get("id"),
-                "kind": item.get("kind"),
-                "path": item.get("path"),
-                "expected_finding_count": item.get("expected_finding_count"),
-                "observed_finding_count": item.get("observed_finding_count"),
-                "observed_rules": item.get("observed_rules", []),
-            }
-            for item in fixtures
-        ],
-    }
 
 def collect_unclaimed_artifacts(engine_report: dict[str, Any]) -> list[dict[str, Any]]:
     artifacts: list[dict[str, Any]] = []
@@ -317,4 +300,4 @@ def collect_unclaimed_artifacts(engine_report: dict[str, Any]) -> list[dict[str,
             )
     return artifacts
 
-from powershell_review_assist_evidence import evidence_channels
+from powershell_review_assist_evidence import evidence_channels, fixture_outcomes
