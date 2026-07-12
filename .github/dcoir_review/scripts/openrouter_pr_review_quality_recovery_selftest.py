@@ -25,7 +25,7 @@ spec.loader.exec_module(mod)
 os.environ["GITHUB_REPOSITORY"] = "DCOIR-Collector/dcoir-collector"
 os.environ["PR_NUMBER"] = "296"
 
-config = mod.load_hardened_config(str(ROOT / ".github" / "openrouter-pr-review-governed.yml"))
+config = mod.load_hardened_config(str(ROOT / "openrouter-pr-review-governed.yml"))
 assert config.review_quality_retry_on_rejected_output is True
 
 schema = json.loads((ROOT / "schemas" / "openrouter-pr-review.schema.json").read_text(encoding="utf-8"))

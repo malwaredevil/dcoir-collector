@@ -33,7 +33,7 @@ strict.apply_pareto_context_module(pareto)
 os.environ["GITHUB_REPOSITORY"] = "DCOIR-Collector/dcoir-collector"
 os.environ["PR_NUMBER"] = "323"
 
-config = hardened.load_hardened_config(str(ROOT / ".github" / "openrouter-pr-review-governed.yml"))
+config = hardened.load_hardened_config(str(ROOT / "openrouter-pr-review-governed.yml"))
 config.max_inline_comments = 1
 
 sentinel = hardened.RiskSentinel(

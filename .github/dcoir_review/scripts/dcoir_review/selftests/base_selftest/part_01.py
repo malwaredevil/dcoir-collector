@@ -10,7 +10,18 @@ import tempfile
 from dataclasses import replace
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = next(
+    (
+        candidate
+        for candidate in [Path(__file__).resolve().parent, *Path(__file__).resolve().parents]
+        if candidate.name == "dcoir_review"
+        and (candidate / "scripts" / "openrouter_pr_review.py").is_file()
+        and (candidate / "schemas").is_dir()
+    ),
+    None,
+)
+if ROOT is None:
+    raise SystemExit("unable to locate .github/dcoir_review root")
 SCRIPT = ROOT / "scripts" / "openrouter_pr_review.py"
 
 spec = importlib.util.spec_from_file_location("openrouter_pr_review", SCRIPT)
@@ -35,7 +46,7 @@ index 1111111..2222222 100644
 line_index = mod.build_diff_line_index(sample_diff)
 assert ("calculator.js", 2) in line_index, line_index
 
-config = mod.load_yaml_like_config(str(ROOT / ".github" / "openrouter-pr-review.yml"))
+config = mod.load_yaml_like_config(str(ROOT / "openrouter-pr-review.yml"))
 assert "/or-review" in config.commands
 assert "/dcoir-review" in config.commands
 assert config.model == "openrouter/free"

@@ -10,7 +10,18 @@ import os
 import tempfile
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = next(
+    (
+        candidate
+        for candidate in [Path(__file__).resolve().parent, *Path(__file__).resolve().parents]
+        if candidate.name == "dcoir_review"
+        and (candidate / "scripts" / "openrouter_pr_review_hardened.py").is_file()
+        and (candidate / "schemas").is_dir()
+    ),
+    None,
+)
+if ROOT is None:
+    raise SystemExit("unable to locate .github/dcoir_review root")
 SCRIPT = ROOT / "scripts" / "openrouter_pr_review_hardened.py"
 
 spec = importlib.util.spec_from_file_location("openrouter_pr_review_hardened", SCRIPT)
@@ -25,7 +36,7 @@ spec.loader.exec_module(mod)
 os.environ["GITHUB_REPOSITORY"] = "DCOIR-Collector/dcoir-collector"
 os.environ["PR_NUMBER"] = "277"
 
-config = mod.load_hardened_config(str(ROOT / ".github" / "openrouter-pr-review-governed.yml"))
+config = mod.load_hardened_config(str(ROOT / "openrouter-pr-review-governed.yml"))
 assert "/or-review" in config.commands
 assert "/dcoir-review" in config.commands
 assert config.model == "openrouter/auto"
