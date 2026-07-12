@@ -15,7 +15,7 @@ function Invoke-DcoirChatGPTFriendlyZip {
         [Parameter(Mandatory=$true)][string]$RepoRoot,
         [switch]$NormalizeTextEncoding
     )
-    $zipScript = Join-Path $RepoRoot 'operator_tools\github_desktop_lane\scripts\New-DcoirChatGPTFriendlyZip.ps1'
+    $zipScript = Join-Path $RepoRoot '.github\operator_tools\github_desktop_lane\scripts\New-DcoirChatGPTFriendlyZip.ps1'
     if (-not (Test-Path -LiteralPath $zipScript -PathType Leaf)) { throw "ChatGPT-friendly ZIP helper not found: $zipScript" }
     $zipParams = @{
         SourceFolder = $SourceFolder

@@ -125,7 +125,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $outRoot = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec'
           $resultJson = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec_result.json'
-          & .\operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsExecHarness.ps1 `
+          & .\.github\operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsExecHarness.ps1 `
             -RequestPath '${{ steps.request.outputs.request_path }}' `
             -RepoRoot $env:GITHUB_WORKSPACE `
             -OutputRoot $outRoot `

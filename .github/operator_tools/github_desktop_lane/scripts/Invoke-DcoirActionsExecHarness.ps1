@@ -11,7 +11,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$modulePath = Join-Path $RepoRoot 'operator_tools\github_desktop_lane\modules\Dcoir.ActionsExec\Dcoir.ActionsExec.psm1'
+$modulePath = Join-Path $RepoRoot '.github\operator_tools\github_desktop_lane\modules\Dcoir.ActionsExec\Dcoir.ActionsExec.psm1'
 Import-Module $modulePath -Force
 
 function Write-GithubEnvValue {
