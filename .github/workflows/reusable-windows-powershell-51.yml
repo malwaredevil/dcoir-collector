@@ -1,6 +1,6 @@
 # DCOIR REUSABLE WORKFLOW CONTRACT
 # Source entry workflow: windows-powershell-51.yml
-# Purpose: reusable implementation module for Windows PowerShell 5.1 parser validation; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
+# Purpose: reusable implementation module for Windows PowerShell 5.1 parser validation and supporting Pester evidence; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
 name: 99 Module - Windows PowerShell 5.1
 run-name: Module Windows PowerShell 5.1 | ${{ github.workflow }} | #${{ github.run_number }}
 
@@ -57,10 +57,46 @@ jobs:
           require-files: 'false'
           include-collector-parts: 'true'
 
+      - name: Run DCOIR Collector Pester tests
+        id: pester
+        uses: ./.github/actions/run-dcoir-pester
+        with:
+          pester-version: '5.7.1'
+          result-path: project_sources/TestResults/pester-windows-powershell-51.xml
+          minimum-test-count: '45'
+
+      - name: Upload Pester NUnit result
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: windows-powershell-51-pester-results
+          path: project_sources/TestResults/pester-windows-powershell-51.xml
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Write ChatGPT workflow report section
         if: always()
         run: |
           New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
+          $pesterVersion = '${{ steps.pester.outputs.pester_version }}'
+          $pesterTotal = '${{ steps.pester.outputs.total_count }}'
+          $pesterPassed = '${{ steps.pester.outputs.passed_count }}'
+          $pesterFailed = '${{ steps.pester.outputs.failed_count }}'
+          $pesterSkipped = '${{ steps.pester.outputs.skipped_count }}'
+          $pesterResultPath = 'project_sources/TestResults/pester-windows-powershell-51.xml'
+          if (Test-Path -LiteralPath $pesterResultPath -PathType Leaf) {
+            [xml]$pesterXml = Get-Content -LiteralPath $pesterResultPath -Raw
+            $testResults = $pesterXml.SelectSingleNode('/test-results')
+            if ($testResults) {
+              $pesterTotal = [string]$testResults.total
+              $pesterFailed = [string]([int]$testResults.failures + [int]$testResults.errors)
+              $pesterSkipped = [string]$testResults.skipped
+              $pesterPassed = [string]([int]$testResults.total - [int]$testResults.failures - [int]$testResults.errors - [int]$testResults.'not-run')
+            }
+          }
+          if ([string]::IsNullOrWhiteSpace($pesterVersion)) {
+            $pesterVersion = [string]((Get-Module -ListAvailable Pester | Where-Object Version -eq '5.7.1' | Select-Object -First 1).Version)
+          }
           @"
           ## Windows PowerShell 5.1 validation summary
 
@@ -73,8 +109,14 @@ jobs:
           - caller_event_name: ${{ inputs.caller_event_name }}
           - powershell_version: $($PSVersionTable.PSVersion)
           - powershell_edition: $($PSVersionTable.PSEdition)
+          - pester_version: $pesterVersion
+          - pester_total: $pesterTotal
+          - pester_passed: $pesterPassed
+          - pester_failed: $pesterFailed
+          - pester_skipped: $pesterSkipped
+          - pester_artifact: windows-powershell-51-pester-results
 
-          The workflow conclusion is the authoritative pass/fail signal for Windows PowerShell 5.1 parser compatibility. It is not a substitute for collector runtime harness validation.
+          The workflow conclusion is the authoritative pass/fail signal for Windows PowerShell 5.1 parser compatibility and supporting Pester evidence. Pester is not a substitute for collector runtime harness or static-analysis validation.
           "@ | Set-Content -Path chatgpt_workflow_report_section/chatgpt_workflow_report_section.md -Encoding utf8
 
       - name: Upload ChatGPT workflow report section

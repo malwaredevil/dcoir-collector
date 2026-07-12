@@ -79,4 +79,22 @@ Describe 'DCOIR collector parser compatibility and public parameter contract' {
     $manifestVersion = Convert-DcoirBundleVersionToScriptVersion -BundleVersion ([string]$script:Manifest.bundle_version)
     $scriptVersion | Should -BeExactly $manifestVersion
   }
+
+  It 'keeps high-impact public parameter types and defaults stable' {
+    $expected = @(
+      @{ Name = 'Mode'; Type = 'System.String'; Default = 'Collect' },
+      @{ Name = 'Tier'; Type = 'System.String'; Default = 'T1' },
+      @{ Name = 'Hours'; Type = 'System.Int32'; Default = 24 },
+      @{ Name = 'OutRoot'; Type = 'System.String'; Default = 'C:\Temp' },
+      @{ Name = 'PackageName'; Type = 'System.String'; Default = 'DCOIR_Collector.zip' },
+      @{ Name = 'MaxEvents'; Type = 'System.Int32'; Default = 500 },
+      @{ Name = 'TargetProfile'; Type = 'System.String'; Default = 'Generic' }
+    )
+
+    foreach ($row in $expected) {
+      $parameter = Get-DcoirEntryParameterAst -Ast $script:EntryParse.Ast -Name $row.Name
+      $parameter.StaticType.FullName | Should -BeExactly $row.Type -Because ("public parameter type drifted: {0}" -f $row.Name)
+      $parameter.DefaultValue.SafeGetValue() | Should -Be $row.Default -Because ("public parameter default drifted: {0}" -f $row.Name)
+    }
+  }
 }

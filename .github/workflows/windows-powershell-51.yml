@@ -2,23 +2,23 @@
 # Workflow key:
 # - workflow-validation-windows-powershell-51-0016
 # Purpose:
-# - Validate PowerShell parser compatibility through Windows PowerShell 5.1 on a Windows runner.
+# - Validate PowerShell parser compatibility and supporting collector Pester behavior through Windows PowerShell 5.1 on a Windows runner.
 # Use when:
 # - Use after PowerShell, collector harness, workflow, Codex helper, or validation-script changes where Windows PowerShell 5.1 behavior matters.
 # Do not use when:
 # - Do not treat this as a replacement for collector runtime harness validation or Linux PowerShell 7 cross-platform checks.
 # Trigger model:
-# - pull_request and push paths for PowerShell files, validation wrappers, GitHub workflow YAML files, and this workflow pair; workflow_dispatch for operator-requested checks.
+# - pull_request and push paths for PowerShell files, Pester surfaces, the collector runtime manifest, validation wrappers, GitHub workflow YAML files, and this workflow pair; workflow_dispatch for operator-requested checks.
 # Required inputs:
 # - none
 # Required secrets/config:
 # - none
 # Runtime dependencies:
-# - Uses Windows PowerShell Desktop through shell: powershell and the repo-local validate-windows-powershell-51 wrapper.
+# - Uses Windows PowerShell Desktop through shell: powershell, the repo-local parser wrapper, and the pinned DCOIR Pester composite action.
 # Expected outputs/readback:
-# - ChatGPT workflow report section artifact with PowerShell version and validation scope.
+# - ChatGPT workflow report section plus NUnit Pester artifact with engine, Pester version, and test counts.
 # Safety notes:
-# - A pass confirms parser compatibility with Windows PowerShell 5.1, not full collector runtime behavior.
+# - A pass confirms parser compatibility and the bounded Pester suite under Windows PowerShell 5.1, not full collector harness or static-analysis behavior.
 # Maintenance notes:
 # - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
 # - Keep this header aligned with current repo-root GitHub guidance and the active `ircore` operating model when authority or routing language changes.
@@ -43,6 +43,9 @@ on:
       - 'scripts/validate-windows-powershell-51.ps1'
       - 'scripts/validate-codex-local.sh'
       - '.github/actions/validate-powershell-syntax/**'
+      - '.github/actions/run-dcoir-pester/**'
+      - '.github/pester/**'
+      - 'project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json'
       - '.github/actions/upload-chatgpt-artifact/**'
       - '.github/workflows/*.yml'
       - '.github/workflows/*.yaml'
@@ -58,6 +61,9 @@ on:
       - 'scripts/validate-windows-powershell-51.ps1'
       - 'scripts/validate-codex-local.sh'
       - '.github/actions/validate-powershell-syntax/**'
+      - '.github/actions/run-dcoir-pester/**'
+      - '.github/pester/**'
+      - 'project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json'
       - '.github/actions/upload-chatgpt-artifact/**'
       - '.github/workflows/*.yml'
       - '.github/workflows/*.yaml'
