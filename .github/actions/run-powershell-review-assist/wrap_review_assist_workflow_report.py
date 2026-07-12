@@ -10,14 +10,19 @@ from pathlib import Path
 
 
 def load_report_renderer():
+    module_path = Path("project_sources/collector/tools/run_powershell_review_assist_report.py").resolve()
     spec = importlib.util.spec_from_file_location(
         "run_powershell_review_assist_report",
-        "project_sources/collector/tools/run_powershell_review_assist_report.py",
+        module_path,
     )
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
+    sys.path.insert(0, str(module_path.parent))
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.pop(0)
     return module
 
 
