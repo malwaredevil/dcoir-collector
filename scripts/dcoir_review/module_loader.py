@@ -61,22 +61,30 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'dcoir_review_runtime_patches': (
         'patches/dcoir_review_runtime_patches/part_01.py',
+        'patches/dcoir_review_runtime_patches/part_01a.py',
         'patches/dcoir_review_runtime_patches/part_02.py',
+        'patches/dcoir_review_runtime_patches/part_02a.py',
     ),
     'dcoir_review_strict_runtime_patches': (
         'patches/dcoir_review_strict_runtime_patches/part_01.py',
+        'patches/dcoir_review_strict_runtime_patches/part_01a.py',
         'patches/dcoir_review_strict_runtime_patches/part_02.py',
+        'patches/dcoir_review_strict_runtime_patches/part_02a.py',
     ),
     'dcoir_review_required_runtime_patches': (
         'patches/dcoir_review_required_runtime_patches/part_01.py',
+        'patches/dcoir_review_required_runtime_patches/part_01a.py',
         'patches/dcoir_review_required_runtime_patches/part_02.py',
+        'patches/dcoir_review_required_runtime_patches/part_02a.py',
     ),
     'dcoir_review_required_runtime_patch_v2': (
         'patches/dcoir_review_required_runtime_patch_v2/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v2/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v2/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v3': (
         'patches/dcoir_review_required_runtime_patch_v3/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v3/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v3/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v4_apply': (
@@ -87,24 +95,29 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'dcoir_review_required_runtime_patch_v6': (
         'patches/dcoir_review_required_runtime_patch_v6/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v6/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v6/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v7': (
         'patches/dcoir_review_required_runtime_patch_v7/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v7/part_01a.py',
     ),
     'dcoir_review_required_runtime_patch_v8': (
         'patches/dcoir_review_required_runtime_patch_v8/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v8/part_01a.py',
     ),
     'dcoir_review_required_runtime_patch_v9': (
         'patches/dcoir_review_required_runtime_patch_v9/part_01.py',
     ),
     'dcoir_review_required_runtime_patch_v10': (
         'patches/dcoir_review_required_runtime_patch_v10/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v10/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v10/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v11': (
         'patches/dcoir_review_required_runtime_patch_v11/part_01.py',
         'patches/dcoir_review_required_runtime_patch_v11/part_02.py',
+        'patches/dcoir_review_required_runtime_patch_v11/part_02a.py',
     ),
     'dcoir_review_required_runtime_patch_v12': (
         'patches/dcoir_review_required_runtime_patch_v12/part_01.py',
@@ -114,16 +127,19 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'patches/dcoir_review_required_runtime_patch_v13/part_01.py',
         'patches/dcoir_review_required_runtime_patch_v13/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v13/part_02.py',
+        'patches/dcoir_review_required_runtime_patch_v13/part_02a.py',
     ),
     'dcoir_review_required_runtime_patch_v15': (
         'patches/dcoir_review_required_runtime_patch_v15/part_01.py',
     ),
     'dcoir_review_required_runtime_patch_v14': (
         'patches/dcoir_review_required_runtime_patch_v14/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v14/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v14/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v16': (
         'patches/dcoir_review_required_runtime_patch_v16/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v16/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v16/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v17': (
@@ -135,6 +151,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'dcoir_review_required_runtime_patch_v4': (
         'patches/dcoir_review_required_runtime_patch_v4/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v4/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v4/part_02.py',
     ),
 }
