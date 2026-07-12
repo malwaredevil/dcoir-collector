@@ -15,6 +15,10 @@ chatgpt_staging/status_reports/chatgpt-exec/*/artifact_readback/
 project_sources/validation/out_*/
 project_sources/TestResults/
 
+# Connector-readable report chunks are task-scoped derivatives. Generate them
+# outside tracked source and publish through workflow artifacts/readback lanes.
+project_sources/**/report_chunks/
+
 # Gemini behavioral harness blind/generated artifacts
 project_sources/gemini/fixtures/behavioral_replay/blind_artifacts/**
 !project_sources/gemini/fixtures/behavioral_replay/blind_artifacts/.gitkeep
