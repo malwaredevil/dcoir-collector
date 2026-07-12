@@ -13,7 +13,7 @@ def build_prompt(
         f"Context readback: {context_summary}",
         "When deep context is present, use it to reason about full changed-file behavior, but anchor actionable findings to changed lines when practical.",
         "Every finding must include exact correction guidance or the smallest safe patch direction, plus validation/readback guidance.",
-        "Prefer GitHub apply-ready suggestions only when a finding has a precise single-line replacement for the commented line; put only that exact replacement code in suggested_replacement so the renderer emits a Suggested fix with a ```suggestion block; leave suggested_replacement empty for multiline, range, or speculative fixes.",
+        "Leave suggested_replacement empty in this detector pass. The separate fix-synthesis pass generates any exact single-line GitHub suggestion only after deterministic anchoring checks; multiline, range, or speculative fixes must stay in normal guidance fields.",
         "Inspect dynamic path construction and file writes for traversal, arbitrary overwrite, missing root-containment checks, and unsafe staging side effects.",
         "For this repository, give extra attention to PowerShell, Python, and GitHub Actions/YAML because they carry most operational and workflow risk; keep findings generalizable and do not tune to any single fixture.",
     ]

@@ -45,7 +45,7 @@ PATCH_ADJACENCY = {
     "dcoir_review_required_runtime_patch_v9_core": (("part_01.py", "part_02.py"),),
     "dcoir_review_required_runtime_patch_v9_selection": (("part_01.py", "part_02.py"),),
     "dcoir_review_required_runtime_patch_v10": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v11": (("part_02.py", "part_02a.py"),),
+    "dcoir_review_required_runtime_patch_v11": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
     "dcoir_review_required_runtime_patch_v13": (("part_02.py", "part_02a.py"),),
     "dcoir_review_required_runtime_patch_v14": (("part_01.py", "part_01a.py"),),
     "dcoir_review_required_runtime_patch_v16": (("part_01.py", "part_01a.py"),),
@@ -57,7 +57,7 @@ SELFTEST_ADJACENCY = {
     "pareto_context_selftest": (("part_01.py", "part_01a.py"), ("part_04.py", "part_04a.py")),
     "dcoir_review_required_runtime_patch_v14_selftest": (("part_01.py", "part_02.py"),),
     "dcoir_review_required_runtime_patch_v9_selftest": (("part_01.py", "part_02.py"),),
-    "openrouter_pr_review_pareto_context_regression_selftest": (("part_01.py", "part_02.py"),),
+    "openrouter_pr_review_pareto_context_regression_selftest": (("part_02.py", "part_02a.py"),),
 }
 
 EXPECTED_EXPORTS = {

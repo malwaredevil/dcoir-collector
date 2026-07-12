@@ -23,7 +23,7 @@ When a session sees staging-lane, cleanup, failure-report, workflow-report, larg
 2. No broad root writes. Manifests must not allow the repository root, empty strings, `.`, or wildcard-style broad coverage.
 3. No path traversal. Absolute paths, drive-letter paths, parent segments, and root escapes are prohibited.
 4. No secrets. Payloads must not include API keys, tokens, credentials, `.env` files, private config values, or secret-bearing logs.
-5. No workflow mutation by default. `.github/` and especially `.github/workflows/` changes require an explicit workflow-repair branch and operator approval.
+5. No workflow mutation through apply-in, ever. `.github/workflows/*` targets are always reverted before commit by `reusable-chatgpt-apply-in.yml`, even when a manifest sets `allow_workflow_changes: true`, because GitHub's default `GITHUB_TOKEN` cannot push workflow-file changes regardless of granted permissions. Workflow-file changes must go through a normal branch/PR reviewed by a human or agent with push access, never through this bot.
 6. No stale overwrites. Apply-in must use current-source hash checks or blob SHA checks for existing files whenever overwriting tracked content.
 7. No repo bloat. Payloads, ZIPs, extracted work folders, generated logs, output bundles, status reports, and failure reports must be cleaned or explicitly retained as validation evidence.
 8. Evidence before readiness. The lane cannot be called production-ready until blocked-path, hash-mismatch, cleanup, workflow-report, retention, operator-instruction, and happy-path validation all pass.
@@ -67,7 +67,7 @@ The staging workflows keep narrow `push` triggers so ChatGPT can initiate work b
 - artifact-readback request files require `schema: dcoir.chatgpt_staging.github_artifact_readback_request.v1`
 - apply manifests require `schema: dcoir.chatgpt_staging.apply_manifest.v1`
 - cleanup markers require `schema: dcoir.chatgpt_staging.cleanup_request.v1`
-- `.github/workflows/` targets require `allow_workflow_changes: true` and `workflow_change_reason` in the apply manifest
+- `.github/workflows/` targets require `allow_workflow_changes: true` and `workflow_change_reason` in the apply manifest to pass manifest validation, but the file is still reverted before commit and never actually lands (see "No workflow mutation" above); the workflow report notes this explicitly when it happens
 
 Example stage-out request:
 
@@ -183,7 +183,7 @@ All cleanup booleans must be explicit when ChatGPT creates a marker. GitHub must
 Stop and ask for operator guidance if:
 
 - a request or manifest needs a broad repo root
-- a workflow file must be changed outside an approved workflow-repair branch
+- a workflow file needs to be changed at all (apply-in never lands `.github/workflows/*` changes; use a normal branch/PR instead)
 - a payload contains secrets or suspected secrets
 - source hash checks fail
 - cleanup would delete scaffold or unrelated files
