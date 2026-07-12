@@ -34,7 +34,7 @@ Describe 'DCOIR collector static safety guardrails' {
   }
 
   It 'bounds every executable ConvertTo-Json command with an explicit Depth parameter or governed Depth splat' {
-    $jsonUtilityText = Read-DcoirText -Path (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1')
+    $jsonUtilityText = ($script:SourceFiles | ForEach-Object { Read-DcoirText -Path $_ }) -join [Environment]::NewLine
     $jsonUtilityText | Should -Match '\$jsonArgs\s*=\s*@\{[\s\S]*?Depth\s*=\s*\$Depth' -Because 'Convert-ToCollectorJsonText must keep Depth in the governed ConvertTo-Json splat.'
 
     $unboundedJson = @($script:Commands | Where-Object {

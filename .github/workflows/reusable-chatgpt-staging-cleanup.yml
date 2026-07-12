@@ -70,236 +70,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "${{ inputs.caller_event_name }}" == "workflow_dispatch" ]]; then
-            FILTER='${{ inputs.request_id_filter }}'
-            case "$FILTER" in
-              *[!A-Za-z0-9._-]* ) echo "Unsafe request_id_filter: $FILTER" >&2; exit 1 ;;
-            esac
-            {
-              echo "cleanup_requests=${{ inputs.cleanup_requests }}"
-              echo "cleanup_in_payloads=${{ inputs.cleanup_in_payloads }}"
-              echo "cleanup_out_bundles=${{ inputs.cleanup_out_bundles }}"
-              echo "cleanup_apply_reports=${{ inputs.cleanup_apply_reports }}"
-              echo "cleanup_failure_reports=${{ inputs.cleanup_failure_reports }}"
-              echo "cleanup_status_reports=${{ inputs.cleanup_status_reports }}"
-              echo "request_id_filter=$FILTER"
-              echo "cleanup_marker_path="
-              echo "delete_marker_after_success=false"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          MARKER=""
-          while IFS= read -r p; do
-            if [[ "$p" == chatgpt_staging/cleanup_requests/*.json && -f "$p" ]]; then
-              MARKER="$p"
-              break
-            fi
-          done < <(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
-
-          if [[ -z "$MARKER" ]]; then
-            echo "No cleanup request marker found in triggering commit; exiting successfully."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          if [[ "$MARKER" == *..* || "$MARKER" == /* ]]; then
-            echo "Unsafe cleanup marker path: $MARKER" >&2
-            exit 1
-          fi
-
-          python - "$MARKER" "$GITHUB_OUTPUT" <<'PY'
-          import json, pathlib, re, sys
-          marker = pathlib.Path(sys.argv[1])
-          output = pathlib.Path(sys.argv[2])
-          data = json.loads(marker.read_text(encoding="utf-8"))
-          schema = data.get("schema")
-          if schema != "dcoir.chatgpt_staging.cleanup_request.v1":
-              raise SystemExit(f"cleanup marker schema must be dcoir.chatgpt_staging.cleanup_request.v1, got {schema!r}")
-          request_id = str(data.get("request_id", "")).strip()
-          if not request_id or not re.fullmatch(r"[A-Za-z0-9._-]+", request_id):
-              raise SystemExit(f"Unsafe or missing request_id in cleanup marker: {request_id!r}")
-          def b(name, default=False):
-              value = data.get(name, default)
-              if isinstance(value, bool):
-                  return "true" if value else "false"
-              if isinstance(value, str) and value.lower() in {"true", "false"}:
-                  return value.lower()
-              raise SystemExit(f"Cleanup marker field {name} must be boolean")
-          lines = {
-              "skip": "false",
-              "cleanup_requests": b("cleanup_requests", True),
-              "cleanup_in_payloads": b("cleanup_in_payloads", True),
-              "cleanup_out_bundles": b("cleanup_out_bundles", False),
-              "cleanup_apply_reports": b("cleanup_apply_reports", False),
-              "cleanup_failure_reports": b("cleanup_failure_reports", False),
-              "cleanup_status_reports": b("cleanup_status_reports", False),
-              "delete_marker_after_success": b("delete_marker_after_success", True),
-              "request_id_filter": request_id,
-              "cleanup_marker_path": str(marker),
-          }
-          with output.open("a", encoding="utf-8") as fh:
-              for key, value in lines.items():
-                  fh.write(f"{key}={value}\n")
-          PY
+          python .github/scripts/resolve_chatgpt_staging_cleanup_plan.py \
+            --caller-event-name '${{ inputs.caller_event_name }}' \
+            --cleanup-requests '${{ inputs.cleanup_requests }}' \
+            --cleanup-in-payloads '${{ inputs.cleanup_in_payloads }}' \
+            --cleanup-out-bundles '${{ inputs.cleanup_out_bundles }}' \
+            --cleanup-apply-reports '${{ inputs.cleanup_apply_reports }}' \
+            --cleanup-failure-reports '${{ inputs.cleanup_failure_reports }}' \
+            --cleanup-status-reports '${{ inputs.cleanup_status_reports }}' \
+            --request-id-filter '${{ inputs.request_id_filter }}' \
+            --github-sha "$GITHUB_SHA" \
+            --output "$GITHUB_OUTPUT"
 
       - name: Clean selected ChatGPT staging artifacts
         if: steps.plan.outputs.skip != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          FILTER='${{ steps.plan.outputs.request_id_filter }}'
-          CLEANUP_MARKER='${{ steps.plan.outputs.cleanup_marker_path }}'
-          DELETE_MARKER='${{ steps.plan.outputs.delete_marker_after_success }}'
-          REPORT_ID="${FILTER:-manual_cleanup_$GITHUB_RUN_ID}"
-          REPORT_DIR="chatgpt_staging/status_reports/chatgpt-staging-cleanup/$REPORT_ID"
-          REPORT_PATH="$REPORT_DIR/workflow_report.md"
-          mkdir -p "$REPORT_DIR"
-          case "$FILTER" in
-            *[!A-Za-z0-9._-]* ) echo "Unsafe request_id_filter: $FILTER" >&2; exit 1 ;;
-          esac
-
-          removed=0
-          REMOVED_LIST="$RUNNER_TEMP/chatgpt_cleanup_removed.txt"
-          RETAINED_LIST="$RUNNER_TEMP/chatgpt_cleanup_retained.txt"
-          : > "$REMOVED_LIST"
-          : > "$RETAINED_LIST"
-
-          is_scaffold_path() {
-            local p="$1"
-            case "$p" in
-              chatgpt_staging/requests/.gitkeep|\
-              chatgpt_staging/requests/github_artifact_readback/.gitkeep|\
-              chatgpt_staging/in/.gitkeep|\
-              chatgpt_staging/out/.gitkeep|\
-              chatgpt_staging/apply_reports/.gitkeep|\
-              chatgpt_staging/failure_reports/.gitkeep|\
-              chatgpt_staging/cleanup_requests/.gitkeep|\
-              chatgpt_staging/status_reports/.gitkeep|\
-              chatgpt_staging/testdata/source/.gitkeep|\
-              */.gitkeep)
-                return 0
-                ;;
-              *)
-                return 1
-                ;;
-            esac
-          }
-
-          rm_path() {
-            local p="$1"
-            if [[ -z "$p" || "$p" == /tmp/* || "$p" == /* || "$p" == *..* ]]; then
-              echo "Refusing unsafe cleanup path: $p" >&2
-              exit 1
-            fi
-            if is_scaffold_path "$p"; then
-              echo "$p" >> "$RETAINED_LIST"
-              echo "Skipping scaffold path: $p"
-              return 0
-            fi
-            if [[ "$p" == "$REPORT_DIR" || "$p" == "$REPORT_DIR"/* ]]; then
-              echo "$p" >> "$RETAINED_LIST"
-              echo "Skipping current cleanup report path: $p"
-              return 0
-            fi
-            if git ls-files --error-unmatch "$p" >/dev/null 2>&1; then
-              git rm -r -f "$p"
-              echo "$p" >> "$REMOVED_LIST"
-              removed=$((removed + 1))
-            fi
-          }
-
-          match_filter() {
-            local name="$1"
-            if [[ -z "$FILTER" ]]; then
-              return 0
-            fi
-            [[ "$name" == "$FILTER" || "$name" == "$FILTER"* ]]
-          }
-
-          if [[ '${{ steps.plan.outputs.cleanup_requests }}' == 'true' ]]; then
-            while IFS= read -r f; do
-              [[ -e "$f" ]] || continue
-              stem="$(basename "$f" .json)"
-              if match_filter "$stem"; then rm_path "$f"; fi
-            done < <(find chatgpt_staging/requests -type f -name '*.json' | sort)
-          fi
-          if [[ '${{ steps.plan.outputs.cleanup_in_payloads }}' == 'true' ]]; then
-            for d in chatgpt_staging/in/*; do
-              [[ -d "$d" ]] || continue
-              stem="$(basename "$d")"
-              if match_filter "$stem"; then rm_path "$d"; fi
-            done
-          fi
-          if [[ '${{ steps.plan.outputs.cleanup_out_bundles }}' == 'true' ]]; then
-            for d in chatgpt_staging/out/*; do
-              [[ -d "$d" ]] || continue
-              stem="$(basename "$d")"
-              if match_filter "$stem"; then rm_path "$d"; fi
-            done
-          fi
-          if [[ '${{ steps.plan.outputs.cleanup_apply_reports }}' == 'true' ]]; then
-            for f in chatgpt_staging/apply_reports/*.md; do
-              [[ -e "$f" ]] || continue
-              stem="$(basename "$f")"
-              if match_filter "$stem"; then rm_path "$f"; fi
-            done
-          fi
-          if [[ '${{ steps.plan.outputs.cleanup_failure_reports }}' == 'true' ]]; then
-            for d in chatgpt_staging/failure_reports/*; do
-              [[ -d "$d" ]] || continue
-              stem="$(basename "$d")"
-              if match_filter "$stem"; then rm_path "$d"; fi
-            done
-          fi
-          if [[ '${{ steps.plan.outputs.cleanup_status_reports }}' == 'true' ]]; then
-            for wf in chatgpt_staging/status_reports/*; do
-              [[ -d "$wf" ]] || continue
-              is_scaffold_path "$wf" && continue
-              for d in "$wf"/*; do
-                [[ -d "$d" ]] || continue
-                stem="$(basename "$d")"
-                if match_filter "$stem"; then rm_path "$d"; fi
-              done
-            done
-          fi
-          if [[ "$DELETE_MARKER" == 'true' && -n "$CLEANUP_MARKER" ]]; then
-            rm_path "$CLEANUP_MARKER"
-          fi
-
-          {
-            echo "# ChatGPT workflow report"
-            echo
-            echo "## Result"
-            echo
-            echo "- workflow: chatgpt-staging-cleanup"
-            echo "- result: success"
-            echo "- phase: cleanup"
-            echo "- request_id_filter: $FILTER"
-            echo "- github_run_id: $GITHUB_RUN_ID"
-            echo "- github_sha: $GITHUB_SHA"
-            echo "- github_ref: $GITHUB_REF"
-            echo "- removed_count: $removed"
-            echo "- report_created_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo
-            echo "## Removed paths"
-            if [[ -s "$REMOVED_LIST" ]]; then sed 's/^/- /' "$REMOVED_LIST"; else echo "- none"; fi
-            echo
-            echo "## Retained or skipped paths"
-            if [[ -s "$RETAINED_LIST" ]]; then sed 's/^/- /' "$RETAINED_LIST"; else echo "- none"; fi
-            echo
-            echo "## Cleanup guidance"
-            echo
-            echo "This cleanup report can be removed by a future cleanup marker with cleanup_status_reports=true after ChatGPT reads it."
-            echo
-            echo "## Next ChatGPT action"
-            echo
-            echo "Verify scoped deletion by GitHub readback, update Airtable evidence if material, then remove this report when safe."
-          } > "$REPORT_PATH"
-
-          echo "removed=$removed" >> "$GITHUB_ENV"
-          echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
-          echo "REPORT_PATH=$REPORT_PATH" >> "$GITHUB_ENV"
-          echo "REPORT_PUSHED=false" >> "$GITHUB_ENV"
+          # Helper writes chatgpt_staging/status_reports/chatgpt-staging-cleanup/<id>/workflow_report.md and exports REPORT_PATH.
+          python .github/scripts/clean_chatgpt_staging_artifacts.py \
+            --request-id-filter '${{ steps.plan.outputs.request_id_filter }}' \
+            --cleanup-requests '${{ steps.plan.outputs.cleanup_requests }}' \
+            --cleanup-in-payloads '${{ steps.plan.outputs.cleanup_in_payloads }}' \
+            --cleanup-out-bundles '${{ steps.plan.outputs.cleanup_out_bundles }}' \
+            --cleanup-apply-reports '${{ steps.plan.outputs.cleanup_apply_reports }}' \
+            --cleanup-failure-reports '${{ steps.plan.outputs.cleanup_failure_reports }}' \
+            --cleanup-status-reports '${{ steps.plan.outputs.cleanup_status_reports }}' \
+            --cleanup-marker-path '${{ steps.plan.outputs.cleanup_marker_path }}' \
+            --delete-marker-after-success '${{ steps.plan.outputs.delete_marker_after_success }}' \
+            --github-env "$GITHUB_ENV"
 
       - name: Commit cleanup
         if: steps.plan.outputs.skip != 'true'
@@ -322,35 +121,9 @@ jobs:
         run: |
           set -euo pipefail
           FILTER='${{ steps.plan.outputs.request_id_filter }}'
-          REPORT_ID="${FILTER:-cleanup_failure_$GITHUB_RUN_ID}"
-          case "$REPORT_ID" in
-            *[!A-Za-z0-9._-]*|'') REPORT_ID="unsafe_or_unknown" ;;
-          esac
-          REPORT_DIR="chatgpt_staging/status_reports/chatgpt-staging-cleanup/$REPORT_ID"
-          REPORT_PATH="$REPORT_DIR/workflow_report.md"
-          mkdir -p "$REPORT_DIR"
-          {
-            echo "# ChatGPT workflow report"
-            echo
-            echo "## Result"
-            echo
-            echo "- workflow: chatgpt-staging-cleanup"
-            echo "- result: failure"
-            echo "- phase: cleanup"
-            echo "- request_id_filter: $FILTER"
-            echo "- github_run_id: $GITHUB_RUN_ID"
-            echo "- github_sha: $GITHUB_SHA"
-            echo "- github_ref: $GITHUB_REF"
-            echo "- report_created_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo
-            echo "## Troubleshooting notes"
-            echo
-            echo "Cleanup failed or failed closed. Inspect the GitHub Actions run log for malformed marker details, wrong/missing schema, invalid boolean fields, request_id validation, or unsafe path validation errors."
-            echo
-            echo "## Next ChatGPT action"
-            echo
-            echo "Read this report, inspect run logs if needed, fix or regenerate the cleanup marker, and update Airtable."
-          } > "$REPORT_PATH"
+          python .github/scripts/write_chatgpt_staging_cleanup_failure_report.py \
+            --request-id-filter "$FILTER" \
+            --github-env "$GITHUB_ENV"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$REPORT_DIR"

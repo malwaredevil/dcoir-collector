@@ -102,6 +102,8 @@ Do not manually insert, update, or delete rows in `ircore.github_work_items` or 
 
 ## PR Review Gate Validation
 
+Resolve the active runtime adapter in `AGENTS.md` before applying PR review gates. When the Codex local-session operator adapter applies, named Prog/Adva/Codi passes, `/dcoir-review`, and external self-invocation are not required. Validate Codex self-review, relevant tests, GitHub/source readback, review-thread disposition, and the retained operator/safety approvals instead. Do not extend this exception to ChatGPT WebUI, connector-only sessions, Replit, Gemini, or other runtimes.
+
 For governed PR readiness:
 - Prog and Adva are internal professional review passes.
 - Codi must review PR-related code changes before the external `@codex` comment is posted unless the operator explicitly waives Codi for the current task.
@@ -163,8 +165,8 @@ When used, return:
 - do not skip readback after mutation
 - do not skip GitHub work-item receipt gateways for governed issue/PR work
 - do not claim Prog/Adva discipline is complete unless the implementation/fix scope, adversarial review result, and valid finding disposition are stated, or the pass is explicitly waived, unavailable, or not applicable
-- do not claim the Codi gate is clear unless Codi was actually asked and approved or the operator explicitly waived Codi for the task
-- do not claim the OpenRouter internal review gate is clear unless the command comment, eyes lifecycle, workflow/run state, PR review output, and finding disposition were read back, or the gate was explicitly waived/not applicable; for OpenRouter `issue_comment` workflow/script changes, default-branch or equivalent live-test availability is required before live slash evidence can clear the gate
+- do not claim the Codi gate is clear unless Codi was actually asked and approved, the operator explicitly waived Codi for the task, or the Codex local-session operator adapter makes the gate not applicable
+- do not claim the OpenRouter internal review gate is clear unless the command comment, eyes lifecycle, workflow/run state, PR review output, and finding disposition were read back, or the gate was explicitly waived/not applicable through the active runtime adapter; for OpenRouter `issue_comment` workflow/script changes, default-branch or equivalent live-test availability is required before live slash evidence can clear the gate
 - do not post or confirm any external `@codex` PR review or action comment unless the operator approved the exact proposed comment text in the current session
 - do not claim the external `@codex` gate is clear until the formal response is read live and valid findings are fixed or dispositioned
 - do not treat skill wording as higher authority than Core Agent Instructions, repository `AGENTS.md`, or Supabase `ircore`

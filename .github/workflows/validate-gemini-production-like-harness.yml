@@ -16,7 +16,7 @@
 # Required secrets/config:
 # - none
 # Runtime dependencies:
-# - Uses project_sources/gemini/tools/validate_gemini_production_like_harness.py, blind fixture trees, Gemini bundle source, and maintained knowledge files.
+# - Uses project_sources/gemini/tools/validate_gemini_production_like_harness.py, production-like harness helper modules, blind fixture trees, Gemini bundle source, and maintained knowledge files.
 # Expected outputs/readback:
 # - Production-like harness output, validation artifacts, chatgpt-workflow-report-section artifact, and repo-workflows report.
 # Safety notes:
@@ -34,6 +34,7 @@ on:
   push:
     paths:
       - 'project_sources/gemini/tools/validate_gemini_production_like_harness.py'
+      - 'project_sources/gemini/tools/lib/gemini_production_like_harness_*.py'
       - 'project_sources/gemini/fixtures/behavioral_replay/blind/**'
       - '!project_sources/gemini/fixtures/behavioral_replay/blind_artifacts/**'
       - 'project_sources/gemini/fixtures/behavioral_replay/blind_artifacts/collector_fixture179_t2_sanitized/**'
@@ -47,6 +48,7 @@ on:
   pull_request:
     paths:
       - 'project_sources/gemini/tools/validate_gemini_production_like_harness.py'
+      - 'project_sources/gemini/tools/lib/gemini_production_like_harness_*.py'
       - 'project_sources/gemini/fixtures/behavioral_replay/blind/**'
       - '!project_sources/gemini/fixtures/behavioral_replay/blind_artifacts/**'
       - 'project_sources/gemini/fixtures/behavioral_replay/blind_artifacts/collector_fixture179_t2_sanitized/**'

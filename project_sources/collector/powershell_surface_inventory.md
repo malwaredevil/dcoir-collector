@@ -15,50 +15,50 @@
 | --- | ---: |
 | `archive_temp_vendor_artifact` | 0 |
 | `collector_harness_script` | 4 |
-| `collector_harness_source_part` | 12 |
-| `collector_runtime_source_part` | 18 |
+| `collector_harness_source_part` | 17 |
+| `collector_runtime_source_part` | 43 |
 | `collector_runtime_wrapper` | 1 |
 | `collector_validation_tooling` | 2 |
 | `fixture_or_example` | 23 |
-| `generated_or_assembled_output` | 0 |
-| `github_workflow_support_script` | 2 |
+| `generated_or_assembled_output` | 1 |
+| `github_workflow_support_script` | 20 |
 | `invalid_workflow_surface` | 0 |
 | `missing_authoritative_surface` | 0 |
 | `missing_changed_powershell_surface` | 0 |
 | `missing_changed_workflow_surface` | 0 |
 | `operator_tooling` | 45 |
-| `staging_artifact` | 18 |
+| `staging_artifact` | 63 |
 | `unclassified_powershell_surface` | 0 |
 | `validation_tooling` | 3 |
-| `workflow_embedded_powershell` | 24 |
+| `workflow_embedded_powershell` | 27 |
 
 ## Counts By Source Type
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 97 |
-| `.ps1.txt` | 12 |
+| `.ps1` | 186 |
+| `.ps1.txt` | 17 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
 | `.psm1` | 10 |
-| `workflow_yaml` | 24 |
+| `workflow_yaml` | 27 |
 
 ## Counts By Inclusion Decision
 
 | Decision | Count |
 | --- | ---: |
-| `exclude` | 18 |
-| `include` | 87 |
-| `reference` | 47 |
+| `exclude` | 63 |
+| `include` | 135 |
+| `reference` | 51 |
 
 ## Control Totals
 
-- Collector manifest expected paths: `19`
-- Collector manifest present paths: `19`
-- Harness source parts: `12`
-- Profile-required harness source parts: `12`
-- Profile-required harness source parts present: `12`
-- Embedded workflow/action snippets: `69`
+- Collector manifest expected paths: `44`
+- Collector manifest present paths: `44`
+- Harness source parts: `17`
+- Profile-required harness source parts: `17`
+- Profile-required harness source parts present: `17`
+- Embedded workflow/action snippets: `80`
 
 ## Reference And Excluded Surfaces
 
@@ -68,6 +68,9 @@
 | `.github/actions/build-collector-runtime-for-harness/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-collector-documentation-quality/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-collector-runtime-package-validation/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/actions/run-duplicate-function-check/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/actions/run-powershell-review-assist/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/actions/run-psscriptanalyzer/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-validate-dcoir-fixtures/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/smoke-build-collector-package/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/smoke-build-gemini-bundle/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
@@ -89,6 +92,12 @@
 | `.github/workflows/reusable-validate-on-push.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/workflows/reusable-windows-powershell-51.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121700Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T122700Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T123500Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260519-wbs04-merge-delete-batch1-export-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
@@ -103,8 +112,47 @@
 | `chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch2-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260520-wbs06-final-verify-retirement-packet-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260520-wbs06-rename-ledger-dryrun-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-004.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-005.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-006.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-008.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-009.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-010.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-011.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-004.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-005.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-006.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-008.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-004.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-005.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-006.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-005.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-006.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-007.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `project_sources/collector/fixtures/powershell_analysis/bad/analyzer_skip_success.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/bad/broad_baseline.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
@@ -129,6 +177,7 @@
 | `project_sources/collector/fixtures/powershell_analysis/good/custom_fingerprint_bound_baseline.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/good/custom_safe_root_delete.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/good/custom_source_part_current.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
+| `project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1` | `generated_or_assembled_output` | `reference` | Superseded monolithic Part 02 pointer is documentation, not manifest-loaded runtime source. |
 
 ## Validation Findings
 

@@ -14,6 +14,12 @@ DEFAULT_BUNDLE_BASENAME = "dcoir_manual_test_framework_bundle_{version}_full.zip
 REQUIRED_BUNDLE_FILES: List[str] = [
     "run_dcoir_manual_tests.ps1",
     "dcoir_manual_test_runner.py",
+    "dcoir_manual_runner_context.py",
+    "dcoir_manual_runner_package.py",
+    "dcoir_manual_runner_checks.py",
+    "dcoir_manual_runner_checks_part_01.py",
+    "dcoir_manual_runner_checks_part_02.py",
+    "dcoir_manual_runner_flow.py",
     "dcoir_manual_test_control.json",
     "README_FIRST.txt",
     "install_and_run_from_downloads.ps1",

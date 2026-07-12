@@ -1,0 +1,100 @@
+{
+  "canonical_reports_policy": "Canonical generated reports remain at project_sources/collector/*.json and *.md. These chunks are byte-exact replacements only when canonical parity validation passes.",
+  "file_count": 70,
+  "issue": 349,
+  "max_chunk_bytes_target": 14000,
+  "pull_request": 350,
+  "purpose": "Connector-sized additive sidecar chunks for generated PowerShell evidence reports.",
+  "report_count": 8,
+  "reports": [
+    {
+      "chunk_count": 16,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/json/manifest.json",
+      "report_id": "surface_inventory",
+      "source_bytes": 216259,
+      "source_format": "json",
+      "source_report": "project_sources/collector/powershell_surface_inventory.json",
+      "source_sha256": "96fa515df8276bd7f33ccab53a9768718a34d4d4f9169f901d60a489987cf7fd",
+      "reassembly_mode": "byte_exact_text_slices"
+    },
+    {
+      "chunk_count": 2,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/manifest.json",
+      "report_id": "surface_inventory",
+      "source_bytes": 25504,
+      "source_format": "markdown",
+      "source_report": "project_sources/collector/powershell_surface_inventory.md",
+      "source_sha256": "ea4519b5c96e7e70f74c3ad4944c0cac14adbf32eb46bf23c0ae23c61fe97f6b"
+    },
+    {
+      "chunk_count": 4,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/assembly_parity/json/manifest.json",
+      "report_id": "assembly_parity",
+      "source_bytes": 48791,
+      "source_format": "json",
+      "source_report": "project_sources/collector/powershell_assembly_parity_report.json",
+      "source_sha256": "f8ae13e78a0fbc5053fe9cddc1ae62675554a0e5dfbabcdd9491310cbc451626",
+      "reassembly_mode": "byte_exact_text_slices"
+    },
+    {
+      "chunk_count": 1,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/assembly_parity/markdown/manifest.json",
+      "report_id": "assembly_parity",
+      "source_bytes": 2772,
+      "source_format": "markdown",
+      "source_report": "project_sources/collector/powershell_assembly_parity_report.md",
+      "source_sha256": "8222f3e5c227a3179b84bb36fc56171a91321603765c40012063411a037933b2"
+    },
+    {
+      "chunk_count": 21,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/json/manifest.json",
+      "report_id": "function_reachability",
+      "source_bytes": 292192,
+      "source_format": "json",
+      "source_report": "project_sources/collector/powershell_function_reachability_report.json",
+      "source_sha256": "5c95316f1daf64ea886b590d815cefa24f2ca98f9f787bae6009b1877c6a59ca",
+      "reassembly_mode": "byte_exact_text_slices"
+    },
+    {
+      "chunk_count": 1,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/manifest.json",
+      "report_id": "function_reachability",
+      "source_bytes": 6210,
+      "source_format": "markdown",
+      "source_report": "project_sources/collector/powershell_function_reachability_report.md",
+      "source_sha256": "ce7cb6f37d0b43aec994596ffe4ab1b875e88bf77ded80c4b20b743eb9c739d4"
+    },
+    {
+      "chunk_count": 12,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/json/manifest.json",
+      "report_id": "review_assist",
+      "source_bytes": 157628,
+      "source_format": "json",
+      "source_report": "project_sources/collector/powershell_review_assist_report.json",
+      "source_sha256": "2cbbd3f272654e2ed8b690fc11e58a0b0646174289d40b0fd84b7e90367d220f",
+      "reassembly_mode": "byte_exact_text_slices"
+    },
+    {
+      "chunk_count": 3,
+      "manifest_path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/manifest.json",
+      "report_id": "review_assist",
+      "source_bytes": 30434,
+      "source_format": "markdown",
+      "source_report": "project_sources/collector/powershell_review_assist_report.md",
+      "source_sha256": "bc169a4c0de59a58ad2b7b2758528f53a9b01465e4e28656e34a7812ecb8db9b"
+    }
+  ],
+  "schema_version": "dcoir_powershell_evidence_chunk_set_v1",
+  "sidecar_commit_sha_policy": "This manifest does not self-reference the containing commit because each manifest edit changes that commit. Use live GitHub branch or commit readback for the current sidecar commit SHA.",
+  "source_report_path_policy": "source_report identifies the canonical report path and report contract. Require canonical parity validation before treating sidecar chunks as replacement source for the canonical report files.",
+  "source_report_provenance_policy": "Chunks were generated from the final local PR #350 batch. Bind them to the pushed commit through live GitHub readback and require canonical parity before replacement use.",
+  "top_level_files": [
+    {
+      "bytes": 1086,
+      "chunk_kind": "readme",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/README.md",
+      "sha256": "3369a48be7d1bb4ed0fd6bc48eae558e46f51e37c5c56a4c3389fe01028bde5c"
+    }
+  ]
+}

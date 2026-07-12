@@ -37,6 +37,7 @@ jobs:
           set -euo pipefail
           python -m py_compile \
             project_sources/gemini/tools/run_gemini_behavioral_replay.py \
+            project_sources/gemini/tools/run_gemini_behavioral_replay_validation_suite.py \
             project_sources/gemini/tools/score_gemini_behavioral_replay.py \
             project_sources/gemini/tools/render_gemini_behavioral_replay_report.py \
             project_sources/gemini/tools/validate_gemini_behavioral_replay_fixtures.py \
@@ -51,101 +52,13 @@ jobs:
           set -euo pipefail
           mkdir -p project_sources/validation/out_validate_gemini_behavioral_replay
 
-      - name: Validate replay fixtures
+      - name: Run deterministic replay validation suite
         shell: bash
         run: |
           set -euo pipefail
-          python project_sources/gemini/tools/validate_gemini_behavioral_replay_fixtures.py \
+          python project_sources/gemini/tools/run_gemini_behavioral_replay_validation_suite.py \
             --fixtures-root project_sources/gemini/fixtures/behavioral_replay \
-            --output-dir project_sources/validation/out_validate_gemini_behavioral_replay/fixtures
-
-      - name: Validate known-good deterministic response packs
-        shell: bash
-        run: |
-          set -euo pipefail
-          run_known_good() {
-            local fixture_id="$1"
-            local response_pack="$2"
-            local output_dir="$3"
-            python project_sources/gemini/tools/run_gemini_behavioral_replay.py \
-              --fixtures-root project_sources/gemini/fixtures/behavioral_replay \
-              --fixture-id "${fixture_id}" \
-              --response-pack "${response_pack}" \
-              --output-dir "${output_dir}"
-          }
-
-          run_known_good dcoir_operator_state_first_issue_124 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_operator_state_first_issue_124_known_good_response_pack.json project_sources/validation/out_validate_gemini_behavioral_replay/run_good_issue_124
-          run_known_good dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_good_response_pack.json project_sources/validation/out_validate_gemini_behavioral_replay/run_good_issue_122
-          run_known_good dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_good_response_pack.json project_sources/validation/out_validate_gemini_behavioral_replay/run_good_issue_123
-          run_known_good dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_good_response_pack.json project_sources/validation/out_validate_gemini_behavioral_replay/run_good_issue_174
-
-      - name: Render standalone replay report
-        shell: bash
-        run: |
-          set -euo pipefail
-          python project_sources/gemini/tools/render_gemini_behavioral_replay_report.py \
-            --results-json project_sources/validation/out_validate_gemini_behavioral_replay/run_good_issue_124/gemini_behavioral_replay_run_report.json \
-            --output-path project_sources/validation/out_validate_gemini_behavioral_replay/run_good_issue_124/gemini_behavioral_replay_rendered_report.md
-
-      - name: Ensure known-bad deterministic response packs fail
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p project_sources/validation/out_validate_gemini_behavioral_replay/known_bad_results
-          check_known_bad() {
-            local fixture_id="$1"
-            local response_pack="$2"
-            local label="$3"
-            local safe_label
-            safe_label="$(printf '%s' "${label}" | tr -c 'A-Za-z0-9_.-' '_')"
-            local output="project_sources/validation/out_validate_gemini_behavioral_replay/known_bad_results/${safe_label}.json"
-            if python project_sources/gemini/tools/score_gemini_behavioral_replay.py \
-              --fixtures-root project_sources/gemini/fixtures/behavioral_replay \
-              --response-pack "${response_pack}" \
-              --fixture-id "${fixture_id}" > "${output}"; then
-              echo "${label} known-bad response pack unexpectedly passed."
-              cat "${output}"
-              exit 1
-            fi
-            python -c "import json, sys; data=json.load(open(sys.argv[1], encoding='utf-8')); assert data.get('success') is False, sys.argv[1]" "${output}"
-          }
-
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_response_pack.json "Issue 122 baseline"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_negated_required_response_pack.json "Issue 122 negated-required"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_post_rejection_response_pack.json "Issue 122 post-marker rejection"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_connector_rejection_response_pack.json "Issue 122 connector rejection"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_modifier_rejection_response_pack.json "Issue 122 modifier rejection"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_quoted_marker_response_pack.json "Issue 122 quoted marker"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_question_reversal_response_pack.json "Issue 122 question reversal"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_wrong_to_treat_response_pack.json "Issue 122 wrong-to-treat"
-          check_known_bad dcoir_byovd_evidence_discipline_issue_122 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_bad_not_enough_to_say_response_pack.json "Issue 122 not-enough-to-say"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_response_pack.json "Issue 123 baseline"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_negated_required_response_pack.json "Issue 123 negated-required"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_article_negation_response_pack.json "Issue 123 article negation"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_request_rejection_response_pack.json "Issue 123 request rejection"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_should_not_request_response_pack.json "Issue 123 should-not-request"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_quoted_marker_response_pack.json "Issue 123 quoted marker"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_suffix_response_pack.json "Issue 123 suffix marker"
-          check_known_bad dcoir_long_transcript_continuity_issue_123 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_long_transcript_continuity_issue_123_known_bad_not_needed_response_pack.json "Issue 123 not-needed"
-          check_known_bad dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_bad_absence_response_pack.json "Issue 174 miss-to-absence"
-          check_known_bad dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_bad_malicious_response_pack.json "Issue 174 miss-to-malicious"
-          check_known_bad dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_bad_benign_response_pack.json "Issue 174 miss-to-benign"
-          check_known_bad dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_bad_repeat_shape_response_pack.json "Issue 174 repeat-shape"
-          check_known_bad dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_bad_broad_spam_response_pack.json "Issue 174 broad-spam"
-          check_known_bad dcoir_kql_unique_value_miss_issue_174 project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_kql_unique_value_miss_issue_174_known_bad_invented_search_response_pack.json "Issue 174 invented-search"
-
-      - name: Ensure response-pack mode mismatches fail
-        shell: bash
-        run: |
-          set -euo pipefail
-          if python project_sources/gemini/tools/score_gemini_behavioral_replay.py \
-            --fixtures-root project_sources/gemini/fixtures/behavioral_replay \
-            --response-pack project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts/dcoir_byovd_evidence_discipline_issue_122_known_good_response_pack.json \
-            --fixture-id dcoir_byovd_evidence_discipline_issue_122 \
-            --expected-mode live_gemini; then
-            echo "Deterministic response pack unexpectedly passed a live_gemini expected-mode check."
-            exit 1
-          fi
+            --output-dir project_sources/validation/out_validate_gemini_behavioral_replay
 
       - name: Upload deterministic replay artifacts
         if: always()

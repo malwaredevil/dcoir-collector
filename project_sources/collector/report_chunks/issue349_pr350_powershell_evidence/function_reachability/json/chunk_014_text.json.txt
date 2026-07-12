@@ -1,0 +1,344 @@
+          "invocation_kind": "literal_token",
+          "line": 290,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1"
+        },
+        {
+          "column": 5,
+          "invocation_kind": "literal_token",
+          "line": 293,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 167,
+      "name": "New-DCOIRCleanupResult",
+      "normalized_name": "new-dcoircleanupresult",
+      "reference_count": 2,
+      "references": [
+        {
+          "column": 13,
+          "invocation_kind": "literal_token",
+          "line": 297,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1"
+        },
+        {
+          "column": 11,
+          "invocation_kind": "literal_token",
+          "line": 328,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 212,
+      "name": "Invoke-Cleanup",
+      "normalized_name": "invoke-cleanup",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 20,
+          "invocation_kind": "literal_token",
+          "line": 47,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 39,
+      "name": "Get-TargetedCollectionScopeText",
+      "normalized_name": "get-targetedcollectionscopetext",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 16,
+          "invocation_kind": "literal_token",
+          "line": 253,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B1_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 79,
+      "name": "Get-TargetedCollectionPlanText",
+      "normalized_name": "get-targetedcollectionplantext",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 17,
+          "invocation_kind": "literal_token",
+          "line": 268,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B1_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 167,
+      "name": "Get-CollectorParallelismAssessmentText",
+      "normalized_name": "get-collectorparallelismassessmenttext",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 19,
+          "invocation_kind": "literal_token",
+          "line": 260,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B1_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "dynamic_invocation_uncertain",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 213,
+      "name": "New-AnalystOverviewArtifact",
+      "normalized_name": "new-analystoverviewartifact",
+      "reference_count": 0,
+      "references": [],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B1_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "no_literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 39,
+      "name": "New-SyntheticOversizeArtifactText",
+      "normalized_name": "new-syntheticoversizeartifacttext",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 17,
+          "invocation_kind": "literal_token",
+          "line": 188,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 73,
+      "name": "Write-ArtifactTextExact",
+      "normalized_name": "write-artifacttextexact",
+      "reference_count": 3,
+      "references": [
+        {
+          "column": 20,
+          "invocation_kind": "literal_token",
+          "line": 132,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        },
+        {
+          "column": 18,
+          "invocation_kind": "literal_token",
+          "line": 145,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        },
+        {
+          "column": 17,
+          "invocation_kind": "literal_token",
+          "line": 189,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 112,
+      "name": "Split-ValidationTextArtifactIntoChunks",
+      "normalized_name": "split-validationtextartifactintochunks",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 18,
+          "invocation_kind": "literal_token",
+          "line": 191,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 184,
+      "name": "New-SyntheticOversizeChunkValidationArtifacts",
+      "normalized_name": "new-syntheticoversizechunkvalidationartifacts",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 5,
+          "invocation_kind": "literal_token",
+          "line": 281,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 248,
+      "name": "Apply-FeatureWaveCollectEnhancements",
+      "normalized_name": "apply-featurewavecollectenhancements",
+      "reference_count": 1,
+      "references": [
+        {
+          "column": 1,
+          "invocation_kind": "literal_token",
+          "line": 83,
+          "parser": "python_lexical_fallback",
+          "source_path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1"
+        }
+      ],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "static_reference_status": "literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "dynamic_invocation_uncertain",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 40,
+      "name": "Get-CollectorEventFilterHashtable",
+      "normalized_name": "get-collectoreventfilterhashtable",
+      "reference_count": 0,
+      "references": [],
+      "source_path": "project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1",
+      "static_reference_status": "no_literal_reference_found",
+      "truncated_reference_count": 0
+    },
+    {
+      "claim": "classification is report-only and not deletion proof",
+      "classification": "literal_referenced",
+      "column": 10,
+      "coverage_lanes": [],
+      "coverage_status": "not_observed_in_suite",
+      "definition_kind": "top_level",
+      "dynamic_uncertainty_status": "dynamic_invocation_sites_present",
+      "end_line": null,
+      "line": 80,

@@ -46,227 +46,13 @@ jobs:
           PENDING_REQUEST_MAX_AGE_HOURS: "48"
         run: |
           set -euo pipefail
-
-          safe_request_path() {
-            local p="$1"
-            case "$p" in
-              ops/requests/apply_patch/*/request.json) return 0 ;;
-              *) return 1 ;;
-            esac
-          }
-
-          if [[ "$CALLER_EVENT_NAME" == "workflow_dispatch" && -n "$INPUT_REQUEST_PATH" ]]; then
-            REQUEST_PATH="$INPUT_REQUEST_PATH"
-            if ! safe_request_path "$REQUEST_PATH"; then
-              echo "request_path must match ops/requests/apply_patch/<request_id>/request.json" >&2
-              exit 1
-            fi
-          elif [[ "$CALLER_EVENT_NAME" == "workflow_dispatch" ]]; then
-            mapfile -t pending_records < <(
-              python - <<'PY'
-          import os
-          import pathlib
-          import subprocess
-          import time
-
-          root = pathlib.Path("ops/requests/apply_patch")
-          try:
-              max_age_hours = float(os.environ.get("PENDING_REQUEST_MAX_AGE_HOURS", "48") or "0")
-          except ValueError:
-              max_age_hours = 48.0
-          now = time.time()
-          records: list[tuple[int, str]] = []
-          for request_path in sorted(root.glob("*/request.json")):
-              if not request_path.is_file():
-                  continue
-              request_dir = request_path.parent
-              if (request_dir / ".apply-patch-failed.json").exists():
-                  continue
-              proc = subprocess.run(
-                  ["git", "log", "-1", "--format=%ct", "--", request_path.as_posix()],
-                  check=False,
-                  text=True,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
-              )
-              try:
-                  commit_time = int(proc.stdout.strip()) if proc.returncode == 0 and proc.stdout.strip() else 0
-              except ValueError:
-                  commit_time = 0
-              if max_age_hours > 0 and commit_time and now - commit_time > max_age_hours * 3600:
-                  continue
-              records.append((commit_time, request_path.as_posix()))
-          for commit_time, request_path in sorted(records, key=lambda item: (item[0] or 0, item[1])):
-              print(f"{commit_time}\t{request_path}")
-          PY
-            )
-            if [[ "${#pending_records[@]}" -eq 0 ]]; then
-              echo "No unmarked apply-patch requests were found under ops/requests/apply_patch within the scan window."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            if [[ "${#pending_records[@]}" -gt 1 ]]; then
-              printf 'Multiple pending apply-patch requests found; processing the oldest and leaving the rest queued:\n'
-              printf '%s\n' "${pending_records[@]}"
-            fi
-            IFS=$'\t' read -r _request_commit_time REQUEST_PATH <<< "${pending_records[0]}"
-            if ! safe_request_path "$REQUEST_PATH"; then
-              echo "resolved request_path must match ops/requests/apply_patch/<request_id>/request.json: $REQUEST_PATH" >&2
-              exit 1
-            fi
-          else
-            declare -A request_paths=()
-            removed_request_path_count=0
-            mapfile -t changed_records < <(
-              python - "$GITHUB_EVENT_PATH" "$GITHUB_SHA" <<'PY'
-          import json
-          import pathlib
-          import subprocess
-          import sys
-
-          event_path = pathlib.Path(sys.argv[1])
-          head_sha = sys.argv[2]
-          zero_sha = "0" * 40
-          changed = {}
-
-          def add(status, path):
-              if isinstance(path, str) and path:
-                  changed[path] = status
-
-          def add_name_status_line(line):
-              parts = line.split("\t")
-              if len(parts) < 2:
-                  return
-              status = parts[0]
-              if status.startswith(("R", "C")) and len(parts) >= 3:
-                  path = parts[2]
-              else:
-                  path = parts[1]
-              add(status, path)
-
-          try:
-              event = json.loads(event_path.read_text(encoding="utf-8"))
-          except (OSError, json.JSONDecodeError):
-              event = {}
-
-          for commit in event.get("commits", []):
-              if not isinstance(commit, dict):
-                  continue
-              for path in commit.get("added", []):
-                  add("A", path)
-              for path in commit.get("modified", []):
-                  add("M", path)
-              for path in commit.get("removed", []):
-                  add("D", path)
-
-          before = event.get("before")
-          after = event.get("after") or head_sha
-          if isinstance(before, str) and isinstance(after, str) and before and after and before != zero_sha:
-              proc = subprocess.run(
-                  ["git", "diff", "--name-status", f"{before}..{after}"],
-                  check=False,
-                  text=True,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
-              )
-              if proc.returncode == 0:
-                  for line in proc.stdout.splitlines():
-                      add_name_status_line(line)
-
-          if not changed:
-              proc = subprocess.run(
-                  ["git", "diff-tree", "--no-commit-id", "--name-status", "-r", "-m", head_sha],
-                  check=False,
-                  text=True,
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.PIPE,
-              )
-              if proc.returncode == 0:
-                  for line in proc.stdout.splitlines():
-                      add_name_status_line(line)
-
-          for path in sorted(changed):
-              print(f"{changed[path]}\t{path}")
-          PY
-            )
-            for record in "${changed_records[@]}"; do
-              IFS=$'\t' read -r status changed _ <<< "$record"
-              if [[ -z "${changed:-}" ]]; then
-                continue
-              fi
-              case "$changed" in
-                ops/requests/apply_patch/*/request.json)
-                  if [[ "$status" == D* ]]; then
-                    removed_request_path_count=$((removed_request_path_count + 1))
-                  else
-                    request_paths["$changed"]=1
-                  fi
-                  ;;
-                ops/requests/apply_patch/*/*.patch|ops/requests/apply_patch/*/*.diff)
-                  if [[ "$status" == D* ]]; then
-                    removed_request_path_count=$((removed_request_path_count + 1))
-                  else
-                    request_paths["$(dirname "$changed")/request.json"]=1
-                  fi
-                  ;;
-              esac
-            done
-
-            if [[ "${#request_paths[@]}" -eq 0 ]]; then
-              if [[ "$removed_request_path_count" -gt 0 ]]; then
-                echo "Only removed apply-patch request files were found; treating this as cleanup and skipping."
-                echo "skip=true" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-              if [[ "$CALLER_EVENT_NAME" == "push" ]]; then
-                echo "Apply-patch workflow was triggered by push, but no request path could be resolved from the push range." >&2
-                exit 1
-              fi
-              echo "No apply-patch request found in triggering event; exiting successfully."
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            if [[ "${#request_paths[@]}" -gt 1 ]]; then
-              printf 'Only one apply-patch request may be staged per triggering commit. Found:\n' >&2
-              printf '%s\n' "${!request_paths[@]}" >&2
-              exit 1
-            fi
-            REQUEST_PATH="${!request_paths[@]}"
-          fi
-
-          if [[ ! -f "$REQUEST_PATH" ]]; then
-            echo "Request file not found: $REQUEST_PATH" >&2
-            exit 1
-          fi
-          REQUEST_ID="$(basename "$(dirname "$REQUEST_PATH")")"
-          case "$REQUEST_ID" in
-            *[!A-Za-z0-9._-]*|'')
-              echo "Unsafe request id: $REQUEST_ID" >&2
-              exit 1
-              ;;
-          esac
-          REQUEST_DIR="$(dirname "$REQUEST_PATH")"
-          REQUEST_DIR_TREE_SHA256="$(${{ '' }}python - "$REQUEST_DIR" <<'PY'
-          import hashlib
-          import pathlib
-          import sys
-
-          root = pathlib.Path(sys.argv[1])
-          digest = hashlib.sha256()
-          for path in sorted(p for p in root.rglob("*") if p.is_file()):
-              rel = path.relative_to(root).as_posix()
-              digest.update(rel.encode("utf-8"))
-              digest.update(b"\0")
-              digest.update(hashlib.sha256(path.read_bytes()).hexdigest().encode("ascii"))
-              digest.update(b"\0")
-          print(digest.hexdigest())
-          PY
-          )"
-          echo "request_path=$REQUEST_PATH" >> "$GITHUB_OUTPUT"
-          echo "request_dir=$REQUEST_DIR" >> "$GITHUB_OUTPUT"
-          echo "request_dir_tree_sha256=$REQUEST_DIR_TREE_SHA256" >> "$GITHUB_OUTPUT"
-          echo "request_id=$REQUEST_ID" >> "$GITHUB_OUTPUT"
-          echo "skip=false" >> "$GITHUB_OUTPUT"
+          python ops/tools/resolve_apply_patch_request.py resolve \
+            --caller-event-name "$CALLER_EVENT_NAME" \
+            --input-request-path "$INPUT_REQUEST_PATH" \
+            --pending-request-max-age-hours "$PENDING_REQUEST_MAX_AGE_HOURS" \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --head-sha "$GITHUB_SHA" \
+            --output "$GITHUB_OUTPUT"
 
       - name: Apply governed patch request
         if: steps.request.outputs.skip != 'true'
@@ -305,22 +91,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          should_cleanup="$(${{ '' }}python - "$REPORT_DIR/result.json" <<'PY'
-          import json
-          import pathlib
-          import sys
-
-          result_path = pathlib.Path(sys.argv[1])
-          try:
-              result = json.loads(result_path.read_text(encoding="utf-8"))
-          except (OSError, json.JSONDecodeError):
-              print("false")
-              raise SystemExit
-
-          operation = result.get("operation") or result.get("mode")
-          print("true" if result.get("result") == "success" and operation == "apply" else "false")
-          PY
-          )"
+          should_cleanup="$(python ops/tools/resolve_apply_patch_request.py should-cleanup "$REPORT_DIR/result.json")"
           if [[ "$should_cleanup" != "true" ]]; then
             echo "Apply-patch request was not a successful apply operation; leaving request files for review."
             exit 0
@@ -342,22 +113,7 @@ jobs:
             exit 0
           fi
 
-          CURRENT_REQUEST_DIR_TREE_SHA256="$(${{ '' }}python - "$REQUEST_DIR" <<'PY'
-          import hashlib
-          import pathlib
-          import sys
-
-          root = pathlib.Path(sys.argv[1])
-          digest = hashlib.sha256()
-          for path in sorted(p for p in root.rglob("*") if p.is_file()):
-              rel = path.relative_to(root).as_posix()
-              digest.update(rel.encode("utf-8"))
-              digest.update(b"\0")
-              digest.update(hashlib.sha256(path.read_bytes()).hexdigest().encode("ascii"))
-              digest.update(b"\0")
-          print(digest.hexdigest())
-          PY
-          )"
+          CURRENT_REQUEST_DIR_TREE_SHA256="$(python ops/tools/resolve_apply_patch_request.py tree-hash "$REQUEST_DIR")"
           if [[ "$CURRENT_REQUEST_DIR_TREE_SHA256" != "$REQUEST_DIR_TREE_SHA256" ]]; then
             echo "Request directory changed after this run was triggered; refusing cleanup for reused request id: $REQUEST_ID" >&2
             exit 1

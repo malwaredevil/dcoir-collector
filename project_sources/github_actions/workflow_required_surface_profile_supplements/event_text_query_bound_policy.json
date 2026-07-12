@@ -1,0 +1,34 @@
+{
+  "validate_on_push": [
+    "project_sources/collector/tools/event_text_query_bound_common.py",
+    "project_sources/collector/tools/event_text_query_bound_event_text.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw_fixtures.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/event_text_query_bound_policy.json"
+  ],
+  "validate_on_pr": [
+    "project_sources/collector/tools/event_text_query_bound_common.py",
+    "project_sources/collector/tools/event_text_query_bound_event_text.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw_fixtures.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/event_text_query_bound_policy.json"
+  ],
+  "manual_full_validation": [
+    "project_sources/collector/tools/event_text_query_bound_common.py",
+    "project_sources/collector/tools/event_text_query_bound_event_text.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw_fixtures.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/event_text_query_bound_policy.json"
+  ],
+  "manual_collector_runtime_package_build": [
+    "project_sources/collector/tools/event_text_query_bound_common.py",
+    "project_sources/collector/tools/event_text_query_bound_event_text.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw.py",
+    "project_sources/collector/tools/event_text_query_bound_lograw_fixtures.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/event_text_query_bound_policy.json"
+  ]
+}

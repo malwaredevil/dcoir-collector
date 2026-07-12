@@ -1,224 +1,330 @@
-<#
-.SYNOPSIS
-Writes collector capability coverage artifacts.
-
-.DESCRIPTION
-Serializes the accumulated capability coverage rows to reusable JSON and Markdown files
-for #187 audit readback and future drift checks.
-
-.FUNCTION NAME
-Write-CapabilityCoverageFiles
-
-.INPUTS
-No direct parameters; reads script-level coverage rows and output paths.
-
-.OUTPUTS
-No direct output. Writes collector_capability_coverage.json and .md.
-#>
-function Write-CapabilityCoverageFiles {
-  $obj = [pscustomobject]@{
-    schema_version = 'dcoir_collector_capability_coverage_v1'
-    suite = $Suite
-    generated_at = (Get-Date).ToString('o')
-    collector_path = $CollectorFullPath
-    test_run_output = $RunOutputRoot
-    coverage_classes = @('covered_end_to_end_by_fullregression','covered_by_harness_not_manual','covered_by_package_validation_not_manual','covered_synthetically_only','partial','not_covered','out_of_scope_with_reason')
-    rows = @($script:CoverageRows)
-  }
-  $obj | ConvertTo-Json -Depth 8 | Set-Content -Path $CoverageJsonPath -Encoding UTF8
-
-  $lines = @('# DCOIR Collector Capability Coverage', '', ('Suite: {0}' -f $Suite), ('Generated: {0}' -f (Get-Date).ToString('o')), '', '| Capability | Coverage | Status | Risk | Operator Value | Evidence | Remaining Gap |', '| --- | --- | --- | --- | --- | --- | --- |')
-  foreach ($row in @($script:CoverageRows)) {
-    $evidence = (@($row.evidence_artifacts) -join '<br>')
-    $gap = if ([string]::IsNullOrWhiteSpace($row.remaining_gap)) { '' } else { $row.remaining_gap }
-    $lines += ('| `{0}` | {1} | {2} | {3} | {4} | {5} | {6} |' -f $row.capability_id, $row.coverage_class, $row.status, $row.risk, $row.operator_value, $evidence, ($gap -replace '\|','/'))
-  }
-  Set-Content -Path $CoverageMdPath -Value $lines -Encoding UTF8
-}
-
-<#
-.SYNOPSIS
-Finalizes and saves collector capability coverage output.
-
-.DESCRIPTION
-Builds coverage rows, writes coverage artifacts, then rechecks the coverage-matrix row
-after artifacts exist so the matrix artifact can be marked covered when valid.
-
-.FUNCTION NAME
-Save-CapabilityCoverage
-
-.INPUTS
-No direct parameters.
-
-.OUTPUTS
-No direct output. Writes coverage artifacts and updates in-memory coverage rows.
-#>
-function Save-CapabilityCoverage {
-  Add-CollectorCapabilityCoverageRows
-  Write-CapabilityCoverageFiles
-  foreach ($row in @($script:CoverageRows)) {
-    if ($row.capability_id -eq 'collector.coverage.matrix_artifact' -and (Test-CoverageArtifactEvidence -CapabilityId $row.capability_id)) {
-      $row.status = 'covered'
-      $row.remaining_gap = ''
+      if (-not (Test-Path -LiteralPath $chunkPath)) {
+        [void]$violations.Add(('Missing chunk path: {0}' -f $chunkPath))
+        continue
+      }
+      $chunkSizeKB = [int][Math]::Ceiling(((Get-Item -LiteralPath $chunkPath).Length) / 1KB)
+      $lines += ('CHUNK={0} SIZE_KB={1}' -f $chunkPath, $chunkSizeKB)
+      if ($chunkSizeKB -gt $SafePerFileKB) {
+        [void]$violations.Add(('Chunk exceeded safe per-file budget: {0}' -f $chunkPath))
+      }
     }
-  }
-  Write-CapabilityCoverageFiles
-}
-
-<#
-.SYNOPSIS
-Writes the suite summary text and JSON files.
-
-.DESCRIPTION
-Builds the final summary text and JSON objects from the accumulated harness results and
-writes them into the current test-run output directory.
-
-.FUNCTION NAME
-Save-Summary
-
-.INPUTS
-No direct parameters.
-
-.OUTPUTS
-No direct output. Writes summary.txt and summary.json.
-#>
-function Save-Summary {
-  Ensure-Directory -Path $RunOutputRoot
-  $summaryTxtPath = Join-Path $RunOutputRoot "summary.txt"
-  $summaryJsonPath = Join-Path $RunOutputRoot "summary.json"
-  $lines = @()
-  $lines += ("SUITE={0}" -f $Suite)
-  $lines += ("LIVE_RESPONSE_MODE={0}" -f $LiveResponseMode)
-  $lines += ("PROJECT_ROOT={0}" -f $ProjectRoot)
-  $lines += ("COLLECTOR_PATH={0}" -f $CollectorFullPath)
-  $lines += ("COLLECTOR_INVOCATION_MODE={0}" -f $script:ResolvedCollectorInvocationMode)
-  $lines += ("MASTER_ZIP={0}" -f $MasterZipFullPath)
-  $lines += ("WORKING_ZIP={0}" -f $WorkingZipPath)
-  $lines += ("TEST_RUN_OUTPUT={0}" -f $RunOutputRoot)
-  $lines += ("LATEST_RUN_ID={0}" -f $script:CollectorRunId)
-  Save-CapabilityCoverage
-  $lines += ("LATEST_ENRICH_SESSION_ID={0}" -f $script:CollectorSessionId)
-  $lines += ("PROGRESS_JSONL_PATH={0}" -f $ProgressJsonlPath)
-  $lines += ("PROGRESS_TXT_PATH={0}" -f $ProgressTxtPath)
-  $lines += ("EVIDENCE_ROOT={0}" -f $EvidenceRoot)
-  $lines += ("CAPABILITY_COVERAGE_JSON_PATH={0}" -f $CoverageJsonPath)
-  $lines += ("CAPABILITY_COVERAGE_MD_PATH={0}" -f $CoverageMdPath)
-  $lines += ""
-  foreach ($r in $script:Results) {
-    if ($r.CollectorReportedStatus) {
-      $lines += ("STEP={0} STATUS={1} EXIT_CODE={2} COLLECTOR_STATUS={3} LOG={4}" -f $r.StepName, $r.Status, $r.ExitCode, $r.CollectorReportedStatus, $r.LogPath)
+    if (@($violations).Count -eq 0) {
+      $status = 'PASS'
+      $message = 'Synthetic oversized artifact was chunked into multiple smaller files within the safe per-file budget.'
     } else {
-      $lines += ("STEP={0} STATUS={1} EXIT_CODE={2} LOG={3}" -f $r.StepName, $r.Status, $r.ExitCode, $r.LogPath)
+      $message = ($violations -join '; ')
     }
   }
-  Set-Content -Path $summaryTxtPath -Value $lines -Encoding UTF8
-  $summaryObj = [pscustomobject]@{
-    Suite = $Suite
-    LiveResponseMode = [bool]$LiveResponseMode
-    ProjectRoot = $ProjectRoot
-    CollectorPath = $CollectorFullPath
-    CollectorInvocationMode = $script:ResolvedCollectorInvocationMode
-    MasterZip = $MasterZipFullPath
-    WorkingZip = $WorkingZipPath
-    TestRunOutput = $RunOutputRoot
-    LatestRunId = $script:CollectorRunId
-    LatestEnrichSessionId = $script:CollectorSessionId
-    ProgressJsonlPath = $ProgressJsonlPath
-    ProgressTxtPath = $ProgressTxtPath
-    EvidenceRoot = $EvidenceRoot
-    CapabilityCoverageJsonPath = $CoverageJsonPath
-    CapabilityCoverageMdPath = $CoverageMdPath
-    Results = @($script:Results)
-    CapabilityCoverage = @($script:CoverageRows)
+
+  $lines += "STATUS=$status"
+  $lines += "MESSAGE=$message"
+  $end = Get-Date
+  $logPath = Write-HarnessLog -StepName $StepName -Lines $lines
+  Add-Result -StepName $StepName -Status $status -ExitCode ($(if($status -eq 'PASS'){0}else{1})) -RunId $script:CollectorRunId -EnrichSessionId $script:CollectorSessionId -CollectorReportedStatus $null -LogPath $logPath -Start $start -End $end
+  if ($status -ne 'PASS' -and -not $ContinueOnError) { throw $message }
+}
+
+<#
+.SYNOPSIS
+Verifies chunk reconstruction metadata and exact rebuild behavior.
+
+.DESCRIPTION
+Checks that the chunk manifest describes reconstruction order, that the chunk list is
+consistent, and that concatenating the chunk files reproduces the original synthetic
+source artifact exactly.
+
+.FUNCTION NAME
+Invoke-ChunkingReconstructionVerification
+
+.INPUTS
+StepName string and CollectStep result object.
+
+.OUTPUTS
+No direct return value beyond harness logging; throws when reconstruction expectations
+fail.
+#>
+function Invoke-ChunkingReconstructionVerification {
+  param([string]$StepName,[object]$CollectStep)
+  $start = Get-Date
+  $status = 'FAIL'
+  $message = ''
+  $lines = @(
+    "STEP=$StepName",
+    "SYNTHETIC_OVERSIZE_SOURCE_PATH=$($CollectStep.SyntheticOversizeSourcePath)",
+    "CHUNK_MANIFEST_PATH=$($CollectStep.ChunkManifestPath)"
+  )
+
+  if ([string]::IsNullOrWhiteSpace([string]$CollectStep.SyntheticOversizeSourcePath) -or -not (Test-Path -LiteralPath $CollectStep.SyntheticOversizeSourcePath)) {
+    $message = 'Synthetic oversize source artifact was not emitted by the collector.'
+  } elseif ([string]::IsNullOrWhiteSpace([string]$CollectStep.ChunkManifestPath) -or -not (Test-Path -LiteralPath $CollectStep.ChunkManifestPath)) {
+    $message = 'Chunk manifest path was not emitted by the collector.'
+  } else {
+    $manifest = Get-Content -LiteralPath $CollectStep.ChunkManifestPath -Raw | ConvertFrom-Json
+    $chunkPaths = @($manifest.chunk_paths)
+    $violations = New-Object System.Collections.ArrayList
+    if (-not $manifest.reconstruction_order) {
+      [void]$violations.Add('Chunk manifest does not describe reconstruction order.')
+    }
+    if ([int]$manifest.chunk_count -ne @($chunkPaths).Count) {
+      [void]$violations.Add('Chunk count in manifest does not match listed chunk paths.')
+    }
+    $rebuilt = New-Object System.Text.StringBuilder
+    foreach ($chunkPath in $chunkPaths) {
+      if (-not (Test-Path -LiteralPath $chunkPath)) {
+        [void]$violations.Add(('Missing chunk path: {0}' -f $chunkPath))
+        continue
+      }
+      $lines += ('RECONSTRUCT_CHUNK={0}' -f $chunkPath)
+      [void]$rebuilt.Append((Get-Content -LiteralPath $chunkPath -Raw))
+    }
+    if (@($violations).Count -eq 0) {
+      $sourceText = Get-Content -LiteralPath $CollectStep.SyntheticOversizeSourcePath -Raw
+      if ($rebuilt.ToString() -eq $sourceText) {
+        $status = 'PASS'
+        $message = 'Chunk reconstruction metadata and chunk ordering were sufficient to rebuild the synthetic oversize artifact exactly.'
+      } else {
+        $message = 'Chunk reconstruction did not match the original synthetic source artifact.'
+      }
+    } else {
+      $message = ($violations -join '; ')
+    }
   }
-  $summaryObj | ConvertTo-Json -Depth 6 | Set-Content -Path $summaryJsonPath -Encoding UTF8
+
+  $lines += "STATUS=$status"
+  $lines += "MESSAGE=$message"
+  $end = Get-Date
+  $logPath = Write-HarnessLog -StepName $StepName -Lines $lines
+  Add-Result -StepName $StepName -Status $status -ExitCode ($(if($status -eq 'PASS'){0}else{1})) -RunId $script:CollectorRunId -EnrichSessionId $script:CollectorSessionId -CollectorReportedStatus $null -LogPath $logPath -Start $start -End $end
+  if ($status -ne 'PASS' -and -not $ContinueOnError) { throw $message }
 }
 
 <#
 .SYNOPSIS
-Runs the core validation suite.
+Adds one capability coverage row.
 
 .DESCRIPTION
-Exercises the standard collect, enrich, finalize, and optional cleanup path plus the
-collect and finalized enrich output-contract verifiers.
+Records advertised-capability coverage in a reusable matrix so #187 audit evidence is
+available from the same artifact set as the harness summary.
 
 .FUNCTION NAME
-Run-CoreSuite
+Add-CapabilityCoverage
 
 .INPUTS
-No direct parameters.
+Capability metadata, coverage class, status, evidence, and remaining gap.
 
 .OUTPUTS
-No direct output. Executes the suite and writes harness results.
+No direct output. Appends one row to the coverage matrix.
 #>
-function Run-CoreSuite {
-  Restore-WorkingZip -Reason "Core"
-  $collect = Invoke-CollectorStep -StepName "01_CollectT1" -CollectorArgs @("-Quick","collect-t1")
-  Assert-CollectorStepSucceeded -StepName "01_CollectT1" -CollectorStep $collect
-  Invoke-CollectOutputContractVerification -StepName "ZZ_CollectOutputContract" -CollectStep $collect
-  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_Collect" -ManifestPath $collect.AttachmentBudgetManifestPath }
-  [void](Invoke-CollectorStep -StepName "02_EnrichStartTcp" -CollectorArgs @("-Quick","enrich-start-tcp"))
-  [void](Invoke-CollectorStep -StepName "03_EnrichAddLogTextSecurity" -CollectorArgs @("-Quick","enrich-add-logtext","-Target","Security"))
-  $finalize = Invoke-CollectorStep -StepName "04_EnrichFinalize" -CollectorArgs @("-Quick","enrich-finalize")
-  Assert-CollectorStepSucceeded -StepName "04_EnrichFinalize" -CollectorStep $finalize
-  Invoke-EnrichFinalizedOutputContractVerification -StepName "ZZ_EnrichFinalizedOutputContract" -EnrichStep $finalize
-  if (-not $SkipCleanup) {
-    $cleanup = Invoke-CollectorStep -StepName "05_Cleanup" -CollectorArgs @("-Quick","cleanup")
-    Assert-CollectorStepSucceeded -StepName "05_Cleanup" -CollectorStep $cleanup
-    Invoke-CleanupOutputContractVerification -StepName "ZZ_CleanupOutputContract" -CleanupStep $cleanup
+function Add-CapabilityCoverage {
+  param(
+    [string]$CapabilityId,
+    [string]$Category,
+    [string]$Claim,
+    [string[]]$AdvertisedSource,
+    [string]$CoverageClass,
+    [string[]]$Suites,
+    [string[]]$Steps,
+    [string[]]$Assertions,
+    [string[]]$EvidenceArtifacts,
+    [string]$Risk,
+    [string]$OperatorValue,
+    [string]$Status,
+    [string]$RemainingGap = ''
+  )
+  [void]$script:CoverageRows.Add([pscustomobject]@{
+    capability_id = $CapabilityId
+    category = $Category
+    claim = $Claim
+    advertised_source = @($AdvertisedSource)
+    coverage_class = $CoverageClass
+    suites = @($Suites)
+    steps = @($Steps)
+    assertions = @($Assertions)
+    evidence_artifacts = @($EvidenceArtifacts)
+    risk = $Risk
+    operator_value = $OperatorValue
+    status = $Status
+    remaining_gap = $RemainingGap
+  })
+}
+
+<#
+.SYNOPSIS
+Builds a lookup table of harness step statuses.
+
+.DESCRIPTION
+Creates a hashtable keyed by StepName from accumulated harness results so coverage rows
+can quickly test whether mapped steps passed.
+
+.FUNCTION NAME
+Get-StepStatusMap
+
+.INPUTS
+No direct parameters; reads the script-level Results collection.
+
+.OUTPUTS
+Hashtable mapping step names to status strings.
+#>
+function Get-StepStatusMap {
+  $map = @{}
+  foreach ($r in @($script:Results)) { $map[$r.StepName] = $r.Status }
+  return $map
+}
+
+<#
+.SYNOPSIS
+Checks whether all mapped coverage steps passed.
+
+.DESCRIPTION
+Returns true only when every requested step exists in the status map and has a PASS or
+PARTIAL_SUCCESS status accepted by the coverage model.
+
+.FUNCTION NAME
+Test-StepsCovered
+
+.INPUTS
+Status map hashtable and step-name array.
+
+.OUTPUTS
+Boolean coverage result for the mapped steps.
+#>
+function Test-StepsCovered {
+  param([hashtable]$Map,[string[]]$Steps)
+  foreach ($step in $Steps) {
+    if (-not $Map.ContainsKey($step)) { return $false }
+    if ($Map[$step] -notin @('PASS','PARTIAL_SUCCESS')) { return $false }
+  }
+  return $true
+}
+
+<#
+.SYNOPSIS
+Checks harness-generated coverage artifact evidence.
+
+.DESCRIPTION
+Validates non-step-based coverage rows such as progress files, retained evidence files,
+generated coverage matrix artifacts, and package-validation-backed source evidence.
+
+.FUNCTION NAME
+Test-CoverageArtifactEvidence
+
+.INPUTS
+Capability identifier string.
+
+.OUTPUTS
+Boolean indicating whether required harness artifact evidence exists.
+#>
+function Test-CoverageArtifactEvidence {
+  param([string]$CapabilityId)
+  switch ($CapabilityId) {
+    'collector.progress.hang_localization' {
+      return (Test-Path -LiteralPath $ProgressJsonlPath) -and (Test-Path -LiteralPath $ProgressTxtPath)
+    }
+    'collector.evidence.retained_artifacts' {
+      return (Test-Path -LiteralPath $EvidenceRoot) -and @((Get-ChildItem -LiteralPath $EvidenceRoot -Recurse -File -ErrorAction SilentlyContinue)).Count -gt 0
+    }
+    'collector.coverage.matrix_artifact' {
+      if (-not ((Test-Path -LiteralPath $CoverageJsonPath) -and (Test-Path -LiteralPath $CoverageMdPath))) { return $false }
+      try {
+        $coverageJson = Get-Content -LiteralPath $CoverageJsonPath -Raw | ConvertFrom-Json
+        $coverageMd = Get-Content -LiteralPath $CoverageMdPath -Raw
+        return ($coverageJson.schema_version -eq 'dcoir_collector_capability_coverage_v1') -and (-not [string]::IsNullOrWhiteSpace($coverageMd)) -and ($coverageMd -match '# DCOIR Collector Capability Coverage')
+      } catch {
+        return $false
+      }
+    }
+    'collector.process.parent_context_lolbin_tuning' {
+      try {
+        $repoRoot = $null
+        $searchRoot = $PSScriptRoot
+        while (-not [string]::IsNullOrWhiteSpace($searchRoot)) {
+          $candidateValidatorPath = Join-Path $searchRoot 'project_sources/collector/tools/validate_dcoir_collector_runtime_package.py'
+          if (Test-Path -LiteralPath $candidateValidatorPath) {
+            $repoRoot = $searchRoot
+            break
+          }
+          $parent = Split-Path -Parent $searchRoot
+          if ([string]::IsNullOrWhiteSpace($parent) -or $parent -eq $searchRoot) { break }
+          $searchRoot = $parent
+        }
+        if ([string]::IsNullOrWhiteSpace($repoRoot)) { return $false }
+        $validatorPath = Join-Path $repoRoot 'project_sources/collector/tools/validate_dcoir_collector_runtime_package.py'
+        $processPartPaths = @(
+          (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.01D1_Process_Event_And_Baseline_Utilities.ps1'),
+          (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.01D2_Process_Event_And_Baseline_Utilities.ps1')
+        )
+        $reportsPartPaths = @(
+          (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.02D1A_Baseline_Collection_And_Reports.ps1'),
+          (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1')
+        )
+        $missingSourcePart = @(($processPartPaths + $reportsPartPaths) | Where-Object { -not (Test-Path -LiteralPath $_) })
+        if (-not (Test-Path -LiteralPath $validatorPath) -or @($missingSourcePart).Count -gt 0) { return $false }
+        $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+        if ($null -eq $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
+        if ($null -eq $pythonCommand) { return $false }
+        $pythonPath = [string]$pythonCommand.Source
+        if ([string]::IsNullOrWhiteSpace($pythonPath)) { return $false }
+        $validatorReportDir = Join-Path $repoRoot 'project_sources/validation/out_harness_capability_coverage'
+        New-Item -ItemType Directory -Force -Path $validatorReportDir | Out-Null
+        $validatorOutput = & $pythonPath $validatorPath --source-dir $repoRoot --output-dir $validatorReportDir 2>&1
+        if ($LASTEXITCODE -ne 0) { return $false }
+        $validatorReportPath = Join-Path $validatorReportDir 'validate_dcoir_collector_runtime_package_report.json'
+        if (-not (Test-Path -LiteralPath $validatorReportPath)) { return $false }
+        $validatorReport = Get-Content -LiteralPath $validatorReportPath -Raw | ConvertFrom-Json
+        if ($validatorReport.success -ne $true) { return $false }
+        if ([string]$validatorReport.source_dir -ne [string](Resolve-Path -LiteralPath $repoRoot).Path) { return $false }
+        $parentContextPolicy = $validatorReport.checks.suspicious_process_parent_context_policy
+        if ($null -eq $parentContextPolicy) { return $false }
+        $parentContextBehavior = $parentContextPolicy.parent_context_behavior_tests
+        if ($null -eq $parentContextBehavior -or $parentContextBehavior.status -ne 'passed') { return $false }
+        $validatorText = Get-Content -LiteralPath $validatorPath -Raw
+        $processText = (($processPartPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw }) -join "`n")
+        $reportsText = (($reportsPartPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw }) -join "`n")
+        return $validatorText.Contains('run_suspicious_process_parent_context_behavior_tests') `
+          -and $validatorText.Contains('parent_context_behavior_tests') `
+          -and $validatorText.Contains('wmic_command_line_indicators_present') `
+          -and $validatorText.Contains('parent_start_time_checked_before_name_resolution') `
+          -and $processText.Contains('ProcessStartTimeById') `
+          -and $processText.Contains('wmic(?:\.exe)?') `
+          -and $reportsText.Contains('parent={0} ({1})') `
+          -and ($parentContextPolicy.convert_accepts_process_start_lookup -eq $true) `
+          -and ($parentContextPolicy.parent_start_time_checked_before_name_resolution -eq $true) `
+          -and ($parentContextPolicy.wmic_command_line_indicators_present -eq $true) `
+          -and ($parentContextPolicy.suppresses_only_known_benign_name_only_hits -eq $true) `
+          -and ($parentContextPolicy.finding_includes_parent_process_id -eq $true) `
+          -and ($parentContextPolicy.finding_includes_parent_process_name -eq $true) `
+          -and ($parentContextPolicy.process_inventory_reports_parent_name -eq $true) `
+          -and ($parentContextPolicy.recommendations_include_parent_context -eq $true)
+      } catch {
+        return $false
+      }
+    }
+    default { return $false }
   }
 }
 
 <#
 .SYNOPSIS
-Runs the retrieval validation suite.
+Adds collector capability coverage rows to the harness result model.
 
 .DESCRIPTION
-Exercises collect, raw-log enrich retrieval, finalize, and optional cleanup behavior.
+Builds the advertised-capability matrix, maps rows to harness steps or artifact evidence,
+and records status and remaining-gap text for JSON and Markdown output.
 
 .FUNCTION NAME
-Run-RetrievalSuite
+Add-CollectorCapabilityCoverageRows
 
 .INPUTS
-No direct parameters.
+No direct parameters; reads harness results and artifact paths.
 
 .OUTPUTS
-No direct output. Executes the suite and writes harness results.
+No direct output. Appends rows to the script-level CoverageRows collection.
 #>
-function Run-RetrievalSuite {
-  Restore-WorkingZip -Reason "Retrieval"
-  $collect = Invoke-CollectorStep -StepName "11_CollectT1" -CollectorArgs @("-Quick","collect-t1")
-  Assert-CollectorStepSucceeded -StepName "11_CollectT1" -CollectorStep $collect
-  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_RetrievalCollect" -ManifestPath $collect.AttachmentBudgetManifestPath }
-  [void](Invoke-CollectorStep -StepName "12_EnrichStartLogRawSecurity" -CollectorArgs @("-Quick","enrich-start-lograw"))
-  [void](Invoke-CollectorStep -StepName "13_EnrichFinalize" -CollectorArgs @("-Quick","enrich-finalize"))
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "14_Cleanup" -CollectorArgs @("-Quick","cleanup")) }
-}
+function Add-CollectorCapabilityCoverageRows {
+  if (@($script:CoverageRows).Count -gt 0) { return }
+  $map = Get-StepStatusMap
+  $headEvidence = @('summary.json','summary.txt','progress.jsonl','progress.txt')
 
-<#
-.SYNOPSIS
-Runs the quick-alias validation suite.
-
-.DESCRIPTION
-Exercises the supported quick enrich aliases against representative file, PID, service,
-registry, task, and pull-action inputs plus optional cleanup.
-
-.FUNCTION NAME
-Run-QuickAliasesSuite
-
-.INPUTS
-No direct parameters.
-
-.OUTPUTS
-No direct output. Executes the suite and writes harness results.
-#>
-function Run-QuickAliasesSuite {
-  $sampleScriptPath = $CollectorFullPath
-  $sampleBinaryPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-  $sampleService = "EventLog"
-  $sampleRegistry = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-  $sampleTask = "\Microsoft\Windows\Defrag\ScheduledDefrag"
-  Restore-WorkingZip -Reason "QuickAliases"
-  $collect = Invoke-CollectorStep -StepName "21_CollectT1" -CollectorArgs @("-Quick","collect-t1")
-  Assert-CollectorStepSucceeded -StepName "21_CollectT1" -CollectorStep $collect
-  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_QuickAliasesCollect" -ManifestPath $collect.AttachmentBudgetManifestPath }
+  $rows = @(
+    @{ Id='collector.core.collect_contract'; Cat='Core collect'; Claim='Collect emits run id, metadata, upload guidance, handoff paths, cleanup/delete commands, and upload budget artifacts.'; Sources=@('project_sources/collector/source/DCOIR_Collector.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('Core'); Steps=@('01_CollectT1','ZZ_CollectOutputContract','ZZ_AttachmentBudget_Collect'); Risk='high'; Value='high'; Assertions=@('collector succeeds','collect output contract paths exist','attachment budget manifest validates') },
+    @{ Id='collector.knowledge.operator_contract_alignment'; Cat='Operator documentation'; Claim='Collector operator knowledge pages accurately describe source-backed modes, quick aliases, enrichment session guardrails, output contracts, and bounded Tier 2 validation shape.'; Sources=@('knowledge/README.md','knowledge/Knowledge - Collector - Feature and Output Contract Reference.md','knowledge/Knowledge - Core - Artifact Review Guide.md','knowledge/Knowledge - Core - Tier 2 Collect Runbook.md','knowledge/Knowledge - Core - Enrichment Actions.md'); Class='partial'; Suites=@(); Steps=@(); Risk='medium'; Value='high'; Assertions=@('knowledge docs reviewed against source','documentation-quality validator checks source comments','knowledge entry point references maintained pages'); Gap='FullRegression does not prove knowledge-doc source alignment; closeability requires separate doc/readback review evidence.' },

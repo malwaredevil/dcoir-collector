@@ -1,25 +1,157 @@
-    @{ Id='collector.enrich.session_lifecycle.basic'; Cat='Enrich sessions'; Claim='Enrich start/add/finalize preserves session identity and finalized output contract.'; Sources=@('project_sources/collector/source/DCOIR_Collector.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('SessionBehavior'); Steps=@('52_EnrichStartTcp','53_EnrichAddLogTextSecurity','ZZ_SessionReuseValidation','56_EnrichFinalizeRequestedOriginal','ZZ_RequestedFinalizeOutputContract'); Risk='high'; Value='high'; Assertions=@('session starts','add reuses session identity','requested finalize emits expected finalized contract for the original session') },
-    @{ Id='collector.targeted.valid_explicit_window_exact'; Cat='Targeted collection'; Claim='Valid explicit WindowStart and WindowEnd values are preserved as equivalent unambiguous UTC instants in targeted artifacts and event-window metadata.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1','project_sources/collector/harness/source/parts/*.ps1.txt'); Class='covered_end_to_end_by_fullregression'; Suites=@('TargetedCollection'); Steps=@('61_CollectTargetedPopup','ZZ_TargetedCollectionValidation','63_CollectTargetedNeutralWindow','ZZ_TargetedNeutralWindowValidation'); Risk='high'; Value='high'; Assertions=@('accepted explicit window is marked true','WINDOW_START equals requested normalized UTC instant','WINDOW_END equals requested normalized UTC instant','targeted scope and event metadata agree') },
-    @{ Id='collector.targeted.invalid_window_fallback'; Cat='Targeted collection'; Claim='Invalid or inverted explicit windows degrade to partial success and do not leak rejected values into targeted scope.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('FailureGates'); Steps=@('99_TargetedInvalidWindowStart','ZZ_TargetedInvalidWindowStartValidation','100_TargetedInvalidWindowEnd','ZZ_TargetedInvalidWindowEndValidation','101_TargetedInvertedWindow','ZZ_TargetedInvertedWindowValidation'); Risk='high'; Value='high'; Assertions=@('invalid start degrades','invalid end degrades','inverted window degrades','targeted artifacts show no explicit window') },
-    @{ Id='collector.chunking.synthetic_byte_reconstruction'; Cat='Upload-safe chunking'; Claim='Synthetic oversized artifacts are chunked under budget and reconstruct byte-for-byte by SHA256.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.04B_Feature_Wave_Targeted_Collection.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('ChunkingOversizeArtifact','ChunkingReconstructionMetadata'); Steps=@('71_CollectT1_SyntheticOversize','ZZ_ChunkingOversizeValidation','81_CollectT1_SyntheticOversizeReconstruction','ZZ_ChunkingReconstructionValidation'); Risk='high'; Value='high'; Assertions=@('source exceeds hard budget','chunks stay under safe budget','chunk order reconstructs source bytes','source and rebuilt SHA256 match') },
-    @{ Id='collector.chunking.production_event_text_reconstruction'; Cat='Upload-safe chunking'; Claim='Production event-text artifacts eligible for upload-safe chunking produce under-budget chunks with source and chunk SHA256 and byte-for-byte reconstruction.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('ChunkingOversizeArtifact'); Steps=@('73_CollectT1_ProductionEventTextOversize','ZZ_ProductionEventTextChunkingValidation'); Risk='high'; Value='high'; Assertions=@('security filtered can chunk','powershell operational can chunk','taskscheduler operational can chunk','all chunk rows reconstruct by SHA256') },
-    @{ Id='collector.process.parent_context_lolbin_tuning'; Cat='Process execution context'; Claim='Suspicious process review candidates carry parent-process context, and low-confidence name-only powershell/pwsh/cmd/wmic matches from known benign parents are suppressed unless command-line or path indicators also fire.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.01D_Process_Event_And_Baseline_Utilities.ps1','project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1','project_sources/collector/tools/validate_dcoir_collector_runtime_package.py'); Class='covered_by_package_validation_not_manual'; Suites=@('PackageValidation'); Steps=@(); Risk='medium'; Value='high'; Assertions=@('process inventory includes ParentProcessName','findings include ParentProcessId and ParentProcessName','analyst recommendation lines include parent context','name-only benign-parent shell noise is suppressed','PowerShell command-line, WMIC process creation or remote node, and high-risk path indicators still produce findings'); EvidenceArtifacts=@('validate_dcoir_collector_runtime_package_report.json','suspicious_process_parent_context_policy.parent_context_behavior_tests'); Gap='Live benign and suspicious Windows process fixture evidence is still pending a FullRegression-capable runner.' },
-    @{ Id='collector.failure.missing_package_cleanup'; Cat='Failure gates and recovery'; Claim='Missing package diagnostics include checked paths and no-state cleanup removes only collector-owned orphan runs.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.01A_Core_Logging_And_Process_Capture.ps1','project_sources/collector/source/parts/DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1','project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('FailureGates'); Steps=@('98B_MissingPackageCheckedPaths','98C_CleanupAfterMissingPackageNoState','98D_CleanupPreservesCustomLikeNoStateWithoutRunId','98E_CleanupPreservesCustomStateWithoutRunId','98F_CleanupExplicitCustomNoState'); Risk='high'; Value='high'; Assertions=@('missing package exits error','checked paths are printed','no-state cleanup succeeds or reports no target','unrelated DCOIR directory is preserved','plain cleanup preserves custom RunId-like no-state directory without explicit RunId','plain cleanup preserves state-backed custom RunId directory without explicit RunId','explicit custom RunId cleanup removes collector-structured no-state run root') },
-    @{ Id='collector.failure.state_cleanup_path_authority'; Cat='Failure gates and recovery'; Claim='State-backed cleanup treats state.json paths as evidence only and refuses deletion when RunRoot, StatePath, RunId, or PackagePath do not match the selected OutRoot and expected RunId/package authority.'; Sources=@('project_sources/collector/source/parts/DCOIR_Collector.04_Quick_Interface_And_Output.ps1','project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1','project_sources/collector/source/parts/DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1','project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1','project_sources/collector/harness/source/parts/*.ps1.txt'); Class='covered_end_to_end_by_fullregression'; Suites=@('FailureGates'); Steps=@('98H_StateCleanupRejectsOutsideRunRoot','98I_StateCleanupRejectsOutsidePackagePath','98J_StateCleanupRejectsMismatchedRunRoot','98K_StateCleanupRejectsOutsideStatePath','98L_StateCleanupRejectsMismatchedRunId'); Risk='high'; Value='high'; Assertions=@('outside state RunRoot is refused and preserved','outside state PackagePath is refused and preserved','in-root mismatched state RunRoot is refused and preserved','outside state StatePath is refused and preserved','mismatched selected RunId and state RunId is refused and preserved','cleanup reports refused target count and reason detail') },
-    @{ Id='collector.failure.safe_runid_packagename_inputs'; Cat='Failure gates and recovery'; Claim='Unsafe RunId and PackageName values are rejected before collector filesystem mutation or destructive use while valid custom RunId leaves remain supported.'; Sources=@('project_sources/collector/source/DCOIR_Collector.ps1','project_sources/collector/source/parts/DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1','project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('FailureGates'); Steps=@('98A_UnsafeRunIdRejectsTraversal','98A2_UnsafeRunIdRejectsExplicitBlank','98A3_UnsafeRunIdRejectsOversized','98A4_UnsafePackageNameRejectsTraversal','98A5_UnsafePackageNameRejectsRootedPath','98A6_UnsafePackageNameRejectsNonZip','98A7_UnsafePackageNameRejectsExplicitBlank','98A8_UnsafeRunIdRejectsRootedPath','98A9_UnsafeCleanupRunIdRejectsTraversal','98A10_UnsafeCleanupPackageNameRejectsTraversal','98A11_UnsafeRunIdRejectsTrailingDot','98G_CleanupExplicitDottedCustomNoState'); Risk='high'; Value='high'; Assertions=@('path-shaped RunId is rejected','explicit blank RunId is rejected','oversized RunId is rejected','rooted RunId is rejected','trailing-dot RunId is rejected','path-shaped PackageName is rejected','rooted PackageName is rejected','non-ZIP PackageName is rejected','explicit blank PackageName is rejected','cleanup rejects unsafe RunId before no-state cleanup','cleanup rejects unsafe PackageName before package deletion','valid dotted custom RunId leaf remains supported','unsafe input OutRoot is not created') },
-    @{ Id='collector.progress.hang_localization'; Cat='Harness evidence'; Claim='Manual FullRegression writes durable progress evidence that identifies the active suite/step/command if the long harness step stalls.'; Sources=@('project_sources/collector/harness/source/parts/*.ps1.txt'); Class='covered_by_harness_not_manual'; Suites=@($Suite); Steps=@(); Risk='medium'; Value='high'; Assertions=@('progress.jsonl exists','progress.txt exists','process start/completion events are flushed during execution') },
-    @{ Id='collector.evidence.retained_artifacts'; Cat='Harness evidence'; Claim='Harness preserves bounded copies of collector artifacts referenced by validation logs so reviewers are not limited to transient C:\Temp paths.'; Sources=@('project_sources/collector/harness/source/parts/*.ps1.txt'); Class='covered_by_harness_not_manual'; Suites=@($Suite); Steps=@(); Risk='medium'; Value='high'; Assertions=@('evidence folder exists','collector response path artifacts are copied','chunk source and chunk files are retained for reconstruction review') },
-    @{ Id='collector.coverage.matrix_artifact'; Cat='Harness evidence'; Claim='Harness emits reusable capability-to-test coverage matrix artifacts for #187 and future drift checks.'; Sources=@('project_sources/collector/harness/source/parts/*.ps1.txt'); Class='covered_by_harness_not_manual'; Suites=@($Suite); Steps=@(); Risk='medium'; Value='high'; Assertions=@('collector_capability_coverage.json exists','collector_capability_coverage.md exists','rows include coverage class, evidence, risk, operator value, and remaining gap') },
-    @{ Id='collector.targeted.profile_matrix'; Cat='Targeted collection'; Claim='All advertised TargetProfile values have profile-specific assertions for focus fields, categories, guidance, and handoff artifacts.'; Sources=@('project_sources/collector/source/DCOIR_Collector.ps1'); Class='partial'; Suites=@('TargetedCollection'); Steps=@('61_CollectTargetedPopup','63_CollectTargetedNeutralWindow'); Risk='medium'; Value='high'; Assertions=@('PopupWindow profile covered'); Gap='Additional Generic, ScriptExecution, PersistenceFollowUp, NetworkOnly, and ProcessAndPowerShell profile assertions remain to be added.' },
-    @{ Id='collector.enrich.session_lifecycle.edge_cases'; Cat='Enrich sessions'; Claim='Stale/finalized, missing, explicit, force-new, add-after-finalize, and cleanup-after-open-session behavior is validated.'; Sources=@('project_sources/collector/source/DCOIR_Collector.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('SessionBehavior'); Steps=@('51B_EnrichFinalizeWithoutOpenSession','54_EnrichAddExplicitSession','ZZ_ExplicitSessionReuseValidation','55_EnrichForceNewSession','ZZ_ForceNewSessionValidation','56_EnrichFinalizeRequestedOriginal','ZZ_RequestedFinalizeOutputContract','57_EnrichAddFinalizedRequestedSession','58_EnrichFinalizeOpen','ZZ_OpenFinalizeOutputContract','59_EnrichAddAfterFinalize','ZZ_AddAfterFinalizeValidation','60_MissingRequestedEnrichSession','61_CleanupAfterOpenSession'); Risk='medium'; Value='high'; Assertions=@('finalize without an open or requested session is rejected','explicit requested session is reused','force-new creates a different session','requested finalized session emits finalized contract','finalized requested session is rejected','open finalized session emits finalized contract','add-after-finalize creates a new session','missing requested session errors','cleanup succeeds while a session is open') },
-    @{ Id='collector.tier2.bounded_collect'; Cat='Collection depth'; Claim='Tier 2 collection path emits expected Tier 2 artifacts, byte-for-byte bundled-vs-on-disk manifest_collect.json comparison evidence, or explicit runner-safe limitations.'; Sources=@('project_sources/collector/source/DCOIR_Collector.ps1'); Class='covered_end_to_end_by_fullregression'; Suites=@('Tier2BoundedCollect'); Steps=@('83_CollectT2_Bounded','ZZ_CollectT2OutputContract','ZZ_CollectT2ManifestBundleComparison','ZZ_Tier2SpecificOutputValidation'); Risk='medium'; Value='medium'; Assertions=@('Tier T2 collect succeeds with Hours=1 and MaxEvents=100','collect output contract paths exist','on-disk manifest_collect.json and bundled manifest_collect.json match byte-for-byte','manifest comparison log and bounded bundled-manifest evidence are retained under TestResults','Tier 2 deep-check artifacts are present','attachment budget manifest validates when emitted') }
+  Add-Result -StepName $StepName -Status $status -ExitCode ($(if($status -eq 'PASS'){0}else{1})) -RunId $script:CollectorRunId -EnrichSessionId $script:CollectorSessionId -CollectorReportedStatus $null -LogPath $logPath -Start $start -End $end
+  if ($status -ne 'PASS' -and -not $ContinueOnError) { throw $message }
+}
+
+<#
+.SYNOPSIS
+Verifies production upload-safe chunk manifest behavior.
+
+.DESCRIPTION
+Reads the production chunk manifest, verifies chunk size bounds, and reconstructs the
+source artifact text from chunk_paths in order.
+
+.FUNCTION NAME
+Invoke-ProductionChunkingVerification
+
+.INPUTS
+StepName string and CollectStep result object.
+
+.OUTPUTS
+No direct return value beyond harness logging; throws when production chunking fails.
+#>
+function Invoke-ProductionChunkingVerification {
+  param([string]$StepName,[object]$CollectStep)
+  $start = Get-Date
+  $status = 'FAIL'
+  $message = ''
+  $lines = @(
+    "STEP=$StepName",
+    "UPLOAD_SAFE_CHUNK_MANIFEST_PATH=$($CollectStep.UploadSafeChunkManifestPath)"
   )
 
-  foreach ($row in $rows) {
-    $steps = @($row.Steps)
-    $status = if (@($steps).Count -eq 0) { if (Test-CoverageArtifactEvidence -CapabilityId $row.Id) { 'covered' } else { 'gap' } } elseif (Test-StepsCovered -Map $map -Steps $steps) { 'covered' } else { 'gap' }
-    $remainingGap = if ($row.ContainsKey('Gap')) { $row.Gap } elseif ($status -eq 'gap') { 'Mapped step evidence was not present or did not pass in this harness run.' } else { '' }
-    $evidenceArtifacts = if ($row.ContainsKey('EvidenceArtifacts')) { @($row.EvidenceArtifacts) } else { $headEvidence }
-    Add-CapabilityCoverage -CapabilityId $row.Id -Category $row.Cat -Claim $row.Claim -AdvertisedSource $row.Sources -CoverageClass $row.Class -Suites $row.Suites -Steps $steps -Assertions $row.Assertions -EvidenceArtifacts $evidenceArtifacts -Risk $row.Risk -OperatorValue $row.Value -Status $status -RemainingGap $remainingGap
+  if ([string]::IsNullOrWhiteSpace([string]$CollectStep.UploadSafeChunkManifestPath) -or -not (Test-Path -LiteralPath $CollectStep.UploadSafeChunkManifestPath)) {
+    $message = 'Production upload-safe chunk manifest path was not emitted by the collector.'
+  } else {
+    $manifest = Get-Content -LiteralPath $CollectStep.UploadSafeChunkManifestPath -Raw | ConvertFrom-Json
+    $artifacts = @($manifest.chunked_artifacts)
+    $violations = New-Object System.Collections.ArrayList
+    if (@($artifacts).Count -lt 1) { [void]$violations.Add('No chunked_artifacts were recorded in the production chunk manifest.') }
+    $expectedSourceKeys = @('security_filtered','powershell_operational_filtered','taskscheduler_operational_filtered')
+    $observedSourceKeys = @($artifacts | ForEach-Object { [string]$_.source_artifact_key })
+    foreach ($expectedSourceKey in $expectedSourceKeys) {
+      if ($observedSourceKeys -notcontains $expectedSourceKey) {
+        [void]$violations.Add(('Expected production chunk source artifact was not chunked: {0}' -f $expectedSourceKey))
+      }
+    }
+    foreach ($artifact in $artifacts) {
+      $sourcePath = [string]$artifact.source_path
+      $sourceKey = [string]$artifact.source_artifact_key
+      $chunkPaths = @($artifact.chunk_paths)
+      $lines += ("SOURCE_KEY={0}" -f $sourceKey)
+      $lines += ("SOURCE_PATH={0}" -f $sourcePath)
+      [void](Add-HarnessEvidenceFile -StepName $StepName -Path $sourcePath -Label ("source_{0}" -f $sourceKey))
+      if ([string]::IsNullOrWhiteSpace($sourcePath) -or -not (Test-Path -LiteralPath $sourcePath)) {
+        [void]$violations.Add(('Missing source artifact for chunk row: {0}' -f $sourceKey))
+        continue
+      }
+      if (@($chunkPaths).Count -lt 2) { [void]$violations.Add(('Chunk count was less than 2 for oversized source: {0}' -f $sourceKey)) }
+      if ([int]$artifact.chunk_count -ne @($chunkPaths).Count) { [void]$violations.Add(('Manifest chunk_count did not match listed chunk paths for: {0}' -f $sourceKey)) }
+      if ([string]::IsNullOrWhiteSpace([string]$artifact.source_sha256)) { [void]$violations.Add(('Manifest source_sha256 missing for: {0}' -f $sourceKey)) }
+      $rebuilt = New-Object System.IO.MemoryStream
+      $chunkSha256 = @($artifact.chunk_sha256)
+      if (@($chunkSha256).Count -ne @($chunkPaths).Count) { [void]$violations.Add(('Manifest chunk_sha256 count did not match chunk paths for: {0}' -f $sourceKey)) }
+      $chunkIndex = 0
+      foreach ($chunkPath in $chunkPaths) {
+        if (-not (Test-Path -LiteralPath $chunkPath)) {
+          [void]$violations.Add(('Missing chunk path: {0}' -f $chunkPath))
+          continue
+        }
+        [void](Add-HarnessEvidenceFile -StepName $StepName -Path $chunkPath -Label ("chunk_{0}_{1:000}" -f $sourceKey, ($chunkIndex + 1)))
+        $chunkSizeKB = [int][Math]::Ceiling(((Get-Item -LiteralPath $chunkPath).Length) / 1KB)
+        $lines += ('CHUNK={0} SIZE_KB={1}' -f $chunkPath, $chunkSizeKB)
+        if ($chunkSizeKB -gt $SafePerFileKB) { [void]$violations.Add(('Chunk exceeded safe per-file budget: {0}' -f $chunkPath)) }
+        $chunkBytes = [System.IO.File]::ReadAllBytes($chunkPath)
+        $actualChunkHash = (Get-FileHash -LiteralPath $chunkPath -Algorithm SHA256).Hash
+        if (@($chunkSha256).Count -le $chunkIndex -or [string]::IsNullOrWhiteSpace([string]$chunkSha256[$chunkIndex])) {
+          [void]$violations.Add(('Chunk SHA256 missing from manifest for: {0}' -f $chunkPath))
+        } elseif ($actualChunkHash -ne [string]$chunkSha256[$chunkIndex]) {
+          [void]$violations.Add(('Chunk SHA256 did not match manifest for: {0}' -f $chunkPath))
+        }
+        $rebuilt.Write($chunkBytes, 0, $chunkBytes.Length)
+        $chunkIndex += 1
+      }
+      $sourceHash = (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash
+      $sha = [System.Security.Cryptography.SHA256]::Create()
+      try {
+        $rebuiltHashBytes = $sha.ComputeHash($rebuilt.ToArray())
+      } finally {
+        $sha.Dispose()
+      }
+      $rebuiltHash = (($rebuiltHashBytes | ForEach-Object { $_.ToString('x2') }) -join '').ToUpperInvariant()
+      $lines += ('SOURCE_SHA256={0}' -f $sourceHash)
+      $lines += ('REBUILT_SHA256={0}' -f $rebuiltHash)
+      if ($rebuiltHash -ne $sourceHash) { [void]$violations.Add(('Chunk byte reconstruction hash did not match source artifact: {0}' -f $sourceKey)) }
+      if ([string]::IsNullOrWhiteSpace([string]$artifact.source_sha256)) {
+        [void]$violations.Add(('Manifest source SHA256 missing for source artifact: {0}' -f $sourceKey))
+      } elseif ([string]$artifact.source_sha256 -ne $sourceHash) {
+        [void]$violations.Add(('Manifest source SHA256 did not match source artifact: {0}' -f $sourceKey))
+      }
+    }
+    if (@($violations).Count -eq 0) {
+      $status = 'PASS'
+      $message = 'Production upload-safe chunks stayed within size budget and reconstructed source artifacts exactly.'
+    } else {
+      $message = ($violations -join '; ')
+    }
   }
+
+  $lines += "STATUS=$status"
+  $lines += "MESSAGE=$message"
+  $end = Get-Date
+  $logPath = Write-HarnessLog -StepName $StepName -Lines $lines
+  Add-Result -StepName $StepName -Status $status -ExitCode ($(if($status -eq 'PASS'){0}else{1})) -RunId $script:CollectorRunId -EnrichSessionId $script:CollectorSessionId -CollectorReportedStatus $null -LogPath $logPath -Start $start -End $end
+  if ($status -ne 'PASS' -and -not $ContinueOnError) { throw $message }
 }
+
+<#
+.SYNOPSIS
+Verifies oversized-artifact chunking behavior.
+
+.DESCRIPTION
+Checks that the synthetic oversized artifact exceeded the hard per-file threshold, was
+split into multiple chunk files, and that each chunk stayed within the safe per-file
+budget.
+
+.FUNCTION NAME
+Invoke-ChunkingOversizeVerification
+
+.INPUTS
+StepName string and CollectStep result object.
+
+.OUTPUTS
+No direct return value beyond harness logging; throws when chunking expectations fail.
+#>
+function Invoke-ChunkingOversizeVerification {
+  param([string]$StepName,[object]$CollectStep)
+  $start = Get-Date
+  $status = 'FAIL'
+  $message = ''
+  $lines = @(
+    "STEP=$StepName",
+    "SYNTHETIC_OVERSIZE_SOURCE_PATH=$($CollectStep.SyntheticOversizeSourcePath)",
+    "CHUNK_MANIFEST_PATH=$($CollectStep.ChunkManifestPath)"
+  )
+
+  if ([string]::IsNullOrWhiteSpace([string]$CollectStep.SyntheticOversizeSourcePath) -or -not (Test-Path -LiteralPath $CollectStep.SyntheticOversizeSourcePath)) {
+    $message = 'Synthetic oversize source artifact was not emitted by the collector.'
+  } elseif ([string]::IsNullOrWhiteSpace([string]$CollectStep.ChunkManifestPath) -or -not (Test-Path -LiteralPath $CollectStep.ChunkManifestPath)) {
+    $message = 'Chunk manifest path was not emitted by the collector.'
+  } else {
+    $manifest = Get-Content -LiteralPath $CollectStep.ChunkManifestPath -Raw | ConvertFrom-Json
+    $chunkPaths = @($manifest.chunk_paths)
+    $sourceSizeKB = [int]$manifest.source_size_kb
+    $chunkCount = [int]$manifest.chunk_count
+    $violations = New-Object System.Collections.ArrayList
+    if ($sourceSizeKB -le $HardPerFileKB) { [void]$violations.Add('Synthetic source artifact did not exceed the hard per-file budget.') }
+    if ($chunkCount -lt 2) { [void]$violations.Add('Chunk count was less than 2 for the oversized artifact.') }
+    foreach ($chunkPath in $chunkPaths) {

@@ -1,0 +1,31 @@
+{
+  "chunk_count": 2,
+  "chunks": [
+    {
+      "bytes": 13858,
+      "chunk_index": 0,
+      "chunk_kind": "markdown_section",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_000_text.md",
+      "sha256": "97b748030ad09b210808ea0ab2eb5268ef05370e8bbd1e00888024582c077771",
+      "section": "text_slice_000"
+    },
+    {
+      "bytes": 11646,
+      "chunk_index": 1,
+      "chunk_kind": "markdown_section",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_001_text.md",
+      "sha256": "e3a802bef23b3442ac2424a716f66a5278e6496176a64c79a1aaee6b4c41a58e",
+      "section": "text_slice_001"
+    }
+  ],
+  "max_chunk_bytes_target": 14000,
+  "reassembly_note": "Concatenate chunks in manifest order.",
+  "report_id": "surface_inventory",
+  "schema_version": "dcoir_report_chunk_manifest_v1",
+  "source_bytes": 25504,
+  "source_format": "markdown",
+  "source_report": "project_sources/collector/powershell_surface_inventory.md",
+  "source_sha256": "ea4519b5c96e7e70f74c3ad4944c0cac14adbf32eb46bf23c0ae23c61fe97f6b"
+}

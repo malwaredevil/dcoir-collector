@@ -1,19 +1,149 @@
-  $productionCollect = Invoke-CollectorStepWithEnvOverride -StepName "73_CollectT1_ProductionEventTextOversize" -CollectorArgs @("-Quick","collect-t1") -EnvOverrides @{ 'DCOIR_TEST_SECURITY_FILTERED_OVERSIZE_KB' = '2600'; 'DCOIR_TEST_POWERSHELL_OPERATIONAL_OVERSIZE_KB' = '2600'; 'DCOIR_TEST_TASKSCHEDULER_OPERATIONAL_OVERSIZE_KB' = '2600' }
-  Assert-CollectorStepSucceeded -StepName "73_CollectT1_ProductionEventTextOversize" -CollectorStep $productionCollect
-  Invoke-ProductionChunkingVerification -StepName "ZZ_ProductionEventTextChunkingValidation" -CollectStep $productionCollect
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "74_CleanupProductionEventText" -CollectorArgs @("-Quick","cleanup")) }
+<#
+.SYNOPSIS
+Writes collector capability coverage artifacts.
+
+.DESCRIPTION
+Serializes the accumulated capability coverage rows to reusable JSON and Markdown files
+for #187 audit readback and future drift checks.
+
+.FUNCTION NAME
+Write-CapabilityCoverageFiles
+
+.INPUTS
+No direct parameters; reads script-level coverage rows and output paths.
+
+.OUTPUTS
+No direct output. Writes collector_capability_coverage.json and .md.
+#>
+function Write-CapabilityCoverageFiles {
+  $obj = [pscustomobject]@{
+    schema_version = 'dcoir_collector_capability_coverage_v1'
+    suite = $Suite
+    generated_at = (Get-Date).ToString('o')
+    collector_path = $CollectorFullPath
+    test_run_output = $RunOutputRoot
+    coverage_classes = @('covered_end_to_end_by_fullregression','covered_by_harness_not_manual','covered_by_package_validation_not_manual','covered_synthetically_only','partial','not_covered','out_of_scope_with_reason')
+    rows = @($script:CoverageRows)
+  }
+  $obj | ConvertTo-Json -Depth 8 | Set-Content -Path $CoverageJsonPath -Encoding UTF8
+
+  $lines = @('# DCOIR Collector Capability Coverage', '', ('Suite: {0}' -f $Suite), ('Generated: {0}' -f (Get-Date).ToString('o')), '', '| Capability | Coverage | Status | Risk | Operator Value | Evidence | Remaining Gap |', '| --- | --- | --- | --- | --- | --- | --- |')
+  foreach ($row in @($script:CoverageRows)) {
+    $evidence = (@($row.evidence_artifacts) -join '<br>')
+    $gap = if ([string]::IsNullOrWhiteSpace($row.remaining_gap)) { '' } else { $row.remaining_gap }
+    $lines += ('| `{0}` | {1} | {2} | {3} | {4} | {5} | {6} |' -f $row.capability_id, $row.coverage_class, $row.status, $row.risk, $row.operator_value, $evidence, ($gap -replace '\|','/'))
+  }
+  Set-Content -Path $CoverageMdPath -Value $lines -Encoding UTF8
 }
 
 <#
 .SYNOPSIS
-Runs the chunk-reconstruction metadata validation suite.
+Finalizes and saves collector capability coverage output.
 
 .DESCRIPTION
-Exercises collect with the synthetic oversized artifact environment override and verifies
-that the emitted reconstruction metadata can rebuild the original artifact exactly.
+Builds coverage rows, writes coverage artifacts, then rechecks the coverage-matrix row
+after artifacts exist so the matrix artifact can be marked covered when valid.
 
 .FUNCTION NAME
-Run-ChunkingReconstructionMetadataSuite
+Save-CapabilityCoverage
+
+.INPUTS
+No direct parameters.
+
+.OUTPUTS
+No direct output. Writes coverage artifacts and updates in-memory coverage rows.
+#>
+function Save-CapabilityCoverage {
+  Add-CollectorCapabilityCoverageRows
+  Write-CapabilityCoverageFiles
+  foreach ($row in @($script:CoverageRows)) {
+    if ($row.capability_id -eq 'collector.coverage.matrix_artifact' -and (Test-CoverageArtifactEvidence -CapabilityId $row.capability_id)) {
+      $row.status = 'covered'
+      $row.remaining_gap = ''
+    }
+  }
+  Write-CapabilityCoverageFiles
+}
+
+<#
+.SYNOPSIS
+Writes the suite summary text and JSON files.
+
+.DESCRIPTION
+Builds the final summary text and JSON objects from the accumulated harness results and
+writes them into the current test-run output directory.
+
+.FUNCTION NAME
+Save-Summary
+
+.INPUTS
+No direct parameters.
+
+.OUTPUTS
+No direct output. Writes summary.txt and summary.json.
+#>
+function Save-Summary {
+  Ensure-Directory -Path $RunOutputRoot
+  $summaryTxtPath = Join-Path $RunOutputRoot "summary.txt"
+  $summaryJsonPath = Join-Path $RunOutputRoot "summary.json"
+  $lines = @()
+  $lines += ("SUITE={0}" -f $Suite)
+  $lines += ("LIVE_RESPONSE_MODE={0}" -f $LiveResponseMode)
+  $lines += ("PROJECT_ROOT={0}" -f $ProjectRoot)
+  $lines += ("COLLECTOR_PATH={0}" -f $CollectorFullPath)
+  $lines += ("COLLECTOR_INVOCATION_MODE={0}" -f $script:ResolvedCollectorInvocationMode)
+  $lines += ("MASTER_ZIP={0}" -f $MasterZipFullPath)
+  $lines += ("WORKING_ZIP={0}" -f $WorkingZipPath)
+  $lines += ("TEST_RUN_OUTPUT={0}" -f $RunOutputRoot)
+  $lines += ("LATEST_RUN_ID={0}" -f $script:CollectorRunId)
+  Save-CapabilityCoverage
+  $lines += ("LATEST_ENRICH_SESSION_ID={0}" -f $script:CollectorSessionId)
+  $lines += ("PROGRESS_JSONL_PATH={0}" -f $ProgressJsonlPath)
+  $lines += ("PROGRESS_TXT_PATH={0}" -f $ProgressTxtPath)
+  $lines += ("EVIDENCE_ROOT={0}" -f $EvidenceRoot)
+  $lines += ("CAPABILITY_COVERAGE_JSON_PATH={0}" -f $CoverageJsonPath)
+  $lines += ("CAPABILITY_COVERAGE_MD_PATH={0}" -f $CoverageMdPath)
+  $lines += ""
+  foreach ($r in $script:Results) {
+    if ($r.CollectorReportedStatus) {
+      $lines += ("STEP={0} STATUS={1} EXIT_CODE={2} COLLECTOR_STATUS={3} LOG={4}" -f $r.StepName, $r.Status, $r.ExitCode, $r.CollectorReportedStatus, $r.LogPath)
+    } else {
+      $lines += ("STEP={0} STATUS={1} EXIT_CODE={2} LOG={3}" -f $r.StepName, $r.Status, $r.ExitCode, $r.LogPath)
+    }
+  }
+  Set-Content -Path $summaryTxtPath -Value $lines -Encoding UTF8
+  $summaryObj = [pscustomobject]@{
+    Suite = $Suite
+    LiveResponseMode = [bool]$LiveResponseMode
+    ProjectRoot = $ProjectRoot
+    CollectorPath = $CollectorFullPath
+    CollectorInvocationMode = $script:ResolvedCollectorInvocationMode
+    MasterZip = $MasterZipFullPath
+    WorkingZip = $WorkingZipPath
+    TestRunOutput = $RunOutputRoot
+    LatestRunId = $script:CollectorRunId
+    LatestEnrichSessionId = $script:CollectorSessionId
+    ProgressJsonlPath = $ProgressJsonlPath
+    ProgressTxtPath = $ProgressTxtPath
+    EvidenceRoot = $EvidenceRoot
+    CapabilityCoverageJsonPath = $CoverageJsonPath
+    CapabilityCoverageMdPath = $CoverageMdPath
+    Results = @($script:Results)
+    CapabilityCoverage = @($script:CoverageRows)
+  }
+  $summaryObj | ConvertTo-Json -Depth 6 | Set-Content -Path $summaryJsonPath -Encoding UTF8
+}
+
+<#
+.SYNOPSIS
+Runs the core validation suite.
+
+.DESCRIPTION
+Exercises the standard collect, enrich, finalize, and optional cleanup path plus the
+collect and finalized enrich output-contract verifiers.
+
+.FUNCTION NAME
+Run-CoreSuite
 
 .INPUTS
 No direct parameters.
@@ -21,25 +151,33 @@ No direct parameters.
 .OUTPUTS
 No direct output. Executes the suite and writes harness results.
 #>
-function Run-ChunkingReconstructionMetadataSuite {
-  Restore-WorkingZip -Reason "ChunkingReconstructionMetadata"
-  $collect = Invoke-CollectorStepWithEnvOverride -StepName "81_CollectT1_SyntheticOversizeReconstruction" -CollectorArgs @("-Quick","collect-t1") -EnvOverrides @{ 'DCOIR_TEST_SYNTHETIC_OVERSIZE_ARTIFACT_KB' = '2600' }
-  Assert-CollectorStepSucceeded -StepName "81_CollectT1_SyntheticOversizeReconstruction" -CollectorStep $collect
-  Invoke-ChunkingReconstructionVerification -StepName "ZZ_ChunkingReconstructionValidation" -CollectStep $collect
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "82_Cleanup" -CollectorArgs @("-Quick","cleanup")) }
+function Run-CoreSuite {
+  Restore-WorkingZip -Reason "Core"
+  $collect = Invoke-CollectorStep -StepName "01_CollectT1" -CollectorArgs @("-Quick","collect-t1")
+  Assert-CollectorStepSucceeded -StepName "01_CollectT1" -CollectorStep $collect
+  Invoke-CollectOutputContractVerification -StepName "ZZ_CollectOutputContract" -CollectStep $collect
+  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_Collect" -ManifestPath $collect.AttachmentBudgetManifestPath }
+  [void](Invoke-CollectorStep -StepName "02_EnrichStartTcp" -CollectorArgs @("-Quick","enrich-start-tcp"))
+  [void](Invoke-CollectorStep -StepName "03_EnrichAddLogTextSecurity" -CollectorArgs @("-Quick","enrich-add-logtext","-Target","Security"))
+  $finalize = Invoke-CollectorStep -StepName "04_EnrichFinalize" -CollectorArgs @("-Quick","enrich-finalize")
+  Assert-CollectorStepSucceeded -StepName "04_EnrichFinalize" -CollectorStep $finalize
+  Invoke-EnrichFinalizedOutputContractVerification -StepName "ZZ_EnrichFinalizedOutputContract" -EnrichStep $finalize
+  if (-not $SkipCleanup) {
+    $cleanup = Invoke-CollectorStep -StepName "05_Cleanup" -CollectorArgs @("-Quick","cleanup")
+    Assert-CollectorStepSucceeded -StepName "05_Cleanup" -CollectorStep $cleanup
+    Invoke-CleanupOutputContractVerification -StepName "ZZ_CleanupOutputContract" -CleanupStep $cleanup
+  }
 }
 
 <#
 .SYNOPSIS
-Runs the bounded Tier 2 collect validation suite.
+Runs the retrieval validation suite.
 
 .DESCRIPTION
-Exercises the advertised Tier 2 collection path under the normal runner-safe harness
-contract and verifies the standard collect output contract plus attachment budget
-manifest when emitted.
+Exercises collect, raw-log enrich retrieval, finalize, and optional cleanup behavior.
 
 .FUNCTION NAME
-Run-Tier2BoundedCollectSuite
+Run-RetrievalSuite
 
 .INPUTS
 No direct parameters.
@@ -47,27 +185,26 @@ No direct parameters.
 .OUTPUTS
 No direct output. Executes the suite and writes harness results.
 #>
-function Run-Tier2BoundedCollectSuite {
-  Restore-WorkingZip -Reason "Tier2BoundedCollect"
-  $collect = Invoke-CollectorStep -StepName "83_CollectT2_Bounded" -CollectorArgs @("-Tier","T2","-Hours","1","-MaxEvents","100")
-  Assert-CollectorStepSucceeded -StepName "83_CollectT2_Bounded" -CollectorStep $collect
-  Invoke-CollectOutputContractVerification -StepName "ZZ_CollectT2OutputContract" -CollectStep $collect
-  Invoke-CollectManifestBundleComparison -StepName "ZZ_CollectT2ManifestBundleComparison" -CollectStep $collect
-  Invoke-Tier2CollectVerification -StepName "ZZ_Tier2SpecificOutputValidation" -CollectStep $collect -ExpectedHours 1 -ExpectedMaxEvents 100
-  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_CollectT2" -ManifestPath $collect.AttachmentBudgetManifestPath }
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "84_CleanupT2" -CollectorArgs @("-Quick","cleanup")) }
+function Run-RetrievalSuite {
+  Restore-WorkingZip -Reason "Retrieval"
+  $collect = Invoke-CollectorStep -StepName "11_CollectT1" -CollectorArgs @("-Quick","collect-t1")
+  Assert-CollectorStepSucceeded -StepName "11_CollectT1" -CollectorStep $collect
+  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_RetrievalCollect" -ManifestPath $collect.AttachmentBudgetManifestPath }
+  [void](Invoke-CollectorStep -StepName "12_EnrichStartLogRawSecurity" -CollectorArgs @("-Quick","enrich-start-lograw"))
+  [void](Invoke-CollectorStep -StepName "13_EnrichFinalize" -CollectorArgs @("-Quick","enrich-finalize"))
+  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "14_Cleanup" -CollectorArgs @("-Quick","cleanup")) }
 }
 
 <#
 .SYNOPSIS
-Runs the failure-gates validation suite.
+Runs the quick-alias validation suite.
 
 .DESCRIPTION
-Exercises bind-reject, malformed quick input, and targeted explicit-window degradation
-cases plus the targeted-collection verifier and optional cleanup.
+Exercises the supported quick enrich aliases against representative file, PID, service,
+registry, task, and pull-action inputs plus optional cleanup.
 
 .FUNCTION NAME
-Run-FailureGatesSuite
+Run-QuickAliasesSuite
 
 .INPUTS
 No direct parameters.
@@ -75,365 +212,13 @@ No direct parameters.
 .OUTPUTS
 No direct output. Executes the suite and writes harness results.
 #>
-function Run-FailureGatesSuite {
-  Restore-WorkingZip -Reason "FailureGates"
-
-  [void](Invoke-ExpectedFailureStep -StepName "91_InvalidMode" -CollectorArgs @("-Mode","Bogus") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("Mode","Bogus"))
-  [void](Invoke-ExpectedFailureStep -StepName "92_InvalidTier" -CollectorArgs @("-Tier","Bogus") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("Tier","Bogus"))
-  [void](Invoke-ExpectedFailureStep -StepName "93_InvalidAction" -CollectorArgs @("-Mode","Enrich","-Action","Bogus") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("Action","Bogus"))
-  [void](Invoke-ExpectedFailureStep -StepName "94_InvalidTargetProfile" -CollectorArgs @("-TargetProfile","Bogus") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("TargetProfile","Bogus"))
-
-  $quickHelp = Invoke-CollectorStep -StepName "95_QuickHelp" -CollectorArgs @("-Quick","help")
-  Assert-CollectorStepSucceeded -StepName "95_QuickHelp" -CollectorStep $quickHelp
-  if (-not [regex]::IsMatch($quickHelp.StdOut, [regex]::Escape("Quick command examples:"))) {
-    throw "Quick help output did not include quick command examples."
-  }
-  [void](Invoke-ExpectedFailureStep -StepName "96_QuickUnknown" -CollectorArgs @("-Quick","unknown-value") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("Unknown -Quick value","Quick command examples:"))
-  [void](Invoke-ExpectedFailureStep -StepName "97_QuickSigcheckMissingTarget" -CollectorArgs @("-Quick","enrich-start-sigcheck") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("requires -Target <path>"))
-  [void](Invoke-ExpectedFailureStep -StepName "98_QuickListDllsBadPid" -CollectorArgs @("-Quick","enrich-start-listdlls","-Target","abc") -ExpectedOutcome 'BIND_REJECT' -ExpectedPatterns @("requires a numeric -Target <pid>"))
-
-  $unsafeInputOutRoot = Join-Path $RunOutputRoot 'unsafe_input_validation'
-  Remove-Item -LiteralPath $unsafeInputOutRoot -Recurse -Force -ErrorAction SilentlyContinue
-  $oversizedRunId = 'A' * 129
-  [void](Invoke-ExpectedFailureStep -StepName "98A_UnsafeRunIdRejectsTraversal" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-RunId","..\escape") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid RunId","filename-leaf"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A2_UnsafeRunIdRejectsExplicitBlank" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-RunId","") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid RunId","must not be blank"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A3_UnsafeRunIdRejectsOversized" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-RunId",$oversizedRunId) -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid RunId","1-128"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A4_UnsafePackageNameRejectsTraversal" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-PackageName","..\DCOIR_Collector.zip") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid PackageName","filename leaf"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A5_UnsafePackageNameRejectsRootedPath" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-PackageName","C:\Temp\DCOIR_Collector.zip") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid PackageName","filename leaf"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A6_UnsafePackageNameRejectsNonZip" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-PackageName","DCOIR_Collector.txt") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid PackageName",".zip"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A7_UnsafePackageNameRejectsExplicitBlank" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-PackageName","") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid PackageName","nonblank"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A8_UnsafeRunIdRejectsRootedPath" -CollectorArgs @("-Quick","collect-t1","-OutRoot",$unsafeInputOutRoot,"-RunId","C:\Temp\escape") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid RunId","filename-leaf"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A9_UnsafeCleanupRunIdRejectsTraversal" -CollectorArgs @("-Quick","cleanup","-OutRoot",$unsafeInputOutRoot,"-RunId","..\escape") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid RunId","filename-leaf"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A10_UnsafeCleanupPackageNameRejectsTraversal" -CollectorArgs @("-Quick","cleanup","-OutRoot",$unsafeInputOutRoot,"-PackageName","..\DCOIR_Collector.zip") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid PackageName","filename leaf"))
-  [void](Invoke-ExpectedFailureStep -StepName "98A11_UnsafeRunIdRejectsTrailingDot" -CollectorArgs @("-Quick","cleanup","-OutRoot",$unsafeInputOutRoot,"-RunId","custom.") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Invalid RunId","filename-leaf"))
-  if (Test-Path -LiteralPath $unsafeInputOutRoot) {
-    throw 'Unsafe RunId/PackageName validation created the unsafe-input OutRoot before rejecting the request.'
-  }
-
-  [void](Invoke-ExpectedFailureStep -StepName "98B_MissingPackageCheckedPaths" -CollectorArgs @("-Quick","collect-t1","-PackageName","DCOIR_MISSING_TEST_PACKAGE.zip") -ExpectedOutcome 'RUNTIME_ERROR' -ExpectedPatterns @("Package not found:","CheckedPaths="))
-  $strayDir = Join-Path 'C:\Temp' 'DCOIR_OPERATOR_NOT_A_RUN'
-  New-Item -Path $strayDir -ItemType Directory -Force | Out-Null
-  Set-Content -Path (Join-Path $strayDir 'keep.txt') -Value 'must-not-delete' -Encoding UTF8
-  $cleanupAfterMissingPackage = Invoke-CollectorStep -StepName "98C_CleanupAfterMissingPackageNoState" -CollectorArgs @("-Quick","cleanup")
-  Assert-CollectorStepSucceeded -StepName "98C_CleanupAfterMissingPackageNoState" -CollectorStep $cleanupAfterMissingPackage
-  if ($cleanupAfterMissingPackage.CleanupStatus -notin @('MISSING_STATE_ORPHAN_CLEANED','NO_TARGET_FOUND')) {
-    throw ("Cleanup after missing package returned unexpected status: {0}" -f $cleanupAfterMissingPackage.CleanupStatus)
-  }
-  if (-not (Test-Path -LiteralPath (Join-Path $strayDir 'keep.txt'))) {
-    throw 'No-state cleanup deleted an unrelated DCOIR_* directory.'
-  }
-  Remove-Item -LiteralPath $strayDir -Recurse -Force -ErrorAction SilentlyContinue
-
-  $customLikeRunId = 'custom-like-preserve'
-  $customLikeDir = Join-Path 'C:\Temp' ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, $customLikeRunId)
-  New-Item -Path $customLikeDir -ItemType Directory -Force | Out-Null
-  foreach ($child in @('tools','reports','final_artifacts','logs','bundles')) {
-    New-Item -Path (Join-Path $customLikeDir $child) -ItemType Directory -Force | Out-Null
-  }
-  Set-Content -Path (Join-Path $customLikeDir 'keep.txt') -Value 'custom-like-must-not-delete-without-explicit-runid' -Encoding UTF8
-  $customNoStatePlainCleanup = Invoke-CollectorStep -StepName "98D_CleanupPreservesCustomLikeNoStateWithoutRunId" -CollectorArgs @("-Quick","cleanup")
-  Assert-CollectorStepSucceeded -StepName "98D_CleanupPreservesCustomLikeNoStateWithoutRunId" -CollectorStep $customNoStatePlainCleanup
-  if ($customNoStatePlainCleanup.CleanupStatus -notin @('NO_TARGET_FOUND','MISSING_STATE_ORPHAN_CLEANED')) {
-    throw ("Plain cleanup returned unexpected status while preserving custom no-state root: {0}" -f $customNoStatePlainCleanup.CleanupStatus)
-  }
-  if (-not (Test-Path -LiteralPath (Join-Path $customLikeDir 'keep.txt'))) {
-    throw 'Plain cleanup deleted a custom RunId-like no-state directory without an explicit RunId.'
-  }
-
-  $statefulCustomRunId = 'custom-state-preserve'
-  $statefulCustomDir = Join-Path 'C:\Temp' ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, $statefulCustomRunId)
-  New-Item -Path $statefulCustomDir -ItemType Directory -Force | Out-Null
-  foreach ($child in @('tools','reports','final_artifacts','logs','bundles')) {
-    New-Item -Path (Join-Path $statefulCustomDir $child) -ItemType Directory -Force | Out-Null
-  }
-  Set-Content -Path (Join-Path $statefulCustomDir 'keep.txt') -Value 'stateful-custom-must-not-delete-without-explicit-runid' -Encoding UTF8
-  $statefulCustomState = [ordered]@{
-    RunId = $statefulCustomRunId
-    RunRoot = $statefulCustomDir
-    PackagePath = (Join-Path 'C:\Temp' 'DCOIR_STATEFUL_CUSTOM_TEST_PACKAGE.zip')
-    CollectorVersion = '4.0.7'
-  }
-  Set-Content -Path (Join-Path $statefulCustomDir 'state.json') -Value ($statefulCustomState | ConvertTo-Json -Depth 5) -Encoding UTF8
-  $statefulCustomPlainCleanup = Invoke-CollectorStep -StepName "98E_CleanupPreservesCustomStateWithoutRunId" -CollectorArgs @("-Quick","cleanup")
-  Assert-CollectorStepSucceeded -StepName "98E_CleanupPreservesCustomStateWithoutRunId" -CollectorStep $statefulCustomPlainCleanup
-  if (-not (Test-Path -LiteralPath (Join-Path $statefulCustomDir 'keep.txt'))) {
-    throw 'Plain cleanup deleted a state-backed custom RunId directory without an explicit RunId.'
-  }
-  Remove-Item -LiteralPath $statefulCustomDir -Recurse -Force -ErrorAction SilentlyContinue
-
-  $explicitCustomRunId = 'custom-like-preserve'
-  $explicitCleanup = Invoke-CollectorStep -StepName "98F_CleanupExplicitCustomNoState" -CollectorArgs @("-Quick","cleanup","-RunId",$explicitCustomRunId)
-  Assert-CollectorStepSucceeded -StepName "98F_CleanupExplicitCustomNoState" -CollectorStep $explicitCleanup
-  if ($explicitCleanup.CleanupStatus -ne 'MISSING_STATE_ORPHAN_CLEANED') {
-    throw ("Explicit custom RunId no-state cleanup returned unexpected status: {0}" -f $explicitCleanup.CleanupStatus)
-  }
-  if (Test-Path -LiteralPath $customLikeDir) {
-    throw 'Explicit custom RunId no-state cleanup did not remove the collector-structured custom run root.'
-  }
-
-  $dottedCustomRunId = 'custom.safe-01'
-  $dottedCustomDir = Join-Path 'C:\Temp' ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, $dottedCustomRunId)
-  New-Item -Path $dottedCustomDir -ItemType Directory -Force | Out-Null
-  foreach ($child in @('tools','reports','final_artifacts','logs','bundles')) {
-    New-Item -Path (Join-Path $dottedCustomDir $child) -ItemType Directory -Force | Out-Null
-  }
-  $dottedCustomCleanup = Invoke-CollectorStep -StepName "98G_CleanupExplicitDottedCustomNoState" -CollectorArgs @("-Quick","cleanup","-RunId",$dottedCustomRunId)
-  Assert-CollectorStepSucceeded -StepName "98G_CleanupExplicitDottedCustomNoState" -CollectorStep $dottedCustomCleanup
-  if ($dottedCustomCleanup.CleanupStatus -ne 'MISSING_STATE_ORPHAN_CLEANED') {
-    throw ("Explicit dotted custom RunId no-state cleanup returned unexpected status: {0}" -f $dottedCustomCleanup.CleanupStatus)
-  }
-  if (Test-Path -LiteralPath $dottedCustomDir) {
-    throw 'Explicit dotted custom RunId no-state cleanup did not remove the collector-structured custom run root.'
-  }
-
-  <#
-  .SYNOPSIS
-  Creates a synthetic state-backed cleanup authority fixture.
-
-  .DESCRIPTION
-  Builds a collector-shaped run root, writes a state.json record with caller-supplied
-  cleanup authority fields, and returns the expected and recorded fixture paths for
-  FailureGates state-cleanup refusal checks.
-
-  .FUNCTION NAME
-  Initialize-StateCleanupAuthorityFixture
-
-  .INPUTS
-  No pipeline input. Parameters describe the fixture out-root, run id, and state fields.
-
-  .OUTPUTS
-  Hashtable containing the expected run root, recorded run id, state path, recorded
-  state path, and state package path.
-  #>
-  function Initialize-StateCleanupAuthorityFixture {
-    param(
-      [string]$FixtureOutRoot,
-      [string]$FixtureRunId,
-      [string]$StateRunRoot,
-      [string]$StatePackagePath,
-      [string]$StatePathOverride,
-      [string]$StateRunIdOverride
-    )
-
-    New-Item -Path $FixtureOutRoot -ItemType Directory -Force | Out-Null
-    $expectedRunRoot = Join-Path $FixtureOutRoot ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, $FixtureRunId)
-    New-Item -Path $expectedRunRoot -ItemType Directory -Force | Out-Null
-    foreach ($child in @('tools','reports','final_artifacts','logs','bundles')) {
-      New-Item -Path (Join-Path $expectedRunRoot $child) -ItemType Directory -Force | Out-Null
-    }
-    $statePath = Join-Path $expectedRunRoot 'state.json'
-    $stateRunId = if ([string]::IsNullOrWhiteSpace($StateRunIdOverride)) { $FixtureRunId } else { $StateRunIdOverride }
-    $state = [ordered]@{
-      RunId = $stateRunId
-      OutRoot = $FixtureOutRoot
-      RunRoot = $StateRunRoot
-      StatePath = if ([string]::IsNullOrWhiteSpace($StatePathOverride)) { $statePath } else { $StatePathOverride }
-      PackagePath = $StatePackagePath
-      CollectorVersion = '4.0.7'
-    }
-    Set-Content -Path $statePath -Value ($state | ConvertTo-Json -Depth 5) -Encoding UTF8
-    return @{
-      ExpectedRunRoot = $expectedRunRoot
-      RecordedRunId = $stateRunId
-      StatePath = $statePath
-      RecordedStatePath = $state.StatePath
-      StatePackagePath = $StatePackagePath
-    }
-  }
-
-  <#
-  .SYNOPSIS
-  Asserts that a state-backed cleanup attempt was refused.
-
-  .DESCRIPTION
-  Verifies the collector step succeeded at the harness process level while reporting
-  cleanup refusal status, a nonzero refused-target count, and refusal reason detail.
-
-  .FUNCTION NAME
-  Assert-StateCleanupRefused
-
-  .INPUTS
-  No pipeline input. Parameters identify the step name and collector step result.
-
-  .OUTPUTS
-  No direct output. Throws when refusal reporting is missing or unexpected.
-  #>
-  function Assert-StateCleanupRefused {
-    param(
-      [string]$StepName,
-      $CollectorStep
-    )
-    Assert-CollectorStepSucceeded -StepName $StepName -CollectorStep $CollectorStep
-    if (($CollectorStep.CleanupStatus -ne 'REFUSED') -and (-not [regex]::IsMatch($CollectorStep.StdOut, 'CLEANUP_STATUS=REFUSED'))) {
-      throw ("{0} returned unexpected cleanup status: {1}" -f $StepName, $CollectorStep.CleanupStatus)
-    }
-    if (-not [regex]::IsMatch($CollectorStep.StdOut, 'CLEANUP_REFUSED_COUNT=[1-9]')) {
-      throw ("{0} did not report refused cleanup targets." -f $StepName)
-    }
-    if (-not [regex]::IsMatch($CollectorStep.StdOut, 'CLEANUP_REFUSAL_REASON=')) {
-      throw ("{0} did not report cleanup refusal reason detail." -f $StepName)
-    }
-  }
-
-  $stateCleanupRoot = Join-Path $RunOutputRoot 'state_cleanup_path_authority'
-  $stateCleanupOutRoot = Join-Path $stateCleanupRoot 'outroot'
-  Remove-Item -LiteralPath $stateCleanupRoot -Recurse -Force -ErrorAction SilentlyContinue
-  New-Item -Path $stateCleanupOutRoot -ItemType Directory -Force | Out-Null
-
-  $outsideRunRoot = Join-Path $stateCleanupRoot 'outside_runroot_must_not_delete'
-  New-Item -Path $outsideRunRoot -ItemType Directory -Force | Out-Null
-  Set-Content -Path (Join-Path $outsideRunRoot 'must-not-delete.txt') -Value 'outside-runroot' -Encoding UTF8
-  $outsideRunRootPackage = Join-Path $stateCleanupOutRoot 'DCOIR_Collector.zip'
-  Set-Content -Path $outsideRunRootPackage -Value 'package-placeholder' -Encoding UTF8
-  [void](Initialize-StateCleanupAuthorityFixture -FixtureOutRoot $stateCleanupOutRoot -FixtureRunId 'state-outside-runroot' -StateRunRoot $outsideRunRoot -StatePackagePath $outsideRunRootPackage)
-  $outsideRunRootCleanup = Invoke-CollectorStep -StepName "98H_StateCleanupRejectsOutsideRunRoot" -CollectorArgs @("-Quick","cleanup","-OutRoot",$stateCleanupOutRoot,"-RunId","state-outside-runroot")
-  Assert-StateCleanupRefused -StepName "98H_StateCleanupRejectsOutsideRunRoot" -CollectorStep $outsideRunRootCleanup
-  if (-not (Test-Path -LiteralPath (Join-Path $outsideRunRoot 'must-not-delete.txt'))) {
-    throw 'State-backed cleanup deleted an outside RunRoot from state.json.'
-  }
-
-  $outsidePackagePath = Join-Path $stateCleanupRoot 'outside_package_must_not_delete.zip'
-  Set-Content -Path $outsidePackagePath -Value 'outside-package' -Encoding UTF8
-  $outsidePackageRunRoot = Join-Path $stateCleanupOutRoot ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, 'state-outside-package')
-  [void](Initialize-StateCleanupAuthorityFixture -FixtureOutRoot $stateCleanupOutRoot -FixtureRunId 'state-outside-package' -StateRunRoot $outsidePackageRunRoot -StatePackagePath $outsidePackagePath)
-  $outsidePackageCleanup = Invoke-CollectorStep -StepName "98I_StateCleanupRejectsOutsidePackagePath" -CollectorArgs @("-Quick","cleanup","-OutRoot",$stateCleanupOutRoot,"-RunId","state-outside-package")
-  Assert-StateCleanupRefused -StepName "98I_StateCleanupRejectsOutsidePackagePath" -CollectorStep $outsidePackageCleanup
-  if (-not (Test-Path -LiteralPath $outsidePackagePath)) {
-    throw 'State-backed cleanup deleted an outside PackagePath from state.json.'
-  }
-  if (-not (Test-Path -LiteralPath $outsidePackageRunRoot)) {
-    throw 'State-backed cleanup deleted the run root while refusing an outside PackagePath.'
-  }
-
-  $mismatchRunId = 'state-mismatch-runroot'
-  $mismatchWrongRunRoot = Join-Path $stateCleanupOutRoot ("DCOIR_{0}_{1}_sibling" -f $env:COMPUTERNAME, $mismatchRunId)
-  New-Item -Path $mismatchWrongRunRoot -ItemType Directory -Force | Out-Null
-  Set-Content -Path (Join-Path $mismatchWrongRunRoot 'must-not-delete.txt') -Value 'mismatch-runroot' -Encoding UTF8
-  $mismatchPackagePath = Join-Path $stateCleanupOutRoot 'DCOIR_Collector.zip'
-  Set-Content -Path $mismatchPackagePath -Value 'package-placeholder' -Encoding UTF8
-  [void](Initialize-StateCleanupAuthorityFixture -FixtureOutRoot $stateCleanupOutRoot -FixtureRunId $mismatchRunId -StateRunRoot $mismatchWrongRunRoot -StatePackagePath $mismatchPackagePath)
-  $mismatchCleanup = Invoke-CollectorStep -StepName "98J_StateCleanupRejectsMismatchedRunRoot" -CollectorArgs @("-Quick","cleanup","-OutRoot",$stateCleanupOutRoot,"-RunId",$mismatchRunId)
-  Assert-StateCleanupRefused -StepName "98J_StateCleanupRejectsMismatchedRunRoot" -CollectorStep $mismatchCleanup
-  if (-not (Test-Path -LiteralPath (Join-Path $mismatchWrongRunRoot 'must-not-delete.txt'))) {
-    throw 'State-backed cleanup deleted a mismatched RunRoot from state.json.'
-  }
-
-  $outsideStatePath = Join-Path $stateCleanupRoot 'outside_statepath_must_not_delete.json'
-  Set-Content -Path $outsideStatePath -Value '{"statepath":"outside"}' -Encoding UTF8
-  $outsideStatePathRunId = 'state-outside-statepath'
-  $outsideStatePathRunRoot = Join-Path $stateCleanupOutRoot ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, $outsideStatePathRunId)
-  $outsideStatePathPackage = Join-Path $stateCleanupOutRoot 'DCOIR_Collector.zip'
-  Set-Content -Path $outsideStatePathPackage -Value 'package-placeholder' -Encoding UTF8
-  [void](Initialize-StateCleanupAuthorityFixture -FixtureOutRoot $stateCleanupOutRoot -FixtureRunId $outsideStatePathRunId -StateRunRoot $outsideStatePathRunRoot -StatePackagePath $outsideStatePathPackage -StatePathOverride $outsideStatePath)
-  $outsideStatePathCleanup = Invoke-CollectorStep -StepName "98K_StateCleanupRejectsOutsideStatePath" -CollectorArgs @("-Quick","cleanup","-OutRoot",$stateCleanupOutRoot,"-RunId",$outsideStatePathRunId)
-  Assert-StateCleanupRefused -StepName "98K_StateCleanupRejectsOutsideStatePath" -CollectorStep $outsideStatePathCleanup
-  if (-not (Test-Path -LiteralPath $outsideStatePath)) {
-    throw 'State-backed cleanup deleted an outside StatePath from state.json.'
-  }
-  if (-not (Test-Path -LiteralPath $outsideStatePathRunRoot)) {
-    throw 'State-backed cleanup deleted the run root while refusing an outside StatePath.'
-  }
-
-  $selectedRunId = 'state-selected-runid-a'
-  $stateRunId = 'state-selected-runid-b'
-  $mismatchedRunIdRunRoot = Join-Path $stateCleanupOutRoot ("DCOIR_{0}_{1}" -f $env:COMPUTERNAME, $stateRunId)
-  New-Item -Path $mismatchedRunIdRunRoot -ItemType Directory -Force | Out-Null
-  Set-Content -Path (Join-Path $mismatchedRunIdRunRoot 'must-not-delete.txt') -Value 'mismatched-state-runid' -Encoding UTF8
-  $mismatchedRunIdStatePath = Join-Path $mismatchedRunIdRunRoot 'state.json'
-  Set-Content -Path $mismatchedRunIdStatePath -Value '{"state":"mismatched"}' -Encoding UTF8
-  $mismatchedRunIdPackage = Join-Path $stateCleanupOutRoot 'DCOIR_Collector.zip'
-  Set-Content -Path $mismatchedRunIdPackage -Value 'package-placeholder' -Encoding UTF8
-  [void](Initialize-StateCleanupAuthorityFixture -FixtureOutRoot $stateCleanupOutRoot -FixtureRunId $selectedRunId -StateRunRoot $mismatchedRunIdRunRoot -StatePackagePath $mismatchedRunIdPackage -StatePathOverride $mismatchedRunIdStatePath -StateRunIdOverride $stateRunId)
-  $mismatchedRunIdCleanup = Invoke-CollectorStep -StepName "98L_StateCleanupRejectsMismatchedRunId" -CollectorArgs @("-Quick","cleanup","-OutRoot",$stateCleanupOutRoot,"-RunId",$selectedRunId)
-  Assert-StateCleanupRefused -StepName "98L_StateCleanupRejectsMismatchedRunId" -CollectorStep $mismatchedRunIdCleanup
-  if (-not (Test-Path -LiteralPath (Join-Path $mismatchedRunIdRunRoot 'must-not-delete.txt'))) {
-    throw 'State-backed cleanup deleted the state RunId run root while refusing a selected RunId mismatch.'
-  }
-  Remove-Item -LiteralPath $stateCleanupRoot -Recurse -Force -ErrorAction SilentlyContinue
-
-  Restore-WorkingZip -Reason "FailureGates_AfterMissingPackageCleanup"
-  $invalidStart = Invoke-CollectorStep -StepName "99_TargetedInvalidWindowStart" -CollectorArgs @("-Quick","collect-targeted-popup","-Target","User reported popup around 2026-04-08T09:00Z","-WindowStart","not-a-date","-WindowEnd","2026-04-08T09:15:00Z")
-  Assert-CollectorStepDegradedPartial -StepName "99_TargetedInvalidWindowStart" -CollectorStep $invalidStart -ExpectedPatterns @("Invalid WindowStart value [not-a-date]; falling back to hour-window behavior.")
-  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedInvalidWindowStartValidation" -CollectStep $invalidStart -ExpectedExplicitEventWindow $false
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "99_CleanupAfterInvalidWindowStart" -CollectorArgs @("-Quick","cleanup")) }
-
-  Restore-WorkingZip -Reason "FailureGates_TargetedInvalidWindowEnd"
-  $invalidEnd = Invoke-CollectorStep -StepName "100_TargetedInvalidWindowEnd" -CollectorArgs @("-Quick","collect-targeted-popup","-Target","User reported popup around 2026-04-08T09:00Z","-WindowStart","2026-04-08T08:45:00Z","-WindowEnd","not-a-date")
-  Assert-CollectorStepDegradedPartial -StepName "100_TargetedInvalidWindowEnd" -CollectorStep $invalidEnd -ExpectedPatterns @("Invalid WindowEnd value [not-a-date]; falling back to hour-window behavior.")
-  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedInvalidWindowEndValidation" -CollectStep $invalidEnd -ExpectedExplicitEventWindow $false
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "100_CleanupAfterInvalidWindowEnd" -CollectorArgs @("-Quick","cleanup")) }
-
-  Restore-WorkingZip -Reason "FailureGates_TargetedInvertedWindow"
-  $invertedWindow = Invoke-CollectorStep -StepName "101_TargetedInvertedWindow" -CollectorArgs @("-Quick","collect-targeted-popup","-Target","User reported popup around 2026-04-08T09:00Z","-WindowStart","2026-04-08T09:15:00Z","-WindowEnd","2026-04-08T08:45:00Z")
-  Assert-CollectorStepDegradedPartial -StepName "101_TargetedInvertedWindow" -CollectorStep $invertedWindow -ExpectedPatterns @("is earlier than WindowStart")
-  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedInvertedWindowValidation" -CollectStep $invertedWindow -ExpectedExplicitEventWindow $false
-  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "101_CleanupAfterInvertedWindow" -CollectorArgs @("-Quick","cleanup")) }
-}
-
-<#
-.SYNOPSIS
-Runs the major-version validation suite.
-
-.DESCRIPTION
-Executes the bounded group of suites that make up the current major-version validation
-surface.
-
-.FUNCTION NAME
-Run-MajorVersionSuite
-
-.INPUTS
-No direct parameters.
-
-.OUTPUTS
-No direct output. Executes the suite group.
-#>
-function Run-MajorVersionSuite {
-  Run-CoreSuite
-  Run-QuickAliasesSuite
-  Run-SessionBehaviorSuite
-  Run-TargetedCollectionSuite
-  Run-ChunkingOversizeArtifactSuite
-  Run-ChunkingReconstructionMetadataSuite
-  Run-Tier2BoundedCollectSuite
-}
-
-Ensure-Directory -Path $RunOutputRoot
-Ensure-Directory -Path $LogsDir
-
-try {
-  switch ($Suite) {
-    "Core" { Run-CoreSuite }
-    "Retrieval" { Run-RetrievalSuite }
-    "QuickAliases" { Run-QuickAliasesSuite }
-    "SessionBehavior" { Run-SessionBehaviorSuite }
-    "TargetedCollection" { Run-TargetedCollectionSuite }
-    "ChunkingOversizeArtifact" { Run-ChunkingOversizeArtifactSuite }
-    "ChunkingReconstructionMetadata" { Run-ChunkingReconstructionMetadataSuite }
-    "Tier2BoundedCollect" { Run-Tier2BoundedCollectSuite }
-    "MajorVersion" { Run-MajorVersionSuite }
-    "FailureGates" { Run-FailureGatesSuite }
-    "FullRegression" {
-      Run-CoreSuite
-      Run-RetrievalSuite
-      Run-QuickAliasesSuite
-      Run-SessionBehaviorSuite
-      Run-TargetedCollectionSuite
-      Run-ChunkingOversizeArtifactSuite
-      Run-ChunkingReconstructionMetadataSuite
-      Run-Tier2BoundedCollectSuite
-      Run-FailureGatesSuite
-    }
-  }
-  Save-Summary
-  if (-not $ContinueOnError) {
-    $failedResults = @($script:Results | Where-Object { $_.Status -eq 'FAIL' })
-    if (@($failedResults).Count -gt 0) {
-      Write-Error ("Harness recorded {0} failed result row(s); see summary at {1}" -f @($failedResults).Count, $RunOutputRoot)
-      exit 1
-    }
-  }
-} catch {
-  Save-Summary
-  Write-Error $_.Exception.Message
-  exit 1
-}
+function Run-QuickAliasesSuite {
+  $sampleScriptPath = $CollectorFullPath
+  $sampleBinaryPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+  $sampleService = "EventLog"
+  $sampleRegistry = "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+  $sampleTask = "\Microsoft\Windows\Defrag\ScheduledDefrag"
+  Restore-WorkingZip -Reason "QuickAliases"
+  $collect = Invoke-CollectorStep -StepName "21_CollectT1" -CollectorArgs @("-Quick","collect-t1")
+  Assert-CollectorStepSucceeded -StepName "21_CollectT1" -CollectorStep $collect
+  if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_QuickAliasesCollect" -ManifestPath $collect.AttachmentBudgetManifestPath }

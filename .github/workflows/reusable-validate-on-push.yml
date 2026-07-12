@@ -106,75 +106,13 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $reportPath = 'project_sources/collector/powershell_review_assist_workflow_report.md'
-          if (Test-Path -LiteralPath $reportPath) {
-            $content = Get-Content -LiteralPath $reportPath -Raw
-            $header = "## PowerShell Review-Assist Report — Run #$env:GITHUB_RUN_NUMBER`n`n"
-            ($header + $content) | Out-File -Append -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8
-            Write-Host 'Review-assist report written to job summary.'
-          } else {
-            Write-Host 'Review-assist report not found; skipping job summary.'
-          }
+          ./.github/scripts/Add-PowerShellReviewAssistSummary.ps1
 
       - name: Enforce static analysis validation gates
         if: always()
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
-          $failures = [System.Collections.Generic.List[string]]::new()
-
-          $analyzerPath = 'project_sources/collector/powershell_analyzer_report.json'
-          if (-not (Test-Path -LiteralPath $analyzerPath)) {
-            $failures.Add("PSScriptAnalyzer report missing: $analyzerPath")
-          } else {
-            $analyzer = Get-Content -LiteralPath $analyzerPath -Raw | ConvertFrom-Json
-            if ($analyzer.validation.success -ne $true) {
-              $failures.Add('PSScriptAnalyzer validation did not report success.')
-            }
-            $errorCount = 0
-            if ($null -ne $analyzer.summary.error_count) {
-              $errorCount = [int]$analyzer.summary.error_count
-            }
-            if ($errorCount -gt 0) {
-              $failures.Add("PSScriptAnalyzer reported $errorCount Error-severity finding(s).")
-            }
-          }
-
-          $duplicatePath = 'project_sources/collector/powershell_duplicate_function_report.json'
-          if (-not (Test-Path -LiteralPath $duplicatePath)) {
-            $failures.Add("Duplicate-function report missing: $duplicatePath")
-          } else {
-            $duplicate = Get-Content -LiteralPath $duplicatePath -Raw | ConvertFrom-Json
-            if ($duplicate.validation.success -ne $true) {
-              $failures.Add('Duplicate-function validation did not report success.')
-            }
-            $duplicateCount = 0
-            if ($null -ne $duplicate.summary.duplicate_function_count) {
-              $duplicateCount = [int]$duplicate.summary.duplicate_function_count
-            }
-            $parseFailureCount = 0
-            if ($null -ne $duplicate.summary.parse_failure_count) {
-              $parseFailureCount = [int]$duplicate.summary.parse_failure_count
-            }
-            if ($parseFailureCount -gt 0) {
-              $failures.Add("Duplicate-function report has $parseFailureCount parse failure(s).")
-            }
-            if ($duplicateCount -gt 0) {
-              $failures.Add("Duplicate-function report found $duplicateCount duplicate function name(s).")
-            }
-          }
-
-          if ($failures.Count -gt 0) {
-            Write-Host ''
-            Write-Host 'STATIC ANALYSIS VALIDATION GATE FAILED'
-            Write-Host '======================================'
-            foreach ($failure in $failures) {
-              Write-Host "  - $failure"
-            }
-            throw "Static analysis validation gate failed with $($failures.Count) blocking condition(s)."
-          }
-
-          Write-Host 'PASS: Static analysis validation gates are clear after report generation.'
+          ./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1
 
       - name: Upload validation artifacts
         if: always()

@@ -9,6 +9,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 ACTION_PATH = REPO_ROOT / ".github/actions/run-duplicate-function-check/action.yml"
+SCRIPT_PATH = REPO_ROOT / ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1"
 VALIDATE_ON_PR = REPO_ROOT / ".github/workflows/reusable-validate-on-pr.yml"
 VALIDATE_ON_PUSH = REPO_ROOT / ".github/workflows/reusable-validate-on-push.yml"
 TEST_PATH = "project_sources/github_actions/tools/test_duplicate_function_action_contract.py"
@@ -71,6 +72,11 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.action_text = ACTION_PATH.read_text(encoding="utf-8")
+        cls.script_text = SCRIPT_PATH.read_text(encoding="utf-8")
+
+    def test_action_dispatches_to_repo_local_script(self) -> None:
+        self.assertIn("DCOIR_ACTION_SCRIPT: ${{ github.action_path }}/Invoke-DcoirDuplicateFunctionCheck.ps1", self.action_text)
+        self.assertIn("& $env:DCOIR_ACTION_SCRIPT", self.action_text)
 
     def test_action_defaults_use_collector_report_paths(self) -> None:
         self.assertIn(
@@ -114,7 +120,7 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
                     normalize_report_path(path_value, suffix)
 
     def test_action_contains_required_path_guard_checks(self) -> None:
-        block = function_block(self.action_text, "Resolve-CollectorReportPath")
+        block = function_block(self.script_text, "Resolve-CollectorReportPath")
         self.assertIn("$rawNormalized = $pathValue.Replace('\\', '/')", block)
         self.assertIn("$rawNormalized -match '[\\x00-\\x1F\\x7F]'", block)
         self.assertLess(
@@ -127,7 +133,7 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
         self.assertIn("$normalized.StartsWith('project_sources/collector/'", block)
         self.assertIn("$normalized.EndsWith($expectedSuffix", block)
         self.assertIn("$resolved.StartsWith($repoRoot", block)
-        self.assertIn("$jsonOutput.RelativePath -eq $markdownOutput.RelativePath", self.action_text)
+        self.assertIn("$jsonOutput.RelativePath -eq $markdownOutput.RelativePath", self.script_text)
 
     def test_markdown_cell_escaping_contract(self) -> None:
         escaped = markdown_table_cell("name`with|table\n<&>")
@@ -136,7 +142,7 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
         self.assertNotIn("|", escaped)
         self.assertNotIn("\n", escaped)
 
-        block = function_block(self.action_text, "ConvertTo-MarkdownTableCell")
+        block = function_block(self.script_text, "ConvertTo-MarkdownTableCell")
         for expected in [
             "Replace('&', '&amp;')",
             "Replace('<', '&lt;')",
@@ -161,7 +167,7 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
             "$markdownLines.Add('- JSON: `' + $jsonOutput.RelativePath + '`')",
             "$markdownLines.Add('- Markdown: `' + $markdownOutput.RelativePath + '`')",
         ]:
-            self.assertIn(marker, self.action_text)
+            self.assertIn(marker, self.script_text)
 
     def test_validation_workflows_run_contract_test_before_action(self) -> None:
         for workflow in [VALIDATE_ON_PR, VALIDATE_ON_PUSH]:

@@ -1,0 +1,46 @@
+{
+  "validate_on_push": [
+    "project_sources/collector/tools/build_powershell_surface_inventory.py",
+    "project_sources/collector/tools/powershell_surface_inventory_common.py",
+    "project_sources/collector/tools/powershell_surface_inventory_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_workflow_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_discovery.py",
+    "project_sources/collector/tools/powershell_surface_inventory_validation.py",
+    "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+  ],
+  "validate_on_pr": [
+    "project_sources/collector/tools/build_powershell_surface_inventory.py",
+    "project_sources/collector/tools/powershell_surface_inventory_common.py",
+    "project_sources/collector/tools/powershell_surface_inventory_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_workflow_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_discovery.py",
+    "project_sources/collector/tools/powershell_surface_inventory_validation.py",
+    "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+  ],
+  "manual_full_validation": [
+    "project_sources/collector/tools/build_powershell_surface_inventory.py",
+    "project_sources/collector/tools/powershell_surface_inventory_common.py",
+    "project_sources/collector/tools/powershell_surface_inventory_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_workflow_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_discovery.py",
+    "project_sources/collector/tools/powershell_surface_inventory_validation.py",
+    "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+  ],
+  "scheduled_health_check": [
+    "project_sources/collector/tools/build_powershell_surface_inventory.py",
+    "project_sources/collector/tools/powershell_surface_inventory_common.py",
+    "project_sources/collector/tools/powershell_surface_inventory_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_workflow_yaml.py",
+    "project_sources/collector/tools/powershell_surface_inventory_discovery.py",
+    "project_sources/collector/tools/powershell_surface_inventory_validation.py",
+    "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+    "project_sources/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+  ]
+}

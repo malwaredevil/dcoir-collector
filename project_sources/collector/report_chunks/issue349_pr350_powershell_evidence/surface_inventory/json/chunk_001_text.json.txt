@@ -1,0 +1,358 @@
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 7939
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4841
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9020
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4963
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4192
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9998
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 10656
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 7767
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4894
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 1464
+        }
+      ]
+    },
+    "harness_source_parts": {
+      "root": "project_sources/collector/harness/source/parts",
+      "part_count": 17,
+      "required_profile_path": "project_sources/github_actions/workflow_required_surface_profiles.json",
+      "required_profile_exists": true,
+      "required_profile_supplement_manifest_path": "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+      "required_profile_supplement_manifest_exists": true,
+      "required_profile_error": null,
+      "required_profile_part_count": 17,
+      "required_profile_present_count": 17,
+      "required_profile_parts": [
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8346
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8476
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8411
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8411
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 7589
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 4200
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 6161
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 12011
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8335
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 15243
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 15355
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 9256
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11687
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 3217
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11129
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 12538
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 1858
+        }
+      ],
+      "parts": [
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8346
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8476
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8411
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8411
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 7589
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 4200
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 6161
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 12011
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 8335
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 15243
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 15355
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 9256
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11687
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 3217
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11129
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 12538
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 1858
+        }
+      ]
+    },
+    "generated_outputs": [
+      {
+        "path": "project_sources/collector/harness/run_DCOIR_Tests.generated.ps1",
+        "expected_presence": "optional_when_generated",
+        "exists": false,
+        "category": null
+      }
+    ]
+  },
+  "validation": {
+    "success": true,
+    "errors": [],
+    "warnings": []
+  },
+  "surfaces": [
+    {
+      "path": ".github/actions/assemble-collector-harness/action.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        16
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/actions/assemble-collector-harness/action.yml",
+          "step_or_action": "Assemble collector harness from source parts",
+          "shell": "pwsh",
+          "line_start": 16,
+          "line_end": 38,
+          "command_sha256": "4c9b3aebf54466116a973a959a6419bbd1bfcedc6dc1113906c152ba5317c91c",
+          "command_preview": "$ErrorActionPreference = 'Stop'\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\project_sources\\collector\\harness\\assemble_run_DCOIR_Tests.ps1 -OutputPath $env:HARNESS_OUTPUT_PATH\nif ($LASTEXITCODE -ne 0) {\n  throw 'Collector harn"
+        }
+      ],
+      "size_bytes": 1859,
+      "line_count": 41,
+      "sha256": "b37a2685a4d3a434e025638c6d3125c7a25ec0c6a218ec72e8e861abdd43b68c"
+    },

@@ -9,8 +9,10 @@ Describe 'DCOIR collector low-risk runtime smoke behavior' {
     $Global:CollectorErrors = New-Object System.Collections.ArrayList
     $Global:CollectorNotes = New-Object System.Collections.ArrayList
     $Global:ErrorsLogPath = $null
-    . (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01A_Core_Logging_And_Process_Capture.ps1')
-    . (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1')
+    . (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1')
+    . (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01A2_Core_Logging_And_Process_Capture.ps1')
+    . (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01B1_Json_State_And_Array_Utilities.ps1')
+    . (Join-Path $script:Layout.CollectorPartsDirectory 'DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1')
   }
 
   It 'prints version metadata without starting collection side effects' {

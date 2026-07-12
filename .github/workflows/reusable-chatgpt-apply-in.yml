@@ -160,257 +160,30 @@ jobs:
           echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
           echo "REPORT_PATH=$REPORT_PATH" >> "$GITHUB_ENV"
 
-          rm -rf "$WORK_DIR"
-          mkdir -p "$WORK_DIR/extract" "$REPORT_DIR"
-
-          python - "$PAYLOAD" "$WORK_DIR/payload.zip" <<'PY'
-          import base64
-          import binascii
-          import pathlib
-          import re
-          import sys
-
-          payload_path = pathlib.Path(sys.argv[1])
-          output_path = pathlib.Path(sys.argv[2])
-          raw = payload_path.read_text(encoding="utf-8", errors="replace")
-          if "# dcoir-payload-b64-parts-v1" in raw or "payload.zip.b64.parts" in raw:
-              raise SystemExit("Unsupported staging shape. This workflow accepts exactly one base64 ZIP file: payload.zip.b64. Do not use parts/chunks.")
-          if "[... ELLIPSIZATION ...]" in raw:
-              raise SystemExit("payload.zip.b64 contains a truncation marker; rebuild and stage the full base64 file")
-          cleaned = "".join(raw.split())
-          bad_chars = sorted(set(re.sub(r"[A-Za-z0-9+/=]", "", cleaned)))
-          if bad_chars:
-              shown = " ".join(repr(ch) for ch in bad_chars[:20])
-              raise SystemExit(f"Invalid base64 characters in payload.zip.b64: {shown}")
-          if len(cleaned) % 4:
-              raise SystemExit(f"Invalid base64 length: {len(cleaned)} characters leaves remainder {len(cleaned) % 4}; payload may be truncated")
-          try:
-              blob = base64.b64decode(cleaned, validate=True)
-          except binascii.Error as exc:
-              raise SystemExit(f"Invalid base64 payload: {exc}") from exc
-          if not blob.startswith(b"PK"):
-              raise SystemExit(f"Decoded payload is not a ZIP file; first bytes={blob[:8]!r}")
-          output_path.write_bytes(blob)
-          print(f"Decoded single payload.zip.b64: {len(cleaned)} chars -> {len(blob)} bytes")
-          PY
-          unzip -q "$WORK_DIR/payload.zip" -d "$WORK_DIR/extract"
-
-          if [[ ! -f "$WORK_DIR/extract/apply_manifest.json" ]]; then
-            echo "Decoded ZIP did not contain apply_manifest.json at archive root" >&2
-            exit 1
-          fi
-          if [[ ! -d "$WORK_DIR/extract/files" ]]; then
-            echo "Decoded ZIP did not contain files/ at archive root" >&2
-            exit 1
-          fi
-
-          python - "$WORK_DIR/extract/apply_manifest.json" "$WORK_DIR/extract" <<'PY'
-          import hashlib
-          import json
-          import pathlib
-          import shutil
-          import subprocess
-          import sys
-
-          manifest_path = pathlib.Path(sys.argv[1])
-          extract_root = pathlib.Path(sys.argv[2])
-          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-          schema = manifest.get("schema")
-          if schema != "dcoir.chatgpt_staging.apply_manifest.v1":
-              raise SystemExit(f"apply_manifest schema must be dcoir.chatgpt_staging.apply_manifest.v1, got {schema!r}")
-
-          request_id = manifest.get("request_id", "unknown")
-          allowed_roots = manifest.get("allowed_roots") or []
-          if not allowed_roots:
-              raise SystemExit("allowed_roots is required")
-          if any(not str(root).strip().strip("/") for root in allowed_roots):
-              raise SystemExit("allowed_roots must not include repo root or blank roots")
-
-          allow_missing_current_hash = bool(manifest.get("allow_missing_current_hash", False))
-          blocked_prefixes = [".git/", "chatgpt_staging/out/", "chatgpt_staging/work/", "chatgpt_staging/apply_reports/", "chatgpt_staging/failure_reports/", "chatgpt_staging/cleanup_requests/", "chatgpt_staging/status_reports/"]
-          allow_workflows = bool(manifest.get("allow_workflow_changes", False))
-          workflow_change_reason = str(manifest.get("workflow_change_reason", "")).strip()
-          if allow_workflows and not workflow_change_reason:
-              raise SystemExit("allow_workflow_changes=true requires workflow_change_reason")
-
-          def safe_rel(path: str) -> bool:
-              p = pathlib.PurePosixPath(path)
-              if path.startswith("/") or ".." in p.parts:
-                  return False
-              if path in {"", "."} or len(p.parts) < 2:
-                  return False
-              if any(path.startswith(prefix) for prefix in blocked_prefixes):
-                  return False
-              if path.startswith(".github/workflows/") and not allow_workflows:
-                  return False
-              return any(path == root.rstrip("/") or path.startswith(root.rstrip("/") + "/") for root in allowed_roots)
-
-          def tracked_blob_sha(target: str) -> str:
-              out = subprocess.check_output(["git", "ls-files", "-s", "--", target], text=True).split()
-              return out[1] if len(out) > 1 else ""
-
-          def tracked_paths_under(target: str) -> list[str]:
-              out = subprocess.check_output(["git", "ls-files", "--", target], text=True)
-              return [line for line in out.splitlines() if line.strip()]
-
-          def sha256_file(path: pathlib.Path) -> str:
-              return hashlib.sha256(path.read_bytes()).hexdigest()
-
-          applied = []
-          deleted = []
-          warnings = []
-
-          for item in manifest.get("files", []):
-              target = item.get("path", "")
-              source = item.get("source", "")
-              expected_blob_sha = item.get("expected_blob_sha")
-              expected_current_sha256 = item.get("expected_current_sha256")
-              expected_new_sha256 = item.get("expected_new_sha256")
-              create_only = bool(item.get("create_only", False))
-
-              if not safe_rel(target):
-                  raise SystemExit(f"Unsafe or disallowed target path: {target}")
-              if not source or source.startswith("/") or ".." in pathlib.PurePosixPath(source).parts:
-                  raise SystemExit(f"Unsafe source path: {source}")
-              if not source.startswith("files/"):
-                  raise SystemExit(f"Source path must live under files/: {source}")
-              src_path = extract_root / source
-              if not src_path.is_file():
-                  raise SystemExit(f"Source file missing in ZIP: {src_path}")
-              dst_path = pathlib.Path(target)
-              exists = dst_path.exists()
-              blob_sha = tracked_blob_sha(target)
-              is_tracked = bool(blob_sha)
-
-              if create_only:
-                  if exists:
-                      raise SystemExit(f"create_only target already exists: {target}")
-                  if not expected_new_sha256:
-                      raise SystemExit(f"create_only requires expected_new_sha256 for {target}")
-              elif exists:
-                  if is_tracked and not (expected_blob_sha or expected_current_sha256):
-                      if not allow_missing_current_hash:
-                          raise SystemExit(f"Existing tracked file requires expected_blob_sha or expected_current_sha256: {target}")
-                      warnings.append(f"allow_missing_current_hash override used for {target}")
-                  if not is_tracked:
-                      raise SystemExit(f"Existing untracked file cannot be overwritten by apply-in: {target}")
-              else:
-                  if not expected_new_sha256:
-                      raise SystemExit(f"New file requires expected_new_sha256 and create_only=true for {target}")
-                  if not create_only:
-                      raise SystemExit(f"New file requires create_only=true for {target}")
-
-              if expected_blob_sha and is_tracked and blob_sha != expected_blob_sha:
-                  raise SystemExit(f"Blob SHA mismatch for {target}: expected {expected_blob_sha}, got {blob_sha}")
-              if expected_current_sha256 and exists:
-                  actual = sha256_file(dst_path)
-                  if actual != expected_current_sha256:
-                      raise SystemExit(f"Current sha256 mismatch for {target}: expected {expected_current_sha256}, got {actual}")
-              if expected_new_sha256:
-                  actual_new = sha256_file(src_path)
-                  if actual_new != expected_new_sha256:
-                      raise SystemExit(f"New sha256 mismatch for {target}: expected {expected_new_sha256}, got {actual_new}")
-
-              dst_path.parent.mkdir(parents=True, exist_ok=True)
-              shutil.copy2(src_path, dst_path)
-              applied.append(target)
-
-          for item in manifest.get("deletes", []):
-              target = str(item.get("path", "")).rstrip("/")
-              expected_blob_sha = item.get("expected_blob_sha")
-              expected_current_sha256 = item.get("expected_current_sha256")
-              recursive = bool(item.get("recursive", False))
-              require_exists = bool(item.get("require_exists", True))
-              if not safe_rel(target):
-                  raise SystemExit(f"Unsafe or disallowed delete path: {target}")
-              if target.startswith(".github/workflows/"):
-                  raise SystemExit("Workflow deletion is not allowed through apply-in")
-              dst_path = pathlib.Path(target)
-              tracked = tracked_paths_under(target)
-              if not tracked:
-                  if require_exists:
-                      raise SystemExit(f"Delete target has no tracked files: {target}")
-                  warnings.append(f"delete target already absent: {target}")
-                  continue
-              if dst_path.is_dir() and not recursive:
-                  raise SystemExit(f"Directory delete requires recursive=true: {target}")
-              if len(pathlib.PurePosixPath(target).parts) < 3 and recursive:
-                  raise SystemExit(f"Recursive delete target is too broad: {target}")
-              if expected_blob_sha:
-                  blob_sha = tracked_blob_sha(target)
-                  if blob_sha != expected_blob_sha:
-                      raise SystemExit(f"Blob SHA mismatch for delete target {target}: expected {expected_blob_sha}, got {blob_sha}")
-              if expected_current_sha256:
-                  if not dst_path.is_file():
-                      raise SystemExit(f"expected_current_sha256 is only supported for file delete targets: {target}")
-                  actual = sha256_file(dst_path)
-                  if actual != expected_current_sha256:
-                      raise SystemExit(f"Current sha256 mismatch for delete target {target}: expected {expected_current_sha256}, got {actual}")
-              subprocess.check_call(["git", "rm", "-r", "--", target])
-              deleted.append(target)
-
-          if not applied and not deleted:
-              raise SystemExit("No files applied or deleted")
-          out = pathlib.Path("chatgpt_staging/apply_reports")
-          out.mkdir(parents=True, exist_ok=True)
-          report = out / f"{request_id}_apply_report.md"
-          lines = ["# ChatGPT apply-in report", ""]
-          lines.extend(f"- applied: `{p}`" for p in applied)
-          lines.extend(f"- deleted: `{p}`" for p in deleted)
-          if warnings:
-              lines.extend(["", "## Warnings", ""])
-              lines.extend(f"- {w}" for w in warnings)
-          report.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          work = pathlib.Path("chatgpt_staging/work")
-          work.mkdir(parents=True, exist_ok=True)
-          (work / "applied_paths.txt").write_text("\n".join(applied) + ("\n" if applied else ""), encoding="utf-8")
-          (work / "deleted_paths.txt").write_text("\n".join(deleted) + ("\n" if deleted else ""), encoding="utf-8")
-          if warnings:
-              (work / "hash_warnings.txt").write_text("\n".join(warnings) + "\n", encoding="utf-8")
-          PY
+          python tools/chatgpt_apply_in/apply_payload_bundle.py \
+            --payload "$PAYLOAD" \
+            --work-dir "$WORK_DIR" \
+            --applied-paths chatgpt_staging/work/applied_paths.txt \
+            --deleted-paths chatgpt_staging/work/deleted_paths.txt \
+            --hash-warnings chatgpt_staging/work/hash_warnings.txt
 
       - name: Write apply-in success report
         if: steps.payload.outputs.skip != 'true'
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$REPORT_DIR"
           NATIVE_REPORT_PATH="$REPORT_DIR/native_apply_in_success_report.md"
-          {
-            echo "# ChatGPT workflow report"
-            echo
-            echo "## Result"
-            echo
-            echo "- workflow: chatgpt-apply-in"
-            echo "- result: success"
-            echo "- phase: bundle-applied-before-commit"
-            echo "- request_id: $REQUEST_ID"
-            echo "- payload_path: $PAYLOAD"
-            echo "- payload_shape: single payload.zip.b64"
-            echo "- github_run_id: $GITHUB_RUN_ID"
-            echo "- github_sha: $GITHUB_SHA"
-            echo "- github_ref: $GITHUB_REF"
-            echo "- report_created_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo
-            echo "## Applied paths"
-            if [[ -s chatgpt_staging/work/applied_paths.txt ]]; then sed 's/^/- /' chatgpt_staging/work/applied_paths.txt; else echo "- none"; fi
-            echo
-            echo "## Deleted paths"
-            if [[ -s chatgpt_staging/work/deleted_paths.txt ]]; then sed 's/^/- /' chatgpt_staging/work/deleted_paths.txt; else echo "- none"; fi
-            if [[ -f chatgpt_staging/work/hash_warnings.txt ]]; then
-              echo
-              echo "## Warnings"
-              sed 's/^/- /' chatgpt_staging/work/hash_warnings.txt
-            fi
-            echo
-            echo "## Cleanup guidance"
-            echo
-            echo "After ChatGPT verifies the commit/readback and no longer needs this report, create a cleanup marker for request id '$REQUEST_ID' with cleanup_status_reports=true."
-            echo
-            echo "## Next ChatGPT action"
-            echo
-            echo "Verify the committed target changes, hash policy outcome, deletion outcome, and apply report. If readback is good, update Airtable and clean this status report when safe."
-          } > "$NATIVE_REPORT_PATH"
+          python tools/chatgpt_apply_in/write_apply_in_report.py \
+            --github-run-id "$GITHUB_RUN_ID" \
+            --github-ref "$GITHUB_REF" \
+            --github-sha "$GITHUB_SHA" \
+            success \
+            --request-id "$REQUEST_ID" \
+            --payload "$PAYLOAD" \
+            --report-dir "$REPORT_DIR" \
+            --applied-paths chatgpt_staging/work/applied_paths.txt \
+            --deleted-paths chatgpt_staging/work/deleted_paths.txt \
+            --hash-warnings chatgpt_staging/work/hash_warnings.txt
           python .github/scripts/write_chatgpt_progress_report.py \
             --workflow chatgpt-apply-in \
             --request-id "$REQUEST_ID" \
@@ -472,42 +245,17 @@ jobs:
           ART_DIR="$RUNNER_TEMP/chatgpt_apply_in_failure/$REQUEST_ID"
           ARTIFACT_NAME="chatgpt-apply-in-failure-${GITHUB_RUN_ID}"
           rm -rf "$ART_DIR"
-          mkdir -p "$REPORT_DIR" "$ART_DIR"
-
-          {
-            echo "# ChatGPT workflow report"
-            echo
-            echo "## Result"
-            echo
-            echo "- workflow: chatgpt-apply-in"
-            echo "- result: failure"
-            echo "- phase: apply-in"
-            echo "- request_id: $REQUEST_ID"
-            echo "- payload_path: $PAYLOAD"
-            echo "- expected_payload_shape: single chatgpt_staging/in/<request_id>/payload.zip.b64"
-            echo "- github_run_id: $GITHUB_RUN_ID"
-            echo "- github_ref: $GITHUB_REF"
-            echo "- github_sha: $GITHUB_SHA"
-            echo "- artifact_name: $ARTIFACT_NAME"
-            echo "- artifact_retention_days: 7"
-            echo "- report_created_utc: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo
-            echo "## Troubleshooting context"
-            echo
-            echo "The apply-in workflow failed. This workflow only accepts one payload.zip.b64 file. Parts/chunks, chunk manifests, payload.zip.b64.parts, invalid base64, missing root apply_manifest.json, missing root files/, unsafe paths, stale hashes, create_only violations, delete policy violations, or workflow-change policy violations are hard failures."
-            echo
-            if [[ -f "$WORK_DIR/extract/apply_manifest.json" ]]; then
-              echo "### Manifest excerpt"
-              echo
-              echo '```json'
-              python -c "import pathlib; p=pathlib.Path('$WORK_DIR/extract/apply_manifest.json'); print(p.read_text(encoding='utf-8', errors='replace')[:4000])" || true
-              echo '```'
-            fi
-            echo
-            echo "## Next ChatGPT action"
-            echo
-            echo "Read this report, inspect the artifact or run log if needed, regenerate a single payload.zip.b64 with current hashes, then retry. Do not switch to parts/chunks."
-          } > "$NATIVE_REPORT_PATH"
+          python tools/chatgpt_apply_in/write_apply_in_report.py \
+            --github-run-id "$GITHUB_RUN_ID" \
+            --github-ref "$GITHUB_REF" \
+            --github-sha "$GITHUB_SHA" \
+            failure \
+            --request-id "$REQUEST_ID" \
+            --payload "$PAYLOAD" \
+            --work-dir "$WORK_DIR" \
+            --report-dir "$REPORT_DIR" \
+            --artifact-dir "$ART_DIR" \
+            --artifact-name "$ARTIFACT_NAME"
           python .github/scripts/write_chatgpt_progress_report.py \
             --workflow chatgpt-apply-in \
             --request-id "$REQUEST_ID" \
@@ -524,9 +272,6 @@ jobs:
           } >> "$REPORT_PATH"
 
           cp "$REPORT_PATH" "$ART_DIR/workflow_report.md"
-          if [[ -f "$PAYLOAD" ]]; then sha256sum "$PAYLOAD" > "$ART_DIR/payload_b64.sha256"; fi
-          if [[ -f "$WORK_DIR/payload.zip" ]]; then sha256sum "$WORK_DIR/payload.zip" > "$ART_DIR/payload_zip.sha256"; fi
-          if [[ -f "$WORK_DIR/extract/apply_manifest.json" ]]; then cp "$WORK_DIR/extract/apply_manifest.json" "$ART_DIR/apply_manifest.json"; fi
 
           git restore --staged . || true
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \

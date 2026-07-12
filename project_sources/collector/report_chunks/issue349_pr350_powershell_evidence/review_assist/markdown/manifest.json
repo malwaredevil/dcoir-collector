@@ -1,0 +1,40 @@
+{
+  "chunk_count": 3,
+  "chunks": [
+    {
+      "bytes": 13880,
+      "chunk_index": 0,
+      "chunk_kind": "markdown_section",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_000_text.md",
+      "sha256": "c3074a8ae732b97816a5f6d44d80748730b8218b1c034858657f8bb4276bb7fd",
+      "section": "text_slice_000"
+    },
+    {
+      "bytes": 13859,
+      "chunk_index": 1,
+      "chunk_kind": "markdown_section",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_001_text.md",
+      "sha256": "568d2c4219af0dd250a0b43087364809388ecf7c54f55a138429539414047d26",
+      "section": "text_slice_001"
+    },
+    {
+      "bytes": 2695,
+      "chunk_index": 2,
+      "chunk_kind": "markdown_section",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_002_text.md",
+      "sha256": "327b87165dbe01fea276a0cf2c942e8a92f14e0a3739b1b6d99941b4231362ff",
+      "section": "text_slice_002"
+    }
+  ],
+  "max_chunk_bytes_target": 14000,
+  "reassembly_note": "Concatenate chunks in manifest order.",
+  "report_id": "review_assist",
+  "schema_version": "dcoir_report_chunk_manifest_v1",
+  "source_bytes": 30434,
+  "source_format": "markdown",
+  "source_report": "project_sources/collector/powershell_review_assist_report.md",
+  "source_sha256": "bc169a4c0de59a58ad2b7b2758528f53a9b01465e4e28656e34a7812ecb8db9b"
+}

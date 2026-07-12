@@ -1,0 +1,312 @@
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-006.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-008.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-009.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-010.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-011.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-004.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-006.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-008.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-004.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-006.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-006.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-007.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      }
+    ],
+    "included_paths": [
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-powershell-review-assist/Invoke-DcoirPowerShellReviewAssist.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/CollectorHarnessAndPesterBoundary.Tests.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",

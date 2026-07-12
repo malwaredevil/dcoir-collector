@@ -20,57 +20,58 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 152,
+    "total_surfaces": 249,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
-      "collector_harness_source_part": 12,
-      "collector_runtime_source_part": 18,
+      "collector_harness_source_part": 17,
+      "collector_runtime_source_part": 43,
       "collector_runtime_wrapper": 1,
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
-      "generated_or_assembled_output": 0,
-      "github_workflow_support_script": 2,
+      "generated_or_assembled_output": 1,
+      "github_workflow_support_script": 20,
       "invalid_workflow_surface": 0,
       "missing_authoritative_surface": 0,
       "missing_changed_powershell_surface": 0,
       "missing_changed_workflow_surface": 0,
       "operator_tooling": 45,
-      "staging_artifact": 18,
+      "staging_artifact": 63,
       "unclassified_powershell_surface": 0,
       "validation_tooling": 3,
-      "workflow_embedded_powershell": 24
+      "workflow_embedded_powershell": 27
     },
     "by_source_type": {
-      ".ps1": 97,
-      ".ps1.txt": 12,
+      ".ps1": 186,
+      ".ps1.txt": 17,
       ".ps1xml": 0,
       ".psd1": 9,
       ".psm1": 10,
-      "workflow_yaml": 24
+      "workflow_yaml": 27
     },
     "by_status": {
       "fixture": 23,
-      "source": 23,
-      "source_part": 12,
-      "staging": 18,
-      "tooling": 52,
-      "workflow_embedded": 24
+      "source": 48,
+      "source_part": 17,
+      "staging": 63,
+      "superseded_pointer": 1,
+      "tooling": 70,
+      "workflow_embedded": 27
     },
     "by_inclusion_decision": {
-      "exclude": 18,
-      "include": 87,
-      "reference": 47
+      "exclude": 63,
+      "include": 135,
+      "reference": 51
     },
-    "embedded_snippet_count": 69
+    "embedded_snippet_count": 80
   },
   "controls": {
     "collector_manifest": {
       "path": "project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json",
       "exists": true,
       "error": null,
-      "expected_path_count": 19,
-      "present_path_count": 19,
+      "expected_path_count": 44,
+      "present_path_count": 44,
       "paths": [
         {
           "path": "project_sources/collector/source/DCOIR_Collector.ps1",
@@ -78,23 +79,39 @@
           "in_inventory": true,
           "category": "collector_runtime_wrapper",
           "expected_category": "collector_runtime_wrapper",
-          "size_bytes": 5938
+          "size_bytes": 7335
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.01A_Core_Logging_And_Process_Capture.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 19229
+          "size_bytes": 9308
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.01A2_Core_Logging_And_Process_Capture.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 21572
+          "size_bytes": 10401
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.01B1_Json_State_And_Array_Utilities.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9718
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 12312
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
@@ -105,12 +122,20 @@
           "size_bytes": 10772
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.01D_Process_Event_And_Baseline_Utilities.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.01D1_Process_Event_And_Baseline_Utilities.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 18446
+          "size_bytes": 12391
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.01D2_Process_Event_And_Baseline_Utilities.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 6594
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.01E_Tool_Staging_And_Availability.ps1",
@@ -121,12 +146,60 @@
           "size_bytes": 6102
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02A_Baseline_Collection_And_Reports.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 48855
+          "size_bytes": 9037
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02B_Baseline_Collection_And_Reports.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 12657
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02C_Baseline_Collection_And_Reports.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 6120
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1A_Baseline_Collection_And_Reports.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 3193
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 13067
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1C_Baseline_Collection_Context.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4102
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4541
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.03A_Enrich_Session_State.ps1",
@@ -153,12 +226,44 @@
           "size_bytes": 11500
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04B_Feature_Wave_Targeted_Collection.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04A1_Quick_Interface_And_Output.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 23291
+          "size_bytes": 13236
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04A2_Quick_Interface_And_Output.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 11837
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 12489
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04B1_Feature_Wave_Targeted_Collection.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 13028
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 10889
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1",
@@ -169,52 +274,148 @@
           "size_bytes": 4836
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04D_Bounded_Parallel_Runtime.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04D1_Bounded_Parallel_Runtime.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 28441
+          "size_bytes": 5752
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04E_Diagnostic_Context_Overrides.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04D2_Bounded_Parallel_Runtime.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 21002
+          "size_bytes": 12594
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04D3_Bounded_Parallel_Runtime.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 17049
+          "size_bytes": 12033
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04E1_Diagnostic_Context_Overrides.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 17925
+          "size_bytes": 5278
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H_PR212_Metadata_Finalization_Fixes.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 17962
+          "size_bytes": 12094
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04_Quick_Interface_And_Output.ps1",
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 36579
+          "size_bytes": 4389
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 8701
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9041
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 10507
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 7939
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4841
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9020
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4963
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4192
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 9998
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 10656
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 7767
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4894
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1",
@@ -222,18 +423,20 @@
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 33711
+          "size_bytes": 1464
         }
       ]
     },
     "harness_source_parts": {
       "root": "project_sources/collector/harness/source/parts",
-      "part_count": 12,
+      "part_count": 17,
       "required_profile_path": "project_sources/github_actions/workflow_required_surface_profiles.json",
       "required_profile_exists": true,
+      "required_profile_supplement_manifest_path": "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
+      "required_profile_supplement_manifest_exists": true,
       "required_profile_error": null,
-      "required_profile_part_count": 12,
-      "required_profile_present_count": 12,
+      "required_profile_part_count": 17,
+      "required_profile_present_count": 17,
       "required_profile_parts": [
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
@@ -268,56 +471,91 @@
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 17950
+          "size_bytes": 7589
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 12011
+          "size_bytes": 4200
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 8335
+          "size_bytes": 6161
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 14773
+          "size_bytes": 12011
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 14718
+          "size_bytes": 8335
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 9256
+          "size_bytes": 15243
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 11687
+          "size_bytes": 15355
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 28742
+          "size_bytes": 9256
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11687
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 3217
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11129
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 12538
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 1858
         }
       ],
       "parts": [
@@ -349,49 +587,79 @@
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 17950
+          "size_bytes": 7589
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 12011
+          "size_bytes": 4200
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 8335
+          "size_bytes": 6161
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 14773
+          "size_bytes": 12011
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 14718
+          "size_bytes": 8335
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 9256
+          "size_bytes": 15243
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 11687
+          "size_bytes": 15355
         },
         {
           "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 28742
+          "size_bytes": 9256
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11687
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 3217
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 11129
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 12538
+        },
+        {
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "exists": true,
+          "category": "collector_harness_source_part",
+          "size_bytes": 1858
         }
       ]
     },
@@ -533,6 +801,154 @@
       "size_bytes": 1339,
       "line_count": 27,
       "sha256": "035ea99fe8e49dffc0f0c9e408c07072a969849ea9a22f88d60c47bffd0f451d"
+    },
+    {
+      "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10767,
+      "line_count": 277,
+      "sha256": "b29aae82d2787f4e8e9cc9dc4206dcf540a1a3f156007c3d48bb18ea357fa476"
+    },
+    {
+      "path": ".github/actions/run-duplicate-function-check/action.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        23
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/actions/run-duplicate-function-check/action.yml",
+          "step_or_action": "Detect duplicate function definitions across collector source",
+          "shell": "pwsh",
+          "line_start": 23,
+          "line_end": 31,
+          "command_sha256": "1064d844b2d306e7334ee3095c7c65c6c0af4343debee0f19444d5c951bde1e3",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n& $env:DCOIR_ACTION_SCRIPT"
+        }
+      ],
+      "size_bytes": 1474,
+      "line_count": 32,
+      "sha256": "03d65a479eb7f5320989e2ed268f208e3085269a3f23754fe8b4c392bd1f5e18"
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6452,
+      "line_count": 118,
+      "sha256": "a582c549d5a33b68c4556b035588b2942d5cab9b02a2a5431ee0fd94fa52ed0f"
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 7003,
+      "line_count": 132,
+      "sha256": "8b8171e7e89d456edb3fb03f376badd92f9f124c37890b97bb5cd6e409de0953"
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/Invoke-DcoirPowerShellReviewAssist.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 1076,
+      "line_count": 22,
+      "sha256": "fbff441a1ef736fc31e8575f6be3927d0d6fe0348f206a6302083449f44d5cbf"
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/action.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        16
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/actions/run-powershell-review-assist/action.yml",
+          "step_or_action": "Generate PowerShell review-assist report",
+          "shell": "pwsh",
+          "line_start": 16,
+          "line_end": 23,
+          "command_sha256": "1064d844b2d306e7334ee3095c7c65c6c0af4343debee0f19444d5c951bde1e3",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n& $env:DCOIR_ACTION_SCRIPT"
+        }
+      ],
+      "size_bytes": 1172,
+      "line_count": 25,
+      "sha256": "7bf74742409e389a1583eceb426eb9db530f6aef92ee307a6df52deeb8026c4b"
+    },
+    {
+      "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8665,
+      "line_count": 215,
+      "sha256": "e4e248d320fde8a2465b4fd5affe0b044a24c2e200867215381297c7ddc18e43"
+    },
+    {
+      "path": ".github/actions/run-psscriptanalyzer/action.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        21
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/actions/run-psscriptanalyzer/action.yml",
+          "step_or_action": "Run PSScriptAnalyzer against collector source",
+          "shell": "pwsh",
+          "line_start": 21,
+          "line_end": 28,
+          "command_sha256": "1064d844b2d306e7334ee3095c7c65c6c0af4343debee0f19444d5c951bde1e3",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n& $env:DCOIR_ACTION_SCRIPT"
+        }
+      ],
+      "size_bytes": 1280,
+      "line_count": 30,
+      "sha256": "b649f39a6c857a768fc14d894aba98d7dc4862d7e624598335c4004de05b4522"
     },
     {
       "path": ".github/actions/run-validate-dcoir-fixtures/action.yml",
@@ -691,6 +1107,146 @@
       "sha256": "604b99f68e766600d90df6a0b78315acbb53aa12ada3972bb9ec29db3bf013a4"
     },
     {
+      "path": ".github/pester/CollectorHarnessAndPesterBoundary.Tests.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2284,
+      "line_count": 41,
+      "sha256": "109787b7a153768a8e15e63aef188ddde3edb959aeb44c2770805c345bd31e0a"
+    },
+    {
+      "path": ".github/pester/CollectorParserAndPublicContract.Tests.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4100,
+      "line_count": 82,
+      "sha256": "4e8951f95b102dc1612faeec028c1d2db5c143aeb0f2b5cb7599d1315f254006"
+    },
+    {
+      "path": ".github/pester/CollectorRiskContracts.Tests.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 9682,
+      "line_count": 93,
+      "sha256": "7adb894f6071b0b58cbc932083665153b7aff1ff866464b02cf5d2aba2fe288d"
+    },
+    {
+      "path": ".github/pester/CollectorRuntimeSmoke.Tests.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3976,
+      "line_count": 69,
+      "sha256": "222a67af27997abc8271e33611fe5c80310d53014731a27a98771ee425960df0"
+    },
+    {
+      "path": ".github/pester/CollectorSourceStructure.Tests.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2862,
+      "line_count": 54,
+      "sha256": "b25bc4fe72cdab1f19e1402d8e9dcc5c184d4adbcecde48081d35db99392c8c7"
+    },
+    {
+      "path": ".github/pester/CollectorStaticSafety.Tests.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4156,
+      "line_count": 69,
+      "sha256": "3fe350ed76814cc830dd6951e51976f898ece826e41d199502b691d1437420a3"
+    },
+    {
+      "path": ".github/pester/DcoirPester.Helpers.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 11717,
+      "line_count": 409,
+      "sha256": "3c61f6de914d1c9bb11afa66e7373dc5909c446011c30d5e6cee079f80c1874a"
+    },
+    {
+      "path": ".github/pester/Install-DcoirPesterPrereqs.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 551,
+      "line_count": 15,
+      "sha256": "a8b144d982710ec83ec19d5770f1abaa872bfc468f091776da6edc84a5710d6f"
+    },
+    {
+      "path": ".github/pester/Invoke-DcoirPester.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2680,
+      "line_count": 87,
+      "sha256": "9dfd1207aedea83a01888daba2785f9a07ce8ad7eb612d29f311ddd10eabb3e2"
+    },
+    {
+      "path": ".github/scripts/Add-PowerShellReviewAssistSummary.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 795,
+      "line_count": 23,
+      "sha256": "e18d3e665da728781566d6461af28b018580d354e6b1b668a9dd8e7b939dfdb7"
+    },
+    {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "category": "github_workflow_support_script",
       "source_type": ".ps1",
@@ -703,6 +1259,34 @@
       "size_bytes": 5994,
       "line_count": 186,
       "sha256": "f29560f0acd709a18e4bda0df3f4b52e781be1420e4d3bc18c7d7d18fe0db1df"
+    },
+    {
+      "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 1643,
+      "line_count": 46,
+      "sha256": "e5a593f32bdeed9e35ee3fa4258c4653bd905428f1d1bddfc753164455295c1f"
+    },
+    {
+      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2205,
+      "line_count": 63,
+      "sha256": "8b19ff8d84cf81b0dd58ad0b91b91c3f0f098ac1c5e4a5e5c35f39bd03509b33"
     },
     {
       "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
@@ -719,6 +1303,20 @@
       "sha256": "4342ab4684b55ef8056483f0833a744c1b8198150fc94b3828028a04061a2d6a"
     },
     {
+      "path": ".github/scripts/Write-ChatGptExecFinalReadback.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3164,
+      "line_count": 65,
+      "sha256": "c7ec80315825785fd0d43e070a6c7c3d4ef1ed07251a00c1f4d3ded1170ac3bf"
+    },
+    {
       "path": ".github/workflows/reusable-chatgpt-apply-in.yml",
       "category": "workflow_embedded_powershell",
       "source_type": "workflow_yaml",
@@ -729,8 +1327,8 @@
       "marker_lines": [
         116,
         132,
-        430,
-        460
+        203,
+        233
       ],
       "embedded_snippets": [
         {
@@ -755,8 +1353,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-apply-in.yml",
           "step_or_action": "Commit applied changes",
           "shell": "bash",
-          "line_start": 430,
-          "line_end": 457,
+          "line_start": 203,
+          "line_end": 230,
           "command_sha256": "2157572ccb5aa1bd106c13f2b8b47844feefcfbe999df8c673124e35f2fe45a1",
           "command_preview": "set -euo pipefail\nif [[ -f chatgpt_staging/work/applied_paths.txt ]]; then\n  while IFS= read -r p; do\n    if [[ -z \"$p\" ]]; then\n      continue\n    fi\n    if [[ \"$p\" == .github/workflows/* ]]; then\n      echo \"Skipping workflow file from no"
         },
@@ -764,15 +1362,15 @@
           "source_file": ".github/workflows/reusable-chatgpt-apply-in.yml",
           "step_or_action": "Capture apply-in failure report",
           "shell": "bash",
-          "line_start": 460,
-          "line_end": 536,
-          "command_sha256": "7231d241d9ccfbb1beeaabc51fb3ec94d57cff05dccda5d12a91bcd43748f423",
+          "line_start": 233,
+          "line_end": 281,
+          "command_sha256": "6767ca311c4efb44043246cf8dc782e7b90406c0fba4d56ea8249b85c1a728f3",
           "command_preview": "set -euo pipefail\nPAYLOAD=\"${PAYLOAD:-${{ steps.payload.outputs.payload_path }}}\"\nREQUEST_ID=\"${REQUEST_ID:-${{ steps.payload.outputs.request_id }}}\"\ncase \"$REQUEST_ID\" in\n  *[!A-Za-z0-9._-]*|'') REQUEST_ID=\"unsafe_or_unknown\" ;;\nesac\nWORK_"
         }
       ],
-      "size_bytes": 27047,
-      "line_count": 543,
-      "sha256": "1def7cc173a96ca91fab3a16b86d0269395c8e136cf8feaaa0154262eaa844b1"
+      "size_bytes": 12667,
+      "line_count": 288,
+      "sha256": "0bccda95099a79846a9d1ca45830e843dc6ed631b9446b39e41165a88cb40b84"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-exec.yml",
@@ -784,13 +1382,13 @@
       "exists": true,
       "marker_lines": [
         73,
-        82,
-        108,
-        124,
-        140,
-        154,
-        173,
-        245
+        88,
+        99,
+        115,
+        131,
+        145,
+        164,
+        190
       ],
       "embedded_snippets": [
         {
@@ -798,25 +1396,25 @@
           "step_or_action": "Verify report push helper",
           "shell": "pwsh",
           "line_start": 73,
-          "line_end": 79,
-          "command_sha256": "3785302591bc16d4a532ed62c29339db206ccddad27ee59be446043def8b178c",
-          "command_preview": "$ErrorActionPreference = 'Stop'\nif (-not (Test-Path -LiteralPath '.github/scripts/Invoke-ChatGptReportPush.ps1' -PathType Leaf)) {\n  throw 'Missing report push helper .github/scripts/Invoke-ChatGptReportPush.ps1'\n}"
+          "line_end": 85,
+          "command_sha256": "b55cdbeec623998bf44b49292d6056ae6513a6a3b15218ed10aed23375771074",
+          "command_preview": "$ErrorActionPreference = 'Stop'\nif (-not (Test-Path -LiteralPath '.github/scripts/Invoke-ChatGptReportPush.ps1' -PathType Leaf)) {\n  throw 'Missing report push helper .github/scripts/Invoke-ChatGptReportPush.ps1'\n}\nif (-not (Test-Path -Lite"
         },
         {
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Resolve exec request path",
           "shell": "pwsh",
-          "line_start": 82,
-          "line_end": 105,
-          "command_sha256": "278adde3adac2e480accfcaea452e1a777ba9fb7f2555c0580886c946a69838e",
-          "command_preview": "$ErrorActionPreference = 'Stop'\nif ('${{ inputs.caller_event_name }}' -eq 'workflow_dispatch') {\n  $requestPath = '${{ inputs.request_path }}'\n} else {\n  $changed = git diff-tree --no-commit-id --name-only -r $env:GITHUB_SHA\n  $requestPath "
+          "line_start": 88,
+          "line_end": 96,
+          "command_sha256": "b21076d1d8baa87c0ed76f48b9cfb3734ecc37e3828ab7ea1031f1f890a1d9b0",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n& .\\.github\\scripts\\Resolve-ChatGptExecRequest.ps1 `\n  -CallerEventName '${{ inputs.caller_event_name }}' `\n  -InputRequestPath '${{ inputs.request_path }}' `\n  -GithubSha $env:GITHUB_SHA `\n  -GithubOutput $e"
         },
         {
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Write progressive report - request resolved",
           "shell": "pwsh",
-          "line_start": 108,
-          "line_end": 121,
+          "line_start": 99,
+          "line_end": 112,
           "command_sha256": "9ec7f13c9fd423981a331f334cf0d5d0859333d63e54bee1e5f73fe4438f70d4",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython .github/scripts/write_chatgpt_progress_report.py `\n  --workflow chatgpt-exec `\n  --request-id '${{ steps.request.outputs.request_id }}' `\n  --request-path '${{ steps.request.outputs.request_path }}' `\n"
         },
@@ -824,8 +1422,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Write progressive report - running harness",
           "shell": "pwsh",
-          "line_start": 124,
-          "line_end": 137,
+          "line_start": 115,
+          "line_end": 128,
           "command_sha256": "d0b68435201bf14b46adb5bc5b4a9a0a8a305824c8404f3137f07d4377121979",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython .github/scripts/write_chatgpt_progress_report.py `\n  --workflow chatgpt-exec `\n  --request-id '${{ steps.request.outputs.request_id }}' `\n  --request-path '${{ steps.request.outputs.request_path }}' `\n"
         },
@@ -833,8 +1431,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Run approved command request",
           "shell": "pwsh",
-          "line_start": 140,
-          "line_end": 151,
+          "line_start": 131,
+          "line_end": 142,
           "command_sha256": "77c4a25a4f6ac32dafaff0c785d2e066fc8e001e72366300f7451cd82052e368",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$outRoot = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec'\n$resultJson = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec_result.json'\n& .\\operator_tools\\github_desktop_lane\\scripts\\Invoke-DcoirActionsExecHarne"
         },
@@ -842,8 +1440,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Write progressive report - harness finished",
           "shell": "pwsh",
-          "line_start": 154,
-          "line_end": 170,
+          "line_start": 145,
+          "line_end": 161,
           "command_sha256": "24fe812c9b6f36d46c82d8171dedec308b0ae39eba1094fe71826751ab878542",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$result = if ($env:DCOIR_EXEC_EXIT_CODE -eq '0') { 'success' } else { 'failure' }\npython .github/scripts/write_chatgpt_progress_report.py `\n  --workflow chatgpt-exec `\n  --request-id '${{ steps.request.output"
         },
@@ -851,24 +1449,24 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Commit exec status report and cleanup request",
           "shell": "pwsh",
-          "line_start": 173,
-          "line_end": 233,
-          "command_sha256": "7af51198d6ef793ff4c9498d464d9565b08ba54dfa08ef5962f7f4f571b875f9",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n$requestId = '${{ steps.request.outputs.request_id }}'\n$requestPath = '${{ steps.request.outputs.request_path }}'\n$result = if ($env:DCOIR_EXEC_EXIT_CODE -eq '0') { 'success' } else { 'failure' }\n$reportDir ="
+          "line_start": 164,
+          "line_end": 178,
+          "command_sha256": "a475b5afc56046108cc9771035ce0c4725b2f63ef23190c3ec1b779a668a1cd3",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n$requestId = '${{ steps.request.outputs.request_id }}'\n$requestPath = '${{ steps.request.outputs.request_path }}'\n$reportDir = Join-Path 'chatgpt_staging/status_reports/chatgpt-exec' $requestId\n& .\\.github\\sc"
         },
         {
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Fail workflow if approved command failed",
           "shell": "pwsh",
-          "line_start": 245,
-          "line_end": 247,
+          "line_start": 190,
+          "line_end": 192,
           "command_sha256": "b548eff1ebd49c762625dd532aa25bbbe76fa00d6f68ba01f926829520a49787",
           "command_preview": "Write-Error \"Approved command failed. See chatgpt_staging/status_reports/chatgpt-exec/$env:DCOIR_EXEC_REQUEST_ID/workflow_report.md and uploaded artifact $env:DCOIR_EXEC_ARTIFACT_NAME.\""
         }
       ],
-      "size_bytes": 13088,
-      "line_count": 247,
-      "sha256": "9fc64637450d8e823c3f06ffa7c0f72ef827a3c68ba15c570274a8d982242567"
+      "size_bytes": 9483,
+      "line_count": 192,
+      "sha256": "3e5f6b20c9f1035b95599c361a08e1bff86a763777acdd9da57a29dd14d6cdf4"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-stage-out.yml",
@@ -881,8 +1479,8 @@
       "marker_lines": [
         92,
         108,
-        280,
-        290
+        199,
+        209
       ],
       "embedded_snippets": [
         {
@@ -907,8 +1505,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-stage-out.yml",
           "step_or_action": "Commit stage-out bundle, report, and clean request",
           "shell": "bash",
-          "line_start": 280,
-          "line_end": 287,
+          "line_start": 199,
+          "line_end": 206,
           "command_sha256": "885206b8874a749ef8a12d9c53f65289a4953cc89050ad856f15be8b18607cc1",
           "command_preview": "set -euo pipefail\nrm -f \"$REQUEST_PATH\" || true\npwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \\\n  -CommitMessage \"Stage ChatGPT readback bundle and report [skip ci]\" \\\n  -Paths \"$OUT_DIR\" \"$REPORT_DIR\" \"$REQUEST_PATH\""
         },
@@ -916,15 +1514,15 @@
           "source_file": ".github/workflows/reusable-chatgpt-stage-out.yml",
           "step_or_action": "Capture stage-out failure report",
           "shell": "bash",
-          "line_start": 290,
-          "line_end": 344,
+          "line_start": 209,
+          "line_end": 263,
           "command_sha256": "ec53dff085f8978a8e822bf9f135ebde93d30c49138475d2f528fd52b8fc4cb4",
           "command_preview": "set -euo pipefail\nREQUEST_PATH='${{ steps.request.outputs.request_path }}'\nREQUEST_ID='${{ steps.request.outputs.request_id }}'\ncase \"$REQUEST_ID\" in\n  *[!A-Za-z0-9._-]*|'') REQUEST_ID=\"unsafe_or_unknown\" ;;\nesac\nREPORT_DIR=\"chatgpt_staging"
         }
       ],
-      "size_bytes": 16200,
-      "line_count": 344,
-      "sha256": "aa274aed8e1b6c4cbf8cad445c795652c64b2313686c45b93a46f4a7e66a4cb0"
+      "size_bytes": 11589,
+      "line_count": 263,
+      "sha256": "d6b5827c2424eaee02baba698136865b11d7d09c29a542115a113c35cfb65ed7"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-workflow-run-reporter.yml",
@@ -950,7 +1548,7 @@
       ],
       "size_bytes": 8105,
       "line_count": 183,
-      "sha256": "7d83e270286326cb02d4ba473bf1fd8f6ec895fa3f0b1751f57d190a977ec5f6"
+      "sha256": "bb6f27957ea1c4e512abe0f78d8280fc06999bf3b05599e421847169d42f5c3b"
     },
     {
       "path": ".github/workflows/reusable-collector-documentation-quality.yml",
@@ -976,7 +1574,7 @@
       ],
       "size_bytes": 4256,
       "line_count": 103,
-      "sha256": "3c2c30d7f8f2080b54fb481ab9b38f5dea7c9ceccb6393ef37779dcaebea12c2"
+      "sha256": "112ac6f3296404377a7c0ffe2962c13fe5191b8c9951b8de8c51dc570008b9d0"
     },
     {
       "path": ".github/workflows/reusable-collector-runtime-package-build.yml",
@@ -1042,7 +1640,7 @@
       ],
       "size_bytes": 7257,
       "line_count": 168,
-      "sha256": "c8936b97f0d2f3b547cb3cc98067ea1125df04f382899c340c5e423e698c8f7c"
+      "sha256": "9cfcee518450c3b7215ea6acd62cf4ae42d8a6272143efa2a132b04187daf18e"
     },
     {
       "path": ".github/workflows/reusable-collector-validation.yml",
@@ -1053,18 +1651,18 @@
       "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
       "exists": true,
       "marker_lines": [
-        131,
-        150,
-        205,
-        234
+        135,
+        154,
+        216,
+        245
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Check for packaging residue",
           "shell": "pwsh",
-          "line_start": 131,
-          "line_end": 144,
+          "line_start": 135,
+          "line_end": 148,
           "command_sha256": "99e9dc9d6747bbd2ad956be6af9d223cdd36eda4370d481d264c66b4d99dfede",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$residue = Get-ChildItem -Path . -Recurse -Force -File |\n  Where-Object {\n    $_.FullName.Contains('\\__pycache__\\') -or\n    $_.Extension -eq '.pyc' -or\n    $_.Name -eq '.DS_Store'\n  }\nif ($residue) {\n  $resid"
         },
@@ -1072,8 +1670,8 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Run documentation validator self-tests",
           "shell": "pwsh",
-          "line_start": 150,
-          "line_end": 156,
+          "line_start": 154,
+          "line_end": 160,
           "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
           "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
         },
@@ -1081,8 +1679,8 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Run selected collector harness suite",
           "shell": "pwsh",
-          "line_start": 205,
-          "line_end": 216,
+          "line_start": 216,
+          "line_end": 227,
           "command_sha256": "f3a0e08e6321b16d5fee424a5bfa87a8a100660cb7110830d8f6d2cd11af3741",
           "command_preview": "$suite = $env:SELECTED_HARNESS_SUITE\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite $suite -MasterZipPath $env:HARNESS_RUNTIME_ZIP "
         },
@@ -1090,15 +1688,15 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 234,
-          "line_end": 262,
+          "line_start": 245,
+          "line_end": 273,
           "command_sha256": "bfaf4c0f6fa244b627815c1adc2d30e4887c405625e20c18795bc97a83f520aa",
           "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## $env:REPORT_TITLE\n\n- workflow: $env:WORKFLOW_NAME\n- validation_scope: $env:REPORT_SCOPE\n- workflow_run_id: $env:GITHU"
         }
       ],
-      "size_bytes": 9559,
-      "line_count": 270,
-      "sha256": "181eb5db8c0e60503b9766cded1ae953acf7d86e0dcefd87b412f5677203c88d"
+      "size_bytes": 10100,
+      "line_count": 281,
+      "sha256": "931dd3f9116eceba2626835e576eb261f161879112ae6ee6adad68286fc4385f"
     },
     {
       "path": ".github/workflows/reusable-gemini-bundle-build.yml",
@@ -1164,7 +1762,7 @@
       ],
       "size_bytes": 6348,
       "line_count": 156,
-      "sha256": "0e2d7b4359c356b1561e43db0e2211a8e593f0422b7c5f37521ff71214208cfe"
+      "sha256": "df9a1d0a118a41d5a9cf55ed31053cce5dae01d5f8634fc6cf0debe2744c3728"
     },
     {
       "path": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
@@ -1250,7 +1848,7 @@
       ],
       "size_bytes": 11837,
       "line_count": 235,
-      "sha256": "551bfe780982c22a589ad730f136a3764ff1e06eb69bd9f3c5434705f31de90f"
+      "sha256": "675c671ec624eda03debfbca0d9daac6e4286d3144bedbad7aba096c15824687"
     },
     {
       "path": ".github/workflows/reusable-manual-github-artifact-readback.yml",
@@ -1261,19 +1859,19 @@
       "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
       "exists": true,
       "marker_lines": [
-        203,
-        231,
-        275,
-        394,
-        429
+        113,
+        141,
+        185,
+        255,
+        290
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-manual-github-artifact-readback.yml",
           "step_or_action": "Write heartbeat - request resolved",
           "shell": "bash",
-          "line_start": 203,
-          "line_end": 228,
+          "line_start": 113,
+          "line_end": 138,
           "command_sha256": "31574ea3e52a1c151573d5a0b9f323c5ea2c93ace3512dd8367a2144b15689ba",
           "command_preview": "set -euo pipefail\npython .github/scripts/write_chatgpt_progress_report.py \\\n  --workflow chatgpt-github-artifact-readback \\\n  --request-id \"$REQUEST_ID\" \\\n  --request-path \"$REQUEST_PATH\" \\\n  --phase request-resolved \\\n  --result running \\\n"
         },
@@ -1281,8 +1879,8 @@
           "source_file": ".github/workflows/reusable-manual-github-artifact-readback.yml",
           "step_or_action": "Write heartbeat - downloading artifact",
           "shell": "bash",
-          "line_start": 231,
-          "line_end": 254,
+          "line_start": 141,
+          "line_end": 164,
           "command_sha256": "e4357cbff76503952d9a12c0409dba644474ac11a0cba1867bd3593638a76304",
           "command_preview": "set -euo pipefail\npython .github/scripts/write_chatgpt_progress_report.py \\\n  --workflow chatgpt-github-artifact-readback \\\n  --request-id \"$REQUEST_ID\" \\\n  --request-path \"$REQUEST_PATH\" \\\n  --phase downloading-artifact \\\n  --result runnin"
         },
@@ -1290,8 +1888,8 @@
           "source_file": ".github/workflows/reusable-manual-github-artifact-readback.yml",
           "step_or_action": "Write heartbeat - artifact downloaded",
           "shell": "bash",
-          "line_start": 275,
-          "line_end": 294,
+          "line_start": 185,
+          "line_end": 204,
           "command_sha256": "574899856a7368d4f6db3c2059431a0744ffa28a6e3913c58c4f3b0441f9bf4c",
           "command_preview": "set -euo pipefail\npython .github/scripts/write_chatgpt_progress_report.py \\\n  --workflow chatgpt-github-artifact-readback \\\n  --request-id \"$REQUEST_ID\" \\\n  --request-path \"$REQUEST_PATH\" \\\n  --phase artifact-downloaded \\\n  --result running"
         },
@@ -1299,8 +1897,8 @@
           "source_file": ".github/workflows/reusable-manual-github-artifact-readback.yml",
           "step_or_action": "Commit staged artifact readback and report",
           "shell": "bash",
-          "line_start": 394,
-          "line_end": 408,
+          "line_start": 255,
+          "line_end": 269,
           "command_sha256": "67b75bd16070c1dbc7da455afe466a1e6d729f1443f06bf8bd01cdb3986529bd",
           "command_preview": "set -euo pipefail\nif [[ -n \"$REQUEST_PATH\" ]]; then\n  rm -f \"$REQUEST_PATH\" || true\nfi\npwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \\\n  -CommitMessage \"Stage GitHub artifact readback bundle and report [skip ci]\" \\\n  -P"
         },
@@ -1308,15 +1906,15 @@
           "source_file": ".github/workflows/reusable-manual-github-artifact-readback.yml",
           "step_or_action": "Capture failure report",
           "shell": "bash",
-          "line_start": 429,
-          "line_end": 493,
-          "command_sha256": "5dd4e44becdb5d1045ab16958ca0501f712f3aefc331bddb9a0acc73f141ee31",
-          "command_preview": "set -euo pipefail\nif [[ -z \"$REQUEST_ID\" ]]; then\n  REQUEST_ID=\"artifact_readback_failure_$GITHUB_RUN_ID\"\nfi\nREPORT_DIR=\"chatgpt_staging/status_reports/chatgpt-github-artifact-readback/$REQUEST_ID\"\nREPORT_PATH=\"$REPORT_DIR/workflow_report.m"
+          "line_start": 290,
+          "line_end": 309,
+          "command_sha256": "957609e1367df650352332c16a84497139ea19420e41ed2693887818c21e8add",
+          "command_preview": "set -euo pipefail\npython .github/scripts/write_github_artifact_readback_failure_report.py \\\n  --request-id \"$REQUEST_ID\" \\\n  --request-path \"$REQUEST_PATH\" \\\n  --source-run-id \"$SOURCE_RUN_ID\" \\\n  --artifact-name \"$ARTIFACT_NAME\" \\\n  --arti"
         }
       ],
-      "size_bytes": 23104,
-      "line_count": 493,
-      "sha256": "a0c341f1c90b8d40e19faf78f69500ecb854353df55b26fd17ff285b86681f44"
+      "size_bytes": 14324,
+      "line_count": 309,
+      "sha256": "f58a1f1ffd6764cae7c5f8dc42415a91306e5f1c536ebad8fe6be12cb1df4459"
     },
     {
       "path": ".github/workflows/reusable-manual-test-framework-validate.yml",
@@ -1372,7 +1970,7 @@
       ],
       "size_bytes": 5081,
       "line_count": 115,
-      "sha256": "4e441a3d7f34d1f131c98c1cf47054c83be40424f8b730f4b5fe119eb3bef597"
+      "sha256": "01c2d070e814e809876d0549962266e8ef64f987c7e28e60ef6b66f6d320c520"
     },
     {
       "path": ".github/workflows/reusable-validate-on-pr.yml",
@@ -1383,18 +1981,22 @@
       "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
       "exists": true,
       "marker_lines": [
-        39,
-        47,
-        86,
-        111
+        40,
+        48,
+        56,
+        100,
+        112,
+        118,
+        128,
+        158
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Validate GitHub intake taxonomy",
           "shell": "pwsh",
-          "line_start": 39,
-          "line_end": 45,
+          "line_start": 40,
+          "line_end": 46,
           "command_sha256": "7d90f31f077f630a76f0dee6c0354e82c0cffc60d2fa4ff36ff7c0d5fea81523",
           "command_preview": "python project_sources/github_actions/tools/check_github_intake_taxonomy.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'GitHub intake taxonomy validation failed.'\n}"
         },
@@ -1402,17 +2004,53 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run documentation validator self-tests",
           "shell": "pwsh",
-          "line_start": 47,
-          "line_end": 53,
+          "line_start": 48,
+          "line_end": 54,
           "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
           "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
+          "step_or_action": "Run duplicate-function action contract tests",
+          "shell": "pwsh",
+          "line_start": 56,
+          "line_end": 62,
+          "command_sha256": "7a13f73b0c71e5317ec47ddacf539569536c0ec3be8b02a221ae5690db2387e3",
+          "command_preview": "python project_sources/github_actions/tools/test_duplicate_function_action_contract.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function action contract tests failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-pr.yml",
+          "step_or_action": "Validate duplicate-function reports",
+          "shell": "pwsh",
+          "line_start": 100,
+          "line_end": 106,
+          "command_sha256": "4425a02a5e75caf409324cc692e90672fc433741860d5cbdcf0beb911c9c48fc",
+          "command_preview": "python project_sources/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-pr.yml",
+          "step_or_action": "Write review-assist report to job summary",
+          "shell": "pwsh",
+          "line_start": 112,
+          "line_end": 115,
+          "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
+          "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-pr.yml",
+          "step_or_action": "Enforce static analysis validation gates",
+          "shell": "pwsh",
+          "line_start": 118,
+          "line_end": 121,
+          "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
+          "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run collector core pre-live suite",
           "shell": "pwsh",
-          "line_start": 86,
-          "line_end": 93,
+          "line_start": 128,
+          "line_end": 135,
           "command_sha256": "4b3fe558d1b5e2d8abf121acb02e1a8c2c8ab03d1eb6a36f177bb7017df591d5",
           "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite Core -MasterZipPath $env:HARNESS_RUNTIME_ZIP\nif ($LASTEXITCODE -ne 0) {\n  throw 'Col"
         },
@@ -1420,15 +2058,15 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 111,
-          "line_end": 128,
-          "command_sha256": "ef5865a52331679b17cc805b15e123f613c5e402b795035a306886b3b5063119",
+          "line_start": 158,
+          "line_end": 179,
+          "command_sha256": "d379e56c1eedf67ba0e6b51cb616d34d4a2b868bd976ae42a07278fdaf27fbba",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## Pull request validation summary\n\n- workflow: validate-on-pr\n- workflow_run_id: $env:GITHUB_RUN_ID\n- workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT\n- h"
         }
       ],
-      "size_bytes": 5497,
-      "line_count": 136,
-      "sha256": "fbc90b75cf566ca3d2d01361342d6dcc9f853649d8b347da39bcde2e10379d2b"
+      "size_bytes": 8196,
+      "line_count": 187,
+      "sha256": "d1babce9d8278f7e422e1f624d023d055678c2903c3f9de5ca73f50d4bcaa178"
     },
     {
       "path": ".github/workflows/reusable-validate-on-push.yml",
@@ -1440,7 +2078,11 @@
       "exists": true,
       "marker_lines": [
         38,
-        93
+        46,
+        95,
+        107,
+        113,
+        139
       ],
       "embedded_snippets": [
         {
@@ -1454,17 +2096,53 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
+          "step_or_action": "Run duplicate-function action contract tests",
+          "shell": "pwsh",
+          "line_start": 46,
+          "line_end": 52,
+          "command_sha256": "7a13f73b0c71e5317ec47ddacf539569536c0ec3be8b02a221ae5690db2387e3",
+          "command_preview": "python project_sources/github_actions/tools/test_duplicate_function_action_contract.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function action contract tests failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-push.yml",
+          "step_or_action": "Validate duplicate-function reports",
+          "shell": "pwsh",
+          "line_start": 95,
+          "line_end": 101,
+          "command_sha256": "4425a02a5e75caf409324cc692e90672fc433741860d5cbdcf0beb911c9c48fc",
+          "command_preview": "python project_sources/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-push.yml",
+          "step_or_action": "Write review-assist report to job summary",
+          "shell": "pwsh",
+          "line_start": 107,
+          "line_end": 110,
+          "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
+          "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-push.yml",
+          "step_or_action": "Enforce static analysis validation gates",
+          "shell": "pwsh",
+          "line_start": 113,
+          "line_end": 116,
+          "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
+          "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 93,
-          "line_end": 110,
-          "command_sha256": "702d491e773c8fe9b42457197982097ac47b3ae19bf3b35ca049a40d2c4c73a8",
+          "line_start": 139,
+          "line_end": 160,
+          "command_sha256": "4b01c16dcc3646ed9f91bb8398625d29e2358dd76915c7eab28975a30c279ca3",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## Push validation summary\n\n- workflow: validate-on-push\n- workflow_run_id: $env:GITHUB_RUN_ID\n- workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT\n- head_sh"
         }
       ],
-      "size_bytes": 4762,
-      "line_count": 118,
-      "sha256": "fa60fa6e31957a78b56eda889f36298bf3664894cb1ee59fe720ae278918a52c"
+      "size_bytes": 7250,
+      "line_count": 168,
+      "sha256": "2342eb8bbe4db4dde0ec472e26ff1cb0755f954aac16311aab89f8ecd1df9fdb"
     },
     {
       "path": ".github/workflows/reusable-windows-powershell-51.yml",
@@ -1510,7 +2188,7 @@
       ],
       "size_bytes": 3485,
       "line_count": 87,
-      "sha256": "9db9ce92e14e3b8ae8aaea924bd574099cefb32e09a4a8850a7d8d09f9e319e5"
+      "sha256": "fa0fa0af91d55f40aca15873a6c0708e18aba02838732f93bf6b3336db8659c7"
     },
     {
       "path": "chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
@@ -1525,6 +2203,90 @@
       "size_bytes": 6825,
       "line_count": 150,
       "sha256": "e76a40115e82029fe8c08c1ab349768af0bb44e3b7648ae598eb85c10f38f891"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 11196,
+      "line_count": 248,
+      "sha256": "2355efda6852666e0b2298f22d65ae2d40f44db31f0868ce2b1e2a42e94fbb02"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12054,
+      "line_count": 262,
+      "sha256": "8e5807266881b4b4755c86e47ddbcffafb8e9547034f8bde189221e1c2743707"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121700Z.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12057,
+      "line_count": 275,
+      "sha256": "43d021f9645111aeffe07d3ad48627a07b7d874b8de3f9556d3526e3bd80893e"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T122700Z.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14137,
+      "line_count": 325,
+      "sha256": "f4f674c90f472aa543ebee191b428a98540b71ea9593ac9533d8eacc7f20d070"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T123500Z.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14125,
+      "line_count": 325,
+      "sha256": "2e102012625f091da628ae61e746bd175065fa993eaadef6314cd64396248b43"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 340,
+      "line_count": 9,
+      "sha256": "96969a77081cc517eb6668aabaa677025c43830913ec69874e4ed64094c58efd"
     },
     {
       "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
@@ -1723,6 +2485,496 @@
       "sha256": "588cee42e52cf29f0e9d24d962a1b896b684a5748086137a048e32e3ffad7bd4"
     },
     {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 16077,
+      "line_count": 339,
+      "sha256": "f095e7a5756dc736cefa90972de98005a2a30184ec049e2fb197065d773a135b"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12705,
+      "line_count": 296,
+      "sha256": "a014e05abd93fa9f5431fc07e173ed50266cccef4222ea29c5deda8446ba5406"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-003.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 671,
+      "line_count": 15,
+      "sha256": "635eac47288182d20db542025aea2c524677e91fc7b58c0c67b521d700fb20e0"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-004.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2500,
+      "line_count": 71,
+      "sha256": "954a56841d9fee636b518019d46472d6a010d3f148aed498c2c3787d78849432"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-005.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4792,
+      "line_count": 111,
+      "sha256": "827db48a76d184c5316c20d8660001aaf24c4a04f8202274b2b66476d5075fb7"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-006.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4790,
+      "line_count": 111,
+      "sha256": "74e7dfa7a6c12eb1dbffda66cffb19050801f63174688be94dcec48f8bb8f9a5"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-008.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6655,
+      "line_count": 174,
+      "sha256": "75edba2ecb85bc415385f20e9a799047bae76621e03b7c6270954cee67a9ec0d"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-009.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6945,
+      "line_count": 178,
+      "sha256": "c5e72f37a8c4152787d23d27bcf0e17df21bf9b630bdfffa514cd02e9b81d924"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-010.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6829,
+      "line_count": 175,
+      "sha256": "a8865b1439c18383f679e7d85e2327b7705765df25fbae317940f228a531876a"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-011.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 1353,
+      "line_count": 27,
+      "sha256": "b64b3c28cc94b88cd34269e6d5d63a2e76c714ec66fe2603b25dab3f555087cd"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14328,
+      "line_count": 317,
+      "sha256": "d62ad946befffda89be419efa1df8ed12ac1067f2f204067199841dc14e3f87d"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14588,
+      "line_count": 321,
+      "sha256": "c990f23da23cc6c89875760ddf74185df5e7dce3ee23a446d4390d567b499939"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 16783,
+      "line_count": 118,
+      "sha256": "d1f119c3a9cf41349cc26d336b762c5ccb56d318196f65fbd08086879eadbbe1"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 18886,
+      "line_count": 149,
+      "sha256": "d3d2ac912789d2c9e1eb543a2a6c993cae1e11e5490ec63d6160dccaf6be3b60"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-003.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 721,
+      "line_count": 15,
+      "sha256": "3cc9bfaa32655e80e4a10f9eaf5df46dccde78d2d29fe1ee208843fdb2762124"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-004.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 15527,
+      "line_count": 27,
+      "sha256": "d33c38facc0b8ee14f12be59624333a47d2e6240787026b2ca4e9a1d03162626"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-005.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2119,
+      "line_count": 31,
+      "sha256": "e55f268054b7914f17bf955116ce651a107dd6a3dd8ee5e3698b079867609f64"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-006.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2527,
+      "line_count": 38,
+      "sha256": "dca75c6b34082164f13c1d1c3406762a16dbc3d0ef55e564137902ca70e3b8be"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3352,
+      "line_count": 55,
+      "sha256": "aff11bf9642c423669e7e0b93dfaf0a9c82d1a84642d4e465aabc304b5eed75b"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-008.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3704,
+      "line_count": 62,
+      "sha256": "c81ecc2fbc497b03a94dcb1ed67eff53a7d3e1fb93b8046a5d5fbb7acc70c40d"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 9433,
+      "line_count": 235,
+      "sha256": "3116cac3973c620f97973ab6c8649c8a42bd63f51fd89a1340276fdfd7a5a764"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-003.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 13089,
+      "line_count": 356,
+      "sha256": "c7e72977e3d40b6a214e08c899c94e284ed9e058f56ed277d4053df49933061a"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-004.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14262,
+      "line_count": 378,
+      "sha256": "242afd6c4cc6116fa18324cca856043175a3501cc3557673ec1711e824a85ee1"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-005.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14659,
+      "line_count": 387,
+      "sha256": "0786d6265df63e575e8f8a34b5a4cc3cf78bfe11ca46daada91d0e9099ed6b08"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-006.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 14662,
+      "line_count": 387,
+      "sha256": "c096e2df3ea427bb434cc9f74092c131c7d553069221649ddad0b6275a99f248"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4739,
+      "line_count": 91,
+      "sha256": "00f7ec3fcf352c6f758862776ceab2467dfa9328c3fa6396b4b41a642e23d0a9"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 7700,
+      "line_count": 178,
+      "sha256": "24c6a3e1b0dc47726eab9448e6a97fd3bf4bea4d4701d48a56cc3010b328d121"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-003.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 17140,
+      "line_count": 394,
+      "sha256": "5643e938138e974125e304d4c6f850cfa5d3e4774c58304fbd8cbd9b33a4c47c"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 919,
+      "line_count": 25,
+      "sha256": "54cf92e3734d31ac5b479900dac81e0353df9aae7b6a356fd05b29977104e641"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-005.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 1972,
+      "line_count": 55,
+      "sha256": "80a1be3e58fa2a9d1867a02a8651d3aaf0596920de883f4f53bc86517977560f"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-006.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2403,
+      "line_count": 60,
+      "sha256": "93cf4c5fdef56e69470c66f20c91229652710e9457b99243ac0631c5429e97ee"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-007.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 2892,
+      "line_count": 61,
+      "sha256": "2f068a8f8fd62660bc7fc4cf3d46f06c465d805309d517957b3b4708ea5871a0"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3594,
+      "line_count": 67,
+      "sha256": "4909a51f18e44b028b56272ee4c0b41596695d4e76a87ad9576cfca430d1843c"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8414,
+      "line_count": 197,
+      "sha256": "63cf99c69e0034189e4d7c2bd316a8a753b40ee1032e62bea28cfe474e84d326"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 11253,
+      "line_count": 282,
+      "sha256": "d0deda9545149a7c096adb879a244d4fcd37bce7c709b095266bdda7e00baf6f"
+    },
+    {
       "path": "chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
       "category": "staging_artifact",
       "source_type": ".ps1",
@@ -1749,6 +3001,62 @@
       "size_bytes": 8401,
       "line_count": 224,
       "sha256": "07a6e48d020a2bea29a409cbd86ea41199580383a2d2dedbe6312a446fa364b5"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8295,
+      "line_count": 191,
+      "sha256": "0ec75c7fbb609dee26303d8b6e5ba9e6ec8e2a482d5d5a54a09332a72ed0f401"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_003.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8295,
+      "line_count": 191,
+      "sha256": "07eef7075dc56fbee20a678b2f047901f0c12251a606298e27b9c852ad56a843"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8651,
+      "line_count": 196,
+      "sha256": "b2ea78c5bfd7d2cf8f917dc18b6bf706a8cffddb5caf2b3a515fafb35a6dccee"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8773,
+      "line_count": 198,
+      "sha256": "94e688eb07b290fca97203d3769c3ae855bfcf90cb0aa7a0cff32eec7ebb7544"
     },
     {
       "path": "chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1",
@@ -2838,12 +4146,40 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 17950,
-      "line_count": 438,
-      "sha256": "c2aa173465db1c6d649b71a1cc3e797538c923f3d3ab29b62b5bc05fbbd013a7"
+      "size_bytes": 7589,
+      "line_count": 181,
+      "sha256": "035aa2089a21cea1877b4f914c169ebc47253474981804b397fc15ccde7d7e71"
     },
     {
       "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4200,
+      "line_count": 97,
+      "sha256": "2ee5631aec5d21230e2ee7ff933918b4e3ba6992a2532e64b890bc07448c8791"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6161,
+      "line_count": 160,
+      "sha256": "8e30273b62b0a01b4fa50159c7eccb3581e96d969a749eb0f3c9c95f5aa365cc"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
       "category": "collector_harness_source_part",
       "source_type": ".ps1.txt",
       "status": "source_part",
@@ -2857,7 +4193,7 @@
       "sha256": "76a43e56d9625f5e5c1a4d97eb80c5d57f0eea22ab8271e0faa6b1c023148186"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
       "category": "collector_harness_source_part",
       "source_type": ".ps1.txt",
       "status": "source_part",
@@ -2871,35 +4207,35 @@
       "sha256": "d112bb6282a049d5c045757663ba1a66d4c0db24bf7473a7466056cbff4be71c"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
-      "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
-      "status": "source_part",
-      "inclusion_decision": "include",
-      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 14773,
-      "line_count": 323,
-      "sha256": "3499d7ead850b4278ee7e36be2379e6ca22498ab2c4956b61d191b2cde677151"
-    },
-    {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
-      "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
-      "status": "source_part",
-      "inclusion_decision": "include",
-      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 14718,
-      "line_count": 25,
-      "sha256": "c35bd94ffa80cb60e5e6945c7fdb8c2f4e0a64da2168dcad89e872ceea3dc306"
-    },
-    {
       "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 15243,
+      "line_count": 330,
+      "sha256": "4ddeb1be952c50cafa159a63a31d63036e9039a943a51d78b1070ca04096e583"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 15355,
+      "line_count": 25,
+      "sha256": "13402a2cb74878e1a222650fc4c94ca284c3220f05c5afb053ed2e582f4c2a55"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
       "category": "collector_harness_source_part",
       "source_type": ".ps1.txt",
       "status": "source_part",
@@ -2913,7 +4249,7 @@
       "sha256": "c7bc5432f648ce94af48bee661f7998d751f23dfc56c4026de7623b67445bff8"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
       "category": "collector_harness_source_part",
       "source_type": ".ps1.txt",
       "status": "source_part",
@@ -2927,7 +4263,7 @@
       "sha256": "5a117de941f2f39072081deba7ccd43a93914db04d00e7484dad38aff2e6ca9f"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
       "category": "collector_harness_source_part",
       "source_type": ".ps1.txt",
       "status": "source_part",
@@ -2936,9 +4272,51 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 28742,
-      "line_count": 439,
-      "sha256": "a0266dc5036e59753dd7304561681d938314df67ee5a73cedc366cadaa622100"
+      "size_bytes": 3217,
+      "line_count": 59,
+      "sha256": "4b8bd368c8638e66b82177628f6f6aa9a737ae6e07e30c793cc78eb27c524dc0"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 11129,
+      "line_count": 129,
+      "sha256": "e40c133ed86a5becf4837635a87e053e4df64cf6ce20b54b07b4067c77b20b0e"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12538,
+      "line_count": 183,
+      "sha256": "7489ae8ae0771592748cd9cd8c2476ae9731533315b1abafe25db93c407255bb"
+    },
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+      "category": "collector_harness_source_part",
+      "source_type": ".ps1.txt",
+      "status": "source_part",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 1858,
+      "line_count": 68,
+      "sha256": "c15f5a4565d2f119bcc1e956f10394cfa59c252e7db024dc3137cf9d59489531"
     },
     {
       "path": "project_sources/collector/harness/validate_DCOIR_Run.ps1",
@@ -2964,12 +4342,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 5938,
-      "line_count": 195,
-      "sha256": "3127175bb323d8044f5c85181b5d1c5295fe0add45b6fcf0f45fc32b6ab5c4fd"
+      "size_bytes": 7335,
+      "line_count": 220,
+      "sha256": "ca2b439efe501625a2547dc65d4ddeba4fe1f22ac9dc2b9931342fe8eea00309"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.01A_Core_Logging_And_Process_Capture.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -2978,12 +4356,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 19229,
-      "line_count": 651,
-      "sha256": "1c53088217441bebfc85bc812b84b2939a54fb52e6ee25f96c2bdb1dce5b4320"
+      "size_bytes": 9308,
+      "line_count": 338,
+      "sha256": "9ef11d78d634f78e9777c03a9bedbe588bf90bc95f5d59b00a5d3152bcc0403e"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.01B_Json_State_And_Array_Utilities.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01A2_Core_Logging_And_Process_Capture.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -2992,9 +4370,37 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 21572,
-      "line_count": 703,
-      "sha256": "6da49753fba73b57f79f792cb4ac2cfcec1b83982a7cf57eb46a0b96aeabec5e"
+      "size_bytes": 10401,
+      "line_count": 329,
+      "sha256": "8cda4c28ef93a3938ccba2ccd0a64dd60fac4a67c2d215944c5b1220f9f105ae"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01B1_Json_State_And_Array_Utilities.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 9718,
+      "line_count": 293,
+      "sha256": "70391b9eea6212493c55b8577d2a14b0f27ff44b4ba90df929b8032bdb163b93"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01B2_Json_State_And_Array_Utilities.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12312,
+      "line_count": 428,
+      "sha256": "89a518e11f13cce256bb054b6a34cfcbbcccc3d8faefc32e56f967da96e892fe"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
@@ -3011,7 +4417,7 @@
       "sha256": "d0f13dd615354ed5ed692fa4c7378105c9379a8d8f12cfc199380bfce2e89c9b"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.01D_Process_Event_And_Baseline_Utilities.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01D1_Process_Event_And_Baseline_Utilities.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3020,9 +4426,23 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 18446,
-      "line_count": 600,
-      "sha256": "e624cfb16aa09a9d849039659da0a31f8596bd1846db8d6e48dd33504ee62eeb"
+      "size_bytes": 12391,
+      "line_count": 425,
+      "sha256": "fed2c504c997b0d6d2916a651ff94b0d8f2685da336925937cca421ccab108c8"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01D2_Process_Event_And_Baseline_Utilities.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6594,
+      "line_count": 192,
+      "sha256": "78eba86bc05df1c2f696bcd4743f87c8466b4a4e690464c96a820cf21d22048c"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.01E_Tool_Staging_And_Availability.ps1",
@@ -3039,7 +4459,7 @@
       "sha256": "9733acf4e2dad986f7db5310a7742e1aa354cba641951cccce47c45f9b4a8363"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02A_Baseline_Collection_And_Reports.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3048,9 +4468,107 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 48855,
-      "line_count": 1075,
-      "sha256": "41409e80840b1d61ef89370a3a397ac2cffa156e29654604e0968ac168b837c4"
+      "size_bytes": 9037,
+      "line_count": 267,
+      "sha256": "8025fc22966ccd66d788aafb0269dd21426214944037117a93fa1aad51a0e6b3"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02B_Baseline_Collection_And_Reports.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12657,
+      "line_count": 322,
+      "sha256": "d95b360be7e560c1978f128d6de780f2019ab3849bd0536302a86d89d205ac0e"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02C_Baseline_Collection_And_Reports.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 6120,
+      "line_count": 153,
+      "sha256": "278070cc16fd7139dd8880b107820ec568d9ed072baecc0d0c40ff66749b981d"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1A_Baseline_Collection_And_Reports.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3193,
+      "line_count": 67,
+      "sha256": "5510e08507e0d4e3470438fd741caf6fe46fe48f460a7234fddcea3fe48b0495"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 13067,
+      "line_count": 195,
+      "sha256": "52a86ff69df27c5321aba97bb30ee073ea93b00a0094f7abbd4b41fe9889f7bc"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1C_Baseline_Collection_Context.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4102,
+      "line_count": 82,
+      "sha256": "74ec3dfc803526b86c7c95cd2d0245d5ad4343cb39ede6307405c629984ea7e0"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4541,
+      "line_count": 125,
+      "sha256": "f1b18cbed52e3f4ee6904eedd67edf7c36a51e211e5822828707ca3b8426b114"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1",
+      "category": "generated_or_assembled_output",
+      "source_type": ".ps1",
+      "status": "superseded_pointer",
+      "inclusion_decision": "reference",
+      "decision_reason": "Superseded monolithic Part 02 pointer is documentation, not manifest-loaded runtime source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 843,
+      "line_count": 16,
+      "sha256": "561c56ba6ea8c9199648f5678abaf56354d117a57835a0e296d5b83c72fafd7d"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.03A_Enrich_Session_State.ps1",
@@ -3095,7 +4613,7 @@
       "sha256": "1288a2a188975b62bb9a359a54796128c4da2da39c6d71b7289b09eaf4c547e8"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04B_Feature_Wave_Targeted_Collection.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04A1_Quick_Interface_And_Output.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3104,9 +4622,65 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 23291,
-      "line_count": 548,
-      "sha256": "57f438b00a320c09ad1f56704e758186f8a198bdcfffb1fad72b36b544451c6c"
+      "size_bytes": 13236,
+      "line_count": 317,
+      "sha256": "19626962ddee340988c6967db39db32e04c3d840ed6513d20819e7c0b1df7db5"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04A2_Quick_Interface_And_Output.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 11837,
+      "line_count": 216,
+      "sha256": "22c3fc6a288b53c67d86f3bfdeaa0e88ed7cf3c7dcc7763cd792a5acf9dfc2ea"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 12489,
+      "line_count": 329,
+      "sha256": "55ed8cc2b42dc221a66d0d1371fa6b77ea34cb7d7e5ab162ff0194caf2309d5a"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04B1_Feature_Wave_Targeted_Collection.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 13028,
+      "line_count": 281,
+      "sha256": "df15d9c0ea822d4920063340908b60aad70872e7a2ef6a5fb8aae76d1876a558"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10889,
+      "line_count": 287,
+      "sha256": "105ea0683f5ed524e7a7af0dad0556fb143c478e6aa20bcc1a4b53cb11db657b"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.04C_Explicit_Event_Window_Overrides.ps1",
@@ -3123,7 +4697,7 @@
       "sha256": "180952e9238611a688945445e5ab6c7a7659a5a7bea4af1d53ada7c90ace5917"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04D_Bounded_Parallel_Runtime.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04D1_Bounded_Parallel_Runtime.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3132,12 +4706,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 28441,
-      "line_count": 746,
-      "sha256": "2fc7e13bb4659d182bd0b2d74e1fbca01aa0369df71eb2a51f62d4dcc38cd724"
+      "size_bytes": 5752,
+      "line_count": 179,
+      "sha256": "ac999fffe7d1488311a96e414ec0ab32fe8afb2796a16917d1ac6e98355f9e24"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04E_Diagnostic_Context_Overrides.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04D2_Bounded_Parallel_Runtime.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3146,12 +4720,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 21002,
-      "line_count": 487,
-      "sha256": "3d047e446d76fafe863af3b2c13df29422b64d22d7510cc852162f89949914cd"
+      "size_bytes": 12594,
+      "line_count": 352,
+      "sha256": "dbb7aee3d9f1409f0a36e9e4d8dc7d8c68d57a1d42bbd830aa563205458f7db7"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04F_PR186_Review_Fixes.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04D3_Bounded_Parallel_Runtime.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3160,12 +4734,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 17049,
-      "line_count": 491,
-      "sha256": "be8a099cc9f3b97cb12dd797610142dde6d5127c76e1b4a7d80c2e46544d6406"
+      "size_bytes": 12033,
+      "line_count": 277,
+      "sha256": "502d94c31c62c85203ede2e95e68101891d8e86ca54fd991842fe4f93a517352"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04G_PR186_External_Review_Fixes.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04E1_Diagnostic_Context_Overrides.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3174,12 +4748,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 17925,
-      "line_count": 504,
-      "sha256": "831b6a908796801418bc8417bb6e41d0f96d1b6ff8e7add4ffcd940bd1efd9c5"
+      "size_bytes": 5278,
+      "line_count": 148,
+      "sha256": "a7ed6180754e5b667eba4af6bb3eea7aa273e91b09672aeec7adfa54a75ba5a1"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04H_PR212_Metadata_Finalization_Fixes.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3188,12 +4762,12 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 17962,
-      "line_count": 414,
-      "sha256": "ef64a9acad9f126cf9526fec9016b86be61ea2cb51b33851390d326d999fc18e"
+      "size_bytes": 12094,
+      "line_count": 256,
+      "sha256": "5b2320ab3e55ec2df5a4cb5201e8f963c2fff6039fbf93cea5290f3dd09d0032"
     },
     {
-      "path": "project_sources/collector/source/parts/DCOIR_Collector.04_Quick_Interface_And_Output.ps1",
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1",
       "category": "collector_runtime_source_part",
       "source_type": ".ps1",
       "status": "source",
@@ -3202,9 +4776,177 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 36579,
-      "line_count": 828,
-      "sha256": "d78e555c80911ce55a04a8ce48ecab1117eb9c317ad748035c41ceac9497052e"
+      "size_bytes": 4389,
+      "line_count": 111,
+      "sha256": "2a6c3cfe7a274c0d10e1536f7246687c9769f1fd510a0fa5869895d2c3779c5a"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8701,
+      "line_count": 257,
+      "sha256": "67a27968ef73cb8f69328dc333a2c44fbfdf5bbe54a14181ba088dc2d2439605"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 9041,
+      "line_count": 253,
+      "sha256": "aec7e76aeaf3a5822ec8a9a258d9e3d59a74273d097775f1fa61b18416bb250d"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04G1_PR186_External_Review_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10507,
+      "line_count": 293,
+      "sha256": "0a8ab23259057dcc5f266a074964080e485ad0056ea0cb17e6e4918f1df5b029"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 7939,
+      "line_count": 228,
+      "sha256": "41000cb57a970c79163d9cca7bd2153fb452933bca425a93471ca1f08ac6529e"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4841,
+      "line_count": 131,
+      "sha256": "60014873136f51c7d77eb378fb2ff8e1e980e183658309924ce2494a56b0199c"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 9020,
+      "line_count": 208,
+      "sha256": "ecf10ab8b88576c1158a5aa96475dd5813f077da3b2cf77213f764fe4e6dfcd2"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4963,
+      "line_count": 109,
+      "sha256": "cdc7f9848721330655a671f1ae76c5fe2171380d1c044fc3503cf63d1fe82662"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4192,
+      "line_count": 134,
+      "sha256": "55d5b65247e0716286900e4c243c7462c2f54d033e2b9d51e74d93d19fdc0ba1"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 9998,
+      "line_count": 228,
+      "sha256": "dcf15895d925fb66ed6945f7ababfd3b7c1e860307c98ca50cc8e26fa36d7553"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10656,
+      "line_count": 189,
+      "sha256": "bab74a412da36f8841c224593fe5a202a6a3d535e9df012c262c00567281cde8"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 7767,
+      "line_count": 151,
+      "sha256": "00d16ef84cb9ae4e6ca5d096233a55cfc6f52506f2467604648b0f01b7421e30"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4894,
+      "line_count": 88,
+      "sha256": "ab186272c8964cd0a85d314c7e2ab54f2e7d342a74bdc78bda6951498d8d5e96"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1",
@@ -3216,9 +4958,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 33711,
-      "line_count": 550,
-      "sha256": "73d5623893ae162aeaf8bdfbee2f47b05a01ccc69981543bbc9f4ab00fd797de"
+      "size_bytes": 1464,
+      "line_count": 60,
+      "sha256": "02a38cb0936b87c6304d97937074e0ef79b540ab14ee1d9adc68d3db4a9278ca"
     },
     {
       "path": "project_sources/collector/tools/run_validate_dcoir_run_fixture_tests.ps1",
@@ -3244,9 +4986,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 4036,
-      "line_count": 109,
-      "sha256": "421ea6ccb6d2880763418f27b1bb07f7cc6d4bae81d630428729dec2e3ee5e9d"
+      "size_bytes": 4298,
+      "line_count": 115,
+      "sha256": "da83c2ea24fd529f8e41b2ce1c5c8bbf96f7511dba29413d9bb43d0167e431ad"
     },
     {
       "path": "project_sources/validation/manual_test_framework/run_dcoir_manual_tests.ps1",

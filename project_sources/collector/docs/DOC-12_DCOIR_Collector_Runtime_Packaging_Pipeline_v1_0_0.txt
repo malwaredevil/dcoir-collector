@@ -10,7 +10,8 @@ Purpose
 Current source model
 - `project_sources/collector/source/DCOIR_Collector.ps1` is the wrapper entry and part-loader source.
 - `project_sources/collector/source/parts/*.ps1` is the maintained collector source-part set.
-- The former large Part 01 utility surface is intentionally split into connector-friendly `DCOIR_Collector.01A_*` through `DCOIR_Collector.01E_*` functional parts; the manifest and wrapper preserve load order and the compiler still emits one runtime `DCOIR_Collector.ps1`.
+- The former large Part 01 utility surface is intentionally split into connector-friendly `DCOIR_Collector.01A1_*`, `DCOIR_Collector.01A2_*`, `DCOIR_Collector.01B1_*`, `DCOIR_Collector.01B2_*`, `DCOIR_Collector.01C_*`, `DCOIR_Collector.01D1_*`, `DCOIR_Collector.01D2_*`, and `DCOIR_Collector.01E_*` functional parts; the manifest and wrapper preserve load order and the compiler still emits one runtime `DCOIR_Collector.ps1`.
+- The baseline and report source surface is intentionally split into connector-friendly `DCOIR_Collector.02A_*`, `DCOIR_Collector.02B_*`, `DCOIR_Collector.02C_*`, `DCOIR_Collector.02D1A_*`, `DCOIR_Collector.02D1B_*`, and `DCOIR_Collector.02D2_*` functional parts; the manifest and wrapper preserve load order and the compiler still emits one runtime `DCOIR_Collector.ps1`.
 - `project_sources/collector/harness/source/parts/*.ps1.txt` is the maintained PowerShell harness source; `assemble_run_DCOIR_Tests.ps1` generates `run_DCOIR_Tests.generated.ps1` for execution.
 - `project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json` defines the compiled-runtime and delivery-package contract.
 - `supporting_assets/DCOIR_Collector.zip` is the governed retained runtime/tool ZIP used as the curated support-tool payload source for the optional embedded EXE build.

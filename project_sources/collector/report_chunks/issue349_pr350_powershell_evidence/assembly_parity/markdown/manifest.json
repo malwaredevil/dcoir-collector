@@ -1,0 +1,22 @@
+{
+  "chunk_count": 1,
+  "chunks": [
+    {
+      "bytes": 2772,
+      "chunk_index": 0,
+      "chunk_kind": "markdown_section",
+      "format": "markdown",
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/assembly_parity/markdown/chunk_000_text.md",
+      "sha256": "8222f3e5c227a3179b84bb36fc56171a91321603765c40012063411a037933b2",
+      "section": "text_slice_000"
+    }
+  ],
+  "max_chunk_bytes_target": 14000,
+  "reassembly_note": "Concatenate chunks in manifest order.",
+  "report_id": "assembly_parity",
+  "schema_version": "dcoir_report_chunk_manifest_v1",
+  "source_bytes": 2772,
+  "source_format": "markdown",
+  "source_report": "project_sources/collector/powershell_assembly_parity_report.md",
+  "source_sha256": "8222f3e5c227a3179b84bb36fc56171a91321603765c40012063411a037933b2"
+}
