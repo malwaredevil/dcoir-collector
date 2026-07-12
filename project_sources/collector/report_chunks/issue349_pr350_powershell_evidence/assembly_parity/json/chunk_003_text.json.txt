@@ -1,0 +1,155 @@
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 157,
+          "generated_line_start": 1622,
+          "generated_line_end": 1778,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 330,
+          "generated_line_start": 1779,
+          "generated_line_end": 2108,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 25,
+          "generated_line_start": 2109,
+          "generated_line_end": 2133,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 224,
+          "generated_line_start": 2134,
+          "generated_line_end": 2357,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 147,
+          "generated_line_start": 2358,
+          "generated_line_end": 2504,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 59,
+          "generated_line_start": 2505,
+          "generated_line_end": 2563,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 129,
+          "generated_line_start": 2564,
+          "generated_line_end": 2692,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 183,
+          "generated_line_start": 2693,
+          "generated_line_end": 2875,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        },
+        {
+          "source_path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "source_line_start": 1,
+          "source_line_end": 68,
+          "generated_line_start": 2876,
+          "generated_line_end": 2943,
+          "mapping_basis": "deterministic_sorted_concatenation"
+        }
+      ],
+      "sha256": "d68ecf53f75474fc2a69d8313c07b815e372edb530f136aae6c149ce75a1b946",
+      "line_count": 2943,
+      "parse": {
+        "method": "static_balance_check",
+        "native_parser_available": false,
+        "success": true,
+        "errors": [],
+        "line_count": 2943
+      },
+      "parity": {
+        "status": "pass",
+        "comparison": "deterministic_regeneration_only_checked_in_output_absent",
+        "checked_in_output_compared": false,
+        "expected_presence": "optional_when_generated",
+        "checked_in_path": "project_sources/collector/harness/run_DCOIR_Tests.generated.ps1"
+      }
+    }
+  ],
+  "coverage_statement": [
+    {
+      "surface": "collector runtime source parts",
+      "psscriptanalyzer_wrapper_reporting": "source-part paths when #262 analyzer targets #261 inventory entries",
+      "dcoir_custom_checks_reporting": "source-part paths when #264 checks target source-part risk classes",
+      "assembly_parity_reporting": "source input map, source hash, generated runtime hash, parse status, and line mapping"
+    },
+    {
+      "surface": "collector compiled runtime generated output",
+      "psscriptanalyzer_wrapper_reporting": "not invoked by this #265 runner; future workflow integration can pass generated output explicitly",
+      "dcoir_custom_checks_reporting": "not invoked by this #265 runner; parity and parse proof are reported here",
+      "assembly_parity_reporting": "generated output hash, parse status, deterministic regeneration status, and source line map"
+    },
+    {
+      "surface": "harness source parts and generated harness",
+      "psscriptanalyzer_wrapper_reporting": "source-part paths when #262 analyzer targets .ps1.txt surfaces; generated output when materialized and explicitly targeted",
+      "dcoir_custom_checks_reporting": "source-part drift risks through #264 fixtures plus #265 parity proof",
+      "assembly_parity_reporting": "ordered source input map, generated harness hash, optional checked-in comparison, parse status, and line map"
+    }
+  ],
+  "controlled_bad_cases": [
+    {
+      "case": "stale_checked_in_generated_output",
+      "evidence": "test_stale_checked_in_generated_output_fails",
+      "expected_result": "fails when a committed generated harness differs from deterministic assembly"
+    },
+    {
+      "case": "missing_source_part",
+      "evidence": "test_missing_source_part_fails",
+      "expected_result": "fails when the collector manifest references a missing source part"
+    },
+    {
+      "case": "missing_source_output_mapping",
+      "evidence": "test_missing_source_output_mapping_fails",
+      "expected_result": "fails when collector part mapping is absent and generated output cannot be mapped"
+    },
+    {
+      "case": "generated_output_parse_failure",
+      "evidence": "test_generated_output_parse_failure_fails",
+      "expected_result": "fails when regenerated runnable output has an unbalanced PowerShell structure"
+    },
+    {
+      "case": "unexpected_inventory_shrink",
+      "evidence": "test_baseline_shrink_without_exception_fails",
+      "expected_result": "fails when source/generated counts shrink below baseline without an exception record"
+    },
+    {
+      "case": "clean_control",
+      "evidence": "test_clean_control_passes_and_maps_counts and test_real_repo_contract_passes",
+      "expected_result": "passes when source parts, generated outputs, parse status, parity status, and mappings are fresh"
+    }
+  ],
+  "baseline_comparison": null,
+  "validation": {
+    "success": true,
+    "errors": [],
+    "warnings": [
+      "no baseline parity report supplied; shrink checks used current inventory controls only"
+    ]
+  },
+  "outputs": {
+    "json": "project_sources/collector/powershell_assembly_parity_report.json",
+    "markdown": "project_sources/collector/powershell_assembly_parity_report.md"
+  }
+}

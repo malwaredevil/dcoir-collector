@@ -2,7 +2,7 @@
   "schema_version": "dcoir_powershell_surface_inventory_v1",
   "issue": 261,
   "mode": "full",
-  "source_of_truth": "filesystem recursive scan fallback",
+  "source_of_truth": "git ls-files -z",
   "deterministic_report": true,
   "file_facts_policy": "text_bytes_with_line_endings_normalized_to_lf",
   "discovery_command": "python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output project_sources/collector/powershell_surface_inventory.json --markdown-output project_sources/collector/powershell_surface_inventory.md",
@@ -20,16 +20,16 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 246,
+    "total_surfaces": 249,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
       "collector_harness_source_part": 17,
-      "collector_runtime_source_part": 41,
+      "collector_runtime_source_part": 43,
       "collector_runtime_wrapper": 1,
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
-      "generated_or_assembled_output": 0,
+      "generated_or_assembled_output": 1,
       "github_workflow_support_script": 20,
       "invalid_workflow_surface": 0,
       "missing_authoritative_surface": 0,
@@ -42,7 +42,7 @@
       "workflow_embedded_powershell": 27
     },
     "by_source_type": {
-      ".ps1": 183,
+      ".ps1": 186,
       ".ps1.txt": 17,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -51,16 +51,17 @@
     },
     "by_status": {
       "fixture": 23,
-      "source": 46,
+      "source": 48,
       "source_part": 17,
       "staging": 63,
+      "superseded_pointer": 1,
       "tooling": 70,
       "workflow_embedded": 27
     },
     "by_inclusion_decision": {
       "exclude": 63,
-      "include": 133,
-      "reference": 50
+      "include": 135,
+      "reference": 51
     },
     "embedded_snippet_count": 80
   },
@@ -69,8 +70,8 @@
       "path": "project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json",
       "exists": true,
       "error": null,
-      "expected_path_count": 42,
-      "present_path_count": 42,
+      "expected_path_count": 44,
+      "present_path_count": 44,
       "paths": [
         {
           "path": "project_sources/collector/source/DCOIR_Collector.ps1",
@@ -78,7 +79,7 @@
           "in_inventory": true,
           "category": "collector_runtime_wrapper",
           "expected_category": "collector_runtime_wrapper",
-          "size_bytes": 7235
+          "size_bytes": 7335
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -182,7 +183,15 @@
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 16440
+          "size_bytes": 13067
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1C_Baseline_Collection_Context.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4102
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
@@ -302,7 +311,15 @@
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 16246
+          "size_bytes": 12094
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4389
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
@@ -416,7 +433,7 @@
       "required_profile_path": "project_sources/github_actions/workflow_required_surface_profiles.json",
       "required_profile_exists": true,
       "required_profile_supplement_manifest_path": "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
-      "required_profile_supplement_manifest_exists": false,
+      "required_profile_supplement_manifest_exists": true,
       "required_profile_error": null,
       "required_profile_part_count": 17,
       "required_profile_present_count": 17,
@@ -3611,9 +3628,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 4735,
+      "size_bytes": 4738,
       "line_count": 113,
-      "sha256": "b422122d5c07f840e3359477460b5b9a19e38484d3272ab45c6a9363d937e452"
+      "sha256": "bdd255a3e2e4ac12e3ea962a941c5b8168e2e3bb2dc214a33bc57d0aff94e03c"
     },
     {
       "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirWbs09ManifestSchemaAudit.ps1",
@@ -4325,9 +4342,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 7235,
-      "line_count": 218,
-      "sha256": "ca67c8d10f7898ad42c841d79e68d751e79e9152cf1cfa13478093476e5fcfd3"
+      "size_bytes": 7335,
+      "line_count": 220,
+      "sha256": "ca2b439efe501625a2547dc65d4ddeba4fe1f22ac9dc2b9931342fe8eea00309"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -4507,9 +4524,23 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 16440,
-      "line_count": 251,
-      "sha256": "ed8be9840617697261d7a4a37d118530f188cb9b7e85caf005a67a91a25ff4d2"
+      "size_bytes": 13067,
+      "line_count": 195,
+      "sha256": "52a86ff69df27c5321aba97bb30ee073ea93b00a0094f7abbd4b41fe9889f7bc"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1C_Baseline_Collection_Context.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4102,
+      "line_count": 82,
+      "sha256": "74ec3dfc803526b86c7c95cd2d0245d5ad4343cb39ede6307405c629984ea7e0"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
@@ -4524,6 +4555,20 @@
       "size_bytes": 4541,
       "line_count": 125,
       "sha256": "f1b18cbed52e3f4ee6904eedd67edf7c36a51e211e5822828707ca3b8426b114"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1",
+      "category": "generated_or_assembled_output",
+      "source_type": ".ps1",
+      "status": "superseded_pointer",
+      "inclusion_decision": "reference",
+      "decision_reason": "Superseded monolithic Part 02 pointer is documentation, not manifest-loaded runtime source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 843,
+      "line_count": 16,
+      "sha256": "561c56ba6ea8c9199648f5678abaf56354d117a57835a0e296d5b83c72fafd7d"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.03A_Enrich_Session_State.ps1",
@@ -4717,9 +4762,23 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 16246,
-      "line_count": 356,
-      "sha256": "32a1ad64dd98a80c4d9a7763783c380c122f46ef3659fbc04300e1eace51c6bd"
+      "size_bytes": 12094,
+      "line_count": 256,
+      "sha256": "5b2320ab3e55ec2df5a4cb5201e8f963c2fff6039fbf93cea5290f3dd09d0032"
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1",
+      "category": "collector_runtime_source_part",
+      "source_type": ".ps1",
+      "status": "source",
+      "inclusion_decision": "include",
+      "decision_reason": "Collector runtime source part is primary maintained PowerShell source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4389,
+      "line_count": 111,
+      "sha256": "2a6c3cfe7a274c0d10e1536f7246687c9769f1fd510a0fa5869895d2c3779c5a"
     },
     {
       "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
@@ -4927,9 +4986,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 4036,
-      "line_count": 109,
-      "sha256": "421ea6ccb6d2880763418f27b1bb07f7cc6d4bae81d630428729dec2e3ee5e9d"
+      "size_bytes": 4298,
+      "line_count": 115,
+      "sha256": "da83c2ea24fd529f8e41b2ce1c5c8bbf96f7511dba29413d9bb43d0167e431ad"
     },
     {
       "path": "project_sources/validation/manual_test_framework/run_dcoir_manual_tests.ps1",

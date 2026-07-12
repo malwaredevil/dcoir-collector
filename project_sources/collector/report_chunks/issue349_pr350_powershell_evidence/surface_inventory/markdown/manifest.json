@@ -1,76 +1,31 @@
 {
-  "chunk_count": 7,
+  "chunk_count": 2,
   "chunks": [
     {
-      "bytes": 601,
+      "bytes": 13858,
       "chunk_index": 0,
       "chunk_kind": "markdown_section",
       "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_000_front_matter.md",
-      "section": "front_matter",
-      "sha256": "3ed0a5f9a427c26aed3e74bc8c1362c5633fa56038ce181f3ec7e793c67990ca"
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_000_text.md",
+      "sha256": "97b748030ad09b210808ea0ab2eb5268ef05370e8bbd1e00888024582c077771",
+      "section": "text_slice_000"
     },
     {
-      "bytes": 733,
+      "bytes": 11646,
       "chunk_index": 1,
       "chunk_kind": "markdown_section",
       "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_001_Counts_By_Category.md",
-      "section": "Counts_By_Category",
-      "sha256": "fad8fb5501ae537d831af8c872727757fdeffb451635bb0916a35ea102477b0e"
-    },
-    {
-      "bytes": 179,
-      "chunk_index": 2,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_002_Counts_By_Source_Type.md",
-      "section": "Counts_By_Source_Type",
-      "sha256": "c847c4efb9fc5e64d2a05416298fb4926cb35306a830cb0064f7bd1dde5a8586"
-    },
-    {
-      "bytes": 130,
-      "chunk_index": 3,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_003_Counts_By_Inclusion_Decision.md",
-      "section": "Counts_By_Inclusion_Decision",
-      "sha256": "6f7662adcac95a36ffb57beb62df7a4a8cf7a6166a865938767ff7c5e36637e8"
-    },
-    {
-      "bytes": 274,
-      "chunk_index": 4,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_004_Control_Totals.md",
-      "section": "Control_Totals",
-      "sha256": "8bd5bbc59eacaba45da52cd8117bd71547e8fd5bff1b03787c48e798edcf993e"
-    },
-    {
-      "bytes": 23316,
-      "chunk_index": 5,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_005_Reference_And_Excluded_Surfaces.md",
-      "section": "Reference_And_Excluded_Surfaces",
-      "sha256": "a123cb0f777111fc19d49664e01fee1b7bb49476f211d2f23b2e8d691801c3f4"
-    },
-    {
-      "bytes": 48,
-      "chunk_index": 6,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_006_Validation_Findings.md",
-      "section": "Validation_Findings",
-      "sha256": "be3e8fd50199ba15aac98f33517c6d3faff4233644a643b2f080f168402e3668"
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/surface_inventory/markdown/chunk_001_text.md",
+      "sha256": "e3a802bef23b3442ac2424a716f66a5278e6496176a64c79a1aaee6b4c41a58e",
+      "section": "text_slice_001"
     }
   ],
-  "max_chunk_bytes_target": 40000,
-  "reassembly_note": "Concatenate Markdown chunks in manifest order.",
+  "max_chunk_bytes_target": 14000,
+  "reassembly_note": "Concatenate chunks in manifest order.",
   "report_id": "surface_inventory",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 25281,
+  "source_bytes": 25504,
   "source_format": "markdown",
   "source_report": "project_sources/collector/powershell_surface_inventory.md",
-  "source_sha256": "9d33313fc3e3c3086a15dba5206fd4bc4dd2b16e56e99eddff3629282ed0f906"
+  "source_sha256": "ea4519b5c96e7e70f74c3ad4944c0cac14adbf32eb46bf23c0ae23c61fe97f6b"
 }

@@ -17,6 +17,8 @@ REQUIRED_BUNDLE_FILES: List[str] = [
     "dcoir_manual_runner_context.py",
     "dcoir_manual_runner_package.py",
     "dcoir_manual_runner_checks.py",
+    "dcoir_manual_runner_checks_part_01.py",
+    "dcoir_manual_runner_checks_part_02.py",
     "dcoir_manual_runner_flow.py",
     "dcoir_manual_test_control.json",
     "README_FIRST.txt",

@@ -2,7 +2,7 @@
   "schema_version": "dcoir_powershell_surface_inventory_v1",
   "issue": 261,
   "mode": "full",
-  "source_of_truth": "filesystem recursive scan fallback",
+  "source_of_truth": "git ls-files -z",
   "deterministic_report": true,
   "file_facts_policy": "text_bytes_with_line_endings_normalized_to_lf",
   "discovery_command": "python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output project_sources/collector/powershell_surface_inventory.json --markdown-output project_sources/collector/powershell_surface_inventory.md",
@@ -20,16 +20,16 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 246,
+    "total_surfaces": 249,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
       "collector_harness_source_part": 17,
-      "collector_runtime_source_part": 41,
+      "collector_runtime_source_part": 43,
       "collector_runtime_wrapper": 1,
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
-      "generated_or_assembled_output": 0,
+      "generated_or_assembled_output": 1,
       "github_workflow_support_script": 20,
       "invalid_workflow_surface": 0,
       "missing_authoritative_surface": 0,
@@ -42,7 +42,7 @@
       "workflow_embedded_powershell": 27
     },
     "by_source_type": {
-      ".ps1": 183,
+      ".ps1": 186,
       ".ps1.txt": 17,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -51,16 +51,17 @@
     },
     "by_status": {
       "fixture": 23,
-      "source": 46,
+      "source": 48,
       "source_part": 17,
       "staging": 63,
+      "superseded_pointer": 1,
       "tooling": 70,
       "workflow_embedded": 27
     },
     "by_inclusion_decision": {
       "exclude": 63,
-      "include": 133,
-      "reference": 50
+      "include": 135,
+      "reference": 51
     },
     "embedded_snippet_count": 80
   },
@@ -69,8 +70,8 @@
       "path": "project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json",
       "exists": true,
       "error": null,
-      "expected_path_count": 42,
-      "present_path_count": 42,
+      "expected_path_count": 44,
+      "present_path_count": 44,
       "paths": [
         {
           "path": "project_sources/collector/source/DCOIR_Collector.ps1",
@@ -78,7 +79,7 @@
           "in_inventory": true,
           "category": "collector_runtime_wrapper",
           "expected_category": "collector_runtime_wrapper",
-          "size_bytes": 7235
+          "size_bytes": 7335
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.01A1_Core_Logging_And_Process_Capture.ps1",
@@ -182,7 +183,15 @@
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 16440
+          "size_bytes": 13067
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1C_Baseline_Collection_Context.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4102
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
@@ -302,7 +311,15 @@
           "in_inventory": true,
           "category": "collector_runtime_source_part",
           "expected_category": "collector_runtime_source_part",
-          "size_bytes": 16246
+          "size_bytes": 12094
+        },
+        {
+          "path": "project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1",
+          "exists": true,
+          "in_inventory": true,
+          "category": "collector_runtime_source_part",
+          "expected_category": "collector_runtime_source_part",
+          "size_bytes": 4389
         },
         {
           "path": "project_sources/collector/source/parts/DCOIR_Collector.04F1_PR186_Review_Fixes.ps1",
@@ -329,647 +346,3 @@
           "size_bytes": 10507
         },
         {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04G2_PR186_External_Review_Fixes.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 7939
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 4841
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H2_PR212_Metadata_Finalization_Fixes.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 9020
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.04H3_PR212_Metadata_Finalization_Fixes.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 4963
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 4192
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 9998
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.05A3_Main_Entry.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 10656
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.05B_Main_Entry.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 7767
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.05C_Main_Entry.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 4894
-        },
-        {
-          "path": "project_sources/collector/source/parts/DCOIR_Collector.05_Main_Entry.ps1",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_runtime_source_part",
-          "expected_category": "collector_runtime_source_part",
-          "size_bytes": 1464
-        }
-      ]
-    },
-    "harness_source_parts": {
-      "root": "project_sources/collector/harness/source/parts",
-      "part_count": 17,
-      "required_profile_path": "project_sources/github_actions/workflow_required_surface_profiles.json",
-      "required_profile_exists": true,
-      "required_profile_supplement_manifest_path": "project_sources/github_actions/workflow_required_surface_profile_supplements.json",
-      "required_profile_supplement_manifest_exists": false,
-      "required_profile_error": null,
-      "required_profile_part_count": 17,
-      "required_profile_present_count": 17,
-      "required_profile_parts": [
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8346
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8476
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8411
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8411
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 7589
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 4200
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 6161
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 12011
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8335
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 15243
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 15355
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 9256
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 11687
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 3217
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 11129
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 12538
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
-          "exists": true,
-          "in_inventory": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 1858
-        }
-      ],
-      "parts": [
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8346
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8476
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8411
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8411
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 7589
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 4200
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 6161
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 12011
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 8335
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 15243
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 15355
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 9256
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 11687
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 3217
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 11129
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 12538
-        },
-        {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
-          "exists": true,
-          "category": "collector_harness_source_part",
-          "size_bytes": 1858
-        }
-      ]
-    },
-    "generated_outputs": [
-      {
-        "path": "project_sources/collector/harness/run_DCOIR_Tests.generated.ps1",
-        "expected_presence": "optional_when_generated",
-        "exists": false,
-        "category": null
-      }
-    ]
-  },
-  "validation": {
-    "success": true,
-    "errors": [],
-    "warnings": []
-  },
-  "surfaces": [
-    {
-      "path": ".github/actions/assemble-collector-harness/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        16
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/assemble-collector-harness/action.yml",
-          "step_or_action": "Assemble collector harness from source parts",
-          "shell": "pwsh",
-          "line_start": 16,
-          "line_end": 38,
-          "command_sha256": "4c9b3aebf54466116a973a959a6419bbd1bfcedc6dc1113906c152ba5317c91c",
-          "command_preview": "$ErrorActionPreference = 'Stop'\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\project_sources\\collector\\harness\\assemble_run_DCOIR_Tests.ps1 -OutputPath $env:HARNESS_OUTPUT_PATH\nif ($LASTEXITCODE -ne 0) {\n  throw 'Collector harn"
-        }
-      ],
-      "size_bytes": 1859,
-      "line_count": 41,
-      "sha256": "b37a2685a4d3a434e025638c6d3125c7a25ec0c6a218ec72e8e861abdd43b68c"
-    },
-    {
-      "path": ".github/actions/build-collector-runtime-for-harness/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        19
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/build-collector-runtime-for-harness/action.yml",
-          "step_or_action": "Build collector runtime zip for harness",
-          "shell": "pwsh",
-          "line_start": 19,
-          "line_end": 46,
-          "command_sha256": "b3070cdd384136075a852d1954b8189906bc611179580aecdadd402f692379a3",
-          "command_preview": "$ErrorActionPreference = 'Stop'\nRemove-Item -Recurse -Force $env:COLLECTOR_OUTPUT_DIR -ErrorAction SilentlyContinue\nNew-Item -ItemType Directory -Force -Path $env:COLLECTOR_OUTPUT_DIR | Out-Null\npython project_sources/collector/tools/build_"
-        }
-      ],
-      "size_bytes": 2946,
-      "line_count": 49,
-      "sha256": "5aab5bd50a0e9cceaabf2a454980997dafb1b1d4c5b86ee07b94149d09e31faa"
-    },
-    {
-      "path": ".github/actions/run-collector-documentation-quality/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        24,
-        31,
-        44
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/run-collector-documentation-quality/action.yml",
-          "step_or_action": "Run documentation validator self-tests",
-          "shell": "pwsh",
-          "line_start": 24,
-          "line_end": 29,
-          "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
-          "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
-        },
-        {
-          "source_file": ".github/actions/run-collector-documentation-quality/action.yml",
-          "step_or_action": "Assemble generated collector harness for documentation audit",
-          "shell": "pwsh",
-          "line_start": 31,
-          "line_end": 42,
-          "command_sha256": "e1cc9a27caafda251f87e6dfeaff5d1c90c3a5528cc9718569f42f4a1c38e2e5",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n$assemblerPath = Join-Path (Get-Location) 'project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1'\n$generatedHarnessPath = Join-Path (Get-Location) 'project_sources/collector/harness/run_DCOIR_Tests.g"
-        },
-        {
-          "source_file": ".github/actions/run-collector-documentation-quality/action.yml",
-          "step_or_action": "Run collector documentation quality gate",
-          "shell": "pwsh",
-          "line_start": 44,
-          "line_end": 73,
-          "command_sha256": "a5d580ea0383ac77e1926efb0704094615abcca4411182b826c3d436cca06969",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n$outputDir = Split-Path -Parent $env:OUTPUT_JSON\nif ([string]::IsNullOrWhiteSpace($outputDir)) {\n  throw 'output-json must include a directory.'\n}\nRemove-Item -Recurse -Force $outputDir -ErrorAction SilentlyC"
-        }
-      ],
-      "size_bytes": 3254,
-      "line_count": 76,
-      "sha256": "abb908aa7089d5aa338d5892acd3df2d33201e437dbb7a14efb992f17897ee08"
-    },
-    {
-      "path": ".github/actions/run-collector-runtime-package-validation/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        11
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/run-collector-runtime-package-validation/action.yml",
-          "step_or_action": "Run collector runtime package validation",
-          "shell": "pwsh",
-          "line_start": 11,
-          "line_end": 25,
-          "command_sha256": "5af894d97817ecea3705347738b795a1a469375c9921dcd38db080dd1ae80ef2",
-          "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path $env:COLLECTOR_VALIDATION_OUTPUT_DIR | Out-Null\npython project_sources/collector/tools/validate_dcoir_collector_runtime_package.py --source-dir . --output-dir $env:CO"
-        }
-      ],
-      "size_bytes": 1339,
-      "line_count": 27,
-      "sha256": "035ea99fe8e49dffc0f0c9e408c07072a969849ea9a22f88d60c47bffd0f451d"
-    },
-    {
-      "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
-      "category": "github_workflow_support_script",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 10767,
-      "line_count": 277,
-      "sha256": "b29aae82d2787f4e8e9cc9dc4206dcf540a1a3f156007c3d48bb18ea357fa476"
-    },
-    {
-      "path": ".github/actions/run-duplicate-function-check/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        23
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/run-duplicate-function-check/action.yml",
-          "step_or_action": "Detect duplicate function definitions across collector source",
-          "shell": "pwsh",
-          "line_start": 23,
-          "line_end": 31,
-          "command_sha256": "1064d844b2d306e7334ee3095c7c65c6c0af4343debee0f19444d5c951bde1e3",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n& $env:DCOIR_ACTION_SCRIPT"
-        }
-      ],
-      "size_bytes": 1474,
-      "line_count": 32,
-      "sha256": "03d65a479eb7f5320989e2ed268f208e3085269a3f23754fe8b4c392bd1f5e18"
-    },
-    {
-      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
-      "category": "github_workflow_support_script",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 6452,
-      "line_count": 118,
-      "sha256": "a582c549d5a33b68c4556b035588b2942d5cab9b02a2a5431ee0fd94fa52ed0f"
-    },
-    {
-      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
-      "category": "github_workflow_support_script",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 7003,
-      "line_count": 132,
-      "sha256": "8b8171e7e89d456edb3fb03f376badd92f9f124c37890b97bb5cd6e409de0953"
-    },
-    {
-      "path": ".github/actions/run-powershell-review-assist/Invoke-DcoirPowerShellReviewAssist.ps1",
-      "category": "github_workflow_support_script",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 1076,
-      "line_count": 22,
-      "sha256": "fbff441a1ef736fc31e8575f6be3927d0d6fe0348f206a6302083449f44d5cbf"
-    },
-    {
-      "path": ".github/actions/run-powershell-review-assist/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        16
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/run-powershell-review-assist/action.yml",
-          "step_or_action": "Generate PowerShell review-assist report",
-          "shell": "pwsh",
-          "line_start": 16,
-          "line_end": 23,
-          "command_sha256": "1064d844b2d306e7334ee3095c7c65c6c0af4343debee0f19444d5c951bde1e3",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n& $env:DCOIR_ACTION_SCRIPT"
-        }
-      ],
-      "size_bytes": 1172,
-      "line_count": 25,
-      "sha256": "7bf74742409e389a1583eceb426eb9db530f6aef92ee307a6df52deeb8026c4b"
-    },
-    {
-      "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
-      "category": "github_workflow_support_script",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 8665,
-      "line_count": 215,
-      "sha256": "e4e248d320fde8a2465b4fd5affe0b044a24c2e200867215381297c7ddc18e43"
-    },
-    {
-      "path": ".github/actions/run-psscriptanalyzer/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        21
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/run-psscriptanalyzer/action.yml",
-          "step_or_action": "Run PSScriptAnalyzer against collector source",
-          "shell": "pwsh",
-          "line_start": 21,
-          "line_end": 28,
-          "command_sha256": "1064d844b2d306e7334ee3095c7c65c6c0af4343debee0f19444d5c951bde1e3",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n& $env:DCOIR_ACTION_SCRIPT"
-        }
-      ],
-      "size_bytes": 1280,
-      "line_count": 30,
-      "sha256": "b649f39a6c857a768fc14d894aba98d7dc4862d7e624598335c4004de05b4522"
-    },
-    {
-      "path": ".github/actions/run-validate-dcoir-fixtures/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        11
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/run-validate-dcoir-fixtures/action.yml",
-          "step_or_action": "Run validate_DCOIR_Run fixture tests",
-          "shell": "pwsh",
-          "line_start": 11,
-          "line_end": 17,
-          "command_sha256": "a81205da5f2e7e1d68a042a92b2c63b1e3697a0efdd8984da1df87b38432f350",
-          "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\tools\\run_validate_dcoir_run_fixture_tests.ps1 -ValidatorPath .\\collector\\harness\\validate_DCOIR_Run.ps1 -OutputRoot $env:FIXTURE_OUTPUT_ROOT"
-        }
-      ],
-      "size_bytes": 840,
-      "line_count": 20,
-      "sha256": "9bbe863275be1b29dd1235acc9db8220bb307cff46bcf03700ac82b13b944540"
-    },
-    {
-      "path": ".github/actions/smoke-build-collector-package/action.yml",
-      "category": "workflow_embedded_powershell",
-      "source_type": "workflow_yaml",
-      "status": "workflow_embedded",
-      "inclusion_decision": "reference",
-      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
-      "exists": true,
-      "marker_lines": [
-        11
-      ],
-      "embedded_snippets": [
-        {
-          "source_file": ".github/actions/smoke-build-collector-package/action.yml",

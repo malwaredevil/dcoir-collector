@@ -1,112 +1,40 @@
 {
-  "chunk_count": 11,
+  "chunk_count": 3,
   "chunks": [
     {
-      "bytes": 219,
+      "bytes": 13880,
       "chunk_index": 0,
       "chunk_kind": "markdown_section",
       "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_000_front_matter.md",
-      "section": "front_matter",
-      "sha256": "aa66a4adc32bf74f68b7a5e310dfd1400ad667bddc12f5e2502d57f16aca35db"
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_000_text.md",
+      "sha256": "c3074a8ae732b97816a5f6d44d80748730b8218b1c034858657f8bb4276bb7fd",
+      "section": "text_slice_000"
     },
     {
-      "bytes": 326,
+      "bytes": 13859,
       "chunk_index": 1,
       "chunk_kind": "markdown_section",
       "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_001_Summary.md",
-      "section": "Summary",
-      "sha256": "918c02580a5d8d5f60f555e5184305012f92f7976aa39119d4ec7c2d20c607a7"
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_001_text.md",
+      "sha256": "568d2c4219af0dd250a0b43087364809388ecf7c54f55a138429539414047d26",
+      "section": "text_slice_001"
     },
     {
-      "bytes": 1356,
+      "bytes": 2695,
       "chunk_index": 2,
       "chunk_kind": "markdown_section",
       "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_002_Source_Reports.md",
-      "section": "Source_Reports",
-      "sha256": "23c51ffa36916d03bec8c23918569fa3fb24a6145f4ac251719daced17caea18"
-    },
-    {
-      "bytes": 1031,
-      "chunk_index": 3,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_003_Evidence_Channels.md",
-      "section": "Evidence_Channels",
-      "sha256": "4219e3d0cd59ea4cbb9a23dfaa487e865dc76a78ba6859108dc9243add7ed3a1"
-    },
-    {
-      "bytes": 3998,
-      "chunk_index": 4,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_004_Findings.md",
-      "section": "Findings",
-      "sha256": "723a49052932838bac20e789f51574bca60e7d35430a6bd064c3d8a6652bcf50"
-    },
-    {
-      "bytes": 19068,
-      "chunk_index": 5,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_005_Inventory_Decisions.md",
-      "section": "Inventory_Decisions",
-      "sha256": "e5067305fe84ca6c85b456fed997c8da424973866d2845d5571a9dafb0d93b72"
-    },
-    {
-      "bytes": 134,
-      "chunk_index": 6,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_006_Baseline_And_Suppression.md",
-      "section": "Baseline_And_Suppression",
-      "sha256": "2e4d185a210702e4463b67596d8b2d211008246269c1fb94245fce2aeb5d41a7"
-    },
-    {
-      "bytes": 242,
-      "chunk_index": 7,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_007_Source_And_Generated_Parity.md",
-      "section": "Source_And_Generated_Parity",
-      "sha256": "fc67f80f23c987466795dc955ffebb151cf8e5fda939d00126b70c211b7bd1ec"
-    },
-    {
-      "bytes": 3566,
-      "chunk_index": 8,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_008_Warnings_Missing_Artifacts_And_Non_Claims.md",
-      "section": "Warnings_Missing_Artifacts_And_Non_Claims",
-      "sha256": "91210aff5c2429e838a5102bf73e03521dea292d7af6e78a55138cfd1859dd7f"
-    },
-    {
-      "bytes": 287,
-      "chunk_index": 9,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_009_Artifact_Contract.md",
-      "section": "Artifact_Contract",
-      "sha256": "6aff9d511cc915096e3575c47f7de3311014aa5c81a81d7c01311f01a95faf29"
-    },
-    {
-      "bytes": 15,
-      "chunk_index": 10,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_010_Validation.md",
-      "section": "Validation",
-      "sha256": "98bce3a16420eb0c39e448717b7dc4dfdf63ef18c59fec725cd332918333a6b3"
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/review_assist/markdown/chunk_002_text.md",
+      "sha256": "327b87165dbe01fea276a0cf2c942e8a92f14e0a3739b1b6d99941b4231362ff",
+      "section": "text_slice_002"
     }
   ],
-  "max_chunk_bytes_target": 40000,
-  "reassembly_note": "Concatenate Markdown chunks in manifest order.",
+  "max_chunk_bytes_target": 14000,
+  "reassembly_note": "Concatenate chunks in manifest order.",
   "report_id": "review_assist",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 30242,
+  "source_bytes": 30434,
   "source_format": "markdown",
   "source_report": "project_sources/collector/powershell_review_assist_report.md",
-  "source_sha256": "0b37cf37183071dca7197e6cc3cbdf643c8b9ce05b9bf2f41a6daa1a35786dc5"
+  "source_sha256": "bc169a4c0de59a58ad2b7b2758528f53a9b01465e4e28656e34a7812ecb8db9b"
 }

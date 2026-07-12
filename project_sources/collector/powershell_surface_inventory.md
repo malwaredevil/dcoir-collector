@@ -3,7 +3,7 @@
 - Schema: `dcoir_powershell_surface_inventory_v1`
 - Issue: #261
 - Mode: `full`
-- Source of truth: `filesystem recursive scan fallback`
+- Source of truth: `git ls-files -z`
 - File facts policy: `text_bytes_with_line_endings_normalized_to_lf`
 - Discovery command: `python project_sources/collector/tools/build_powershell_surface_inventory.py --repo-root . --json-output project_sources/collector/powershell_surface_inventory.json --markdown-output project_sources/collector/powershell_surface_inventory.md`
 - JSON artifact: `project_sources/collector/powershell_surface_inventory.json`
@@ -16,11 +16,11 @@
 | `archive_temp_vendor_artifact` | 0 |
 | `collector_harness_script` | 4 |
 | `collector_harness_source_part` | 17 |
-| `collector_runtime_source_part` | 41 |
+| `collector_runtime_source_part` | 43 |
 | `collector_runtime_wrapper` | 1 |
 | `collector_validation_tooling` | 2 |
 | `fixture_or_example` | 23 |
-| `generated_or_assembled_output` | 0 |
+| `generated_or_assembled_output` | 1 |
 | `github_workflow_support_script` | 20 |
 | `invalid_workflow_surface` | 0 |
 | `missing_authoritative_surface` | 0 |
@@ -36,7 +36,7 @@
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 183 |
+| `.ps1` | 186 |
 | `.ps1.txt` | 17 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
@@ -48,13 +48,13 @@
 | Decision | Count |
 | --- | ---: |
 | `exclude` | 63 |
-| `include` | 133 |
-| `reference` | 50 |
+| `include` | 135 |
+| `reference` | 51 |
 
 ## Control Totals
 
-- Collector manifest expected paths: `42`
-- Collector manifest present paths: `42`
+- Collector manifest expected paths: `44`
+- Collector manifest present paths: `44`
 - Harness source parts: `17`
 - Profile-required harness source parts: `17`
 - Profile-required harness source parts present: `17`
@@ -177,6 +177,7 @@
 | `project_sources/collector/fixtures/powershell_analysis/good/custom_fingerprint_bound_baseline.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/good/custom_safe_root_delete.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/good/custom_source_part_current.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
+| `project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1` | `generated_or_assembled_output` | `reference` | Superseded monolithic Part 02 pointer is documentation, not manifest-loaded runtime source. |
 
 ## Validation Findings
 

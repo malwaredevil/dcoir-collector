@@ -11,6 +11,7 @@ EVENT_WINDOW_OVERRIDES_REL = 'project_sources/collector/source/parts/DCOIR_Colle
 DIAGNOSTIC_CONTEXT_RELS = (
     'project_sources/collector/source/parts/DCOIR_Collector.04E1_Diagnostic_Context_Overrides.ps1',
     'project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1',
+    'project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1',
 )
 DIAGNOSTIC_CONTEXT_REL = DIAGNOSTIC_CONTEXT_RELS[0]
 PR186_FIXES_REL = 'project_sources/collector/source/parts/DCOIR_Collector.04F2_PR186_Review_Fixes.ps1'
@@ -248,4 +249,3 @@ def add_missing_errors(prefix: str, checks: Dict[str, object], required_keys: Li
     for key in required_keys:
         if not checks.get(key):
             errors.append(prefix + key)
-

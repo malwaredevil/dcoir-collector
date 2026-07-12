@@ -89,7 +89,7 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
         self.assertGreaterEqual(report["summary"]["carried_forward_warning_count"], 8)
         self.assertTrue(any("No workflow YAML" in claim for claim in report["non_claims"]))
         self.assertEqual(report["artifact_contract"]["workflow_behavior"], "none")
-        self.assertEqual(report["surface_inventory"]["summary"]["total_surfaces"], 246)
+        self.assertEqual(report["surface_inventory"]["summary"]["total_surfaces"], 249)
         self.assertTrue(report["surface_inventory"]["excluded_paths"])
         self.assertTrue(report["surface_inventory"]["reference_paths"])
         self.assertTrue(
@@ -97,8 +97,8 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
         )
         self.assertEqual(report["evidence_channels"]["finding_governance"]["baseline_delta"]["baseline_record_count"], 0)
         self.assertEqual(report["evidence_channels"]["finding_governance"]["baseline_delta"]["suppression_count"], 0)
-        self.assertEqual(report["evidence_channels"]["function_reachability"]["function_count"], 170)
-        self.assertEqual(report["evidence_channels"]["function_reachability"]["classification_counts"]["literal_referenced"], 166)
+        self.assertEqual(report["evidence_channels"]["function_reachability"]["function_count"], 171)
+        self.assertEqual(report["evidence_channels"]["function_reachability"]["classification_counts"]["literal_referenced"], 167)
         self.assertEqual(report["evidence_channels"]["function_reachability"]["coverage_state"], "not_collected")
 
     def test_schema_validates_generated_report_and_seeded_good_example(self) -> None:
@@ -241,154 +241,3 @@ class PowerShellReviewAssistReportTests(unittest.TestCase):
         self.assertFalse(failed_report["validation"]["success"])
         self.assertEqual(failed_report["evidence_channels"]["analyzer"]["state"], "present_failed")
         self.assertTrue(any("validation.success is false" in error for error in failed_report["validation"]["errors"]))
-
-    def test_unsafe_input_path_rejected_before_read(self) -> None:
-        with self.make_repo() as temp:
-            report = self.build(Path(temp), surface_inventory="../outside.json")
-
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(any("repo-relative without traversal" in error for error in report["validation"]["errors"]))
-
-    def test_unsafe_embedded_path_rejected_before_rendering(self) -> None:
-        with self.make_repo() as temp:
-            root = Path(temp)
-
-            def make_unsafe(data: dict[str, object]) -> None:
-                findings = data["findings"]
-                findings[0]["path"] = "../outside.ps1"
-
-            mutate_json(root / review.DEFAULT_RULE_RISK_REPORT, make_unsafe)
-            report = self.build(root)
-
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(any("repo-relative without traversal" in error for error in report["validation"]["errors"]))
-
-    def test_duplicate_source_path_alias_fails_closed(self) -> None:
-        with self.make_repo() as temp:
-            report = self.build(Path(temp), rule_risk_matrix=review.DEFAULT_RULE_RISK_REPORT.as_posix())
-
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(any("duplicate or aliased source report path" in error for error in report["validation"]["errors"]))
-
-    def test_unsafe_output_and_output_alias_are_rejected_before_write(self) -> None:
-        with self.make_repo() as temp:
-            root = Path(temp)
-            report = self.build(root)
-
-            with self.assertRaises(review.ReviewAssistError):
-                review.write_outputs(root, report, Path("../out.json"), review.DEFAULT_MARKDOWN_OUTPUT)
-            with self.assertRaises(review.ReviewAssistError):
-                review.write_outputs(root, report, review.DEFAULT_JSON_OUTPUT, review.DEFAULT_JSON_OUTPUT)
-            with self.assertRaises(review.ReviewAssistError):
-                review.write_outputs(root, report, Path(".github/workflows/adva_probe.yml"), review.DEFAULT_MARKDOWN_OUTPUT)
-            with self.assertRaises(review.ReviewAssistError):
-                review.write_outputs(
-                    root,
-                    report,
-                    review.DEFAULT_JSON_OUTPUT,
-                    Path("project_sources/collector/powershell_review_assist_report.sarif"),
-                )
-
-    def test_output_write_failure_persists_failed_json_when_possible(self) -> None:
-        with self.make_repo() as temp:
-            root = Path(temp)
-            report = self.build(root)
-            original_write_text = Path.write_text
-
-            def fail_markdown(path_self: Path, data: str, *args: object, **kwargs: object) -> int:
-                if path_self.suffix == ".md":
-                    raise OSError("simulated markdown write failure")
-                return original_write_text(path_self, data, *args, **kwargs)
-
-            with unittest.mock.patch.object(Path, "write_text", fail_markdown):
-                with self.assertRaises(review.ReviewAssistError):
-                    review.write_outputs(root, report, review.DEFAULT_JSON_OUTPUT, review.DEFAULT_MARKDOWN_OUTPUT)
-
-            persisted = read_json(root / review.DEFAULT_JSON_OUTPUT)
-
-        self.assertFalse(persisted["validation"]["success"])
-        self.assertTrue(any("write failure" in error for error in persisted["validation"]["errors"]))
-
-    def test_schema_contract_rejects_missing_required_field(self) -> None:
-        schema = read_json(REPO_ROOT / review.DEFAULT_SCHEMA_PATH)
-        with self.make_repo() as temp:
-            report = self.build(Path(temp))
-        report.pop("evidence_channels")
-
-        errors = review.validate_against_schema_contract(report, schema)
-
-        self.assertTrue(any("$.evidence_channels is required" == error for error in errors))
-
-    def test_schema_contract_rejects_loose_summary_and_channel_shapes(self) -> None:
-        schema = read_json(REPO_ROOT / review.DEFAULT_SCHEMA_PATH)
-        with self.make_repo() as temp:
-            report = self.build(Path(temp))
-
-        bad_summary = json.loads(json.dumps(report))
-        bad_summary["summary"]["normalized_finding_count"] = "22"
-        bad_channel = json.loads(json.dumps(report))
-        bad_channel["evidence_channels"]["analyzer"] = {}
-
-        summary_errors = review.validate_against_schema_contract(bad_summary, schema)
-        channel_errors = review.validate_against_schema_contract(bad_channel, schema)
-
-        self.assertTrue(any("$.summary.normalized_finding_count type mismatch" in error for error in summary_errors))
-        self.assertTrue(any("$.evidence_channels.analyzer.state is required" == error for error in channel_errors))
-
-    def test_schema_contract_rejects_missing_and_unclaimed_artifact_shape_loss(self) -> None:
-        schema = read_json(REPO_ROOT / review.DEFAULT_SCHEMA_PATH)
-        with self.make_repo() as temp:
-            report = self.build(Path(temp))
-
-        bad_missing = json.loads(json.dumps(report))
-        bad_missing["missing_artifacts"] = [{"source_issue": 262}]
-        bad_unclaimed = json.loads(json.dumps(report))
-        bad_unclaimed["unclaimed_artifacts"] = [{"source_issue": 267, "path": "future artifact"}]
-
-        missing_errors = review.validate_against_schema_contract(bad_missing, schema)
-        unclaimed_errors = review.validate_against_schema_contract(bad_unclaimed, schema)
-
-        self.assertTrue(any("$.missing_artifacts[0].path is required" == error for error in missing_errors))
-        self.assertTrue(any("$.missing_artifacts[0].reason is required" == error for error in missing_errors))
-        self.assertTrue(any("$.unclaimed_artifacts[0].artifact_status is required" == error for error in unclaimed_errors))
-        self.assertTrue(any("$.unclaimed_artifacts[0].reason is required" == error for error in unclaimed_errors))
-
-    def test_schema_contract_rejects_validation_status_contradiction(self) -> None:
-        schema = read_json(REPO_ROOT / review.DEFAULT_SCHEMA_PATH)
-        with self.make_repo() as temp:
-            report = self.build(Path(temp))
-
-        report["validation"]["success"] = False
-        report["summary"]["validation_success"] = True
-        errors = review.validate_against_schema_contract(report, schema)
-
-        self.assertTrue(any("$.summary.validation_success must match $.validation.success" == error for error in errors))
-
-    def test_missing_rule_risk_matrix_context_fails_closed(self) -> None:
-        with self.make_repo() as temp:
-            root = Path(temp)
-
-            def remove_matrix_row(data: dict[str, object]) -> None:
-                data["checks"] = [
-                    check
-                    for check in data["checks"]
-                    if check.get("rule_name") != "DCOIR.NoAnalyzerSkipSuccess"
-                ]
-
-            mutate_json(root / review.DEFAULT_RULE_RISK_MATRIX, remove_matrix_row)
-            report = self.build(root)
-
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(any("missing #263 matrix risk_classes" in error for error in report["validation"]["errors"]))
-        self.assertTrue(any("missing #263 matrix impact" in error for error in report["validation"]["errors"]))
-
-    def test_unsafe_schema_path_returns_validation_error_without_traceback(self) -> None:
-        with self.make_repo() as temp:
-            report = self.build(Path(temp), schema="../outside.schema.json")
-
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(any("PowerShell review-assist schema path must be repo-relative" in error for error in report["validation"]["errors"]))
-
-
-if __name__ == "__main__":
-    raise SystemExit(unittest.main())

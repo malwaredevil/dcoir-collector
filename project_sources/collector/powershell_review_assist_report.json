@@ -121,7 +121,7 @@
           },
           "parse": {
             "errors": [],
-            "line_count": 10099,
+            "line_count": 10142,
             "method": "static_balance_check",
             "native_parser_available": false,
             "success": true
@@ -151,15 +151,15 @@
       "source_issue": 265,
       "state": "success",
       "summary": {
-        "collector_source_part_count": 41,
+        "collector_source_part_count": 43,
         "generated_output_count": 2,
         "harness_source_part_count": 17,
         "parity_status": "pass",
         "parity_success_count": 2,
         "parse_status": "pass",
         "parse_success_count": 2,
-        "source_input_count": 59,
-        "source_part_count": 58
+        "source_input_count": 61,
+        "source_part_count": 60
       }
     },
     "custom_checks": {
@@ -671,11 +671,11 @@
       "claim": "report-only reachability evidence; no function deletion readiness or runtime absence is claimed",
       "classification_counts": {
         "dynamic_invocation_uncertain": 4,
-        "literal_referenced": 166
+        "literal_referenced": 167
       },
       "coverage_state": "not_collected",
       "dynamic_invocation_site_count": 1,
-      "function_count": 170,
+      "function_count": 171,
       "parser_mode": "python_lexical_fallback",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "source_issue": 306,
@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-07-02T08:45:12+00:00",
+    "generated_at_utc": "2026-07-12T12:17:42+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -1675,7 +1675,7 @@
       "absent_reason": null,
       "errors": [],
       "expected_schema_version": "dcoir_powershell_function_reachability_report_v1",
-      "finding_count": 170,
+      "finding_count": 171,
       "label": "#306 function reachability report",
       "path": "project_sources/collector/powershell_function_reachability_report.json",
       "present": true,
@@ -2879,6 +2879,13 @@
       },
       {
         "category": "collector_runtime_source_part",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1C_Baseline_Collection_Context.ps1",
+        "reason": "Collector runtime source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_runtime_source_part",
         "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
         "reason": "Collector runtime source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
@@ -2978,6 +2985,13 @@
       {
         "category": "collector_runtime_source_part",
         "path": "project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1",
+        "reason": "Collector runtime source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source"
+      },
+      {
+        "category": "collector_runtime_source_part",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.04E3_Event_Text.ps1",
         "reason": "Collector runtime source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
         "status": "source"
@@ -3109,8 +3123,8 @@
     },
     "path_decision_counts": {
       "exclude": 63,
-      "include": 133,
-      "reference": 50,
+      "include": 135,
+      "reference": 51,
       "skip": 0
     },
     "reference_paths": [
@@ -3463,6 +3477,13 @@
         "reason": "Fixture/example PowerShell is inventoried separately from maintained source targets.",
         "source_type": ".ps1",
         "status": "fixture"
+      },
+      {
+        "category": "generated_or_assembled_output",
+        "path": "project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1",
+        "reason": "Superseded monolithic Part 02 pointer is documentation, not manifest-loaded runtime source.",
+        "source_type": ".ps1",
+        "status": "superseded_pointer"
       }
     ],
     "skipped_paths": [],
@@ -3471,11 +3492,11 @@
         "archive_temp_vendor_artifact": 0,
         "collector_harness_script": 4,
         "collector_harness_source_part": 17,
-        "collector_runtime_source_part": 41,
+        "collector_runtime_source_part": 43,
         "collector_runtime_wrapper": 1,
         "collector_validation_tooling": 2,
         "fixture_or_example": 23,
-        "generated_or_assembled_output": 0,
+        "generated_or_assembled_output": 1,
         "github_workflow_support_script": 20,
         "invalid_workflow_surface": 0,
         "missing_authoritative_surface": 0,
@@ -3489,11 +3510,11 @@
       },
       "by_inclusion_decision": {
         "exclude": 63,
-        "include": 133,
-        "reference": 50
+        "include": 135,
+        "reference": 51
       },
       "by_source_type": {
-        ".ps1": 183,
+        ".ps1": 186,
         ".ps1.txt": 17,
         ".ps1xml": 0,
         ".psd1": 9,
@@ -3502,14 +3523,15 @@
       },
       "by_status": {
         "fixture": 23,
-        "source": 46,
+        "source": 48,
         "source_part": 17,
         "staging": 63,
+        "superseded_pointer": 1,
         "tooling": 70,
         "workflow_embedded": 27
       },
       "embedded_snippet_count": 80,
-      "total_surfaces": 246
+      "total_surfaces": 249
     }
   },
   "unclaimed_artifacts": [

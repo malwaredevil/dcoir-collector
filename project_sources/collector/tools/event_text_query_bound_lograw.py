@@ -6,43 +6,9 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
-from event_text_query_bound_common import (
-    EVENT_TEXT_REVIEW_REL,
-    EVENT_WINDOW_OVERRIDES_REL,
-    PR186_FIXES_REL,
-    RETRIEVAL_ACTIONS_REL,
-    add_missing_errors,
-    extract_function_body,
-    extract_function_param_block,
-    extract_powershell_command_spans,
-    extract_quoted_switch_case_bodies,
-    normalize_powershell_command_span,
-    powershell_command_scan_text,
-    powershell_command_span_avoids_count_cap_and_splatting,
-    powershell_command_span_detects_count_cap,
-    powershell_command_uses_count_cap_parameter,
-    powershell_command_uses_splatting,
-    read_text,
-)
-from event_text_query_bound_lograw_fixtures import (
-    command_anchor_benign_fixtures,
-    command_case_negative_fixtures,
-    command_separator_benign_fixtures,
-    export_colon_parameter_negative_fixtures,
-    export_implicit_continuation_benign_fixtures,
-    export_implicit_continuation_negative_fixtures,
-    export_implicit_continuation_splat_negative_fixtures,
-    export_splat_negative_fixtures,
-    negative_param_fixture_source,
-    target_detail_colon_parameter_negative_fixtures,
-    target_detail_implicit_continuation_benign_fixtures,
-    target_detail_implicit_continuation_negative_fixtures,
-    target_detail_implicit_continuation_splat_negative_fixtures,
-    target_detail_multiline_negative_fixtures,
-    target_detail_negative_fixtures,
-    target_detail_parameter_prefix_negative_fixtures,
-    target_detail_splat_negative_fixtures,
-)
+from event_text_query_bound_common import EVENT_TEXT_REVIEW_REL, EVENT_WINDOW_OVERRIDES_REL, PR186_FIXES_REL, RETRIEVAL_ACTIONS_REL, add_missing_errors, extract_function_body, extract_function_param_block, extract_powershell_command_spans, extract_quoted_switch_case_bodies, normalize_powershell_command_span, powershell_command_scan_text, powershell_command_uses_count_cap_parameter, powershell_command_uses_splatting, read_text
+from event_text_query_bound_lograw_fixture_checks import evaluate_lograw_fixture_checks
+from event_text_query_bound_lograw_fixtures import negative_param_fixture_source
 
 
 def validate_lograw_metadata_truth_policy(source_dir: Path) -> Dict[str, object]:
@@ -105,79 +71,10 @@ def validate_lograw_metadata_truth_policy(source_dir: Path) -> Dict[str, object]
         powershell_command_uses_splatting(call)
         for call in lograw_target_detail_calls
     )
-    target_detail_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in target_detail_negative_fixtures
-        + target_detail_multiline_negative_fixtures
-        + target_detail_parameter_prefix_negative_fixtures
-        + target_detail_colon_parameter_negative_fixtures
-        + target_detail_implicit_continuation_negative_fixtures
-    )
-    target_detail_multiline_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in target_detail_multiline_negative_fixtures
-    )
-    target_detail_parameter_prefix_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in target_detail_parameter_prefix_negative_fixtures
-    )
-    target_detail_colon_parameter_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in target_detail_colon_parameter_negative_fixtures
-    )
-    target_detail_implicit_continuation_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in target_detail_implicit_continuation_negative_fixtures
-    )
-    target_detail_implicit_continuation_benign_fixtures_avoid_false_positives = all(
-        not powershell_command_uses_count_cap_parameter(fixture)
-        and not powershell_command_uses_splatting(fixture)
-        for fixture in target_detail_implicit_continuation_benign_fixtures
-    )
-    target_detail_splat_negative_fixtures_reject_splatting = all(
-        powershell_command_uses_splatting(fixture)
-        for fixture in target_detail_splat_negative_fixtures
-    )
-    target_detail_implicit_continuation_splat_negative_fixtures_reject_splatting = all(
-        powershell_command_uses_splatting(fixture)
-        for fixture in target_detail_implicit_continuation_splat_negative_fixtures
-    )
+    fixture_checks = evaluate_lograw_fixture_checks()
     export_uses_splatting = any(
         powershell_command_uses_splatting(call)
         for call in lograw_export_calls
-    )
-    export_splat_negative_fixtures_reject_splatting = all(
-        powershell_command_uses_splatting(fixture)
-        for fixture in export_splat_negative_fixtures
-    )
-    export_implicit_continuation_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in export_implicit_continuation_negative_fixtures
-    )
-    export_colon_parameter_negative_fixtures_detect_count_cap = all(
-        powershell_command_uses_count_cap_parameter(fixture)
-        for fixture in export_colon_parameter_negative_fixtures
-    )
-    export_implicit_continuation_benign_fixtures_avoid_false_positives = all(
-        not powershell_command_uses_count_cap_parameter(fixture)
-        and not powershell_command_uses_splatting(fixture)
-        for fixture in export_implicit_continuation_benign_fixtures
-    )
-    export_implicit_continuation_splat_negative_fixtures_reject_splatting = all(
-        powershell_command_uses_splatting(fixture)
-        for fixture in export_implicit_continuation_splat_negative_fixtures
-    )
-    command_anchor_benign_fixtures_avoid_false_positives = all(
-        not extract_powershell_command_spans(fixture, command)
-        for fixture, command in command_anchor_benign_fixtures
-    )
-    command_separator_benign_fixtures_avoid_false_positives = all(
-        powershell_command_span_avoids_count_cap_and_splatting(fixture, command)
-        for fixture, command in command_separator_benign_fixtures
-    )
-    command_case_negative_fixtures_detect_count_cap = all(
-        powershell_command_span_detects_count_cap(fixture, command)
-        for fixture, command in command_case_negative_fixtures
     )
     export_claims_maxevents = any(
         powershell_command_uses_count_cap_parameter(call)
@@ -197,22 +94,6 @@ def validate_lograw_metadata_truth_policy(source_dir: Path) -> Dict[str, object]
         'evtx_export_function_present': bool(evtx_export),
         'evtx_export_param_block_present': bool(evtx_export_param_block),
         'param_block_negative_fixture_detects_maxevents': negative_fixture_detects_event_cap,
-        'target_detail_negative_fixtures_detect_count_cap': target_detail_negative_fixtures_detect_count_cap,
-        'target_detail_multiline_negative_fixtures_detect_count_cap': target_detail_multiline_negative_fixtures_detect_count_cap,
-        'target_detail_parameter_prefix_negative_fixtures_detect_count_cap': target_detail_parameter_prefix_negative_fixtures_detect_count_cap,
-        'target_detail_colon_parameter_negative_fixtures_detect_count_cap': target_detail_colon_parameter_negative_fixtures_detect_count_cap,
-        'target_detail_implicit_continuation_negative_fixtures_detect_count_cap': target_detail_implicit_continuation_negative_fixtures_detect_count_cap,
-        'target_detail_implicit_continuation_benign_fixtures_avoid_false_positives': target_detail_implicit_continuation_benign_fixtures_avoid_false_positives,
-        'target_detail_splat_negative_fixtures_reject_splatting': target_detail_splat_negative_fixtures_reject_splatting,
-        'target_detail_implicit_continuation_splat_negative_fixtures_reject_splatting': target_detail_implicit_continuation_splat_negative_fixtures_reject_splatting,
-        'export_splat_negative_fixtures_reject_splatting': export_splat_negative_fixtures_reject_splatting,
-        'export_implicit_continuation_negative_fixtures_detect_count_cap': export_implicit_continuation_negative_fixtures_detect_count_cap,
-        'export_colon_parameter_negative_fixtures_detect_count_cap': export_colon_parameter_negative_fixtures_detect_count_cap,
-        'export_implicit_continuation_benign_fixtures_avoid_false_positives': export_implicit_continuation_benign_fixtures_avoid_false_positives,
-        'export_implicit_continuation_splat_negative_fixtures_reject_splatting': export_implicit_continuation_splat_negative_fixtures_reject_splatting,
-        'command_anchor_benign_fixtures_avoid_false_positives': command_anchor_benign_fixtures_avoid_false_positives,
-        'command_separator_benign_fixtures_avoid_false_positives': command_separator_benign_fixtures_avoid_false_positives,
-        'command_case_negative_fixtures_detect_count_cap': command_case_negative_fixtures_detect_count_cap,
         'target_helper_metadata_only_no_event_reader': bool(target_helper) and not target_helper_reads_or_exports_events,
         'lograw_target_details_call_count': len(lograw_target_detail_calls),
         'lograw_target_details_omits_maxevents_overclaim': bool(lograw_target_detail_calls) and not target_detail_overclaim and not target_detail_uses_splatting,
@@ -234,6 +115,7 @@ def validate_lograw_metadata_truth_policy(source_dir: Path) -> Dict[str, object]
         'evtx_export_preserves_explicit_window_filter': "TimeCreated[@SystemTime>='$startUtc' and @SystemTime<='$endUtc']" in evtx_export,
         'evtx_export_preserves_event_id_filter': 'EventID=$_' in evtx_export,
     })
+    checks.update(fixture_checks)
 
     add_missing_errors('lograw metadata truth policy failed: ', checks, [
         'review_function_present',
@@ -286,4 +168,3 @@ def validate_lograw_metadata_truth_policy(source_dir: Path) -> Dict[str, object]
         'checks': checks,
         'errors': errors,
     }
-

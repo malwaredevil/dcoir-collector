@@ -1,0 +1,339 @@
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/CollectorParserAndPublicContract.Tests.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/CollectorRiskContracts.Tests.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/CollectorRuntimeSmoke.Tests.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/CollectorSourceStructure.Tests.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/CollectorStaticSafety.Tests.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/DcoirPester.Helpers.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/Install-DcoirPesterPrereqs.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/pester/Invoke-DcoirPester.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Add-PowerShellReviewAssistSummary.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
+        "path": ".github/scripts/Write-ChatGptExecFinalReadback.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Capture.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Dispatch.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Monitor.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/RunRecords.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Summary.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Public/Invoke-DcoirActionsWorkflowOrchestratorEngine.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Dcoir.ActionsExec.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psd1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psd1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psm1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".psm1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsExecHarness.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsValidationSmoke.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsWorkflowOrchestrator.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09AddMissingSortRow.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyRelativeDateFilter.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplySortDirection.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyValidationDueView.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "operator_tooling",
+        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09RelativeDatePopupProbe.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {

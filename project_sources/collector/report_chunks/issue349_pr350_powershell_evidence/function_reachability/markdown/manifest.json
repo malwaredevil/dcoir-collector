@@ -1,67 +1,22 @@
 {
-  "chunk_count": 6,
+  "chunk_count": 1,
   "chunks": [
     {
-      "bytes": 221,
+      "bytes": 6210,
       "chunk_index": 0,
       "chunk_kind": "markdown_section",
       "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_000_front_matter.md",
-      "section": "front_matter",
-      "sha256": "bf6357a6dbe7a3bae0bdbd6320978972d22a93b81b78af08801a2f0f420c3a2b"
-    },
-    {
-      "bytes": 191,
-      "chunk_index": 1,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_001_Classification_Summary.md",
-      "section": "Classification_Summary",
-      "sha256": "d823a625632729b8d4267932c72bd3e258ba13c3c358a5afd19a1b37231bb593"
-    },
-    {
-      "bytes": 4186,
-      "chunk_index": 2,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_002_Scope.md",
-      "section": "Scope",
-      "sha256": "5a11cd5add0d589a5bd1c31b4cfa6e8580c4d29fe90edd09d123b925a6811f45"
-    },
-    {
-      "bytes": 830,
-      "chunk_index": 3,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_003_Potential_Follow_Up_Functions.md",
-      "section": "Potential_Follow_Up_Functions",
-      "sha256": "632af365f8e46c275bacfb1f1937eba3f14cc2d11c1dd58d459d971a51ea7be3"
-    },
-    {
-      "bytes": 197,
-      "chunk_index": 4,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_004_Dynamic_Invocation_Sites.md",
-      "section": "Dynamic_Invocation_Sites",
-      "sha256": "f24efb26ef10bb60734fa9849aabe1abf701c584481426f6f3a44162de268794"
-    },
-    {
-      "bytes": 405,
-      "chunk_index": 5,
-      "chunk_kind": "markdown_section",
-      "format": "markdown",
-      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_005_Non_Claims.md",
-      "section": "Non_Claims",
-      "sha256": "38481463e516bd4a1793e47cbe9ef90e2cf81ed393dba6f6b31a4cbc185518c4"
+      "path": "project_sources/collector/report_chunks/issue349_pr350_powershell_evidence/function_reachability/markdown/chunk_000_text.md",
+      "sha256": "ce7cb6f37d0b43aec994596ffe4ab1b875e88bf77ded80c4b20b743eb9c739d4",
+      "section": "text_slice_000"
     }
   ],
-  "max_chunk_bytes_target": 40000,
-  "reassembly_note": "Concatenate Markdown chunks in manifest order.",
+  "max_chunk_bytes_target": 14000,
+  "reassembly_note": "Concatenate chunks in manifest order.",
   "report_id": "function_reachability",
   "schema_version": "dcoir_report_chunk_manifest_v1",
-  "source_bytes": 6030,
+  "source_bytes": 6210,
   "source_format": "markdown",
   "source_report": "project_sources/collector/powershell_function_reachability_report.md",
-  "source_sha256": "37747233d8c03b12afe1af7451877e6db5eab94df95c2bc993b619486c0e55fc"
+  "source_sha256": "ce7cb6f37d0b43aec994596ffe4ab1b875e88bf77ded80c4b20b743eb9c739d4"
 }

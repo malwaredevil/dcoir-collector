@@ -1,919 +1,276 @@
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs04-merge-delete-batch2-export-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs04-merge-delete-batch3-export-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-aggressive-rename-candidates-batch2-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-aggressive-rename-candidates-batch3-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch1-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch2-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-final-verify-retirement-packet-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-rename-ledger-dryrun-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-003.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-004.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-005.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-006.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-008.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-009.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-010.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-011.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-003.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-004.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-005.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-006.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-008.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-003.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-004.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-005.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-006.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-003.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-005.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-006.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-007.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_003.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      },
-      {
-        "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1",
-        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
-        "source_type": ".ps1",
-        "status": "staging"
-      }
-    ],
-    "included_paths": [
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/actions/run-powershell-review-assist/Invoke-DcoirPowerShellReviewAssist.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/CollectorHarnessAndPesterBoundary.Tests.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/CollectorParserAndPublicContract.Tests.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/CollectorRiskContracts.Tests.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/CollectorRuntimeSmoke.Tests.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/CollectorSourceStructure.Tests.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/CollectorStaticSafety.Tests.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/DcoirPester.Helpers.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/Install-DcoirPesterPrereqs.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/pester/Invoke-DcoirPester.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/scripts/Add-PowerShellReviewAssistSummary.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
-        "path": ".github/scripts/Write-ChatGptExecFinalReadback.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Capture.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Dispatch.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Monitor.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/RunRecords.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Summary.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Public/Invoke-DcoirActionsWorkflowOrchestratorEngine.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Dcoir.ActionsExec.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psd1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psm1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".psm1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsExecHarness.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsValidationSmoke.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsWorkflowOrchestrator.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09AddMissingSortRow.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyRelativeDateFilter.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplySortDirection.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyValidationDueView.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09RelativeDatePopupProbe.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09VerifyRelativeDateFilters.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ViewPanelReadback.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ViewRepairBatch.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirRepoPatchApply.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirSafePrePullApply.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirWbs09ManifestSchemaAudit.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirApplyInPayload.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirChatGPTFriendlyZip.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirTargetedSnapshot.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirTextOnlyRepoSnapshot.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "collector_validation_tooling",
-        "path": "project_sources/collector/PSScriptAnalyzerSettings.psd1",
-        "reason": "Repository-owned PowerShell analyzer policy is maintained validation tooling.",
-        "source_type": ".psd1",
-        "status": "tooling"
-      },
-      {
-        "category": "collector_harness_script",
-        "path": "project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1",
-        "reason": "Collector harness script is a primary maintained PowerShell surface.",
-        "source_type": ".ps1",
-        "status": "source"
-      },
-      {
-        "category": "collector_harness_script",
-        "path": "project_sources/collector/harness/run_DCOIR_DefaultNoFlags_Regression.ps1",
-        "reason": "Collector harness script is a primary maintained PowerShell surface.",
-        "source_type": ".ps1",
-        "status": "source"
-      },
-      {
-        "category": "collector_harness_script",
-        "path": "project_sources/collector/harness/run_DCOIR_Tests.ps1",
-        "reason": "Collector harness script is a primary maintained PowerShell surface.",
-        "source_type": ".ps1",
-        "status": "source"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
-        "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
-        "status": "source_part"
-      },
-      {
-        "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "7f096d3ee8f04fccb5a061553e58be285fb46aaf7738ab63b83d683554818f95",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "A skipped analyzer target, missing policy, missing inventory, or failed analyzer process can be misreported as success.",
+      "line": 1,
+      "observed_behavior": "Analyzer skip state is represented with a success validation state.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/analyzer_skip_success.ps1",
+      "recommended_fix_direction": "Fail closed when analyzer policy, inventory, target, or command execution is incomplete.",
+      "risk_classes": [
+        "analyzer_policy_inventory_skip_or_tool_failure_reported_success"
+      ],
+      "rule_name": "DCOIR.NoAnalyzerSkipSuccess",
+      "severity": "Error",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "validation tooling",
+        "workflow support scripts"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "64bf07846f4b703810fd1f6134a4cb8f5f71b52c44b1822b73da34ced7acff5a",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "Broad baseline entries can hide new findings and turn analyzer integration into a green-only status check.",
+      "line": 1,
+      "observed_behavior": "Baseline suppression is broad and lacks a finding fingerprint.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/broad_baseline.ps1",
+      "recommended_fix_direction": "Bind suppressions to path, rule, fingerprint, expected match count, and reason.",
+      "risk_classes": [
+        "broad_suppression_or_baseline_growth_hiding_risk"
+      ],
+      "rule_name": "DCOIR.BaselineSuppressionMustBeFingerprintBound",
+      "severity": "Error",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "validation tooling",
+        "analyzer baseline artifacts"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "71228e35c2e53770ada648c1457b2ffeb913823b5bec5e6dbe94ccca3d620f75",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "`FAIL` rows or report text can be generated while the process exits successfully, creating misleading validation evidence.",
+      "line": 2,
+      "observed_behavior": "A FAIL output row can be emitted without a failing process result.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/fail_row_green_exit.ps1",
+      "recommended_fix_direction": "Tie FAIL rows and reports to a thrown exception, nonzero exit, or failed validation summary.",
+      "risk_classes": [
+        "fail_rows_reports_or_fixture_outputs_not_causing_failure"
+      ],
+      "rule_name": "DCOIR.FailOutputMustFailValidation",
+      "severity": "Error",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "collector harness",
+        "validation tooling",
+        "workflow support scripts"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "66a70697e53de562debbc2ed8965c13d0d995759f29bc0475eb3343751b23ad5",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "Dynamic expression execution can turn attacker-controlled or malformed collector data into code execution and makes review intent opaque.",
+      "line": 2,
+      "observed_behavior": "Dynamic expression execution hides command intent and can execute untrusted input.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/invoke_expression.ps1",
+      "recommended_fix_direction": "Replace Invoke-Expression with explicit command invocation or structured parsing.",
+      "risk_classes": [
+        "unsafe_dynamic_execution"
+      ],
+      "rule_name": "PSAvoidUsingInvokeExpression",
+      "severity": "Warning",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "collector runtime",
+        "collector harness",
+        "operator tooling",
+        "workflow support scripts"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "f4cc22397dbc3ce51adce8d97b1174af17d0a235d6110868140c8ca05e3f6ccc",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "Hard-coded credential-like values can leak into artifacts or become copied into operator instructions.",
+      "line": 2,
+      "observed_behavior": "Credential-like variable is assigned a literal string.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/plaintext_password.ps1",
+      "recommended_fix_direction": "Use a non-secret placeholder or load secret material from a protected source.",
+      "risk_classes": [
+        "secret_material_or_credential_handling"
+      ],
+      "rule_name": "PSAvoidUsingPlainTextForPassword",
+      "severity": "Warning",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "collector runtime",
+        "collector harness",
+        "operator tooling"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "d284d92b6302d59a8307cf5e575ecb8601078e3361a90f45b97f5cf55fb9aa8b",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "Plaintext conversion to SecureString can normalize unsafe secret handling and hide sensitive values in fixtures, logs, or operator tools.",
+      "line": 2,
+      "observed_behavior": "Plaintext data is converted to SecureString.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/plaintext_securestring.ps1",
+      "recommended_fix_direction": "Avoid plaintext secret material and use a protected input path.",
+      "risk_classes": [
+        "secret_material_or_credential_handling"
+      ],
+      "rule_name": "PSAvoidUsingConvertToSecureStringWithPlainText",
+      "severity": "Warning",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "collector runtime",
+        "collector harness",
+        "operator tooling"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "50701c09a1ce350831596b956cbd51fe5d61801dfdad142b27215013edbec995",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "Generated scripts can diverge from source parts while validation still analyzes the stale generated artifact.",
+      "line": 2,
+      "observed_behavior": "Generated output marker indicates stale source-part assembly.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/source_part_drift.ps1",
+      "recommended_fix_direction": "Regenerate or compare source-part hashes before accepting analyzer evidence.",
+      "risk_classes": [
+        "source_part_assembly_drift_or_stale_generated_output"
+      ],
+      "rule_name": "DCOIR.SourcePartAssemblyDrift",
+      "severity": "Error",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",
+      "suppression_state": "not_suppressed",
+      "target_surfaces": [
+        "collector source parts",
+        "collector harness source parts",
+        "generated or assembled output"
+      ]
+    },
+    {
+      "baseline_state": "not_baselined",
+      "check_id": "",
+      "column": 1,
+      "evidence_kind": "deterministic_fixture_analyzer",
+      "fingerprint": "c0af233831610eb0d1ccec2c2adcd74339c5f4b139b594c0f96c0b1ddfdf0e6f",
+      "governance": {
+        "decision": "advisory",
+        "matched_by": "classification_rule",
+        "owner": "DCOIR Collector maintainers",
+        "rationale": "PowerShell analysis fixture findings are expected proof points for #263/#264 controls, not production-source remediation debt.",
+        "record_id": "fixture-negative-findings-are-advisory-evidence",
+        "review_date": "2026-06-10",
+        "reviewer": "DCOIR operator"
+      },
+      "governance_classification": "advisory",
+      "impact": "State-changing functions without ShouldProcess make destructive or mutating operator paths harder to preview, review, and stop.",
+      "line": 1,
+      "observed_behavior": "State-changing function does not declare SupportsShouldProcess.",
+      "path": "project_sources/collector/fixtures/powershell_analysis/bad/state_changing_function.ps1",
+      "recommended_fix_direction": "Add CmdletBinding(SupportsShouldProcess) and guard mutation with ShouldProcess.",
+      "risk_classes": [
+        "unsafe_or_wildcard_deletion_outside_controlled_roots"
+      ],
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "severity": "Warning",
+      "source_generated_target_kind": "fixture",
+      "source_report_path": "project_sources/collector/powershell_rule_risk_fixture_report.json",
+      "source_schema_version": "dcoir_powershell_rule_risk_fixture_report_v1",

@@ -19,7 +19,7 @@ Files
 - dcoir_manual_test_runner.py : terminal dashboard and test engine
 - dcoir_manual_runner_context.py : shared state, dashboard, path, and command helpers
 - dcoir_manual_runner_package.py : repository, package, and runtime staging helpers
-- dcoir_manual_runner_checks.py : manual collector test steps and result checks
+- dcoir_manual_runner_checks.py and dcoir_manual_runner_checks_part_*.py : manual collector test steps and result checks
 - dcoir_manual_runner_flow.py : top-level non-admin/admin orchestration flow
 - dcoir_manual_test_control.json : durable control surface for step/order/cleanup naming
 - DCOIR_manual_test_plan.md : ordered manual test plan

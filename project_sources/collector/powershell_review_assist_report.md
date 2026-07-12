@@ -31,7 +31,7 @@
 | #265 project_sources/collector/powershell_assembly_parity_report.json | True | success | dcoir_powershell_assembly_parity_report_v1 |  |
 | #266 project_sources/collector/powershell_finding_governance_report.json | True | success | dcoir_powershell_finding_governance_report_v1 | 22 |
 | #267 project_sources/collector/powershell_engine_pester_boundary_report.json | True | success | dcoir_powershell_engine_pester_boundary_report_v1 |  |
-| #306 project_sources/collector/powershell_function_reachability_report.json | True | success | dcoir_powershell_function_reachability_report_v1 | 170 |
+| #306 project_sources/collector/powershell_function_reachability_report.json | True | success | dcoir_powershell_function_reachability_report_v1 | 171 |
 | #262 project_sources/collector/powershell_analyzer_report.json | False | optional_missing | not present | 0 |
 
 ## Evidence Channels
@@ -44,7 +44,7 @@
 | assembly_parity | success | 2 generated outputs; pass |
 | finding_governance | success | 0 baseline records; 0 suppressions |
 | engine_boundary | success | 2 unclaimed blocking artifacts |
-| function_reachability | success | 170 functions; 166 literal referenced; 4 dynamic uncertain; coverage not_collected |
+| function_reachability | success | 171 functions; 167 literal referenced; 4 dynamic uncertain; coverage not_collected |
 | pester_boundary | supporting_non_blocking | Pester may support later runtime or wrapper evidence but is not blocking static-validation evidence in #268. |
 
 ## Findings
@@ -77,7 +77,7 @@
 ## Inventory Decisions
 
 - Full-scope inventory mode: `full`
-- Total PowerShell surfaces: `246`
+- Total PowerShell surfaces: `249`
 
 ### Excluded Paths
 
@@ -201,6 +201,7 @@
 | project_sources/collector/fixtures/powershell_analysis/good/custom_fingerprint_bound_baseline.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | project_sources/collector/fixtures/powershell_analysis/good/custom_safe_root_delete.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | project_sources/collector/fixtures/powershell_analysis/good/custom_source_part_current.ps1 | Fixture/example PowerShell is inventoried separately from maintained source targets. |
+| project_sources/collector/source/parts/DCOIR_Collector.02_Baseline_Collection_And_Reports.ps1 | Superseded monolithic Part 02 pointer is documentation, not manifest-loaded runtime source. |
 
 ### Skipped Paths
 
