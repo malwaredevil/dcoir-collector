@@ -8,9 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import Iterable
 
-REPORT_ROOT = Path("chatgpt_staging/status_reports")
-REQUEST_ROOT = Path("chatgpt_staging/requests")
-OUT_ROOT = Path("chatgpt_staging/out")
+REPORT_ROOT = Path(".github/chatgpt_staging/status_reports")
+REQUEST_ROOT = Path(".github/chatgpt_staging/requests")
+OUT_ROOT = Path(".github/chatgpt_staging/out")
 SAFE_SEGMENT_RE = re.compile(r"[^A-Za-z0-9._-]+")
 
 

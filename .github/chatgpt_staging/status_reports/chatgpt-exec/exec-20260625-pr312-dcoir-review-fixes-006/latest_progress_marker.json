@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260625-pr312-dcoir-review-fixes-006",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "28151967108",
+  "github_sha": "fb8deb00dd09c0ffadef9fd858ccb6a911e66dc9",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260625-pr312-dcoir-review-fixes-006",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260625-pr312-dcoir-review-fixes-006.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-25T06:43:12Z",
+  "workflow": "chatgpt-exec"
+}

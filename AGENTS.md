@@ -168,7 +168,7 @@ Do not claim the ChatGPT webUI agent can automatically update this repository on
 
 Replit Agent accesses this repository using the `GITHUB_PAT` secret available
 in the Replit environment. There is no staging lane, no apply-in workflow, and
-no `chatgpt_staging/` lane involvement when Replit Agent is the working agent.
+no `.github/chatgpt_staging/` lane involvement when Replit Agent is the working agent.
 Replit Agent reads files by cloning a fresh copy of the repository at session
 start via `gh repo clone`; the clone is ephemeral and does not persist between
 sessions, so it is always current at session start. Replit Agent writes changes
@@ -307,7 +307,7 @@ Use `codex-wait-pr-checks` only when the PR has checks running and the task requ
 
 Pester test files may live anywhere in the repository when named `*.Tests.ps1`, but Codex-focused Pester tests should be placed under `.github/pester` unless a closer source-adjacent test location is more appropriate. Pester validation in the Codex Ubuntu environment is PowerShell 7 validation only and does not prove Windows PowerShell 5.1 behavior.
 
-Use `bash scripts/validate-codex-local.sh` for GitHub Desktop or local pre-push review when the Codex cloud helper commands are unavailable; pass explicit file paths for targeted checks, or use no arguments to validate changed files relative to `CODEX_BASE_REF` or `origin/main` plus staged and unstaged local changes. Use `scripts/validate-windows-powershell-51.ps1` for local PowerShell parser checks and rely on `windows-powershell-51.yml` for exact Windows PowerShell 5.1 workflow readback. Use `python3 scripts/validate-codeql-security-workflow.py` after CodeQL workflow changes to check the expected repo-local security workflow shape.
+Use `bash .github/dcoir_review/scripts/validate-codex-local.sh` for GitHub Desktop or local pre-push review when the Codex cloud helper commands are unavailable; pass explicit file paths for targeted checks, or use no arguments to validate changed files relative to `CODEX_BASE_REF` or `origin/main` plus staged and unstaged local changes. Use `.github/dcoir_review/scripts/validate-windows-powershell-51.ps1` for local PowerShell parser checks and rely on `windows-powershell-51.yml` for exact Windows PowerShell 5.1 workflow readback. Use `python3 .github/dcoir_review/scripts/validate-codeql-security-workflow.py` after CodeQL workflow changes to check the expected repo-local security workflow shape.
 
 Use `codex-push-smoke` only when the operator explicitly asks to validate push capability. Do not run push smoke tests during routine PR work because the smoke test creates and deletes a temporary branch.
 

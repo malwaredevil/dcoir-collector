@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260625-pr312-dcoir-review-fixes-007",
+  "operator_approved": true,
+  "approved_at_utc": "2026-06-25T06:50:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1",
+  "approved_command_preview": "Retry PR #312 dcoir-review fix execution by wrapping the already staged guarded v4 script, adding bridged-token Git auth for the PR branch push, inserting the duplicate-location pre-normalizer, and broadening only the duplicate Markdown escaping validator. This preserves PR head/blob guards, two-file patch scope, validation, PR branch push, and no external @codex/no ready-for-review behavior.",
+  "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\chatgpt_staging\\exec_scripts\\exec-20260625-pr312-dcoir-review-fixes-007.ps1'"
+}

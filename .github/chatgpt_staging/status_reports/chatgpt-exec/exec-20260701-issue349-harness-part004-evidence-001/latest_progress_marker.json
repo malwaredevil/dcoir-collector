@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "28495631781",
+  "github_sha": "2eb1f7ac28a7b599a045a22b65b7a976dde345cc",
+  "phase": "running-harness",
+  "request_id": "exec-20260701-issue349-harness-part004-evidence-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260701-issue349-harness-part004-evidence-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-07-01T05:26:16Z",
+  "workflow": "chatgpt-exec"
+}

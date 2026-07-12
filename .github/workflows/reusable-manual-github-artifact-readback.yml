@@ -306,4 +306,4 @@ jobs:
             --artifact-subpath "$ARTIFACT_SUBPATH"
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \
             -CommitMessage "Record GitHub artifact readback failure report [skip ci]" \
-            -Paths "chatgpt_staging/status_reports/chatgpt-github-artifact-readback/${REQUEST_ID:-artifact_readback_failure_$GITHUB_RUN_ID}"
+            -Paths ".github/chatgpt_staging/status_reports/chatgpt-github-artifact-readback/${REQUEST_ID:-artifact_readback_failure_$GITHUB_RUN_ID}"

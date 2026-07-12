@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$CallerEventName = 'workflow_call',
-    [string]$InputRequestPath = 'chatgpt_staging/exec_requests/request.json',
+    [string]$InputRequestPath = '.github/chatgpt_staging/exec_requests/request.json',
     [string]$GithubSha = $env:GITHUB_SHA,
     [string]$GithubOutput = $env:GITHUB_OUTPUT
 )
@@ -24,7 +24,7 @@ if ($CallerEventName -eq 'workflow_dispatch') {
     $requestPath = $InputRequestPath
 } else {
     $changed = git diff-tree --no-commit-id --name-only -r $GithubSha
-    $requestPath = ($changed | Where-Object { $_ -like 'chatgpt_staging/exec_requests/*.json' } | Select-Object -First 1)
+    $requestPath = ($changed | Where-Object { $_ -like '.github/chatgpt_staging/exec_requests/*.json' } | Select-Object -First 1)
 }
 
 if ([string]::IsNullOrWhiteSpace($requestPath)) {
@@ -32,8 +32,8 @@ if ([string]::IsNullOrWhiteSpace($requestPath)) {
     exit 0
 }
 
-if ($requestPath -notmatch '^chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
-    throw "Exec request path must match chatgpt_staging/exec_requests/<request_id>.json. Got: $requestPath"
+if ($requestPath -notmatch '^.github/chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
+    throw "Exec request path must match .github/chatgpt_staging/exec_requests/<request_id>.json. Got: $requestPath"
 }
 
 if (-not (Test-Path -LiteralPath $requestPath -PathType Leaf)) {

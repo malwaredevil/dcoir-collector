@@ -62,8 +62,8 @@ WORKFLOW_MARKER_RE = re.compile(
 MANIFEST_PATH = Path("project_sources/collector/manifests/Collector_Runtime_Package_Manifest.json")
 HARNESS_PARTS_ROOT = Path("project_sources/collector/harness/source/parts")
 HARNESS_GENERATED_OUTPUT = Path("project_sources/collector/harness/run_DCOIR_Tests.generated.ps1")
-REQUIRED_SURFACE_PROFILES_PATH = Path("project_sources/github_actions/workflow_required_surface_profiles.json")
-REQUIRED_SURFACE_PROFILE_SUPPLEMENTS_PATH = Path("project_sources/github_actions/workflow_required_surface_profile_supplements.json")
+REQUIRED_SURFACE_PROFILES_PATH = Path(".github/github_actions/workflow_required_surface_profiles.json")
+REQUIRED_SURFACE_PROFILE_SUPPLEMENTS_PATH = Path(".github/github_actions/workflow_required_surface_profile_supplements.json")
 FLOW_STEP_KEYS = {
     "continue-on-error",
     "env",

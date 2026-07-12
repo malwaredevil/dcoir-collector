@@ -16,7 +16,7 @@
 # Runtime dependencies:
 # - Uses GitHub CLI, .github/scripts/write_workflow_report.py, and .github/scripts/Invoke-ChatGptReportPush.ps1.
 # Expected outputs/readback:
-# - Reports under chatgpt_staging/status_reports/repo-workflows/<workflow-name>/<run-id>/workflow_report.md and a final clickable URL in the Output full URL path step.
+# - Reports under .github/chatgpt_staging/status_reports/repo-workflows/<workflow-name>/<run-id>/workflow_report.md and a final clickable URL in the Output full URL path step.
 # Safety notes:
 # - Do not use repo-workflows completed-run summaries for live polling of request-scoped staging workflows.
 # Maintenance notes:

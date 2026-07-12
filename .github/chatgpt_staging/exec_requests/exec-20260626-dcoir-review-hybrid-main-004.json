@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260626-dcoir-review-hybrid-main-004",
+  "operator_approved": true,
+  "approved_at_utc": "2026-06-26T11:25:44Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1",
+  "approved_command_preview": "Rerun the DCOIR Review hybrid direct update through a diagnostic wrapper. On success it commits and pushes the source update. On validation failure it restores source/staging files before exiting so chatgpt-exec can upload artifacts and final readback cleanly. This does not use chatgpt-apply-in and does not post review comments.",
+  "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\chatgpt_staging\\exec_scripts\\exec-20260626-dcoir-review-hybrid-main-004.ps1'"
+}

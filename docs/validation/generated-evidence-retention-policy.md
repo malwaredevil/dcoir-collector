@@ -42,7 +42,7 @@ current validation evidence.
 
 ### ChatGPT staging and status reports
 
-`chatgpt_staging/` contains operational requests, connector readback, progress,
+`.github/chatgpt_staging/` contains operational requests, connector readback, progress,
 and historical execution receipts. These paths are not canonical product or
 validation source. The existing staging-cleanup and report-retention workflows
 own their lifecycle.

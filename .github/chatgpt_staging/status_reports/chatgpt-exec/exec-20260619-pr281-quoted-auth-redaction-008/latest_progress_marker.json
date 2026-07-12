@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260619-pr281-quoted-auth-redaction-008",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27822687882",
+  "github_sha": "055e958e175aea65cf2d2000e88791ab205f255b",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260619-pr281-quoted-auth-redaction-008",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260619-pr281-quoted-auth-redaction-008.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-19T11:21:34Z",
+  "workflow": "chatgpt-exec"
+}

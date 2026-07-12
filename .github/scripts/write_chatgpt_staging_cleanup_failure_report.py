@@ -35,7 +35,7 @@ def main() -> int:
     args = parser.parse_args()
 
     report_id = safe_report_id(args.request_id_filter)
-    report_dir = pathlib.Path("chatgpt_staging/status_reports/chatgpt-staging-cleanup") / report_id
+    report_dir = pathlib.Path(".github/chatgpt_staging/status_reports/chatgpt-staging-cleanup") / report_id
     report_path = report_dir / "workflow_report.md"
     report_dir.mkdir(parents=True, exist_ok=True)
     lines = [

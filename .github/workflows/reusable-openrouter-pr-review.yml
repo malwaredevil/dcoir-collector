@@ -118,10 +118,10 @@ jobs:
           TRIGGER_COMMENT_BODY: ${{ github.event.comment.body }}
           TRIGGER_AUTHOR: ${{ github.event.comment.user.login }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
-          OPENROUTER_REVIEW_CONFIG: .github/openrouter-pr-review-pareto.yml
+          OPENROUTER_REVIEW_CONFIG: .github/dcoir_review/openrouter-pr-review-pareto.yml
           REVIEW_ASSIST_CONTEXT_PATH: ${{ env.REVIEW_ASSIST_CONTEXT_PATH }}
           DCOIR_REVIEW_DEBUG_ARTIFACT_DIR: dcoir-review-debug
-        run: python -u scripts/openrouter_pr_review_entrypoint.py
+        run: python -u .github/dcoir_review/scripts/openrouter_pr_review_entrypoint.py
 
       - name: Write DCOIR review debug report section
         if: always()
@@ -142,7 +142,7 @@ jobs:
             exit 0
           fi
           mkdir -p "$report_dir"
-          python scripts/write_dcoir_review_debug_report_section.py \
+          python .github/dcoir_review/scripts/write_dcoir_review_debug_report_section.py \
             --debug-dir "$debug_dir" \
             --output "$report_dir/chatgpt_workflow_report_section.md"
           if [[ -n "${GITHUB_STEP_SUMMARY:-}" && -f "$report_dir/chatgpt_workflow_report_section.md" ]]; then

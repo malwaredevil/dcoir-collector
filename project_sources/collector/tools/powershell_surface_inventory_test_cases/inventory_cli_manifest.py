@@ -14,7 +14,7 @@ class InventoryCliManifestTests(InventoryTestCase):
     def test_empty_included_powershell_surface_fails(self) -> None:
         with self.make_minimal_repo() as temp:
             root = Path(temp)
-            rel = "operator_tools/sample/empty.psm1"
+            rel = ".github/operator_tools/sample/empty.psm1"
             write(root / rel, "")
             result = inventory.build_inventory(root, changed_files=[rel])
         self.assertFalse(result["validation"]["success"])
@@ -23,7 +23,7 @@ class InventoryCliManifestTests(InventoryTestCase):
     def test_file_facts_are_line_ending_stable(self) -> None:
         with self.make_minimal_repo() as temp:
             root = Path(temp)
-            rel = "operator_tools/sample/CrLf.ps1"
+            rel = ".github/operator_tools/sample/CrLf.ps1"
             crlf_bytes = b"Write-Output 'ok'\r\n"
             lf_bytes = b"Write-Output 'ok'\n"
             path = root / rel
@@ -42,8 +42,8 @@ class InventoryCliManifestTests(InventoryTestCase):
         class Completed:
             returncode = 0
             stdout = (
-                b"operator_tools/sample/Invoke-DcoirSample.ps1\0"
-                b"operator_tools/sample/node_modules/vendor.ps1\0"
+                b".github/operator_tools/sample/Invoke-DcoirSample.ps1\0"
+                b".github/operator_tools/sample/node_modules/vendor.ps1\0"
                 b"project_sources/collector/source/DCOIR_Collector.ps1\0"
             )
 
@@ -53,7 +53,7 @@ class InventoryCliManifestTests(InventoryTestCase):
         self.assertEqual(
             files,
             [
-                "operator_tools/sample/Invoke-DcoirSample.ps1",
+                ".github/operator_tools/sample/Invoke-DcoirSample.ps1",
                 "project_sources/collector/source/DCOIR_Collector.ps1",
             ],
         )

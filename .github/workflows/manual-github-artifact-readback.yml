@@ -5,13 +5,13 @@
 # - Download a bounded GitHub Actions artifact from a specified workflow run, extract it into a cleanup-managed repo path, and commit a ChatGPT-readable status report.
 # Use when:
 # - Use when ChatGPT needs connector-readable access to a workflow artifact's extracted contents without asking the operator to download and re-upload the ZIP manually.
-# - Prefer the request-file trigger by committing chatgpt_staging/requests/github_artifact_readback/<request_id>.json on main.
+# - Prefer the request-file trigger by committing .github/chatgpt_staging/requests/github_artifact_readback/<request_id>.json on main.
 # Do not use when:
 # - Do not use for broad repo cleanup, unbounded artifact scraping, or as a replacement for the normal heartbeat/report-first readback order.
 # Trigger model:
-# - workflow_dispatch inputs: request_path, source_run_id, artifact_name, artifact_id, request_id, artifact_subpath, commit_outputs; push branches: main paths: chatgpt_staging/requests/github_artifact_readback/*.json
+# - workflow_dispatch inputs: request_path, source_run_id, artifact_name, artifact_id, request_id, artifact_subpath, commit_outputs; push branches: main paths: .github/chatgpt_staging/requests/github_artifact_readback/*.json
 # Required inputs:
-# - request_path: optional repo-relative request JSON under chatgpt_staging/requests/github_artifact_readback/
+# - request_path: optional repo-relative request JSON under .github/chatgpt_staging/requests/github_artifact_readback/
 # - source_run_id: GitHub Actions run id that owns the artifact when using direct dispatch fallback.
 # - artifact_name or artifact_id: bounded artifact selector.
 # - request_id: optional safe request id override; default derives from source_run_id plus artifact identifier.
@@ -21,7 +21,7 @@
 # Runtime dependencies:
 # - Uses actions/download-artifact plus repo-local manifest/report generation.
 # Expected outputs/readback:
-# - Live heartbeat reports under chatgpt_staging/status_reports/chatgpt-github-artifact-readback/<request_id>/ while the workflow is running, plus extracted files under chatgpt_staging/out/<request_id>/ and a final committed workflow report under the same request-scoped status-report directory.
+# - Live heartbeat reports under .github/chatgpt_staging/status_reports/chatgpt-github-artifact-readback/<request_id>/ while the workflow is running, plus extracted files under .github/chatgpt_staging/out/<request_id>/ and a final committed workflow report under the same request-scoped status-report directory.
 # Safety notes:
 # - Inputs must be bounded; absolute paths and parent traversal are rejected.
 # - Request JSON schema must be dcoir.chatgpt_staging.github_artifact_readback_request.v1.
@@ -39,7 +39,7 @@ on:
   workflow_dispatch:
     inputs:
       request_path:
-        description: Repo-relative request JSON under chatgpt_staging/requests/github_artifact_readback/
+        description: Repo-relative request JSON under .github/chatgpt_staging/requests/github_artifact_readback/
         required: false
         default: ""
         type: string
@@ -77,7 +77,7 @@ on:
     branches:
       - main
     paths:
-      - "chatgpt_staging/requests/github_artifact_readback/*.json"
+      - ".github/chatgpt_staging/requests/github_artifact_readback/*.json"
 
 permissions:
   contents: write

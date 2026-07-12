@@ -54,7 +54,7 @@ def main() -> int:
     parser.add_argument("--phase", required=True)
     parser.add_argument("--result", default="running")
     parser.add_argument("--message", default="")
-    parser.add_argument("--report-root", default="chatgpt_staging/status_reports")
+    parser.add_argument("--report-root", default=".github/chatgpt_staging/status_reports")
     parser.add_argument("--request-path", default="")
     parser.add_argument("--artifact-name", default="")
     parser.add_argument("--exit-code", default="")

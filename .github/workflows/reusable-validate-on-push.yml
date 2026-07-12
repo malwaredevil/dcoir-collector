@@ -45,7 +45,7 @@ jobs:
       - name: Run duplicate-function action contract tests
         shell: pwsh
         run: |
-          python project_sources/github_actions/tools/test_duplicate_function_action_contract.py
+          python .github/github_actions/tools/test_duplicate_function_action_contract.py
           if ($LASTEXITCODE -ne 0) {
             throw 'Duplicate-function action contract tests failed.'
           }
@@ -53,7 +53,7 @@ jobs:
       - name: Run DCOIR Review runtime module-loader selftest
         shell: pwsh
         run: |
-          python scripts/dcoir_review_runtime_module_loader_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'DCOIR Review runtime module-loader selftest failed.'
           }
@@ -102,7 +102,7 @@ jobs:
       - name: Validate duplicate-function reports
         shell: pwsh
         run: |
-          python project_sources/github_actions/tools/validate_duplicate_function_reports.py
+          python .github/github_actions/tools/validate_duplicate_function_reports.py
           if ($LASTEXITCODE -ne 0) {
             throw 'Duplicate-function report validation failed.'
           }

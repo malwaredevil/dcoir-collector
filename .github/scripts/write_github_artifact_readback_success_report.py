@@ -11,8 +11,8 @@ import subprocess
 import sys
 
 SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]+$")
-REPORT_ROOT = pathlib.Path("chatgpt_staging/status_reports/chatgpt-github-artifact-readback")
-OUT_ROOT = pathlib.Path("chatgpt_staging/out")
+REPORT_ROOT = pathlib.Path(".github/chatgpt_staging/status_reports/chatgpt-github-artifact-readback")
+OUT_ROOT = pathlib.Path(".github/chatgpt_staging/out")
 
 
 def utc_now() -> str:

@@ -2,21 +2,21 @@
 # Workflow key:
 # - workflow-staging_lane-chatgpt-stage-out-0004
 # Purpose:
-# - Stage a reviewed output bundle from a request JSON into chatgpt_staging/out for ChatGPT/operator download and readback.
+# - Stage a reviewed output bundle from a request JSON into .github/chatgpt_staging/out for ChatGPT/operator download and readback.
 # Use when:
 # - Use when GitHub Actions should produce a ChatGPT-readable outbound package from an approved staging request.
 # Do not use when:
 # - Do not use for arbitrary repo source edits or for payload application; use chatgpt-apply-in for inbound repo updates.
 # Trigger model:
-# - workflow_dispatch inputs: request_path, commit_outputs; push branches: main paths: chatgpt_staging/requests/*.json
+# - workflow_dispatch inputs: request_path, commit_outputs; push branches: main paths: .github/chatgpt_staging/requests/*.json
 # Required inputs:
-# - request_path: Repo-relative request JSON under chatgpt_staging/requests/ default=chatgpt_staging/requests/request.json; commit_outputs: Commit generated out bundle into chatgpt_staging/out/ default=true
+# - request_path: Repo-relative request JSON under .github/chatgpt_staging/requests/ default=.github/chatgpt_staging/requests/request.json; commit_outputs: Commit generated out bundle into .github/chatgpt_staging/out/ default=true
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Requires request JSON under chatgpt_staging/requests/ and staging scripts referenced by the workflow.
+# - Requires request JSON under .github/chatgpt_staging/requests/ and staging scripts referenced by the workflow.
 # Expected outputs/readback:
-# - Generated output bundle under chatgpt_staging/out/ and status reports under chatgpt_staging/status_reports/chatgpt-stage-out/.
+# - Generated output bundle under .github/chatgpt_staging/out/ and status reports under .github/chatgpt_staging/status_reports/chatgpt-stage-out/.
 # Safety notes:
 # - Only operate on approved request paths; clean generated outputs through the cleanup lane after readback.
 # Maintenance notes:
@@ -33,12 +33,12 @@ on:
   workflow_dispatch:
     inputs:
       request_path:
-        description: "Repo-relative request JSON under chatgpt_staging/requests/"
+        description: "Repo-relative request JSON under .github/chatgpt_staging/requests/"
         required: true
-        default: "chatgpt_staging/requests/request.json"
+        default: ".github/chatgpt_staging/requests/request.json"
         type: string
       commit_outputs:
-        description: "Commit generated out bundle into chatgpt_staging/out/"
+        description: "Commit generated out bundle into .github/chatgpt_staging/out/"
         required: true
         default: true
         type: boolean
@@ -46,7 +46,7 @@ on:
     branches:
       - main
     paths:
-      - "chatgpt_staging/requests/*.json"
+      - ".github/chatgpt_staging/requests/*.json"
 
 permissions:
   contents: write
@@ -62,5 +62,5 @@ jobs:
       contents: write
     with:
       caller_event_name: ${{ github.event_name }}
-      request_path: ${{ inputs.request_path || 'chatgpt_staging/requests/request.json' }}
+      request_path: ${{ inputs.request_path || '.github/chatgpt_staging/requests/request.json' }}
       commit_outputs: ${{ github.event_name != 'workflow_dispatch' || inputs.commit_outputs }}

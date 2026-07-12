@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260603-issue197-label-cleanup-001",
+  "exit_code": "0",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "26899437653",
+  "github_sha": "bf0763394df48db74fa3e2872e562e00d5a5eb83",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260603-issue197-label-cleanup-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260603-issue197-label-cleanup-001.json",
+  "result": "success",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-03T16:47:53Z",
+  "workflow": "chatgpt-exec"
+}

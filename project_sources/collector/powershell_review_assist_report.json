@@ -1729,462 +1729,462 @@
     "excluded_paths": [
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121700Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121700Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T122700Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T122700Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T123500Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T123500Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-merge-delete-batch1-export-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-merge-delete-batch1-export-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-next-cleanup-export-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-next-cleanup-export-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-post-first-four-export-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-post-first-four-export-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-remaining-normalization-export-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-remaining-normalization-export-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs04-merge-delete-batch2-export-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs04-merge-delete-batch2-export-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs04-merge-delete-batch3-export-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs04-merge-delete-batch3-export-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-aggressive-rename-candidates-batch2-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs06-aggressive-rename-candidates-batch2-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-aggressive-rename-candidates-batch3-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs06-aggressive-rename-candidates-batch3-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch1-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch1-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch2-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs06-field-rename-apply-batch2-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-final-verify-retirement-packet-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs06-final-verify-retirement-packet-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260520-wbs06-rename-ledger-dryrun-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260520-wbs06-rename-ledger-dryrun-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-004.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-004.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-005.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-005.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-006.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-006.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-008.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-008.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-009.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-009.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-010.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-010.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-011.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260618-pr281-codex-p1-redaction-011.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260624-issue306-function-reachability-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-004.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-004.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-005.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-005.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-006.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-006.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-007.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-008.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260625-pr312-dcoir-review-fixes-008.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-004.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-004.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-005.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-005.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-006.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-fix-synthesis-006.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-004.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-005.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-005.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-006.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-006.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-007.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-007.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
@@ -2333,252 +2333,252 @@
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Dcoir.Actions.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Capture.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Capture.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Dispatch.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Dispatch.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Monitor.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Monitor.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/RunRecords.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/RunRecords.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Summary.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Summary.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Actions/Public/Invoke-DcoirActionsWorkflowOrchestratorEngine.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Public/Invoke-DcoirActionsWorkflowOrchestratorEngine.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Dcoir.ActionsExec.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Dcoir.ActionsExec.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Packaging/Dcoir.Packaging.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.RepoPatch/Dcoir.RepoPatch.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Snapshot/Dcoir.Snapshot.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psd1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psd1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psd1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psm1",
+        "path": ".github/operator_tools/github_desktop_lane/modules/DcoirActionsOrchestrator/DcoirActionsOrchestrator.psm1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".psm1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Get-DcoirGitConflictDiagnostic.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsExecHarness.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsExecHarness.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsValidationSmoke.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsValidationSmoke.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsWorkflowOrchestrator.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsWorkflowOrchestrator.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirRepoPatchApply.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirRepoPatchApply.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirSafePrePullApply.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/Invoke-DcoirSafePrePullApply.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirApplyInPayload.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/New-DcoirApplyInPayload.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirChatGPTFriendlyZip.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/New-DcoirChatGPTFriendlyZip.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirTargetedSnapshot.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/New-DcoirTargetedSnapshot.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/New-DcoirTextOnlyRepoSnapshot.ps1",
+        "path": ".github/operator_tools/github_desktop_lane/scripts/New-DcoirTextOnlyRepoSnapshot.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
@@ -3068,7 +3068,7 @@
       },
       {
         "category": "validation_tooling",
-        "path": "scripts/validate-windows-powershell-51.ps1",
+        "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
         "reason": "Validation PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"

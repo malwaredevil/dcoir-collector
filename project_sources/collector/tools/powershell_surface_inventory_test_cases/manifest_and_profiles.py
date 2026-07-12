@@ -46,7 +46,7 @@ class ManifestAndProfileTests(InventoryTestCase):
         with self.make_minimal_repo() as temp:
             root = Path(temp)
             write(
-                root / "project_sources/github_actions/workflow_required_surface_profiles.json",
+                root / ".github/github_actions/workflow_required_surface_profiles.json",
                 '{\n'
                 '  "validate_on_pr": [\n'
                 '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",\n'
@@ -105,7 +105,7 @@ class ManifestAndProfileTests(InventoryTestCase):
         with self.make_minimal_repo() as temp:
             root = Path(temp)
             write(
-                root / "project_sources/github_actions/workflow_required_surface_profiles.json",
+                root / ".github/github_actions/workflow_required_surface_profiles.json",
                 '{\n'
                 '  "validate_on_pr": [\n'
                 '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt"\n'

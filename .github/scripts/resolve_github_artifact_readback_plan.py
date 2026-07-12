@@ -8,7 +8,7 @@ import pathlib
 import re
 import subprocess
 
-REQUEST_ROOT = pathlib.Path("chatgpt_staging/requests/github_artifact_readback")
+REQUEST_ROOT = pathlib.Path(".github/chatgpt_staging/requests/github_artifact_readback")
 SCHEMA = "dcoir.chatgpt_staging.github_artifact_readback_request.v1"
 SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 INVALID_REQUEST_IDS = {".", ".."}
@@ -57,7 +57,7 @@ def safe_request_path(path: pathlib.Path) -> bool:
 
 def parse_request(path: pathlib.Path) -> dict[str, str]:
     if not safe_request_path(path):
-        raise SystemExit("request_path must match chatgpt_staging/requests/github_artifact_readback/<request_id>.json")
+        raise SystemExit("request_path must match .github/chatgpt_staging/requests/github_artifact_readback/<request_id>.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     if payload.get("schema") != SCHEMA:
         raise SystemExit(f"artifact readback request schema must be {SCHEMA}")
@@ -186,8 +186,8 @@ def finalize_plan(
         "commit_outputs": commit_outputs,
         "next_request_path": next_path,
         "download_dir": download_dir,
-        "out_dir": f"chatgpt_staging/out/{request_id}",
-        "report_dir": f"chatgpt_staging/status_reports/chatgpt-github-artifact-readback/{request_id}",
+        "out_dir": f".github/chatgpt_staging/out/{request_id}",
+        "report_dir": f".github/chatgpt_staging/status_reports/chatgpt-github-artifact-readback/{request_id}",
         "skip": "false",
     })
 

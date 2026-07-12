@@ -16,7 +16,7 @@ on:
         description: Forwarded `payload_b64_path` input from the entry workflow.
         required: false
         type: string
-        default: 'chatgpt_staging/in/request/payload.zip.b64'
+        default: '.github/chatgpt_staging/in/request/payload.zip.b64'
       commit_changes:
         description: Forwarded `commit_changes` input from the entry workflow.
         required: false
@@ -59,9 +59,9 @@ jobs:
           reject_chunk_path() {
             local p="$1"
             case "$p" in
-              chatgpt_staging/in/*/payload.zip.b64.parts/*|chatgpt_staging/in/*/chunk_manifest.json|chatgpt_staging/in/*/*.part*|chatgpt_staging/in/*/*chunk*)
+              .github/chatgpt_staging/in/*/payload.zip.b64.parts/*|.github/chatgpt_staging/in/*/chunk_manifest.json|.github/chatgpt_staging/in/*/*.part*|.github/chatgpt_staging/in/*/*chunk*)
                 echo "Unsupported staging shape: $p" >&2
-                echo "This workflow accepts exactly one file: chatgpt_staging/in/<request_id>/payload.zip.b64" >&2
+                echo "This workflow accepts exactly one file: .github/chatgpt_staging/in/<request_id>/payload.zip.b64" >&2
                 echo "Do not use parts/chunks. Rebuild one ZIP, base64 encode it once, and stage payload.zip.b64." >&2
                 exit 1
                 ;;
@@ -75,7 +75,7 @@ jobs:
             PAYLOAD=""
             while IFS= read -r p; do
               reject_chunk_path "$p"
-              if [[ "$p" == chatgpt_staging/in/*/payload.zip.b64 && -f "$p" ]]; then
+              if [[ "$p" == .github/chatgpt_staging/in/*/payload.zip.b64 && -f "$p" ]]; then
                 PAYLOAD="$p"
               fi
             done < <(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
@@ -86,8 +86,8 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$PAYLOAD" != chatgpt_staging/in/*/payload.zip.b64 ]]; then
-            echo "Payload must match chatgpt_staging/in/<request_id>/payload.zip.b64" >&2
+          if [[ "$PAYLOAD" != .github/chatgpt_staging/in/*/payload.zip.b64 ]]; then
+            echo "Payload must match .github/chatgpt_staging/in/<request_id>/payload.zip.b64" >&2
             exit 1
           fi
           if [[ ! -f "$PAYLOAD" ]]; then
@@ -125,7 +125,7 @@ jobs:
             --message 'Apply-in payload path resolved. Decode and apply validation are next.'
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \
             -CommitMessage "Progress chatgpt-apply-in ${{ steps.payload.outputs.request_id }} payload-resolved [skip ci]" \
-            -Paths "chatgpt_staging/status_reports/chatgpt-apply-in/${{ steps.payload.outputs.request_id }}"
+            -Paths ".github/chatgpt_staging/status_reports/chatgpt-apply-in/${{ steps.payload.outputs.request_id }}"
 
       - name: Write heartbeat - running apply-in
         if: steps.payload.outputs.skip != 'true'
@@ -141,7 +141,7 @@ jobs:
             --message 'Apply-in decode, manifest validation, file copy/delete, and hash checks are about to run.'
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \
             -CommitMessage "Progress chatgpt-apply-in ${{ steps.payload.outputs.request_id }} running-apply-in [skip ci]" \
-            -Paths "chatgpt_staging/status_reports/chatgpt-apply-in/${{ steps.payload.outputs.request_id }}"
+            -Paths ".github/chatgpt_staging/status_reports/chatgpt-apply-in/${{ steps.payload.outputs.request_id }}"
 
       - name: Decode ZIP payload and apply bundle
         if: steps.payload.outputs.skip != 'true'
@@ -150,8 +150,8 @@ jobs:
           set -euo pipefail
           PAYLOAD='${{ steps.payload.outputs.payload_path }}'
           REQUEST_ID='${{ steps.payload.outputs.request_id }}'
-          WORK_DIR="chatgpt_staging/work/$REQUEST_ID"
-          REPORT_DIR="chatgpt_staging/status_reports/chatgpt-apply-in/$REQUEST_ID"
+          WORK_DIR=".github/chatgpt_staging/work/$REQUEST_ID"
+          REPORT_DIR=".github/chatgpt_staging/status_reports/chatgpt-apply-in/$REQUEST_ID"
           REPORT_PATH="$REPORT_DIR/workflow_report.md"
           NATIVE_REPORT_PATH="$REPORT_DIR/native_apply_in_success_report.md"
           echo "REQUEST_ID=$REQUEST_ID" >> "$GITHUB_ENV"
@@ -160,12 +160,12 @@ jobs:
           echo "REPORT_DIR=$REPORT_DIR" >> "$GITHUB_ENV"
           echo "REPORT_PATH=$REPORT_PATH" >> "$GITHUB_ENV"
 
-          python tools/chatgpt_apply_in/apply_payload_bundle.py \
+          python .github/scripts/chatgpt_apply_in/apply_payload_bundle.py \
             --payload "$PAYLOAD" \
             --work-dir "$WORK_DIR" \
-            --applied-paths chatgpt_staging/work/applied_paths.txt \
-            --deleted-paths chatgpt_staging/work/deleted_paths.txt \
-            --hash-warnings chatgpt_staging/work/hash_warnings.txt
+            --applied-paths .github/chatgpt_staging/work/applied_paths.txt \
+            --deleted-paths .github/chatgpt_staging/work/deleted_paths.txt \
+            --hash-warnings .github/chatgpt_staging/work/hash_warnings.txt
 
       - name: Write apply-in success report
         if: steps.payload.outputs.skip != 'true'
@@ -173,7 +173,7 @@ jobs:
         run: |
           set -euo pipefail
           NATIVE_REPORT_PATH="$REPORT_DIR/native_apply_in_success_report.md"
-          python tools/chatgpt_apply_in/write_apply_in_report.py \
+          python .github/scripts/chatgpt_apply_in/write_apply_in_report.py \
             --github-run-id "$GITHUB_RUN_ID" \
             --github-ref "$GITHUB_REF" \
             --github-sha "$GITHUB_SHA" \
@@ -181,9 +181,9 @@ jobs:
             --request-id "$REQUEST_ID" \
             --payload "$PAYLOAD" \
             --report-dir "$REPORT_DIR" \
-            --applied-paths chatgpt_staging/work/applied_paths.txt \
-            --deleted-paths chatgpt_staging/work/deleted_paths.txt \
-            --hash-warnings chatgpt_staging/work/hash_warnings.txt
+            --applied-paths .github/chatgpt_staging/work/applied_paths.txt \
+            --deleted-paths .github/chatgpt_staging/work/deleted_paths.txt \
+            --hash-warnings .github/chatgpt_staging/work/hash_warnings.txt
           python .github/scripts/write_chatgpt_progress_report.py \
             --workflow chatgpt-apply-in \
             --request-id "$REQUEST_ID" \
@@ -204,7 +204,7 @@ jobs:
         run: |
           set -euo pipefail
           SKIPPED_WORKFLOW_PATHS=""
-          if [[ -f chatgpt_staging/work/applied_paths.txt ]]; then
+          if [[ -f .github/chatgpt_staging/work/applied_paths.txt ]]; then
             while IFS= read -r p; do
               if [[ -z "$p" ]]; then
                 continue
@@ -216,7 +216,7 @@ jobs:
                 continue
               fi
               git add -- "$p"
-            done < chatgpt_staging/work/applied_paths.txt
+            done < .github/chatgpt_staging/work/applied_paths.txt
           fi
           if [[ -n "$SKIPPED_WORKFLOW_PATHS" ]]; then
             {
@@ -236,17 +236,17 @@ jobs:
               echo "push access, not through this apply-in bot."
             } >> "$REPORT_PATH"
           fi
-          if [[ -f chatgpt_staging/work/deleted_paths.txt ]]; then
+          if [[ -f .github/chatgpt_staging/work/deleted_paths.txt ]]; then
             while IFS= read -r p; do
               [[ -n "$p" ]] && git add -u -- "$p" || true
-            done < chatgpt_staging/work/deleted_paths.txt
+            done < .github/chatgpt_staging/work/deleted_paths.txt
           fi
           if [[ "${{ inputs.caller_event_name }}" == "push" || "${{ inputs.delete_payload_after_success }}" == "true" ]]; then
             rm -f "$PAYLOAD" || true
           fi
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \
             -CommitMessage "Apply ChatGPT staging bundle and report [skip ci]" \
-            -Paths "chatgpt_staging/apply_reports" "$REPORT_DIR" "$PAYLOAD" "chatgpt_staging/work/applied_paths.txt" "chatgpt_staging/work/deleted_paths.txt" "chatgpt_staging/work/hash_warnings.txt"
+            -Paths ".github/chatgpt_staging/apply_reports" "$REPORT_DIR" "$PAYLOAD" ".github/chatgpt_staging/work/applied_paths.txt" ".github/chatgpt_staging/work/deleted_paths.txt" ".github/chatgpt_staging/work/hash_warnings.txt"
 
       - name: Capture apply-in failure report
         if: failure() && steps.payload.outputs.skip != 'true'
@@ -258,14 +258,14 @@ jobs:
           case "$REQUEST_ID" in
             *[!A-Za-z0-9._-]*|'') REQUEST_ID="unsafe_or_unknown" ;;
           esac
-          WORK_DIR="${WORK_DIR:-chatgpt_staging/work/$REQUEST_ID}"
-          REPORT_DIR="chatgpt_staging/status_reports/chatgpt-apply-in/$REQUEST_ID"
+          WORK_DIR="${WORK_DIR:-.github/chatgpt_staging/work/$REQUEST_ID}"
+          REPORT_DIR=".github/chatgpt_staging/status_reports/chatgpt-apply-in/$REQUEST_ID"
           REPORT_PATH="$REPORT_DIR/workflow_report.md"
           NATIVE_REPORT_PATH="$REPORT_DIR/native_apply_in_failure_report.md"
           ART_DIR="$RUNNER_TEMP/chatgpt_apply_in_failure/$REQUEST_ID"
           ARTIFACT_NAME="chatgpt-apply-in-failure-${GITHUB_RUN_ID}"
           rm -rf "$ART_DIR"
-          python tools/chatgpt_apply_in/write_apply_in_report.py \
+          python .github/scripts/chatgpt_apply_in/write_apply_in_report.py \
             --github-run-id "$GITHUB_RUN_ID" \
             --github-ref "$GITHUB_REF" \
             --github-sha "$GITHUB_SHA" \

@@ -16,7 +16,7 @@ class BasicAndShapeFailureTests(InventoryTestCase):
         self.assertEqual(categories["collector_harness_source_part"], 1)
         self.assertEqual(categories["workflow_embedded_powershell"], 1)
         operator_surface = next(
-            surface for surface in result["surfaces"] if surface["path"] == "operator_tools/sample/Invoke-DcoirSample.ps1"
+            surface for surface in result["surfaces"] if surface["path"] == ".github/operator_tools/sample/Invoke-DcoirSample.ps1"
         )
         self.assertEqual(operator_surface["marker_lines"], [])
 

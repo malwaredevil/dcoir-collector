@@ -8,8 +8,8 @@ import sys
 
 SCHEMA = "dcoir.chatgpt_staging.github_artifact_readback_manifest.v1"
 INVALID_REQUEST_IDS = {".", ".."}
-OUT_ROOT = pathlib.Path("chatgpt_staging/out")
-REPORT_ROOT = pathlib.Path("chatgpt_staging/status_reports/chatgpt-github-artifact-readback")
+OUT_ROOT = pathlib.Path(".github/chatgpt_staging/out")
+REPORT_ROOT = pathlib.Path(".github/chatgpt_staging/status_reports/chatgpt-github-artifact-readback")
 
 
 def validate_request_id(request_id: str) -> None:

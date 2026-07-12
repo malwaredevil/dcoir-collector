@@ -4,12 +4,12 @@ __pycache__/
 
 # ChatGPT GitHub Staging Lane transient workspace.
 # Keep request/in/out/apply_reports tracked intentionally; ignore only scratch work.
-chatgpt_staging/work/
+.github/chatgpt_staging/work/
 
 # ChatGPT exec artifacts are uploaded as GitHub Actions artifacts and may contain
 # long generated paths that break Windows checkout. Keep heartbeat/report files
 # in Git; do not commit unzipped exec artifact readback trees.
-chatgpt_staging/status_reports/chatgpt-exec/*/artifact_readback/
+.github/chatgpt_staging/status_reports/chatgpt-exec/*/artifact_readback/
 
 # DCOIR generated validation outputs
 project_sources/validation/out_*/

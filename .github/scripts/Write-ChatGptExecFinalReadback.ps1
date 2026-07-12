@@ -9,7 +9,7 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
 $result = if ($env:DCOIR_EXEC_EXIT_CODE -eq '0') { 'success' } else { 'failure' }
-$reportDir = Join-Path 'chatgpt_staging/status_reports/chatgpt-exec' $RequestId
+$reportDir = Join-Path '.github/chatgpt_staging/status_reports/chatgpt-exec' $RequestId
 $reportPath = Join-Path $reportDir 'workflow_report.md'
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
 

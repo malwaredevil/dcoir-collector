@@ -60,7 +60,7 @@ REPORT_SCHEMAS = {
 }
 REPO_ARTIFACT_PREFIXES = (
     ".github/",
-    "operator_tools/",
+    ".github/operator_tools/",
     "project_sources/",
     "scripts/",
     "tools/",

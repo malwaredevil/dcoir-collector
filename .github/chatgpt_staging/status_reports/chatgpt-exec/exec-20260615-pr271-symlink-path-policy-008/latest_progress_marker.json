@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260615-pr271-symlink-path-policy-008",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27553981898",
+  "github_sha": "0d381fcf2ecc139073c8dd2de4fbb9ddec7e6256",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260615-pr271-symlink-path-policy-008",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260615-pr271-symlink-path-policy-008.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-15T14:38:37Z",
+  "workflow": "chatgpt-exec"
+}

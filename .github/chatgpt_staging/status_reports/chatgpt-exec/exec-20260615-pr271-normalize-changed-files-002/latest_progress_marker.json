@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260615-pr271-normalize-changed-files-002",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27534714799",
+  "github_sha": "58996ef9499b9118a30521b6523fec6b1bcf2b12",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260615-pr271-normalize-changed-files-002",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260615-pr271-normalize-changed-files-002.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-15T08:46:50Z",
+  "workflow": "chatgpt-exec"
+}
