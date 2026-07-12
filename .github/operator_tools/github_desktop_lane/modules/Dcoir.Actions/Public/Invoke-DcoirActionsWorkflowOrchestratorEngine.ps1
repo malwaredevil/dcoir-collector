@@ -21,7 +21,7 @@ function Invoke-DcoirActionsWorkflowOrchestratorEngine {
     $downloads = Get-DcoirSystemEnvValue -Name 'DCOIR_DOWNLOADS_DIR' -Required
     if (-not (Test-Path -LiteralPath $repoRoot -PathType Container)) { throw "DCOIR_REPO_ROOT Machine/System path does not exist: $repoRoot" }
     if (-not (Test-Path -LiteralPath $downloads -PathType Container)) { throw "DCOIR_DOWNLOADS_DIR Machine/System path does not exist: $downloads" }
-    if ([string]::IsNullOrWhiteSpace($ManifestJson) -and $Mode -eq 'manifest') { $ManifestJson = Join-Path $repoRoot 'operator_tools\github_desktop_lane\manifests\actions_workflow_orchestrator.dispatch.sample.json' }
+    if ([string]::IsNullOrWhiteSpace($ManifestJson) -and $Mode -eq 'manifest') { $ManifestJson = Join-Path $repoRoot '.github\operator_tools\github_desktop_lane\manifests\actions_workflow_orchestrator.dispatch.sample.json' }
     if ($ManifestJson) { $ManifestJson = Resolve-DcoirPathText -Text $ManifestJson }
     $manifest = @{}
     if ($ManifestJson) {

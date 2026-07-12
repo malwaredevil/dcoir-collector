@@ -61,11 +61,11 @@ function Invoke-DcoirOrchestratorStep {
 $repo = Get-DcoirSystemEnvValue -Name 'DCOIR_REPO_ROOT' -Required
 $downloads = Get-DcoirSystemEnvValue -Name 'DCOIR_DOWNLOADS_DIR' -Required
 
-$orchestrator = Join-Path $repo 'operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsWorkflowOrchestrator.ps1'
+$orchestrator = Join-Path $repo '.github\operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsWorkflowOrchestrator.ps1'
 if (-not (Test-Path -LiteralPath $orchestrator -PathType Leaf)) { throw "Orchestrator not found: $orchestrator" }
 
-$dryManifest = Join-Path $repo 'operator_tools\github_desktop_lane\manifests\actions_workflow_orchestrator.dispatch.sample.json'
-$watchManifest = Join-Path $repo 'operator_tools\github_desktop_lane\manifests\actions_workflow_orchestrator.watch.sample.json'
+$dryManifest = Join-Path $repo '.github\operator_tools\github_desktop_lane\manifests\actions_workflow_orchestrator.dispatch.sample.json'
+$watchManifest = Join-Path $repo '.github\operator_tools\github_desktop_lane\manifests\actions_workflow_orchestrator.watch.sample.json'
 $liveManifest = Join-Path $downloads 'dcoir_actions_live_dispatch_test.json'
 
 Write-DcoirHarnessStep "DCOIR Actions Validation Smoke Runner v$Script:ToolVersion"

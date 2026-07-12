@@ -37,7 +37,7 @@ function Normalize-DcoirSuiteList {
 $Suites = Normalize-DcoirSuiteList -RawSuites $Suites
 $repo = Get-DcoirSystemEnvValue -Name 'DCOIR_REPO_ROOT' -Required
 $downloads = Get-DcoirSystemEnvValue -Name 'DCOIR_DOWNLOADS_DIR' -Required
-$orchestrator = Join-Path $repo 'operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsWorkflowOrchestrator.ps1'
+$orchestrator = Join-Path $repo '.github\operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsWorkflowOrchestrator.ps1'
 $runSetId = "ladder-$((ConvertTo-DcoirSafeName -Text $Workflow).Replace('.yml',''))-$((ConvertTo-DcoirSafeName -Text ($Suites -join '_')))"
 $manifestPath = Join-Path $downloads "dcoir_actions_${runSetId}.json"
 $zipName = "dcoir_actions_${runSetId}.chatgpt.zip"
