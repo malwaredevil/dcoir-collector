@@ -130,6 +130,8 @@ Before creating anything new, check for:
 
 ## Internal Review Gate Awareness
 
+Resolve the active runtime adapter in `AGENTS.md` before applying review gates. When the Codex local-session operator adapter applies, do not require named Prog, Adva, or Codi personas/subagents, `/dcoir-review`, or an external self-invocation comment. Require Codex self-review, validation proportionate to risk, source/GitHub readback, and every safety boundary that the adapter retains. Do not apply this exception to ChatGPT WebUI, connector-only sessions, Replit, Gemini, or other runtimes.
+
 For non-trivial code, workflow, governed-source, instruction-surface, Supabase guidance, PR-readiness, or issue-readiness work:
 - Prog implements or fixes.
 - Adva performs adversarial review before readiness, closeability, or completion is claimed.
@@ -196,9 +198,9 @@ When used, return a compact preflight with:
 - do not override Core Agent Instructions, GitHub, repository `AGENTS.md`, or Supabase `ircore` authority
 - do not claim readiness or completion without readback evidence
 - do not skip GitHub work-item receipt gateways for governed issue/PR work
-- do not treat Prog or Adva as operator-triggered only for non-trivial governed work
-- do not skip Codi review before the external `@codex` PR request unless the operator explicitly waived Codi for the current task
-- do not skip the OpenRouter internal review command gate before the external `@codex` PR request when it applies and has not been explicitly waived for the current task; for OpenRouter `issue_comment` workflow/script changes, do not treat branch-only workflow existence as live-test availability
+- do not treat Prog or Adva as operator-triggered only for non-trivial governed work unless an explicitly scoped runtime adapter in `AGENTS.md` applies
+- do not skip Codi review before the external `@codex` PR request unless the operator explicitly waived Codi for the current task or the Codex local-session operator adapter applies
+- do not skip the OpenRouter internal review command gate before the external `@codex` PR request when it applies and has not been explicitly waived for the current task or runtime; for OpenRouter `issue_comment` workflow/script changes, do not treat branch-only workflow existence as live-test availability
 - do not post or confirm any external `@codex` PR review or action comment unless the operator approved the exact proposed comment text in the current session
 - do not use direct agent-instruction updates unless explicitly approved for the current task
 - do not treat skill wording as higher authority than Core Agent Instructions, repository `AGENTS.md`, or Supabase `ircore`
