@@ -40,3 +40,4 @@ This repository is the governed GitHub source for the DCOIR collector, Gemini-re
 - Prefer squash merge for broad governance or cleanup PRs so the default-branch history stays readable.
 - Leave historical evidence alone unless it is actively misleading current behavior.
 - Follow the [generated evidence retention policy](docs/validation/generated-evidence-retention-policy.md) for committed reports, workflow artifacts, staging receipts, fixtures, and connector-readable derivatives.
+- Use the [post-modularization audit](docs/validation/post-modularization-audit.md) for the delete, consolidate, retain, and follow-up decisions from issues #349 and #355.
