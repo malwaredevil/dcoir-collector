@@ -109,14 +109,14 @@ def check_local_workflow_calls(
             findings.append(f"{source_rel}:{line_no}: local workflow call target must be reusable-*.yml: {ref}")
         if "workflow_call:" not in target.read_text(encoding="utf-8"):
             findings.append(f"{source_rel}:{line_no}: local workflow call target is missing workflow_call: {ref}")
-        declared_inputs, declared_secrets = parse_workflow_call_contract(target)
+        declared_inputs, declared_call_keys = parse_workflow_call_contract(target)
         lines = source_path.read_text(encoding="utf-8").splitlines()
         passed_inputs = collect_mapping_after(lines, line_no - 1, "with")
-        passed_secrets = collect_mapping_after(lines, line_no - 1, "secrets")
+        passed_call_keys = collect_mapping_after(lines, line_no - 1, "secrets")
         for input_name in sorted(passed_inputs - declared_inputs):
             findings.append(f"{source_rel}:{line_no}: caller passes undeclared reusable-workflow input {input_name}: {ref}")
-        for secret_name in sorted(passed_secrets - declared_secrets):
-            findings.append(f"{source_rel}:{line_no}: caller passes undeclared reusable-workflow secret {secret_name}: {ref}")
+        for call_key in sorted(passed_call_keys - declared_call_keys):
+            findings.append(f"{source_rel}:{line_no}: caller passes undeclared reusable-workflow secret {call_key}: {ref}")
 
 
 def check_local_action_calls(

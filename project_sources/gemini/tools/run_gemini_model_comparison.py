@@ -27,6 +27,7 @@ from lib.gemini_model_comparison_eval import (
     parse_model_json,
     summarize_model_run,
 )
+from lib.gemini_behavioral_replay_workflow_report import redact_report_value
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -49,7 +50,7 @@ def main() -> int:
     args = parser.parse_args()
     api_key = os.environ.get(args.api_key_env, "").strip()
     if not api_key:
-        print(f"Missing API key env: {args.api_key_env}", file=sys.stderr)
+        print("Required Gemini API credential is not configured.", file=sys.stderr)
         return 1
     fixture_path = Path(args.fixtures).resolve()
     output_dir = Path(args.output_dir).resolve()
@@ -153,6 +154,8 @@ def main() -> int:
         "rankings": rankings,
         "case_results": all_case_records,
     }
+    report = redact_report_value(report)
+    # The report is recursively redacted above before it reaches disk or stdout.
     (output_dir / "gemini_model_comparison_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
     lines = ["# Gemini model comparison summary", "", f"- reference_model: {args.reference_model}", f"- fixture_path: {fixture_path.as_posix()}", f"- repeat_count: {args.repeat_count}", f"- case_count: {len(cases)}", f"- minimum_case_score: {args.minimum_case_score}", f"- minimum_behavior_score: {args.minimum_behavior_score}", f"- best_relative_model: {report['best_relative_model']}", f"- recommended_model: {report['recommended_model'] or 'none'}", "", "## Ranking", ""]
     for rank, summary in enumerate(rankings, start=1):

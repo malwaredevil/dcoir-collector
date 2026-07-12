@@ -4,7 +4,6 @@ import json
 import math
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List
@@ -35,8 +34,9 @@ def normalize_model_name(name: str) -> str:
     return lowered
 
 def list_models(api_key: str, api_base: str) -> List[Dict[str, Any]]:
-    url = f"{api_base}/models?key={urllib.parse.quote(api_key)}"
-    with urllib.request.urlopen(url, timeout=60) as response:
+    url = f"{api_base}/models"
+    request = urllib.request.Request(url, headers={"X-goog-api-key": api_key}, method="GET")
+    with urllib.request.urlopen(request, timeout=60) as response:
         return json.loads(response.read().decode("utf-8")).get("models", [])
 
 def resolve_requested_models(requested: List[str], available_models: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:

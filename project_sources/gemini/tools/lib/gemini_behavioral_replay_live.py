@@ -5,7 +5,6 @@ import json
 import re
 import time
 import urllib.error
-import urllib.parse
 import urllib.request
 from typing import Any, Dict, List
 
@@ -40,13 +39,18 @@ def extract_text(payload: Dict[str, Any]) -> str:
     return "\n".join(out).strip()
 
 def call_gemini(api_key: str, args: argparse.Namespace, model: str, prompt: str) -> Dict[str, Any]:
-    endpoint = f"{args.api_base}/models/{model}:generateContent?key={urllib.parse.quote(api_key)}"
+    endpoint = f"{args.api_base}/models/{model}:generateContent"
     body = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": args.temperature, "candidateCount": 1}}).encode()
     attempts = []
     for attempt in range(1, args.max_retries + 1):
         start = time.monotonic()
         try:
-            req = urllib.request.Request(endpoint, data=body, headers={"Content-Type": "application/json"}, method="POST")
+            req = urllib.request.Request(
+                endpoint,
+                data=body,
+                headers={"Content-Type": "application/json", "X-goog-api-key": api_key},
+                method="POST",
+            )
             with urllib.request.urlopen(req, timeout=120) as response:
                 payload = json.loads(response.read().decode("utf-8"))
                 attempts.append({"attempt": attempt, "status_code": response.status, "latency_ms": round((time.monotonic() - start) * 1000, 2)})

@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import urllib.error
-import urllib.parse
 import urllib.request
 from typing import Any, Dict, List
 
@@ -74,9 +73,10 @@ def model_exclusion_reason(model: Dict[str, Any]) -> str:
 def fetch_catalog(api_key: str, api_base: str) -> Dict[str, Any]:
     if not api_key:
         return {"ok": False, "error": "missing API key", "viable_models": [], "excluded_models": []}
-    endpoint = f"{api_base}/models?key={urllib.parse.quote(api_key)}"
+    endpoint = f"{api_base}/models"
     try:
-        with urllib.request.urlopen(urllib.request.Request(endpoint, method="GET"), timeout=120) as response:
+        request = urllib.request.Request(endpoint, headers={"X-goog-api-key": api_key}, method="GET")
+        with urllib.request.urlopen(request, timeout=120) as response:
             payload = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         return {"ok": False, "error": f"http_{exc.code}: {exc.read().decode('utf-8', errors='ignore')[:500]}", "viable_models": [], "excluded_models": []}

@@ -57,7 +57,7 @@ def main() -> int:
     if args.mode == "fallback":
         reason = "fallback mode requested"; metadata["unchecked_evidence"].append("live Gemini API response")
     if args.mode == "live" and not api_key:
-        reason = f"missing API key env {args.api_key_env}"
+        reason = "Required Gemini API credential is not configured."
         if args.allow_fallback:
             mode = "fallback"; metadata["unchecked_evidence"].append("live Gemini API response")
         else:
