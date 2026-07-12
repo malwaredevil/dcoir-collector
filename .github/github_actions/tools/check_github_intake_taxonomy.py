@@ -15,7 +15,7 @@ def repo_root() -> Path:
 
 
 def load_taxonomy(root: Path) -> dict[str, Any]:
-    path = root / "project_sources" / "github_actions" / "github_intake_taxonomy.json"
+    path = root / ".github" / "github_actions" / "github_intake_taxonomy.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
