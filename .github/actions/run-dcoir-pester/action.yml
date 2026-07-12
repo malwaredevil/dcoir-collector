@@ -1,0 +1,80 @@
+name: Run DCOIR Collector Pester tests
+description: Install a pinned Pester version, prove runner failure controls, and run the collector suite under Windows PowerShell 5.1.
+inputs:
+  pester-version:
+    description: Exact Pester version to install and run.
+    required: false
+    default: '5.7.1'
+  result-path:
+    description: Repository-relative NUnit XML output path.
+    required: false
+    default: 'project_sources/TestResults/pester-windows-powershell-51.xml'
+  minimum-test-count:
+    description: Minimum discovered test count required for a successful run.
+    required: false
+    default: '1'
+outputs:
+  pester_version:
+    value: ${{ steps.run.outputs.pester_version }}
+  engine_version:
+    value: ${{ steps.run.outputs.engine_version }}
+  total_count:
+    value: ${{ steps.run.outputs.total_count }}
+  passed_count:
+    value: ${{ steps.run.outputs.passed_count }}
+  failed_count:
+    value: ${{ steps.run.outputs.failed_count }}
+  skipped_count:
+    value: ${{ steps.run.outputs.skipped_count }}
+runs:
+  using: composite
+  steps:
+    - name: Install pinned Pester
+      shell: powershell
+      env:
+        DCOIR_PESTER_VERSION: ${{ inputs.pester-version }}
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $required = [Version]$env:DCOIR_PESTER_VERSION
+        $available = Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq $required } | Select-Object -First 1
+        if (-not $available) {
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Install-Module Pester -Scope CurrentUser -RequiredVersion $required -Repository PSGallery -Force -SkipPublisherCheck
+        }
+        Remove-Module Pester -Force -ErrorAction SilentlyContinue
+        Import-Module Pester -RequiredVersion $required -Force -ErrorAction Stop
+        $loaded = Get-Module Pester
+        if ($loaded.Version -ne $required) {
+          throw "Expected Pester $required but imported $($loaded.Version)."
+        }
+        Write-Host "Pinned Pester ready: $($loaded.Version) at $($loaded.Path)"
+
+    - name: Prove Pester runner controls
+      shell: powershell
+      env:
+        DCOIR_PESTER_VERSION: ${{ inputs.pester-version }}
+      run: |
+        ./.github/pester/Test-DcoirPesterRunner.ps1 -RequiredPesterVersion $env:DCOIR_PESTER_VERSION
+
+    - name: Run collector Pester suite
+      id: run
+      shell: powershell
+      env:
+        DCOIR_PESTER_VERSION: ${{ inputs.pester-version }}
+        DCOIR_PESTER_RESULT_PATH: ${{ inputs.result-path }}
+        DCOIR_PESTER_MINIMUM_COUNT: ${{ inputs.minimum-test-count }}
+      run: |
+        $result = ./.github/pester/Invoke-DcoirPester.ps1 `
+          -RequiredPesterVersion $env:DCOIR_PESTER_VERSION `
+          -MinimumTestCount ([int]$env:DCOIR_PESTER_MINIMUM_COUNT) `
+          -CI `
+          -PassThru `
+          -TestResultOutputPath $env:DCOIR_PESTER_RESULT_PATH
+        "pester_version=$((Get-Module Pester).Version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        "engine_version=$($PSVersionTable.PSVersion)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        "total_count=$($result.TotalCount)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        "passed_count=$($result.PassedCount)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        "failed_count=$($result.FailedCount)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+        "skipped_count=$($result.SkippedCount)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+# Compensating evidence: named control/suite steps, engine and Pester version logs,
+# explicit count outputs, and caller-uploaded NUnit XML preserve review visibility.

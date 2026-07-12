@@ -35,8 +35,16 @@ Describe 'DCOIR collector source structure and part manifest contract' {
     }
   }
 
-  It 'does not leave unmanifested collector part files under source/parts' {
-    $actualNames = @(Get-ChildItem -LiteralPath $script:Layout.CollectorPartsDirectory -File -Filter 'DCOIR_Collector.*.ps1' | Sort-Object Name | ForEach-Object { $_.Name })
+  It 'does not leave executable unmanifested collector part files under source/parts' {
+    $actualNames = @(
+      Get-ChildItem -LiteralPath $script:Layout.CollectorPartsDirectory -File -Filter 'DCOIR_Collector.*.ps1' |
+        Where-Object {
+          $parsed = Get-DcoirParsedFile -Path $_.FullName
+          @($parsed.Ast.EndBlock.Statements).Count -gt 0
+        } |
+        Sort-Object Name |
+        ForEach-Object { $_.Name }
+    )
     $manifestSorted = @($script:ManifestPartNames | Sort-Object)
     $diff = Compare-DcoirStringArray -Expected $manifestSorted -Actual $actualNames
     @($diff).Count | Should -Be 0

@@ -34,10 +34,24 @@ To return the Pester result object:
 .github/pester/Invoke-DcoirPester.ps1 -PassThru
 ```
 
+To prove that passing, known-failing, and empty-discovery runs produce the
+required exit behavior:
+
+```powershell
+.github/pester/Test-DcoirPesterRunner.ps1
+```
+
 For CI-style test-result output through the wrapper:
 
 ```powershell
 .github/pester/Invoke-DcoirPester.ps1 -CI
+```
+
+The workflow pins both the approved module version and the current discovery
+floor. The equivalent local command is:
+
+```powershell
+.github/pester/Invoke-DcoirPester.ps1 -RequiredPesterVersion 5.7.1 -MinimumTestCount 45 -CI
 ```
 
 Direct Pester invocation also works after Pester 5+ is imported:
@@ -59,6 +73,7 @@ The tests focus on:
 - public parameter ValidateSet and alias contracts;
 - static safety guardrails that are cheap to verify in PR review;
 - low-risk runtime smoke checks for `-ShowVersion`, `-ShowHelp`, path-leaf validators, and JSON truncation handling;
+- deterministic function behavior for cleanup containment, event windows and filters, UTF-8 chunking/reconstruction, and quick aliases;
 - harness presence and the repository Pester-boundary policy;
 - high-risk behavior contracts for cleanup/purge, quick shortcuts, event windows, and upload-safe chunking.
 
