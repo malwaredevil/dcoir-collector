@@ -71,7 +71,26 @@ EXPECTED_EXPORTS = {
 }
 
 
+def assert_segment_registry_is_complete() -> None:
+    """Reject missing, duplicate, or unregistered runtime segment files."""
+    loader_root = SCRIPTS / "dcoir_review"
+    registered = [segment for segments in LAYER_SEGMENTS.values() for segment in segments]
+    actual = [
+        path.relative_to(loader_root).as_posix()
+        for path in loader_root.rglob("*.py")
+        if path.name not in {"__init__.py", "entrypoint.py", "module_loader.py"}
+    ]
+
+    assert len(registered) == len(set(registered)), "duplicate module-loader segment registration"
+    assert set(registered) == set(actual), {
+        "missing": sorted(set(registered) - set(actual)),
+        "orphaned": sorted(set(actual) - set(registered)),
+    }
+
+
 def main() -> None:
+    assert_segment_registry_is_complete()
+
     for layer, pairs in EXPECTED_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]
         paths = RuntimeSegmentLoader(layer).segment_paths()
