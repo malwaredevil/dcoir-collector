@@ -26,7 +26,10 @@ if ($CallerEventName -eq 'workflow_dispatch') {
     $changed = git diff-tree --no-commit-id --name-only -r $GithubSha
     $requestPaths = @($changed | Where-Object { $_ -like '.github/chatgpt_staging/exec_requests/*.json' })
     if ($requestPaths.Count -gt 1) {
-        throw "Push trigger must include exactly one exec request JSON under .github/chatgpt_staging/exec_requests/. Found $($requestPaths.Count) files: $($requestPaths -join ', ')"
+        Write-Host "Multiple exec request JSON files detected in a single push; skipping automatic execution to avoid replaying archived requests."
+        Write-Host "Matched files: $($requestPaths -join ', ')"
+        Write-ChatGptExecOutput -Name 'skip' -Value 'true'
+        exit 0
     }
     $requestPath = ($requestPaths | Select-Object -First 1)
 }

@@ -57,8 +57,8 @@ def find_cleanup_marker(head_sha: str) -> pathlib.Path | None:
         path = pathlib.Path(raw_path)
         pure = pathlib.PurePosixPath(raw_path)
         if (
-            len(pure.parts) == 3
-            and pure.parts[:2] == ("chatgpt_staging", "cleanup_requests")
+            len(pure.parts) == 4
+            and pure.parts[:3] == (".github", "chatgpt_staging", "cleanup_requests")
             and pure.suffix == ".json"
             and path.is_file()
         ):

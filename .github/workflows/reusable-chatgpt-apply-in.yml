@@ -81,11 +81,11 @@ jobs:
               fi
             done < <(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
             if [[ "${#MATCHED_PAYLOADS[@]}" -gt 1 ]]; then
-              echo "Push trigger must include exactly one payload.zip.b64 under .github/chatgpt_staging/in/<request_id>/." >&2
-              printf 'Found %s payload files:\n' "${#MATCHED_PAYLOADS[@]}" >&2
-              printf ' - %s\n' "${MATCHED_PAYLOADS[@]}" >&2
-              echo "Move archival payload history out of the live trigger path and stage one request per commit." >&2
-              exit 1
+              echo "Multiple payload.zip.b64 files were detected in one push; skipping automatic apply-in to avoid replaying archived payload history."
+              printf 'Matched %s payload files:\n' "${#MATCHED_PAYLOADS[@]}"
+              printf ' - %s\n' "${MATCHED_PAYLOADS[@]}"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
             if [[ "${#MATCHED_PAYLOADS[@]}" -eq 1 ]]; then
               PAYLOAD="${MATCHED_PAYLOADS[0]}"
