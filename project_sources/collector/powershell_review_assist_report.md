@@ -77,7 +77,7 @@
 ## Inventory Decisions
 
 - Full-scope inventory mode: `full`
-- Total PowerShell surfaces: `249`
+- Total PowerShell surfaces: `243`
 
 ### Excluded Paths
 
@@ -139,6 +139,9 @@
 | chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-001.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-002.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-003.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1 | ChatGPT staging scripts are historical execution artifacts, not maintained source. |

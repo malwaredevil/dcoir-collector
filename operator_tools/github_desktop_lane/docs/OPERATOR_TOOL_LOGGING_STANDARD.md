@@ -50,7 +50,7 @@ The log should capture:
 
 Logs must not print secret environment values. For secret-like configuration, log only presence, source, and non-sensitive names.
 
-DCOIR Airtable record contents are governed as scrubbed operational state by operator policy, but environment tokens and local secret values still must not be printed.
+DCOIR work-item record contents are governed as scrubbed operational state by operator policy, but environment tokens and local secret values still must not be printed.
 
 ## Minimal pattern
 

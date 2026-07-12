@@ -8,7 +8,7 @@ Current authority model:
 - The top comment block in each `.github/workflows/*.yml` file owns workflow-specific execution guidance.
 - GitHub is canonical for workflow and source truth.
 - Supabase `ircore` is the operational routing, validation, lessons, and active-state surface.
-- Legacy Airtable may still exist for migration or historical lookup, but it is not the active default workflow-routing authority.
+- Historical migration evidence may remain under governed staging paths, but active workflow routing comes from GitHub source and Supabase `ircore`.
 
 ## Workflow modularization contract
 

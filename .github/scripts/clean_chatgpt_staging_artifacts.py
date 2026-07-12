@@ -128,7 +128,7 @@ def write_report(report_path: pathlib.Path, request_filter: str, removed: list[s
         "",
         "## Next ChatGPT action",
         "",
-        "Verify scoped deletion by GitHub readback, update Airtable evidence if material, then remove this report when safe.",
+        "Verify scoped deletion by GitHub readback, record governed work-item evidence if material, then remove this report when safe.",
     ])
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

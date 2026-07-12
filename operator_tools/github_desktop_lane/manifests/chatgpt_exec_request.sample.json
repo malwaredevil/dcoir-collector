@@ -7,6 +7,6 @@
   "timeout_seconds": 1800,
   "artifact_retention_days": 3,
   "cleanup_request_after_run": true,
-  "approved_command_preview": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$script = Join-Path $repo 'operator_tools\\github_desktop_lane\\scripts\\New-DcoirAirtableDatabaseHealthExport.ps1'\n& $script -ExportMode SchemaOnly -ProbeUnsupportedMetadata",
-  "command": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$script = Join-Path $repo 'operator_tools\\github_desktop_lane\\scripts\\New-DcoirAirtableDatabaseHealthExport.ps1'\n& $script -ExportMode SchemaOnly -ProbeUnsupportedMetadata"
+  "approved_command_preview": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$script = Join-Path $repo 'operator_tools\\github_desktop_lane\\scripts\\Get-DcoirGitConflictDiagnostic.ps1'\n& $script -RepoRoot $repo",
+  "command": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$script = Join-Path $repo 'operator_tools\\github_desktop_lane\\scripts\\Get-DcoirGitConflictDiagnostic.ps1'\n& $script -RepoRoot $repo"
 }

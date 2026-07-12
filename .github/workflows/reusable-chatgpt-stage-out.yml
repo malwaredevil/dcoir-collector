@@ -243,7 +243,7 @@ jobs:
             echo
             echo "## Next ChatGPT action"
             echo
-            echo "Read this report, inspect the run log if needed, update Airtable with the failure phase, then repair or regenerate the request."
+            echo "Read this report, inspect the run log if needed, update the governed GitHub work item with the failure phase, then repair or regenerate the request."
           } > "$NATIVE_REPORT_PATH"
           python .github/scripts/write_chatgpt_progress_report.py \
             --workflow chatgpt-stage-out \

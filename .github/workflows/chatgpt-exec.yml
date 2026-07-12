@@ -25,7 +25,7 @@
 # Authority routing:
 # - GitHub is canonical for workflow/source truth and this header owns workflow-specific execution guidance.
 # - Supabase `ircore` owns operational routing, validation rules, reusable lessons, and active state.
-# - Use legacy Airtable only when a file explicitly requires a migration or historical lookup.
+# - Treat Airtable references as historical evidence only; active workflow routing must not depend on Airtable.
 name: 11 Operator - ChatGPT Exec
 run-name: ChatGPT Exec | ${{ github.event.inputs.request_path || github.event.head_commit.id || 'push' }} | #${{ github.run_number }}
 
@@ -61,8 +61,6 @@ jobs:
       caller_event_name: ${{ github.event_name }}
       request_path: ${{ inputs.request_path || 'chatgpt_staging/exec_requests/request.json' }}
     secrets:
-      DCOIR_AIRTABLE_BASE_ID: ${{ secrets.DCOIR_AIRTABLE_BASE_ID }}
-      DCOIR_AIRTABLE_TOKEN: ${{ secrets.DCOIR_AIRTABLE_TOKEN }}
       DCOIR_GEMINI_API: ${{ secrets.DCOIR_GEMINI_API }}
       DCOIR_GITHUB_CL_TOKEN: ${{ secrets.DCOIR_GITHUB_CL_TOKEN }}
       DCOIR_GITHUB_FG_TOKEN: ${{ secrets.DCOIR_GITHUB_FG_TOKEN }}

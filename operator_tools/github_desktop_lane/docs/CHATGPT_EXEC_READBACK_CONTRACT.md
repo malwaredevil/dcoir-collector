@@ -54,4 +54,4 @@ Do not remove the `.gitignore` rule for `chatgpt_staging/status_reports/chatgpt-
 chatgpt_staging/HEARTBEAT_AND_ARTIFACT_READBACK.md
 ```
 
-That file is a historical pointer. Current routing guidance lives in Airtable `GitHub Workflow Inventory`; workflow-specific behavior lives in the workflow YAML header and body.
+That file is a historical pointer. Current routing guidance lives in Supabase `ircore`; workflow-specific behavior lives in the workflow YAML header and body.

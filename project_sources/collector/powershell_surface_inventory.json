@@ -20,7 +20,7 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 249,
+    "total_surfaces": 243,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
@@ -35,14 +35,14 @@
       "missing_authoritative_surface": 0,
       "missing_changed_powershell_surface": 0,
       "missing_changed_workflow_surface": 0,
-      "operator_tooling": 45,
-      "staging_artifact": 63,
+      "operator_tooling": 36,
+      "staging_artifact": 66,
       "unclassified_powershell_surface": 0,
       "validation_tooling": 3,
       "workflow_embedded_powershell": 27
     },
     "by_source_type": {
-      ".ps1": 186,
+      ".ps1": 180,
       ".ps1.txt": 17,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -53,14 +53,14 @@
       "fixture": 23,
       "source": 48,
       "source_part": 17,
-      "staging": 63,
+      "staging": 66,
       "superseded_pointer": 1,
-      "tooling": 70,
+      "tooling": 61,
       "workflow_embedded": 27
     },
     "by_inclusion_decision": {
-      "exclude": 63,
-      "include": 135,
+      "exclude": 66,
+      "include": 126,
       "reference": 51
     },
     "embedded_snippet_count": 80
@@ -1381,22 +1381,22 @@
       "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
       "exists": true,
       "marker_lines": [
-        73,
-        88,
-        99,
-        115,
-        131,
-        145,
-        164,
-        190
+        65,
+        80,
+        91,
+        107,
+        123,
+        137,
+        156,
+        182
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Verify report push helper",
           "shell": "pwsh",
-          "line_start": 73,
-          "line_end": 85,
+          "line_start": 65,
+          "line_end": 77,
           "command_sha256": "b55cdbeec623998bf44b49292d6056ae6513a6a3b15218ed10aed23375771074",
           "command_preview": "$ErrorActionPreference = 'Stop'\nif (-not (Test-Path -LiteralPath '.github/scripts/Invoke-ChatGptReportPush.ps1' -PathType Leaf)) {\n  throw 'Missing report push helper .github/scripts/Invoke-ChatGptReportPush.ps1'\n}\nif (-not (Test-Path -Lite"
         },
@@ -1404,8 +1404,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Resolve exec request path",
           "shell": "pwsh",
-          "line_start": 88,
-          "line_end": 96,
+          "line_start": 80,
+          "line_end": 88,
           "command_sha256": "b21076d1d8baa87c0ed76f48b9cfb3734ecc37e3828ab7ea1031f1f890a1d9b0",
           "command_preview": "$ErrorActionPreference = 'Stop'\n& .\\.github\\scripts\\Resolve-ChatGptExecRequest.ps1 `\n  -CallerEventName '${{ inputs.caller_event_name }}' `\n  -InputRequestPath '${{ inputs.request_path }}' `\n  -GithubSha $env:GITHUB_SHA `\n  -GithubOutput $e"
         },
@@ -1413,8 +1413,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Write progressive report - request resolved",
           "shell": "pwsh",
-          "line_start": 99,
-          "line_end": 112,
+          "line_start": 91,
+          "line_end": 104,
           "command_sha256": "9ec7f13c9fd423981a331f334cf0d5d0859333d63e54bee1e5f73fe4438f70d4",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython .github/scripts/write_chatgpt_progress_report.py `\n  --workflow chatgpt-exec `\n  --request-id '${{ steps.request.outputs.request_id }}' `\n  --request-path '${{ steps.request.outputs.request_path }}' `\n"
         },
@@ -1422,8 +1422,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Write progressive report - running harness",
           "shell": "pwsh",
-          "line_start": 115,
-          "line_end": 128,
+          "line_start": 107,
+          "line_end": 120,
           "command_sha256": "d0b68435201bf14b46adb5bc5b4a9a0a8a305824c8404f3137f07d4377121979",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython .github/scripts/write_chatgpt_progress_report.py `\n  --workflow chatgpt-exec `\n  --request-id '${{ steps.request.outputs.request_id }}' `\n  --request-path '${{ steps.request.outputs.request_path }}' `\n"
         },
@@ -1431,17 +1431,17 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Run approved command request",
           "shell": "pwsh",
-          "line_start": 131,
-          "line_end": 142,
-          "command_sha256": "77c4a25a4f6ac32dafaff0c785d2e066fc8e001e72366300f7451cd82052e368",
+          "line_start": 123,
+          "line_end": 134,
+          "command_sha256": "c126097cf2b05eb965b27837ed7bed4cc10d18edbba667c84a07f8389e9a4e18",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$outRoot = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec'\n$resultJson = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec_result.json'\n& .\\operator_tools\\github_desktop_lane\\scripts\\Invoke-DcoirActionsExecHarne"
         },
         {
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Write progressive report - harness finished",
           "shell": "pwsh",
-          "line_start": 145,
-          "line_end": 161,
+          "line_start": 137,
+          "line_end": 153,
           "command_sha256": "24fe812c9b6f36d46c82d8171dedec308b0ae39eba1094fe71826751ab878542",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$result = if ($env:DCOIR_EXEC_EXIT_CODE -eq '0') { 'success' } else { 'failure' }\npython .github/scripts/write_chatgpt_progress_report.py `\n  --workflow chatgpt-exec `\n  --request-id '${{ steps.request.output"
         },
@@ -1449,8 +1449,8 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Commit exec status report and cleanup request",
           "shell": "pwsh",
-          "line_start": 164,
-          "line_end": 178,
+          "line_start": 156,
+          "line_end": 170,
           "command_sha256": "a475b5afc56046108cc9771035ce0c4725b2f63ef23190c3ec1b779a668a1cd3",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$requestId = '${{ steps.request.outputs.request_id }}'\n$requestPath = '${{ steps.request.outputs.request_path }}'\n$reportDir = Join-Path 'chatgpt_staging/status_reports/chatgpt-exec' $requestId\n& .\\.github\\sc"
         },
@@ -1458,15 +1458,15 @@
           "source_file": ".github/workflows/reusable-chatgpt-exec.yml",
           "step_or_action": "Fail workflow if approved command failed",
           "shell": "pwsh",
-          "line_start": 190,
-          "line_end": 192,
+          "line_start": 182,
+          "line_end": 184,
           "command_sha256": "b548eff1ebd49c762625dd532aa25bbbe76fa00d6f68ba01f926829520a49787",
           "command_preview": "Write-Error \"Approved command failed. See chatgpt_staging/status_reports/chatgpt-exec/$env:DCOIR_EXEC_REQUEST_ID/workflow_report.md and uploaded artifact $env:DCOIR_EXEC_ARTIFACT_NAME.\""
         }
       ],
-      "size_bytes": 9483,
-      "line_count": 192,
-      "sha256": "3e5f6b20c9f1035b95599c361a08e1bff86a763777acdd9da57a29dd14d6cdf4"
+      "size_bytes": 9005,
+      "line_count": 184,
+      "sha256": "c446b0a39f849d37a4e501e33677c35d19ff7bd060878dc0a9fd4056af86d70d"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-stage-out.yml",
@@ -1516,13 +1516,13 @@
           "shell": "bash",
           "line_start": 209,
           "line_end": 263,
-          "command_sha256": "ec53dff085f8978a8e822bf9f135ebde93d30c49138475d2f528fd52b8fc4cb4",
+          "command_sha256": "c72f7d21c5a00fadc074aaf9edc861529b01a6fe616b0fd325456532622bf27b",
           "command_preview": "set -euo pipefail\nREQUEST_PATH='${{ steps.request.outputs.request_path }}'\nREQUEST_ID='${{ steps.request.outputs.request_id }}'\ncase \"$REQUEST_ID\" in\n  *[!A-Za-z0-9._-]*|'') REQUEST_ID=\"unsafe_or_unknown\" ;;\nesac\nREPORT_DIR=\"chatgpt_staging"
         }
       ],
-      "size_bytes": 11589,
+      "size_bytes": 11610,
       "line_count": 263,
-      "sha256": "d6b5827c2424eaee02baba698136865b11d7d09c29a542115a113c35cfb65ed7"
+      "sha256": "f5e59ed844ea1dc2e1aac69d4915de71f5f7fca0572162c315fa80058e7f5a77"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-workflow-run-reporter.yml",
@@ -2975,6 +2975,48 @@
       "sha256": "d0deda9545149a7c096adb879a244d4fcd37bce7c709b095266bdda7e00baf6f"
     },
     {
+      "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-001.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 15490,
+      "line_count": 321,
+      "sha256": "9b75eb344f71dbcfcf2496a13f6bdb164c177d018d2f1f5acb1b58ab5467ac99"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-002.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 3229,
+      "line_count": 79,
+      "sha256": "b97918a1045d1bb535c1d801c6233d62e3b4d55043495394302fc9929f0f95a8"
+    },
+    {
+      "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-003.ps1",
+      "category": "staging_artifact",
+      "source_type": ".ps1",
+      "status": "staging",
+      "inclusion_decision": "exclude",
+      "decision_reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 4812,
+      "line_count": 125,
+      "sha256": "07a193b04aafe106f1998f8d58c0d87f150ad8217948f8272801a2c6c00a09b2"
+    },
+    {
       "path": "chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
       "category": "staging_artifact",
       "source_type": ".ps1",
@@ -3194,9 +3236,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 15563,
+      "size_bytes": 15541,
       "line_count": 339,
-      "sha256": "4197bc081131aba424004c13206ecfb2733f02b58f5144eb37e12d29380a23e5"
+      "sha256": "43acaadffcb8e01389f79b05631fc232662124ede93253ac67468799c9c34504"
     },
     {
       "path": "operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psd1",
@@ -3432,9 +3474,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 9118,
+      "size_bytes": 9070,
       "line_count": 163,
-      "sha256": "86016fb0d7b0909c6edea341cb5b3bdcb3714083402d75bc791c83854e8a6f12"
+      "sha256": "d0fd2d5d6d1cc9e57ef5e99620dfb9f4558d7fc0b3809c07c68d8fe5316781e7"
     },
     {
       "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirActionsModeLadder.ps1",
@@ -3479,118 +3521,6 @@
       "sha256": "67cc3fc0f98a85325f1d618bfbfff3fc1676da5b780ff59219e063c8708cb258"
     },
     {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09AddMissingSortRow.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 7001,
-      "line_count": 143,
-      "sha256": "8d517f0047355f3bd9d4d3f4f6d3254e7750bde6436520ca0b91da6ba0281956"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyRelativeDateFilter.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 5497,
-      "line_count": 115,
-      "sha256": "fa61e28400a59d9626e720da63f9e3719d862694b2a53c19273fdf32ae89b4e4"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplySortDirection.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 4361,
-      "line_count": 99,
-      "sha256": "b55ac004a0cda7289d5a7474e0e47352aaf0355bc112168a48c9e8d4f8b012e8"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyValidationDueView.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 4515,
-      "line_count": 101,
-      "sha256": "4abd4a409f97c028cf665f79349b047834d0711bb3cb6a93b43e77f0b9782d31"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09RelativeDatePopupProbe.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 4204,
-      "line_count": 94,
-      "sha256": "b63fe14c2d39b76a89cd0fe575e690ffdaea4a00fda1af1f65c21d4f2919bf49"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09VerifyRelativeDateFilters.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 6422,
-      "line_count": 129,
-      "sha256": "8452b2d2cd48329955bb74cb357971da08cbd64aa262486a3b7c5d07645dd59f"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ViewPanelReadback.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 7393,
-      "line_count": 144,
-      "sha256": "ca5950bb56809e2c5e886193a2facebcd915449fc0bb48ca043517557a153b75"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ViewRepairBatch.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 6960,
-      "line_count": 142,
-      "sha256": "c1da861ab37bdac2bfdfb85e7a79567f5e0e3fc67eb5e4af61aea4d4a5fc6b09"
-    },
-    {
       "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
       "category": "operator_tooling",
       "source_type": ".ps1",
@@ -3631,20 +3561,6 @@
       "size_bytes": 4738,
       "line_count": 113,
       "sha256": "bdd255a3e2e4ac12e3ea962a941c5b8168e2e3bb2dc214a33bc57d0aff94e03c"
-    },
-    {
-      "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirWbs09ManifestSchemaAudit.ps1",
-      "category": "operator_tooling",
-      "source_type": ".ps1",
-      "status": "tooling",
-      "inclusion_decision": "include",
-      "decision_reason": "Operator tooling PowerShell is maintained repo tooling.",
-      "exists": true,
-      "marker_lines": [],
-      "embedded_snippets": [],
-      "size_bytes": 16595,
-      "line_count": 349,
-      "sha256": "9d38bf3e4022949c7d916af28bbb3023bcc1cd81406bf70c7a1812072f25a6c0"
     },
     {
       "path": "operator_tools/github_desktop_lane/scripts/New-DcoirApplyInPayload.ps1",

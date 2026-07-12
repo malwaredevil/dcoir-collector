@@ -70,7 +70,7 @@ def write_success(args: argparse.Namespace) -> int:
             "",
             (
                 "Verify the committed target changes, hash policy outcome, deletion outcome, and apply report. "
-                "If readback is good, update Airtable and clean this status report when safe."
+                "If readback is good, record the governed GitHub work-item evidence and clean this status report when safe."
             ),
         ]
     )

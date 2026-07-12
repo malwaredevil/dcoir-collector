@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-07-12T12:17:42+00:00",
+    "generated_at_utc": "2026-07-12T12:54:03+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -2121,6 +2121,27 @@
       },
       {
         "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": "chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
         "path": "chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
@@ -2515,62 +2536,6 @@
       },
       {
         "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09AddMissingSortRow.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyRelativeDateFilter.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplySortDirection.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ApplyValidationDueView.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09RelativeDatePopupProbe.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09VerifyRelativeDateFilters.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ViewPanelReadback.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirAirtableWbs09ViewRepairBatch.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
         "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirCloseGitHubIssues.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
@@ -2586,13 +2551,6 @@
       {
         "category": "operator_tooling",
         "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirSafePrePullApply.ps1",
-        "reason": "Operator tooling PowerShell is maintained repo tooling.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "operator_tooling",
-        "path": "operator_tools/github_desktop_lane/scripts/Invoke-DcoirWbs09ManifestSchemaAudit.ps1",
         "reason": "Operator tooling PowerShell is maintained repo tooling.",
         "source_type": ".ps1",
         "status": "tooling"
@@ -3122,8 +3080,8 @@
       "markdown": "project_sources/collector/powershell_surface_inventory.md"
     },
     "path_decision_counts": {
-      "exclude": 63,
-      "include": 135,
+      "exclude": 66,
+      "include": 126,
       "reference": 51,
       "skip": 0
     },
@@ -3502,19 +3460,19 @@
         "missing_authoritative_surface": 0,
         "missing_changed_powershell_surface": 0,
         "missing_changed_workflow_surface": 0,
-        "operator_tooling": 45,
-        "staging_artifact": 63,
+        "operator_tooling": 36,
+        "staging_artifact": 66,
         "unclassified_powershell_surface": 0,
         "validation_tooling": 3,
         "workflow_embedded_powershell": 27
       },
       "by_inclusion_decision": {
-        "exclude": 63,
-        "include": 135,
+        "exclude": 66,
+        "include": 126,
         "reference": 51
       },
       "by_source_type": {
-        ".ps1": 186,
+        ".ps1": 180,
         ".ps1.txt": 17,
         ".ps1xml": 0,
         ".psd1": 9,
@@ -3525,13 +3483,13 @@
         "fixture": 23,
         "source": 48,
         "source_part": 17,
-        "staging": 63,
+        "staging": 66,
         "superseded_pointer": 1,
-        "tooling": 70,
+        "tooling": 61,
         "workflow_embedded": 27
       },
       "embedded_snippet_count": 80,
-      "total_surfaces": 249
+      "total_surfaces": 243
     }
   },
   "unclaimed_artifacts": [

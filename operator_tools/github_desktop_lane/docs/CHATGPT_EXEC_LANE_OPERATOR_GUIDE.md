@@ -58,7 +58,7 @@ Validated procedure:
 8. Verify the exec report under `chatgpt_staging/status_reports/chatgpt-exec/<request_id>/workflow_report.md`.
 9. Record evidence and clean status reports only after readback.
 
-Known validated example:
+Known historical validation example (the command payload used by that run has since been retired):
 
 - apply-in request id: `apply-20260503-exec-hashfix-validation-001`
 - exec request id: `exec-20260503-airtable-schema-hashfix-002`

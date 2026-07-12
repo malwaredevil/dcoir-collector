@@ -25,7 +25,7 @@ The workflow:
 
 ## Important safety notes
 
-- Do not store the token in chat, Airtable, screenshots, repo files, logs, or bundles.
+- Do not store the token in chat, external databases, screenshots, repo files, logs, or bundles.
 - The repository secret name must be exactly `DCOIR_WIKI_PUSH_TOKEN`.
 - The wiki must be initialized with at least one page before the workflow runs.
 - The wiki is intended to mirror the maintained `knowledge/` folder. Do not manually maintain separate wiki-only operational guidance unless that is an intentional exception.
