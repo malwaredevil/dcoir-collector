@@ -15,7 +15,7 @@ Regenerate it after workflow, reusable workflow, composite action, report, or wo
 | File | Workflow name | Triggers | Permissions | Secrets/vars | Artifacts | Report family | Contract family | Status | Risk |
 |---|---|---|---|---|---|---|---|---|---|
 | `.github/workflows/chatgpt-apply-in.yml` | 10 Operator - ChatGPT Apply-In | push, workflow_dispatch | contents:write | 0 | chatgpt-apply-in-failure-${{ github.run_id }} | standalone workflow report | staging-apply-in | active | high |
-| `.github/workflows/chatgpt-exec.yml` | 11 Operator - ChatGPT Exec | push, workflow_dispatch | contents:write, actions:read | 8 | ${{ env.DCOIR_EXEC_ARTIFACT_NAME }} | standalone workflow report | staging-exec | active | high |
+| `.github/workflows/chatgpt-exec.yml` | 11 Operator - ChatGPT Exec | push, workflow_dispatch | contents:write, actions:read | 6 | ${{ env.DCOIR_EXEC_ARTIFACT_NAME }} | standalone workflow report | staging-exec | active | high |
 | `.github/workflows/chatgpt-report-retention-cleanup.yml` | 31 Maintenance - ChatGPT Report Retention Cleanup | schedule, workflow_dispatch | contents:write | 0 | none | standalone workflow report | staging-retention-cleanup | active | high |
 | `.github/workflows/chatgpt-stage-out.yml` | 12 Operator - ChatGPT Stage-Out | push, workflow_dispatch | contents:write | 0 | chatgpt-stage-out | standalone workflow report | staging-stage-out | active | high |
 | `.github/workflows/chatgpt-staging-cleanup.yml` | 32 Maintenance - ChatGPT Staging Cleanup | push, workflow_dispatch | contents:write | 0 | none | standalone workflow report | staging-cleanup | active | high |
