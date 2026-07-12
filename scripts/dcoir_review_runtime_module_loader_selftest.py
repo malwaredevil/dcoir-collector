@@ -31,6 +31,23 @@ EXPECTED_ADJACENCY = {
     ),
 }
 
+PATCH_ADJACENCY = {
+    "dcoir_review_runtime_patches": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
+    "dcoir_review_strict_runtime_patches": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
+    "dcoir_review_required_runtime_patches": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
+    "dcoir_review_required_runtime_patch_v2": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v3": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v4": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v6": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v7": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v8": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v10": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v11": (("part_02.py", "part_02a.py"),),
+    "dcoir_review_required_runtime_patch_v13": (("part_02.py", "part_02a.py"),),
+    "dcoir_review_required_runtime_patch_v14": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v16": (("part_01.py", "part_01a.py"),),
+}
+
 EXPECTED_EXPORTS = {
     "openrouter_pr_review": ("Config", "GitHubClient", "ProgressReporter", "sanitize_text"),
     "openrouter_pr_review_hardened": ("RISK_SENTINEL_RULES", "build_prompt", "openrouter_review"),
@@ -49,6 +66,18 @@ def main() -> None:
         assert all(path.is_file() for path in paths), layer
         assert all(path.stat().st_size <= 15_000 for path in paths), layer
         for first, second in pairs:
+            index = segments.index(first)
+            assert segments[index + 1] == second, (layer, first, second)
+
+    for layer, pairs in PATCH_ADJACENCY.items():
+        segments = LAYER_SEGMENTS[layer]
+        paths = RuntimeSegmentLoader(layer).segment_paths()
+        assert all(path.is_file() for path in paths), layer
+        assert all(path.stat().st_size <= 15_000 for path in paths), layer
+        directory = Path(segments[0]).parent.as_posix()
+        for first_name, second_name in pairs:
+            first = f"{directory}/{first_name}"
+            second = f"{directory}/{second_name}"
             index = segments.index(first)
             assert segments[index + 1] == second, (layer, first, second)
 
