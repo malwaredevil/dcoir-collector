@@ -7,8 +7,10 @@ from typing import Any, MutableMapping
 LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     'base': (
         'base/part_01_core_config_github.py',
+        'base/part_01a_progress_diff.py',
         'base/part_02_redaction_core.py',
         'base/part_03_redaction_shell.py',
+        'base/part_03a_redaction_command_shell.py',
         'base/part_04_debug_artifacts.py',
         'base/part_05_prompt_provider.py',
         'base/part_06_findings_comments.py',
@@ -16,9 +18,12 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'hardened': (
         'hardened/part_01_rules.py',
+        'hardened/part_01a_finding_rules.py',
         'hardened/part_02_config_progress.py',
         'hardened/part_03_sentinels_prompt.py',
+        'hardened/part_03a_fallback_prompt.py',
         'hardened/part_04_quality_provider.py',
+        'hardened/part_04a_provider.py',
         'hardened/part_05_debug_and_merge.py',
         'hardened/part_06_normalize_select.py',
         'hardened/part_07_review_body_main.py',
@@ -28,7 +33,9 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'pareto_context/part_02_python_path_helpers.py',
         'pareto_context/part_03_python_diff_scope.py',
         'pareto_context/part_04_sentinels_modes_context.py',
+        'pareto_context/part_04a_ranking_context.py',
         'pareto_context/part_05_ranking_per_file_review.py',
+        'pareto_context/part_05a_hybrid_review.py',
         'pareto_context/part_06_fix_synthesis.py',
         'pareto_context/part_07_deep_context_prompt.py',
         'pareto_context/part_08_review_body_main.py',
