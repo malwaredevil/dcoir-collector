@@ -41,7 +41,7 @@ ENV_TOKEN_TITLE = "Environment token forwarded to request-controlled callback"
 ENV_TOKEN_BODY = (
     "This line forwards an environment token in an authorization-bearing request to a "
     "request-controlled callback or URL. Treat this as token forwarding and SSRF risk, "
-    "not as a hardcoded secret unless the source contains a literal token value."
+    "not as an embedded credential unless the source contains a literal token value."
 )
 ENV_TOKEN_NOTES = (
     "Keep the token on the trusted side of the boundary and allowlist callback destinations "

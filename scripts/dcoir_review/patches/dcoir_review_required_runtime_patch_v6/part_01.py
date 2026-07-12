@@ -88,12 +88,23 @@ def _prompt_kind(prompt: str) -> str:
 def _protect_env_provenance(text: str) -> tuple[str, list[str]]:
     protected: list[str] = []
 
-    def stash(match: re.Match[str]) -> str:
-        protected.append(match.group(0))
+    def store(value: str) -> str:
+        protected.append(value)
         return f"__DCOIR_ENV_PROVENANCE_{len(protected) - 1}__"
 
+    def stash(match: re.Match[str]) -> str:
+        return store(match.group(0))
+
     result = ENV_PROVENANCE_LINE_RE.sub(stash, text)
-    result = SAFE_BEARER_EXPR_RE.sub(stash, result)
+    protected_lines: list[str] = []
+    for line in result.splitlines(keepends=True):
+        if not SAFE_BEARER_EXPR_RE.search(line):
+            protected_lines.append(line)
+            continue
+        ending = "\r\n" if line.endswith("\r\n") else "\n" if line.endswith("\n") else ""
+        value = line[: -len(ending)] if ending else line
+        protected_lines.append(store(value) + ending)
+    result = "".join(protected_lines)
     return result, protected
 
 

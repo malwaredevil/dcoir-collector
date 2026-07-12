@@ -115,7 +115,18 @@ def _dedupe_final(findings: list[dict[str, Any]], site_map: dict[tuple[str, int]
     seen: set[tuple[str, int, str]] = set()
     dropped: list[str] = []
     for finding in findings:
+        explicit = finding.get("_risk_sentinel_key")
+        raw_kind = str(explicit[2]) if isinstance(explicit, (list, tuple)) and len(explicit) == 3 else v5._semantic_kind(finding)
+        if not explicit and _is_pickle_finding(finding):
+            raw_kind = "python_pickle_load"
         normalized = v5._normalize_comment_finding(finding)
+        if raw_kind:
+            normalized["_risk_sentinel_key"] = [
+                str(normalized.get("path", "") or ""),
+                _line_number(normalized.get("line", 0)),
+                raw_kind,
+            ]
+            normalized["_risk_sentinel_kind"] = raw_kind
         if _is_required_site_mismatch(normalized, site_map, original_covers):
             dropped.append(f"{normalized.get('path', '')}:{normalized.get('line', '')} semantic_mismatch {normalized.get('title', '')}")
             continue
@@ -155,7 +166,7 @@ def _select_required_postable_v8(
     selected, dropped = _dedupe_final(base_selection, site_map, original_covers)
 
     selected_keys = {v7._postable_key(finding) for finding in selected}
-    normalized_pool = [v5._normalize_comment_finding(finding) for finding in [*findings, *(unanchored_findings or [])] if isinstance(finding, dict)]
+    normalized_pool = [finding for finding in [*findings, *(unanchored_findings or [])] if isinstance(finding, dict)]
     candidates, candidate_drops = _dedupe_final(normalized_pool, site_map, original_covers)
     dropped.extend(candidate_drops)
     candidates = [finding for finding in candidates if v7._postable_key(finding) not in selected_keys]

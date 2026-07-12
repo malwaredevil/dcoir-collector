@@ -242,10 +242,15 @@ def _attach_covered_signal_text(selected: list[dict[str, Any]], risk_sentinels: 
         _key_id(v16._sentinel_key(sentinel)): str(getattr(sentinel, "text", "") or "")
         for sentinel in risk_sentinels
     }
+    text_by_site = {
+        (str(getattr(sentinel, "path", "") or ""), _line_number(getattr(sentinel, "line", 0))):
+        str(getattr(sentinel, "text", "") or "")
+        for sentinel in risk_sentinels
+    }
     for finding in selected:
         covered_text: dict[str, str] = {}
         for key in _covered_keys(finding):
-            text = text_by_key.get(_key_id(key), "")
+            text = text_by_key.get(_key_id(key), "") or text_by_site.get((key[0], key[1]), "")
             if text:
                 covered_text[_key_id(key)] = text
         if covered_text:

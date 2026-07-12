@@ -126,6 +126,21 @@ def _select_once(
             by_key[key] = normalized
             candidates.append(normalized)
 
+    # Required targets are selected first, but remaining high-risk sentinels
+    # must also enter the candidate pool so unused inline capacity is filled
+    # deterministically before those findings are recorded as overflow.
+    for sentinel in risk_sentinels:
+        key = _sentinel_key(sentinel)
+        if not key[2] or key in by_key:
+            continue
+        fallback = _fallback_for_sentinel(hardened, sentinel, config)
+        normalized = v5._normalize_comment_finding(fallback)
+        normalized["_risk_sentinel_key"] = list(key)
+        normalized["_risk_sentinel_kind"] = key[2]
+        normalized["_anchored_line_text"] = str(getattr(sentinel, "text", "") or "")
+        by_key[key] = normalized
+        candidates.append(normalized)
+
     selected: list[dict[str, Any]] = []
     selected_coverage: set[SentinelKey] = set()
     for sentinel in _balanced_required_order(required_targets):

@@ -43,6 +43,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'base_selftest': (
         'selftests/base_selftest/part_01.py',
+        'selftests/base_selftest/part_01a.py',
         'selftests/base_selftest/part_02.py',
         'selftests/base_selftest/part_02a.py',
         'selftests/base_selftest/part_02b.py',
@@ -50,14 +51,29 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'hardened_selftest': (
         'selftests/hardened_selftest/part_01.py',
+        'selftests/hardened_selftest/part_01a.py',
         'selftests/hardened_selftest/part_02.py',
     ),
     'pareto_context_selftest': (
         'selftests/pareto_context_selftest/part_01.py',
+        'selftests/pareto_context_selftest/part_01a.py',
         'selftests/pareto_context_selftest/part_02.py',
         'selftests/pareto_context_selftest/part_03.py',
         'selftests/pareto_context_selftest/part_04.py',
+        'selftests/pareto_context_selftest/part_04a.py',
         'selftests/pareto_context_selftest/part_05.py',
+    ),
+    'dcoir_review_required_runtime_patch_v14_selftest': (
+        'selftests/dcoir_review_required_runtime_patch_v14_selftest/part_01.py',
+        'selftests/dcoir_review_required_runtime_patch_v14_selftest/part_02.py',
+    ),
+    'dcoir_review_required_runtime_patch_v9_selftest': (
+        'selftests/dcoir_review_required_runtime_patch_v9_selftest/part_01.py',
+        'selftests/dcoir_review_required_runtime_patch_v9_selftest/part_02.py',
+    ),
+    'openrouter_pr_review_pareto_context_regression_selftest': (
+        'selftests/openrouter_pr_review_pareto_context_regression_selftest/part_01.py',
+        'selftests/openrouter_pr_review_pareto_context_regression_selftest/part_02.py',
     ),
     'dcoir_review_runtime_patches': (
         'patches/dcoir_review_runtime_patches/part_01.py',
@@ -108,6 +124,10 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'dcoir_review_required_runtime_patch_v9': (
         'patches/dcoir_review_required_runtime_patch_v9/part_01.py',
+    ),
+    'dcoir_review_required_runtime_patch_v9_core': (
+        'patches/dcoir_review_required_runtime_patch_v9_core/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v9_core/part_02.py',
     ),
     'dcoir_review_required_runtime_patch_v10': (
         'patches/dcoir_review_required_runtime_patch_v10/part_01.py',

@@ -41,11 +41,21 @@ PATCH_ADJACENCY = {
     "dcoir_review_required_runtime_patch_v6": (("part_01.py", "part_01a.py"),),
     "dcoir_review_required_runtime_patch_v7": (("part_01.py", "part_01a.py"),),
     "dcoir_review_required_runtime_patch_v8": (("part_01.py", "part_01a.py"),),
+    "dcoir_review_required_runtime_patch_v9_core": (("part_01.py", "part_02.py"),),
     "dcoir_review_required_runtime_patch_v10": (("part_01.py", "part_01a.py"),),
     "dcoir_review_required_runtime_patch_v11": (("part_02.py", "part_02a.py"),),
     "dcoir_review_required_runtime_patch_v13": (("part_02.py", "part_02a.py"),),
     "dcoir_review_required_runtime_patch_v14": (("part_01.py", "part_01a.py"),),
     "dcoir_review_required_runtime_patch_v16": (("part_01.py", "part_01a.py"),),
+}
+
+SELFTEST_ADJACENCY = {
+    "base_selftest": (("part_01.py", "part_01a.py"),),
+    "hardened_selftest": (("part_01.py", "part_01a.py"),),
+    "pareto_context_selftest": (("part_01.py", "part_01a.py"), ("part_04.py", "part_04a.py")),
+    "dcoir_review_required_runtime_patch_v14_selftest": (("part_01.py", "part_02.py"),),
+    "dcoir_review_required_runtime_patch_v9_selftest": (("part_01.py", "part_02.py"),),
+    "openrouter_pr_review_pareto_context_regression_selftest": (("part_01.py", "part_02.py"),),
 }
 
 EXPECTED_EXPORTS = {
@@ -70,6 +80,18 @@ def main() -> None:
             assert segments[index + 1] == second, (layer, first, second)
 
     for layer, pairs in PATCH_ADJACENCY.items():
+        segments = LAYER_SEGMENTS[layer]
+        paths = RuntimeSegmentLoader(layer).segment_paths()
+        assert all(path.is_file() for path in paths), layer
+        assert all(path.stat().st_size <= 15_000 for path in paths), layer
+        directory = Path(segments[0]).parent.as_posix()
+        for first_name, second_name in pairs:
+            first = f"{directory}/{first_name}"
+            second = f"{directory}/{second_name}"
+            index = segments.index(first)
+            assert segments[index + 1] == second, (layer, first, second)
+
+    for layer, pairs in SELFTEST_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer

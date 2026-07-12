@@ -125,7 +125,7 @@ def _sentinel_sort_key(sentinel: Any) -> tuple[int, int, str, int, str]:
 
 
 def _family(kind: str) -> str:
-    return v13._family(kind)
+    return v12._family(kind)
 
 
 def _spread_same_kind(values: list[Any]) -> list[Any]:

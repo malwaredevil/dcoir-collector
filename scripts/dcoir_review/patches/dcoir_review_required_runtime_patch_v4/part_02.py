@@ -3,7 +3,10 @@ def _normalize_comment_finding(finding: dict[str, Any]) -> dict[str, Any]:
     item = v3._normalize_comment_finding(finding)
     if finding.get("_anchored_line_text") and not item.get("_anchored_line_text"):
         item["_anchored_line_text"] = finding.get("_anchored_line_text")
-    kind = _semantic_kind(item) or raw_kind
+    # Preserve the semantic classification from the anchored source finding.
+    # Earlier normalization can rewrite the title/body, which must not change
+    # a process-launch finding into a different required-risk family.
+    kind = raw_kind or _semantic_kind(item)
     path = str(item.get("path", "") or "")
     line_text = str(item.get("_anchored_line_text", "") or "")
     if _is_env_token_callback({**item, "_anchored_line_text": line_text}):
