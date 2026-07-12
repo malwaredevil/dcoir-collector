@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v7 as v7
 import openrouter_pr_review as base
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 class Config(SimpleNamespace):
@@ -117,10 +117,10 @@ def test_sanitize_preserves_interpolated_bearer_lines() -> None:
 
 
 def test_entrypoint_loads_v7_after_v6() -> None:
-    entrypoint = Path(__file__).with_name("openrouter_pr_review_entrypoint.py").read_text(encoding="utf-8")
-    assert "import dcoir_review_required_runtime_patch_v6" in entrypoint
-    assert "import dcoir_review_required_runtime_patch_v7" in entrypoint
-    assert entrypoint.index("dcoir_review_required_runtime_patch_v6.apply_pareto_context_module") < entrypoint.index("dcoir_review_required_runtime_patch_v7.apply_pareto_context_module")
+    patch_modules = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v6" in patch_modules
+    assert "dcoir_review_required_runtime_patch_v7" in patch_modules
+    assert patch_modules.index("dcoir_review_required_runtime_patch_v6") < patch_modules.index("dcoir_review_required_runtime_patch_v7")
 
 
 def main() -> None:

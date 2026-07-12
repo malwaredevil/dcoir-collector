@@ -25,6 +25,7 @@ import dcoir_review_required_runtime_patch_v9_core as core
 import dcoir_review_required_runtime_patch_v9_selection as selection
 
 SentinelKey = tuple[str, int, str]
+_BASE_VALIDATION_FOR_KEY = core._validation_for_key
 
 YAML_TOKEN_TO_PR_URL = "yaml_token_to_pr_body_url"
 YAML_PR_LABEL_SHELL = v4.YAML_METADATA_SHELL
@@ -217,7 +218,7 @@ def _original_validation_for_key(kind: str, path: str, line: int = 0) -> str:
     original = getattr(core, "_dcoir_required_v10_original_validation_for_key", None)
     if callable(original):
         return original(kind, path, line)
-    return core._validation_for_key(kind, path, line)
+    return _BASE_VALIDATION_FOR_KEY(kind, path, line)
 
 
 def _validation_for_key(kind: str, path: str, line: int = 0) -> str:

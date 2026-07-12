@@ -340,6 +340,8 @@ def _semantic_mismatch(finding: dict[str, Any], expected: dict[tuple[str, int], 
     explicit = _explicit_kind(finding)
     if explicit and explicit not in allowed:
         return True
+    if explicit:
+        return False
     title_kinds = _title_kinds(finding)
     if title_kinds and not (title_kinds & allowed):
         return True
