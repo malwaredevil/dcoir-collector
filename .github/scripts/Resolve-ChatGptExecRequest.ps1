@@ -24,7 +24,11 @@ if ($CallerEventName -eq 'workflow_dispatch') {
     $requestPath = $InputRequestPath
 } else {
     $changed = git diff-tree --no-commit-id --name-only -r $GithubSha
-    $requestPath = ($changed | Where-Object { $_ -like '.github/chatgpt_staging/exec_requests/*.json' } | Select-Object -First 1)
+    $requestPaths = @($changed | Where-Object { $_ -like '.github/chatgpt_staging/exec_requests/*.json' })
+    if ($requestPaths.Count -gt 1) {
+        throw "Push trigger must include exactly one exec request JSON under .github/chatgpt_staging/exec_requests/. Found $($requestPaths.Count) files: $($requestPaths -join ', ')"
+    }
+    $requestPath = ($requestPaths | Select-Object -First 1)
 }
 
 if ([string]::IsNullOrWhiteSpace($requestPath)) {

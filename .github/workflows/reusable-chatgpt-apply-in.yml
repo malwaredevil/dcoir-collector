@@ -73,12 +73,23 @@ jobs:
             reject_chunk_path "$PAYLOAD"
           else
             PAYLOAD=""
+            MATCHED_PAYLOADS=()
             while IFS= read -r p; do
               reject_chunk_path "$p"
               if [[ "$p" == .github/chatgpt_staging/in/*/payload.zip.b64 && -f "$p" ]]; then
-                PAYLOAD="$p"
+                MATCHED_PAYLOADS+=("$p")
               fi
             done < <(git diff-tree --no-commit-id --name-only -r "$GITHUB_SHA")
+            if [[ "${#MATCHED_PAYLOADS[@]}" -gt 1 ]]; then
+              echo "Push trigger must include exactly one payload.zip.b64 under .github/chatgpt_staging/in/<request_id>/." >&2
+              printf 'Found %s payload files:\n' "${#MATCHED_PAYLOADS[@]}" >&2
+              printf ' - %s\n' "${MATCHED_PAYLOADS[@]}" >&2
+              echo "Move archival payload history out of the live trigger path and stage one request per commit." >&2
+              exit 1
+            fi
+            if [[ "${#MATCHED_PAYLOADS[@]}" -eq 1 ]]; then
+              PAYLOAD="${MATCHED_PAYLOADS[0]}"
+            fi
           fi
 
           if [[ -z "$PAYLOAD" ]]; then
