@@ -74,6 +74,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     'openrouter_pr_review_pareto_context_regression_selftest': (
         'selftests/openrouter_pr_review_pareto_context_regression_selftest/part_01.py',
         'selftests/openrouter_pr_review_pareto_context_regression_selftest/part_02.py',
+        'selftests/openrouter_pr_review_pareto_context_regression_selftest/part_02a.py',
     ),
     'dcoir_review_runtime_patches': (
         'patches/dcoir_review_runtime_patches/part_01.py',
@@ -144,6 +145,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     ),
     'dcoir_review_required_runtime_patch_v11': (
         'patches/dcoir_review_required_runtime_patch_v11/part_01.py',
+        'patches/dcoir_review_required_runtime_patch_v11/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v11/part_02.py',
         'patches/dcoir_review_required_runtime_patch_v11/part_02a.py',
     ),

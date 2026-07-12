@@ -203,6 +203,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          SKIPPED_WORKFLOW_PATHS=""
           if [[ -f chatgpt_staging/work/applied_paths.txt ]]; then
             while IFS= read -r p; do
               if [[ -z "$p" ]]; then
@@ -211,10 +212,29 @@ jobs:
               if [[ "$p" == .github/workflows/* ]]; then
                 echo "Skipping workflow file from normal apply-in commit: $p"
                 git restore -- "$p" || true
+                SKIPPED_WORKFLOW_PATHS+="$p"$'\n'
                 continue
               fi
               git add -- "$p"
             done < chatgpt_staging/work/applied_paths.txt
+          fi
+          if [[ -n "$SKIPPED_WORKFLOW_PATHS" ]]; then
+            {
+              echo
+              echo "## Workflow file changes were NOT committed"
+              echo
+              echo "The default \`GITHUB_TOKEN\` cannot create or update \`.github/workflows/*\` files"
+              echo "(GitHub rejects that push regardless of the \`contents: write\` permission granted here)."
+              echo "Even though \`allow_workflow_changes: true\` passed manifest validation and the file was"
+              echo "copied to disk, the following paths were reverted before commit and are NOT part of this run's result:"
+              echo
+              while IFS= read -r skipped; do
+                [[ -n "$skipped" ]] && echo "- $skipped"
+              done <<< "$SKIPPED_WORKFLOW_PATHS"
+              echo
+              echo "Workflow-file changes must be delivered through a normal branch/PR reviewed by a human or agent with"
+              echo "push access, not through this apply-in bot."
+            } >> "$REPORT_PATH"
           fi
           if [[ -f chatgpt_staging/work/deleted_paths.txt ]]; then
             while IFS= read -r p; do

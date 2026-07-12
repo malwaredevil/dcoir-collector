@@ -38,8 +38,8 @@ def main() -> None:
     v15 = _reload_v15_without_v13_family()
     module = SimpleNamespace(base=None, hardened=SimpleNamespace())
 
-    # Match the entrypoint ordering: v15 protects v14 before and after v14 applies.
-    v15.apply_pareto_context_module(module)
+    # Match the runtime entrypoint ordering: v14 applies first, then v15 patches
+    # the family-compat helpers that v14 exposes.
     v14.apply_pareto_context_module(module)
     v15.apply_pareto_context_module(module)
 

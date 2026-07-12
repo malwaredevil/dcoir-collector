@@ -32,7 +32,7 @@
 # Expected outputs/readback:
 # - Progress and final reports under chatgpt_staging/status_reports/chatgpt-apply-in/<request_id>/ plus apply reports under chatgpt_staging/apply_reports/.
 # Safety notes:
-# - Rejects chunks/parts, unsafe request ids, unsafe paths, blocked staging/report paths, stale hashes, and workflow changes unless manifest explicitly allows workflow changes with a reason.
+# - Rejects chunks/parts, unsafe request ids, unsafe paths, blocked staging/report paths, and stale hashes. Manifests may set allow_workflow_changes with a reason to pass validation on a .github/workflows/* target, but the file is always reverted before commit (GitHub's default GITHUB_TOKEN cannot push workflow-file changes) and the workflow report notes this explicitly; use a normal branch/PR for workflow-file changes.
 # - ChatGPT must verify the exact staged GitHub copy before relying on this workflow. Local-only verification is insufficient because connector/UI staging can alter or truncate large text payloads.
 # Maintenance notes:
 # - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.

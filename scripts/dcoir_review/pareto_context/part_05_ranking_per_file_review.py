@@ -76,7 +76,8 @@ Review rules:
 - Return only high-signal findings that matter for correctness, security, validation, or DCOIR governance.
 - Anchor every finding to a changed RIGHT-side line from this file whenever possible.
 - Keep findings generalizable. Do not tune to a known test fixture or exact previous conversation.
-- Provide exact correction guidance and validation. Use `suggested_replacement` only when the replacement is exact code for the anchored line.
+- Provide exact correction guidance and validation.
+- Leave `suggested_replacement` empty in this detector pass; the separate fix-synthesis pass adds exact single-line suggestions only after deterministic anchoring checks.
 - If this file has no actionable issue, return an empty findings array and a clean summary.
 
 {sentinel_block}
@@ -181,5 +182,4 @@ def compact_model_label(results: list[dict[str, Any]], fallback: str) -> str:
 
 def should_use_per_file_first_pass(review_mode: str, config: Any) -> bool:
     return bool(getattr(config, "per_file_first_pass_review", True)) and review_mode in {"first-pass-deep", "deep-forced"}
-
 

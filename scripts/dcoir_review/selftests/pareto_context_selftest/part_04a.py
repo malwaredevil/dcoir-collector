@@ -132,8 +132,8 @@ assert "Deep changed-file context" in prompt
 assert "subprocess.run(command, shell=True)" in prompt
 assert "exact correction guidance" in prompt
 assert "smallest safe patch direction" in prompt
-assert "GitHub apply-ready suggestions" in prompt
-assert "precise single-line replacement for the commented line" in prompt
+assert "Leave suggested_replacement empty in this detector pass" in prompt
+assert "separate fix-synthesis pass" in prompt
 assert "multiline, range, or speculative fixes" in prompt
 assert "selected range" not in prompt
 

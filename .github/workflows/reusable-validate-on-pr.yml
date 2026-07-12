@@ -60,6 +60,14 @@ jobs:
             throw 'Duplicate-function action contract tests failed.'
           }
 
+      - name: Run DCOIR Review runtime module-loader selftest
+        shell: pwsh
+        run: |
+          python scripts/dcoir_review_runtime_module_loader_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'DCOIR Review runtime module-loader selftest failed.'
+          }
+
       - name: Validate PowerShell syntax
         uses: ./.github/actions/validate-powershell-syntax
 
