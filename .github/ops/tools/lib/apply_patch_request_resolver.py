@@ -29,24 +29,24 @@ def validate_request_id(request_id: str) -> None:
 def safe_request_path(path: str) -> bool:
     pure = pathlib.PurePosixPath(path)
     return (
-        len(pure.parts) == 5
-        and pure.parts[:3] == ("ops", "requests", "apply_patch")
+        len(pure.parts) == 6
+        and pure.parts[:4] == (".github", "ops", "requests", "apply_patch")
         and pure.name == "request.json"
-        and pure.parts[3] not in INVALID_REQUEST_IDS
-        and SAFE_REQUEST_ID_RE.fullmatch(pure.parts[3]) is not None
+        and pure.parts[4] not in INVALID_REQUEST_IDS
+        and SAFE_REQUEST_ID_RE.fullmatch(pure.parts[4]) is not None
     )
 
 
 def request_path_for_patch(path: str) -> str | None:
     pure = pathlib.PurePosixPath(path)
     if (
-        len(pure.parts) == 5
-        and pure.parts[:3] == ("ops", "requests", "apply_patch")
+        len(pure.parts) == 6
+        and pure.parts[:4] == (".github", "ops", "requests", "apply_patch")
         and pure.suffix in {".patch", ".diff"}
-        and pure.parts[3] not in INVALID_REQUEST_IDS
-        and SAFE_REQUEST_ID_RE.fullmatch(pure.parts[3])
+        and pure.parts[4] not in INVALID_REQUEST_IDS
+        and SAFE_REQUEST_ID_RE.fullmatch(pure.parts[4])
     ):
-        return pathlib.PurePosixPath(*pure.parts[:4], "request.json").as_posix()
+        return pathlib.PurePosixPath(*pure.parts[:5], "request.json").as_posix()
     return None
 
 

@@ -48,8 +48,8 @@ def validate_artifact_subpath(artifact_subpath: str) -> None:
 def safe_request_path(path: pathlib.Path) -> bool:
     pure = pathlib.PurePosixPath(path.as_posix())
     return (
-        len(pure.parts) == 4
-        and pure.parts[:3] == ("chatgpt_staging", "requests", "github_artifact_readback")
+        len(pure.parts) == 5
+        and pure.parts[:4] == (".github", "chatgpt_staging", "requests", "github_artifact_readback")
         and pure.suffix == ".json"
         and pure.name not in {".json", "..json"}
     )
