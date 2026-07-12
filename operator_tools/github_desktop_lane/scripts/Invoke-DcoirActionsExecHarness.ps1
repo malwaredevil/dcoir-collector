@@ -5,7 +5,7 @@ param(
     [string]$OutputRoot = (Join-Path $env:TEMP 'dcoir_chatgpt_exec'),
     [string]$JsonResultPath = '',
     [string]$GithubEnvPath = $env:GITHUB_ENV,
-    [string[]]$SecretEnvNames = @('DCOIR_AIRTABLE_TOKEN','DCOIR_AIRTABLE_BASE_ID','DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID')
+    [string[]]$SecretEnvNames = @('DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID')
 )
 
 Set-StrictMode -Version 2.0

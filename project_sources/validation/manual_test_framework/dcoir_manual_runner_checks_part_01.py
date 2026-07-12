@@ -120,7 +120,7 @@ def safe_read_text(path: Path) -> str:
 
 def record_t2_pathway_note() -> None:
     note = (
-        "Framework recorded the bounded follow-on only. Use Airtable test case COL-T2-PATH-001 to compare T2-first, T2-after-T1, and any other bounded live pathway scenarios outside this automated framework."
+        "Framework recorded the bounded follow-on only. Use governed manual test case COL-T2-PATH-001 to compare T2-first, T2-after-T1, and any other bounded live pathway scenarios outside this automated framework."
     )
     append_report("\n" + "=" * 90 + "\n")
     append_report("T2 PATHWAY FOLLOW-ON NOTE")

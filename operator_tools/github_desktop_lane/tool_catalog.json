@@ -189,11 +189,11 @@
     }
   ],
   "sweep_notes": {
-    "updated_at": "2026-05-26T11:45:00Z",
-    "source_snapshot": "20260526_operator_tools_airtable_retirement_review",
-    "purpose": "Retired obsolete Airtable-only operator tooling and pruned the main catalog back to GitHub Desktop lane surfaces that still support the current Supabase, GitHub, and ChatGPT Agent construct.",
+    "updated_at": "2026-07-12T00:00:00Z",
+    "source_snapshot": "20260712_operator_tools_retirement_review",
+    "purpose": "Pruned the main catalog to GitHub Desktop lane surfaces that support the current Supabase, GitHub, and ChatGPT Agent construct.",
     "known_limitations": [
-      "Historical Airtable exports and status reports under chatgpt_staging are intentionally out of scope for this operator_tools retirement bundle.",
+      "Historical migration exports and status reports under chatgpt_staging are intentionally out of scope for this operator_tools retirement bundle.",
       "A separate follow-on PR may remove now-unneeded staging inputs and outputs after workflow-path review confirms the required scaffolding to keep."
     ]
   }

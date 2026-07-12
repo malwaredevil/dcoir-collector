@@ -38,7 +38,7 @@
 # Authority routing:
 # - GitHub is canonical for workflow/source truth and this header owns workflow-specific execution guidance.
 # - Supabase `ircore` owns operational routing, validation rules, reusable lessons, and active state.
-# - Use legacy Airtable only when a file explicitly requires a migration or historical lookup.
+# - Treat Airtable references as historical evidence only; active workflow routing must not depend on Airtable.
 name: 01 Operator - Build Collector Runtime Bundle
 run-name: Collector Runtime Bundle | ${{ github.event.inputs.package_version_override || 'default-version' }} | #${{ github.run_number }}
 

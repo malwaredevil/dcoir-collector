@@ -58,7 +58,7 @@ def main() -> int:
         "",
         "## Next ChatGPT action",
         "",
-        "Read this report, inspect run logs if needed, fix or regenerate the cleanup marker, and update Airtable.",
+        "Read this report, inspect run logs if needed, fix or regenerate the cleanup marker, and update the governed GitHub work item.",
     ]
     report_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     if args.github_env:

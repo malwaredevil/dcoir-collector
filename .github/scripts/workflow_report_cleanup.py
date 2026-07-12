@@ -128,7 +128,7 @@ def make_cleanup_plan(args: argparse.Namespace) -> int:
         "",
         "## Next ChatGPT action",
         "",
-        "Read this cleanup report, verify scoped deletion/readback when cleanup was not a dry run, then record Airtable evidence if material. Do not use retention-cleanup reports for live workflow polling.",
+        "Read this cleanup report, verify scoped deletion/readback when cleanup was not a dry run, then record governed work-item evidence if material. Do not use retention-cleanup reports for live workflow polling.",
     ]
     cleanup_report.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(cleanup_report)

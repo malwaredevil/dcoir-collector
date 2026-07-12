@@ -26,8 +26,8 @@
 | `missing_authoritative_surface` | 0 |
 | `missing_changed_powershell_surface` | 0 |
 | `missing_changed_workflow_surface` | 0 |
-| `operator_tooling` | 45 |
-| `staging_artifact` | 63 |
+| `operator_tooling` | 36 |
+| `staging_artifact` | 66 |
 | `unclassified_powershell_surface` | 0 |
 | `validation_tooling` | 3 |
 | `workflow_embedded_powershell` | 27 |
@@ -36,7 +36,7 @@
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 186 |
+| `.ps1` | 180 |
 | `.ps1.txt` | 17 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
@@ -47,8 +47,8 @@
 
 | Decision | Count |
 | --- | ---: |
-| `exclude` | 63 |
-| `include` | 135 |
+| `exclude` | 66 |
+| `include` | 126 |
 | `reference` | 51 |
 
 ## Control Totals
@@ -147,6 +147,9 @@
 | `chatgpt_staging/exec_scripts/exec-20260626-dcoir-review-hybrid-main-008.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260627-dcoir-review-summary-negation-main-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/exec-20260627-pr316-dcoir-review-gate-fixes-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `chatgpt_staging/exec_scripts/exec-20260701-issue349-harness-part004-evidence-003.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/gemini_generated_prime_migration_001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/issue197_label_cleanup.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |

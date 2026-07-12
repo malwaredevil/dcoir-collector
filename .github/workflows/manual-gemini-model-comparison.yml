@@ -32,7 +32,7 @@
 # Authority routing:
 # - GitHub is canonical for workflow/source truth and this header owns workflow-specific execution guidance.
 # - Supabase `ircore` owns operational routing, validation rules, reusable lessons, and active state.
-# - Use legacy Airtable only when a file explicitly requires a migration or historical lookup.
+# - Treat Airtable references as historical evidence only; active workflow routing must not depend on Airtable.
 name: 04 Operator - Gemini Model Comparison
 run-name: Gemini Model Comparison | ${{ github.event.inputs.reference_model || 'default-reference' }} | #${{ github.run_number }}
 

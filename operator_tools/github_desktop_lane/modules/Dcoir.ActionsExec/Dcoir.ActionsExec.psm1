@@ -249,7 +249,7 @@ function Write-DcoirActionsExecReport {
     if ($Result -eq 'success') {
         $lines.Add('Read this report and download the artifact if needed; record evidence and clean the status report when safe.')
     } else {
-        $lines.Add('Read this report, inspect the artifact and run log if needed, repair the command or environment, and record the failure/next action in Airtable.')
+        $lines.Add('Read this report, inspect the artifact and run log if needed, repair the command or environment, and record the failure and next action in the governed GitHub work item.')
     }
     $lines -join "`n" | Out-File -FilePath $ReportPath -Encoding utf8
 }
@@ -259,7 +259,7 @@ function Invoke-DcoirActionsExecRequest {
         [Parameter(Mandatory=$true)][string]$RequestPath,
         [Parameter(Mandatory=$true)][string]$RepoRoot,
         [Parameter(Mandatory=$true)][string]$OutputRoot,
-        [string[]]$SecretEnvNames = @('DCOIR_AIRTABLE_TOKEN','DCOIR_AIRTABLE_BASE_ID','DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID')
+        [string[]]$SecretEnvNames = @('DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID')
     )
 
     $request = Get-Content -LiteralPath $RequestPath -Raw -Encoding UTF8 | ConvertFrom-Json
