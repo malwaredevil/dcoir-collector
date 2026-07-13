@@ -1,0 +1,50 @@
+﻿{
+    "schema":  "dcoir.issue379.validation_readback.v1",
+    "request_id":  "exec-20260713-pr385-issue379-validation-003",
+    "pr_number":  385,
+    "branch_name":  "codex/379-cross-cutting-sync",
+    "expected_head_sha":  "fdb034659f222e135b4df3436d08ddab3371b946",
+    "actual_head_sha":  "fdb034659f222e135b4df3436d08ddab3371b946",
+    "started_utc":  "2026-07-13T07:12:47Z",
+    "finished_utc":  "2026-07-13T07:12:49Z",
+    "result":  "success",
+    "outside_dotgithub_file_count":  12,
+    "outside_dotgithub_detail_line_count":  361,
+    "outside_dotgithub_files":  [
+                                    "AGENTS.md",
+                                    "docs/validation/generated-evidence-retention-policy.md",
+                                    "project_sources/collector/fixtures/powershell_review_assist/good_report.json",
+                                    "project_sources/collector/powershell_review_assist_report.json",
+                                    "project_sources/collector/powershell_review_assist_report.md",
+                                    "project_sources/collector/powershell_surface_inventory.json",
+                                    "project_sources/collector/powershell_surface_inventory.md",
+                                    "project_sources/collector/tools/powershell_engine_pester_boundary_contract.py",
+                                    "project_sources/collector/tools/powershell_surface_inventory_test_cases/basic_and_shape_failures.py",
+                                    "project_sources/collector/tools/powershell_surface_inventory_test_cases/common.py",
+                                    "project_sources/collector/tools/powershell_surface_inventory_test_cases/inventory_cli_manifest.py",
+                                    "project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py"
+                                ],
+    "requires_followup_classification":  true,
+    "checks":  [
+                   {
+                       "name":  "checkout_exact_head",
+                       "result":  "pass",
+                       "notes":  "fdb034659f222e135b4df3436d08ddab3371b946"
+                   },
+                   {
+                       "name":  "issue379_exact_grep_pipeline",
+                       "result":  "pass",
+                       "notes":  "exit_code=0; outside_dotgithub_file_count=12"
+                   },
+                   {
+                       "name":  "issue379_grep_detail_capture",
+                       "result":  "pass",
+                       "notes":  "outside_dotgithub_detail_line_count=361"
+                   },
+                   {
+                       "name":  "audit_generated_evidence_check",
+                       "result":  "pass",
+                       "notes":  "exit_code=0"
+                   }
+               ]
+}

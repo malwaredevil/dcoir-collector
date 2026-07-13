@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+git grep -ln "\bchatgpt_staging/\|\bops/requests\|\bops/tools\|\boperator_tools/\|project_sources/github_actions\|tools/chatgpt_apply_in\|tools/chatgpt_stage_out" -- '*.yml' '*.py' '*.ps1' '*.md' '*.json' | grep -v '^\.github/'
