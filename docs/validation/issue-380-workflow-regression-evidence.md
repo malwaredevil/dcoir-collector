@@ -48,6 +48,17 @@ The following current-checkout audit commands completed with exit code `0`:
 - `python .github/dcoir_review/scripts/audit_reusable_contracts.py`
   - Passed for 29 primary workflows, 28 reusable workflow definitions, 29 local reusable workflow calls, 19 local action definitions, and 117 local action calls.
 
+## Count interpretation
+
+The audit commands report different counts because they intentionally inspect different, overlapping workflow-support populations:
+
+- 57 workflow files is the broad workflow-YAML population: 29 primary workflow files plus 28 reusable workflow definition files.
+- 29 workflow files is the primary-workflow population used by the inventory and modularization contract checks.
+- 19 composite action files is the local composite-action definition population, not additional primary workflow YAML.
+- 117 local action calls is the call-site count across workflow files, not a file count.
+
+So the 57-file and 29-file results are not conflicting totals. They are the broad workflow YAML count and the primary workflow count for the same audited repository state.
+
 ## Post-relocation workflow signals
 
 The validation readback also checked the latest available post-relocation runs for the two workflows named in #380 scope item 4:
