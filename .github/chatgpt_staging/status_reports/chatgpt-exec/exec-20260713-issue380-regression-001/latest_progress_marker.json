@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "29233408531",
+  "github_sha": "7c509756272b58f090ce361cd90e182737f1d331",
+  "phase": "request-resolved",
+  "request_id": "exec-20260713-issue380-regression-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260713-issue380-regression-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-07-13T07:51:44Z",
+  "workflow": "chatgpt-exec"
+}
