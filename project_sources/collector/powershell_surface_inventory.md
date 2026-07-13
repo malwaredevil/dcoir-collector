@@ -21,35 +21,35 @@
 | `collector_validation_tooling` | 2 |
 | `fixture_or_example` | 23 |
 | `generated_or_assembled_output` | 1 |
-| `github_workflow_support_script` | 20 |
+| `github_workflow_support_script` | 23 |
 | `invalid_workflow_surface` | 0 |
 | `missing_authoritative_surface` | 0 |
 | `missing_changed_powershell_surface` | 0 |
 | `missing_changed_workflow_surface` | 0 |
-| `operator_tooling` | 36 |
+| `operator_tooling` | 39 |
 | `staging_artifact` | 66 |
 | `unclassified_powershell_surface` | 0 |
-| `validation_tooling` | 3 |
-| `workflow_embedded_powershell` | 27 |
+| `validation_tooling` | 2 |
+| `workflow_embedded_powershell` | 28 |
 
 ## Counts By Source Type
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 180 |
+| `.ps1` | 185 |
 | `.ps1.txt` | 17 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
 | `.psm1` | 10 |
-| `workflow_yaml` | 27 |
+| `workflow_yaml` | 28 |
 
 ## Counts By Inclusion Decision
 
 | Decision | Count |
 | --- | ---: |
 | `exclude` | 66 |
-| `include` | 126 |
-| `reference` | 51 |
+| `include` | 131 |
+| `reference` | 52 |
 
 ## Control Totals
 
@@ -58,7 +58,7 @@
 - Harness source parts: `17`
 - Profile-required harness source parts: `17`
 - Profile-required harness source parts present: `17`
-- Embedded workflow/action snippets: `80`
+- Embedded workflow/action snippets: `85`
 
 ## Reference And Excluded Surfaces
 
@@ -68,6 +68,7 @@
 | `.github/actions/build-collector-runtime-for-harness/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-collector-documentation-quality/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-collector-runtime-package-validation/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/actions/run-dcoir-pester/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-duplicate-function-check/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-powershell-review-assist/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-psscriptanalyzer/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
@@ -77,20 +78,6 @@
 | `.github/actions/validate-powershell-syntax/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/validate-python-syntax/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/verify-required-surfaces/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-chatgpt-apply-in.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-chatgpt-exec.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-chatgpt-stage-out.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-chatgpt-workflow-run-reporter.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-collector-documentation-quality.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-collector-runtime-package-build.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-collector-validation.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-gemini-bundle-build.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-manual-collector-optional-exe-build.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-manual-github-artifact-readback.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-manual-test-framework-validate.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-validate-on-pr.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-validate-on-push.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
-| `.github/workflows/reusable-windows-powershell-51.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `.github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `.github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T121000Z.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
@@ -157,6 +144,20 @@
 | `.github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_004.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `.github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
 | `.github/chatgpt_staging/exec_scripts/update_gemini_prime_chunk_checksum_001.ps1` | `staging_artifact` | `exclude` | ChatGPT staging scripts are historical execution artifacts, not maintained source. |
+| `.github/workflows/reusable-chatgpt-apply-in.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-chatgpt-exec.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-chatgpt-stage-out.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-chatgpt-workflow-run-reporter.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-collector-documentation-quality.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-collector-runtime-package-build.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-collector-validation.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-gemini-bundle-build.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-manual-collector-optional-exe-build.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-manual-github-artifact-readback.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-manual-test-framework-validate.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-validate-on-pr.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-validate-on-push.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/workflows/reusable-windows-powershell-51.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `project_sources/collector/fixtures/powershell_analysis/bad/analyzer_skip_success.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/bad/broad_baseline.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |
 | `project_sources/collector/fixtures/powershell_analysis/bad/fail_row_green_exit.ps1` | `fixture_or_example` | `reference` | Fixture/example PowerShell is inventoried separately from maintained source targets. |

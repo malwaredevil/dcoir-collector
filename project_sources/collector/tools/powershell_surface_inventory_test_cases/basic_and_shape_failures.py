@@ -300,4 +300,20 @@ class BasicAndShapeFailureTests(InventoryTestCase):
         self.assertTrue(result["validation"]["success"], result["validation"]["errors"])
         self.assertEqual(result["surfaces"], [])
 
+    def test_relocated_github_prefixes_are_classified(self) -> None:
+        with self.make_minimal_repo() as temp:
+            root = Path(temp)
+            staging_rel = ".github/chatgpt_staging/exec_scripts/run.ps1"
+            operator_rel = ".github/operator_tools/github_desktop_lane/scripts/Invoke-Test.ps1"
+            review_rel = ".github/dcoir_review/scripts/Invoke-Review.ps1"
+            write(root / staging_rel)
+            write(root / operator_rel)
+            write(root / review_rel)
+            result = inventory.build_inventory(root, changed_files=[staging_rel, operator_rel, review_rel])
+
+        self.assertTrue(result["validation"]["success"], result["validation"]["errors"])
+        surfaces = {surface["path"]: surface for surface in result["surfaces"]}
+        self.assertEqual(surfaces[staging_rel]["category"], "staging_artifact")
+        self.assertEqual(surfaces[operator_rel]["category"], "operator_tooling")
+        self.assertEqual(surfaces[review_rel]["category"], "github_workflow_support_script")
 

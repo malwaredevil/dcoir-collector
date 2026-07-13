@@ -77,7 +77,7 @@
 ## Inventory Decisions
 
 - Full-scope inventory mode: `full`
-- Total PowerShell surfaces: `243`
+- Total PowerShell surfaces: `249`
 
 ### Excluded Paths
 
@@ -158,6 +158,7 @@
 | .github/actions/build-collector-runtime-for-harness/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/actions/run-collector-documentation-quality/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/actions/run-collector-runtime-package-validation/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| .github/actions/run-dcoir-pester/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/actions/run-duplicate-function-check/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/actions/run-powershell-review-assist/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | .github/actions/run-psscriptanalyzer/action.yml | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |

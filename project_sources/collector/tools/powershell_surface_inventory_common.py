@@ -203,7 +203,7 @@ def fixture_like(rel: str) -> bool:
 
 
 def staging_like(rel: str) -> bool:
-    return has_prefix(rel, "chatgpt_staging")
+    return has_prefix(rel, "chatgpt_staging") or has_prefix(rel, ".github/chatgpt_staging")
 
 
 def archive_temp_vendor_like(rel: str) -> bool:
