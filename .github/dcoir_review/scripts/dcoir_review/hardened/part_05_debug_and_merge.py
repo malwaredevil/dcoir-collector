@@ -174,8 +174,14 @@ def openrouter_review_with_quality_retry(
         merged_result = merge_review_results(
             initial_result=initial_result,
             retry_result=result,
-            retry_reason=retry_reason,
         )
+        if retry_reason:
+            initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
+            retry_summary = str(result.get("summary", "") if isinstance(result, dict) else "").strip()
+            merged_result["_quality_retry_attempted"] = True
+            merged_result["_quality_retry_reason"] = str(retry_reason)
+            merged_result["_quality_retry_initial_summary"] = initial_summary
+            merged_result["_quality_retry_retry_summary"] = retry_summary
         write_debug_json_artifact_safely(
             config,
             "responses/03-quality-retry-merged-result.json",
