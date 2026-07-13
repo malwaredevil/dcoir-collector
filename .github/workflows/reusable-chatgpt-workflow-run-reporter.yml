@@ -103,7 +103,7 @@ jobs:
           set -euo pipefail
           mkdir -p .github/tmp
           if [[ "${{ inputs.caller_event_name }}" == "workflow_dispatch" ]]; then
-            report_path="chatgpt_staging/status_reports/repo-workflows/80 Reporting - Workflow Run Reporter/manual-${GITHUB_RUN_ID}/workflow_report.md"
+            report_path=".github/chatgpt_staging/status_reports/repo-workflows/80 Reporting - Workflow Run Reporter/manual-${GITHUB_RUN_ID}/workflow_report.md"
             mkdir -p "$(dirname "$report_path")"
             cat > "$report_path" <<REPORT
           # ChatGPT workflow report

@@ -1,0 +1,331 @@
+{
+  "composite_action_count": 18,
+  "existing_workflow_count": 29,
+  "governing_issue": 194,
+  "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
+  "inventory_outputs": {
+    "json": ".github/github_actions/workflow_inventory.json",
+    "markdown": ".github/github_actions/workflow_inventory.md"
+  },
+  "primary_workflow_count": 29,
+  "required_contract_families": [
+    "static-validation",
+    "required-surfaces",
+    "collector-runtime-package",
+    "collector-optional-exe",
+    "gemini-bundle",
+    "gemini-model-comparison",
+    "gemini-behavioral-replay",
+    "gemini-production-like-harness",
+    "report-section",
+    "central-reporter",
+    "staging-apply-in",
+    "staging-stage-out",
+    "staging-exec",
+    "staging-artifact-readback",
+    "staging-cleanup",
+    "staging-retention-cleanup",
+    "ops-apply-patch",
+    "dependency-review",
+    "dependabot-auto-merge",
+    "wiki-publish",
+    "maintenance-audit",
+    "windows-powershell-51",
+    "codeql-security",
+    "openrouter-pr-review"
+  ],
+  "reusable_workflow_count": 28,
+  "schema_version": "dcoir_workflow_modularization_contracts_v1",
+  "workflow_contracts": [
+    {
+      "acceptance_evidence": "Happy-path and failure-path run readback, committed report, artifact behavior, stale-write/hash/path/workflow-change gate evidence.",
+      "contract_family": "staging-apply-in",
+      "family": "high-risk governed mutation",
+      "file": ".github/workflows/chatgpt-apply-in.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline apply-in workflow body and keep old helper scripts until happy-path and failure-path readback pass.",
+      "target_architecture": "Entry workflow plus a family-specific reusable apply-in workflow and script-backed manifest, hash, path, and workflow-change validation. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Approval gate, secret-name-only bridging, sanitized report behavior, artifact retention, request cleanup, and live heartbeat readback.",
+      "contract_family": "staging-exec",
+      "family": "high-risk exec and secret lane",
+      "file": ".github/workflows/chatgpt-exec.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline exec workflow body and request cleanup behavior.",
+      "target_architecture": "Entry workflow plus a family-specific reusable exec workflow and script-backed approval, secret-name-only, artifact, cleanup, and report handling. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Bundle report readback, request schema preservation, artifact behavior, and rollback note.",
+      "contract_family": "staging-stage-out",
+      "family": "high-risk staging output",
+      "file": ".github/workflows/chatgpt-stage-out.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline stage-out workflow body and bundle/report path behavior.",
+      "target_architecture": "Entry workflow plus a family-specific reusable stage-out workflow and script-backed request and bundle validation. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Dry-run, scoped deletion, latest-report preservation, evidence-retention, and cleanup report readback.",
+      "contract_family": "staging-cleanup",
+      "family": "high-risk cleanup",
+      "file": ".github/workflows/chatgpt-staging-cleanup.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore prior inline cleanup workflow and keep previous cleanup scripts until scoped deletion evidence passes.",
+      "target_architecture": "Entry workflow plus a family-specific reusable cleanup workflow and script-backed cleanup planner. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Keep/latest/report policy readback and standalone retention cleanup report.",
+      "contract_family": "staging-retention-cleanup",
+      "family": "retention cleanup",
+      "file": ".github/workflows/chatgpt-report-retention-cleanup.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline retention cleanup workflow body.",
+      "target_architecture": "Family-specific reusable retention cleanup workflow plus script-backed retention policy. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Artifact id/name selection, subpath validation, bounded extraction, staged output readback, and cleanup guidance.",
+      "contract_family": "staging-artifact-readback",
+      "family": "artifact readback",
+      "file": ".github/workflows/manual-github-artifact-readback.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline artifact-readback workflow body and staging paths.",
+      "target_architecture": "Family-specific reusable artifact-readback workflow plus strict artifact selector, subpath, and bounded extraction validation. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Completed-run repo-workflows report creation, custom markdown append, bounded failure-log excerpts, manual dispatch, and no live-heartbeat confusion.",
+      "contract_family": "central-reporter",
+      "family": "central reporter",
+      "file": ".github/workflows/chatgpt-workflow-run-reporter.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline central reporter workflow body and allowlist behavior.",
+      "target_architecture": "Family-specific reusable central reporter workflow plus script-backed report rendering while preserving allowlists and report families. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Report-section artifact and deliberate failure behavior.",
+      "contract_family": "report-section",
+      "family": "reporting validation",
+      "file": ".github/workflows/chatgpt-workflow-reporting-validation.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline reporting validation body.",
+      "target_architecture": "Reporter validation reusable workflow and fixture scripts for report-section artifact behavior. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "PR trigger/path filters, required-surface coverage, artifacts, report section, run ID, and job outcomes.",
+      "contract_family": "static-validation",
+      "family": "validation",
+      "file": ".github/workflows/validate-on-pr.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline validation workflow body.",
+      "target_architecture": "Thin entry workflow calling family-specific reusable validation contracts with PR triggers and path filters visible. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Push, schedule, manual behavior, required-surface coverage, artifacts, and report readback.",
+      "contract_family": "required-surfaces",
+      "family": "validation",
+      "file": ".github/workflows/validate-on-push.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline push validation workflow body.",
+      "target_architecture": "Thin entry workflow calling family-specific reusable validation contracts with push/schedule/manual behavior visible. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Suite coverage, artifact/report readback, run ID, and job outcomes.",
+      "contract_family": "required-surfaces",
+      "family": "full validation",
+      "file": ".github/workflows/manual-full-validation.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline manual full validation workflow body.",
+      "target_architecture": "Deep-validation orchestration across reusable validation contracts. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Schedule preservation, manual dispatch, run ID, job outcome, and report readback.",
+      "contract_family": "required-surfaces",
+      "family": "health and maintenance",
+      "file": ".github/workflows/scheduled-health-check.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline health-check workflow body.",
+      "target_architecture": "Health-check entry workflow plus reusable validation contracts with schedule preserved. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Doc-quality output and report readback.",
+      "contract_family": "static-validation",
+      "family": "documentation validation",
+      "file": ".github/workflows/collector-documentation-quality.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline documentation quality workflow body.",
+      "target_architecture": "Doc-quality reusable workflow or script-backed validator with report-section behavior preserved. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Test output and artifact/report evidence.",
+      "contract_family": "static-validation",
+      "family": "test framework validation",
+      "file": ".github/workflows/manual-test-framework-validate.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline test-framework workflow body.",
+      "target_architecture": "Manual test-framework reusable workflow with artifacts and report section preserved. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Package artifact and report readback.",
+      "contract_family": "collector-runtime-package",
+      "family": "collector packaging",
+      "file": ".github/workflows/manual-collector-runtime-package-build.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline runtime package workflow body.",
+      "target_architecture": "Collector runtime package reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "PS2EXE/harness gates and package evidence.",
+      "contract_family": "collector-optional-exe",
+      "family": "optional executable packaging",
+      "file": ".github/workflows/manual-collector-optional-exe-build.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline optional executable workflow body.",
+      "target_architecture": "Collector optional executable reusable workflow with PS2EXE and harness gates preserved. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Bundle artifact and report evidence.",
+      "contract_family": "gemini-bundle",
+      "family": "Gemini packaging",
+      "file": ".github/workflows/manual-gemini-bundle-build.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline Gemini bundle workflow body.",
+      "target_architecture": "Gemini bundle reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Live/model comparison report and secret handling.",
+      "contract_family": "gemini-model-comparison",
+      "family": "Gemini model comparison",
+      "file": ".github/workflows/manual-gemini-model-comparison.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline model comparison workflow body.",
+      "target_architecture": "Gemini model comparison reusable workflow with explicit live API secret handling. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Deterministic replay results and report evidence.",
+      "contract_family": "gemini-behavioral-replay",
+      "family": "Gemini deterministic replay",
+      "file": ".github/workflows/validate-gemini-behavioral-replay.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline behavioral replay validation body.",
+      "target_architecture": "Gemini behavioral replay reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Harness evidence and reports.",
+      "contract_family": "gemini-production-like-harness",
+      "family": "Gemini production-like harness",
+      "file": ".github/workflows/validate-gemini-production-like-harness.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline production-like harness workflow body.",
+      "target_architecture": "Gemini production-like harness reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Happy/failure evidence and API fallback handling.",
+      "contract_family": "gemini-behavioral-replay",
+      "family": "Gemini live/manual replay",
+      "file": ".github/workflows/run-gemini-behavioral-replay-manual.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline live replay workflow body.",
+      "target_architecture": "Gemini live/manual replay reusable workflow with live API fallback evidence contract. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Workflow action-version audit, consistency drift audit, inventory check, contract audit, and report section.",
+      "contract_family": "maintenance-audit",
+      "family": "maintenance audit",
+      "file": ".github/workflows/workflow-maintenance-audit.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Remove the added inventory/contract audit steps if the new audit tooling fails independently.",
+      "target_architecture": "Maintenance audit workflow expanded to validate workflow inventory, modularization contracts, and reusable/composite contract posture. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Permission and auto-merge scope readback.",
+      "contract_family": "dependabot-auto-merge",
+      "family": "Dependabot governance",
+      "file": ".github/workflows/dependabot-auto-merge.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior inline Dependabot auto-merge workflow body.",
+      "target_architecture": "Keep thin unless reusable/script extraction preserves explicit permissions and merge behavior. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Dependency-review action visibility and PR readback.",
+      "contract_family": "dependency-review",
+      "family": "dependency review",
+      "file": ".github/workflows/dependency-review.yml",
+      "migration_status": "active",
+      "risk": "low",
+      "rollback": "Restore prior inline dependency review workflow body.",
+      "target_architecture": "Thin dependency-review entry or dependency-review reusable contract while preserving action visibility. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Wiki target, token handling, publish report, and external side-effect readback.",
+      "contract_family": "wiki-publish",
+      "family": "external publishing",
+      "file": ".github/workflows/publish_knowledge_to_wiki.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore prior inline wiki publish workflow body.",
+      "target_architecture": "Wiki publish reusable workflow with explicit external side-effect contract and token handling. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Request schema validation, target-branch readback, stale-base hash checks, one-file patch guard, dry-run/apply behavior, artifact report, pushed target-branch commit, and central completed-run report.",
+      "contract_family": "ops-apply-patch",
+      "family": "high-risk governed mutation",
+      "file": ".github/workflows/ops-apply-patch.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Disable or remove the ops apply-patch workflow pair and continue using chatgpt-apply-in for full-file payloads until a corrected bounded patch lane is restored.",
+      "target_architecture": "Entry workflow plus a family-specific reusable apply-patch workflow and script-backed request, branch, path, hash, patch-shape, workflow-target, artifact, and push validation. The entry workflow owns triggers, permissions, concurrency, and operator-visible contract notes."
+    },
+    {
+      "acceptance_evidence": "Workflow dispatch and PR/push path-filter readback showing Windows PowerShell 5.1 version, parser validation success, and ChatGPT workflow report section artifact.",
+      "contract_family": "windows-powershell-51",
+      "family": "validation",
+      "file": ".github/workflows/windows-powershell-51.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Remove the Windows PowerShell 5.1 entry/reusable workflow pair and use the existing validate-powershell-syntax action through validate-on-pr until a corrected compatibility lane is restored.",
+      "target_architecture": "Entry workflow plus reusable Windows PowerShell 5.1 validation workflow that runs on windows-latest, confirms Windows PowerShell Desktop 5.1, validates parser compatibility, writes a ChatGPT workflow report section, and uploads the report artifact."
+    },
+    {
+      "acceptance_evidence": "Workflow dispatch and PR/push readback showing CodeQL init/analyze completion for supported languages, uploaded code scanning results, and ChatGPT workflow report section artifacts.",
+      "contract_family": "codeql-security",
+      "family": "security validation",
+      "file": ".github/workflows/codeql-security.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Disable or remove the CodeQL entry/reusable workflow pair and rely on dependency-review plus local Codex static checks until CodeQL configuration is corrected.",
+      "target_architecture": "Entry workflow plus reusable CodeQL security workflow using GitHub CodeQL Action v4 for Python and GitHub Actions workflow surfaces with security-extended and security-and-quality query suites."
+    },
+    {
+      "acceptance_evidence": "Manual comment-triggered run readback, reusable workflow invocation, trusted default-branch checkout behavior, operator command guard, token/config-name-only handling, optional debug progress/status comment evidence, model-stack config readback, connector-safe file-size manifest, and PR conversation output evidence.",
+      "contract_family": "openrouter-pr-review",
+      "family": "AI-assisted PR review",
+      "file": ".github/workflows/openrouter-pr-review.yml",
+      "migration_status": "active",
+      "risk": "high",
+      "rollback": "Restore the prior inline DCOIR Review workflow body and remove reusable-openrouter-pr-review.yml if the reusable module breaks trusted comment-triggered review behavior.",
+      "target_architecture": "Thin comment-triggered entry workflow plus reusable DCOIR Review module. The entry workflow keeps the issue_comment trigger, concurrency, operator guard, explicit permissions, and explicit secret forwarding visible; reusable-openrouter-pr-review.yml owns the trusted default-branch checkout, static context readback, progress/status comments, model-stack config, debug artifacts, and script invocation."
+    }
+  ]
+}

@@ -183,7 +183,12 @@ def classify_surface(repo_root: Path, rel: str, exists: bool = True) -> dict[str
             exists,
         )
 
-    if has_prefix(rel, ".github/actions") or has_prefix(rel, ".github/pester") or has_prefix(rel, ".github/scripts"):
+    if (
+        has_prefix(rel, ".github/actions")
+        or has_prefix(rel, ".github/pester")
+        or has_prefix(rel, ".github/scripts")
+        or has_prefix(rel, ".github/dcoir_review/scripts")
+    ):
         return make_surface(
             repo_root,
             rel,
@@ -194,7 +199,7 @@ def classify_surface(repo_root: Path, rel: str, exists: bool = True) -> dict[str
             exists,
         )
 
-    if has_prefix(rel, "operator_tools"):
+    if has_prefix(rel, "operator_tools") or has_prefix(rel, ".github/operator_tools"):
         return make_surface(
             repo_root,
             rel,

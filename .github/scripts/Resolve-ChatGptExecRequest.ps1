@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$CallerEventName = 'workflow_call',
-    [string]$InputRequestPath = 'chatgpt_staging/exec_requests/request.json',
+    [string]$InputRequestPath = '.github/chatgpt_staging/exec_requests/request.json',
     [string]$GithubSha = $env:GITHUB_SHA,
     [string]$GithubOutput = $env:GITHUB_OUTPUT
 )
@@ -24,7 +24,14 @@ if ($CallerEventName -eq 'workflow_dispatch') {
     $requestPath = $InputRequestPath
 } else {
     $changed = git diff-tree --no-commit-id --name-only -r $GithubSha
-    $requestPath = ($changed | Where-Object { $_ -like 'chatgpt_staging/exec_requests/*.json' } | Select-Object -First 1)
+    $requestPaths = @($changed | Where-Object { $_ -like '.github/chatgpt_staging/exec_requests/*.json' })
+    if ($requestPaths.Count -gt 1) {
+        Write-Host "Multiple exec request JSON files detected in a single push; skipping automatic execution to avoid replaying archived requests."
+        Write-Host "Matched files: $($requestPaths -join ', ')"
+        Write-ChatGptExecOutput -Name 'skip' -Value 'true'
+        exit 0
+    }
+    $requestPath = ($requestPaths | Select-Object -First 1)
 }
 
 if ([string]::IsNullOrWhiteSpace($requestPath)) {
@@ -32,8 +39,8 @@ if ([string]::IsNullOrWhiteSpace($requestPath)) {
     exit 0
 }
 
-if ($requestPath -notmatch '^chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
-    throw "Exec request path must match chatgpt_staging/exec_requests/<request_id>.json. Got: $requestPath"
+if ($requestPath -notmatch '^\.github/chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
+    throw "Exec request path must match .github/chatgpt_staging/exec_requests/<request_id>.json. Got: $requestPath"
 }
 
 if (-not (Test-Path -LiteralPath $requestPath -PathType Leaf)) {

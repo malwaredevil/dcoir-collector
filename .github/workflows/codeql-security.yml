@@ -41,8 +41,8 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '.github/dependabot.yml'
-      - 'scripts/validate-*.sh'
-      - 'scripts/validate-*.py'
+      - '.github/dcoir_review/scripts/validate-*.sh'
+      - '.github/dcoir_review/scripts/validate-*.py'
       - '.github/workflows/codeql-security.yml'
       - '.github/workflows/reusable-codeql-security.yml'
   push:
@@ -53,8 +53,8 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '.github/dependabot.yml'
-      - 'scripts/validate-*.sh'
-      - 'scripts/validate-*.py'
+      - '.github/dcoir_review/scripts/validate-*.sh'
+      - '.github/dcoir_review/scripts/validate-*.py'
       - '.github/workflows/codeql-security.yml'
       - '.github/workflows/reusable-codeql-security.yml'
   workflow_dispatch:

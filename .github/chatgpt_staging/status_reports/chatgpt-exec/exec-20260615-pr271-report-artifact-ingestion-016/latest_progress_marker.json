@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260615-pr271-report-artifact-ingestion-016",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27566814411",
+  "github_sha": "dc19d7017a281675d8061a171f2cffb1a1585f4b",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260615-pr271-report-artifact-ingestion-016",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260615-pr271-report-artifact-ingestion-016.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-15T18:16:35Z",
+  "workflow": "chatgpt-exec"
+}

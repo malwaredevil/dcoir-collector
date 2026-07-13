@@ -43,8 +43,8 @@ proposed independently with its own dependency and parity evidence.
 ## Validation commands
 
 ```bash
-python scripts/dcoir_review_runtime_module_loader_selftest.py
-python project_sources/github_actions/tools/check_workflow_modularization_contracts.py
-python project_sources/github_actions/tools/check_workflow_consistency_drift.py
+python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
+python .github/github_actions/tools/check_workflow_modularization_contracts.py
+python .github/github_actions/tools/check_workflow_consistency_drift.py
 python scripts/audit_generated_evidence.py --check
 ```

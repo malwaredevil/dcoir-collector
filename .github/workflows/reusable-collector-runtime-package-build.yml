@@ -90,7 +90,7 @@ jobs:
       - name: Surface collector delivery zip
         shell: pwsh
         run: |
-          python project_sources/github_actions/tools/surface_delivery_zip.py `
+          python .github/github_actions/tools/surface_delivery_zip.py `
             --build-report project_sources/validation/out/build_dcoir_collector_runtime_package_report.json `
             --output-dir project_sources/validation/delivery_artifact/collector-runtime `
             --manifest-dir project_sources/validation/out/delivery_manifest `

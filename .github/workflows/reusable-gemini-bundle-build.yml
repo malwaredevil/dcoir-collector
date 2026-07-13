@@ -80,7 +80,7 @@ jobs:
       - name: Surface Gemini delivery zip
         shell: pwsh
         run: |
-          python project_sources/github_actions/tools/surface_delivery_zip.py `
+          python .github/github_actions/tools/surface_delivery_zip.py `
             --build-report project_sources/validation/out/build_dcoir_gemini_release_report.json `
             --output-dir project_sources/validation/delivery_artifact/gemini-bundle `
             --manifest-dir project_sources/validation/out/delivery_manifest `

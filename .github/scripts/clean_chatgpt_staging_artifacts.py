@@ -12,15 +12,15 @@ import subprocess
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 INVALID_IDS = {".", ".."}
 SCAFFOLD_PATHS = {
-    "chatgpt_staging/requests/.gitkeep",
-    "chatgpt_staging/requests/github_artifact_readback/.gitkeep",
-    "chatgpt_staging/in/.gitkeep",
-    "chatgpt_staging/out/.gitkeep",
-    "chatgpt_staging/apply_reports/.gitkeep",
-    "chatgpt_staging/failure_reports/.gitkeep",
-    "chatgpt_staging/cleanup_requests/.gitkeep",
-    "chatgpt_staging/status_reports/.gitkeep",
-    "chatgpt_staging/testdata/source/.gitkeep",
+    ".github/chatgpt_staging/requests/.gitkeep",
+    ".github/chatgpt_staging/requests/github_artifact_readback/.gitkeep",
+    ".github/chatgpt_staging/in/.gitkeep",
+    ".github/chatgpt_staging/out/.gitkeep",
+    ".github/chatgpt_staging/apply_reports/.gitkeep",
+    ".github/chatgpt_staging/failure_reports/.gitkeep",
+    ".github/chatgpt_staging/cleanup_requests/.gitkeep",
+    ".github/chatgpt_staging/status_reports/.gitkeep",
+    ".github/chatgpt_staging/testdata/source/.gitkeep",
 }
 
 
@@ -157,33 +157,33 @@ def main() -> int:
     report_id = request_filter or f"manual_cleanup_{os.environ.get('GITHUB_RUN_ID', '')}"
     if report_id in INVALID_IDS or not SAFE_ID_RE.fullmatch(report_id):
         raise SystemExit(f"Unsafe cleanup report id: {report_id}")
-    report_dir = pathlib.Path("chatgpt_staging/status_reports/chatgpt-staging-cleanup") / report_id
+    report_dir = pathlib.Path(".github/chatgpt_staging/status_reports/chatgpt-staging-cleanup") / report_id
     report_path = report_dir / "workflow_report.md"
     report_dir.mkdir(parents=True, exist_ok=True)
     cleaner = Cleaner(request_filter, report_dir)
 
     if bool_arg(args.cleanup_requests, "cleanup_requests"):
-        for path in sorted(pathlib.Path("chatgpt_staging/requests").rglob("*.json")):
+        for path in sorted(pathlib.Path(".github/chatgpt_staging/requests").rglob("*.json")):
             if path.exists() and cleaner.match_filter(path.stem):
                 cleaner.remove_path(path)
     if bool_arg(args.cleanup_in_payloads, "cleanup_in_payloads"):
-        for path in iter_child_dirs(pathlib.Path("chatgpt_staging/in")):
+        for path in iter_child_dirs(pathlib.Path(".github/chatgpt_staging/in")):
             if cleaner.match_filter(path.name):
                 cleaner.remove_path(path)
     if bool_arg(args.cleanup_out_bundles, "cleanup_out_bundles"):
-        for path in iter_child_dirs(pathlib.Path("chatgpt_staging/out")):
+        for path in iter_child_dirs(pathlib.Path(".github/chatgpt_staging/out")):
             if cleaner.match_filter(path.name):
                 cleaner.remove_path(path)
     if bool_arg(args.cleanup_apply_reports, "cleanup_apply_reports"):
-        for path in sorted(pathlib.Path("chatgpt_staging/apply_reports").glob("*.md")):
+        for path in sorted(pathlib.Path(".github/chatgpt_staging/apply_reports").glob("*.md")):
             if path.exists() and cleaner.match_filter(path.name):
                 cleaner.remove_path(path)
     if bool_arg(args.cleanup_failure_reports, "cleanup_failure_reports"):
-        for path in iter_child_dirs(pathlib.Path("chatgpt_staging/failure_reports")):
+        for path in iter_child_dirs(pathlib.Path(".github/chatgpt_staging/failure_reports")):
             if cleaner.match_filter(path.name):
                 cleaner.remove_path(path)
     if bool_arg(args.cleanup_status_reports, "cleanup_status_reports"):
-        for workflow_dir in iter_child_dirs(pathlib.Path("chatgpt_staging/status_reports")):
+        for workflow_dir in iter_child_dirs(pathlib.Path(".github/chatgpt_staging/status_reports")):
             if is_scaffold_path(workflow_dir):
                 continue
             for path in iter_child_dirs(workflow_dir):

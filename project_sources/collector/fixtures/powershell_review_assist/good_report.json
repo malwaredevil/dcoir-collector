@@ -810,21 +810,21 @@
     "excluded_paths": [
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
       },
       {
         "category": "staging_artifact",
-        "path": "chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1",
+        "path": ".github/chatgpt_staging/exec_scripts/exec-20260519-wbs04-four-table-export-003.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"

@@ -18,12 +18,12 @@ runs:
         INCLUDE_GEMINI_MANIFEST: ${{ inputs.include-gemini-manifest }}
       run: |
         $ErrorActionPreference = 'Stop'
-        python project_sources/github_actions/tools/check_required_surfaces.py --profile $env:REQUIRED_SURFACES_PROFILE
+        python .github/github_actions/tools/check_required_surfaces.py --profile $env:REQUIRED_SURFACES_PROFILE
         if ($LASTEXITCODE -ne 0) {
           throw 'Required surface validation failed.'
         }
         if ($env:INCLUDE_GEMINI_MANIFEST -eq 'true') {
-          python project_sources/github_actions/tools/check_gemini_manifest_surfaces.py --source-root project_sources/gemini/bundle_source
+          python .github/github_actions/tools/check_gemini_manifest_surfaces.py --source-root project_sources/gemini/bundle_source
           if ($LASTEXITCODE -ne 0) {
             throw 'Gemini manifest surface validation failed.'
           }

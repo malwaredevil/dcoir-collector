@@ -144,7 +144,7 @@ class PowerShellSurfaceInventoryPathSafetyTests(unittest.TestCase):
             root = Path(temp).resolve()
             outside = root.parent / "outside_inventory.ps1"
             outside.write_text('Write-Output "outside"\n', encoding="utf-8")
-            rel = "operator_tools/linked.ps1"
+            rel = ".github/operator_tools/linked.ps1"
             link = root / rel
             link.parent.mkdir(parents=True, exist_ok=True)
             try:

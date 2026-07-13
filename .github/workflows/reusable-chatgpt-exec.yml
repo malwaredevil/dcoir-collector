@@ -16,7 +16,7 @@ on:
         description: Forwarded `request_path` input from the entry workflow.
         required: false
         type: string
-        default: 'chatgpt_staging/exec_requests/request.json'
+        default: '.github/chatgpt_staging/exec_requests/request.json'
     outputs: {}
     secrets:
       DCOIR_GEMINI_API:
@@ -100,7 +100,7 @@ jobs:
             --message 'Exec request path resolved. The workflow is preparing to run the approved command harness.'
           & .\.github\scripts\Invoke-ChatGptReportPush.ps1 `
             -CommitMessage "Progress chatgpt-exec ${{ steps.request.outputs.request_id }} request-resolved [skip ci]" `
-            -Paths @('chatgpt_staging/status_reports/chatgpt-exec/${{ steps.request.outputs.request_id }}')
+            -Paths @('.github/chatgpt_staging/status_reports/chatgpt-exec/${{ steps.request.outputs.request_id }}')
 
       - name: Write progressive report - running harness
         if: steps.request.outputs.skip != 'true'
@@ -116,7 +116,7 @@ jobs:
             --message 'Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.'
           & .\.github\scripts\Invoke-ChatGptReportPush.ps1 `
             -CommitMessage "Progress chatgpt-exec ${{ steps.request.outputs.request_id }} running-harness [skip ci]" `
-            -Paths @('chatgpt_staging/status_reports/chatgpt-exec/${{ steps.request.outputs.request_id }}')
+            -Paths @('.github/chatgpt_staging/status_reports/chatgpt-exec/${{ steps.request.outputs.request_id }}')
 
       - name: Run approved command request
         if: steps.request.outputs.skip != 'true'
@@ -125,7 +125,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $outRoot = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec'
           $resultJson = Join-Path $env:RUNNER_TEMP 'dcoir_chatgpt_exec_result.json'
-          & .\operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsExecHarness.ps1 `
+          & .\.github\operator_tools\github_desktop_lane\scripts\Invoke-DcoirActionsExecHarness.ps1 `
             -RequestPath '${{ steps.request.outputs.request_path }}' `
             -RepoRoot $env:GITHUB_WORKSPACE `
             -OutputRoot $outRoot `
@@ -149,7 +149,7 @@ jobs:
             --message "Approved command harness finished with exit code $env:DCOIR_EXEC_EXIT_CODE. Final native exec status commit is next."
           & .\.github\scripts\Invoke-ChatGptReportPush.ps1 `
             -CommitMessage "Progress chatgpt-exec ${{ steps.request.outputs.request_id }} harness-finished [skip ci]" `
-            -Paths @('chatgpt_staging/status_reports/chatgpt-exec/${{ steps.request.outputs.request_id }}')
+            -Paths @('.github/chatgpt_staging/status_reports/chatgpt-exec/${{ steps.request.outputs.request_id }}')
 
       - name: Commit exec status report and cleanup request
         if: steps.request.outputs.skip != 'true'
@@ -158,7 +158,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $requestId = '${{ steps.request.outputs.request_id }}'
           $requestPath = '${{ steps.request.outputs.request_path }}'
-          $reportDir = Join-Path 'chatgpt_staging/status_reports/chatgpt-exec' $requestId
+          $reportDir = Join-Path '.github/chatgpt_staging/status_reports/chatgpt-exec' $requestId
           & .\.github\scripts\Write-ChatGptExecFinalReadback.ps1 `
             -RequestId $requestId `
             -RequestPath $requestPath `
@@ -181,4 +181,4 @@ jobs:
         if: steps.request.outputs.skip != 'true' && env.DCOIR_EXEC_EXIT_CODE != '0'
         shell: pwsh
         run: |
-          Write-Error "Approved command failed. See chatgpt_staging/status_reports/chatgpt-exec/$env:DCOIR_EXEC_REQUEST_ID/workflow_report.md and uploaded artifact $env:DCOIR_EXEC_ARTIFACT_NAME."
+          Write-Error "Approved command failed. See .github/chatgpt_staging/status_reports/chatgpt-exec/$env:DCOIR_EXEC_REQUEST_ID/workflow_report.md and uploaded artifact $env:DCOIR_EXEC_ARTIFACT_NAME."

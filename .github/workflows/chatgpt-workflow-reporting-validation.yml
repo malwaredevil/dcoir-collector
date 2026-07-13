@@ -40,7 +40,7 @@ on:
       - '.github/workflows/chatgpt-workflow-reporting-validation.yml'
       - '.github/workflows/reusable-chatgpt-workflow-run-reporter.yml'
       - '.github/workflows/reusable-chatgpt-workflow-reporting-validation.yml'
-      - 'chatgpt_staging/status_reports/README.md'
+      - '.github/chatgpt_staging/status_reports/README.md'
   push:
     paths:
       - '.github/actions/setup-workflow-runtime/**'
@@ -51,7 +51,7 @@ on:
       - '.github/workflows/chatgpt-workflow-reporting-validation.yml'
       - '.github/workflows/reusable-chatgpt-workflow-run-reporter.yml'
       - '.github/workflows/reusable-chatgpt-workflow-reporting-validation.yml'
-      - 'chatgpt_staging/status_reports/README.md'
+      - '.github/chatgpt_staging/status_reports/README.md'
   workflow_dispatch:
     inputs:
       scenario:

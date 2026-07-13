@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260618-pr281-codex-p1-redaction-010",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27793895257",
+  "github_sha": "a2da1d9e7792f6862169e82a6b42faa6dc5ea755",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260618-pr281-codex-p1-redaction-010",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260618-pr281-codex-p1-redaction-010.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-18T22:45:29Z",
+  "workflow": "chatgpt-exec"
+}

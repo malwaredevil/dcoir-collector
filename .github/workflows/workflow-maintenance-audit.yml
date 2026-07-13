@@ -8,13 +8,13 @@
 # Do not use when:
 # - Do not use as behavioral workflow validation or release-readiness proof; it checks maintenance drift and hygiene.
 # Trigger model:
-# - workflow_dispatch; pull_request on workflow/tooling guidance paths; schedule: 17 6 * * 1; push branches: main paths: .github/workflows/**, .github/actions/**, .github/dependabot.yml, project_sources/github_actions/**, ops/tools/**, ops/requests/apply_patch/**, AGENTS.md, .github/README.md
+# - workflow_dispatch; pull_request on workflow/tooling guidance paths; schedule: 17 6 * * 1; push branches: main paths: .github/workflows/**, .github/actions/**, .github/dependabot.yml, .github/github_actions/**, .github/ops/tools/**, .github/ops/requests/apply_patch/**, AGENTS.md, .github/README.md
 # Required inputs:
 # - none
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses project_sources/github_actions/tools/check_workflow_action_versions.py, project_sources/github_actions/tools/check_workflow_consistency_drift.py, project_sources/github_actions/tools/build_workflow_inventory.py, project_sources/github_actions/tools/check_workflow_modularization_contracts.py, and project_sources/github_actions/tools/audit_reusable_contracts.py.
+# - Uses .github/github_actions/tools/check_workflow_action_versions.py, .github/github_actions/tools/check_workflow_consistency_drift.py, .github/github_actions/tools/build_workflow_inventory.py, .github/github_actions/tools/check_workflow_modularization_contracts.py, and .github/github_actions/tools/audit_reusable_contracts.py.
 # Expected outputs/readback:
 # - Maintenance audit result, repo-workflows report, and chatgpt-workflow-report-section custom markdown artifact.
 # Safety notes:
@@ -41,9 +41,9 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '.github/dependabot.yml'
-      - 'project_sources/github_actions/**'
-      - 'ops/tools/**'
-      - 'ops/requests/apply_patch/**'
+      - '.github/github_actions/**'
+      - '.github/ops/tools/**'
+      - '.github/ops/requests/apply_patch/**'
       - 'AGENTS.md'
       - '.github/README.md'
   schedule:
@@ -55,9 +55,9 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '.github/dependabot.yml'
-      - 'project_sources/github_actions/**'
-      - 'ops/tools/**'
-      - 'ops/requests/apply_patch/**'
+      - '.github/github_actions/**'
+      - '.github/ops/tools/**'
+      - '.github/ops/requests/apply_patch/**'
       - 'AGENTS.md'
       - '.github/README.md'
 

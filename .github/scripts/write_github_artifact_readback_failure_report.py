@@ -11,7 +11,7 @@ import subprocess
 import sys
 
 SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]+$")
-REPORT_ROOT = pathlib.Path("chatgpt_staging/status_reports/chatgpt-github-artifact-readback")
+REPORT_ROOT = pathlib.Path(".github/chatgpt_staging/status_reports/chatgpt-github-artifact-readback")
 
 
 def utc_now() -> str:
@@ -108,7 +108,7 @@ def main() -> int:
         "",
         "## Troubleshooting notes",
         "",
-        "The artifact could not be downloaded, validated, or staged into chatgpt_staging/out. Common causes include wrong run id, wrong artifact name/id, missing artifact_subpath, malformed request JSON, or a permissions/download failure.",
+        "The artifact could not be downloaded, validated, or staged into .github/chatgpt_staging/out. Common causes include wrong run id, wrong artifact name/id, missing artifact_subpath, malformed request JSON, or a permissions/download failure.",
         "",
         "## Next ChatGPT action",
         "",

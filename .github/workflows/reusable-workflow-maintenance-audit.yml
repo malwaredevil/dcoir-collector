@@ -33,32 +33,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 project_sources/github_actions/tools/check_workflow_action_versions.py
+          python3 .github/github_actions/tools/check_workflow_action_versions.py
 
       - name: Check workflow consistency drift
         shell: bash
         run: |
           set -euo pipefail
-          python3 project_sources/github_actions/tools/check_workflow_consistency_drift.py
+          python3 .github/github_actions/tools/check_workflow_consistency_drift.py
 
       - name: Regenerate workflow inventory
         shell: bash
         run: |
           set -euo pipefail
-          python3 project_sources/github_actions/tools/build_workflow_inventory.py
+          python3 .github/github_actions/tools/build_workflow_inventory.py
 
       - name: Check workflow inventory freshness
         shell: bash
         run: |
           set -euo pipefail
-          python3 project_sources/github_actions/tools/build_workflow_inventory.py --check
+          python3 .github/github_actions/tools/build_workflow_inventory.py --check
           if ! git diff --quiet -- \
-            project_sources/github_actions/workflow_inventory.json \
-            project_sources/github_actions/workflow_inventory.md; then
+            .github/github_actions/workflow_inventory.json \
+            .github/github_actions/workflow_inventory.md; then
             echo 'Generated workflow inventory files changed. Commit the regenerated inventory from build_workflow_inventory.py.'
             git --no-pager diff -- \
-              project_sources/github_actions/workflow_inventory.json \
-              project_sources/github_actions/workflow_inventory.md
+              .github/github_actions/workflow_inventory.json \
+              .github/github_actions/workflow_inventory.md
             exit 1
           fi
 
@@ -66,13 +66,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 project_sources/github_actions/tools/check_workflow_modularization_contracts.py
+          python3 .github/github_actions/tools/check_workflow_modularization_contracts.py
 
       - name: Check reusable and composite contract posture
         shell: bash
         run: |
           set -euo pipefail
-          python3 project_sources/github_actions/tools/audit_reusable_contracts.py
+          python3 .github/github_actions/tools/audit_reusable_contracts.py
 
       - name: Write ChatGPT workflow report section
         if: always()

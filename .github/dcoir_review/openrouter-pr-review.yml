@@ -1,0 +1,75 @@
+# DCOIR Review configuration for DCOIR-Collector/dcoir-collector.
+# This reviewer never pushes commits and never edits PR branches.
+# It only responds when a PR comment begins with one of the commands below.
+
+commands:
+  - /or-review
+  - /openrouter-review
+  - /dcoir-review
+
+# Use the free router for first-pass testing. OpenRouter may select different
+# free models over time. After validation, switch this to a paid model slug.
+model: openrouter/free
+
+# Try models in order. Keep the first entry aligned with `model` for backward
+# compatibility with older script versions and self-tests.
+model_stack:
+  - openrouter/free
+
+# Optional paid candidates for later:
+# model: anthropic/claude-sonnet-4.5
+# model: openai/gpt-5.1
+# model: google/gemini-2.5-pro
+
+max_prompt_chars: 60000
+max_files: 30
+max_inline_comments: 12
+
+# Keep v1 conservative. Set request_changes_on_findings to true only after you trust it.
+request_changes_on_findings: false
+
+# A finding needs at least this confidence to become an inline review comment.
+minimum_confidence: 0.70
+
+# Keep the GitHub thread quiet by default. Debug progress comments are opt-in.
+# A top-level review body is posted with inline findings or a no-findings summary.
+post_summary_when_findings: false
+include_confidence: false
+redact_secret_literals: true
+debug: false
+
+# Free OpenRouter routes can hit upstream provider throttles. Retry temporary
+# 429/5xx failures and skip a provider that reports rate limiting during retry.
+openrouter_max_attempts: 4
+openrouter_retry_max_seconds: 45
+
+# Keep this lower than the workflow timeout so the script can remove the eyes
+# reaction and report failures through Actions notices; debug runs also update
+# the progress comment.
+script_timeout_seconds: 1500
+post_progress_comment: false
+
+# Optional provider denylist. Leave empty by default; the script also adds
+# temporarily failing providers to the retry ignore list automatically.
+ignored_providers:
+
+# These are pushed into the model context and shown inside individual findings when relevant.
+validation_commands:
+  - bash .github/dcoir_review/scripts/validate-codex-local.sh
+  - pwsh -NoProfile -File .github/dcoir_review/scripts/validate-windows-powershell-51.ps1 -AllowPowerShell7 -AllowEmpty
+  - python3 .github/dcoir_review/scripts/validate-codeql-security-workflow.py
+
+# Files used as repository-local guidance when present on the default branch.
+guidance_files:
+  - AGENTS.md
+  - README.md
+
+# The workflow job skips bot comments, but this denylist is checked again in code.
+# Only these GitHub users may trigger the reviewer in this public repository.
+allowed_authors:
+  - malwaredevil
+
+ignored_authors:
+  - github-actions[bot]
+  - dependabot[bot]
+  - chatgpt-codex-connector[bot]

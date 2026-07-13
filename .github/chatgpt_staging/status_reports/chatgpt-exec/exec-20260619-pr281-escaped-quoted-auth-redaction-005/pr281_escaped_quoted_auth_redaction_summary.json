@@ -1,0 +1,25 @@
+﻿{
+    "schema":  "dcoir.chatgpt_exec.pr281_escaped_quoted_auth_redaction.v1",
+    "request_id":  "exec-20260619-pr281-escaped-quoted-auth-redaction-005",
+    "result":  "success",
+    "branch":  "implement-pr-review-command-workflow",
+    "starting_head":  "90360eaf947711fe8af840ae0785e0ea2cd73b53",
+    "new_head":  "11abdcb8b9d5462e27b0fe1c2567c843bc5d45fa",
+    "changed_paths":  [
+                          ".github/dcoir_review/scripts/openrouter_pr_review.py",
+                          "scripts/openrouter_pr_review_selftest.py"
+                      ],
+    "validations":  [
+                        "branch_head_guard",
+                        "blob_guards",
+                        "payload_decode",
+                        "patch_payload",
+                        "py_compile",
+                        "offline_selftest",
+                        "diff_check",
+                        "changed_path_guard",
+                        "push"
+                    ],
+    "targeted_thread":  "PRRT_kwDOR0OHZ86K4Ddo",
+    "created_utc":  "2026-06-19T19:35:58Z"
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "repo.patch.apply.sample.v1",
+  "allowed_roots": [
+    ".github/",
+    "project_settings/",
+    "project_sources/",
+    "knowledge/",
+    ".github/operator_tools/"
+  ]
+}

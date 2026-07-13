@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260624-pr307-nonactionable-syntax-fix-008",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "28113837018",
+  "github_sha": "df2700e111ebb3342e6b129888a6e3c926f91602",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260624-pr307-nonactionable-syntax-fix-008",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260624-pr307-nonactionable-syntax-fix-008.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-24T16:33:14Z",
+  "workflow": "chatgpt-exec"
+}

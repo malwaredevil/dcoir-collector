@@ -107,13 +107,13 @@ jobs:
             while IFS= read -r path; do
               [[ -n "$path" ]] || continue
               case "$path" in
-                chatgpt_staging/status_reports/*/workflow_report.md|chatgpt_staging/status_reports/*/*/workflow_report.md|chatgpt_staging/status_reports/*/*/*/workflow_report.md)
+                .github/chatgpt_staging/status_reports/*/workflow_report.md|.github/chatgpt_staging/status_reports/*/*/workflow_report.md|.github/chatgpt_staging/status_reports/*/*/*/workflow_report.md)
                   git rm -f "$path" || true
                   ;;
-                chatgpt_staging/requests/*.json|chatgpt_staging/requests/*/*.json|chatgpt_staging/requests/*/*/*.json)
+                .github/chatgpt_staging/requests/*.json|.github/chatgpt_staging/requests/*/*.json|.github/chatgpt_staging/requests/*/*/*.json)
                   git rm -f "$path" || true
                   ;;
-                chatgpt_staging/out/*)
+                .github/chatgpt_staging/out/*)
                   if [[ -d "$path" ]]; then
                     git rm -r -f "$path" || true
                   else
@@ -135,8 +135,8 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add chatgpt_staging/status_reports/retention-cleanup || true
-          git add -u chatgpt_staging/status_reports chatgpt_staging/requests chatgpt_staging/out || true
+          git add .github/chatgpt_staging/status_reports/retention-cleanup || true
+          git add -u .github/chatgpt_staging/status_reports .github/chatgpt_staging/requests .github/chatgpt_staging/out || true
           git commit -m "Clean ChatGPT staging retention surfaces by policy [skip ci]" || exit 0
           git push
 

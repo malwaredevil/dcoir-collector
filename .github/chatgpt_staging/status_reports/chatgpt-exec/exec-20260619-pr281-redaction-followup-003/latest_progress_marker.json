@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260619-pr281-redaction-followup-003",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27817337658",
+  "github_sha": "750f0465af711ac094cb266ce23374fdccf42f40",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260619-pr281-redaction-followup-003",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260619-pr281-redaction-followup-003.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-19T09:26:11Z",
+  "workflow": "chatgpt-exec"
+}

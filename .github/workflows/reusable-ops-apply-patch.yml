@@ -46,7 +46,7 @@ jobs:
           PENDING_REQUEST_MAX_AGE_HOURS: "48"
         run: |
           set -euo pipefail
-          python ops/tools/resolve_apply_patch_request.py resolve \
+          python .github/ops/tools/resolve_apply_patch_request.py resolve \
             --caller-event-name "$CALLER_EVENT_NAME" \
             --input-request-path "$INPUT_REQUEST_PATH" \
             --pending-request-max-age-hours "$PENDING_REQUEST_MAX_AGE_HOURS" \
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$REPORT_DIR"
-          python ops/tools/apply_patch_request.py apply \
+          python .github/ops/tools/apply_patch_request.py apply \
             --repo . \
             --request "$REQUEST_PATH" \
             --default-branch "$DEFAULT_BRANCH" \
@@ -91,7 +91,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          should_cleanup="$(python ops/tools/resolve_apply_patch_request.py should-cleanup "$REPORT_DIR/result.json")"
+          should_cleanup="$(python .github/ops/tools/resolve_apply_patch_request.py should-cleanup "$REPORT_DIR/result.json")"
           if [[ "$should_cleanup" != "true" ]]; then
             echo "Apply-patch request was not a successful apply operation; leaving request files for review."
             exit 0
@@ -113,7 +113,7 @@ jobs:
             exit 0
           fi
 
-          CURRENT_REQUEST_DIR_TREE_SHA256="$(python ops/tools/resolve_apply_patch_request.py tree-hash "$REQUEST_DIR")"
+          CURRENT_REQUEST_DIR_TREE_SHA256="$(python .github/ops/tools/resolve_apply_patch_request.py tree-hash "$REQUEST_DIR")"
           if [[ "$CURRENT_REQUEST_DIR_TREE_SHA256" != "$REQUEST_DIR_TREE_SHA256" ]]; then
             echo "Request directory changed after this run was triggered; refusing cleanup for reused request id: $REQUEST_ID" >&2
             exit 1

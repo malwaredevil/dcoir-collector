@@ -104,10 +104,10 @@ REQUIRED_SOURCE_KEYS = (
 
 SOURCE_PATH_PREFIXES = (
     ".github/",
-    "chatgpt_staging/",
+    ".github/chatgpt_staging/",
     "compiled_runtime/",
     "knowledge/",
-    "operator_tools/",
+    ".github/operator_tools/",
     "project_sources/",
     "scripts/",
     "tools/",

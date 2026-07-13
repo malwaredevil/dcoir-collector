@@ -6,7 +6,7 @@ param(
   [int]$PollSeconds = 10
 )
 
-$reportPath = "chatgpt_staging/status_reports/$Workflow/$RequestId/workflow_report.md"
+$reportPath = ".github/chatgpt_staging/status_reports/$Workflow/$RequestId/workflow_report.md"
 $deadline = (Get-Date).AddSeconds($MaximumSeconds)
 $minimumUntil = (Get-Date).AddSeconds($MinimumSeconds)
 $lastResult = 'missing'

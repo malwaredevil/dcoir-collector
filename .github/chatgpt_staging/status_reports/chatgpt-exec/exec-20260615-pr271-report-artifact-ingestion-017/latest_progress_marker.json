@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-harness-failure-20260615T182743Z",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "27567433774",
+  "github_sha": "e02a1807f7b826ae09cdf92b17315e5d2a1790ef",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260615-pr271-report-artifact-ingestion-017",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260615-pr271-report-artifact-ingestion-017.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-15T18:27:48Z",
+  "workflow": "chatgpt-exec"
+}

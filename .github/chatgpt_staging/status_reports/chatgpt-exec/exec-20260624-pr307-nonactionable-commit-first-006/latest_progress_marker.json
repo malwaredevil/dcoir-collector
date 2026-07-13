@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260624-pr307-nonactionable-commit-first-006",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "28113311404",
+  "github_sha": "642d5ee4547d81e82f504e81330b3a185f6882e7",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260624-pr307-nonactionable-commit-first-006",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260624-pr307-nonactionable-commit-first-006.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-24T16:24:25Z",
+  "workflow": "chatgpt-exec"
+}

@@ -87,7 +87,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Helper writes chatgpt_staging/status_reports/chatgpt-staging-cleanup/<id>/workflow_report.md and exports REPORT_PATH.
+          # Helper writes .github/chatgpt_staging/status_reports/chatgpt-staging-cleanup/<id>/workflow_report.md and exports REPORT_PATH.
           python .github/scripts/clean_chatgpt_staging_artifacts.py \
             --request-id-filter '${{ steps.plan.outputs.request_id_filter }}' \
             --cleanup-requests '${{ steps.plan.outputs.cleanup_requests }}' \

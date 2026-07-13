@@ -2,10 +2,10 @@
 # Workflow key:
 # - workflow-staging_lane-chatgpt-apply-in-0001
 # Purpose:
-# - Apply an operator-approved single base64 ZIP payload from chatgpt_staging/in into governed repo paths with manifest, hash, and path-safety checks.
+# - Apply an operator-approved single base64 ZIP payload from .github/chatgpt_staging/in into governed repo paths with manifest, hash, and path-safety checks.
 # Use when:
 # - Use after ChatGPT has produced a reviewed apply_manifest ZIP payload that must be applied inside GitHub Actions rather than by local GitHub Desktop extraction.
-# - Use the verified preflight-branch method for ChatGPT-staged writes whenever practical: build one payload.zip.b64, stage it first to a non-trigger branch named preflight/<request_id>, read back the staged file, verify its Git blob SHA equals the locally expected blob SHA, verify normalized base64 length modulo 4 equals 0, verify the decoded ZIP hash and ZIP member list, then stage the exact same payload text to main under chatgpt_staging/in/<request_id>/payload.zip.b64.
+# - Use the verified preflight-branch method for ChatGPT-staged writes whenever practical: build one payload.zip.b64, stage it first to a non-trigger branch named preflight/<request_id>, read back the staged file, verify its Git blob SHA equals the locally expected blob SHA, verify normalized base64 length modulo 4 equals 0, verify the decoded ZIP hash and ZIP member list, then stage the exact same payload text to main under .github/chatgpt_staging/in/<request_id>/payload.zip.b64.
 # - Use one request directory and one payload.zip.b64 per apply operation. For large changes, split into multiple request directories and complete one request before staging the next.
 # Do not use when:
 # - Do not use for chunked/parts payloads, unreviewed changes, broad repo rewrites, or normal workflow-file updates that are better handled by GitHub Desktop/manual bundle review.
@@ -16,21 +16,21 @@
 # - 3. Base64-encode that ZIP into one file only: payload.zip.b64. Do not create parts, chunks, chunk manifests, or alternate payload names.
 # - 4. Verify locally before any GitHub write: base64 alphabet only, no truncation marker, normalized length modulo 4 equals 0, decodes to bytes beginning with PK, ZIP opens, ZIP member list is expected, apply_manifest schema is dcoir.chatgpt_staging.apply_manifest.v1, allowed_roots are narrow, target paths are repo-relative and safe, create/update/delete entries have expected hashes, and no unintended files are present.
 # - 5. Create or reuse a non-trigger branch named preflight/<request_id> from current main HEAD.
-# - 6. Create chatgpt_staging/in/<request_id>/payload.zip.b64 on the preflight branch only.
+# - 6. Create .github/chatgpt_staging/in/<request_id>/payload.zip.b64 on the preflight branch only.
 # - 7. Read back the preflight branch file through the GitHub connector and verify the returned blob SHA equals the expected Git blob SHA for the exact payload text. Also verify the returned content has the same normalized base64 length, modulo 4 equals 0, and the same decoded ZIP SHA-256 as the local payload.
 # - 8. Only after step 7 passes, create the exact same payload.zip.b64 at the same path on main. The main staged file must read back with the same blob SHA before trusting the workflow.
-# - 9. Poll the live heartbeat report at chatgpt_staging/status_reports/chatgpt-apply-in/<request_id>/workflow_report.md until result is success or failure. Do not use repo-workflows completed-run reports for live polling.
+# - 9. Poll the live heartbeat report at .github/chatgpt_staging/status_reports/chatgpt-apply-in/<request_id>/workflow_report.md until result is success or failure. Do not use repo-workflows completed-run reports for live polling.
 # - 10. On success, read back every applied or deleted target path and compare against the intended file list and hash policy. On failure, stop and inspect the report/artifact before retrying; do not stage a follow-up payload until the failed contract is understood.
 # Trigger model:
-# - workflow_dispatch inputs: payload_b64_path, commit_changes, delete_payload_after_success; push branches: main paths: chatgpt_staging/in/*/payload.zip.b64, chatgpt_staging/in/*/payload.zip.b64.parts/**, chatgpt_staging/in/*/chunk_manifest.json, chatgpt_staging/in/*/*.part*, chatgpt_staging/in/*/*chunk*
+# - workflow_dispatch inputs: payload_b64_path, commit_changes, delete_payload_after_success; push branches: main paths: .github/chatgpt_staging/in/*/payload.zip.b64, .github/chatgpt_staging/in/*/payload.zip.b64.parts/**, .github/chatgpt_staging/in/*/chunk_manifest.json, .github/chatgpt_staging/in/*/*.part*, .github/chatgpt_staging/in/*/*chunk*
 # Required inputs:
-# - payload_b64_path: Repo-relative base64 ZIP payload under chatgpt_staging/in/<request_id>/payload.zip.b64 default=chatgpt_staging/in/request/payload.zip.b64; commit_changes: Commit applied file changes default=true; delete_payload_after_success: Delete payload.zip.b64 after successful apply to reduce repo bloat default=true
+# - payload_b64_path: Repo-relative base64 ZIP payload under .github/chatgpt_staging/in/<request_id>/payload.zip.b64 default=.github/chatgpt_staging/in/request/payload.zip.b64; commit_changes: Commit applied file changes default=true; delete_payload_after_success: Delete payload.zip.b64 after successful apply to reduce repo bloat default=true
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
 # - Requires apply_manifest.json at ZIP root, files/ payload root, .github/scripts/write_chatgpt_progress_report.py, and .github/scripts/Invoke-ChatGptReportPush.ps1.
 # Expected outputs/readback:
-# - Progress and final reports under chatgpt_staging/status_reports/chatgpt-apply-in/<request_id>/ plus apply reports under chatgpt_staging/apply_reports/.
+# - Progress and final reports under .github/chatgpt_staging/status_reports/chatgpt-apply-in/<request_id>/ plus apply reports under .github/chatgpt_staging/apply_reports/.
 # Safety notes:
 # - Rejects chunks/parts, unsafe request ids, unsafe paths, blocked staging/report paths, and stale hashes. Manifests may set allow_workflow_changes with a reason to pass validation on a .github/workflows/* target, but the file is always reverted before commit (GitHub's default GITHUB_TOKEN cannot push workflow-file changes) and the workflow report notes this explicitly; use a normal branch/PR for workflow-file changes.
 # - ChatGPT must verify the exact staged GitHub copy before relying on this workflow. Local-only verification is insufficient because connector/UI staging can alter or truncate large text payloads.
@@ -48,9 +48,9 @@ on:
   workflow_dispatch:
     inputs:
       payload_b64_path:
-        description: "Repo-relative base64 ZIP payload under chatgpt_staging/in/<request_id>/payload.zip.b64"
+        description: "Repo-relative base64 ZIP payload under .github/chatgpt_staging/in/<request_id>/payload.zip.b64"
         required: true
-        default: "chatgpt_staging/in/request/payload.zip.b64"
+        default: ".github/chatgpt_staging/in/request/payload.zip.b64"
         type: string
       commit_changes:
         description: "Commit applied file changes"
@@ -66,11 +66,11 @@ on:
     branches:
       - main
     paths:
-      - "chatgpt_staging/in/*/payload.zip.b64"
-      - "chatgpt_staging/in/*/payload.zip.b64.parts/**"
-      - "chatgpt_staging/in/*/chunk_manifest.json"
-      - "chatgpt_staging/in/*/*.part*"
-      - "chatgpt_staging/in/*/*chunk*"
+      - ".github/chatgpt_staging/in/*/payload.zip.b64"
+      - ".github/chatgpt_staging/in/*/payload.zip.b64.parts/**"
+      - ".github/chatgpt_staging/in/*/chunk_manifest.json"
+      - ".github/chatgpt_staging/in/*/*.part*"
+      - ".github/chatgpt_staging/in/*/*chunk*"
 
 permissions:
   contents: write
@@ -86,6 +86,6 @@ jobs:
       contents: write
     with:
       caller_event_name: ${{ github.event_name }}
-      payload_b64_path: ${{ inputs.payload_b64_path || 'chatgpt_staging/in/request/payload.zip.b64' }}
+      payload_b64_path: ${{ inputs.payload_b64_path || '.github/chatgpt_staging/in/request/payload.zip.b64' }}
       commit_changes: ${{ github.event_name != 'workflow_dispatch' || inputs.commit_changes }}
       delete_payload_after_success: ${{ github.event_name != 'workflow_dispatch' || inputs.delete_payload_after_success }}

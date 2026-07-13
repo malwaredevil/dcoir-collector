@@ -16,7 +16,7 @@ on:
         description: Forwarded `request_path` input from the entry workflow.
         required: false
         type: string
-        default: 'chatgpt_staging/requests/request.json'
+        default: '.github/chatgpt_staging/requests/request.json'
       commit_outputs:
         description: Forwarded `commit_outputs` input from the entry workflow.
         required: false
@@ -56,7 +56,7 @@ jobs:
           else
             REQUEST_PATH=""
             while IFS= read -r p; do
-              if [[ "$p" == chatgpt_staging/requests/*.json && -f "$p" ]]; then
+              if [[ "$p" == .github/chatgpt_staging/requests/*.json && -f "$p" ]]; then
                 REQUEST_PATH="$p"
                 break
               fi
@@ -67,8 +67,8 @@ jobs:
             echo "skip=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if [[ "$REQUEST_PATH" != chatgpt_staging/requests/*.json ]]; then
-            echo "Request path must be under chatgpt_staging/requests/ and end in .json" >&2
+          if [[ "$REQUEST_PATH" != .github/chatgpt_staging/requests/*.json ]]; then
+            echo "Request path must be under .github/chatgpt_staging/requests/ and end in .json" >&2
             exit 1
           fi
           if [[ ! -f "$REQUEST_PATH" ]]; then
@@ -101,7 +101,7 @@ jobs:
             --message 'Stage-out request path resolved. Request validation and bundle creation are next.'
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \
             -CommitMessage "Progress chatgpt-stage-out ${{ steps.request.outputs.request_id }} request-resolved [skip ci]" \
-            -Paths "chatgpt_staging/status_reports/chatgpt-stage-out/${{ steps.request.outputs.request_id }}"
+            -Paths ".github/chatgpt_staging/status_reports/chatgpt-stage-out/${{ steps.request.outputs.request_id }}"
 
       - name: Write heartbeat - running stage-out
         if: steps.request.outputs.skip != 'true'
@@ -117,7 +117,7 @@ jobs:
             --message 'Stage-out bundle creation is about to run. If this report remains in this phase, inspect the GitHub run URL for runtime progress.'
           pwsh -NoProfile -File .github/scripts/Invoke-ChatGptReportPush.ps1 \
             -CommitMessage "Progress chatgpt-stage-out ${{ steps.request.outputs.request_id }} running-stage-out [skip ci]" \
-            -Paths "chatgpt_staging/status_reports/chatgpt-stage-out/${{ steps.request.outputs.request_id }}"
+            -Paths ".github/chatgpt_staging/status_reports/chatgpt-stage-out/${{ steps.request.outputs.request_id }}"
 
       - name: Validate request and create stage-out bundle
         if: steps.request.outputs.skip != 'true'
@@ -127,15 +127,15 @@ jobs:
           REQUEST_PATH='${{ steps.request.outputs.request_path }}'
           REQUEST_ID='${{ steps.request.outputs.request_id }}'
 
-          OUT_DIR="chatgpt_staging/out/$REQUEST_ID"
-          WORK_DIR="chatgpt_staging/work/$REQUEST_ID"
-          REPORT_DIR="chatgpt_staging/status_reports/chatgpt-stage-out/$REQUEST_ID"
+          OUT_DIR=".github/chatgpt_staging/out/$REQUEST_ID"
+          WORK_DIR=".github/chatgpt_staging/work/$REQUEST_ID"
+          REPORT_DIR=".github/chatgpt_staging/status_reports/chatgpt-stage-out/$REQUEST_ID"
           REPORT_PATH="$REPORT_DIR/workflow_report.md"
           NATIVE_REPORT_PATH="$REPORT_DIR/native_stage_out_report.md"
           rm -rf "$OUT_DIR" "$WORK_DIR"
           mkdir -p "$OUT_DIR/files" "$OUT_DIR/chunks" "$WORK_DIR" "$REPORT_DIR"
 
-          python tools/chatgpt_stage_out/create_stage_out_bundle.py "$REQUEST_PATH" "$OUT_DIR"
+          python .github/scripts/chatgpt_stage_out/create_stage_out_bundle.py "$REQUEST_PATH" "$OUT_DIR"
 
           {
             echo "# ChatGPT workflow report"
@@ -214,7 +214,7 @@ jobs:
           case "$REQUEST_ID" in
             *[!A-Za-z0-9._-]*|'') REQUEST_ID="unsafe_or_unknown" ;;
           esac
-          REPORT_DIR="chatgpt_staging/status_reports/chatgpt-stage-out/$REQUEST_ID"
+          REPORT_DIR=".github/chatgpt_staging/status_reports/chatgpt-stage-out/$REQUEST_ID"
           REPORT_PATH="$REPORT_DIR/workflow_report.md"
           NATIVE_REPORT_PATH="$REPORT_DIR/native_stage_out_failure_report.md"
           mkdir -p "$REPORT_DIR"

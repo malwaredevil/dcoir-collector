@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-exec-20260626-dcoir-review-hybrid-main-008",
+  "exit_code": "0",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "28235790291",
+  "github_sha": "b8bfce56b903790b5c60f56a0c6043c0bfeb4ebd",
+  "phase": "final-readback-commit",
+  "request_id": "exec-20260626-dcoir-review-hybrid-main-008",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260626-dcoir-review-hybrid-main-008.json",
+  "result": "success",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-06-26T11:43:04Z",
+  "workflow": "chatgpt-exec"
+}

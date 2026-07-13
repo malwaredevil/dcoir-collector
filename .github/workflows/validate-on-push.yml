@@ -65,9 +65,9 @@ on:
       - 'supporting_assets/DCOIR_Collector.zip'
       - '.github/workflows/**'
       - '.github/actions/**'
-      - 'project_sources/github_actions/**'
-      - 'ops/tools/**'
-      - 'ops/requests/apply_patch/**'
+      - '.github/github_actions/**'
+      - '.github/ops/tools/**'
+      - '.github/ops/requests/apply_patch/**'
       - '.github/README.md'
   workflow_dispatch:
 

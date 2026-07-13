@@ -6,7 +6,7 @@ This folder contains repository-native GitHub support surfaces for the DCOIR col
 - `PULL_REQUEST_TEMPLATE.md` preserves label discipline, issue scope review, readback, and governed review gates.
 - `workflows/` contains validation, packaging, reporting, and maintenance automation.
 - `dependabot.yml` and related metadata support repository maintenance.
-- `../project_sources/github_actions/workflow_modularization_contracts.json` and generated workflow inventory files record the issue #194 workflow restructuring contract.
+- `../.github/github_actions/workflow_modularization_contracts.json` and generated workflow inventory files record the issue #194 workflow restructuring contract.
 
 ## Issue intake model
 
@@ -33,4 +33,4 @@ API-created, connector-created, or otherwise programmatically created issues mus
 - Do not describe retired mirror or parity-refresh paths as active maintenance surfaces.
 - Preserve clear separation between collector/runtime guidance and repo/governance guidance.
 - For workflow restructuring work, keep entry workflow contract surfaces visible and use the repo-local workflow inventory and modularization audits before claiming readiness.
-- Keep `project_sources/github_actions/github_intake_taxonomy.json` aligned with issue forms, PR-template requirements, label policy, and the intake validator.
+- Keep `.github/github_actions/github_intake_taxonomy.json` aligned with issue forms, PR-template requirements, label policy, and the intake validator.

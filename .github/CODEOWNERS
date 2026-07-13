@@ -2,4 +2,4 @@
 .github/ @malwaredevil
 project_sources/ @malwaredevil
 knowledge/ @malwaredevil
-operator_tools/ @malwaredevil
+.github/operator_tools/ @malwaredevil
