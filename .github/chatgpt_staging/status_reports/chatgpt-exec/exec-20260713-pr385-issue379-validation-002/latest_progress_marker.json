@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260713-pr385-issue379-validation-002",
+  "exit_code": "1",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "29230941998",
   "github_sha": "8c89be6f6fd409bb928548624ad3c4ea66bc4744",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260713-pr385-issue379-validation-002",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260713-pr385-issue379-validation-002.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-07-13T07:06:15Z",
+  "updated_utc": "2026-07-13T07:06:20Z",
   "workflow": "chatgpt-exec"
 }
