@@ -5,8 +5,14 @@ This folder contains repository-native GitHub support surfaces for the DCOIR col
 - `ISSUE_TEMPLATE/` keeps issue intake structured with YAML forms that each apply exactly one approved `area:*` label and one approved `type:*` label.
 - `PULL_REQUEST_TEMPLATE.md` preserves label discipline, issue scope review, readback, and governed review gates.
 - `workflows/` contains validation, packaging, reporting, and maintenance automation.
+- `actions/` contains reusable composite actions owned by the workflow support surface.
+- `scripts/` contains GitHub-side helper scripts that stay coupled to repository automation.
+- `chatgpt_staging/` contains cleanup-managed ChatGPT request, execution, bundle, and status-report staging paths.
+- `ops/` contains GitHub-side operator request and workflow-support surfaces.
+- `operator_tools/` contains repository operator tooling used by governed GitHub and local maintenance lanes.
+- `github_actions/` contains workflow restructuring contracts, shared allowlists, generated workflow inventory files, and workflow audit tools.
+- `dcoir_review/` contains governed review workflow support, scripts, fixtures, and review-runtime configuration.
 - `dependabot.yml` and related metadata support repository maintenance.
-- `../.github/github_actions/workflow_modularization_contracts.json` and generated workflow inventory files record the issue #194 workflow restructuring contract.
 
 ## Issue intake model
 
