@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "29235345417",
   "github_sha": "8121615e417b5e43662907f5c06aa8d531afdce3",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260713-issue380-regression-003",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260713-issue380-regression-003.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-07-13T08:25:15Z",
+  "updated_utc": "2026-07-13T08:25:18Z",
   "workflow": "chatgpt-exec"
 }
