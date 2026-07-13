@@ -4,7 +4,7 @@
 
 This note records the dedicated repository evidence for issue #380, the post-consolidation workflow regression check. It summarizes the successful checkout-backed validation run that compared the post-relocation workflow surface with the #382/#383 pre-consolidation baseline and ran the current workflow audit suite.
 
-This file is durable documentation of the evidence. The run-specific source of truth remains the referenced GitHub Actions run and artifact.
+This file is durable documentation of the evidence. The run-specific source of truth remains the referenced GitHub Actions run and artifact while retained; this note preserves the durable summary required for issue closeout.
 
 ## Evidence source
 
@@ -61,7 +61,7 @@ The harness evaluated current ref `1f422b6adf844484cda68e36ce2a4665f593a4d3`; th
 
 ## Acceptance mapping
 
-- Every primary workflow behavior after full relocation matches the prequel-established baseline: supported by normalized workflow inventory and modularization contract parity.
+- Primary workflow parity: normalized workflow inventory and modularization contract comparisons produced no normalized diff against the prequel-established baseline.
 - Reusable workflow and composite action call sites verified post-relocation: supported by `audit_reusable_contracts.py` and `check_workflow_action_versions.py` passing on the current checkout.
 - Any regression found fixed or escalated: no regression surfaced in the successful exec-003 evidence set.
 - Dedicated branch and PR evidence: this file is intended to satisfy the durable evidence-record portion of that acceptance criterion once the PR carrying it is merged.
