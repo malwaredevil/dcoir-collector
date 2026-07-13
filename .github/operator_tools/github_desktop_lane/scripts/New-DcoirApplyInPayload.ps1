@@ -98,7 +98,7 @@ try {
     $encoded = [Convert]::ToBase64String($bytes, [Base64FormattingOptions]::InsertLineBreaks)
 
     Set-DcoirLogPhase -Phase 'stage-payload'
-    $stagingDir = Join-Path $RepoRoot (Join-Path 'chatgpt_staging\in' $RequestId)
+    $stagingDir = Join-Path $RepoRoot (Join-Path '.github\chatgpt_staging\in' $RequestId)
     $payloadB64Path = Join-Path $stagingDir 'payload.zip.b64'
     $reportPath = Join-Path $stagingDir 'payload_staging_report.json'
     Write-DcoirLogLine -Message ('Staging directory: {0}' -f $stagingDir)

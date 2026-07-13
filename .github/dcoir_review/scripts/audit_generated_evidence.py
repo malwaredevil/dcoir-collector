@@ -35,11 +35,18 @@ def is_canonical_collector_report(path: PurePosixPath) -> bool:
 
 def classify(path: PurePosixPath) -> set[str]:
     classes: set[str] = set()
+    is_staging_root = (
+        path.parts and path.parts[0] == "chatgpt_staging"
+    ) or path.parts[:2] == (".github", "chatgpt_staging")
     if "report_chunks" in path.parts:
         classes.add("durable_report_chunks")
-    if path.parts and path.parts[0] == "chatgpt_staging":
+    if is_staging_root:
         classes.add("chatgpt_staging")
-    if path.parts[:2] == ("chatgpt_staging", "status_reports"):
+    if path.parts[:2] == ("chatgpt_staging", "status_reports") or path.parts[:3] == (
+        ".github",
+        "chatgpt_staging",
+        "status_reports",
+    ):
         classes.add("chatgpt_status_reports")
     if "fixtures" in path.parts or "testdata" in path.parts:
         classes.add("fixtures")
