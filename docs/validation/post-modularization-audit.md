@@ -46,5 +46,5 @@ proposed independently with its own dependency and parity evidence.
 python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
 python .github/github_actions/tools/check_workflow_modularization_contracts.py
 python .github/github_actions/tools/check_workflow_consistency_drift.py
-python scripts/audit_generated_evidence.py --check
+python .github/dcoir_review/scripts/audit_generated_evidence.py --check
 ```
