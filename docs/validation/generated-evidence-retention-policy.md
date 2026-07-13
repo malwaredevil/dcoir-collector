@@ -91,7 +91,7 @@ fresh workflow execution evidence.
 ## Decision table
 
 | Evidence | Git | Artifact/staging | Required control |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | Maintained source or manifest | Yes | No | Normal source validation |
 | Canonical generated report required by validators | Yes | Optional copy | Generator plus freshness/parity check |
 | Run-specific report, package, or logs | No by default | Yes | Run ID, head SHA, job result, retention |
@@ -105,7 +105,7 @@ fresh workflow execution evidence.
 Run:
 
 ```text
-python scripts/audit_generated_evidence.py --check
+python .github/dcoir_review/scripts/audit_generated_evidence.py --check
 ```
 
 The command inventories tracked evidence classes and fails when an unapproved
