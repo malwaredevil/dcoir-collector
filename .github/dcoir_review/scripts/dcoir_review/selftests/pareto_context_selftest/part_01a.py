@@ -166,6 +166,24 @@ assert any(
     for item in path_write_sentinels
 )
 
+test_path_write_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py b/project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py
+index 0000000..1111111 100644
+--- a/project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py
++++ b/project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
+ def test_safe_write(case_id, payload, output_dir):
+     destination = Path(output_dir) / f"{case_id}.txt"
++    destination.write_text(payload, encoding="utf-8")
+ """
+)
+assert not any(
+    item.path == "project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py"
+    and item.label in {mod.FILE_WRITE_PATH_LABEL, "Python request-controlled file write"}
+    for item in test_path_write_sentinels
+)
+
 context_write_sentinels = mod.detect_risk_sentinels(
     """diff --git a/validation-review-probes/intentional_flawed_review_baseline.py b/validation-review-probes/intentional_flawed_review_baseline.py
 index 0000000..1111111 100644

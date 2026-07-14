@@ -26,6 +26,8 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         pending_path_assignment = []
 
     for diff_line in iter_python_diff_lines_with_context(diff):
+        if is_python_test_file_path(diff_line.path):
+            continue
         if diff_line.path != current_alias_path:
             path_constructor_names = set(DEFAULT_PYTHON_PATH_CONSTRUCTORS)
             path_constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(diff_line.path, set()))
@@ -119,6 +121,17 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     return sentinels
 
 
+def is_python_test_file_path(path: str) -> bool:
+    normalized = str(path or "").replace("\\", "/").lower()
+    name = normalized.rsplit("/", 1)[-1]
+    return normalized.endswith(".py") and (
+        name.startswith("test_")
+        or name.endswith("_test.py")
+        or "/test/" in normalized
+        or "/tests/" in normalized
+    )
+
+
 def detect_github_actions_yaml_sentinels(diff: str) -> list[hardened.RiskSentinel]:
     sentinels: list[hardened.RiskSentinel] = []
     seen: set[tuple[str, int, str]] = set()
@@ -159,6 +172,10 @@ def detect_github_actions_yaml_sentinels(diff: str) -> list[hardened.RiskSentine
 
 def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[hardened.RiskSentinel]:
     diff_fixture_added_lines = python_diff_fixture_added_line_keys(diff)
+    skipped_test_file_write_labels = {
+        FILE_WRITE_PATH_LABEL,
+        "Python request-controlled file write",
+    }
     combined = [
         *detect_python_file_write_path_sentinels(diff),
         *detect_python_dynamic_exec_sentinels(diff),
@@ -167,6 +184,10 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
             sentinel
             for sentinel in _original_detect_risk_sentinels(diff, None)
             if (sentinel.path, sentinel.line) not in diff_fixture_added_lines
+            and not (
+                is_python_test_file_path(sentinel.path)
+                and sentinel.label in skipped_test_file_write_labels
+            )
         ],
     ]
     deduped: list[hardened.RiskSentinel] = []
@@ -283,5 +304,4 @@ FIX_SYNTHESIS_SCHEMA: dict[str, Any] = {
         "validation": {"type": "string", "description": "Exact validation command or commands that should pass after the fix."},
     },
 }
-
 
