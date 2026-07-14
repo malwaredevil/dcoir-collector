@@ -82,6 +82,17 @@ def _is_optional_path(path: str) -> bool:
     return "/optional_" in normalized or basename.startswith("optional_")
 
 
+def _is_python_test_file(path: str) -> bool:
+    normalized = str(path or "").replace("\\", "/").lower()
+    basename = normalized.rsplit("/", 1)[-1]
+    return (
+        basename.startswith("test_")
+        or basename.endswith("_test.py")
+        or "/test/" in normalized
+        or "/tests/" in normalized
+    )
+
+
 def _line_kind(path: str, text: str) -> str:
     suffix = Path(str(path or "").lower()).suffix
     lower = _normalize(text)

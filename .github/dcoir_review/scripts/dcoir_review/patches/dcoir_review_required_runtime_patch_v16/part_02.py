@@ -191,6 +191,14 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
             sentinels = list(original(diff, *args, **kwargs))
         except TypeError:
             sentinels = list(original(diff))
+        sentinels = [
+            item
+            for item in sentinels
+            if not (
+                _sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE
+                and _is_python_test_file(_sentinel_key(item)[0])
+            )
+        ]
         risk_sentinel_type = getattr(owner, "RiskSentinel", None) or getattr(sentinel_owner, "RiskSentinel", None)
         if risk_sentinel_type is None:
             return sentinels
@@ -201,6 +209,8 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 continue
             kind = _line_kind(path, text)
             if kind not in TRACKED_KINDS and kind not in OPTIONAL_PRESSURE_KINDS:
+                continue
+            if kind == v11.PYTHON_PATH_WRITE and _is_python_test_file(path):
                 continue
             key = (path, line, kind)
             if key in existing:

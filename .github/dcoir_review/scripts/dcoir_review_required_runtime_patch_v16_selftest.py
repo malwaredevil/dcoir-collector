@@ -19,6 +19,52 @@ def _s(path: str, line: int, kind: str, text: str) -> SimpleNamespace:
     return SimpleNamespace(path=path, line=line, label=title, detail=body, text=text)
 
 
+def test_python_path_write_sentinel_skips_test_files() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    test_path = "project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py"
+    diff = "\n".join(
+        [
+            "diff --git a/a.py b/b.py",
+            f"+++ b/{test_path}",
+            "@@ -180,0 +182,1 @@",
+            '+    outside_file.write_text("ok", encoding="utf-8")',
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found)
+
+
+def test_python_path_write_sentinel_keeps_non_test_files() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    path = "project_sources/collector/tools/build_dcoir_collector_runtime_package.py"
+    diff = "\n".join(
+        [
+            "diff --git a/a.py b/b.py",
+            f"+++ b/{path}",
+            "@@ -10,0 +11,1 @@",
+            '+    Path(output_path).write_text("ok", encoding="utf-8")',
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found)
+
+
 def main() -> None:
     workflow = ".github/workflows/dcoir-review-v16-probe.yml"
     py = ".github/chatgpt_staging/dcoir_review_probe/v16_probe.py"
@@ -72,6 +118,9 @@ def main() -> None:
     rendered = "\n\n".join(v16._render_comment(item) for item in selected)
     assert "Reviewed with" not in rendered
     assert "```bash" in rendered
+
+    test_python_path_write_sentinel_skips_test_files()
+    test_python_path_write_sentinel_keeps_non_test_files()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
 
