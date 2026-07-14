@@ -107,6 +107,15 @@ def normalize_findings(result: dict[str, Any], config: Any, line_index: dict[tup
     return findings
 
 
+def summary_only_retry_fallback_allowed(result: dict[str, Any], config: Any) -> bool:
+    if not getattr(config, "review_quality_retry_on_rejected_output", True):
+        return False
+    if not bool(result.get("_quality_retry_attempted")):
+        return False
+    raw_findings = result.get("findings", [])
+    return not isinstance(raw_findings, list) or not raw_findings
+
+
 def severity_sort_key(finding: dict[str, Any]) -> tuple[int, float]:
     severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     try:
@@ -225,6 +234,9 @@ def split_findings(
 
     summary = str(result.get("summary", "")).strip()
     if getattr(config, "fail_on_summary_only_problem", True) and summary_suggests_problem(summary):
+        # After a quality retry is exhausted, keep the concern visible in the review body instead of failing the workflow.
+        if summary_only_retry_fallback_allowed(result, config):
+            return [], []
         raise ReviewQualityError(
             f"{base.REVIEW_DISPLAY_NAME} quality failure: the model summary indicated a possible issue, but the structured findings "
             "array was empty. The review must produce actionable file/line findings or a clean summary."

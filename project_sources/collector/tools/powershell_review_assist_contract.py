@@ -109,8 +109,6 @@ SOURCE_PATH_PREFIXES = (
     "knowledge/",
     ".github/operator_tools/",
     "project_sources/",
-    "scripts/",
-    "tools/",
 )
 
 

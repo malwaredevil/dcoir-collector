@@ -1,0 +1,26 @@
+﻿{
+    "schema":  "dcoir.issue379.validation_readback.v1",
+    "request_id":  "exec-20260713-pr385-issue379-validation-002",
+    "pr_number":  385,
+    "branch_name":  "codex/379-cross-cutting-sync",
+    "expected_head_sha":  "fdb034659f222e135b4df3436d08ddab3371b946",
+    "actual_head_sha":  "fdb034659f222e135b4df3436d08ddab3371b946",
+    "started_utc":  "2026-07-13T07:06:18Z",
+    "finished_utc":  "2026-07-13T07:06:19Z",
+    "result":  "failure",
+    "exact_grep_command":  "git grep -ln \"\\bchatgpt_staging/\\|\\bops/requests\\|\\bops/tools\\|\\boperator_tools/\\|project_sources/github_actions\\|tools/chatgpt_apply_in\\|tools/chatgpt_stage_out\" -- \u0027*.yml\u0027 \u0027*.py\u0027 \u0027*.ps1\u0027 \u0027*.md\u0027 \u0027*.json\u0027 | grep -v \u0027^\\.github/\u0027",
+    "outside_dotgithub_file_count":  0,
+    "outside_dotgithub_detail_line_count":  0,
+    "outside_dotgithub_files":  [
+
+                                ],
+    "requires_followup_classification":  false,
+    "checks":  [
+                   {
+                       "name":  "checkout_exact_head",
+                       "result":  "pass",
+                       "notes":  "fdb034659f222e135b4df3436d08ddab3371b946"
+                   }
+               ],
+    "error":  "bash.exe : /usr/bin/bash: line 1: bops/requests: No such file or directory\r\nAt D:\\a\\_temp\\dcoir_chatgpt_exec\\exec-20260713-pr385-issue379-validation-002\\approved_command.ps1:152 char:30\r\n+         $exactGrepOutput = @(\u0026 bash -lc $exactGrepCommand 2\u003e\u00261)\r\n+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (/usr/bin/bash: ...le or directory:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+}

@@ -85,7 +85,11 @@ def result_findings(result: dict[str, Any]) -> list[dict[str, Any]]:
     return [dict(item) for item in raw_findings if isinstance(item, dict)]
 
 
-def merge_review_results(initial_result: dict[str, Any], retry_result: dict[str, Any]) -> dict[str, Any]:
+def merge_review_results(
+    initial_result: dict[str, Any],
+    retry_result: dict[str, Any],
+    retry_reason: str = "",
+) -> dict[str, Any]:
     merged: list[dict[str, Any]] = []
     index_by_key: dict[tuple[str, int, str], int] = {}
     for source_result in (initial_result, retry_result):
@@ -108,7 +112,13 @@ def merge_review_results(initial_result: dict[str, Any], retry_result: dict[str,
             "The review result also preserves distinct actionable findings returned by the first pass when they "
             "remain anchored to changed code."
         )
-    return {"summary": summary, "findings": merged}
+    merged_result = {"summary": summary, "findings": merged}
+    if retry_reason:
+        merged_result["_quality_retry_attempted"] = True
+        merged_result["_quality_retry_reason"] = str(retry_reason)
+        merged_result["_quality_retry_initial_summary"] = initial_summary
+        merged_result["_quality_retry_retry_summary"] = retry_summary
+    return merged_result
 
 
 def openrouter_review_with_quality_retry(
@@ -161,7 +171,17 @@ def openrouter_review_with_quality_retry(
             "responses/02-quality-retry-result.json",
             {"model_used": model_used, "service_tier": service_tier, "result": result},
         )
-        merged_result = merge_review_results(initial_result=initial_result, retry_result=result)
+        merged_result = merge_review_results(
+            initial_result=initial_result,
+            retry_result=result,
+        )
+        if retry_reason:
+            initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
+            retry_summary = str(result.get("summary", "") if isinstance(result, dict) else "").strip()
+            merged_result["_quality_retry_attempted"] = True
+            merged_result["_quality_retry_reason"] = str(retry_reason)
+            merged_result["_quality_retry_initial_summary"] = initial_summary
+            merged_result["_quality_retry_retry_summary"] = retry_summary
         write_debug_json_artifact_safely(
             config,
             "responses/03-quality-retry-merged-result.json",

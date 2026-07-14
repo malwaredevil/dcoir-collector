@@ -115,6 +115,81 @@ run_recovery_case(
     "summary indicated a possible issue",
 )
 
+summary_only_calls: list[str] = []
+original_openrouter_review = mod.openrouter_review
+
+
+def fake_summary_only_retry(prompt: str, _schema: dict, _config: object, _reporter: object | None = None):
+    summary_only_calls.append(prompt)
+    if len(summary_only_calls) == 1:
+        return {"summary": "A governance regression remains in the review gate.", "findings": []}, "first-model", ""
+    return {
+        "summary": "A possible review-gate issue remains, but no actionable changed-line finding was identified.",
+        "findings": [],
+    }, "recovery-model", ""
+
+
+mod.openrouter_review = fake_summary_only_retry
+try:
+    summary_only_result, summary_only_model, _summary_only_tier = mod.openrouter_review_with_quality_retry(
+        "initial prompt",
+        schema,
+        config,
+        None,
+        [],
+        line_index,
+    )
+finally:
+    mod.openrouter_review = original_openrouter_review
+
+assert len(summary_only_calls) == 2
+assert summary_only_model == "recovery-model"
+assert summary_only_result["_quality_retry_attempted"] is True
+assert "summary indicated a possible issue" in summary_only_result["_quality_retry_reason"]
+assert mod.normalize_findings(summary_only_result, config, line_index) == []
+assert mod.split_findings(summary_only_result, config, line_index) == ([], [])
+
+summary_only_wrapper_calls: list[str] = []
+original_openrouter_review = mod.openrouter_review
+original_merge_review_results = mod.merge_review_results
+
+
+def fake_summary_only_retry_with_old_merge(prompt: str, _schema: dict, _config: object, _reporter: object | None = None):
+    summary_only_wrapper_calls.append(prompt)
+    if len(summary_only_wrapper_calls) == 1:
+        return {"summary": "A governance regression remains in the review gate.", "findings": []}, "first-model", ""
+    return {
+        "summary": "A possible review-gate issue remains, but no actionable changed-line finding was identified.",
+        "findings": [],
+    }, "recovery-model", ""
+
+
+def old_signature_merge_review_results(initial_result: dict, retry_result: dict) -> dict:
+    return original_merge_review_results(initial_result, retry_result)
+
+
+mod.openrouter_review = fake_summary_only_retry_with_old_merge
+mod.merge_review_results = old_signature_merge_review_results
+try:
+    wrapper_result, wrapper_model, _wrapper_tier = mod.openrouter_review_with_quality_retry(
+        "initial prompt",
+        schema,
+        config,
+        None,
+        [],
+        line_index,
+    )
+finally:
+    mod.openrouter_review = original_openrouter_review
+    mod.merge_review_results = original_merge_review_results
+
+assert len(summary_only_wrapper_calls) == 2
+assert wrapper_model == "recovery-model"
+assert wrapper_result["_quality_retry_attempted"] is True
+assert "summary indicated a possible issue" in wrapper_result["_quality_retry_reason"]
+assert mod.normalize_findings(wrapper_result, config, line_index) == []
+assert mod.split_findings(wrapper_result, config, line_index) == ([], [])
+
 run_recovery_case(
     {
         "summary": "Possible review gate bypass.",

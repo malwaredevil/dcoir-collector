@@ -1,0 +1,25 @@
+﻿{
+    "schema":  "dcoir.issue379.validation_readback.v1",
+    "request_id":  "exec-20260713-pr385-issue379-validation-001",
+    "pr_number":  385,
+    "branch_name":  "codex/379-cross-cutting-sync",
+    "expected_head_sha":  "fdb034659f222e135b4df3436d08ddab3371b946",
+    "actual_head_sha":  "fdb034659f222e135b4df3436d08ddab3371b946",
+    "started_utc":  "2026-07-13T06:50:54Z",
+    "finished_utc":  "2026-07-13T06:50:56Z",
+    "result":  "failure",
+    "outside_dotgithub_file_count":  0,
+    "outside_dotgithub_detail_line_count":  0,
+    "outside_dotgithub_files":  [
+
+                                ],
+    "requires_followup_classification":  false,
+    "checks":  [
+                   {
+                       "name":  "checkout_exact_head",
+                       "result":  "pass",
+                       "notes":  "fdb034659f222e135b4df3436d08ddab3371b946"
+                   }
+               ],
+    "error":  "bash.exe : /usr/bin/bash: line 1: bops/requests: No such file or directory\r\nAt D:\\a\\_temp\\dcoir_chatgpt_exec\\exec-20260713-pr385-issue379-validation-001\\approved_command.ps1:150 char:30\r\n+         $exactGrepOutput = @(\u0026 bash -lc $exactGrepCommand 2\u003e\u00261)\r\n+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (/usr/bin/bash: ...le or directory:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError"
+}
