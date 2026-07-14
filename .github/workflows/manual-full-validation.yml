@@ -14,11 +14,11 @@
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses collector documentation validator, required surface checks, PowerShell 7 and Windows PowerShell 5.1 syntax parsing, harness assembly parity, collector package build/restore, selected harness suite, and Gemini bundle smoke build.
+# - Uses collector documentation validator, required surface checks, PowerShell 7 and Windows PowerShell 5.1 syntax parsing, pinned DCOIR Pester execution, collector runtime package validation, harness assembly parity, collector package build/restore, selected harness suite, FullRegression mission-readiness gating, and Gemini bundle smoke build.
 # Expected outputs/readback:
-# - Validation artifacts, ChatGPT workflow report section artifact, and repo-workflows report.
+# - Validation artifacts including Pester and mission-readiness gate output, ChatGPT workflow report section artifact, and repo-workflows report.
 # Safety notes:
-# - The selected suite bounds the readiness claim. Full readiness requires selecting and passing FullRegression or explicit equivalent coverage.
+# - The selected suite bounds the readiness claim. Full readiness requires selecting and passing FullRegression together with the mission-readiness gate or explicit equivalent coverage.
 # Maintenance notes:
 # - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
 # - Keep this header aligned with current repo-root GitHub guidance and the active `ircore` operating model when authority or routing language changes.
@@ -81,9 +81,19 @@ jobs:
       artifact_retention_days: 21
       report_title: Manual full validation summary
       report_scope: selected deep validation suite
-      report_note: includes TestResults, Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, and PowerShell review-assist JSON/Markdown when produced.
-      report_claim: The workflow conclusion is the authoritative pass/fail signal. The selected suite bounds any readiness claim; use FullRegression or equivalent evidence for broad readiness.
+      report_note: includes TestResults, pinned DCOIR Pester output, collector runtime package validation output, Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PowerShell review-assist JSON/Markdown, and mission-readiness gate output when produced.
+      report_claim: The workflow conclusion is the authoritative pass/fail signal. The selected suite bounds any readiness claim; use FullRegression plus the mission-readiness gate or equivalent evidence for broad readiness.
       run_windows_powershell_5_1_syntax: true
+      run_dcoir_pester: true
+      dcoir_pester_version: '5.7.1'
+      dcoir_pester_result_path: project_sources/TestResults/pester-manual-full-validation.xml
+      dcoir_pester_minimum_test_count: '45'
+      run_collector_runtime_package_validation: true
+      collector_runtime_package_validation_output_dir: project_sources/validation/out_manual_full_collector/runtime_package_validation
       build_runtime_for_harness: true
       run_harness_suite: true
       harness_suite: ${{ inputs.suite || 'FullRegression' }}
+      harness_output_root: project_sources\validation\out_manual_full_collector\harness_results
+      enforce_fullregression_mission_readiness: true
+      mission_readiness_json_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.json
+      mission_readiness_markdown_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.md
