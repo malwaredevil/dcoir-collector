@@ -180,7 +180,11 @@ index 0000000..1111111 100644
 )
 assert not any(
     item.path == "project_sources/collector/tools/test_build_powershell_surface_inventory_path_safety.py"
-    and item.label in {mod.FILE_WRITE_PATH_LABEL, "Python request-controlled file write"}
+    and item.label in {
+        mod.FILE_WRITE_PATH_LABEL,
+        "Python request-controlled file write",
+        "Python writes to a request-controlled filesystem path",
+    }
     for item in test_path_write_sentinels
 )
 

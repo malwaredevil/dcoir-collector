@@ -175,6 +175,7 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
     skipped_test_file_write_labels = {
         FILE_WRITE_PATH_LABEL,
         "Python request-controlled file write",
+        "Python writes to a request-controlled filesystem path",
     }
     combined = [
         *detect_python_file_write_path_sentinels(diff),
@@ -304,4 +305,3 @@ FIX_SYNTHESIS_SCHEMA: dict[str, Any] = {
         "validation": {"type": "string", "description": "Exact validation command or commands that should pass after the fix."},
     },
 }
-
