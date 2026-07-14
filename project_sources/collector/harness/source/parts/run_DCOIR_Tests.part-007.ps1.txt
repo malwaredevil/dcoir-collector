@@ -204,7 +204,15 @@ function Invoke-TargetedCollectionVerification {
     [object]$CollectStep,
     [object]$ExpectedExplicitEventWindow = $null,
     [string]$ExpectedWindowStart = '',
-    [string]$ExpectedWindowEnd = ''
+    [string]$ExpectedWindowEnd = '',
+    [string]$ExpectedTargetProfile = '',
+    [string]$ExpectedFocusProcess = '',
+    [string]$ExpectedFocusPath = '',
+    [string]$ExpectedFocusIndicator = '',
+    [string]$ExpectedFocusIndicatorType = '',
+    [string]$ExpectedUserReport = '',
+    [string[]]$ExpectedIncludedArtifactCategories = @(),
+    [string[]]$ExpectedPlanMarkers = @()
   )
   $start = Get-Date
   $status = "FAIL"
@@ -238,6 +246,12 @@ function Invoke-TargetedCollectionVerification {
     $scopeText = Get-Content -LiteralPath $CollectStep.CollectionScopePath -Raw
     $planText = Get-Content -LiteralPath $CollectStep.TargetedCollectionPlanPath -Raw
     $metadataText = if ($CollectStep.SecurityHighSignalSummaryPath -and (Test-Path -LiteralPath $CollectStep.SecurityHighSignalSummaryPath)) { Get-Content -LiteralPath $CollectStep.SecurityHighSignalSummaryPath -Raw } else { '' }
+    $scopeLineMap = @{}
+    foreach ($line in ($scopeText -split "`r?`n")) {
+      if ($line -match '^(?<key>[A-Z_]+)=(?<value>.*)$') {
+        $scopeLineMap[$matches['key']] = $matches['value']
+      }
+    }
     $expectedWindowOk = $true
     if ($null -ne $ExpectedExplicitEventWindow) {
       $expectedValue = if ([bool]$ExpectedExplicitEventWindow) { 'True' } else { 'False' }
@@ -255,11 +269,55 @@ function Invoke-TargetedCollectionVerification {
       $expectedWindowValuesOk = $expectedWindowValuesOk -and (Test-HarnessUtcTimestampLine -Text $scopeText -FieldName 'WINDOW_END' -ExpectedValue $ExpectedWindowEnd) -and (Test-HarnessUtcTimestampLine -Text $metadataText -FieldName 'WINDOW_END' -ExpectedValue $ExpectedWindowEnd)
       $lines += ("EXPECTED_WINDOW_END={0}" -f $expectedEndText)
     }
-    if (($scopeText -match 'TARGETED_COLLECTION_SCOPE') -and ($planText -match 'TARGETED_COLLECTION_PLAN') -and ($scopeText -match 'WINDOW_START=') -and ($scopeText -match 'WINDOW_END=') -and ($metadataText -match 'WINDOW_START=') -and ($metadataText -match 'WINDOW_END=') -and $expectedWindowOk -and $expectedWindowValuesOk) {
+    $expectedTargetProfileOk = $true
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedTargetProfile)) {
+      $expectedTargetProfileOk = (($scopeLineMap['TARGET_PROFILE'] -eq $ExpectedTargetProfile) -and ($planText -match ("PROFILE={0}" -f [regex]::Escape($ExpectedTargetProfile))))
+      $lines += ("EXPECTED_TARGET_PROFILE={0}" -f $ExpectedTargetProfile)
+    }
+    $expectedScopeFieldOk = $true
+    foreach ($fieldCheck in @(
+      @{ Field = 'FOCUS_PROCESS'; Expected = $ExpectedFocusProcess },
+      @{ Field = 'FOCUS_PATH'; Expected = $ExpectedFocusPath },
+      @{ Field = 'FOCUS_INDICATOR'; Expected = $ExpectedFocusIndicator },
+      @{ Field = 'FOCUS_INDICATOR_TYPE'; Expected = $ExpectedFocusIndicatorType },
+      @{ Field = 'USER_REPORT'; Expected = $ExpectedUserReport }
+    )) {
+      if ([string]::IsNullOrWhiteSpace([string]$fieldCheck.Expected)) {
+        continue
+      }
+      $lines += ("EXPECTED_{0}={1}" -f $fieldCheck.Field, $fieldCheck.Expected)
+      if (-not $scopeLineMap.ContainsKey($fieldCheck.Field)) {
+        $expectedScopeFieldOk = $false
+        continue
+      }
+      if ([string]$scopeLineMap[$fieldCheck.Field] -ne [string]$fieldCheck.Expected) {
+        $expectedScopeFieldOk = $false
+      }
+    }
+    $expectedCategoriesOk = $true
+    if (@($ExpectedIncludedArtifactCategories).Count -gt 0) {
+      $lines += ("EXPECTED_INCLUDED_ARTIFACT_CATEGORIES={0}" -f (@($ExpectedIncludedArtifactCategories) -join ', '))
+      $actualCategoryLine = if ($scopeLineMap.ContainsKey('INCLUDED_ARTIFACT_CATEGORIES')) { [string]$scopeLineMap['INCLUDED_ARTIFACT_CATEGORIES'] } else { '' }
+      foreach ($category in @($ExpectedIncludedArtifactCategories)) {
+        if ($actualCategoryLine -notmatch [regex]::Escape($category)) {
+          $expectedCategoriesOk = $false
+        }
+      }
+    }
+    $expectedPlanMarkersOk = $true
+    if (@($ExpectedPlanMarkers).Count -gt 0) {
+      foreach ($marker in @($ExpectedPlanMarkers)) {
+        $lines += ("EXPECTED_PLAN_MARKER={0}" -f $marker)
+        if ($planText -notmatch [regex]::Escape($marker)) {
+          $expectedPlanMarkersOk = $false
+        }
+      }
+    }
+    if (($scopeText -match 'TARGETED_COLLECTION_SCOPE') -and ($planText -match 'TARGETED_COLLECTION_PLAN') -and ($scopeText -match 'WINDOW_START=') -and ($scopeText -match 'WINDOW_END=') -and ($metadataText -match 'WINDOW_START=') -and ($metadataText -match 'WINDOW_END=') -and $expectedWindowOk -and $expectedWindowValuesOk -and $expectedTargetProfileOk -and $expectedScopeFieldOk -and $expectedCategoriesOk -and $expectedPlanMarkersOk) {
       $status = "PASS"
-      $message = "Targeted collection artifacts were produced and contained expected markers plus exact effective event-window fields."
+      $message = "Targeted collection artifacts were produced and contained expected markers, profile-specific fields, and exact effective event-window fields."
     } else {
-      $message = "Targeted collection artifact markers or exact effective event-window fields were missing or unexpected."
+      $message = "Targeted collection artifact markers, profile-specific fields, or exact effective event-window fields were missing or unexpected."
     }
   } else {
     $message = ($missing -join '; ')
