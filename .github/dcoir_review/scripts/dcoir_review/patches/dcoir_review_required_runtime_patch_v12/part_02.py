@@ -203,8 +203,8 @@ def _is_python_test_file(path: str) -> bool:
     return (
         name.startswith("test_")
         or name.endswith("_test.py")
-        or "/tests/" in normalized
         or "/test/" in normalized
+        or "/tests/" in normalized
     )
 
 
