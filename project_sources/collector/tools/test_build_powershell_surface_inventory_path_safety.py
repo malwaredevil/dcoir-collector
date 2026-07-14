@@ -176,10 +176,9 @@ class PowerShellSurfaceInventoryPathSafetyTests(unittest.TestCase):
         )
 
     def test_harness_source_part_directory_symlink_is_not_globbed(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
+        with tempfile.TemporaryDirectory() as temp, tempfile.TemporaryDirectory() as outside_temp:
             root = Path(temp).resolve()
-            outside = root.parent / "outside_harness_parts"
-            outside.mkdir(parents=True, exist_ok=True)
+            outside = Path(outside_temp).resolve()
             (outside / "run_DCOIR_Tests.part-000.ps1").write_text('Write-Output "outside"\n', encoding="utf-8")
             harness_root = root / inventory.HARNESS_PARTS_ROOT
             harness_root.parent.mkdir(parents=True, exist_ok=True)
