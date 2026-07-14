@@ -32,7 +32,7 @@ class PowerShellAssemblyParityTestCase(unittest.TestCase):
         root = Path(temp.name)
         wrapper = "project_sources/collector/source/DCOIR_Collector.ps1"
         collector_part = "project_sources/collector/source/parts/DCOIR_Collector.01_Core.ps1"
-        harness_part = "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt"
+        harness_part = "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1"
         write(
             root / wrapper,
             textwrap.dedent(

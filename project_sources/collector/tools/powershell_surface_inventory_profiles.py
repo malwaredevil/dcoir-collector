@@ -108,7 +108,7 @@ def harness_source_part_paths(repo_root: Path) -> list[str]:
     if not path_is_dir_inside_repo(root, repo_root):
         return []
     paths: list[str] = []
-    for path in root.glob("*.ps1.txt"):
+    for path in root.glob("*.ps1"):
         if not path_resolves_inside_repo(path, repo_root):
             continue
         if not path.is_file():
@@ -231,7 +231,7 @@ def read_required_profile_harness_paths(repo_root: Path) -> tuple[list[str], str
     expected: set[str] = set()
     for paths in profiles.values():
         for candidate in paths:
-            if has_prefix(candidate, HARNESS_PARTS_ROOT.as_posix()) and candidate.endswith(".ps1.txt"):
+            if has_prefix(candidate, HARNESS_PARTS_ROOT.as_posix()) and candidate.endswith(".ps1"):
                 expected.add(candidate)
     return sorted(expected), None
 

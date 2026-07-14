@@ -105,7 +105,7 @@ def harness_part_paths(repo_root: Path, errors: list[str] | None = None) -> list
     if not root.is_dir():
         return []
     paths: list[Path] = []
-    for path in sorted(root.glob("run_DCOIR_Tests.part-*.ps1.txt")):
+    for path in sorted(root.glob("run_DCOIR_Tests.part-*.ps1")):
         if not path_resolves_inside_repo(path, repo_root):
             if errors is not None:
                 errors.append(f"{safe_relpath(path, repo_root)}: harness source part must resolve inside the repository root")

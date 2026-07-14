@@ -20,7 +20,7 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 249,
+    "total_surfaces": 250,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
@@ -30,7 +30,7 @@
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
       "generated_or_assembled_output": 1,
-      "github_workflow_support_script": 23,
+      "github_workflow_support_script": 24,
       "invalid_workflow_surface": 0,
       "missing_authoritative_surface": 0,
       "missing_changed_powershell_surface": 0,
@@ -42,8 +42,8 @@
       "workflow_embedded_powershell": 28
     },
     "by_source_type": {
-      ".ps1": 185,
-      ".ps1.txt": 17,
+      ".ps1": 203,
+      ".ps1.txt": 0,
       ".ps1xml": 0,
       ".psd1": 9,
       ".psm1": 10,
@@ -55,15 +55,15 @@
       "source_part": 17,
       "staging": 66,
       "superseded_pointer": 1,
-      "tooling": 66,
+      "tooling": 67,
       "workflow_embedded": 28
     },
     "by_inclusion_decision": {
       "exclude": 66,
-      "include": 131,
+      "include": 132,
       "reference": 52
     },
-    "embedded_snippet_count": 85
+    "embedded_snippet_count": 86
   },
   "controls": {
     "collector_manifest": {
@@ -439,119 +439,119 @@
       "required_profile_present_count": 17,
       "required_profile_parts": [
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8346
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8476
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8411
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8411
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 7589
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 4200
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 6161
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 12011
+          "size_bytes": 14865
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8335
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 15243
+          "size_bytes": 15988
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 15355
+          "size_bytes": 15959
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 9256
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 11687
+          "size_bytes": 18197
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 3217
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 11129
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
           "size_bytes": 12538
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1",
           "exists": true,
           "in_inventory": true,
           "category": "collector_harness_source_part",
@@ -560,103 +560,103 @@
       ],
       "parts": [
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8346
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8476
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8411
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8411
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 7589
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 4200
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 6161
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 12011
+          "size_bytes": 14865
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 8335
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 15243
+          "size_bytes": 15988
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 15355
+          "size_bytes": 15959
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 9256
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
-          "size_bytes": 11687
+          "size_bytes": 18197
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 3217
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 11129
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 12538
         },
         {
-          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+          "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1",
           "exists": true,
           "category": "collector_harness_source_part",
           "size_bytes": 1858
@@ -2077,6 +2077,20 @@
       "sha256": "59a90f8733aa037a8fff030bf146077cf0cfb0ce13d26eafd9d75fb8bcbaf767"
     },
     {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 7074,
+      "line_count": 198,
+      "sha256": "c9d9cce01055947ab17ab0f291ba513831023852b441016f472d7eaa3d6ebbc9"
+    },
+    {
       "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
       "category": "github_workflow_support_script",
       "source_type": ".ps1",
@@ -2660,9 +2674,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 2284,
+      "size_bytes": 2280,
       "line_count": 41,
-      "sha256": "109787b7a153768a8e15e63aef188ddde3edb959aeb44c2770805c345bd31e0a"
+      "sha256": "fd71b4c4294012838250d7724376b3ab88380fdcf84ba8bfeb9c13ebbeeb44fd"
     },
     {
       "path": ".github/pester/CollectorParserAndPublicContract.Tests.ps1",
@@ -3209,18 +3223,19 @@
       "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
       "exists": true,
       "marker_lines": [
-        135,
-        154,
-        216,
-        245
+        176,
+        195,
+        272,
+        294,
+        318
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Check for packaging residue",
           "shell": "pwsh",
-          "line_start": 135,
-          "line_end": 148,
+          "line_start": 176,
+          "line_end": 189,
           "command_sha256": "99e9dc9d6747bbd2ad956be6af9d223cdd36eda4370d481d264c66b4d99dfede",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$residue = Get-ChildItem -Path . -Recurse -Force -File |\n  Where-Object {\n    $_.FullName.Contains('\\__pycache__\\') -or\n    $_.Extension -eq '.pyc' -or\n    $_.Name -eq '.DS_Store'\n  }\nif ($residue) {\n  $resid"
         },
@@ -3228,8 +3243,8 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Run documentation validator self-tests",
           "shell": "pwsh",
-          "line_start": 154,
-          "line_end": 160,
+          "line_start": 195,
+          "line_end": 201,
           "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
           "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
         },
@@ -3237,24 +3252,33 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Run selected collector harness suite",
           "shell": "pwsh",
-          "line_start": 216,
-          "line_end": 227,
-          "command_sha256": "f3a0e08e6321b16d5fee424a5bfa87a8a100660cb7110830d8f6d2cd11af3741",
-          "command_preview": "$suite = $env:SELECTED_HARNESS_SUITE\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite $suite -MasterZipPath $env:HARNESS_RUNTIME_ZIP "
+          "line_start": 272,
+          "line_end": 285,
+          "command_sha256": "d9404111e33057f010979c4932939ab3cf1bbac3eddf03100b9ea1303bf13072",
+          "command_preview": "$suite = $env:SELECTED_HARNESS_SUITE\n$harnessOutputRoot = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $env:HARNESS_OUTPUT_ROOT))\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests."
+        },
+        {
+          "source_file": ".github/workflows/reusable-collector-validation.yml",
+          "step_or_action": "Enforce FullRegression mission-readiness gate",
+          "shell": "pwsh",
+          "line_start": 294,
+          "line_end": 306,
+          "command_sha256": "f3d075c457af4bbe053a8d46cbc7647739ab7e209c78be3f16f8d3ea08024b25",
+          "command_preview": ".\\.github\\dcoir_review\\scripts\\test-collector-fullregression-mission-readiness.ps1 `\n  -HarnessOutputRoot $env:HARNESS_OUTPUT_ROOT `\n  -SelectedSuite $env:SELECTED_HARNESS_SUITE `\n  -JsonOutputPath $env:MISSION_READINESS_JSON_OUTPUT `\n  -Ma"
         },
         {
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 245,
-          "line_end": 273,
-          "command_sha256": "bfaf4c0f6fa244b627815c1adc2d30e4887c405625e20c18795bc97a83f520aa",
+          "line_start": 318,
+          "line_end": 356,
+          "command_sha256": "a2e83b2ad555fa6807e038b04b82100c941b11194e5a3674eeea3b973904ea68",
           "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## $env:REPORT_TITLE\n\n- workflow: $env:WORKFLOW_NAME\n- validation_scope: $env:REPORT_SCOPE\n- workflow_run_id: $env:GITHU"
         }
       ],
-      "size_bytes": 10100,
-      "line_count": 281,
-      "sha256": "931dd3f9116eceba2626835e576eb261f161879112ae6ee6adad68286fc4385f"
+      "size_bytes": 13628,
+      "line_count": 364,
+      "sha256": "b49288673951750d454c1a8068906cf79c706b21fb71b2426bfd23a1a34c0a66"
     },
     {
       "path": ".github/workflows/reusable-gemini-bundle-build.yml",
@@ -4114,9 +4138,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 4229,
+      "size_bytes": 4225,
       "line_count": 92,
-      "sha256": "8878463408d83f186d98d7d2e945cc50cbfd9dc0196859f98232bbfb6144b52e"
+      "sha256": "45f78bab4ad97f72f867ec69630bf1b94e5968901c520e0365ab690d03931e91"
     },
     {
       "path": "project_sources/collector/harness/run_DCOIR_DefaultNoFlags_Regression.ps1",
@@ -4142,14 +4166,14 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 1313,
+      "size_bytes": 1309,
       "line_count": 47,
-      "sha256": "e487b00ef35ecee48ba2d0f037b5cad9845031c2c6852dba3a12f35586aa778b"
+      "sha256": "85fb46d898133732edf51d11ec9955ca5e691c4ff9ff07db86be613f6f56fd23"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4161,9 +4185,9 @@
       "sha256": "1cd80d04942d68a25881f63bf1315183c9888eef776cf028ccd3faa290c102c8"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4175,9 +4199,9 @@
       "sha256": "7d59e9f9198281251cbe88eeeae72d9f7ef430ee7f5c9f0066d00aa18b5bf005"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4189,9 +4213,9 @@
       "sha256": "febc37b9bb02366d77e872ee0ded0fe78e14f97423573af94952b3819676a1cf"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4203,9 +4227,9 @@
       "sha256": "c1f5cbd01696032bd15cb2cd8de34bfdca4ae6336e17571625f27c690c988f5a"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4217,9 +4241,9 @@
       "sha256": "035aa2089a21cea1877b4f914c169ebc47253474981804b397fc15ccde7d7e71"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4231,9 +4255,9 @@
       "sha256": "2ee5631aec5d21230e2ee7ff933918b4e3ba6992a2532e64b890bc07448c8791"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4245,23 +4269,23 @@
       "sha256": "8e30273b62b0a01b4fa50159c7eccb3581e96d969a749eb0f3c9c95f5aa365cc"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 12011,
-      "line_count": 271,
-      "sha256": "76a43e56d9625f5e5c1a4d97eb80c5d57f0eea22ab8271e0faa6b1c023148186"
+      "size_bytes": 14865,
+      "line_count": 329,
+      "sha256": "44f1fefd10a28274afbe8fb9eb5202cdcc95f14767409fe86d633d34fd7b8440"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4273,37 +4297,37 @@
       "sha256": "d112bb6282a049d5c045757663ba1a66d4c0db24bf7473a7466056cbff4be71c"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 15243,
-      "line_count": 330,
-      "sha256": "4ddeb1be952c50cafa159a63a31d63036e9039a943a51d78b1070ca04096e583"
+      "size_bytes": 15988,
+      "line_count": 336,
+      "sha256": "0cb573e236eb7975ee0b9a125ab64f5086420bfbcb546ef64087596fe21bfd48"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 15355,
+      "size_bytes": 15959,
       "line_count": 25,
-      "sha256": "13402a2cb74878e1a222650fc4c94ca284c3220f05c5afb053ed2e582f4c2a55"
+      "sha256": "c082da5e61de4b0d2999d80423ece1132d51bbdf276ff9c8296bfd2d27483890"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4315,23 +4339,23 @@
       "sha256": "c7bc5432f648ce94af48bee661f7998d751f23dfc56c4026de7623b67445bff8"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 11687,
-      "line_count": 147,
-      "sha256": "5a117de941f2f39072081deba7ccd43a93914db04d00e7484dad38aff2e6ca9f"
+      "size_bytes": 18197,
+      "line_count": 177,
+      "sha256": "700af5926e28d4b9d9b3006e2b5c45434096c785dfde8beb69b879cc1f56f9ff"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4343,9 +4367,9 @@
       "sha256": "4b8bd368c8638e66b82177628f6f6aa9a737ae6e07e30c793cc78eb27c524dc0"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4357,9 +4381,9 @@
       "sha256": "e40c133ed86a5becf4837635a87e053e4df64cf6ce20b54b07b4067c77b20b0e"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",
@@ -4371,9 +4395,9 @@
       "sha256": "7489ae8ae0771592748cd9cd8c2476ae9731533315b1abafe25db93c407255bb"
     },
     {
-      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1",
       "category": "collector_harness_source_part",
-      "source_type": ".ps1.txt",
+      "source_type": ".ps1",
       "status": "source_part",
       "inclusion_decision": "include",
       "decision_reason": "Collector harness source part is primary maintained PowerShell source.",

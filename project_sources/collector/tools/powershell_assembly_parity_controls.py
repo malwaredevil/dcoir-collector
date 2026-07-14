@@ -105,7 +105,7 @@ def coverage_statement() -> list[dict[str, str]]:
         },
         {
             "surface": "harness source parts and generated harness",
-            "psscriptanalyzer_wrapper_reporting": "source-part paths when #262 analyzer targets .ps1.txt surfaces; generated output when materialized and explicitly targeted",
+            "psscriptanalyzer_wrapper_reporting": "source-part paths when #262 analyzer targets .ps1 surfaces; generated output when materialized and explicitly targeted",
             "dcoir_custom_checks_reporting": "source-part drift risks through #264 fixtures plus #265 parity proof",
             "assembly_parity_reporting": "ordered source input map, generated harness hash, optional checked-in comparison, parse status, and line map",
         },

@@ -49,8 +49,8 @@ class ManifestAndProfileTests(InventoryTestCase):
                 root / ".github/github_actions/workflow_required_surface_profiles.json",
                 '{\n'
                 '  "validate_on_pr": [\n'
-                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",\n'
-                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt"\n'
+                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",\n'
+                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1"\n'
                 "  ]\n"
                 "}\n",
             )
@@ -66,14 +66,14 @@ class ManifestAndProfileTests(InventoryTestCase):
                 root / rel,
                 '{\n'
                 '  "validate_on_pr": [\n'
-                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt"\n'
+                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1"\n'
                 "  ]\n"
                 "}\n",
             )
             result = inventory.build_inventory(root, changed_files=[rel])
         self.assertTrue(result["validation"]["success"], result["validation"]["errors"])
         self.assertEqual(result["summary"]["by_category"]["collector_harness_source_part"], 1)
-        self.assertIn("project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt", result["changed_file_dependency_expansion"]["expanded_paths"])
+        self.assertIn("project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1", result["changed_file_dependency_expansion"]["expanded_paths"])
 
     def test_deleted_required_surface_profile_change_fails(self) -> None:
         with self.make_minimal_repo() as temp:
@@ -108,11 +108,11 @@ class ManifestAndProfileTests(InventoryTestCase):
                 root / ".github/github_actions/workflow_required_surface_profiles.json",
                 '{\n'
                 '  "validate_on_pr": [\n'
-                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt"\n'
+                '    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1"\n'
                 "  ]\n"
                 "}\n",
             )
-            rel = "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt"
+            rel = "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1"
             write(root / rel)
             result = inventory.build_inventory(root, changed_files=[rel])
         self.assertFalse(result["validation"]["success"])
