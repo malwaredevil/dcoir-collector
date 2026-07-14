@@ -315,11 +315,37 @@ def test_python_path_write_sentinel_insertion() -> None:
     ]
 
 
+def test_python_path_write_sentinel_skips_test_files() -> None:
+    v12 = _load_v12()
+
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    test_path = "project_sources/collector/tools/test_safe_file_write.py"
+    diff = "\n".join(
+        [
+            "diff --git a/x.py b/x.py",
+            f"+++ b/{test_path}",
+            "@@ -31,0 +34,1 @@",
+            '+    Path(output_path).open(mode="w+b").write(payload.encode())',
+        ]
+    )
+    owner = Owner()
+    v12._patch_python_extra_sentinels(owner)
+    found = owner.detect_risk_sentinels(diff)
+    assert found == []
+
+
 def main() -> None:
     test_backfill_and_ledger()
     test_validation_delegation_after_core_patch()
     test_env_token_canonicalization_is_not_file_wide()
     test_python_path_write_sentinel_insertion()
+    test_python_path_write_sentinel_skips_test_files()
     print("dcoir_review_required_runtime_patch_v12_selftest passed")
 
 

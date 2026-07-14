@@ -197,6 +197,17 @@ def _patch_required_selection(module: Any, hardened: Any) -> None:
     )[: max(0, int(getattr(config, "max_inline_comments", 12)))]
 
 
+def _is_python_test_file(path: str) -> bool:
+    normalized = str(path or "").replace("\\", "/").lower()
+    name = normalized.rsplit("/", 1)[-1]
+    return (
+        name.startswith("test_")
+        or name.endswith("_test.py")
+        or "/tests/" in normalized
+        or "/test/" in normalized
+    )
+
+
 def _patch_python_extra_sentinels(owner: Any, sentinel_owner: Any | None = None) -> None:
     original = getattr(owner, "_dcoir_required_v12_original_detect_risk_sentinels", None)
     if original is None:
@@ -229,6 +240,8 @@ def _patch_python_extra_sentinels(owner: Any, sentinel_owner: Any | None = None)
                 continue
             kind = v11._line_kind(path, text)
             if kind not in {v11.PYTHON_ARCHIVE_EXTRACT, v11.PYTHON_PATH_WRITE}:
+                continue
+            if kind == v11.PYTHON_PATH_WRITE and _is_python_test_file(path):
                 continue
             key = (path, line, kind)
             if key in existing:
