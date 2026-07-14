@@ -87,6 +87,14 @@ on:
         required: false
         default: false
         type: boolean
+      run_collector_runtime_package_validation:
+        required: false
+        default: false
+        type: boolean
+      collector_runtime_package_validation_output_dir:
+        required: false
+        default: 'project_sources/validation/out_collector_runtime_package_validation'
+        type: string
       build_runtime_for_harness:
         required: false
         default: false
@@ -98,6 +106,39 @@ on:
       harness_suite:
         required: false
         default: Core
+        type: string
+      harness_output_root:
+        description: Output root passed to the collector harness.
+        required: false
+        default: '.\TestResults'
+        type: string
+      run_dcoir_pester:
+        required: false
+        default: false
+        type: boolean
+      dcoir_pester_version:
+        required: false
+        default: '5.7.1'
+        type: string
+      dcoir_pester_result_path:
+        required: false
+        default: 'project_sources/TestResults/pester-collector-validation.xml'
+        type: string
+      dcoir_pester_minimum_test_count:
+        required: false
+        default: '45'
+        type: string
+      enforce_fullregression_mission_readiness:
+        required: false
+        default: false
+        type: boolean
+      mission_readiness_json_output:
+        required: false
+        default: ''
+        type: string
+      mission_readiness_markdown_output:
+        required: false
+        default: ''
         type: string
 
     outputs: {}
@@ -180,6 +221,15 @@ jobs:
           require-files: "true"
           use-windows-powershell: "true"
 
+      - name: Run DCOIR Collector Pester tests
+        if: ${{ inputs.run_dcoir_pester }}
+        id: pester
+        uses: ./.github/actions/run-dcoir-pester
+        with:
+          pester-version: ${{ inputs.dcoir_pester_version }}
+          result-path: ${{ inputs.dcoir_pester_result_path }}
+          minimum-test-count: ${{ inputs.dcoir_pester_minimum_test_count }}
+
       - name: Run validate_DCOIR_Run fixture tests
         if: ${{ inputs.run_validate_dcoir_fixtures }}
         uses: ./.github/actions/run-validate-dcoir-fixtures
@@ -205,6 +255,12 @@ jobs:
         with:
           output-dir: project_sources/validation/out_${{ inputs.validation_prefix }}_collector
 
+      - name: Run collector runtime package validation
+        if: ${{ inputs.run_collector_runtime_package_validation }}
+        uses: ./.github/actions/run-collector-runtime-package-validation
+        with:
+          output-dir: ${{ inputs.collector_runtime_package_validation_output_dir }}
+
       - name: Build fresh collector runtime zip for harness
         if: ${{ inputs.build_runtime_for_harness }}
         uses: ./.github/actions/build-collector-runtime-for-harness
@@ -218,9 +274,11 @@ jobs:
         working-directory: project_sources
         env:
           SELECTED_HARNESS_SUITE: ${{ inputs.harness_suite }}
+          HARNESS_OUTPUT_ROOT: ${{ inputs.harness_output_root }}
         run: |
           $suite = $env:SELECTED_HARNESS_SUITE
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collector\harness\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite $suite -MasterZipPath $env:HARNESS_RUNTIME_ZIP -CollectorStepTimeoutSeconds 600
+          $harnessOutputRoot = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $env:HARNESS_OUTPUT_ROOT))
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collector\harness\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite $suite -OutputRoot $harnessOutputRoot -MasterZipPath $env:HARNESS_RUNTIME_ZIP -CollectorStepTimeoutSeconds 600
           if ($LASTEXITCODE -ne 0) {
             throw "Collector harness suite failed: $suite"
           }
@@ -230,6 +288,21 @@ jobs:
         uses: ./.github/actions/smoke-build-gemini-bundle
         with:
           output-dir: project_sources/validation/out_${{ inputs.validation_prefix }}_gemini
+
+      - name: Enforce FullRegression mission-readiness gate
+        if: ${{ inputs.enforce_fullregression_mission_readiness }}
+        shell: pwsh
+        env:
+          SELECTED_HARNESS_SUITE: ${{ inputs.harness_suite }}
+          HARNESS_OUTPUT_ROOT: ${{ inputs.harness_output_root }}
+          MISSION_READINESS_JSON_OUTPUT: ${{ inputs.mission_readiness_json_output }}
+          MISSION_READINESS_MARKDOWN_OUTPUT: ${{ inputs.mission_readiness_markdown_output }}
+        run: |
+          .\.github\dcoir_review\scripts\test-collector-fullregression-mission-readiness.ps1 `
+            -HarnessOutputRoot $env:HARNESS_OUTPUT_ROOT `
+            -SelectedSuite $env:SELECTED_HARNESS_SUITE `
+            -JsonOutputPath $env:MISSION_READINESS_JSON_OUTPUT `
+            -MarkdownOutputPath $env:MISSION_READINESS_MARKDOWN_OUTPUT
 
       - name: Upload validation artifacts
         if: always()
@@ -251,6 +324,11 @@ jobs:
           REPORT_NOTE: ${{ inputs.report_note }}
           REPORT_CLAIM: ${{ inputs.report_claim }}
           SELECTED_HARNESS_SUITE: ${{ inputs.harness_suite }}
+          PESTER_VERSION: ${{ steps.pester.outputs.pester_version }}
+          PESTER_TOTAL: ${{ steps.pester.outputs.total_count }}
+          PESTER_PASSED: ${{ steps.pester.outputs.passed_count }}
+          PESTER_FAILED: ${{ steps.pester.outputs.failed_count }}
+          PESTER_SKIPPED: ${{ steps.pester.outputs.skipped_count }}
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
@@ -267,6 +345,11 @@ jobs:
           - selected_harness_suite: $env:SELECTED_HARNESS_SUITE
           - primary_artifact: $env:PRIMARY_ARTIFACT
           - artifact_note: $env:REPORT_NOTE
+          - pester_version: $env:PESTER_VERSION
+          - pester_total: $env:PESTER_TOTAL
+          - pester_passed: $env:PESTER_PASSED
+          - pester_failed: $env:PESTER_FAILED
+          - pester_skipped: $env:PESTER_SKIPPED
 
           $env:REPORT_CLAIM
           "@ | Set-Content -Path chatgpt_workflow_report_section/chatgpt_workflow_report_section.md -Encoding utf8
