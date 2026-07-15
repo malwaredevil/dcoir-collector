@@ -143,7 +143,7 @@ class PowerShellAssemblyParityPathSafetyTests(PowerShellAssemblyParityTestCase):
         with self.make_repo() as temp:
             root = Path(temp).resolve()
             outside = root.parent / "outside_harness_parts"
-            write(outside / "run_DCOIR_Tests.part-000.ps1.txt", 'function Invoke-OutsideHarnessRoot { Write-Output "outside" }\n')
+            write(outside / "run_DCOIR_Tests.part-000.ps1", 'function Invoke-OutsideHarnessRoot { Write-Output "outside" }\n')
             harness_root = root / parity.HARNESS_PARTS_ROOT
             try:
                 shutil.rmtree(harness_root)
@@ -166,9 +166,9 @@ class PowerShellAssemblyParityPathSafetyTests(PowerShellAssemblyParityTestCase):
     def test_symlinked_harness_part_fails_before_part_entry_or_read(self) -> None:
         with self.make_repo() as temp:
             root = Path(temp).resolve()
-            outside = root.parent / "outside_harness_part.ps1.txt"
+            outside = root.parent / "outside_harness_part.ps1"
             write(outside, 'function Invoke-OutsideHarness { Write-Output "outside" }\n')
-            harness_link = root / "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt"
+            harness_link = root / "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1"
             try:
                 harness_link.unlink()
                 harness_link.symlink_to(outside)

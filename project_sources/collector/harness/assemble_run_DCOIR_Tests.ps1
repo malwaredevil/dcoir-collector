@@ -38,7 +38,7 @@ if (-not (Test-Path -LiteralPath $PartsDirectory)) {
   throw "Harness parts directory not found: $PartsDirectory"
 }
 
-$parts = @(Get-ChildItem -LiteralPath $PartsDirectory -File -Filter 'run_DCOIR_Tests.part-*.ps1.txt' | Sort-Object Name)
+$parts = @(Get-ChildItem -LiteralPath $PartsDirectory -File -Filter 'run_DCOIR_Tests.part-*.ps1' | Sort-Object Name)
 if (@($parts).Count -eq 0) {
   throw "No harness parts found under: $PartsDirectory"
 }

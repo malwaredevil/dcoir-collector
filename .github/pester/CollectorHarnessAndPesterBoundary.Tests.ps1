@@ -10,7 +10,7 @@ Describe 'DCOIR collector harness and Pester boundary evidence contract' {
     Test-Path -LiteralPath $script:Layout.CollectorHarness | Should -BeTrue
     Test-Path -LiteralPath $script:Layout.HarnessAssembler | Should -BeTrue
     Test-Path -LiteralPath $script:Layout.HarnessPartsDirectory | Should -BeTrue
-    @(Get-ChildItem -LiteralPath $script:Layout.HarnessPartsDirectory -File -Filter 'run_DCOIR_Tests.part-*.ps1.txt').Count | Should -BeGreaterThan 0
+    @(Get-ChildItem -LiteralPath $script:Layout.HarnessPartsDirectory -File -Filter 'run_DCOIR_Tests.part-*.ps1').Count | Should -BeGreaterThan 0
   }
 
   It 'parses the checked-in harness and harness assembler without parser errors' {

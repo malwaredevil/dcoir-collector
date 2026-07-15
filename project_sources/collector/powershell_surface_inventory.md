@@ -21,7 +21,7 @@
 | `collector_validation_tooling` | 2 |
 | `fixture_or_example` | 23 |
 | `generated_or_assembled_output` | 1 |
-| `github_workflow_support_script` | 23 |
+| `github_workflow_support_script` | 24 |
 | `invalid_workflow_surface` | 0 |
 | `missing_authoritative_surface` | 0 |
 | `missing_changed_powershell_surface` | 0 |
@@ -36,8 +36,8 @@
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 185 |
-| `.ps1.txt` | 17 |
+| `.ps1` | 203 |
+| `.ps1.txt` | 0 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
 | `.psm1` | 10 |
@@ -48,7 +48,7 @@
 | Decision | Count |
 | --- | ---: |
 | `exclude` | 66 |
-| `include` | 131 |
+| `include` | 132 |
 | `reference` | 52 |
 
 ## Control Totals
@@ -58,7 +58,7 @@
 - Harness source parts: `17`
 - Profile-required harness source parts: `17`
 - Profile-required harness source parts present: `17`
-- Embedded workflow/action snippets: `85`
+- Embedded workflow/action snippets: `86`
 
 ## Reference And Excluded Surfaces
 

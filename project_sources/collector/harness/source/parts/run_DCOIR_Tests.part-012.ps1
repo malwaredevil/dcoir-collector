@@ -110,14 +110,44 @@ function Run-TargetedCollectionSuite {
   $collect = Invoke-CollectorStep -StepName "61_CollectTargetedPopup" -CollectorArgs @("-Quick","collect-targeted-popup","-Target","User reported popup around 2026-04-08T09:00Z","-WindowStart","2026-04-08T08:45:00Z","-WindowEnd","2026-04-08T09:15:00Z")
   Assert-CollectorStepSucceeded -StepName "61_CollectTargetedPopup" -CollectorStep $collect
   if ($collect.AttachmentBudgetManifestPath) { Invoke-AttachmentBudgetVerification -StepName "ZZ_AttachmentBudget_TargetedCollect" -ManifestPath $collect.AttachmentBudgetManifestPath }
-  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedCollectionValidation" -CollectStep $collect -ExpectedExplicitEventWindow $true -ExpectedWindowStart "2026-04-08T08:45:00Z" -ExpectedWindowEnd "2026-04-08T09:15:00Z"
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedCollectionValidation" -CollectStep $collect -ExpectedExplicitEventWindow $true -ExpectedWindowStart "2026-04-08T08:45:00Z" -ExpectedWindowEnd "2026-04-08T09:15:00Z" -ExpectedTargetProfile "PopupWindow" -ExpectedUserReport "User reported popup around 2026-04-08T09:00Z" -ExpectedPlanMarkers @("Security high-signal events around the reported time window.","PowerShell operational events and scheduled task activity.")
   if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "62_Cleanup" -CollectorArgs @("-Quick","cleanup")) }
 
   Restore-WorkingZip -Reason "TargetedCollection_NeutralWindow"
   $neutral = Invoke-CollectorStep -StepName "63_CollectTargetedNeutralWindow" -CollectorArgs @("-Targeted","-TargetProfile","PopupWindow","-WindowStart","2026-04-08T08:45:00Z","-WindowEnd","2026-04-08T09:15:00Z","-UserReport","User reported popup around 2026-04-08T09:00Z")
   Assert-CollectorStepSucceeded -StepName "63_CollectTargetedNeutralWindow" -CollectorStep $neutral
-  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedNeutralWindowValidation" -CollectStep $neutral -ExpectedExplicitEventWindow $true -ExpectedWindowStart "2026-04-08T08:45:00Z" -ExpectedWindowEnd "2026-04-08T09:15:00Z"
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedNeutralWindowValidation" -CollectStep $neutral -ExpectedExplicitEventWindow $true -ExpectedWindowStart "2026-04-08T08:45:00Z" -ExpectedWindowEnd "2026-04-08T09:15:00Z" -ExpectedTargetProfile "PopupWindow" -ExpectedUserReport "User reported popup around 2026-04-08T09:00Z" -ExpectedPlanMarkers @("likely GUI-launching processes","scheduled task activity")
   if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "64_CleanupNeutralWindow" -CollectorArgs @("-Quick","cleanup")) }
+
+  Restore-WorkingZip -Reason "TargetedCollection_GenericProfile"
+  $generic = Invoke-CollectorStep -StepName "65_CollectTargetedGenericProfile" -CollectorArgs @("-Targeted","-TargetProfile","Generic","-UserReport","Generic narrow follow-up for a suspicious file path","-FocusPath","C:\Users\Public\generic-target.ps1","-IncludeArtifactCategory","process_inventory,structured_net")
+  Assert-CollectorStepSucceeded -StepName "65_CollectTargetedGenericProfile" -CollectorStep $generic
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedGenericProfileValidation" -CollectStep $generic -ExpectedTargetProfile "Generic" -ExpectedFocusPath "C:\Users\Public\generic-target.ps1" -ExpectedUserReport "Generic narrow follow-up for a suspicious file path" -ExpectedIncludedArtifactCategories @("process_inventory","structured_net") -ExpectedPlanMarkers @("Avoid defaulting to oversized merged review artifacts when smaller decisive artifacts are sufficient.","No explicit start-end time window was supplied.")
+  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "66_CleanupGenericProfile" -CollectorArgs @("-Quick","cleanup")) }
+
+  Restore-WorkingZip -Reason "TargetedCollection_ScriptExecutionProfile"
+  $scriptExecution = Invoke-CollectorStep -StepName "67_CollectTargetedScriptExecutionProfile" -CollectorArgs @("-Targeted","-TargetProfile","ScriptExecution","-UserReport","Suspicious PowerShell execution from a writable path","-FocusProcess","powershell.exe","-FocusPath","C:\Users\Public\payload.ps1","-IncludeArtifactCategory","powershell_operational,security_filtered")
+  Assert-CollectorStepSucceeded -StepName "67_CollectTargetedScriptExecutionProfile" -CollectorStep $scriptExecution
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedScriptExecutionProfileValidation" -CollectStep $scriptExecution -ExpectedTargetProfile "ScriptExecution" -ExpectedFocusProcess "powershell.exe" -ExpectedFocusPath "C:\Users\Public\payload.ps1" -ExpectedUserReport "Suspicious PowerShell execution from a writable path" -ExpectedIncludedArtifactCategories @("powershell_operational","security_filtered") -ExpectedPlanMarkers @("PowerShell operational events and Security 4688 process creation records.","Strings, streams, or signature enrichment on the focal script or binary path.")
+  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "68_CleanupScriptExecutionProfile" -CollectorArgs @("-Quick","cleanup")) }
+
+  Restore-WorkingZip -Reason "TargetedCollection_PersistenceProfile"
+  $persistence = Invoke-CollectorStep -StepName "69_CollectTargetedPersistenceProfile" -CollectorArgs @("-Targeted","-TargetProfile","PersistenceFollowUp","-UserReport","Follow a persistence lead tied to a suspicious service","-FocusPath","C:\ProgramData\Acme\svc.exe","-IncludeArtifactCategory","scheduled_tasks,services")
+  Assert-CollectorStepSucceeded -StepName "69_CollectTargetedPersistenceProfile" -CollectorStep $persistence
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedPersistenceProfileValidation" -CollectStep $persistence -ExpectedTargetProfile "PersistenceFollowUp" -ExpectedFocusPath "C:\ProgramData\Acme\svc.exe" -ExpectedUserReport "Follow a persistence lead tied to a suspicious service" -ExpectedIncludedArtifactCategories @("scheduled_tasks","services") -ExpectedPlanMarkers @("Services, scheduled tasks, Run keys, and autoruns.","Registry, service ACL, and task XML follow-up actions.")
+  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "70_CleanupPersistenceProfile" -CollectorArgs @("-Quick","cleanup")) }
+
+  Restore-WorkingZip -Reason "TargetedCollection_NetworkOnlyProfile"
+  $networkOnly = Invoke-CollectorStep -StepName "71_CollectTargetedNetworkOnlyProfile" -CollectorArgs @("-Targeted","-TargetProfile","NetworkOnly","-Hours","6","-FocusIndicator","198.51.100.25","-FocusIndicatorType","ip","-UserReport","Investigate a suspicious outbound connection","-IncludeArtifactCategory","structured_net,netstat_pid_only")
+  Assert-CollectorStepSucceeded -StepName "71_CollectTargetedNetworkOnlyProfile" -CollectorStep $networkOnly
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedNetworkOnlyProfileValidation" -CollectStep $networkOnly -ExpectedTargetProfile "NetworkOnly" -ExpectedFocusIndicator "198.51.100.25" -ExpectedFocusIndicatorType "ip" -ExpectedUserReport "Investigate a suspicious outbound connection" -ExpectedIncludedArtifactCategories @("structured_net","netstat_pid_only") -ExpectedPlanMarkers @("Structured network state, netstat, tcpvcon, dns cache, route, and arp.","Follow-up TCP refresh enrichment.")
+  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "72_CleanupNetworkOnlyProfile" -CollectorArgs @("-Quick","cleanup")) }
+
+  Restore-WorkingZip -Reason "TargetedCollection_ProcessPowerShellProfile"
+  $processPowerShell = Invoke-CollectorStep -StepName "73_CollectTargetedProcessPowerShellProfile" -CollectorArgs @("-Targeted","-TargetProfile","ProcessAndPowerShell","-UserReport","Investigate suspicious PowerShell launched from a process tree","-FocusProcess","pwsh.exe","-FocusPath","C:\Users\Public\ps-runner.ps1","-IncludeArtifactCategory","process_inventory,powershell_operational")
+  Assert-CollectorStepSucceeded -StepName "73_CollectTargetedProcessPowerShellProfile" -CollectorStep $processPowerShell
+  Invoke-TargetedCollectionVerification -StepName "ZZ_TargetedProcessPowerShellProfileValidation" -CollectStep $processPowerShell -ExpectedTargetProfile "ProcessAndPowerShell" -ExpectedFocusProcess "pwsh.exe" -ExpectedFocusPath "C:\Users\Public\ps-runner.ps1" -ExpectedUserReport "Investigate suspicious PowerShell launched from a process tree" -ExpectedIncludedArtifactCategories @("process_inventory","powershell_operational") -ExpectedPlanMarkers @("Process inventory, pslist, Security 4688, and PowerShell operational records.","Repeatable enrichment of process-centric context in one bounded session.")
+  if (-not $SkipCleanup) { [void](Invoke-CollectorStep -StepName "74_CleanupProcessPowerShellProfile" -CollectorArgs @("-Quick","cleanup")) }
 }
 
 <#

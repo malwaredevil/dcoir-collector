@@ -39,7 +39,60 @@ function Get-TrackedPowerShellFiles {
         ForEach-Object { $_.FullName })
 }
 
+function Get-HarnessSourcePartRoot {
+    $partsRoot = Join-Path (Get-Location).Path 'project_sources/collector/harness/source/parts'
+    if (-not (Test-Path -LiteralPath $partsRoot -PathType Container)) {
+        return $null
+    }
+
+    return [System.IO.Path]::GetFullPath($partsRoot).TrimEnd([char]'\', [char]'/') + [System.IO.Path]::DirectorySeparatorChar
+}
+
+function Get-AssembledHarnessValidationPath {
+    $assemblerPath = Join-Path (Get-Location).Path 'project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1'
+    if (-not (Test-Path -LiteralPath $assemblerPath -PathType Leaf)) {
+        throw "Harness assembler not found: $assemblerPath"
+    }
+
+    $tempRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
+        [System.IO.Path]::GetTempPath()
+    } else {
+        $env:RUNNER_TEMP
+    }
+
+    $outputPath = Join-Path $tempRoot 'run_DCOIR_Tests.generated.validation.ps1'
+    & $assemblerPath -OutputPath $outputPath
+    if ($LASTEXITCODE -ne 0) {
+        throw 'Collector harness assembly failed during parser validation.'
+    }
+    if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
+        throw "Generated harness not found after assembly: $outputPath"
+    }
+
+    return [System.IO.Path]::GetFullPath($outputPath)
+}
+
 $files = @(Get-TrackedPowerShellFiles | Sort-Object -Unique)
+$harnessSourcePartRoot = Get-HarnessSourcePartRoot
+$harnessPartCount = 0
+$normalizedFiles = New-Object System.Collections.Generic.List[string]
+foreach ($file in $files) {
+    $resolvedFile = [System.IO.Path]::GetFullPath($file)
+    if ($harnessSourcePartRoot -and
+        $resolvedFile.StartsWith($harnessSourcePartRoot, [System.StringComparison]::OrdinalIgnoreCase) -and
+        $resolvedFile.EndsWith('.ps1', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $harnessPartCount += 1
+        continue
+    }
+    $normalizedFiles.Add($resolvedFile)
+}
+
+if ($harnessPartCount -gt 0) {
+    Write-Host "Skipping $harnessPartCount harness source part fragment(s) and validating an assembled generated harness instead."
+    $normalizedFiles.Add((Get-AssembledHarnessValidationPath))
+}
+
+$files = @($normalizedFiles | Sort-Object -Unique)
 
 if (-not $files -or $files.Count -eq 0) {
     if ($AllowEmpty) {

@@ -249,6 +249,8 @@ function Test-CoverageArtifactEvidence {
         }
         if ([string]::IsNullOrWhiteSpace($repoRoot)) { return $false }
         $validatorPath = Join-Path $repoRoot 'project_sources/collector/tools/validate_dcoir_collector_runtime_package.py'
+        $validatorPolicyPath = Join-Path $repoRoot 'project_sources/collector/tools/validate_dcoir_runtime_policies.py'
+        $validatorBehaviorPath = Join-Path $repoRoot 'project_sources/collector/tools/validate_dcoir_runtime_behavior.py'
         $processPartPaths = @(
           (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.01D1_Process_Event_And_Baseline_Utilities.ps1'),
           (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.01D2_Process_Event_And_Baseline_Utilities.ps1')
@@ -258,7 +260,7 @@ function Test-CoverageArtifactEvidence {
           (Join-Path $repoRoot 'project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1')
         )
         $missingSourcePart = @(($processPartPaths + $reportsPartPaths) | Where-Object { -not (Test-Path -LiteralPath $_) })
-        if (-not (Test-Path -LiteralPath $validatorPath) -or @($missingSourcePart).Count -gt 0) { return $false }
+        if (-not (Test-Path -LiteralPath $validatorPath) -or -not (Test-Path -LiteralPath $validatorPolicyPath) -or -not (Test-Path -LiteralPath $validatorBehaviorPath) -or @($missingSourcePart).Count -gt 0) { return $false }
         $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
         if ($null -eq $pythonCommand) { $pythonCommand = Get-Command python3 -ErrorAction SilentlyContinue }
         if ($null -eq $pythonCommand) { return $false }
@@ -278,12 +280,16 @@ function Test-CoverageArtifactEvidence {
         $parentContextBehavior = $parentContextPolicy.parent_context_behavior_tests
         if ($null -eq $parentContextBehavior -or $parentContextBehavior.status -ne 'passed') { return $false }
         $validatorText = Get-Content -LiteralPath $validatorPath -Raw
+        $validatorPolicyText = Get-Content -LiteralPath $validatorPolicyPath -Raw
+        $validatorBehaviorText = Get-Content -LiteralPath $validatorBehaviorPath -Raw
         $processText = (($processPartPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw }) -join "`n")
         $reportsText = (($reportsPartPaths | ForEach-Object { Get-Content -LiteralPath $_ -Raw }) -join "`n")
-        return $validatorText.Contains('run_suspicious_process_parent_context_behavior_tests') `
-          -and $validatorText.Contains('parent_context_behavior_tests') `
-          -and $validatorText.Contains('wmic_command_line_indicators_present') `
-          -and $validatorText.Contains('parent_start_time_checked_before_name_resolution') `
+        return $validatorText.Contains('validate_suspicious_process_parent_context_policy') `
+          -and $validatorPolicyText.Contains('run_suspicious_process_parent_context_behavior_tests') `
+          -and $validatorPolicyText.Contains('parent_context_behavior_tests') `
+          -and $validatorPolicyText.Contains('wmic_command_line_indicators_present') `
+          -and $validatorPolicyText.Contains('parent_start_time_checked_before_name_resolution') `
+          -and $validatorBehaviorText.Contains('run_suspicious_process_parent_context_behavior_tests') `
           -and $processText.Contains('ProcessStartTimeById') `
           -and $processText.Contains('wmic(?:\.exe)?') `
           -and $reportsText.Contains('parent={0} ({1})') `

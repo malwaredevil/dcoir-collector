@@ -140,7 +140,7 @@
           },
           "parse": {
             "errors": [],
-            "line_count": 2943,
+            "line_count": 3037,
             "method": "static_balance_check",
             "native_parser_available": false,
             "success": true
@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-07-13T03:43:23+00:00",
+    "generated_at_utc": "2026-07-14T18:37:43+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -2228,6 +2228,13 @@
       },
       {
         "category": "github_workflow_support_script",
+        "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+        "reason": "GitHub workflow support script is maintained repo PowerShell.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
+        "category": "github_workflow_support_script",
         "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
         "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
@@ -2655,121 +2662,121 @@
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-002.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-003.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-004.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-005.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-006.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-007.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-008.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-009.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-010.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-012.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-013.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-014.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
         "category": "collector_harness_source_part",
-        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1.txt",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-016.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
-        "source_type": ".ps1.txt",
+        "source_type": ".ps1",
         "status": "source_part"
       },
       {
@@ -3116,7 +3123,7 @@
     },
     "path_decision_counts": {
       "exclude": 66,
-      "include": 131,
+      "include": 132,
       "reference": 52,
       "skip": 0
     },
@@ -3497,7 +3504,7 @@
         "collector_validation_tooling": 2,
         "fixture_or_example": 23,
         "generated_or_assembled_output": 1,
-        "github_workflow_support_script": 23,
+        "github_workflow_support_script": 24,
         "invalid_workflow_surface": 0,
         "missing_authoritative_surface": 0,
         "missing_changed_powershell_surface": 0,
@@ -3510,12 +3517,12 @@
       },
       "by_inclusion_decision": {
         "exclude": 66,
-        "include": 131,
+        "include": 132,
         "reference": 52
       },
       "by_source_type": {
-        ".ps1": 185,
-        ".ps1.txt": 17,
+        ".ps1": 203,
+        ".ps1.txt": 0,
         ".ps1xml": 0,
         ".psd1": 9,
         ".psm1": 10,
@@ -3527,11 +3534,11 @@
         "source_part": 17,
         "staging": 66,
         "superseded_pointer": 1,
-        "tooling": 66,
+        "tooling": 67,
         "workflow_embedded": 28
       },
-      "embedded_snippet_count": 85,
-      "total_surfaces": 249
+      "embedded_snippet_count": 86,
+      "total_surfaces": 250
     }
   },
   "unclaimed_artifacts": [
