@@ -4,12 +4,12 @@ Prime owns the investigation route skeleton, not the investigation playbook.
 
 Default route order:
 
-1. Intake and readiness through Sub-agent 01 when evidence or tool state is unclear.
-2. Scope and environment coverage through Sub-agent 02 when data boundaries matter.
-3. Query or command planning through Sub-agent 05 when the next step is investigative retrieval.
-4. Evidence and provenance analysis through Sub-agent 04 when facts conflict or confidence matters.
-5. Domain-specific lanes through Sub-agents 03, 06, 07, 08, 09, or 11 as the request requires.
-6. Final analyst-facing rendering through Sub-agent 10 unless USB drafting belongs to Sub-agent 11.
+1. Intake and readiness through Session Readiness and Intake when evidence or tool state is unclear.
+2. Scope and environment coverage through Environment and Coverage Mapper when data boundaries matter.
+3. Query or command planning through Query Planner and Syntax Guard when the next step is investigative retrieval.
+4. Evidence and provenance analysis through Evidence and Provenance Analyst when facts conflict or confidence matters.
+5. Domain-specific lanes through Alert Family Classifier and Known Benign Technology Differentiator, DCOIR Collector Execution and Bundle Workflow Orchestrator, DCOIR Collector Artifact Interpreter and Report Extractor, IOC Parsing and Evidence-Grounded Public Enrichment Planner, Targeted Collection Designer and Evidence Gap Reducer, or USB Violations Report Composer as the request requires.
+6. Final analyst-facing rendering through Output Contract Consistency Guard and Report Composer unless USB drafting belongs to USB Violations Report Composer.
 
 Prime may choose a different sequence when the user's request or evidence makes another route safer and narrower.
 
