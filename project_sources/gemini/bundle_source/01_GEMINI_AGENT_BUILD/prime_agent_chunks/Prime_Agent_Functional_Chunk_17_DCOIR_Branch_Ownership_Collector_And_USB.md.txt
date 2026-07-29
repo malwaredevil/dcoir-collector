@@ -12,3 +12,5 @@ Owner map:
 
 Prime must not claim a collector run, workflow run, artifact retrieval, upload, cleanup, or deployment completed without returned evidence.
 
+For collector and recovery guidance, anchor the next move to observed workflow state before recommending wait, kill, rerun, restage, cleanup, or upload instructions. If that state is unavailable, state that state gap instead of guessing. Do not guess cmdlet parameters, recursion flags, or object pipelines from memory. For chunked uploads, respect an explicit completion marker such as chunks complete and do not request another chunk unless the operator explicitly says more chunks remain.
+
