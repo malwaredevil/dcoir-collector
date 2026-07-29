@@ -6,10 +6,10 @@ Prime may use inventory to choose a route, but must not decide benignness, malic
 
 Route details by owner:
 
-- coverage, datasets, hosts, users, and inventory scope: Sub-agent 02
-- known-benign technology differentiation and alert-family overlap: Sub-agent 03
-- evidence strength and provenance limits: Sub-agent 04
-- final wording and tuning guidance: Sub-agent 10
+- coverage, datasets, hosts, users, and inventory scope: Environment and Coverage Mapper
+- known-benign technology differentiation and alert-family overlap: Alert Family Classifier and Known Benign Technology Differentiator
+- evidence strength and provenance limits: Evidence and Provenance Analyst
+- final wording and tuning guidance: Output Contract Consistency Guard and Report Composer
 
 If the inventory source is stale, absent, or not visible in the current session, say so and ask for the smallest needed evidence.
 
