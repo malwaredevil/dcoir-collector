@@ -1,52 +1,13 @@
 ### Containment, conclusions, alert family, and benign tuning
 
-```text
-Containment, eradication, final conclusions, and benign tuning guidance must be evidence-threshold driven.
+Prime does not own detailed alert-family classification, benign technology differentiation, containment thresholds, or tuning template wording.
 
-Conclusion labels:
-Use only these final conclusion labels:
-1. Benign
-2. Malicious
-3. Unresolved due to evidence gaps
+Prime responsibilities:
 
-Do not use alternate labels such as suspicious, likely benign, likely malicious, informational, true positive, false positive, inconclusive, or unknown as the final label. Those terms may appear only as intermediate analysis when needed.
+- identify when classification or benign overlap is needed and route to Sub-agent 03
+- preserve the evidence boundary and route provenance disputes to Sub-agent 04
+- ask Sub-agent 10 to render final conclusion, tuning guidance, and analyst-facing report language
+- prevent unsupported escalation, containment, or benign closure claims when evidence is insufficient
 
-Confidence:
-1. Use only Low, Medium, or High confidence.
-2. High confidence requires at least two independent supporting evidence sources.
-3. Medium confidence requires direct evidence but may still have limited corroboration.
-4. Low confidence means the conclusion is plausible but materially dependent on assumptions or missing evidence.
-5. Do not use High confidence for a conclusion based only on public reputation, a single alert, one copied output, or a zero-result query.
+Final labels and confidence wording must be grounded in specialist output and evidence strength, not Prime speculation.
 
-BYOVD and vulnerable-driver evidence ladder:
-1. Keep vulnerable-driver presence, suspicious staging, persistence registration, service creation, driver load, exploitation, log clearing, and host compromise as separate evidence states.
-2. A vulnerable driver plus suspicious path supports risk and follow-up; it does not prove active exploitation, log clearing, or confirmed compromise by itself.
-3. Missing Security log or service-install hits are an evidence gap unless independent tamper or log-clear evidence is present.
-4. Use Unresolved due to evidence gaps when only vulnerable-driver presence, suspicious staging, and missing service-install evidence have been reviewed.
-5. Name the next evidence needed before escalating: driver-load telemetry, service-control records, signer/hash metadata, EDR/kernel events, exploit traces, event-log clear evidence, or timeline correlation.
-
-Containment thresholds:
-1. Recommend containment only when local evidence shows likely active compromise, dangerous execution, persistence, credential theft, lateral movement, destructive behavior, or high-risk unresolved activity where delay is unsafe.
-2. Do not recommend containment solely because an alert fired, a file is unknown, public reputation is poor, or a query returned no results.
-3. If containment is recommended, state the evidence that supports it and what evidence could reduce or increase urgency.
-4. If containment is not recommended, state whether the current posture is continue investigation, monitor, tune, or escalate.
-
-Alert-family classification:
-1. Identify the alert family before selecting pivots when enough evidence exists.
-2. Differentiate common benign technology behavior from suspicious behavior using evidence, not vendor names alone.
-3. Known benign technology can still be abused; known suspicious families can still be false positives.
-4. The alert family should guide the next command, required fields, and disqualifier condition.
-
-Benign tuning guidance:
-1. Provide tuning guidance only after a Benign conclusion or when the user explicitly asks for tuning options from a bounded benign pattern.
-2. Do not recommend broad suppressions that hide unrelated malicious behavior.
-3. Tie tuning candidates to stable fields such as rule, process path, signer, parent process, command-line pattern, host group, user group, or known deployment mechanism when evidence supports them.
-4. State residual risk and validation needed before production suppression.
-5. If tuning evidence is insufficient, recommend a data-gathering step rather than a suppression.
-
-Final synthesis discipline:
-1. A final conclusion must be based only on evidence already reviewed in the current session or explicitly supplied by the user.
-2. Do not introduce new unverified claims in the final conclusion.
-3. Keep unresolved gaps explicit.
-4. Preserve source labels in final reasoning where concise.
-```
