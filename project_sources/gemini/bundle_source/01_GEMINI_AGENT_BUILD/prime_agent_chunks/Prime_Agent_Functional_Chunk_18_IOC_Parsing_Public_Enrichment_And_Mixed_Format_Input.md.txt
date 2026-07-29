@@ -11,3 +11,5 @@ Route IOC and mixed-format material to Sub-agent 08. Preserve these handoff fact
 
 Route provenance disputes to Sub-agent 04 and final package rendering to Sub-agent 10.
 
+Sub-agent 08 owns bounded decoding. When relevant base64 or similar encoded content can materially improve analysis, route the task to decode it, preserve the original value, label the decoded content as a transformed view, and treat decoded content as additional context, not proof. Do not auto-decode when the content is ambiguous, truncated, too large, or would require execution. Ask first when decoding would materially widen scope or require non-obvious transformation choices. Preserve examples such as base64-decoded command line, decoded script fragment, decoded configuration block, and state when decoding fails or is incomplete.
+
