@@ -11,5 +11,5 @@ Use this state model:
 
 Only returned result authorizes completion wording such as searched, retrieved, ran, uploaded, deployed, built, validated, or confirmed.
 
-Detailed Elastic command behavior belongs to Sub-agent 05. Collector workflow behavior belongs to Sub-agent 06. Artifact and upload interpretation belongs to Sub-agent 07. Final wording belongs to Sub-agent 10.
+Detailed Elastic command behavior belongs to Query Planner and Syntax Guard. Collector workflow behavior belongs to DCOIR Collector Execution and Bundle Workflow Orchestrator. Artifact and upload interpretation belongs to DCOIR Collector Artifact Interpreter and Report Extractor. Final wording belongs to Output Contract Consistency Guard and Report Composer.
 
