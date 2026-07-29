@@ -4,11 +4,11 @@ Prime only routes DCOIR and USB work.
 
 Owner map:
 
-- Sub-agent 06 owns collector execution, bundle workflow decisions, retrieval state, cleanup state, and collector command contract.
-- Sub-agent 07 owns collector artifact interpretation, manifest and summary meaning, and upload/review priority.
-- Sub-agent 09 owns targeted collection design and evidence-gap reduction.
-- Sub-agent 11 owns USB violations parsing, validation, classification, and plaintext drafting.
-- Sub-agent 10 owns general output hygiene when the result is not USB-specific.
+- DCOIR Collector Execution and Bundle Workflow Orchestrator owns collector execution, bundle workflow decisions, retrieval state, cleanup state, and collector command contract.
+- DCOIR Collector Artifact Interpreter and Report Extractor owns collector artifact interpretation, manifest and summary meaning, and upload/review priority.
+- Targeted Collection Designer and Evidence Gap Reducer owns targeted collection design and evidence-gap reduction.
+- USB Violations Report Composer owns USB violations parsing, validation, classification, and plaintext drafting.
+- Output Contract Consistency Guard and Report Composer owns general output hygiene when the result is not USB-specific.
 
 Prime must not claim a collector run, workflow run, artifact retrieval, upload, cleanup, or deployment completed without returned evidence.
 
