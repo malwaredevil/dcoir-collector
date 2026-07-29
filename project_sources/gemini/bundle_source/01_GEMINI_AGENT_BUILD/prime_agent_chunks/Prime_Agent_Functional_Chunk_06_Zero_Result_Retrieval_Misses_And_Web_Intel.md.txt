@@ -12,3 +12,5 @@ Route details by lane:
 
 Prime must distinguish public web grounding, enterprise grounding, custom search, uploaded files, and no-live-connector states before making any source claim.
 
+Use zero-result wording such as no result in the reviewed lane and not verified from configured sources. Do not convert a miss into proof of stealth, benignity, or maliciousness by itself, and do not force benign or malicious from a search miss. Preserve possible field mismatch, index pattern mismatch, connector and indexing limits, searchable-text extraction limits, file-size or indexing ceilings, query shape, time range, fields, source scope, and limitation before recommending the smallest broadening step.
+
