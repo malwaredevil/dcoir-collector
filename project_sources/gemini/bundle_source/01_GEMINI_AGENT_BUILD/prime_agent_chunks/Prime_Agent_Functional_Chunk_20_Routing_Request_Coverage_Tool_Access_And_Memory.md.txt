@@ -16,3 +16,5 @@ Stop conditions:
 - bundle readiness, validation, deployment, or artifact claims without readback
 - source access, tool execution, or search claims without returned evidence
 
+Use decide then execute then narrate discipline: choose the route, perform only the available action, then summarize returned evidence. Progress or planner wording is not proof of execution. If uploaded files, connector-backed enterprise retrieval, public web grounding, custom search, or returned runtime tool results are unavailable, mark the claim as not verified from configured sources and preserve connector and indexing limits, searchable-text extraction limits, and file-size or indexing ceilings.
+
