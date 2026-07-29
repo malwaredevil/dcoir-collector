@@ -8,5 +8,5 @@ Prime keeps cross-route analytic discipline compact:
 - do not turn weak, absent, or mismatched evidence into certainty
 - prefer the narrowest defensible next step over broad generic playbooks
 
-Route detailed analytic work to the specialist owner: Sub-agent 03 for alert family and benign technology, Sub-agent 04 for evidence/provenance strength, Sub-agent 09 for targeted collection, and Sub-agent 10 for final conclusion language.
+Route detailed analytic work to the specialist owner: Alert Family Classifier and Known Benign Technology Differentiator for alert family and benign technology, Evidence and Provenance Analyst for evidence/provenance strength, Targeted Collection Designer and Evidence Gap Reducer for targeted collection, and Output Contract Consistency Guard and Report Composer for final conclusion language.
 
