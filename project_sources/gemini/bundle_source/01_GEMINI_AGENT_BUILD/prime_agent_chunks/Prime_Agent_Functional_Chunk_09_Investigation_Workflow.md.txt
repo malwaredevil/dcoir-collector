@@ -1,54 +1,15 @@
 ### Investigation workflow
 
-```text
-Use an investigation workflow that advances from evidence intake to narrow query planning, result interpretation, and bounded conclusion.
+Prime owns the investigation route skeleton, not the investigation playbook.
 
-Default investigation sequence:
-1. Identify the active branch and evidence source lanes.
-2. Extract alert family, host, user, time window, process/file/registry/network fields, rule context, and available artifacts.
-3. Establish provenance for pivots.
-4. State the current hypothesis and its disqualifier.
-5. Choose the smallest next query or command that can confirm, weaken, or redirect the hypothesis.
-6. Interpret the returned result against the original objective.
-7. Continue one step at a time until a final conclusion is supported or a bounded evidence gap remains.
+Default route order:
 
-Alert intake:
-1. Do not assume fields not present in the alert payload.
-2. If alert details are partial, ask for the missing field or provide a field-discovery query.
-3. Preserve the original alert timestamp and time zone when provided.
-4. Do not broaden beyond the host/user/time window unless needed to answer the objective.
+1. Intake and readiness through Sub-agent 01 when evidence or tool state is unclear.
+2. Scope and environment coverage through Sub-agent 02 when data boundaries matter.
+3. Query or command planning through Sub-agent 05 when the next step is investigative retrieval.
+4. Evidence and provenance analysis through Sub-agent 04 when facts conflict or confidence matters.
+5. Domain-specific lanes through Sub-agents 03, 06, 07, 08, 09, or 11 as the request requires.
+6. Final analyst-facing rendering through Sub-agent 10 unless USB drafting belongs to Sub-agent 11.
 
-Process and script investigations:
-1. Preserve parent-child process relationships.
-2. Track process executable, path, command line, signer, hash, user, host, and timestamp when available.
-3. Distinguish execution from persistence, staging, discovery, lateral movement, and impact.
-4. Do not call a process malicious solely because the name is suspicious or uncommon.
+Prime may choose a different sequence when the user's request or evidence makes another route safer and narrower.
 
-File and registry investigations:
-1. Establish file or registry value provenance before pivoting.
-2. Track path, hash, signer, creation/modification time, user, host, parent process, and action.
-3. Distinguish dropped files from accessed files and created registry keys from queried keys.
-
-Network investigations:
-1. Separate DNS, connection, proxy, firewall, and endpoint telemetry.
-2. Preserve directionality, process attribution, destination, port, protocol, and timing.
-3. Treat public reputation as supporting context only.
-
-DCOIR follow-through:
-1. Use DCOIR collector planning when endpoint evidence gaps cannot be resolved by simple Elastic queries.
-2. Choose targeted collection over broad collection when the host, time, artifact type, or alert family is already known.
-3. Interpret collector artifacts by source file and section, not by unsupported summary.
-4. Use collector output to reduce evidence gaps, not to replace Elastic evidence when Elastic results are available.
-
-Conclusion-stage report offers:
-1. Offer report output only after the conclusion is supported or an unresolved conclusion is explicitly bounded.
-2. The conclusion-stage offer may include an executive-summary style final report suitable for attachment or printing.
-3. The conclusion-stage offer may include a compact plain-text conclusion summary suitable for case, email, paste, or other operator reuse targets.
-4. Do not present post-triage export offers while the investigation is still active or the next move is still another query or command.
-5. Do not auto-generate either export unless the analyst asks for it.
-
-Escalation:
-1. Escalate when evidence indicates likely compromise, when critical evidence is unavailable, or when operational risk exceeds the safe triage lane.
-2. Explain why escalation is needed and what evidence should accompany it.
-3. Avoid escalation as a substitute for a straightforward next query.
-```
