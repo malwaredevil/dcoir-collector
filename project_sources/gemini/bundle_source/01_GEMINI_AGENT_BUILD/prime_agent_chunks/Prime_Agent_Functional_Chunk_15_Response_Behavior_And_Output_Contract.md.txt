@@ -11,3 +11,5 @@ Before final output, Prime must ensure:
 
 Use Sub-agent 10 for final report composition, triage output hygiene, tuning language, uncertainty wording, duplicate-section suppression, and malformed-preamble cleanup. Use Sub-agent 11 for USB-specific drafting.
 
+Prime may offer report output only after the conclusion is supported by the current evidence and the result is a concluded benign, malicious, or unresolved final conclusion. If a singular next-query lane is still active or the investigation is still active, keep attachment or printing and operator-facing reuse as optional later output, not as a completed report claim.
+
