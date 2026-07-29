@@ -9,7 +9,7 @@
   "reassembly": {
     "method": "concatenate_chunks_in_manifest_order",
     "newline_policy": "preserve_chunk_text_exactly",
-    "expected_sha256": "0b0e2993d7f2195eaa7db6cf2437d894317dd164ba0f268c7441ca5d8c24b094"
+    "expected_sha256": "f10b74c4c344a1ce435783b5e89bb37b36d8f38045ba0962b8405dbb5d553da2"
   },
   "chunks": [
     {
@@ -56,16 +56,16 @@
       "chunk_id": "05",
       "title": "Query_Objectives_Field_Discovery_And_Syntax_Guards",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_05_Query_Objectives_Field_Discovery_And_Syntax_Guards.md.txt",
-      "sha256": "54f38a7dab9d876a3081fbc182d58d09fda80381b5a1fa635faac375511b250d",
-      "line_count": 13,
+      "sha256": "a6bbb685913178e3c09991e9d72d52385959f4dc311cea3527ba0657d04e0663",
+      "line_count": 15,
       "starts_with": "### Query objectives, field discovery, and syntax guards"
     },
     {
       "chunk_id": "06",
       "title": "Zero_Result_Retrieval_Misses_And_Web_Intel",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_06_Zero_Result_Retrieval_Misses_And_Web_Intel.md.txt",
-      "sha256": "15a6475c28e336f0164b6bee82669d74a822980d12dab186082712eb1587a496",
-      "line_count": 14,
+      "sha256": "31ac852f8709c52f4b7d89dac4dd8cd08db425b3f3a463b3d2680ed25f913731",
+      "line_count": 16,
       "starts_with": "### Zero-result handling, retrieval misses, and web intelligence"
     },
     {
@@ -136,8 +136,8 @@
       "chunk_id": "15",
       "title": "Response_Behavior_And_Output_Contract",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_15_Response_Behavior_And_Output_Contract.md.txt",
-      "sha256": "94b9d4c687cdabf962a29e41737c2906bd33b5162434db2d3fdb8dc1c1cb3097",
-      "line_count": 13,
+      "sha256": "bfd3a9390975248bacd8e3dba278153a55d12d14551692e22ce7d4fe9e38ec78",
+      "line_count": 15,
       "starts_with": "### Response behavior and output contract"
     },
     {
@@ -152,16 +152,16 @@
       "chunk_id": "17",
       "title": "DCOIR_Branch_Ownership_Collector_And_USB",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_17_DCOIR_Branch_Ownership_Collector_And_USB.md.txt",
-      "sha256": "579ad016a01a5c94b2e0f4b0376924deeb1249093b3419c2a5a8945dfac9b572",
-      "line_count": 14,
+      "sha256": "56e36343bc2ddcc908cf3b98d65a34de1817f430840c4fe03341394adc9b0322",
+      "line_count": 16,
       "starts_with": "### DCOIR branch ownership, collector, and USB report lanes"
     },
     {
       "chunk_id": "18",
       "title": "IOC_Parsing_Public_Enrichment_And_Mixed_Format_Input",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_18_IOC_Parsing_Public_Enrichment_And_Mixed_Format_Input.md.txt",
-      "sha256": "c05215b2b6d00bce87a79bf9be968a2afff0ea16f7bd80f86f9235d061d76a9c",
-      "line_count": 13,
+      "sha256": "3038c96b43838fbe6329773f5075edd32c321c8ce7ecee7f99410d120d44ee10",
+      "line_count": 15,
       "starts_with": "### IOC parsing, public enrichment, and mixed-format input"
     },
     {
@@ -176,8 +176,8 @@
       "chunk_id": "20",
       "title": "Routing_Request_Coverage_Tool_Access_And_Memory",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_20_Routing_Request_Coverage_Tool_Access_And_Memory.md.txt",
-      "sha256": "3e09f360d762ef0facb45329a59dc3d1733d72d260e2abf5372be53ba0399c6c",
-      "line_count": 18,
+      "sha256": "569f8b4a691b01c8e7a42133c81ac0ae27bc619ae64bc13a24f84a8f9ef4692a",
+      "line_count": 20,
       "starts_with": "### Routing, request coverage, tool access, and memory limits"
     }
   ]
