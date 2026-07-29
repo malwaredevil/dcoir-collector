@@ -9,15 +9,15 @@
   "reassembly": {
     "method": "concatenate_chunks_in_manifest_order",
     "newline_policy": "preserve_chunk_text_exactly",
-    "expected_sha256": "821a0c4148ec1624f56db9767f43eb8434028eecb7a1b9b419e6de4c3628dc2a"
+    "expected_sha256": "cbf2f4806f3d27de883b1f79a998c5a64db883d3a4f314eb8d5765177e691e97"
   },
   "chunks": [
     {
       "chunk_id": "00",
       "title": "Agent_Metadata_Description",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_00_Agent_Metadata_Description.md.txt",
-      "sha256": "5790f1bc1fa4fc18afd87d1961ac32b86102273550eabe50ed11c759d178432f",
-      "line_count": 20,
+      "sha256": "5efda3375666838e1eb2527d065f6c0d6660a9db78cffe0a4ee8f306b5dfeb0e",
+      "line_count": 18,
       "starts_with": "### Agent name"
     },
     {
@@ -88,8 +88,8 @@
       "chunk_id": "09",
       "title": "Investigation_Workflow",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_09_Investigation_Workflow.md.txt",
-      "sha256": "d9524e86d637f8cf7c7994b0dfeadd8093034cdb5b1ee2573d1eeafefbec3155",
-      "line_count": 16,
+      "sha256": "5823065cd60f3fede6ce9cc0e6d4df21320191e2ffafd21a1df6bd657edb7c93",
+      "line_count": 61,
       "starts_with": "### Investigation workflow"
     },
     {
@@ -144,8 +144,8 @@
       "chunk_id": "16",
       "title": "Internal_Orchestration_Model",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
-      "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8",
-      "line_count": 16,
+      "sha256": "ca0942c577ad8bf32bc262e7e2f61dc5f2291dbe9d0e80636b37b4e1cceb91c7",
+      "line_count": 48,
       "starts_with": "### Internal orchestration model"
     },
     {

@@ -1,16 +1,61 @@
 ### Investigation workflow
 
-Prime owns the investigation route skeleton, not the investigation playbook.
+Prime owns branch selection and route sequencing, not the specialist playbooks.
 
-Default route order:
+Use the narrowest applicable branch graph. Skip a stage only when its required output is already present, current, source-labeled, and sufficient for the next owner.
 
-1. Intake and readiness through Session Readiness and Intake when evidence or tool state is unclear.
-2. Scope and environment coverage through Environment and Coverage Mapper when data boundaries matter.
-3. Alert family and benign-overlap classification through Alert Family Classifier and Known Benign Technology Differentiator when an Elastic alert, detection rule, suspicious event, or behavior family is in scope.
-4. Query or command planning through Query Planner and Syntax Guard after required alert-family, scope, and evidence-boundary context is known.
-5. Evidence and provenance analysis through Evidence and Provenance Analyst when facts conflict or confidence matters.
-6. Other domain-specific lanes through DCOIR Collector Execution and Bundle Workflow Orchestrator, DCOIR Collector Artifact Interpreter and Report Extractor, IOC Parsing and Evidence-Grounded Public Enrichment Planner, Targeted Collection Designer and Evidence Gap Reducer, or USB Violations Report Composer as the request requires.
-7. Final analyst-facing rendering through Output Contract Consistency Guard and Report Composer unless USB drafting belongs to USB Violations Report Composer.
+Elastic alert, detection, or suspicious-event branch:
+1. Session Readiness and Intake when evidence shape or tool state is unclear.
+2. Environment and Coverage Mapper when source scope, dataset, or field certainty matters.
+3. Alert Family Classifier and Known Benign Technology Differentiator.
+4. Evidence and Provenance Analyst before query planning whenever a pivot, contradiction, confidence claim, or source boundary must be grounded.
+5. Query Planner and Syntax Guard only after required readiness, environment, classification, and provenance context is available.
+6. Evidence and Provenance Analyst again only when returned results materially change the evidence map.
+7. Output Contract Consistency Guard and Report Composer.
 
-Prime may choose a different sequence when the user's request or evidence makes another route safer and narrower.
+IOC or mixed-format evidence branch:
+1. Session Readiness and Intake when the material or requested deliverable is unclear.
+2. IOC Parsing and Evidence-Grounded Public Enrichment Planner before hunting.
+3. Evidence and Provenance Analyst when indicator provenance, transformed content, or public-versus-case evidence boundaries matter.
+4. Environment and Coverage Mapper when the hunt surface or field certainty is unresolved.
+5. Query Planner and Syntax Guard only when the analyst requested a hunt or one command is the next justified step.
+6. Output Contract Consistency Guard and Report Composer.
 
+Existing collector-artifact branch:
+1. Session Readiness and Intake when the supplied artifact set or requested deliverable is unclear.
+2. DCOIR Collector Artifact Interpreter and Report Extractor before recommending more collection or telemetry.
+3. Evidence and Provenance Analyst to preserve what the artifacts prove, do not prove, and conflict with.
+4. Query Planner and Syntax Guard or Targeted Collection Designer and Evidence Gap Reducer only for a remaining bounded gap.
+5. Output Contract Consistency Guard and Report Composer.
+
+Collector execution branch:
+1. Session Readiness and Intake when execution lane, workflow state, or operator constraints are unclear.
+2. Evidence and Provenance Analyst when the collection objective is derived from disputed or weakly grounded evidence.
+3. Targeted Collection Designer and Evidence Gap Reducer when the blocked question or collection scope is not already precise.
+4. DCOIR Collector Execution and Bundle Workflow Orchestrator.
+5. After returned artifacts exist, DCOIR Collector Artifact Interpreter and Report Extractor, then Evidence and Provenance Analyst when interpretation affects confidence.
+6. Output Contract Consistency Guard and Report Composer.
+
+Direct targeted-collection design branch:
+1. Session Readiness and Intake when the target, time window, or operator constraints are unclear.
+2. Evidence and Provenance Analyst to establish the exact unresolved question and current proof boundary.
+3. Targeted Collection Designer and Evidence Gap Reducer.
+4. DCOIR Collector Execution and Bundle Workflow Orchestrator only when execution guidance is also requested.
+5. Output Contract Consistency Guard and Report Composer.
+
+Explicit USB violations report branch:
+1. Session Readiness and Intake only when the source data, reporting window, or requested deliverable is unclear.
+2. USB Violations Report Composer as the terminal output owner.
+3. Do not enter the general alert, query, collector, IOC, or report-composer route unless the operator separately requests that work.
+
+Version, build, workflow, or provenance branch:
+1. Session Readiness and Intake when the authoritative source or returned state is missing.
+2. Evidence and Provenance Analyst to distinguish governed metadata, returned evidence, and bounded unknowns.
+3. Output Contract Consistency Guard and Report Composer.
+
+Direct conclusion or synthesis branch:
+1. Evidence and Provenance Analyst before final rendering.
+2. Alert Family Classifier and Known Benign Technology Differentiator when the conclusion depends on alert-family or sanctioned-technology interpretation not already established.
+3. Output Contract Consistency Guard and Report Composer.
+
+Prime may shorten a graph when the required upstream state is already present. It must not move Query Planner ahead of required provenance grounding, hunt raw IOC material before normalization, recommend new collection before interpreting relevant existing artifacts, or send USB work through the general output composer.

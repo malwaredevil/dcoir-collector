@@ -1,6 +1,10 @@
 # Gemini Build Quick Start
 
-This quick-start file is intentionally verbose because the operator-facing Gemini bundle is expected to remain predictable under mixed evidence and mixed workflow starting points. Use this file as the first operator guide for building, reviewing, and testing the major-version Gemini bundle.
+This operator guide is intentionally explicit because the Gemini bundle must remain predictable under mixed evidence and mixed workflow starting points. Router-facing agent descriptions remain concise; detailed behavior lives in specialist instructions and maintained knowledge.
+
+## Test-only boundary
+
+A branch-built or otherwise unpromoted bundle is a test-agent artifact. Load it only into a separate Gemini draft/test agent. Do not treat successful compilation, static validation, or packaging as live/main promotion.
 
 ## What changed in this major-version wave
 
@@ -11,9 +15,9 @@ This major-version build expands the bundle from a narrower alert-triage-plus-co
 - the operator may start from an IOC package in mixed format
 - the operator may need a targeted collection design instead of a broad baseline
 - the operator may need a recurring weekly USB violations report workflow from structured CSV, XLSX, pasted table, or copied spreadsheet data
-- the operator may need a much richer shared attachment set that explains both the collector line and the Gemini runtime line in stand-alone detail
+- the operator may need a richer shared attachment set that explains the collector and Gemini runtime lines in stand-alone detail
 
-The active agent topology now includes eleven sub-agents:
+The active agent topology includes eleven sub-agents:
 1. Session readiness and intake
 2. Environment, coverage, and schema mapping
 3. Alert-family classification and known-benign-technology differentiation
@@ -26,9 +30,30 @@ The active agent topology now includes eleven sub-agents:
 10. Output-contract consistency guard and report composition
 11. USB violations report composition
 
-The active shared attachment set now includes fifteen knowledge pages:
-- 01 through 11 preserve the collector, workflow, troubleshooting, FAQ, and prior Gemini posture material
-- 12 through 15 preserve Gemini runtime source-tree, topology, output-contract, validation, and attachment-maintenance guidance
+The active shared attachment set includes twenty-eight knowledge pages:
+- 01 through 11 preserve core, collector, workflow, troubleshooting, FAQ, prompt-design, and IOC-enrichment guidance
+- 12 through 14 preserve Gemini runtime source-tree, topology, and output-contract guidance
+- 15 through 16 preserve collector EXE/runtime and feature/output-contract guidance
+- 17 through 28 preserve Elastic field, response-action, and sharded OSQuery references
+
+## Routing and handoff model
+
+- Agent descriptions use the concise Use when / Do not use when / Returns contract.
+- Prime chooses a branch-specific route rather than forcing every request through one universal sequence.
+- Internal specialists 01 through 09 return `common_handoff_envelope_v1`, with agent-specific results under domain_payload.
+- Prime applies route-loop guards and sends the reconciled state to exactly one terminal output owner.
+- Output Contract Consistency Guard and Report Composer handles ordinary analyst-facing output; USB Violations Report Composer handles explicit USB reporting only.
+
+## Source and build provenance
+
+The maintained source version is the manifest `bundle_version`. A workflow override or timestamp is the build identifier. Record the test artifact using all of these values:
+- source branch or ref
+- source head SHA
+- workflow run ID
+- artifact name
+- delivery ZIP SHA256
+
+Do not treat a build identifier as the semantic source version, and do not infer current provenance from an older artifact filename.
 
 ## Starter prompts
 
@@ -49,13 +74,15 @@ Starter Prompt 4:
 1. Edit the maintained `knowledge/*.md` files first when the shared knowledge layer changes.
 2. Edit the agent source files in `01_GEMINI_AGENT_BUILD/` when behavior changes.
 3. Update the manifest required-files inventory whenever the attachment set changes.
-4. Update `00_START_HERE/Agent_Attachment_Map.md.txt` whenever the attachment inventory or the purpose of an attachment changes.
-5. Rebuild through the governed GitHub Action or the governed build script.
-6. Review the build artifact and its JSON reports before treating the bundle as test-ready.
+4. Update `00_START_HERE/Agent_Attachment_Map.md.txt` whenever the attachment inventory or purpose changes.
+5. Rebuild through the governed GitHub Action or governed build script.
+6. Review the source version, build identifier, head SHA, workflow run, artifact name, ZIP digest, and JSON reports before treating the bundle as test-ready.
 
 ## Validation focus
 
 Every serious review of the current bundle should explicitly cover:
+- branch-specific route selection and specialist order
+- common handoff-envelope preservation and loop suppression
 - starter prompt behavior
 - collector artifact interpretation
 - mixed-format IOC parsing
@@ -65,4 +92,5 @@ Every serious review of the current bundle should explicitly cover:
 - leadership-writeup behavior
 - weekly USB violations report behavior, including Friday/date-window handling, conservative CSV/XLSX parsing, missing-field checks, SNOW-prefix classification, NIPR/SIPR split output, and exact plaintext recipient, subject, and body blocks
 - attachment-map, manifest, and maintained-knowledge alignment
+- source-versus-build provenance readback
 - ordinary direct generation/build behavior when the shared knowledge set changes

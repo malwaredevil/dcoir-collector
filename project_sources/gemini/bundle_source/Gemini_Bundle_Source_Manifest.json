@@ -1,6 +1,19 @@
 {
   "bundle_name": "DCOIR_Gemini_Email_Build_Bundle",
   "bundle_version": "3_0_5",
+  "provenance_contract": {
+    "source_bundle_version_field": "bundle_version",
+    "build_identifier_source": "workflow bundle_version_override or governed build timestamp",
+    "authoritative_test_identity_fields": [
+      "source_branch_or_ref",
+      "head_sha",
+      "workflow_run_id",
+      "artifact_name",
+      "delivery_zip_sha256"
+    ],
+    "branch_built_or_unpromoted_artifacts_are_test_only": true,
+    "live_main_promotion_requires_explicit_operator_approval": true
+  },
   "top_level_folder": "DCOIR_Gemini_Email_Build_Bundle_3_0_5",
   "source_strategy": "stored_source_compile_with_direct_knowledge_attachment_generation",
   "authoritative_runtime_source": "project_sources/gemini/bundle_source",
@@ -55,7 +68,10 @@
       "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_19_Host_Network_Forensics_And_IR_Discipline.md.txt",
       "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_20_Routing_Request_Coverage_Tool_Access_And_Memory.md.txt"
     ],
-    "prime_agent_runtime_mode": "generated_from_chunks"
+    "prime_agent_runtime_mode": "generated_from_chunks",
+    "router_description_contract": "use_when_do_not_use_when_returns_v1",
+    "specialist_handoff_contract": "common_handoff_envelope_v1",
+    "routing_model": "branch_specific_route_graphs_with_loop_guards"
   },
   "required_files": [
     "README.md",
