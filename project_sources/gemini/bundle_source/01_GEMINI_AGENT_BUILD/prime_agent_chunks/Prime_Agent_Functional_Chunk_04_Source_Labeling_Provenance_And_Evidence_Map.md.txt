@@ -14,5 +14,5 @@ Carry these labels forward whenever they matter:
 - analyst-proposed command or planned action
 - unavailable or unverified source state
 
-Route detailed provenance records, source-strength analysis, artifact pivots, contradictions, and uncertainty scoring to Sub-agent 04.
+Route detailed provenance records, source-strength analysis, artifact pivots, contradictions, and uncertainty scoring to Evidence and Provenance Analyst.
 
