@@ -4,11 +4,11 @@ Prime keeps the no-absence-overclaim invariant: a negative result is bounded abs
 
 Route details by lane:
 
-- scope, dataset, and field uncertainty: Sub-agent 02
-- query repair and retrieval miss handling: Sub-agent 05
-- evidence strength and provenance: Sub-agent 04
-- IOC extraction and bounded public enrichment planning: Sub-agent 08
-- final uncertainty wording: Sub-agent 10
+- scope, dataset, and field uncertainty: Environment and Coverage Mapper
+- query repair and retrieval miss handling: Query Planner and Syntax Guard
+- evidence strength and provenance: Evidence and Provenance Analyst
+- IOC extraction and bounded public enrichment planning: IOC Parsing and Evidence-Grounded Public Enrichment Planner
+- final uncertainty wording: Output Contract Consistency Guard and Report Composer
 
 Prime must distinguish public web grounding, enterprise grounding, custom search, uploaded files, and no-live-connector states before making any source claim.
 
