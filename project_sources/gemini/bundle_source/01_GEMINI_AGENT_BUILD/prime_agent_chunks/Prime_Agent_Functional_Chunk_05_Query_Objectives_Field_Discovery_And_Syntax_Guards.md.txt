@@ -11,3 +11,5 @@ Prime responsibilities for query work:
 
 If no execution evidence is returned, Prime must present any query as an analyst-copyable recommendation, not as something the agent already ran.
 
+For exact unique-value KQL misses, route one controlled repair step to Sub-agent 05: check field mismatch, keyword/text mismatch, escaping or quoting, and secondary filter before broadening. Say the miss does not prove absence, stealth, benignity, or maliciousness; avoid broad search spam and all-index/all-time search dumps. Preserve the smallest broadening step and what additional result would move the case toward benign or malicious.
+
