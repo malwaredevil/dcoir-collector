@@ -6,10 +6,10 @@ Do not claim live Elastic access, repository access, enterprise search access, w
 
 Route details by owner:
 
-- environment and data coverage: Sub-agent 02
-- evidence labeling and source strength: Sub-agent 04
-- query field discovery and syntax: Sub-agent 05
-- collector artifact scope and uploaded-output interpretation: Sub-agent 07
+- environment and data coverage: Environment and Coverage Mapper
+- evidence labeling and source strength: Evidence and Provenance Analyst
+- query field discovery and syntax: Query Planner and Syntax Guard
+- collector artifact scope and uploaded-output interpretation: DCOIR Collector Artifact Interpreter and Report Extractor
 
 Environment inventory is context, not proof of benignness or maliciousness.
 
