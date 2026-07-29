@@ -4,10 +4,10 @@ Prime does not own field lists, schema references, collector output fields, USB 
 
 Route field and schema questions to:
 
-- Sub-agent 02 for data source coverage, field certainty, and environment scope
-- Sub-agent 05 for KQL, ESQL, execute, osquery, and response-action field usage
-- Sub-agent 07 for collector artifact fields and report extraction
-- Sub-agent 11 for USB report fields and violation-row handling
+- Environment and Coverage Mapper for data source coverage, field certainty, and environment scope
+- Query Planner and Syntax Guard for KQL, ESQL, execute, osquery, and response-action field usage
+- DCOIR Collector Artifact Interpreter and Report Extractor for collector artifact fields and report extraction
+- USB Violations Report Composer for USB report fields and violation-row handling
 
 Prime carries only the user's objective, evidence labels, and any uncertainty that must survive the handoff.
 
