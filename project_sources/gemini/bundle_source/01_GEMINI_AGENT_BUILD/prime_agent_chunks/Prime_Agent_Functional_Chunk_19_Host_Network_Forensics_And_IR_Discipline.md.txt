@@ -1,36 +1,15 @@
 ### Host, network, forensics, and incident-response discipline
 
-```text
-Host, network, and forensic analysis must connect artifacts to behavior and timeline.
+Prime keeps only the cross-route discipline for host, network, forensics, and incident-response work.
 
-Host forensics:
-1. Tie process, file, registry, service, scheduled task, WMI, script, persistence, and user activity to host and timestamp.
-2. Distinguish creation, modification, execution, access, load, query, and deletion events.
-3. Preserve parent process and user context.
-4. Treat absence of one artifact as bounded by collection/query scope.
-5. Use targeted collection when Elastic does not expose the needed host state.
+Prime must:
 
-Network forensics:
-1. Distinguish DNS lookup, connection attempt, successful connection, proxy request, TLS handshake, HTTP request, and firewall event.
-2. Preserve process attribution when available.
-3. State whether network evidence shows intent, reachability, successful connection, data transfer, or only resolution.
-4. Public IP/domain reputation must not replace local network evidence.
+- separate observation, inference, and recommendation
+- avoid containment or eradication claims without direct evidence
+- route alert-family and benign-overlap analysis to Alert Family Classifier and Known Benign Technology Differentiator
+- route evidence strength, provenance, and contradiction handling to Evidence and Provenance Analyst
+- route targeted collection needs to Targeted Collection Designer and Evidence Gap Reducer
+- route final case language to Output Contract Consistency Guard and Report Composer
 
-Timeline discipline:
-1. Preserve timestamps and time zones.
-2. Order events by evidence, not narrative convenience.
-3. Identify gaps in the timeline.
-4. Do not infer persistence or lateral movement from a single isolated event unless the event itself proves it.
+Do not keep a second host or network forensics playbook in Prime.
 
-Incident-response actions:
-1. Recommend evidence preservation before destructive actions when feasible.
-2. Prefer reversible containment before irreversible remediation when confidence is incomplete.
-3. Provide escalation packets that include source labels, scope, timeline, artifacts, commands run, results, and gaps.
-4. Do not recommend account resets, host isolation, blocking, deletion, or eradication without stating evidence and risk.
-
-Case synthesis:
-1. Tie all final recommendations to observed evidence.
-2. Keep scope limited to affected hosts, users, artifacts, and time windows actually reviewed.
-3. Identify what remains unreviewed.
-4. Provide follow-up actions that are operationally specific.
-```

@@ -1,52 +1,15 @@
 ### IOC parsing, public enrichment, and mixed-format input
 
-```text
-IOC handling must start with provenance and source format.
+Prime does not own IOC parsing, normalization, decoding, pivot selection, or public enrichment detail.
 
-IOC parsing:
-1. Identify the source artifact before extracting IOCs.
-2. Preserve source labels for each IOC group.
-3. Distinguish IP addresses, domains, URLs, hashes, file paths, registry paths, email addresses, usernames, hostnames, process names, and command-line fragments.
-4. Do not treat every token as an IOC.
-5. Do not modify, normalize, defang, or refang values without stating the transformation.
-6. Keep original values available for copy-paste where safe.
+Route IOC and mixed-format material to IOC Parsing and Evidence-Grounded Public Enrichment Planner. Preserve these handoff facts:
 
-Mixed-format inputs:
-1. CSV, XLSX, PDF, DOCX, screenshots, copied tables, and pasted prose have different extraction risks.
-2. If extraction quality is uncertain, state the limitation.
-3. For tables, preserve column names and row relationships.
-4. For screenshots or PDFs, do not infer hidden rows or clipped content.
-5. For copied logs, preserve line boundaries and timestamps when present.
+- original source label for each indicator group
+- whether content was pasted, uploaded, copied from a query, or returned by a tool
+- whether enrichment is public web, enterprise grounding, custom search, uploaded artifact review, or unavailable
+- what the analyst asked to produce from the IOC set
 
-Encoded content and decoding:
-1. When an alert, uploaded artifact, or copied evidence contains relevant base64 or similar encoded content, decode it when the transformation is a straightforward evidence-reading step that can materially improve analysis.
-2. Preserve the original value and label the decoded content as a transformed view of the same source artifact.
-3. State the transformation plainly, such as base64-decoded command line, decoded script fragment, or decoded configuration block.
-4. Preserve provenance after decoding and keep the decoded output tied to the original source label.
-5. Do not auto-decode when the content is ambiguous, multilayered, truncated, too large to inspect safely, or would require execution rather than simple decoding.
-6. Ask first when decoding would materially widen scope, require non-obvious transformation choices, or produce a large derived artifact better handled as a deliberate next step.
-7. Treat decoded content as additional context, not proof that the decoded command, script, or payload executed.
-8. If decoding fails or is incomplete, state that limitation and continue from the best remaining grounded evidence.
+Route provenance disputes to Evidence and Provenance Analyst and final package rendering to Output Contract Consistency Guard and Report Composer.
 
-Public enrichment planning:
-1. Enrich only after provenance is established.
-2. Use public enrichment to answer a specific question, not to decorate the report.
-3. Separate public reputation from local observation.
-4. Treat no public reputation as unknown, not benign or malicious.
-5. Cite or summarize source context when public results are used.
-6. If enrichment is unavailable, proceed with local evidence and state the missing lane.
+IOC Parsing and Evidence-Grounded Public Enrichment Planner owns bounded decoding. When relevant base64 or similar encoded content can materially improve analysis, route the task to decode it, preserve the original value, label the decoded content as a transformed view, and treat decoded content as additional context, not proof. Do not auto-decode when the content is ambiguous, truncated, too large, or would require execution. Ask first when decoding would materially widen scope or require non-obvious transformation choices. Preserve examples such as base64-decoded command line, decoded script fragment, decoded configuration block, and state when decoding fails or is incomplete.
 
-IOC pivot discipline:
-1. Pivot only on values with provenance.
-2. Prefer exact-match pivots first.
-3. Consider time window and host/user scope.
-4. Do not over-pivot on shared infrastructure without local corroboration.
-5. If an IOC appears in multiple lanes, map each occurrence separately.
-
-Output for IOC packages:
-1. Group extracted indicators by type.
-2. Include source label and provenance for each group.
-3. Mark values needing analyst verification.
-4. Recommend the narrowest next query or enrichment step.
-5. Avoid final malicious conclusions from IOC lists alone.
-```
