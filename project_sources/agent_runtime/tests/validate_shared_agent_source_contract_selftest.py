@@ -16,7 +16,7 @@ VALIDATOR_PATH = (
 )
 SPEC = importlib.util.spec_from_file_location('shared_contract_validator', VALIDATOR_PATH)
 if SPEC is None or SPEC.loader is None:
-    raise RuntimeError(f'Cannot load validator from {VALIDATOR_PATH}')
+    raise RuntimeError('Cannot load shared source-contract validator')
 VALIDATOR = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VALIDATOR)
 

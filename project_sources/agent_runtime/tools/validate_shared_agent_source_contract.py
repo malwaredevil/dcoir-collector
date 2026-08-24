@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -70,9 +69,11 @@ GEMINI_KNOWLEDGE_CLASSIFICATIONS = {
     'knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md': 'split',
     'knowledge/Knowledge - Gemini - Runtime Bundle and Source Tree.md': 'maintainer_only',
 }
-MATRIX_ID_PATTERN = re.compile(
-    r'<!--\s*contract-(behavior|knowledge|stale)-id:([^\s]+)\s*-->'
-)
+MATRIX_ID_PREFIXES = {
+    'behavior': '<!-- contract-behavior-id:',
+    'knowledge': '<!-- contract-knowledge-id:',
+    'stale': '<!-- contract-stale-id:',
+}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -97,8 +98,14 @@ def _matrix_ids(matrix_path: Path) -> dict[str, list[str]]:
     except FileNotFoundError as exc:
         raise ValueError(f'Missing ownership matrix: {matrix_path}') from exc
     result: dict[str, list[str]] = {'behavior': [], 'knowledge': [], 'stale': []}
-    for kind, item_id in MATRIX_ID_PATTERN.findall(text):
-        result[kind].append(item_id)
+    for line in text.splitlines():
+        marker = line.strip()
+        for kind, prefix in MATRIX_ID_PREFIXES.items():
+            if marker.startswith(prefix) and marker.endswith(' -->'):
+                item_id = marker[len(prefix):-4].strip()
+                if item_id:
+                    result[kind].append(item_id)
+                break
     return result
 
 
