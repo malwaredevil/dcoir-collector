@@ -68,6 +68,14 @@ jobs:
             throw 'DCOIR Review runtime module-loader selftest failed.'
           }
 
+      - name: Run DCOIR Review Pareto-context selftest
+        shell: pwsh
+        run: |
+          python .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'DCOIR Review Pareto-context selftest failed.'
+          }
+
       - name: Validate PowerShell syntax
         uses: ./.github/actions/validate-powershell-syntax
 
