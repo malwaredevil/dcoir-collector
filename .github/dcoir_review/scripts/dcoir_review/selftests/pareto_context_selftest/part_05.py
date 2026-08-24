@@ -181,4 +181,92 @@ assert original_detector_findings[0]["suggested_replacement"] == "Write-Output '
 assert stripped_detector_findings[0]["suggested_replacement"] == ""
 assert stripped_detector_findings[0]["_detector_suggested_replacement"] == "Write-Output 'fixed'"
 
+class FakeHybridReporter:
+    def __init__(self) -> None:
+        self.updates: list[tuple[str, str]] = []
+
+    def update(self, stage: str, detail: str) -> None:
+        self.updates.append((stage, detail))
+
+
+hybrid_config = mod.copy.copy(config)
+hybrid_config.per_file_first_pass_review = True
+hybrid_config.per_file_review_concurrency = 1
+hybrid_reporter = FakeHybridReporter()
+original_build_file_contexts = mod.build_file_contexts
+original_review_single_file_context = mod.review_single_file_context
+original_build_prompt = mod.build_prompt
+original_hybrid_openrouter_review = mod.hardened.openrouter_review
+
+
+def fake_build_file_contexts(_gh: object, _pr: dict, _files: list[dict], _config: object) -> list[dict]:
+    return [{"path": "docs/review.md", "item": {"filename": "docs/review.md"}, "text": "review"}]
+
+
+def fake_review_single_file_context(*_args: object, **_kwargs: object) -> dict:
+    return {
+        "path": "docs/review.md",
+        "prompt_chars": 120,
+        "result": {
+            "summary": "A possible review-gate issue remains, but no actionable changed-line finding was identified.",
+            "findings": [],
+        },
+        "model_used": "detector-model",
+        "service_tier": "",
+    }
+
+
+def fake_hybrid_repair_review(
+    _prompt: str,
+    _schema: dict,
+    _config: object,
+    _reporter: object | None = None,
+) -> tuple[dict, str, str]:
+    return (
+        {
+            "summary": "A possible review-gate issue remains, but no actionable changed-line finding was identified.",
+            "findings": [],
+        },
+        "repair-model",
+        "",
+    )
+
+
+mod.build_file_contexts = fake_build_file_contexts
+mod.review_single_file_context = fake_review_single_file_context
+mod.build_prompt = lambda *_args, **_kwargs: "aggregate repair prompt"
+mod.hardened.openrouter_review = fake_hybrid_repair_review
+try:
+    hybrid_result, hybrid_model, _hybrid_tier = mod.openrouter_review_with_hybrid_first_pass(
+        {"number": 402, "head": {"sha": "abc123"}},
+        [{"filename": "docs/review.md", "status": "modified"}],
+        sample_diff,
+        schema,
+        hybrid_config,
+        hybrid_reporter,
+        [],
+        line_index,
+        "",
+        "first-pass-deep",
+        "one changed file",
+        object(),
+    )
+finally:
+    mod.build_file_contexts = original_build_file_contexts
+    mod.review_single_file_context = original_review_single_file_context
+    mod.build_prompt = original_build_prompt
+    mod.hardened.openrouter_review = original_hybrid_openrouter_review
+
+assert hybrid_model == "repair-model"
+assert hybrid_result["_quality_retry_attempted"] is True
+assert "summary indicated a possible issue" in hybrid_result["_quality_retry_reason"]
+assert hybrid_result["_quality_retry_initial_summary"]
+assert hybrid_result["_quality_retry_retry_summary"]
+assert mod.split_findings_with_review_body_fallback(hybrid_result, hybrid_config, line_index, sample_diff, []) == ([], [])
+assert any(stage == "quality-retry" for stage, _detail in hybrid_reporter.updates)
+
+workflow_source = (ROOT.parent / "workflows" / "reusable-openrouter-pr-review.yml").read_text(encoding="utf-8")
+assert "dcoir_review_terminal_failure_v1" in workflow_source
+assert 'exit "$review_exit_code"' in workflow_source
+
 print("Pareto context DCOIR Review selftest passed")
