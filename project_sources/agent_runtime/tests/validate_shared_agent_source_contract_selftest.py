@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
 import tempfile
@@ -88,10 +89,20 @@ def base_manifest() -> dict:
         'source_contract_version': 'test',
         'canonical_source_roots': {
             'shared_contract': 'project_sources/agent_runtime',
+            'shared_behavior_modules': (
+                'project_sources/agent_runtime/behavior_modules'
+            ),
             'gemini_source': 'project_sources/gemini',
             'gemini_runtime': 'project_sources/gemini/bundle_source',
             'knowledge': 'knowledge',
         },
+        'behavior_module_manifest': (
+            'project_sources/agent_runtime/Behavior_Module_Manifest.json'
+        ),
+        'gemini_behavioral_authority_sources': [
+            'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
+            'project_sources/agent_runtime/Behavior_Module_Manifest.json',
+        ],
         'target_ids': sorted(VALIDATOR.EXPECTED_TARGET_IDS),
         'targets': [target(target_id) for target_id in sorted(VALIDATOR.EXPECTED_TARGET_IDS)],
         'generated_artifact_policy': {
@@ -110,13 +121,15 @@ def base_manifest() -> dict:
         'behavior_items': [
             behavior(
                 'prime.chunk.00',
-                'project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/'
-                'prime_agent_chunks/chunk.md.txt',
+                'project_sources/agent_runtime/behavior_modules/prime/'
+                'prime.chunk.00.md',
+                authority='canonical_shared_behavior',
             ),
             behavior(
                 'sub_agent.01',
-                'project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/'
-                'sub.md.txt',
+                'project_sources/agent_runtime/behavior_modules/specialists/'
+                'sub_agent.01.md',
+                authority='canonical_shared_behavior',
             ),
             behavior(
                 'gemini.runtime.generated_prime',
@@ -265,8 +278,19 @@ class ContractFixture:
     def __init__(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
-        self.manifest_path = self.root / 'contract.json'
-        self.matrix_path = self.root / 'matrix.md'
+        self.manifest_path = (
+            self.root
+            / 'project_sources'
+            / 'agent_runtime'
+            / 'Shared_Agent_Source_Manifest.json'
+        )
+        self.matrix_path = (
+            self.root
+            / 'project_sources'
+            / 'agent_runtime'
+            / 'docs'
+            / 'Behavior_Ownership_Matrix.md'
+        )
         self.manifest = base_manifest()
         self._write_repo_sources()
         self.write()
@@ -291,7 +315,12 @@ class ContractFixture:
         (bundle_root / 'Gemini_Bundle_Source_Manifest.json').write_text(
             json.dumps(
                 {
-                    'behavioral_authority': ['project_sources/missing.txt'],
+                    'behavioral_authority': [
+                        'project_sources/agent_runtime/'
+                        'Shared_Agent_Source_Manifest.json',
+                        'project_sources/agent_runtime/'
+                        'Behavior_Module_Manifest.json',
+                    ],
                     'topology': {
                         'prime_agent_chunk_manifest': prime_rel.as_posix(),
                         'sub_agent_files': ['01_GEMINI_AGENT_BUILD/sub.md.txt'],
@@ -302,6 +331,10 @@ class ContractFixture:
             encoding='utf-8',
         )
         for relative in (
+            'project_sources/agent_runtime/behavior_modules/prime/'
+            'prime.chunk.00.md',
+            'project_sources/agent_runtime/behavior_modules/specialists/'
+            'sub_agent.01.md',
             'project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/'
             'prime_agent_chunks/chunk.md.txt',
             'project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/sub.md.txt',
@@ -310,8 +343,76 @@ class ContractFixture:
             path = self.root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('fixture\n', encoding='utf-8')
+        digest = hashlib.sha256(b'fixture\n').hexdigest()
+        module_manifest_path = (
+            self.root
+            / 'project_sources'
+            / 'agent_runtime'
+            / 'Behavior_Module_Manifest.json'
+        )
+        module_manifest_path.write_text(
+            json.dumps(
+                {
+                    'schema': 'dcoir.agent_runtime.behavior_modules.v1',
+                    'module_contract_version': 'fixture',
+                    'source_contract': (
+                        'project_sources/agent_runtime/'
+                        'Shared_Agent_Source_Manifest.json'
+                    ),
+                    'canonical_behavior_root': (
+                        'project_sources/agent_runtime/behavior_modules'
+                    ),
+                    'modules': [
+                        {
+                            'id': 'prime.chunk.00',
+                            'kind': 'prime_chunk',
+                            'order': 0,
+                            'source_path': (
+                                'project_sources/agent_runtime/behavior_modules/'
+                                'prime/prime.chunk.00.md'
+                            ),
+                            'sha256': digest,
+                            'projections': {
+                                'gemini_dcoir_agent': {
+                                    'output_path': (
+                                        'project_sources/gemini/bundle_source/'
+                                        '01_GEMINI_AGENT_BUILD/prime_agent_chunks/'
+                                        'chunk.md.txt'
+                                    ),
+                                    'projection_mode': 'byte_identity',
+                                    'sha256': digest,
+                                }
+                            },
+                        },
+                        {
+                            'id': 'sub_agent.01',
+                            'kind': 'specialist',
+                            'order': 1,
+                            'source_path': (
+                                'project_sources/agent_runtime/behavior_modules/'
+                                'specialists/sub_agent.01.md'
+                            ),
+                            'sha256': digest,
+                            'projections': {
+                                'gemini_dcoir_agent': {
+                                    'output_path': (
+                                        'project_sources/gemini/bundle_source/'
+                                        '01_GEMINI_AGENT_BUILD/sub.md.txt'
+                                    ),
+                                    'projection_mode': 'byte_identity',
+                                    'sha256': digest,
+                                }
+                            },
+                        },
+                    ],
+                }
+            ),
+            encoding='utf-8',
+        )
 
     def write(self, matrix: str | None = None) -> None:
+        self.manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        self.matrix_path.parent.mkdir(parents=True, exist_ok=True)
         self.manifest_path.write_text(
             json.dumps(self.manifest, indent=2), encoding='utf-8'
         )
@@ -350,7 +451,7 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
     def test_unmapped_prime_fails(self) -> None:
         self.fixture.manifest['behavior_items'].pop(0)
         self.fixture.write()
-        self.assert_error_contains('Prime source is not mapped exactly once')
+        self.assert_error_contains('Behavior module/source-contract id disagreement')
 
     def test_conflicting_authority_class_fails(self) -> None:
         duplicate = copy.deepcopy(self.fixture.manifest['behavior_items'][1])
@@ -465,12 +566,18 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
         self.fixture.write(matrix=matrix)
         self.assert_error_contains('Manifest/matrix Behavior Ownership mismatch')
 
-    def test_stale_authority_substitution_fails(self) -> None:
-        self.fixture.manifest['stale_source_references'][0][
-            'source_path'
-        ] = 'project_sources/different-missing.txt'
-        self.fixture.write()
-        self.assert_error_contains('Stale authority source is not mapped exactly once')
+    def test_retired_authority_cannot_return_live(self) -> None:
+        bundle_path = (
+            self.fixture.root
+            / 'project_sources'
+            / 'gemini'
+            / 'bundle_source'
+            / 'Gemini_Bundle_Source_Manifest.json'
+        )
+        bundle = json.loads(bundle_path.read_text(encoding='utf-8'))
+        bundle['behavioral_authority'] = ['project_sources/missing.txt']
+        bundle_path.write_text(json.dumps(bundle), encoding='utf-8')
+        self.assert_error_contains('Live Gemini behavioral authority still contains')
 
 
 if __name__ == '__main__':

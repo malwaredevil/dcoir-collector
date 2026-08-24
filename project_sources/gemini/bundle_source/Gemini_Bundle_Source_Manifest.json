@@ -5,13 +5,8 @@
   "source_strategy": "stored_source_compile_with_direct_knowledge_attachment_generation",
   "authoritative_runtime_source": "project_sources/gemini/bundle_source",
   "behavioral_authority": [
-    "project_sources/PP-01_System_Prompt_v1_0_1.txt",
-    "project_sources/PP-02_Output_Schema_v1_0_0.txt",
-    "project_sources/PP-03_Baseline_Triage_Prompt_v1_0_0.txt",
-    "project_sources/PP-04_Enrichment_Review_Prompt_v0_1_1.txt",
-    "project_sources/PP-05_Retrieved_Artifact_Review_Prompt_v0_1_1.txt",
-    "project_sources/PP-06_Final_Case_Synthesis_Prompt_v0_1_1.txt",
-    "project_sources/PP-07_Agent_Guardrails_v1_0_0.txt"
+    "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+    "project_sources/agent_runtime/Behavior_Module_Manifest.json"
   ],
   "topology": {
     "topology_source_of_truth": "manifest",
@@ -163,5 +158,13 @@
     "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_18_IOC_Parsing_Public_Enrichment_And_Mixed_Format_Input.md.txt",
     "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_19_Host_Network_Forensics_And_IR_Discipline.md.txt",
     "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_20_Routing_Request_Coverage_Tool_Access_And_Memory.md.txt"
-  ]
+  ],
+  "behavior_adapter": {
+    "target_id": "gemini_dcoir_agent",
+    "module_manifest": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
+    "materialize_tool": "project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py",
+    "projection_mode": "byte_identity",
+    "checked_in_outputs_are_canonical": false,
+    "direct_output_edits_require_reverse_reconciliation": true
+  }
 }

@@ -1,0 +1,471 @@
+{
+  "schema": "dcoir.agent_runtime.behavior_modules.v1",
+  "module_contract_version": "1.0.0",
+  "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+  "canonical_behavior_root": "project_sources/agent_runtime/behavior_modules",
+  "generated_target_policy": {
+    "generated_outputs_are_canonical": false,
+    "direct_target_edits_require_reverse_reconciliation": true,
+    "byte_identity_required_for_gemini_migration": true
+  },
+  "target_adapters": {
+    "gemini_dcoir_agent": {
+      "output_root": "project_sources/gemini/bundle_source",
+      "projection_mode": "byte_identity",
+      "bundle_manifest": "project_sources/gemini/bundle_source/Gemini_Bundle_Source_Manifest.json",
+      "prime_chunk_manifest": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json",
+      "expected_prime_chunks": 21,
+      "expected_specialists": 11
+    }
+  },
+  "modules": [
+    {
+      "id": "prime.chunk.00",
+      "kind": "prime_chunk",
+      "order": 0,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.00.md",
+      "sha256": "5790f1bc1fa4fc18afd87d1961ac32b86102273550eabe50ed11c759d178432f",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_00_Agent_Metadata_Description.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "5790f1bc1fa4fc18afd87d1961ac32b86102273550eabe50ed11c759d178432f"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.01",
+      "kind": "prime_chunk",
+      "order": 1,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.01.md",
+      "sha256": "067f83f5612343c2c569db6f8d7b0952a56cde4663ef6d75e2d178f979110ac8",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_01_Identity_Surface_Boundaries_And_Truthfulness.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "067f83f5612343c2c569db6f8d7b0952a56cde4663ef6d75e2d178f979110ac8"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.02",
+      "kind": "prime_chunk",
+      "order": 2,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.02.md",
+      "sha256": "90274af4c446a47eba36deaa8ea5a6b2f325fa78b999e57a018363304280e7ae",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_02_Readiness_Startup_And_Branch_Gating.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "90274af4c446a47eba36deaa8ea5a6b2f325fa78b999e57a018363304280e7ae"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.03",
+      "kind": "prime_chunk",
+      "order": 3,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.03.md",
+      "sha256": "591b2085cf349205f1572258ba7d384789af3672f385fcc3c6a7c137d4f7a362",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_03_Response_Completeness_Tools_And_Command_Pacing.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "591b2085cf349205f1572258ba7d384789af3672f385fcc3c6a7c137d4f7a362"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.04",
+      "kind": "prime_chunk",
+      "order": 4,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.04.md",
+      "sha256": "43aff2e5e176c13b27733cc83b7009169eaebcb72113d40f62c273c672abaea6",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_04_Source_Labeling_Provenance_And_Evidence_Map.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "43aff2e5e176c13b27733cc83b7009169eaebcb72113d40f62c273c672abaea6"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.05",
+      "kind": "prime_chunk",
+      "order": 5,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.05.md",
+      "sha256": "0adee5c3476aa0437bede2035d5ddab5b6ff5f1ba3577feda2c12599f8dae58a",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_05_Query_Objectives_Field_Discovery_And_Syntax_Guards.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "0adee5c3476aa0437bede2035d5ddab5b6ff5f1ba3577feda2c12599f8dae58a"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.06",
+      "kind": "prime_chunk",
+      "order": 6,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.06.md",
+      "sha256": "d06faac89de986d2140d7674e6f2b6448a95da95cd807eb5f6e1e603e507f5d9",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_06_Zero_Result_Retrieval_Misses_And_Web_Intel.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "d06faac89de986d2140d7674e6f2b6448a95da95cd807eb5f6e1e603e507f5d9"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.07",
+      "kind": "prime_chunk",
+      "order": 7,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.07.md",
+      "sha256": "318004f778305a3b1187765a5a51ae91c190ef315a82ec9afaa9a05294afe3a6",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_07_Containment_Conclusion_Alert_Family_And_Benign_Tuning.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "318004f778305a3b1187765a5a51ae91c190ef315a82ec9afaa9a05294afe3a6"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.08",
+      "kind": "prime_chunk",
+      "order": 8,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.08.md",
+      "sha256": "588b3b11feb95ca35192682d416a9128e4a51b1f4695d1f383bbf216f23225d0",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_08_Required_Response_Formats.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "588b3b11feb95ca35192682d416a9128e4a51b1f4695d1f383bbf216f23225d0"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.09",
+      "kind": "prime_chunk",
+      "order": 9,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.09.md",
+      "sha256": "d9524e86d637f8cf7c7994b0dfeadd8093034cdb5b1ee2573d1eeafefbec3155",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_09_Investigation_Workflow.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "d9524e86d637f8cf7c7994b0dfeadd8093034cdb5b1ee2573d1eeafefbec3155"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.10",
+      "kind": "prime_chunk",
+      "order": 10,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.10.md",
+      "sha256": "ea40dafe369eade2b8590869f1c4029da1f12c8dbe7162e52f13dcb066e4732f",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_10_Tool_Rules.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "ea40dafe369eade2b8590869f1c4029da1f12c8dbe7162e52f13dcb066e4732f"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.11",
+      "kind": "prime_chunk",
+      "order": 11,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.11.md",
+      "sha256": "92df8cb7ddbb78f5d3571b686643916908b5fc8d18675818de881ff8a050a1d1",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_11_Analytic_Guardrails.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "92df8cb7ddbb78f5d3571b686643916908b5fc8d18675818de881ff8a050a1d1"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.12",
+      "kind": "prime_chunk",
+      "order": 12,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.12.md",
+      "sha256": "be169913f79b20a5d8835e8b00498165e622766c059fb162c5ebb8db4bb510c8",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_12_Schema_Environment_And_Data_Access.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "be169913f79b20a5d8835e8b00498165e622766c059fb162c5ebb8db4bb510c8"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.13",
+      "kind": "prime_chunk",
+      "order": 13,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.13.md",
+      "sha256": "2e10b17fa7b143fd4e50b51283ee3cd1ed57119c783b59684659a3c4e884c477",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_13_Data_Schema_And_Field_Reference.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "2e10b17fa7b143fd4e50b51283ee3cd1ed57119c783b59684659a3c4e884c477"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.14",
+      "kind": "prime_chunk",
+      "order": 14,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.14.md",
+      "sha256": "57c511cc2a11f5f022e25deb665e5ca84612639392701ea1a72bb02ab7482ea6",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_14_Known_Environment_Inventory.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "57c511cc2a11f5f022e25deb665e5ca84612639392701ea1a72bb02ab7482ea6"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.15",
+      "kind": "prime_chunk",
+      "order": 15,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.15.md",
+      "sha256": "015f08af347a61064a808ba05e3a94c4f5349b06ba5472c3df7705c7a18d84e5",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_15_Response_Behavior_And_Output_Contract.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "015f08af347a61064a808ba05e3a94c4f5349b06ba5472c3df7705c7a18d84e5"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.16",
+      "kind": "prime_chunk",
+      "order": 16,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md",
+      "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.17",
+      "kind": "prime_chunk",
+      "order": 17,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.17.md",
+      "sha256": "45e5f43498e6e3eeec37579a8717a71ec61c04a37a411277cef6b372cdecb676",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_17_DCOIR_Branch_Ownership_Collector_And_USB.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "45e5f43498e6e3eeec37579a8717a71ec61c04a37a411277cef6b372cdecb676"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.18",
+      "kind": "prime_chunk",
+      "order": 18,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.18.md",
+      "sha256": "45d506132e68365aa322259d7283439560728ee3f210f999d87723f2811fe1b5",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_18_IOC_Parsing_Public_Enrichment_And_Mixed_Format_Input.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "45d506132e68365aa322259d7283439560728ee3f210f999d87723f2811fe1b5"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.19",
+      "kind": "prime_chunk",
+      "order": 19,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.19.md",
+      "sha256": "b6dd561b3596c6975aba78a1b5358e83ae249fb984203ce2755782c530890735",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_19_Host_Network_Forensics_And_IR_Discipline.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "b6dd561b3596c6975aba78a1b5358e83ae249fb984203ce2755782c530890735"
+        }
+      }
+    },
+    {
+      "id": "prime.chunk.20",
+      "kind": "prime_chunk",
+      "order": 20,
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.20.md",
+      "sha256": "569f8b4a691b01c8e7a42133c81ac0ae27bc619ae64bc13a24f84a8f9ef4692a",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_20_Routing_Request_Coverage_Tool_Access_And_Memory.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "569f8b4a691b01c8e7a42133c81ac0ae27bc619ae64bc13a24f84a8f9ef4692a"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.01",
+      "kind": "specialist",
+      "order": 1,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.01.md",
+      "sha256": "ffe4906b5d4b9891142ca3af533d0a357c05ebb374c5e99e42b3a93dfec658de",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_01_Session_Readiness_and_Intake.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "ffe4906b5d4b9891142ca3af533d0a357c05ebb374c5e99e42b3a93dfec658de"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.02",
+      "kind": "specialist",
+      "order": 2,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.02.md",
+      "sha256": "4ee82729b228250a112e0fc791e819749489cffb03703725b2602450496d69b3",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_02_Environment_and_Coverage_Mapper.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "4ee82729b228250a112e0fc791e819749489cffb03703725b2602450496d69b3"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.03",
+      "kind": "specialist",
+      "order": 3,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.03.md",
+      "sha256": "70dbe49a4cfca9f7710dc75121d618768e69f2e7a692c7067ca53d028ca0dcb7",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_03_Alert_Family_Classifier_and_Known_Benign_Technology_Differentiator.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "70dbe49a4cfca9f7710dc75121d618768e69f2e7a692c7067ca53d028ca0dcb7"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.04",
+      "kind": "specialist",
+      "order": 4,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.04.md",
+      "sha256": "edb4246aa2e9037819feda0023580bb366ee7b9af603ce502264360f6a3040ba",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_04_Evidence_and_Provenance_Analyst.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "edb4246aa2e9037819feda0023580bb366ee7b9af603ce502264360f6a3040ba"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.05",
+      "kind": "specialist",
+      "order": 5,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.05.md",
+      "sha256": "441d47db3c94d9d93aa09365f34b921b9a1a355b8ecac1af86f4a1d4281d6473",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_05_Query_Planner_and_Syntax_Guard.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "441d47db3c94d9d93aa09365f34b921b9a1a355b8ecac1af86f4a1d4281d6473"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.06",
+      "kind": "specialist",
+      "order": 6,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.06.md",
+      "sha256": "4f25093422aca47b0ce7f651e12c067285ea8e28da15344701762d96687eb707",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_06_DCOIR_Collector_Execution_and_Bundle_Workflow_Orchestrator.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "4f25093422aca47b0ce7f651e12c067285ea8e28da15344701762d96687eb707"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.07",
+      "kind": "specialist",
+      "order": 7,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.07.md",
+      "sha256": "9f51fa66c3753e9046dbc3ed22bf4e5d1e614bce5338d16bcf833349a33996e8",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_07_DCOIR_Collector_Artifact_Interpreter_and_Report_Extractor.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "9f51fa66c3753e9046dbc3ed22bf4e5d1e614bce5338d16bcf833349a33996e8"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.08",
+      "kind": "specialist",
+      "order": 8,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.08.md",
+      "sha256": "bf57f8cb9bbf60bd1c23975b969ee4ea4266451be88b9bf5e14a2d0c7477608d",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_08_IOC_Parsing_and_Evidence_Grounded_Public_Enrichment_Planner.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "bf57f8cb9bbf60bd1c23975b969ee4ea4266451be88b9bf5e14a2d0c7477608d"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.09",
+      "kind": "specialist",
+      "order": 9,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.09.md",
+      "sha256": "d1c798f1656c621e3c4b81d0d347c8bc62b066ba0afbfb7533c3679ff0ec0325",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_09_Targeted_Collection_Designer_and_Evidence_Gap_Reducer.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "d1c798f1656c621e3c4b81d0d347c8bc62b066ba0afbfb7533c3679ff0ec0325"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.10",
+      "kind": "specialist",
+      "order": 10,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md",
+      "sha256": "11d587b19f12af39a63c76e80cdf497ed88e018fecb7a4de3ff9918a4e231413",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_10_Output_Contract_Consistency_Guard_and_Report_Composer.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "11d587b19f12af39a63c76e80cdf497ed88e018fecb7a4de3ff9918a4e231413"
+        }
+      }
+    },
+    {
+      "id": "sub_agent.11",
+      "kind": "specialist",
+      "order": 11,
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.11.md",
+      "sha256": "b072e9a7f557237d5f905110b1920d191639ea35fc651181f12ae332785edad3",
+      "projections": {
+        "gemini_dcoir_agent": {
+          "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_11_USB_Violations_Report_Composer.md.txt",
+          "projection_mode": "byte_identity",
+          "sha256": "b072e9a7f557237d5f905110b1920d191639ea35fc651181f12ae332785edad3"
+        }
+      }
+    }
+  ]
+}

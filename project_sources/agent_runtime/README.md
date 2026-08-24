@@ -5,12 +5,14 @@ This directory defines how one governed source set is projected into the current
 ## Authority
 
 - `Shared_Agent_Source_Manifest.json` is the machine-readable ownership, target, capability, projection, and reverse-reconciliation contract.
+- `Behavior_Module_Manifest.json` maps every canonical Prime chunk and specialist module to its generated Gemini adapter output and pins both sides by SHA-256.
 - `docs/Behavior_Ownership_Matrix.md` is the human-readable projection of that contract and must cover the same stable ids.
-- `project_sources/gemini/bundle_source/` remains the current canonical Gemini runtime source until later migration issues replace a specific ownership boundary.
+- `behavior_modules/` is the canonical editable source for the 21 Prime chunks and 11 specialist prompts.
+- The corresponding files under `project_sources/gemini/bundle_source/` are checked-in generated adapters. They remain present for the existing Gemini compiler and review workflow but are not canonical.
 - `knowledge/*.md` remains the canonical atomic knowledge source set.
 - Generated Gemini and OpenAI packages are never canonical source.
 
-This issue classifies existing behavior. It does not move or rewrite Prime chunks, sub-agent files, knowledge files, workflows, or deployed agent instructions.
+The extraction deliberately preserves the accepted Gemini prompt text byte-for-byte. Provider-neutral ownership does not imply that every current sentence is already suitable for OpenAI; later target compilers must apply the declared dispositions and capability boundaries.
 
 ## Targets
 
@@ -24,11 +26,17 @@ The OpenAI targets currently have no web search, Code Interpreter/Data Analysis,
 
 ## Edit Rules
 
-1. Edit canonical behavior or knowledge source, not a generated target package.
-2. Update the manifest and matrix when ownership, applicability, target capability, or projection membership changes.
-3. Rebuild every affected provider target.
-4. Validate source-map coverage, knowledge boundaries and hashes, output file budgets, and target capability truthfulness.
-5. Compare generated output with the approved target state before release.
+1. Edit a canonical file under `behavior_modules/` or `knowledge/`, not a generated target package.
+2. Update the manifests and matrix when ownership, applicability, target capability, topology, or projection membership changes.
+3. Refresh the module SHA-256 value after an intentional behavior edit.
+4. Materialize every affected provider adapter. For Gemini:
+
+   ```bash
+   python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --materialize
+   ```
+
+5. Validate source-map coverage, byte identity, knowledge boundaries and hashes, output file budgets, and target capability truthfulness.
+6. Compare generated output with the approved target state before release.
 
 A direct WebUI or Gemini target edit is a temporary hotfix. Record the exact edit, map it back to canonical source, update canonical source, rebuild every affected target, compare the generated result, and remove drift. Target-to-target copying is not synchronization.
 
@@ -49,10 +57,12 @@ From the repository root:
 ```bash
 python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py
 python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py
+python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check
+python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py
 ```
 
-The validator compares the shared contract with the live Gemini bundle and Prime chunk manifests. It fails on unmapped or duplicate Prime, specialist, or knowledge ownership; missing source paths without an explicit stale disposition; conflicting authority; generated artifacts marked canonical; unavailable OpenAI capability claims; projection-budget overflow; missing source-map or reverse-reconciliation metadata; duplicate ids; or manifest/matrix drift.
+The validators compare the shared contract, behavior-module manifest, checked-in Gemini adapters, live Gemini bundle manifest, and Prime chunk manifest. They fail on unmapped or duplicate Prime, specialist, or knowledge ownership; source/adapter hash or byte drift; path escape; topology disagreement; missing source paths without an explicit stale disposition; conflicting authority; generated artifacts marked canonical; unavailable OpenAI capability claims; projection-budget overflow; missing source-map or reverse-reconciliation metadata; duplicate ids; or manifest/matrix drift.
 
 ## Deferred Work
 
-Later issues will create provider-neutral behavior modules, Gemini adapters, the two OpenAI instruction bootstraps, consolidated knowledge projections, bundlers, target-specific validators, drift reports, and operator upload/reconciliation procedures. The seven stale `project_sources/PP-*` references are documented here but remain unchanged in the current Gemini manifest until a later implementation issue can replace and validate that authority safely.
+Later issues will create the two OpenAI instruction bootstraps, consolidated knowledge projections, unified bundlers, target-specific validators, drift reports, and operator upload/reconciliation procedures. The seven retired `project_sources/PP-*` references remain documented as historical drift evidence, but the live Gemini manifest now points to the shared source and module contracts.
