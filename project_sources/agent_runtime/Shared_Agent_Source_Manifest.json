@@ -1,0 +1,2920 @@
+{
+  "schema": "dcoir.agent_runtime.source_contract.v1",
+  "source_contract_version": "1.0.0",
+  "canonical_repository": "malwaredevil/dcoir-collector",
+  "canonical_source_roots": {
+    "shared_contract": "project_sources/agent_runtime",
+    "gemini_source": "project_sources/gemini",
+    "gemini_runtime": "project_sources/gemini/bundle_source",
+    "knowledge": "knowledge"
+  },
+  "generated_artifact_policy": {
+    "generated_outputs_are_canonical": false,
+    "direct_target_hotfix_allowed": true,
+    "reverse_reconciliation_required": true,
+    "reconciliation_rule": "Record the exact target edit, map it to canonical source, update canonical source, rebuild every affected target, compare generated output, and remove target drift before release."
+  },
+  "target_ids": [
+    "gemini_dcoir_agent",
+    "openai_dcoir_analyst",
+    "openai_usb_reporting"
+  ],
+  "targets": [
+    {
+      "id": "gemini_dcoir_agent",
+      "output_owner": "project_sources/gemini bundle compiler",
+      "provider": "google_gemini_enterprise",
+      "runtime_model": "runtime_managed",
+      "instruction_mode": "prime_plus_sub_agents",
+      "knowledge_mode": "direct_canonical_attachments",
+      "capabilities": {
+        "web_search": false,
+        "code_interpreter_data_analysis": false,
+        "canvas": false,
+        "image_generation": false,
+        "apps": false,
+        "actions": false,
+        "live_elastic_access": false,
+        "live_collector_execution": false,
+        "github_supabase_connectors": false,
+        "persistent_cross_conversation_memory": false
+      },
+      "runtime_dependent_capabilities": [
+        "web_search",
+        "enterprise_grounding",
+        "tool_execution"
+      ],
+      "generated_outputs": [
+        "Gemini bundle ZIP",
+        "generated Prime runtime",
+        "generated attachment set"
+      ]
+    },
+    {
+      "id": "openai_dcoir_analyst",
+      "output_owner": "future OpenAI DCOIR package compiler",
+      "provider": "openai_webui_bedrock_hosted",
+      "runtime_model": "GPT-5.4",
+      "instruction_mode": "static_instructions",
+      "knowledge_mode": "static_knowledge",
+      "capabilities": {
+        "web_search": false,
+        "code_interpreter_data_analysis": false,
+        "canvas": false,
+        "image_generation": false,
+        "apps": false,
+        "actions": false,
+        "live_elastic_access": false,
+        "live_collector_execution": false,
+        "github_supabase_connectors": false,
+        "persistent_cross_conversation_memory": false
+      },
+      "runtime_dependent_capabilities": [],
+      "optional_future_capabilities": {
+        "public_lookup": {
+          "current_available": false,
+          "enable_only_after_operator_evidence": true
+        }
+      },
+      "generated_outputs": [
+        "OpenAI DCOIR Analyst upload package"
+      ]
+    },
+    {
+      "id": "openai_usb_reporting",
+      "output_owner": "future OpenAI USB package compiler",
+      "provider": "openai_webui_bedrock_hosted",
+      "runtime_model": "GPT-5.4",
+      "instruction_mode": "static_instructions",
+      "knowledge_mode": "static_knowledge",
+      "capabilities": {
+        "web_search": false,
+        "code_interpreter_data_analysis": false,
+        "canvas": false,
+        "image_generation": false,
+        "apps": false,
+        "actions": false,
+        "live_elastic_access": false,
+        "live_collector_execution": false,
+        "github_supabase_connectors": false,
+        "persistent_cross_conversation_memory": false
+      },
+      "runtime_dependent_capabilities": [],
+      "optional_future_capabilities": {
+        "public_lookup": {
+          "current_available": false,
+          "enable_only_after_operator_evidence": true
+        }
+      },
+      "generated_outputs": [
+        "OpenAI USB Reporting upload package"
+      ]
+    }
+  ],
+  "provider_adapters": [
+    {
+      "id": "adapter.gemini",
+      "owner": "project_sources/gemini",
+      "purpose": "Preserve Prime/sub-agent topology and Gemini bundle mechanics."
+    },
+    {
+      "id": "adapter.openai_dcoir",
+      "owner": "future compiler issue",
+      "purpose": "Flatten applicable shared behavior into short bootstrap instructions and consolidated knowledge."
+    },
+    {
+      "id": "adapter.openai_usb",
+      "owner": "future compiler issue",
+      "purpose": "Isolate USB reporting behavior and its minimal knowledge projection."
+    }
+  ],
+  "knowledge_projection_policy": {
+    "strict_file_count_ceiling": 20,
+    "count_unit": "unique_projection_groups_per_target",
+    "lossless_source_boundaries_required": true,
+    "per_source_sha256_required": true
+  },
+  "knowledge_projection_groups": [
+    {
+      "id": "dcoir_core",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "Core role, FAQ, and shared output behavior."
+    },
+    {
+      "id": "dcoir_elastic_ops",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "Elastic quick-start operations."
+    },
+    {
+      "id": "dcoir_collection",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "Collector runbooks, execution, features, and troubleshooting."
+    },
+    {
+      "id": "dcoir_artifacts",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "Artifact review and report interpretation."
+    },
+    {
+      "id": "dcoir_ioc_enrichment",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "Optional additive IOC enrichment from returned evidence."
+    },
+    {
+      "id": "dcoir_elastic_reference",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "Elastic field and response-action reference."
+    },
+    {
+      "id": "dcoir_osquery_reference",
+      "target_id": "openai_dcoir_analyst",
+      "purpose": "OSQuery table references."
+    },
+    {
+      "id": "usb_reporting_core",
+      "target_id": "openai_usb_reporting",
+      "purpose": "USB reporting role and output contract."
+    },
+    {
+      "id": "usb_query_reference",
+      "target_id": "openai_usb_reporting",
+      "purpose": "Minimal Elastic query and field reference for USB reports."
+    }
+  ],
+  "ioc_enrichment_contract": {
+    "behavior_source_ids": [
+      "prime.chunk.18",
+      "sub_agent.08"
+    ],
+    "case_grounded_indicators_only": true,
+    "returned_evidence_only_source_claims": true,
+    "successful_enrichment_is_additive": true,
+    "silent_omission_on_unavailable_or_failed_lookup": true,
+    "reputation_result_is_not_dispositive": true,
+    "approved_source_reference": "knowledge/Knowledge - Core - IOC Enrichment and Public Sources.md",
+    "openai_current_behavior": "Analyze operator-supplied returned source material; do not claim live lookup capability."
+  },
+  "behavior_items": [
+    {
+      "id": "prime.chunk.00",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_00_Agent_Metadata_Description.md.txt",
+      "source_section": "00",
+      "responsibility": "Defines the agent identity and description metadata.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.01",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_01_Identity_Surface_Boundaries_And_Truthfulness.md.txt",
+      "source_section": "01",
+      "responsibility": "Defines identity, capability boundaries, and truthful action language.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.02",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_02_Readiness_Startup_And_Branch_Gating.md.txt",
+      "source_section": "02",
+      "responsibility": "Controls intake readiness and workflow branch selection.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.03",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_03_Response_Completeness_Tools_And_Command_Pacing.md.txt",
+      "source_section": "03",
+      "responsibility": "Requires complete responses and paced operator commands.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.04",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_04_Source_Labeling_Provenance_And_Evidence_Map.md.txt",
+      "source_section": "04",
+      "responsibility": "Separates source facts, returned results, and analysis.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.05",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_05_Query_Objectives_Field_Discovery_And_Syntax_Guards.md.txt",
+      "source_section": "05",
+      "responsibility": "Governs evidence objectives, field discovery, and query syntax.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.06",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_06_Zero_Result_Retrieval_Misses_And_Web_Intel.md.txt",
+      "source_section": "06",
+      "responsibility": "Bounds negative results and optional public-source enrichment.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.07",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_07_Containment_Conclusion_Alert_Family_And_Benign_Tuning.md.txt",
+      "source_section": "07",
+      "responsibility": "Governs conclusions, containment, and benign-technology tuning.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.08",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_08_Required_Response_Formats.md.txt",
+      "source_section": "08",
+      "responsibility": "Defines required analyst-facing response structures.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.09",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_09_Investigation_Workflow.md.txt",
+      "source_section": "09",
+      "responsibility": "Defines the evidence-first investigation sequence.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.10",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_10_Tool_Rules.md.txt",
+      "source_section": "10",
+      "responsibility": "Constrains tool claims and operator-facing tool guidance.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.11",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_11_Analytic_Guardrails.md.txt",
+      "source_section": "11",
+      "responsibility": "Defines uncertainty, evidence, and conclusion guardrails.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.12",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_12_Schema_Environment_And_Data_Access.md.txt",
+      "source_section": "12",
+      "responsibility": "Separates known schema and access from assumptions.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.13",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_13_Data_Schema_And_Field_Reference.md.txt",
+      "source_section": "13",
+      "responsibility": "Routes field and schema guidance to maintained references.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.14",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_14_Known_Environment_Inventory.md.txt",
+      "source_section": "14",
+      "responsibility": "Bounds environment-specific facts to maintained evidence.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.15",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_15_Response_Behavior_And_Output_Contract.md.txt",
+      "source_section": "15",
+      "responsibility": "Defines response composition and output consistency.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.16",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
+      "source_section": "16",
+      "responsibility": "Defines Gemini Prime-to-sub-agent orchestration semantics.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Gemini orchestration mechanics do not transfer to a single WebUI GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.17",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_17_DCOIR_Branch_Ownership_Collector_And_USB.md.txt",
+      "source_section": "17",
+      "responsibility": "Separates collector, analyst, and USB reporting ownership.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.18",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_18_IOC_Parsing_Public_Enrichment_And_Mixed_Format_Input.md.txt",
+      "source_section": "18",
+      "responsibility": "Parses indicators and gates additive public enrichment.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.19",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_19_Host_Network_Forensics_And_IR_Discipline.md.txt",
+      "source_section": "19",
+      "responsibility": "Applies evidence-first host and network forensics discipline.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not needed for the isolated USB reporting target."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "prime.chunk.20",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_20_Routing_Request_Coverage_Tool_Access_And_Memory.md.txt",
+      "source_section": "20",
+      "responsibility": "Governs request coverage, routing, tool access, and memory limits.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "compile",
+          "owner": "gemini_prime_orchestrator",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Preserve current ordered Prime behavior."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "adapt",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Flatten behavior into static Instructions and governed knowledge projections."
+        },
+        "openai_usb_reporting": {
+          "mode": "adapt",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Retain only the USB-reporting-relevant portion."
+        }
+      },
+      "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
+      "downstream_dependencies": [
+        "gemini prime reassembly",
+        "provider-specific instruction compilers"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_capability"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.01",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_01_Session_Readiness_and_Intake.md.txt",
+      "source_section": "01",
+      "responsibility": "Owns intake validation, readiness, and first-turn gating.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_01",
+          "generated_output": "Sub_Agent_01_Session_Readiness_and_Intake.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.02",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_02_Environment_and_Coverage_Mapper.md.txt",
+      "source_section": "02",
+      "responsibility": "Maps data coverage, environment facts, and blind spots.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_02",
+          "generated_output": "Sub_Agent_02_Environment_and_Coverage_Mapper.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.03",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_03_Alert_Family_Classifier_and_Known_Benign_Technology_Differentiator.md.txt",
+      "source_section": "03",
+      "responsibility": "Classifies alert families and differentiates known benign technology.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_03",
+          "generated_output": "Sub_Agent_03_Alert_Family_Classifier_and_Known_Benign_Technology_Differentiator.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.04",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_04_Evidence_and_Provenance_Analyst.md.txt",
+      "source_section": "04",
+      "responsibility": "Separates evidence, provenance, inference, and unknowns.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_04",
+          "generated_output": "Sub_Agent_04_Evidence_and_Provenance_Analyst.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.05",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_05_Query_Planner_and_Syntax_Guard.md.txt",
+      "source_section": "05",
+      "responsibility": "Designs bounded Elastic and OSQuery pivots with syntax safeguards.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_05",
+          "generated_output": "Sub_Agent_05_Query_Planner_and_Syntax_Guard.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.06",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_06_DCOIR_Collector_Execution_and_Bundle_Workflow_Orchestrator.md.txt",
+      "source_section": "06",
+      "responsibility": "Guides collector execution and bundle workflow state.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_06",
+          "generated_output": "Sub_Agent_06_DCOIR_Collector_Execution_and_Bundle_Workflow_Orchestrator.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.07",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_07_DCOIR_Collector_Artifact_Interpreter_and_Report_Extractor.md.txt",
+      "source_section": "07",
+      "responsibility": "Interprets collector artifacts and extracts report evidence.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_07",
+          "generated_output": "Sub_Agent_07_DCOIR_Collector_Artifact_Interpreter_and_Report_Extractor.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.08",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_08_IOC_Parsing_and_Evidence_Grounded_Public_Enrichment_Planner.md.txt",
+      "source_section": "08",
+      "responsibility": "Parses indicators and plans optional returned-evidence enrichment.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_08",
+          "generated_output": "Sub_Agent_08_IOC_Parsing_and_Evidence_Grounded_Public_Enrichment_Planner.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.09",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_09_Targeted_Collection_Designer_and_Evidence_Gap_Reducer.md.txt",
+      "source_section": "09",
+      "responsibility": "Designs targeted follow-up collection to reduce material gaps.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_09",
+          "generated_output": "Sub_Agent_09_Targeted_Collection_Designer_and_Evidence_Gap_Reducer.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Not part of the isolated USB reporting workflow."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.10",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_10_Output_Contract_Consistency_Guard_and_Report_Composer.md.txt",
+      "source_section": "10",
+      "responsibility": "Composes consistent analyst-facing conclusions and reports.",
+      "content_class": "shared_behavior_source",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_10",
+          "generated_output": "Sub_Agent_10_Output_Contract_Consistency_Guard_and_Report_Composer.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "flatten",
+          "owner": "openai_dcoir_bootstrap",
+          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
+        },
+        "openai_usb_reporting": {
+          "mode": "flatten",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Compile reporting and output-contract behavior into the USB GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "sub_agent.11",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_11_USB_Violations_Report_Composer.md.txt",
+      "source_section": "11",
+      "responsibility": "Owns the separately gated weekly USB violations reporting workflow.",
+      "content_class": "workflow_specific_behavior",
+      "authority_class": "canonical_runtime_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_usb_reporting"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "direct",
+          "owner": "gemini_sub_agent_11",
+          "generated_output": "Sub_Agent_11_USB_Violations_Report_Composer.md.txt",
+          "notes": "Preserve the existing Gemini specialist file."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "USB reporting remains isolated in the second GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "flatten",
+          "owner": "openai_usb_bootstrap",
+          "generated_output": "openai/usb_reporting/Instructions.md",
+          "notes": "Compile reporting and output-contract behavior into the USB GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
+      "downstream_dependencies": [
+        "gemini topology manifest",
+        "provider behavior compiler"
+      ],
+      "validation_classes": [
+        "source_contract",
+        "behavior_coverage",
+        "target_routing"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.bundle_manifest",
+      "source_path": "project_sources/gemini/bundle_source/Gemini_Bundle_Source_Manifest.json",
+      "source_section": "whole-file",
+      "responsibility": "Canonical Gemini bundle topology and attachment inventory.",
+      "content_class": "topology_manifest",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "Gemini_Bundle_Source_Manifest.json",
+          "notes": "Canonical Gemini bundle topology and attachment inventory."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.prime_chunk_manifest",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json",
+      "source_section": "whole-file",
+      "responsibility": "Canonical Prime chunk order and reassembly contract.",
+      "content_class": "topology_manifest",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json",
+          "notes": "Canonical Prime chunk order and reassembly contract."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.generated_index",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Generated_DCOIR_Gemini_Agent_Index.md.txt",
+      "source_section": "whole-file",
+      "responsibility": "Generated Gemini agent index.",
+      "content_class": "generated_metadata",
+      "authority_class": "generated",
+      "canonical": false,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "generated",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Generated_DCOIR_Gemini_Agent_Index.md.txt",
+          "notes": "Generated Gemini agent index."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.attachment_map",
+      "source_path": "project_sources/gemini/bundle_source/00_START_HERE/Agent_Attachment_Map.md.txt",
+      "source_section": "whole-file",
+      "responsibility": "Gemini attachment placement map.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "00_START_HERE/Agent_Attachment_Map.md.txt",
+          "notes": "Gemini attachment placement map."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.quick_start",
+      "source_path": "project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt",
+      "source_section": "whole-file",
+      "responsibility": "Gemini build quick start.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "00_START_HERE/Gemini_Build_Quick_Start.md.txt",
+          "notes": "Gemini build quick start."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.readme_first",
+      "source_path": "project_sources/gemini/bundle_source/00_START_HERE/README_FIRST.md.txt",
+      "source_section": "whole-file",
+      "responsibility": "Bundle entry-point guidance.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "00_START_HERE/README_FIRST.md.txt",
+          "notes": "Bundle entry-point guidance."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.bundle_readme",
+      "source_path": "project_sources/gemini/bundle_source/README.md",
+      "source_section": "whole-file",
+      "responsibility": "Gemini source and generated-artifact boundary.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "README.md",
+          "notes": "Gemini source and generated-artifact boundary."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.lane_readme",
+      "source_path": "project_sources/gemini/README.md",
+      "source_section": "whole-file",
+      "responsibility": "Gemini lane and retired prompt-pack statement.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "project_sources/gemini/README.md",
+          "notes": "Gemini lane and retired prompt-pack statement."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.compile_strategy",
+      "source_path": "project_sources/gemini/docs/DOC-10_DCOIR_Gemini_Stored_Source_And_Compile_Strategy_v1_0_0.txt",
+      "source_section": "whole-file",
+      "responsibility": "Stored-source compile strategy.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "project_sources/gemini/docs/DOC-10_DCOIR_Gemini_Stored_Source_And_Compile_Strategy_v1_0_0.txt",
+          "notes": "Stored-source compile strategy."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.topology.creation_pipeline",
+      "source_path": "project_sources/gemini/docs/DOC-11_DCOIR_Gemini_Creation_Pipeline_v1_0_0.txt",
+      "source_section": "whole-file",
+      "responsibility": "Gemini creation pipeline.",
+      "content_class": "maintainer_guidance",
+      "authority_class": "canonical_maintainer_source",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "metadata",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "project_sources/gemini/docs/DOC-11_DCOIR_Gemini_Creation_Pipeline_v1_0_0.txt",
+          "notes": "Gemini creation pipeline."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    },
+    {
+      "id": "gemini.runtime.generated_prime",
+      "source_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+      "source_section": "whole-file",
+      "responsibility": "Generated Prime runtime output assembled from chunks.",
+      "content_class": "generated_runtime_artifact",
+      "authority_class": "generated",
+      "canonical": false,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "target_dispositions": {
+        "gemini_dcoir_agent": {
+          "mode": "generated",
+          "owner": "gemini_bundle_pipeline",
+          "generated_output": "01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt",
+          "notes": "Generated Prime runtime output assembled from chunks."
+        },
+        "openai_dcoir_analyst": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        },
+        "openai_usb_reporting": {
+          "mode": "reference_only",
+          "owner": "shared_source_contract",
+          "generated_output": null,
+          "notes": "May inform compiler design but is not attached to the GPT."
+        }
+      },
+      "provider_specific_differences": "Gemini topology files remain provider-specific and do not become OpenAI knowledge attachments.",
+      "downstream_dependencies": [
+        "gemini bundle compiler",
+        "source contract validator"
+      ],
+      "validation_classes": [
+        "topology_accounting",
+        "generated_artifact_boundary"
+      ],
+      "source_map_required": true,
+      "reverse_reconciliation_required": true,
+      "unresolved_operator_decision": null
+    }
+  ],
+  "knowledge_items": [
+    {
+      "id": "knowledge.collector.exe_runtime",
+      "source_path": "knowledge/Knowledge - Collector - EXE Usage and Runtime Behavior.md",
+      "source_git_blob_sha": "4923d9ec8b9cb6ddb9d772bc9f5a83041fb99be3",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.collector.feature_contract",
+      "source_path": "knowledge/Knowledge - Collector - Feature and Output Contract Reference.md",
+      "source_git_blob_sha": "5908fba9335c787bd35e38c8df08ced6a15ae452",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.collector.local_test",
+      "source_path": "knowledge/Knowledge - Collector - Local Test and Regression.md",
+      "source_git_blob_sha": "5d8ea9049bf70c14e0fc6a888b42ff5c4450de25",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.artifact_review",
+      "source_path": "knowledge/Knowledge - Core - Artifact Review Guide.md",
+      "source_git_blob_sha": "62597c9825e018ceae39693c93544a3052d012c1",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_artifacts",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.elastic_quick_start",
+      "source_path": "knowledge/Knowledge - Core - Elastic Quick Start.md",
+      "source_git_blob_sha": "c79e681fc694dfa3cbf19a2d7a0d9d3be765d0c5",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_elastic_ops",
+      "openai_usb_projection_group": "usb_query_reference",
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.enrichment_actions",
+      "source_path": "knowledge/Knowledge - Core - Enrichment Actions.md",
+      "source_git_blob_sha": "1619a2ec86e347ed668f8258794a8ebef1c36212",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.faq",
+      "source_path": "knowledge/Knowledge - Core - FAQ.md",
+      "source_git_blob_sha": "1772e022d8e9009ae77c7c9f76fb2aeb90829cf6",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_core",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.ioc_public_sources",
+      "source_path": "knowledge/Knowledge - Core - IOC Enrichment and Public Sources.md",
+      "source_git_blob_sha": "751a62c2d3d5dd1cf5023df0b5fe42fc15050ee9",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_ioc_enrichment",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.overview",
+      "source_path": "knowledge/Knowledge - Core - Overview and About.md",
+      "source_git_blob_sha": "88a95d467a8a5272389eddeb8d2c065c9efc2c1b",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_core",
+      "openai_usb_projection_group": "usb_reporting_core",
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.tier1_runbook",
+      "source_path": "knowledge/Knowledge - Core - Tier 1 Collect Runbook.md",
+      "source_git_blob_sha": "d9b4b7b5f2983d753795856a324ed923615b8d86",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.tier2_runbook",
+      "source_path": "knowledge/Knowledge - Core - Tier 2 Collect Runbook.md",
+      "source_git_blob_sha": "283d47ff789c0fa3bb1678e2e6350b32f01a3876",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.core.troubleshooting",
+      "source_path": "knowledge/Knowledge - Core - Troubleshooting.md",
+      "source_git_blob_sha": "8b4883b49a38edb484d0d81e5bbb4d5b2db9d0ae",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_collection",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.gemini.ai_design",
+      "source_path": "knowledge/Knowledge - Gemini - AI Prompt and Agent Design.md",
+      "source_git_blob_sha": "840f353ea262ea940ba788cd858a979bcec93a31",
+      "content_class": "maintainer_only",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": null,
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.gemini.topology_routing",
+      "source_path": "knowledge/Knowledge - Gemini - Agent Topology and Routing.md",
+      "source_git_blob_sha": "be0598a285cab440a795a4b23bd04a17c359b4b9",
+      "content_class": "maintainer_only",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": null,
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.gemini.output_contract",
+      "source_path": "knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md",
+      "source_git_blob_sha": "816bc4a268ddb0d0d5a311484aebd5961e733803",
+      "content_class": "split",
+      "canonical": true,
+      "split_disposition": "Shared output rules project to OpenAI; Gemini command-lane and topology guidance stays provider-specific.",
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_core",
+      "openai_usb_projection_group": "usb_reporting_core",
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.gemini.runtime_bundle",
+      "source_path": "knowledge/Knowledge - Gemini - Runtime Bundle and Source Tree.md",
+      "source_git_blob_sha": "4ce338e2eeea5484d32ef743ea6b255948d7bb0f",
+      "content_class": "maintainer_only",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": null,
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.elastic_fields",
+      "source_path": "knowledge/Knowledge - Reference - Elastic Field Name Reference.md",
+      "source_git_blob_sha": "3efc596d1656253135b409018a7973e845bc30df",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst",
+        "openai_usb_reporting"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_elastic_reference",
+      "openai_usb_projection_group": "usb_query_reference",
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.elastic_actions",
+      "source_path": "knowledge/Knowledge - Reference - Elastic Response Actions Reference.md",
+      "source_git_blob_sha": "bd0ec9761e7afcb1a2fcd7bcae714e8f72de9d2e",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_elastic_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_applications",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Application, Package, and Extension Tables.md",
+      "source_git_blob_sha": "c4b7e2e5deb33d46e2d1cce3dd109389e88f12df",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_files",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery File and Filesystem Tables.md",
+      "source_git_blob_sha": "41141984badf6a4c448d9261c6b447b00a6c8ad0",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_network",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Network and Connection Tables.md",
+      "source_git_blob_sha": "e511b14ea36c20e36b4c4198dae8c3f6e499957d",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_persistence",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Persistence and Startup Tables.md",
+      "source_git_blob_sha": "92790c3e5162918239a246365dfa11d96d562ff8",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_process",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Process and Execution Tables.md",
+      "source_git_blob_sha": "18786bbeb6fbd0ae670087765cf39b6dbc4972b8",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_index",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Reference Index.md",
+      "source_git_blob_sha": "3d8bdba87f602e4feb7c59d5e24a691086fc2a1e",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_security",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Security, Detection, and Event Tables.md",
+      "source_git_blob_sha": "ff35f8dffc93481c6ea34422f4630afb3b0d0cab",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_system",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery System, Hardware, and Platform Tables.md",
+      "source_git_blob_sha": "8fb2e8eb598648319152037ef25b4039871a19d0",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_users",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery User, Auth, and Account Tables.md",
+      "source_git_blob_sha": "986a8180bdbb9cbb9ab2fc872cf21057ce641279",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    },
+    {
+      "id": "knowledge.reference.osquery_virtualization",
+      "source_path": "knowledge/Knowledge - Reference - OSQuery Virtualization, Cloud, and Container Tables.md",
+      "source_git_blob_sha": "377d96d18442988b90892a9f41425dc71f12b271",
+      "content_class": "runtime_reference",
+      "canonical": true,
+      "split_disposition": null,
+      "applies_to": [
+        "gemini_dcoir_agent",
+        "openai_dcoir_analyst"
+      ],
+      "gemini_attachment_disposition": "include_direct_from_canonical_source",
+      "openai_dcoir_projection_group": "dcoir_osquery_reference",
+      "openai_usb_projection_group": null,
+      "source_boundary_hash_required": true,
+      "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
+      "consolidation_validation": [
+        "ordered_source_map",
+        "sha256_per_source",
+        "lossless_content_check",
+        "projection_file_count"
+      ]
+    }
+  ],
+  "stale_source_references": [
+    {
+      "id": "stale.pp_01",
+      "source_path": "project_sources/PP-01_System_Prompt_v1_0_1.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    },
+    {
+      "id": "stale.pp_02",
+      "source_path": "project_sources/PP-02_Output_Schema_v1_0_0.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    },
+    {
+      "id": "stale.pp_03",
+      "source_path": "project_sources/PP-03_Baseline_Triage_Prompt_v1_0_0.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    },
+    {
+      "id": "stale.pp_04",
+      "source_path": "project_sources/PP-04_Enrichment_Review_Prompt_v0_1_1.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    },
+    {
+      "id": "stale.pp_05",
+      "source_path": "project_sources/PP-05_Retrieved_Artifact_Review_Prompt_v0_1_1.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    },
+    {
+      "id": "stale.pp_06",
+      "source_path": "project_sources/PP-06_Final_Case_Synthesis_Prompt_v0_1_1.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    },
+    {
+      "id": "stale.pp_07",
+      "source_path": "project_sources/PP-07_Agent_Guardrails_v1_0_0.txt",
+      "status": "missing_retired_reference",
+      "live_evidence": "Path returns 404 on main while project_sources/gemini/README.md states legacy prompt-pack surfaces were retired.",
+      "replacement_authority": "Current Gemini Prime chunks and sub-agent files, classified by this shared source contract.",
+      "runtime_cleanup": "Deferred until a later implementation issue generates and validates the replacement authority."
+    }
+  ],
+  "validation_scenario_ids": [
+    "source_inventory_coverage",
+    "authority_class_consistency",
+    "target_capability_truthfulness",
+    "knowledge_projection_budget",
+    "source_map_and_reverse_reconciliation",
+    "manifest_matrix_parity"
+  ]
+}
