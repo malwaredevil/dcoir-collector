@@ -125,7 +125,6 @@ jobs:
         run: |
           set -euo pipefail
           debug_dir="${DCOIR_REVIEW_DEBUG_ARTIFACT_DIR:-dcoir-review-debug}"
-          mkdir -p "$debug_dir/metadata"
 
           set +e
           python -u .github/dcoir_review/scripts/openrouter_pr_review_entrypoint.py
@@ -133,6 +132,7 @@ jobs:
           set -e
 
           if [[ "$review_exit_code" -ne 0 ]]; then
+            mkdir -p "$debug_dir/metadata"
             printf '%s\n' \
               '{' \
               '  "schema_version": "dcoir_review_terminal_failure_v1",' \
