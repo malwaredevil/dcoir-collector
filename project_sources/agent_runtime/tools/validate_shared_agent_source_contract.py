@@ -74,6 +74,50 @@ MATRIX_ID_PREFIXES = {
     'knowledge': '<!-- contract-knowledge-id:',
     'stale': '<!-- contract-stale-id:',
 }
+MATRIX_SECTION_HEADERS = {
+    'Target Capability Boundary': [
+        'Target',
+        'Output owner',
+        'Instruction mode',
+        'Knowledge mode',
+        'Current live lookup',
+        'Current external actions',
+    ],
+    'Behavior Ownership': [
+        'Stable id',
+        'Source / section',
+        'Class',
+        'Gemini',
+        'OpenAI DCOIR',
+        'OpenAI USB',
+        'Responsibility',
+    ],
+    'Behavior Control Details': [
+        'Stable id',
+        'Applies to',
+        'Provider differences',
+        'Dependencies',
+        'Validation',
+        'Reverse sync',
+        'Decision',
+    ],
+    'Knowledge Disposition': [
+        'Stable id',
+        'Canonical source',
+        'Class',
+        'Gemini attachment',
+        'DCOIR projection',
+        'USB projection',
+        'Boundary/hash and overlap rule',
+    ],
+    'Stale Behavioral Authority References': [
+        'Stable id',
+        'Missing path',
+        'Status',
+        'Replacement authority',
+        'Runtime action',
+    ],
+}
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -92,21 +136,167 @@ def _duplicates(values: list[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
 
 
-def _matrix_ids(matrix_path: Path) -> dict[str, list[str]]:
+def _normalize_matrix_value(value: str) -> str:
+    return ' '.join(value.replace('`', '').split())
+
+
+def _markdown_cells(line: str) -> list[str] | None:
+    stripped = line.strip()
+    if not stripped.startswith('|') or not stripped.endswith('|'):
+        return None
+    values: list[str] = []
+    current: list[str] = []
+    escaped = False
+    for character in stripped[1:-1]:
+        if escaped:
+            if character != '|':
+                current.append('\\')
+            current.append(character)
+            escaped = False
+        elif character == '\\':
+            escaped = True
+        elif character == '|':
+            values.append(''.join(current))
+            current = []
+        else:
+            current.append(character)
+    if escaped:
+        current.append('\\')
+    values.append(''.join(current))
+    return [_normalize_matrix_value(value) for value in values]
+
+
+def _matrix_contract(
+    matrix_path: Path,
+) -> tuple[dict[str, list[str]], dict[str, list[dict[str, str]]], list[str]]:
     try:
         text = matrix_path.read_text(encoding='utf-8')
     except FileNotFoundError as exc:
         raise ValueError(f'Missing ownership matrix: {matrix_path}') from exc
     result: dict[str, list[str]] = {'behavior': [], 'knowledge': [], 'stale': []}
+    tables = {section: [] for section in MATRIX_SECTION_HEADERS}
+    active_section: str | None = None
+    observed_headers: set[str] = set()
+    parse_errors: list[str] = []
     for line in text.splitlines():
         marker = line.strip()
+        if marker.startswith('## '):
+            active_section = marker[3:].strip()
+            continue
         for kind, prefix in MATRIX_ID_PREFIXES.items():
             if marker.startswith(prefix) and marker.endswith(' -->'):
                 item_id = marker[len(prefix):-4].strip()
                 if item_id:
                     result[kind].append(item_id)
                 break
-    return result
+        cells = _markdown_cells(line)
+        if cells is None or active_section not in MATRIX_SECTION_HEADERS:
+            continue
+        expected_header = MATRIX_SECTION_HEADERS[active_section]
+        if cells == expected_header:
+            observed_headers.add(active_section)
+            continue
+        if all(cell and set(cell) <= {'-', ':'} for cell in cells):
+            continue
+        if active_section not in observed_headers:
+            parse_errors.append(f'Missing matrix table header: {active_section}')
+            continue
+        if len(cells) != len(expected_header):
+            parse_errors.append(
+                f'Matrix row in {active_section} has {len(cells)} cells; '
+                f'expected {len(expected_header)}'
+            )
+            continue
+        tables[active_section].append(dict(zip(expected_header, cells)))
+    for section in MATRIX_SECTION_HEADERS:
+        if section not in observed_headers:
+            parse_errors.append(f'Missing matrix table: {section}')
+    return result, tables, parse_errors
+
+
+def _compare_matrix_rows(
+    errors: list[str],
+    section: str,
+    expected_rows: list[dict[str, str]],
+    actual_rows: list[dict[str, str]],
+    key: str,
+) -> None:
+    expected_by_key = {row[key]: row for row in expected_rows}
+    actual_keys = [row.get(key, '') for row in actual_rows]
+    for duplicate in _duplicates(actual_keys):
+        errors.append(f'Duplicate matrix row in {section}: {duplicate}')
+    actual_by_key = {row.get(key, ''): row for row in actual_rows}
+    if set(actual_by_key) != set(expected_by_key):
+        missing = sorted(set(expected_by_key) - set(actual_by_key))
+        extra = sorted(set(actual_by_key) - set(expected_by_key))
+        errors.append(
+            f'Manifest/matrix {section} row disagreement; '
+            f'missing={missing or []}, extra={extra or []}'
+        )
+    for row_key in sorted(set(expected_by_key) & set(actual_by_key)):
+        expected = expected_by_key[row_key]
+        actual = actual_by_key[row_key]
+        for field, expected_value in expected.items():
+            normalized_expected = _normalize_matrix_value(expected_value)
+            if actual.get(field) != normalized_expected:
+                errors.append(
+                    f'Manifest/matrix {section} mismatch for {row_key} field '
+                    f'{field}: expected {normalized_expected!r}, '
+                    f'got {actual.get(field)!r}'
+                )
+
+
+def _approved_source_roots(
+    errors: list[str], manifest: dict[str, Any], repo_root: Path
+) -> list[Path]:
+    declared = manifest.get('canonical_source_roots')
+    if not isinstance(declared, dict) or not declared:
+        errors.append('canonical_source_roots must be a non-empty object')
+        return []
+    resolved_repo = repo_root.resolve()
+    roots: list[Path] = []
+    for root_id, value in declared.items():
+        if not isinstance(value, str) or not value:
+            errors.append(f'Invalid canonical source root: {root_id}')
+            continue
+        relative = Path(value)
+        if relative.is_absolute() or '..' in relative.parts:
+            errors.append(f'Canonical source root must be repository-relative: {value}')
+            continue
+        candidate = (resolved_repo / relative).resolve()
+        if not candidate.is_relative_to(resolved_repo):
+            errors.append(f'Canonical source root escapes repository: {value}')
+            continue
+        roots.append(candidate)
+    return roots
+
+
+def _canonical_source_path(
+    errors: list[str],
+    repo_root: Path,
+    approved_roots: list[Path],
+    item_id: str,
+    source_path: str,
+) -> Path | None:
+    relative = Path(source_path)
+    if relative.is_absolute() or '..' in relative.parts:
+        errors.append(
+            f'Canonical source path must be repository-relative without traversal: '
+            f'{item_id}: {source_path}'
+        )
+        return None
+    resolved_repo = repo_root.resolve()
+    candidate = (resolved_repo / relative).resolve()
+    if not candidate.is_relative_to(resolved_repo):
+        errors.append(f'Canonical source path escapes repository: {item_id}: {source_path}')
+        return None
+    if not any(candidate.is_relative_to(root) for root in approved_roots):
+        errors.append(
+            f'Canonical source path is outside approved source roots: '
+            f'{item_id}: {source_path}'
+        )
+        return None
+    return candidate
 
 
 def _expected_inventory(
@@ -170,7 +360,7 @@ def validate_contract(
     errors: list[str] = []
     try:
         manifest = _load_json(manifest_path)
-        matrix_ids = _matrix_ids(matrix_path)
+        matrix_ids, matrix_tables, matrix_parse_errors = _matrix_contract(matrix_path)
         (
             expected_prime,
             expected_sub_agents,
@@ -184,6 +374,8 @@ def validate_contract(
         errors.append('Unsupported or missing source-contract schema')
     if not manifest.get('source_contract_version'):
         errors.append('Missing source_contract_version')
+    errors.extend(matrix_parse_errors)
+    approved_source_roots = _approved_source_roots(errors, manifest, repo_root)
 
     declared_target_ids = manifest.get('target_ids')
     targets = manifest.get('targets')
@@ -325,7 +517,14 @@ def validate_contract(
         if not isinstance(dispositions, dict) or set(dispositions) != EXPECTED_TARGET_IDS:
             errors.append(f'{item_id} must disposition all three targets')
         if isinstance(source_path, str) and item.get('canonical') is True:
-            if not (repo_root / source_path).is_file() and source_path not in stale_paths:
+            candidate = _canonical_source_path(
+                errors, repo_root, approved_source_roots, str(item_id), source_path
+            )
+            if (
+                candidate is not None
+                and not candidate.is_file()
+                and source_path not in stale_paths
+            ):
                 errors.append(f'Missing canonical source path without stale disposition: {source_path}')
 
     mapped_knowledge_paths: list[str] = []
@@ -373,7 +572,10 @@ def validate_contract(
             authority_by_path[source_path].append(
                 (str(item.get('content_class')), item.get('split_disposition'))
             )
-            if not (repo_root / source_path).is_file():
+            candidate = _canonical_source_path(
+                errors, repo_root, approved_source_roots, str(item_id), source_path
+            )
+            if candidate is not None and not candidate.is_file():
                 errors.append(f'Missing canonical knowledge source: {source_path}')
         if item.get('canonical') is not True:
             errors.append(f'Knowledge source must remain canonical: {item_id}')
@@ -458,6 +660,171 @@ def validate_contract(
                 f'Manifest/matrix {kind} id disagreement; '
                 f'missing={missing or []}, extra={extra or []}'
             )
+
+    target_rows = []
+    for target in targets:
+        if not isinstance(target, dict) or not isinstance(target.get('id'), str):
+            continue
+        runtime_dependent = target.get('runtime_dependent_capabilities', [])
+        capabilities = target.get('capabilities')
+        if not isinstance(capabilities, dict):
+            capabilities = {}
+        live_lookup = (
+            'Runtime-dependent; never assumed'
+            if isinstance(runtime_dependent, list) and 'web_search' in runtime_dependent
+            else 'Unavailable'
+        )
+        target_rows.append(
+            {
+                'Target': target['id'],
+                'Output owner': str(target.get('output_owner', '')),
+                'Instruction mode': str(target.get('instruction_mode', '')),
+                'Knowledge mode': str(target.get('knowledge_mode', '')),
+                'Current live lookup': live_lookup,
+                'Current external actions': (
+                    'Unavailable unless returned execution evidence exists'
+                    if capabilities.get('actions') is False
+                    else 'Available'
+                ),
+            }
+        )
+    _compare_matrix_rows(
+        errors,
+        'Target Capability Boundary',
+        target_rows,
+        matrix_tables['Target Capability Boundary'],
+        'Target',
+    )
+
+    behavior_rows = []
+    behavior_control_rows = []
+    for item in behaviors:
+        if not isinstance(item, dict) or not isinstance(item.get('id'), str):
+            continue
+        dispositions = item.get('target_dispositions', {})
+        if not isinstance(dispositions, dict):
+            dispositions = {}
+        target_modes = {}
+        for target_id in EXPECTED_TARGET_IDS:
+            target_disposition = dispositions.get(target_id)
+            target_modes[target_id] = (
+                target_disposition.get('mode', '')
+                if isinstance(target_disposition, dict)
+                else ''
+            )
+        applies_to = item.get('applies_to')
+        dependencies = item.get('downstream_dependencies')
+        validation_classes = item.get('validation_classes')
+        behavior_rows.append(
+            {
+                'Stable id': item['id'],
+                'Source / section': (
+                    f"{item.get('source_path', '')} / {item.get('source_section', '')}"
+                ),
+                'Class': str(item.get('content_class', '')),
+                'Gemini': str(target_modes['gemini_dcoir_agent']),
+                'OpenAI DCOIR': str(target_modes['openai_dcoir_analyst']),
+                'OpenAI USB': str(target_modes['openai_usb_reporting']),
+                'Responsibility': str(item.get('responsibility', '')),
+            }
+        )
+        behavior_control_rows.append(
+            {
+                'Stable id': item['id'],
+                'Applies to': ', '.join(
+                    applies_to if isinstance(applies_to, list) else []
+                ),
+                'Provider differences': str(
+                    item.get('provider_specific_differences', '')
+                ),
+                'Dependencies': '; '.join(
+                    dependencies if isinstance(dependencies, list) else []
+                ),
+                'Validation': '; '.join(
+                    validation_classes if isinstance(validation_classes, list) else []
+                ),
+                'Reverse sync': (
+                    'Required'
+                    if item.get('reverse_reconciliation_required') is True
+                    else 'Not required'
+                ),
+                'Decision': (
+                    'None'
+                    if item.get('unresolved_operator_decision') is None
+                    else str(item.get('unresolved_operator_decision'))
+                ),
+            }
+        )
+    _compare_matrix_rows(
+        errors,
+        'Behavior Ownership',
+        behavior_rows,
+        matrix_tables['Behavior Ownership'],
+        'Stable id',
+    )
+    _compare_matrix_rows(
+        errors,
+        'Behavior Control Details',
+        behavior_control_rows,
+        matrix_tables['Behavior Control Details'],
+        'Stable id',
+    )
+
+    knowledge_rows = []
+    for item in knowledge:
+        if not isinstance(item, dict) or not isinstance(item.get('id'), str):
+            continue
+        boundary_rule = (
+            'Preserve ordered source boundary and SHA-256; '
+            if item.get('source_boundary_hash_required') is True
+            else ''
+        ) + str(item.get('duplicate_or_overlap_notes', ''))
+        gemini_disposition = str(item.get('gemini_attachment_disposition', ''))
+        if gemini_disposition == 'include_direct_from_canonical_source':
+            gemini_disposition = 'include'
+        knowledge_rows.append(
+            {
+                'Stable id': item['id'],
+                'Canonical source': str(item.get('source_path', '')),
+                'Class': str(item.get('content_class', '')),
+                'Gemini attachment': gemini_disposition,
+                'DCOIR projection': str(
+                    item.get('openai_dcoir_projection_group') or 'excluded'
+                ),
+                'USB projection': str(
+                    item.get('openai_usb_projection_group') or 'excluded'
+                ),
+                'Boundary/hash and overlap rule': boundary_rule,
+            }
+        )
+    _compare_matrix_rows(
+        errors,
+        'Knowledge Disposition',
+        knowledge_rows,
+        matrix_tables['Knowledge Disposition'],
+        'Stable id',
+    )
+
+    stale_rows = []
+    for item in stale:
+        if not isinstance(item, dict) or not isinstance(item.get('id'), str):
+            continue
+        stale_rows.append(
+            {
+                'Stable id': item['id'],
+                'Missing path': str(item.get('source_path', '')),
+                'Status': str(item.get('status', '')),
+                'Replacement authority': str(item.get('replacement_authority', '')),
+                'Runtime action': str(item.get('runtime_cleanup', '')),
+            }
+        )
+    _compare_matrix_rows(
+        errors,
+        'Stale Behavioral Authority References',
+        stale_rows,
+        matrix_tables['Stale Behavioral Authority References'],
+        'Stable id',
+    )
 
     stats = {
         'targets': len(targets),
