@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import re
+import string
 import sys
 from collections import Counter
 from pathlib import Path
@@ -14,7 +14,7 @@ from typing import Any
 SCHEMA = 'dcoir.agent_runtime.behavior_modules.v1'
 TARGET_ID = 'gemini_dcoir_agent'
 MODULE_KINDS = {'prime_chunk', 'specialist'}
-SHA256_RE = re.compile(r'^[0-9a-f]{64}$')
+SHA256_CHARACTERS = frozenset(string.hexdigits.lower())
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -31,6 +31,15 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and set(value) <= SHA256_CHARACTERS
+        and value == value.lower()
+    )
 
 
 def _duplicates(values: list[str]) -> list[str]:
@@ -278,7 +287,7 @@ def validate_manifest(
             canonical_root,
         )
         declared_sha = module.get('sha256')
-        if not isinstance(declared_sha, str) or not SHA256_RE.fullmatch(declared_sha):
+        if not _is_sha256(declared_sha):
             errors.append(f'{module_id} has invalid sha256')
             declared_sha = ''
         source_bytes = b''
@@ -328,6 +337,7 @@ def validate_manifest(
                     'source_path': source_path,
                     'source_rel': module.get('source_path'),
                     'output_path': output_path,
+                    'output_root': output_root,
                     'output_rel': output_rel,
                     'sha256': declared_sha,
                     'source_bytes': source_bytes,
@@ -380,8 +390,16 @@ def execute(
     errors, entries, manifest = validate_manifest(repo_root, manifest_path, target_id)
     if not errors and action == 'materialize':
         for entry in entries:
-            entry['output_path'].parent.mkdir(parents=True, exist_ok=True)
-            entry['output_path'].write_bytes(entry['source_bytes'])
+            output_path = entry['output_path'].resolve()
+            output_root = entry['output_root'].resolve()
+            if not output_path.is_relative_to(output_root):
+                errors.append(
+                    f'Refusing to write outside target output root: '
+                    f'{entry["output_rel"]}'
+                )
+                continue
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_bytes(entry['source_bytes'])
 
     results = []
     if not errors:
@@ -426,6 +444,13 @@ def _default_repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
+def _validated_report_path(repo_root: Path, report_path: Path) -> Path:
+    candidate = report_path.resolve()
+    if not candidate.is_relative_to(repo_root.resolve()):
+        raise ValueError('Report path must remain inside the repository')
+    return candidate
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description='Materialize or verify generated provider behavior adapters.'
@@ -454,8 +479,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     rendered = json.dumps(report, indent=2) + '\n'
     if args.report:
-        args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(rendered, encoding='utf-8')
+        try:
+            report_path = _validated_report_path(args.repo_root, args.report)
+        except ValueError as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        report_path.write_text(rendered, encoding='utf-8')
     stream = sys.stdout if code == 0 else sys.stderr
     stream.write(rendered)
     return code

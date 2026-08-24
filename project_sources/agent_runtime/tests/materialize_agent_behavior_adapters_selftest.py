@@ -321,6 +321,13 @@ class BehaviorAdapterTests(unittest.TestCase):
             )
         )
 
+    def test_report_path_must_remain_inside_repository(self) -> None:
+        with self.assertRaisesRegex(ValueError, 'inside the repository'):
+            ADAPTER._validated_report_path(
+                self.repo_root,
+                self.repo_root.parent / 'outside-report.json',
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

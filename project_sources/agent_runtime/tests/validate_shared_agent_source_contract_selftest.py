@@ -316,10 +316,8 @@ class ContractFixture:
             json.dumps(
                 {
                     'behavioral_authority': [
-                        'project_sources/agent_runtime/'
-                        'Shared_Agent_Source_Manifest.json',
-                        'project_sources/agent_runtime/'
-                        'Behavior_Module_Manifest.json',
+                        'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
+                        'project_sources/agent_runtime/Behavior_Module_Manifest.json',
                     ],
                     'topology': {
                         'prime_agent_chunk_manifest': prime_rel.as_posix(),
