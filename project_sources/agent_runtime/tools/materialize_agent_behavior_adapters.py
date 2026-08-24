@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shutil
 import string
 import sys
 from collections import Counter
@@ -390,16 +391,19 @@ def execute(
     errors, entries, manifest = validate_manifest(repo_root, manifest_path, target_id)
     if not errors and action == 'materialize':
         for entry in entries:
-            output_path = entry['output_path'].resolve()
-            output_root = entry['output_root'].resolve()
-            if not output_path.is_relative_to(output_root):
-                errors.append(
-                    f'Refusing to write outside target output root: '
-                    f'{entry["output_rel"]}'
-                )
+            write_errors: list[str] = []
+            output_path = _resolve_repo_path(
+                repo_root,
+                entry['output_rel'],
+                f'{entry["id"]} materialize output',
+                write_errors,
+                entry['output_root'],
+            )
+            if output_path is None or write_errors:
+                errors.extend(write_errors)
                 continue
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_bytes(entry['source_bytes'])
+            shutil.copyfile(entry['source_path'], output_path)
 
     results = []
     if not errors:
@@ -444,13 +448,6 @@ def _default_repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _validated_report_path(repo_root: Path, report_path: Path) -> Path:
-    candidate = report_path.resolve()
-    if not candidate.is_relative_to(repo_root.resolve()):
-        raise ValueError('Report path must remain inside the repository')
-    return candidate
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description='Materialize or verify generated provider behavior adapters.'
@@ -467,7 +464,6 @@ def main(argv: list[str] | None = None) -> int:
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument('--check', action='store_true')
     action.add_argument('--materialize', action='store_true')
-    parser.add_argument('--report', type=Path)
     args = parser.parse_args(argv)
 
     selected_action = 'check' if args.check else 'materialize'
@@ -478,14 +474,6 @@ def main(argv: list[str] | None = None) -> int:
         selected_action,
     )
     rendered = json.dumps(report, indent=2) + '\n'
-    if args.report:
-        try:
-            report_path = _validated_report_path(args.repo_root, args.report)
-        except ValueError as exc:
-            print(str(exc), file=sys.stderr)
-            return 2
-        report_path.parent.mkdir(parents=True, exist_ok=True)
-        report_path.write_text(rendered, encoding='utf-8')
     stream = sys.stdout if code == 0 else sys.stderr
     stream.write(rendered)
     return code

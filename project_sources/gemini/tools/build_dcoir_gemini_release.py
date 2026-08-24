@@ -92,8 +92,6 @@ def main() -> int:
         '--target',
         'gemini_dcoir_agent',
         '--check',
-        '--report',
-        str(output_dir / 'materialize_agent_behavior_adapters_report.json'),
     ]
     adapter_proc = run_step(adapter_cmd)
     steps.append({
