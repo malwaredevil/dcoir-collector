@@ -6,8 +6,9 @@ Purpose
 - Keep future topology changes governed, reviewable, and repeatable.
 
 Current authority and source model
-- PP-01 through PP-07 remain design-time behavioral authority.
-- `project_sources/gemini/bundle_source/` remains the editable runtime source tree.
+- Shared behavior modules under `project_sources/agent_runtime/behavior_modules/` are canonical behavior authority.
+- `Behavior_Module_Manifest.json` maps those modules to checked-in Gemini adapter outputs with SHA-256 integrity.
+- `project_sources/gemini/bundle_source/` remains the Gemini topology and packaging tree; its Prime chunks and specialist files are generated adapters.
 - `Gemini_Bundle_Source_Manifest.json` remains the compile contract and now also carries the explicit topology contract.
 - Ordinary shipment remains validation plus compilation, not ad hoc regeneration.
 
@@ -21,33 +22,38 @@ Topology truth rules
 - Workflow required-surface validation must read Gemini bundle required files from the manifest rather than duplicating hardcoded sub-agent file lists.
 
 Required behavior when adding or removing sub-agents
-1. Edit the relevant runtime source files in `project_sources/gemini/bundle_source/`.
-2. Update the manifest topology section.
-3. Update `required_files` in the manifest.
-4. Update the generated index and quick-start guidance when the build instructions or topology changed.
-5. Re-run validation and build.
-6. Do not treat a new source file as active topology until the manifest and index both reflect it.
+1. Add or retire the canonical shared specialist module and its behavior-module mapping.
+2. Update the Gemini manifest topology section.
+3. Update `required_files` in the Gemini manifest.
+4. Materialize the Gemini adapter.
+5. Update the generated index and operator guidance when topology changed.
+6. Re-run adapter checks, validation, and build.
+7. Do not treat a new specialist as active topology until both shared mapping and Gemini topology reflect it.
 
 Workflow
 1. Confirm the current startup-pack-first operating contract and authority surfaces.
-2. Edit the affected source files in `project_sources/gemini/bundle_source/`.
-3. Update the manifest topology and required-file contract when the topology changed.
-4. Run `validate_dcoir_gemini_bundle.py`.
-5. Run `build_dcoir_gemini_release.py`.
-6. Review the workflow summary and uploaded build artifacts.
-7. Ship the compiled zip only after the validation path passes.
+2. Edit affected shared behavior modules.
+3. Refresh declared SHA-256 values and materialize generated Gemini adapters.
+4. Update the Gemini manifest topology and required-file contract when topology changed.
+5. Run `materialize_agent_behavior_adapters.py --check`.
+6. Run `validate_dcoir_gemini_bundle.py`.
+7. Run `build_dcoir_gemini_release.py`.
+8. Review the workflow summary and uploaded build artifacts.
+9. Ship the compiled zip only after the validation path passes.
 
 Hard rules
 - Do not let folder discovery silently replace the manifest as topology authority.
 - Do not add or remove sub-agents by file drop alone.
 - Do not let the workflow report a successful bundle when manifest topology and source-tree contents drift.
+- Do not let the release builder proceed when shared modules and checked-in Gemini adapters drift.
 - Keep the validation summary explicit enough that the operator can see the manifest-listed and discovered sub-agent counts.
 
 Recommended next move
 - Use the manifest-driven topology contract for the larger major-version Gemini runtime bundle, then validate the current manifest-listed sub-agent topology through the associated Actions workflow before tomorrow's functionality test.
 
 Prime-agent generated runtime topology note
-- The editable prime-agent source is now the ordered chunk set under `01_GEMINI_AGENT_BUILD/prime_agent_chunks/` plus `Prime_Agent_Chunks_Manifest.json`.
+- The editable Prime behavior is the ordered shared module set declared by `Behavior_Module_Manifest.json`.
+- The chunk set under `01_GEMINI_AGENT_BUILD/prime_agent_chunks/` is a checked-in generated adapter surface ordered by `Prime_Agent_Chunks_Manifest.json`.
 - `01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt` is a generated runtime artifact assembled from the chunk manifest before validation and compile.
 - The generated runtime prime-agent file must appear in the final Gemini Enterprise bundle as one coherent prompt file. Source-only chunk files and the chunk manifest must not ship in the final Gemini delivery ZIP.
 - Build and validation lanes must reassemble before judging the Gemini agent and must inspect the final ZIP for source-only leakage.

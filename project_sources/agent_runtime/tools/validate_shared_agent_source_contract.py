@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import Counter, defaultdict
@@ -352,6 +353,150 @@ def _check_exact_source_coverage(
             )
 
 
+def _behavior_module_inventory(
+    errors: list[str],
+    manifest: dict[str, Any],
+    repo_root: Path,
+    approved_source_roots: list[Path],
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    manifest_rel = manifest.get('behavior_module_manifest')
+    if not isinstance(manifest_rel, str) or not manifest_rel:
+        errors.append('Missing behavior_module_manifest')
+        return [], [], []
+    manifest_path = _canonical_source_path(
+        errors,
+        repo_root,
+        approved_source_roots,
+        'behavior_module_manifest',
+        manifest_rel,
+    )
+    if manifest_path is None:
+        return [], [], []
+    try:
+        module_manifest = _load_json(manifest_path)
+    except ValueError as exc:
+        errors.append(str(exc))
+        return [], [], []
+    if module_manifest.get('schema') != 'dcoir.agent_runtime.behavior_modules.v1':
+        errors.append('Unsupported behavior module manifest schema')
+    if module_manifest.get('source_contract') != manifest_path.parent.joinpath(
+        'Shared_Agent_Source_Manifest.json'
+    ).relative_to(repo_root).as_posix():
+        errors.append('Behavior module manifest points to the wrong shared source contract')
+    modules = module_manifest.get('modules')
+    if not isinstance(modules, list):
+        errors.append('Behavior module manifest modules must be an array')
+        return [], [], []
+
+    normalized: list[dict[str, Any]] = []
+    module_ids: list[str] = []
+    source_paths: list[str] = []
+    output_paths: list[str] = []
+    prime_outputs: list[str] = []
+    specialist_outputs: list[str] = []
+    canonical_root_value = module_manifest.get('canonical_behavior_root')
+    canonical_root = _canonical_source_path(
+        errors,
+        repo_root,
+        approved_source_roots,
+        'canonical_behavior_root',
+        canonical_root_value,
+    ) if isinstance(canonical_root_value, str) else None
+    if canonical_root is None:
+        errors.append('Behavior module manifest lacks a valid canonical_behavior_root')
+
+    for module in modules:
+        if not isinstance(module, dict):
+            errors.append('Behavior module manifest contains a non-object')
+            continue
+        module_id = module.get('id')
+        source_path = module.get('source_path')
+        kind = module.get('kind')
+        if not isinstance(module_id, str) or not module_id:
+            errors.append('Behavior module lacks an id')
+            continue
+        module_ids.append(module_id)
+        if not isinstance(source_path, str):
+            errors.append(f'{module_id} lacks a source_path')
+            continue
+        source_paths.append(source_path)
+        source_candidate = _canonical_source_path(
+            errors,
+            repo_root,
+            approved_source_roots,
+            module_id,
+            source_path,
+        )
+        if (
+            source_candidate is not None
+            and canonical_root is not None
+            and not source_candidate.is_relative_to(canonical_root)
+        ):
+            errors.append(f'{module_id} source is outside canonical_behavior_root')
+        declared_sha = module.get('sha256')
+        if source_candidate is not None and source_candidate.is_file():
+            actual_sha = hashlib.sha256(source_candidate.read_bytes()).hexdigest()
+            if declared_sha != actual_sha:
+                errors.append(
+                    f'{module_id} source sha256 mismatch: '
+                    f'expected {declared_sha}, got {actual_sha}'
+                )
+        else:
+            errors.append(f'Missing canonical behavior module source: {source_path}')
+
+        projections = module.get('projections')
+        projection = (
+            projections.get('gemini_dcoir_agent')
+            if isinstance(projections, dict)
+            else None
+        )
+        if not isinstance(projection, dict):
+            errors.append(f'{module_id} lacks a Gemini projection')
+            continue
+        output_path = projection.get('output_path')
+        if not isinstance(output_path, str):
+            errors.append(f'{module_id} lacks a Gemini output_path')
+            continue
+        output_paths.append(output_path)
+        output_candidate = _canonical_source_path(
+            errors,
+            repo_root,
+            approved_source_roots,
+            f'{module_id} Gemini output',
+            output_path,
+        )
+        if projection.get('projection_mode') != 'byte_identity':
+            errors.append(f'{module_id} Gemini projection is not byte_identity')
+        if projection.get('sha256') != declared_sha:
+            errors.append(f'{module_id} source and projection sha256 differ')
+        if (
+            source_candidate is not None
+            and source_candidate.is_file()
+            and output_candidate is not None
+            and output_candidate.is_file()
+            and source_candidate.read_bytes() != output_candidate.read_bytes()
+        ):
+            errors.append(f'{module_id} Gemini adapter output has drifted')
+        elif output_candidate is not None and not output_candidate.is_file():
+            errors.append(f'Missing Gemini behavior adapter output: {output_path}')
+        if kind == 'prime_chunk':
+            prime_outputs.append(output_path)
+        elif kind == 'specialist':
+            specialist_outputs.append(output_path)
+        else:
+            errors.append(f'{module_id} has unsupported behavior module kind: {kind}')
+        normalized.append(module)
+
+    for label, values in (
+        ('behavior module id', module_ids),
+        ('behavior module source', source_paths),
+        ('Gemini behavior adapter output', output_paths),
+    ):
+        for duplicate in _duplicates(values):
+            errors.append(f'Duplicate {label}: {duplicate}')
+    return normalized, prime_outputs, specialist_outputs
+
+
 def validate_contract(
     manifest_path: Path,
     matrix_path: Path,
@@ -365,7 +510,7 @@ def validate_contract(
             expected_prime,
             expected_sub_agents,
             expected_knowledge,
-            expected_stale,
+            expected_gemini_authority,
         ) = _expected_inventory(repo_root)
     except ValueError as exc:
         return [str(exc)], {}
@@ -376,6 +521,13 @@ def validate_contract(
         errors.append('Missing source_contract_version')
     errors.extend(matrix_parse_errors)
     approved_source_roots = _approved_source_roots(errors, manifest, repo_root)
+    (
+        behavior_modules,
+        mapped_prime_outputs,
+        mapped_specialist_outputs,
+    ) = _behavior_module_inventory(
+        errors, manifest, repo_root, approved_source_roots
+    )
 
     declared_target_ids = manifest.get('target_ids')
     targets = manifest.get('targets')
@@ -527,6 +679,37 @@ def validate_contract(
             ):
                 errors.append(f'Missing canonical source path without stale disposition: {source_path}')
 
+    behavior_by_id = {
+        item.get('id'): item
+        for item in behaviors
+        if isinstance(item, dict) and isinstance(item.get('id'), str)
+    }
+    module_ids = {
+        module.get('id')
+        for module in behavior_modules
+        if isinstance(module.get('id'), str)
+    }
+    expected_module_ids = {
+        item_id
+        for item_id in behavior_by_id
+        if item_id.startswith('prime.chunk.') or item_id.startswith('sub_agent.')
+    }
+    if module_ids != expected_module_ids:
+        errors.append(
+            'Behavior module/source-contract id disagreement; '
+            f'missing={sorted(expected_module_ids - module_ids)}, '
+            f'extra={sorted(module_ids - expected_module_ids)}'
+        )
+    for module in behavior_modules:
+        module_id = module.get('id')
+        behavior_item = behavior_by_id.get(module_id)
+        if behavior_item is None:
+            continue
+        if behavior_item.get('source_path') != module.get('source_path'):
+            errors.append(f'{module_id} source path disagrees with behavior module manifest')
+        if behavior_item.get('authority_class') != 'canonical_shared_behavior':
+            errors.append(f'{module_id} must use canonical_shared_behavior authority')
+
     mapped_knowledge_paths: list[str] = []
     group_by_id: dict[str, dict[str, Any]] = {}
     groups_by_target: dict[str, set[str]] = defaultdict(set)
@@ -632,10 +815,21 @@ def validate_contract(
                         f'IOC enrichment contract refers to unknown behavior id: {source_id}'
                     )
 
-    _check_exact_source_coverage(errors, expected_prime, mapped_behavior_paths, 'Prime')
-    _check_exact_source_coverage(errors, expected_sub_agents, mapped_behavior_paths, 'Sub-agent')
+    _check_exact_source_coverage(
+        errors, expected_prime, mapped_prime_outputs, 'Prime adapter'
+    )
+    _check_exact_source_coverage(
+        errors, expected_sub_agents, mapped_specialist_outputs, 'Sub-agent adapter'
+    )
     _check_exact_source_coverage(errors, expected_knowledge, mapped_knowledge_paths, 'Knowledge')
-    _check_exact_source_coverage(errors, expected_stale, stale_mapped_paths, 'Stale authority')
+    declared_gemini_authority = manifest.get('gemini_behavioral_authority_sources')
+    if declared_gemini_authority != expected_gemini_authority:
+        errors.append(
+            'Shared contract Gemini authority sources disagree with the live Gemini '
+            'bundle manifest'
+        )
+    if any(path in stale_paths for path in expected_gemini_authority):
+        errors.append('Live Gemini behavioral authority still contains a retired source')
 
     expected_matrix = {
         'behavior': {
@@ -832,7 +1026,8 @@ def validate_contract(
         'prime_chunks': len(expected_prime),
         'sub_agents': len(expected_sub_agents),
         'knowledge_items': len(knowledge),
-        'stale_references': len(expected_stale),
+        'stale_references': len(stale),
+        'behavior_modules': len(behavior_modules),
         'projection_groups': len(groups),
     }
     return errors, stats

@@ -66,8 +66,44 @@ def main() -> int:
     regression_script = script_root / 'validate_dcoir_gemini_output_contract_regressions.py'
     compile_script = script_root / 'compile_dcoir_gemini_bundle.py'
     reassemble_script = script_root / 'reassemble_dcoir_gemini_prime_agent.py'
+    adapter_script = (
+        repo_root
+        / 'project_sources'
+        / 'agent_runtime'
+        / 'tools'
+        / 'materialize_agent_behavior_adapters.py'
+    )
+    adapter_manifest = (
+        repo_root
+        / 'project_sources'
+        / 'agent_runtime'
+        / 'Behavior_Module_Manifest.json'
+    )
 
     steps = []
+
+    adapter_cmd = [
+        sys.executable,
+        str(adapter_script),
+        '--repo-root',
+        str(repo_root),
+        '--manifest',
+        str(adapter_manifest),
+        '--target',
+        'gemini_dcoir_agent',
+        '--check',
+    ]
+    adapter_proc = run_step(adapter_cmd)
+    steps.append({
+        'name': 'check_behavior_adapters',
+        'cmd': adapter_cmd,
+        'returncode': adapter_proc.returncode,
+        'stdout': adapter_proc.stdout,
+        'stderr': adapter_proc.stderr,
+    })
+    if adapter_proc.returncode != 0:
+        write_report(output_dir, {'success': False, 'stage': 'check_behavior_adapters', 'steps': steps})
+        return 1
 
     reassemble_cmd = [sys.executable, str(reassemble_script), '--source-root', str(source_root), '--output-dir', str(output_dir)]
     reassemble_proc = run_step(reassemble_cmd)

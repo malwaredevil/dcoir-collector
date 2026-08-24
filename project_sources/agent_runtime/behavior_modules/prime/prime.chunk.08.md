@@ -1,0 +1,14 @@
+### Required response formats
+
+Prime does not maintain detailed response templates.
+
+Route output families to the owning specialist:
+
+- ordinary triage, final case synthesis, tuning guidance, report sections, and duplicate-section cleanup: Output Contract Consistency Guard and Report Composer
+- USB violations parsing and plaintext email/report drafting: USB Violations Report Composer
+- collector artifact report extraction or review priority: DCOIR Collector Artifact Interpreter and Report Extractor
+
+Prime only decides which output owner is needed, carries forward source labels and unresolved gaps, and ensures the final response is one analyst-facing answer.
+
+Do not duplicate schema-like output contracts in Prime prose when a specialist or runtime validation surface owns the structure.
+

@@ -1,4 +1,4 @@
-DCOIR Gemini Stored-Source And Compile Strategy v1.0.0
+DCOIR Gemini Stored-Source And Compile Strategy v1.1.0
 
 Purpose
 - Replace the fragile on-the-fly Gemini bundle creation path with a stored-source and compile model.
@@ -11,37 +11,41 @@ Core decision
 
 Authoritative roles
 1. Behavioral authority
-- PP-01 through PP-07 remain the design-time behavioral authority for DCOIR workflow expectations.
-- PP-09 and PP-10 remain design and generation guidance, not the runtime shipment surface by themselves.
+- `project_sources/agent_runtime/Shared_Agent_Source_Manifest.json` defines behavior ownership and target disposition.
+- `project_sources/agent_runtime/Behavior_Module_Manifest.json` and the module files under `project_sources/agent_runtime/behavior_modules/` are the canonical editable Prime-chunk and specialist sources.
+- Retired PP-01 through PP-07 paths remain historical evidence only and are not live Gemini authority.
 
 2. Runtime Gemini bundle authority
-- `project_sources/gemini/bundle_source/` is the governed editable runtime source tree for the operator-facing Gemini bundle.
-- Its contents are the current accepted steady-state parent-agent, sub-agent, and prime-agent-attachment files.
-- The current baseline imported into that tree is the accepted good v2 Gemini bundle content.
+- `project_sources/gemini/bundle_source/` remains the governed Gemini topology and packaging tree.
+- Prime chunks and specialist files in that tree are checked-in generated adapters, not editable canonical behavior.
+- Non-behavioral Gemini topology, operator guidance, and packaging metadata remain owned by the Gemini source tree.
 
 3. Compile output
 - The shipped Gemini zip should be produced by compiling `project_sources/gemini/bundle_source/` into a versioned bundle zip.
 - Compilation is packaging and validation, not free-form generation.
 
 Editing model
-- When requirements change, edit the relevant files directly in `project_sources/gemini/bundle_source/`.
+- When behavior requirements change, edit the relevant shared module under `project_sources/agent_runtime/behavior_modules/`.
+- Update the matching SHA-256 in `Behavior_Module_Manifest.json`, then run `materialize_agent_behavior_adapters.py --materialize`.
 - Expected normal edits include:
   - one start-here file
-  - the parent agent file
-  - one or more sub-agent files
+  - one or more shared Prime behavior modules
+  - one or more shared specialist behavior modules
   - one or more knowledge attachment files
   - the generated index or attachment map when the topology or attachment set changes
   - the source manifest when the bundle version or required file set changes
-- If a new sub-agent is intentionally added, add its source file here first, update the index, update the manifest, and then compile.
+- Direct edits to generated Gemini behavior adapters must be reverse-reconciled into shared source before release.
+- If a new specialist is intentionally added, add its shared module and projection mapping first, update Gemini topology and the index, materialize, validate, and then compile.
 
 Compile workflow
 1. Confirm the current startup-pack-first operating contract and authority surfaces.
-2. Confirm the desired Gemini source tree under `project_sources/gemini/bundle_source/`.
-3. Edit the source files that need changing.
-4. Update `Gemini_Bundle_Source_Manifest.json.txt` when the version, required files, or topology changed.
-5. Run `project_sources/gemini/tools/compile_dcoir_gemini_bundle.py`.
-6. Validate the compiled bundle before shipment.
-7. Ship the compiled zip.
+2. Edit canonical shared behavior or knowledge source.
+3. Update behavior-module integrity metadata when behavior changed.
+4. Materialize Gemini adapters and run the adapter in `--check` mode.
+5. Update `Gemini_Bundle_Source_Manifest.json` when the version, required files, authority pointers, or topology changed.
+6. Run `project_sources/gemini/tools/build_dcoir_gemini_release.py`.
+7. Validate the compiled bundle before shipment.
+8. Ship the compiled zip.
 
 Hard rules
 - Do not ship `knowledge/generated_agent_markdowns/` directly as the default operator bundle.
@@ -49,18 +53,20 @@ Hard rules
 - Do not regenerate agent fields on the fly during ordinary bundle packaging when the stored source tree is available.
 - Do not substitute governance docs or validation docs for the approved knowledge attachment set.
 - Do not thin or summarize an agent file during bundle packaging. Edit the source file itself if a real content change is intended.
+- Do not edit a generated Prime chunk or specialist adapter as if it were canonical.
 
 Relationship to the collector and standalone prompt
 - Collector pattern: maintain in parts, then assemble or ship the runtime form.
 - Standalone prompt pattern: keep modular authority, then assemble the full runtime prompt.
-- Gemini pattern after this change: keep the accepted runtime bundle in maintainable stored source files, then compile that source tree into the bundle zip.
+- Gemini pattern after this change: keep shared behavior in canonical modules, materialize byte-identical Gemini adapters, then compile the governed topology into the bundle zip.
 
 End state
 - Gemini bundle delivery should now be predictable, inspectable, and maintainable.
 - Routine Gemini downloads should come from compilation of stored governed source, not from ad hoc generation.
 
 Prime-agent chunk source and generated runtime note
-- The editable prime-agent source is now the ordered chunk set under `01_GEMINI_AGENT_BUILD/prime_agent_chunks/` plus `Prime_Agent_Chunks_Manifest.json`.
+- The editable Prime behavior is the ordered shared module set declared by `Behavior_Module_Manifest.json`.
+- The chunk set under `01_GEMINI_AGENT_BUILD/prime_agent_chunks/` is a checked-in generated adapter surface ordered by `Prime_Agent_Chunks_Manifest.json`.
 - `01_GEMINI_AGENT_BUILD/Prime_Agent_DCOIR_Gemini_Orchestrator.md.txt` is a generated runtime artifact assembled from the chunk manifest before validation and compile.
 - The generated runtime prime-agent file must appear in the final Gemini Enterprise bundle as one coherent prompt file. Source-only chunk files and the chunk manifest must not ship in the final Gemini delivery ZIP.
 - Build and validation lanes must reassemble before judging the Gemini agent and must inspect the final ZIP for source-only leakage.

@@ -45,12 +45,35 @@ def main() -> int:
     chunk_manifest_rel = bundle_manifest.get('prime_agent_chunk_manifest')
     if not chunk_manifest_rel:
         raise SystemExit('prime_agent_chunk_manifest is required when prime_agent_source_mode=chunked_reassembled')
+
+    topology = bundle_manifest.get('topology')
+    if not isinstance(topology, dict):
+        raise SystemExit('Bundle topology is required when prime_agent_source_mode=chunked_reassembled')
+    topology_manifest_rel = topology.get('prime_agent_chunk_manifest')
+    if topology_manifest_rel != chunk_manifest_rel:
+        raise SystemExit(
+            'Prime chunk manifest disagreement between bundle runtime and topology: '
+            f'{chunk_manifest_rel!r} != {topology_manifest_rel!r}'
+        )
+
     chunk_manifest = load_json(source_root / chunk_manifest_rel)
     target_rel = chunk_manifest['generated_prime_agent_file']
     target_path = source_root / target_rel
     chunks = chunk_manifest.get('chunks', [])
     if not chunks:
         raise SystemExit('Prime agent chunk manifest has no chunks')
+
+    selected_chunk_sources = [
+        entry.get('path') if isinstance(entry, dict) else None
+        for entry in chunks
+    ]
+    if any(not isinstance(path, str) or not path for path in selected_chunk_sources):
+        raise SystemExit('Prime agent chunk manifest contains an invalid chunk path')
+    topology_chunk_sources = topology.get('prime_agent_chunk_sources')
+    if topology_chunk_sources != selected_chunk_sources:
+        raise SystemExit(
+            'Prime chunk source disagreement between selected manifest and bundle topology'
+        )
 
     parts = []
     missing = []
