@@ -189,6 +189,18 @@ class FakeHybridReporter:
         self.updates.append((stage, detail))
 
 
+hybrid_diff = """diff --git a/docs/review.md b/docs/review.md
+index 1111111..2222222 100644
+--- a/docs/review.md
++++ b/docs/review.md
+@@ -1,2 +1,3 @@
+ Review gates remain required.
++External review may be skipped after local checks.
+ Keep issue receipts current.
+"""
+hybrid_line_index = mod.hardened.build_added_line_index(hybrid_diff)
+assert ("docs/review.md", 2) in hybrid_line_index
+
 hybrid_config = mod.copy.copy(config)
 hybrid_config.per_file_first_pass_review = True
 hybrid_config.per_file_review_concurrency = 1
@@ -240,12 +252,12 @@ try:
     hybrid_result, hybrid_model, _hybrid_tier = mod.openrouter_review_with_hybrid_first_pass(
         {"number": 402, "head": {"sha": "abc123"}},
         [{"filename": "docs/review.md", "status": "modified"}],
-        sample_diff,
+        hybrid_diff,
         schema,
         hybrid_config,
         hybrid_reporter,
         [],
-        line_index,
+        hybrid_line_index,
         "",
         "first-pass-deep",
         "one changed file",
@@ -262,7 +274,7 @@ assert hybrid_result["_quality_retry_attempted"] is True
 assert "summary indicated a possible issue" in hybrid_result["_quality_retry_reason"]
 assert hybrid_result["_quality_retry_initial_summary"]
 assert hybrid_result["_quality_retry_retry_summary"]
-assert mod.split_findings_with_review_body_fallback(hybrid_result, hybrid_config, line_index, sample_diff, []) == ([], [])
+assert mod.split_findings_with_review_body_fallback(hybrid_result, hybrid_config, hybrid_line_index, hybrid_diff, []) == ([], [])
 assert any(stage == "quality-retry" for stage, _detail in hybrid_reporter.updates)
 
 workflow_source = (ROOT.parent / "workflows" / "reusable-openrouter-pr-review.yml").read_text(encoding="utf-8")
