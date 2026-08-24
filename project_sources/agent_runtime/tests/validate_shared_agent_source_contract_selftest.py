@@ -86,6 +86,12 @@ def base_manifest() -> dict:
     return {
         'schema': 'dcoir.agent_runtime.source_contract.v1',
         'source_contract_version': 'test',
+        'canonical_source_roots': {
+            'shared_contract': 'project_sources/agent_runtime',
+            'gemini_source': 'project_sources/gemini',
+            'gemini_runtime': 'project_sources/gemini/bundle_source',
+            'knowledge': 'knowledge',
+        },
         'target_ids': sorted(VALIDATOR.EXPECTED_TARGET_IDS),
         'targets': [target(target_id) for target_id in sorted(VALIDATOR.EXPECTED_TARGET_IDS)],
         'generated_artifact_policy': {
@@ -149,13 +155,109 @@ def base_manifest() -> dict:
 
 
 def matrix_text(manifest: dict) -> str:
-    lines = []
+    lines = [
+        '## Target Capability Boundary',
+        '',
+        '| Target | Output owner | Instruction mode | Knowledge mode | Current live lookup | Current external actions |',
+        '| --- | --- | --- | --- | --- | --- |',
+    ]
+    for item in manifest['targets']:
+        live_lookup = (
+            'Runtime-dependent; never assumed'
+            if 'web_search' in item.get('runtime_dependent_capabilities', [])
+            else 'Unavailable'
+        )
+        actions = (
+            'Unavailable unless returned execution evidence exists'
+            if item['capabilities']['actions'] is False
+            else 'Available'
+        )
+        lines.append(
+            f"| {item['id']} | {item['output_owner']} | "
+            f"{item.get('instruction_mode', '')} | {item.get('knowledge_mode', '')} | "
+            f'{live_lookup} | {actions} |'
+        )
+    lines.extend(
+        [
+            '',
+            '## Behavior Ownership',
+            '',
+            '| Stable id | Source / section | Class | Gemini | OpenAI DCOIR | OpenAI USB | Responsibility |',
+            '| --- | --- | --- | --- | --- | --- | --- |',
+        ]
+    )
     for item in manifest['behavior_items']:
         lines.append(f"<!-- contract-behavior-id:{item['id']} -->")
+        dispositions_value = item['target_dispositions']
+        lines.append(
+            f"| {item['id']} | {item['source_path']} / {item['source_section']} | "
+            f"{item['content_class']} | "
+            f"{dispositions_value['gemini_dcoir_agent']['mode']} | "
+            f"{dispositions_value['openai_dcoir_analyst']['mode']} | "
+            f"{dispositions_value['openai_usb_reporting']['mode']} | "
+            f"{item['responsibility']} |"
+        )
+    lines.extend(
+        [
+            '',
+            '## Behavior Control Details',
+            '',
+            '| Stable id | Applies to | Provider differences | Dependencies | Validation | Reverse sync | Decision |',
+            '| --- | --- | --- | --- | --- | --- | --- |',
+        ]
+    )
+    for item in manifest['behavior_items']:
+        decision = item['unresolved_operator_decision'] or 'None'
+        reverse_sync = (
+            'Required'
+            if item.get('reverse_reconciliation_required') is True
+            else 'Not required'
+        )
+        lines.append(
+            f"| {item['id']} | {', '.join(item['applies_to'])} | "
+            f"{item['provider_specific_differences']} | "
+            f"{'; '.join(item['downstream_dependencies'])} | "
+            f"{'; '.join(item['validation_classes'])} | {reverse_sync} | {decision} |"
+        )
+    lines.extend(
+        [
+            '',
+            '## Knowledge Disposition',
+            '',
+            '| Stable id | Canonical source | Class | Gemini attachment | DCOIR projection | USB projection | Boundary/hash and overlap rule |',
+            '| --- | --- | --- | --- | --- | --- | --- |',
+        ]
+    )
     for item in manifest['knowledge_items']:
         lines.append(f"<!-- contract-knowledge-id:{item['id']} -->")
+        gemini = item['gemini_attachment_disposition']
+        if gemini == 'include_direct_from_canonical_source':
+            gemini = 'include'
+        boundary = (
+            'Preserve ordered source boundary and SHA-256; '
+            if item['source_boundary_hash_required']
+            else ''
+        ) + item['duplicate_or_overlap_notes']
+        lines.append(
+            f"| {item['id']} | {item['source_path']} | {item['content_class']} | "
+            f"{gemini} | {item['openai_dcoir_projection_group'] or 'excluded'} | "
+            f"{item['openai_usb_projection_group'] or 'excluded'} | {boundary} |"
+        )
+    lines.extend(
+        [
+            '',
+            '## Stale Behavioral Authority References',
+            '',
+            '| Stable id | Missing path | Status | Replacement authority | Runtime action |',
+            '| --- | --- | --- | --- | --- |',
+        ]
+    )
     for item in manifest['stale_source_references']:
         lines.append(f"<!-- contract-stale-id:{item['id']} -->")
+        lines.append(
+            f"| {item['id']} | {item['source_path']} | {item['status']} | "
+            f"{item['replacement_authority']} | {item['runtime_cleanup']} |"
+        )
     return '\n'.join(lines) + '\n'
 
 
@@ -259,10 +361,34 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
         self.assert_error_contains('Conflicting authority classes')
 
     def test_missing_source_without_stale_disposition_fails(self) -> None:
-        missing = behavior('behavior.missing', 'project_sources/not-present.md')
+        missing = behavior(
+            'behavior.missing', 'project_sources/gemini/not-present.md'
+        )
         self.fixture.manifest['behavior_items'].append(missing)
         self.fixture.write()
         self.assert_error_contains('Missing canonical source path without stale disposition')
+
+    def test_absolute_canonical_source_path_fails(self) -> None:
+        absolute = behavior(
+            'behavior.absolute',
+            str((self.fixture.root / 'knowledge' / 'k.md').resolve()),
+        )
+        self.fixture.manifest['behavior_items'].append(absolute)
+        self.fixture.write()
+        self.assert_error_contains(
+            'Canonical source path must be repository-relative without traversal'
+        )
+
+    def test_canonical_source_traversal_fails(self) -> None:
+        traversing = behavior(
+            'behavior.traversal',
+            'project_sources/../knowledge/k.md',
+        )
+        self.fixture.manifest['behavior_items'].append(traversing)
+        self.fixture.write()
+        self.assert_error_contains(
+            'Canonical source path must be repository-relative without traversal'
+        )
 
     def test_generated_output_marked_canonical_fails(self) -> None:
         generated = self.fixture.manifest['behavior_items'][2]
@@ -279,6 +405,20 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
         target_value['capabilities']['web_search'] = True
         self.fixture.write()
         self.assert_error_contains('claims unavailable capability')
+
+    def test_malformed_capabilities_and_dispositions_fail_without_crashing(self) -> None:
+        matrix = matrix_text(self.fixture.manifest)
+        target_value = next(
+            item
+            for item in self.fixture.manifest['targets']
+            if item['id'] == 'openai_dcoir_analyst'
+        )
+        target_value['capabilities'] = []
+        self.fixture.manifest['behavior_items'][0]['target_dispositions'] = []
+        self.fixture.write(matrix=matrix)
+        errors = self.fixture.validate()
+        self.assertTrue(any('lacks a capabilities object' in error for error in errors))
+        self.assertTrue(any('must disposition all three targets' in error for error in errors))
 
     def test_projection_group_ceiling_fails(self) -> None:
         self.fixture.manifest['knowledge_projection_policy'][
@@ -315,6 +455,15 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
         )
         self.fixture.write(matrix=matrix)
         self.assert_error_contains('Manifest/matrix knowledge id disagreement')
+
+    def test_manifest_matrix_visible_field_disagreement_fails(self) -> None:
+        matrix = matrix_text(self.fixture.manifest).replace(
+            ' | direct | direct | direct | fixture behavior |',
+            ' | direct | exclude | direct | fixture behavior |',
+            1,
+        )
+        self.fixture.write(matrix=matrix)
+        self.assert_error_contains('Manifest/matrix Behavior Ownership mismatch')
 
     def test_stale_authority_substitution_fails(self) -> None:
         self.fixture.manifest['stale_source_references'][0][
