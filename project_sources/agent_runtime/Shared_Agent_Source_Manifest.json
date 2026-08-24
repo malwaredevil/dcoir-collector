@@ -4,6 +4,7 @@
   "canonical_repository": "malwaredevil/dcoir-collector",
   "canonical_source_roots": {
     "shared_contract": "project_sources/agent_runtime",
+    "gemini_source": "project_sources/gemini",
     "gemini_runtime": "project_sources/gemini/bundle_source",
     "knowledge": "knowledge"
   },
