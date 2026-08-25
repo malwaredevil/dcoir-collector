@@ -641,12 +641,18 @@ def project_knowledge(
             prefix='.knowledge-projection-', dir=repo_root
         ) as stage_dir:
             staging_root = Path(stage_dir).resolve()
-            for index, (output_path, expected) in enumerate(expected_files.items()):
-                stage_path = (staging_root / str(index)).resolve()
+            for output_path, expected in expected_files.items():
+                with tempfile.NamedTemporaryFile(
+                    dir=staging_root, delete=False
+                ) as staged_file:
+                    staged_file.write(expected)
+                    stage_path = Path(staged_file.name).resolve()
                 if not stage_path.is_relative_to(staging_root):
                     errors.append('Generated knowledge staging path escaped its root')
                     continue
-                stage_path.write_bytes(expected)
+                if stage_path.read_bytes() != expected:
+                    errors.append('Generated knowledge staging write readback failed')
+                    continue
                 resolved_output = _resolve_repo_path(
                     repo_root,
                     output_path.relative_to(repo_root).as_posix(),
