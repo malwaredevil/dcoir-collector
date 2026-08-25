@@ -1,0 +1,256 @@
+{
+  "projection_contract_version": "1.0.0",
+  "projection_file_count": 7,
+  "projections": [
+    {
+      "bytes": 15502,
+      "id": "dcoir_core",
+      "order": 0,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/01-dcoir-core.md",
+      "sha256": "60f8eb4d6977ee13584d0ed5fa294baac1346f0f50b106f315b62ea7b1f459a3",
+      "source_count": 3,
+      "sources": [
+        {
+          "bytes": 3911,
+          "git_blob_sha": "1772e022d8e9009ae77c7c9f76fb2aeb90829cf6",
+          "id": "knowledge.core.faq",
+          "path": "knowledge/Knowledge - Core - FAQ.md",
+          "sha256": "6c594f2e74ad2f2e311e8a5f19e30cee24997844994376f118fdd4e81f9d82b4"
+        },
+        {
+          "bytes": 6013,
+          "git_blob_sha": "88a95d467a8a5272389eddeb8d2c065c9efc2c1b",
+          "id": "knowledge.core.overview",
+          "path": "knowledge/Knowledge - Core - Overview and About.md",
+          "sha256": "711089230e2e65f3712aea9392ba5ee68e0759b8ce872115ae7a640c1dbff07c"
+        },
+        {
+          "bytes": 4056,
+          "git_blob_sha": "816bc4a268ddb0d0d5a311484aebd5961e733803",
+          "id": "knowledge.gemini.output_contract",
+          "path": "knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md",
+          "sha256": "cb679da9c1ae057b052b312d56b6ad41db14f349b4147a96cd3f63c69ba2f8bc"
+        }
+      ]
+    },
+    {
+      "bytes": 4633,
+      "id": "dcoir_elastic_ops",
+      "order": 1,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/02-dcoir-elastic-ops.md",
+      "sha256": "a274f10b54b9d75aa36af17390204a59148dbc9f450dfd5040fb61e4646fd03c",
+      "source_count": 1,
+      "sources": [
+        {
+          "bytes": 3923,
+          "git_blob_sha": "c79e681fc694dfa3cbf19a2d7a0d9d3be765d0c5",
+          "id": "knowledge.core.elastic_quick_start",
+          "path": "knowledge/Knowledge - Core - Elastic Quick Start.md",
+          "sha256": "b6c452839862b1a029318d4e87daa3d88e64938d785913f3b51708abebc6b856"
+        }
+      ]
+    },
+    {
+      "bytes": 65954,
+      "id": "dcoir_collection",
+      "order": 2,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/03-dcoir-collection.md",
+      "sha256": "51fe9cf55d4329037babafc70ea98bb86181df2fbcb13962168a7d828f1ea3a7",
+      "source_count": 7,
+      "sources": [
+        {
+          "bytes": 2257,
+          "git_blob_sha": "4923d9ec8b9cb6ddb9d772bc9f5a83041fb99be3",
+          "id": "knowledge.collector.exe_runtime",
+          "path": "knowledge/Knowledge - Collector - EXE Usage and Runtime Behavior.md",
+          "sha256": "e4083554d2b348eb9f2a65f997006d0223f54e3beef44f421756ec3d8cbf745c"
+        },
+        {
+          "bytes": 22860,
+          "git_blob_sha": "5908fba9335c787bd35e38c8df08ced6a15ae452",
+          "id": "knowledge.collector.feature_contract",
+          "path": "knowledge/Knowledge - Collector - Feature and Output Contract Reference.md",
+          "sha256": "a9ae1a40988d32cafec014c1a4122aada41b6c261ad41763579718b0857c490a"
+        },
+        {
+          "bytes": 4625,
+          "git_blob_sha": "5d8ea9049bf70c14e0fc6a888b42ff5c4450de25",
+          "id": "knowledge.collector.local_test",
+          "path": "knowledge/Knowledge - Collector - Local Test and Regression.md",
+          "sha256": "b9429d3382d91ffd2916a70b7f76e08e4b67b85398b7107ea24e1bae63f3daf3"
+        },
+        {
+          "bytes": 13007,
+          "git_blob_sha": "1619a2ec86e347ed668f8258794a8ebef1c36212",
+          "id": "knowledge.core.enrichment_actions",
+          "path": "knowledge/Knowledge - Core - Enrichment Actions.md",
+          "sha256": "e9d0e2f3744c4d21806d875f9ac9ef7cfa28116bd136547d2fab854990edeb01"
+        },
+        {
+          "bytes": 8367,
+          "git_blob_sha": "d9b4b7b5f2983d753795856a324ed923615b8d86",
+          "id": "knowledge.core.tier1_runbook",
+          "path": "knowledge/Knowledge - Core - Tier 1 Collect Runbook.md",
+          "sha256": "4826b5f7ecbcc6615d8ad35522391e91752123be800ace550d259bba6decec74"
+        },
+        {
+          "bytes": 7710,
+          "git_blob_sha": "283d47ff789c0fa3bb1678e2e6350b32f01a3876",
+          "id": "knowledge.core.tier2_runbook",
+          "path": "knowledge/Knowledge - Core - Tier 2 Collect Runbook.md",
+          "sha256": "b4de59f8ca569a00021666e6722a078a2d4da9afb1069901d499d2da3ac810d2"
+        },
+        {
+          "bytes": 3812,
+          "git_blob_sha": "8b4883b49a38edb484d0d81e5bbb4d5b2db9d0ae",
+          "id": "knowledge.core.troubleshooting",
+          "path": "knowledge/Knowledge - Core - Troubleshooting.md",
+          "sha256": "3c71d9e59650e987f478fd757c67e5e7332c19dc9f2c7be0477eb2ce8a2e6921"
+        }
+      ]
+    },
+    {
+      "bytes": 9648,
+      "id": "dcoir_artifacts",
+      "order": 3,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/04-dcoir-artifacts.md",
+      "sha256": "98c7726e846189980cb1adb63cbad50b9e9b09feaca60a526d6b4497e5dcd42a",
+      "source_count": 1,
+      "sources": [
+        {
+          "bytes": 8935,
+          "git_blob_sha": "62597c9825e018ceae39693c93544a3052d012c1",
+          "id": "knowledge.core.artifact_review",
+          "path": "knowledge/Knowledge - Core - Artifact Review Guide.md",
+          "sha256": "04df85293cb955a0570e7a5cf66c8308541e4dac06776dff9518f85a62cbb824"
+        }
+      ]
+    },
+    {
+      "bytes": 2823,
+      "id": "dcoir_ioc_enrichment",
+      "order": 4,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/05-dcoir-ioc-enrichment.md",
+      "sha256": "4b4a6efe1d263f384507c35d66a8eaef377f068b2af58bbdcfd922f43c3d4815",
+      "source_count": 1,
+      "sources": [
+        {
+          "bytes": 2073,
+          "git_blob_sha": "751a62c2d3d5dd1cf5023df0b5fe42fc15050ee9",
+          "id": "knowledge.core.ioc_public_sources",
+          "path": "knowledge/Knowledge - Core - IOC Enrichment and Public Sources.md",
+          "sha256": "16e1078ad2166ddf8df09dcfd65b3cd1d76258f0b5b4fab2bf40de804d68e361"
+        }
+      ]
+    },
+    {
+      "bytes": 79712,
+      "id": "dcoir_elastic_reference",
+      "order": 5,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/06-dcoir-elastic-reference.md",
+      "sha256": "de9b676cea8bcc27c56153fdaa02187f308754674734848fc23ab7cbd562e6c4",
+      "source_count": 2,
+      "sources": [
+        {
+          "bytes": 62843,
+          "git_blob_sha": "3efc596d1656253135b409018a7973e845bc30df",
+          "id": "knowledge.reference.elastic_fields",
+          "path": "knowledge/Knowledge - Reference - Elastic Field Name Reference.md",
+          "sha256": "423c6ad263ec597e7f0c13e78b74626ca4efe443a16d410e5aa00ab416248c32"
+        },
+        {
+          "bytes": 15674,
+          "git_blob_sha": "bd0ec9761e7afcb1a2fcd7bcae714e8f72de9d2e",
+          "id": "knowledge.reference.elastic_actions",
+          "path": "knowledge/Knowledge - Reference - Elastic Response Actions Reference.md",
+          "sha256": "24e111e712b295e09145afe327cd63769d93d59786ccc57926a9909ba83855f1"
+        }
+      ]
+    },
+    {
+      "bytes": 234714,
+      "id": "dcoir_osquery_reference",
+      "order": 6,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/07-dcoir-osquery-reference.md",
+      "sha256": "2f1f80f77395650cc19e247551e3ef2d38bfdf799c2cbdfa743d54598981102b",
+      "source_count": 10,
+      "sources": [
+        {
+          "bytes": 21034,
+          "git_blob_sha": "c4b7e2e5deb33d46e2d1cce3dd109389e88f12df",
+          "id": "knowledge.reference.osquery_applications",
+          "path": "knowledge/Knowledge - Reference - OSQuery Application, Package, and Extension Tables.md",
+          "sha256": "8e34b186a7e87321d456414161a4209de808b592157604917607cf806ef4aaa1"
+        },
+        {
+          "bytes": 22761,
+          "git_blob_sha": "41141984badf6a4c448d9261c6b447b00a6c8ad0",
+          "id": "knowledge.reference.osquery_files",
+          "path": "knowledge/Knowledge - Reference - OSQuery File and Filesystem Tables.md",
+          "sha256": "b6741fe5b2e0aa2e46c7283cda7cacccbb60e7d1241d23e2f41c3b9a70de52f4"
+        },
+        {
+          "bytes": 18757,
+          "git_blob_sha": "e511b14ea36c20e36b4c4198dae8c3f6e499957d",
+          "id": "knowledge.reference.osquery_network",
+          "path": "knowledge/Knowledge - Reference - OSQuery Network and Connection Tables.md",
+          "sha256": "f9f3d0e15c71666bd116d1d907224a22b36fafcb873543129403eae7404ad46d"
+        },
+        {
+          "bytes": 16462,
+          "git_blob_sha": "92790c3e5162918239a246365dfa11d96d562ff8",
+          "id": "knowledge.reference.osquery_persistence",
+          "path": "knowledge/Knowledge - Reference - OSQuery Persistence and Startup Tables.md",
+          "sha256": "75889e8e8a92c6e37df66652172b5439750911f4bcb8301545aa14fe6f189076"
+        },
+        {
+          "bytes": 21362,
+          "git_blob_sha": "18786bbeb6fbd0ae670087765cf39b6dbc4972b8",
+          "id": "knowledge.reference.osquery_process",
+          "path": "knowledge/Knowledge - Reference - OSQuery Process and Execution Tables.md",
+          "sha256": "3a13d1baff6b899a6de385f67e7f54c1efc92b60c13bb2186e5429046c138a01"
+        },
+        {
+          "bytes": 8360,
+          "git_blob_sha": "3d8bdba87f602e4feb7c59d5e24a691086fc2a1e",
+          "id": "knowledge.reference.osquery_index",
+          "path": "knowledge/Knowledge - Reference - OSQuery Reference Index.md",
+          "sha256": "d1c533a623a55c094dc8fcb36287b44c7d53c6243dcfe2fee17b1b6510798399"
+        },
+        {
+          "bytes": 30325,
+          "git_blob_sha": "ff35f8dffc93481c6ea34422f4630afb3b0d0cab",
+          "id": "knowledge.reference.osquery_security",
+          "path": "knowledge/Knowledge - Reference - OSQuery Security, Detection, and Event Tables.md",
+          "sha256": "8ce268e94e37b90ad64b099504caf17d15ca3a6ac416d28b16d8c48c9a0754e5"
+        },
+        {
+          "bytes": 46782,
+          "git_blob_sha": "8fb2e8eb598648319152037ef25b4039871a19d0",
+          "id": "knowledge.reference.osquery_system",
+          "path": "knowledge/Knowledge - Reference - OSQuery System, Hardware, and Platform Tables.md",
+          "sha256": "675e8fc0dfea1cedde605daf06537db132b12e1943f16f5e08cd36d04737670d"
+        },
+        {
+          "bytes": 16764,
+          "git_blob_sha": "986a8180bdbb9cbb9ab2fc872cf21057ce641279",
+          "id": "knowledge.reference.osquery_users",
+          "path": "knowledge/Knowledge - Reference - OSQuery User, Auth, and Account Tables.md",
+          "sha256": "e90de964dc00df6fdf1dbfc29c3d02517204b4e56771dd2c72dab58f23aac68d"
+        },
+        {
+          "bytes": 27238,
+          "git_blob_sha": "377d96d18442988b90892a9f41425dc71f12b271",
+          "id": "knowledge.reference.osquery_virtualization",
+          "path": "knowledge/Knowledge - Reference - OSQuery Virtualization, Cloud, and Container Tables.md",
+          "sha256": "41e811032dd90b6388964208207f322a3359ee4c6c24c65c0a83ffb5ad111f2d"
+        }
+      ]
+    }
+  ],
+  "schema": "dcoir.agent_runtime.knowledge_projection.target.v1",
+  "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+  "source_contract_sha256": "27d3c66c0e715b07183745f7205cb6a6d7dca4442dba0019c8521cc9b326d6c1",
+  "strict_file_count_ceiling": 20,
+  "target_id": "openai_dcoir_analyst"
+}

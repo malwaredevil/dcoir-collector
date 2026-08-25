@@ -3017,6 +3017,7 @@
     "manifest_matrix_parity"
   ],
   "behavior_module_manifest": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
+  "knowledge_projection_manifest": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
   "gemini_behavioral_authority_sources": [
     "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
     "project_sources/agent_runtime/Behavior_Module_Manifest.json"
