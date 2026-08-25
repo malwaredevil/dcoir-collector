@@ -640,8 +640,12 @@ def project_knowledge(
         with tempfile.TemporaryDirectory(
             prefix='.knowledge-projection-', dir=repo_root
         ) as stage_dir:
+            staging_root = Path(stage_dir).resolve()
             for index, (output_path, expected) in enumerate(expected_files.items()):
-                stage_path = Path(stage_dir) / str(index)
+                stage_path = (staging_root / str(index)).resolve()
+                if not stage_path.is_relative_to(staging_root):
+                    errors.append('Generated knowledge staging path escaped its root')
+                    continue
                 stage_path.write_bytes(expected)
                 resolved_output = _resolve_repo_path(
                     repo_root,

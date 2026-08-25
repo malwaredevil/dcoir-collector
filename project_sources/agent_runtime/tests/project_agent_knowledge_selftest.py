@@ -289,6 +289,11 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         errors, _ = self._run(check=False)
         self.assertTrue(any('must be disjoint' in error for error in errors))
 
+    def test_materialization_leaves_no_staging_directory(self) -> None:
+        self.assertEqual([], self._run(check=False)[0])
+        staging_dirs = list(self.repo.glob('.knowledge-projection-*'))
+        self.assertEqual([], staging_dirs)
+
     def test_malformed_applicability_and_generated_symlink_fail_closed(self) -> None:
         contract_path = (
             self.repo / 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json'
