@@ -1,0 +1,61 @@
+{
+  "projection_contract_version": "1.0.0",
+  "projection_file_count": 2,
+  "projections": [
+    {
+      "bytes": 9913,
+      "id": "usb_reporting_core",
+      "order": 0,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md",
+      "sha256": "295f6d6ef95413897996dbd02b74c8859bd10ab970680f1f3b6a82f29c528a0e",
+      "source_count": 2,
+      "sources": [
+        {
+          "bytes": 6013,
+          "git_blob_sha": "88a95d467a8a5272389eddeb8d2c065c9efc2c1b",
+          "id": "knowledge.core.overview",
+          "path": "knowledge/Knowledge - Core - Overview and About.md",
+          "sha256": "711089230e2e65f3712aea9392ba5ee68e0759b8ce872115ae7a640c1dbff07c"
+        },
+        {
+          "bytes": 2592,
+          "git_blob_sha": "68f340ff477f7be9d1cccd6f7ac79e1dd1192336",
+          "id": "knowledge.shared.output_contract",
+          "path": "project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md",
+          "sha256": "b3395b2ccaa82383622131555761c8a5fe77092b4f7dcd7ccf9f10b2f40ba2e4",
+          "split_from_id": "knowledge.gemini.output_contract",
+          "split_from_path": "knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md"
+        }
+      ]
+    },
+    {
+      "bytes": 67948,
+      "id": "usb_query_reference",
+      "order": 1,
+      "output_path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-query-reference.md",
+      "sha256": "3001b6138bc620eb17501ccb8cc266b493cfe97b22cb209f4aa45ff0ea99557e",
+      "source_count": 2,
+      "sources": [
+        {
+          "bytes": 3923,
+          "git_blob_sha": "c79e681fc694dfa3cbf19a2d7a0d9d3be765d0c5",
+          "id": "knowledge.core.elastic_quick_start",
+          "path": "knowledge/Knowledge - Core - Elastic Quick Start.md",
+          "sha256": "b6c452839862b1a029318d4e87daa3d88e64938d785913f3b51708abebc6b856"
+        },
+        {
+          "bytes": 62843,
+          "git_blob_sha": "3efc596d1656253135b409018a7973e845bc30df",
+          "id": "knowledge.reference.elastic_fields",
+          "path": "knowledge/Knowledge - Reference - Elastic Field Name Reference.md",
+          "sha256": "423c6ad263ec597e7f0c13e78b74626ca4efe443a16d410e5aa00ab416248c32"
+        }
+      ]
+    }
+  ],
+  "schema": "dcoir.agent_runtime.knowledge_projection.target.v1",
+  "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+  "source_contract_sha256": "c0a5f2af212e8473415bfc8d39be425f3a678c89c883104fa23910b3db398458",
+  "strict_file_count_ceiling": 20,
+  "target_id": "openai_usb_reporting"
+}

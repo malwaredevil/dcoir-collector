@@ -70,6 +70,13 @@ GEMINI_KNOWLEDGE_CLASSIFICATIONS = {
     'knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md': 'split',
     'knowledge/Knowledge - Gemini - Runtime Bundle and Source Tree.md': 'maintainer_only',
 }
+PROVIDER_SPECIFIC_PROJECTION_TERMS = (
+    'gemini',
+    'openai',
+    'prime agent',
+    'sub-agent',
+    'sub agent',
+)
 MATRIX_ID_PREFIXES = {
     'behavior': '<!-- contract-behavior-id:',
     'knowledge': '<!-- contract-knowledge-id:',
@@ -298,6 +305,11 @@ def _canonical_source_path(
         )
         return None
     return candidate
+
+
+def _git_blob_sha(data: bytes) -> str:
+    header = f'blob {len(data)}\0'.encode('ascii')
+    return hashlib.sha1(header + data).hexdigest()
 
 
 def _expected_inventory(
@@ -771,6 +783,84 @@ def validate_contract(
             )
         if item.get('source_boundary_hash_required') is not True:
             errors.append(f'Knowledge source lacks boundary/hash requirement: {item_id}')
+        target_projection_sources = item.get('target_projection_sources')
+        applicable_openai = {
+            target_id
+            for target_id in OPENAI_TARGET_IDS
+            if target_id in (
+                item.get('applies_to')
+                if isinstance(item.get('applies_to'), list)
+                else []
+            )
+        }
+        if item.get('content_class') == 'split':
+            if (
+                not isinstance(target_projection_sources, dict)
+                or set(target_projection_sources) != applicable_openai
+            ):
+                errors.append(
+                    f'{item_id} split source must define projection sources for '
+                    f'{sorted(applicable_openai)}'
+                )
+            else:
+                for target_id, projection_source in target_projection_sources.items():
+                    if not isinstance(projection_source, dict):
+                        errors.append(
+                            f'{item_id} has a malformed projection source for {target_id}'
+                        )
+                        continue
+                    projection_id = projection_source.get('id')
+                    projection_path = projection_source.get('source_path')
+                    if not isinstance(projection_id, str) or not projection_id:
+                        errors.append(
+                            f'{item_id} projection source for {target_id} lacks an id'
+                        )
+                    if not isinstance(projection_path, str):
+                        errors.append(
+                            f'{item_id} projection source for {target_id} lacks a path'
+                        )
+                        continue
+                    projection_candidate = _canonical_source_path(
+                        errors,
+                        repo_root,
+                        approved_source_roots,
+                        f'{item_id}:{target_id}',
+                        projection_path,
+                    )
+                    if projection_candidate is None or not projection_candidate.is_file():
+                        errors.append(
+                            f'Missing canonical projection source: {projection_path}'
+                        )
+                        continue
+                    projection_content = projection_candidate.read_bytes()
+                    actual_blob = _git_blob_sha(projection_content)
+                    if projection_source.get('source_git_blob_sha') != actual_blob:
+                        errors.append(
+                            f'{item_id} projection source Git blob SHA mismatch for '
+                            f'{target_id}'
+                        )
+                    if projection_source.get('provider_neutral_required') is not True:
+                        errors.append(
+                            f'{item_id} projection source for {target_id} must require '
+                            'provider-neutral content'
+                        )
+                    lowered = projection_content.decode(
+                        'utf-8', errors='replace'
+                    ).casefold()
+                    leaked = [
+                        term
+                        for term in PROVIDER_SPECIFIC_PROJECTION_TERMS
+                        if term in lowered
+                    ]
+                    if leaked:
+                        errors.append(
+                            f'{item_id} projection source for {target_id} contains '
+                            f'provider-specific terms: {leaked}'
+                        )
+        elif target_projection_sources is not None:
+            errors.append(
+                f'{item_id} target_projection_sources requires split content_class'
+            )
         for field, target_id in (
             ('openai_dcoir_projection_group', 'openai_dcoir_analyst'),
             ('openai_usb_projection_group', 'openai_usb_reporting'),

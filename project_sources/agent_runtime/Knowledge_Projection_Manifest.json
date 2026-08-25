@@ -1,0 +1,43 @@
+{
+  "schema": "dcoir.agent_runtime.knowledge_projection.v1",
+  "projection_contract_version": "1.0.0",
+  "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+  "canonical_knowledge_root": "knowledge",
+  "canonical_projection_source_roots": [
+    "project_sources/agent_runtime/knowledge_modules"
+  ],
+  "generated_root": "project_sources/agent_runtime/generated/knowledge",
+  "expected_canonical_source_count": 28,
+  "expected_projection_source_count": 1,
+  "strict_file_count_ceiling": 20,
+  "targets": {
+    "gemini_dcoir_agent": {
+      "mode": "direct_canonical_attachments",
+      "bundle_manifest": "project_sources/gemini/bundle_source/Gemini_Bundle_Source_Manifest.json",
+      "expected_attachment_count": 28
+    },
+    "openai_dcoir_analyst": {
+      "mode": "consolidated_projection",
+      "target_manifest_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/manifest.json",
+      "expected_projection_count": 7,
+      "projection_groups": [
+        {"id": "dcoir_core", "order": 0, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/01-dcoir-core.md"},
+        {"id": "dcoir_elastic_ops", "order": 1, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/02-dcoir-elastic-ops.md"},
+        {"id": "dcoir_collection", "order": 2, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/03-dcoir-collection.md"},
+        {"id": "dcoir_artifacts", "order": 3, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/04-dcoir-artifacts.md"},
+        {"id": "dcoir_ioc_enrichment", "order": 4, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/05-dcoir-ioc-enrichment.md"},
+        {"id": "dcoir_elastic_reference", "order": 5, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/06-dcoir-elastic-reference.md"},
+        {"id": "dcoir_osquery_reference", "order": 6, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/07-dcoir-osquery-reference.md"}
+      ]
+    },
+    "openai_usb_reporting": {
+      "mode": "consolidated_projection",
+      "target_manifest_path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/manifest.json",
+      "expected_projection_count": 2,
+      "projection_groups": [
+        {"id": "usb_reporting_core", "order": 0, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md"},
+        {"id": "usb_query_reference", "order": 1, "output_path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-query-reference.md"}
+      ]
+    }
+  }
+}
