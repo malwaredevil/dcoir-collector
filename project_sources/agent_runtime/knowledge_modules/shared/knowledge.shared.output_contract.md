@@ -68,4 +68,4 @@ The final answer should contain the requested operational result, not an interna
 
 ---
 
-> Canonical provider-neutral projection source. OpenAI package compilers include this file losslessly; provider-specific source remains in its native target.
+> Canonical provider-neutral projection source. Target package compilers include this file losslessly; provider-specific source remains in its native target.

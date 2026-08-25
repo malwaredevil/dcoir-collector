@@ -2646,13 +2646,13 @@
         "openai_dcoir_analyst": {
           "id": "knowledge.shared.output_contract",
           "source_path": "project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md",
-          "source_git_blob_sha": "0069bc1f7093d9d816f262c5ba2b25fd936ef622",
+          "source_git_blob_sha": "68f340ff477f7be9d1cccd6f7ac79e1dd1192336",
           "provider_neutral_required": true
         },
         "openai_usb_reporting": {
           "id": "knowledge.shared.output_contract",
           "source_path": "project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md",
-          "source_git_blob_sha": "0069bc1f7093d9d816f262c5ba2b25fd936ef622",
+          "source_git_blob_sha": "68f340ff477f7be9d1cccd6f7ac79e1dd1192336",
           "provider_neutral_required": true
         }
       },

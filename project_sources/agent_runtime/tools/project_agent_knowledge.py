@@ -15,7 +15,13 @@ from typing import Any
 SCHEMA = 'dcoir.agent_runtime.knowledge_projection.v1'
 SOURCE_CONTRACT_SCHEMA = 'dcoir.agent_runtime.source_contract.v1'
 OPENAI_TARGETS = ('openai_dcoir_analyst', 'openai_usb_reporting')
-PROVIDER_SPECIFIC_TERMS = ('gemini', 'prime agent', 'sub-agent', 'sub agent')
+PROVIDER_SPECIFIC_TERMS = (
+    'gemini',
+    'openai',
+    'prime agent',
+    'sub-agent',
+    'sub agent',
+)
 BEGIN_PREFIX = b'<!-- DCOIR_SOURCE_BEGIN '
 END_PREFIX = b'<!-- DCOIR_SOURCE_END '
 MARKER_SUFFIX = b' -->'

@@ -7,7 +7,7 @@
       "id": "dcoir_core",
       "order": 0,
       "output_path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/01-dcoir-core.md",
-      "sha256": "2ad9b4743ad48315c5ad4cbf1786c3769f1122d080bb0a225ed9821ebe75d87a",
+      "sha256": "c9df417085d6490ea169ee77d6c2dd1067ee7d25f05afa88642ba057758811b0",
       "source_count": 3,
       "sources": [
         {
@@ -26,10 +26,10 @@
         },
         {
           "bytes": 2592,
-          "git_blob_sha": "0069bc1f7093d9d816f262c5ba2b25fd936ef622",
+          "git_blob_sha": "68f340ff477f7be9d1cccd6f7ac79e1dd1192336",
           "id": "knowledge.shared.output_contract",
           "path": "project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md",
-          "sha256": "55ce676290c0236209a3c02edf6b72d0e858d2e86d09b7052d68446200f24536",
+          "sha256": "b3395b2ccaa82383622131555761c8a5fe77092b4f7dcd7ccf9f10b2f40ba2e4",
           "split_from_id": "knowledge.gemini.output_contract",
           "split_from_path": "knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md"
         }
@@ -252,7 +252,7 @@
   ],
   "schema": "dcoir.agent_runtime.knowledge_projection.target.v1",
   "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-  "source_contract_sha256": "5f7fb753e7c701ec9b784de2bdcb5d382faf650d22dcb03d471169e32a941516",
+  "source_contract_sha256": "c0a5f2af212e8473415bfc8d39be425f3a678c89c883104fa23910b3db398458",
   "strict_file_count_ceiling": 20,
   "target_id": "openai_dcoir_analyst"
 }

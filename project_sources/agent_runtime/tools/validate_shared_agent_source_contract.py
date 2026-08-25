@@ -72,6 +72,7 @@ GEMINI_KNOWLEDGE_CLASSIFICATIONS = {
 }
 PROVIDER_SPECIFIC_PROJECTION_TERMS = (
     'gemini',
+    'openai',
     'prime agent',
     'sub-agent',
     'sub agent',

@@ -116,7 +116,7 @@ Update dependent surfaces when any of these change:
 > Supporting human-readable Knowledge doc. Not part of the DCOIR control plane.
 <!-- DCOIR_SOURCE_END {"id":"knowledge.core.overview","sha256":"711089230e2e65f3712aea9392ba5ee68e0759b8ce872115ae7a640c1dbff07c"} -->
 
-<!-- DCOIR_SOURCE_BEGIN {"bytes":2592,"git_blob_sha":"0069bc1f7093d9d816f262c5ba2b25fd936ef622","id":"knowledge.shared.output_contract","path":"project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md","sha256":"55ce676290c0236209a3c02edf6b72d0e858d2e86d09b7052d68446200f24536","split_from_id":"knowledge.gemini.output_contract","split_from_path":"knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md"} -->
+<!-- DCOIR_SOURCE_BEGIN {"bytes":2592,"git_blob_sha":"68f340ff477f7be9d1cccd6f7ac79e1dd1192336","id":"knowledge.shared.output_contract","path":"project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md","sha256":"b3395b2ccaa82383622131555761c8a5fe77092b4f7dcd7ccf9f10b2f40ba2e4","split_from_id":"knowledge.gemini.output_contract","split_from_path":"knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md"} -->
 # Shared Response and Action-State Discipline
 
 _Provider-neutral rules for evidence-bounded analyst-facing output_
@@ -187,7 +187,7 @@ The final answer should contain the requested operational result, not an interna
 
 ---
 
-> Canonical provider-neutral projection source. OpenAI package compilers include this file losslessly; provider-specific source remains in its native target.
+> Canonical provider-neutral projection source. Target package compilers include this file losslessly; provider-specific source remains in its native target.
 
-<!-- DCOIR_SOURCE_END {"id":"knowledge.shared.output_contract","sha256":"55ce676290c0236209a3c02edf6b72d0e858d2e86d09b7052d68446200f24536"} -->
+<!-- DCOIR_SOURCE_END {"id":"knowledge.shared.output_contract","sha256":"b3395b2ccaa82383622131555761c8a5fe77092b4f7dcd7ccf9f10b2f40ba2e4"} -->
 
