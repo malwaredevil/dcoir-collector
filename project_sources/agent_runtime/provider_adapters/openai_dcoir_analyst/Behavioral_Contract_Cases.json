@@ -23,9 +23,9 @@
     },
     {
       "id": "query_without_execution",
-      "scenario": "The operator asks for an Elastic query, but the GPT has no live Elastic access and no query result is supplied.",
-      "expected_behavior": "Return one copy-paste-ready proposed query and never imply that it ran.",
-      "required_markers": ["one copy-paste-ready query or command", "proposed for analyst execution"]
+      "scenario": "The operator asks for an ESQL query, but the GPT has no live Elastic access and no query result is supplied.",
+      "expected_behavior": "Return one copy-paste-ready proposed ESQL query with FROM-first complete-pipeline syntax, keep KQL and ESQL separate, and never imply that it ran.",
+      "required_markers": ["one copy-paste-ready query or command", "proposed for analyst execution", "first non-whitespace token must be FROM", "complete executable pipeline", "never mix KQL and ESQL syntax"]
     },
     {
       "id": "collector_state_uncertainty",
