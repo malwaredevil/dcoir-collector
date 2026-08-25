@@ -194,6 +194,7 @@ def validate_manifest(
     manifest_path: Path,
     target_id: str,
 ) -> tuple[list[str], list[dict[str, Any]], dict[str, Any]]:
+    repo_root = repo_root.resolve()
     errors: list[str] = []
     try:
         manifest = _load_json(manifest_path)
