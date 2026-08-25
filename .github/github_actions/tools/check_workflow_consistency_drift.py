@@ -64,41 +64,48 @@ AGENT_RUNTIME_VALIDATION_STEPS = [
     (
         "Validate shared agent source contract",
         "python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py",
+        "Shared agent source contract validation failed.",
     ),
     (
         "Run shared agent source contract self-tests",
         "python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py",
+        "Shared agent source contract self-tests failed.",
     ),
     (
         "Verify agent behavior adapter materialization",
         "python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check",
+        "Agent behavior adapter materialization check failed.",
     ),
     (
         "Run agent behavior adapter self-tests",
         "python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py",
+        "Agent behavior adapter self-tests failed.",
     ),
     (
         "Verify agent knowledge projection",
         "python project_sources/agent_runtime/tools/project_agent_knowledge.py --check",
+        "Agent knowledge projection check failed.",
     ),
     (
         "Run agent knowledge projection self-tests",
         "python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py",
+        "Agent knowledge projection self-tests failed.",
     ),
     (
         "Verify OpenAI DCOIR package materialization",
         "python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check",
+        "OpenAI DCOIR package materialization check failed.",
     ),
     (
         "Run OpenAI DCOIR package self-tests",
         "python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py",
+        "OpenAI DCOIR package self-tests failed.",
     ),
 ]
 
 AGENT_RUNTIME_RECEIPT_STEP = "Write agent-runtime validation receipt"
-AGENT_RUNTIME_RECEIPT_WRITER_MARKER = (
-    "$receipt | ConvertTo-Json -Depth 5 | Set-Content -Path "
-)
+AGENT_RUNTIME_UPLOAD_STEP = "Upload validation artifacts"
+AGENT_RUNTIME_REPORT_STEP = "Write ChatGPT workflow report section"
 
 SHARED_CONTRACT_FILES = [
     Path(REQUIRED_SURFACES_HELPER),
@@ -232,6 +239,82 @@ def active_step_lines(body: str) -> list[str]:
     ]
 
 
+def expected_agent_runtime_step_lines(
+    command: str, failure_message: str
+) -> list[str]:
+    return [
+        "shell: pwsh",
+        "run: |",
+        command,
+        "if ($LASTEXITCODE -ne 0) {",
+        f"throw '{failure_message}'",
+        "}",
+    ]
+
+
+def agent_runtime_identity_env(event_name: str) -> tuple[str, str]:
+    reviewed = (
+        "${{ github.event.pull_request.head.sha || github.sha }}"
+        if event_name == "pull_request"
+        else "${{ github.sha }}"
+    )
+    return reviewed, "${{ github.sha }}"
+
+
+def expected_agent_runtime_receipt_lines(event_name: str) -> list[str]:
+    reviewed, tested = agent_runtime_identity_env(event_name)
+    lane = "pr" if event_name == "pull_request" else "push"
+    workflow = f"validate-on-{lane}"
+    output_dir = f"project_sources/validation/out_validate_on_{lane}_agent_runtime"
+    lines = [
+        "shell: pwsh",
+        "env:",
+        f"AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
+        f"AGENT_RUNTIME_TESTED_COMMIT_SHA: {tested}",
+        "run: |",
+        "$commands = @(",
+    ]
+    lines.extend(f"'{command}'" for _, command, _ in AGENT_RUNTIME_VALIDATION_STEPS)
+    lines.extend(
+        [
+            ")",
+            "$receipt = [ordered]@{",
+            "schema_version = 'dcoir_agent_runtime_validation_workflow_receipt_v1'",
+            f"workflow = '{workflow}'",
+            "workflow_run_id = $env:GITHUB_RUN_ID",
+            "workflow_run_attempt = $env:GITHUB_RUN_ATTEMPT",
+            "head_sha = $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA",
+            "tested_commit_sha = $env:AGENT_RUNTIME_TESTED_COMMIT_SHA",
+            "event_name = $env:GITHUB_EVENT_NAME",
+            "documented_contract = 'project_sources/agent_runtime/README.md'",
+            "command_count = $commands.Count",
+            "commands = @($commands | ForEach-Object { [ordered]@{ command = $_; result = 'pass' } })",
+            "}",
+            f"New-Item -ItemType Directory -Force -Path {output_dir} | Out-Null",
+            "$receipt | ConvertTo-Json -Depth 5 | Set-Content -Path "
+            f"{output_dir}/agent_runtime_validation.json -Encoding utf8",
+        ]
+    )
+    return lines
+
+
+def expected_agent_runtime_report_markers(event_name: str) -> list[str]:
+    reviewed, tested = agent_runtime_identity_env(event_name)
+    return [
+        "if: always()",
+        "shell: pwsh",
+        "env:",
+        f"AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
+        f"AGENT_RUNTIME_TESTED_COMMIT_SHA: {tested}",
+        "AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME: ${{ steps.upload_validation_artifacts.outcome }}",
+        "run: |",
+        "if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -eq 'success') {",
+        "$agentRuntimeValidation = 'passed_receipt_uploaded'",
+        "$agentRuntimeArtifact = 'agent_runtime_validation.json was produced locally, but primary artifact upload did not succeed.'",
+        "$agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'",
+    ]
+
+
 def agent_runtime_contract_findings(
     path: Path,
     event_name: str,
@@ -247,7 +330,7 @@ def agent_runtime_contract_findings(
             )
 
     execution_lines: list[int] = []
-    for step_name, command in AGENT_RUNTIME_VALIDATION_STEPS:
+    for step_name, command, failure_message in AGENT_RUNTIME_VALIDATION_STEPS:
         matches = find_named_step(expanded_text, step_name)
         if len(matches) != 1:
             findings.append(
@@ -258,26 +341,10 @@ def agent_runtime_contract_findings(
         line_no, body = matches[0]
         execution_lines.append(line_no)
         lines = active_step_lines(body)
-        if "shell: pwsh" not in lines or "run: |" not in lines:
+        expected_lines = expected_agent_runtime_step_lines(command, failure_message)
+        if lines != expected_lines:
             findings.append(
-                f"{path}:{line_no}: agent-runtime step {step_name!r} must execute in pwsh"
-            )
-        if command not in lines:
-            findings.append(
-                f"{path}:{line_no}: agent-runtime step {step_name!r} does not execute: {command}"
-            )
-        if "if ($LASTEXITCODE -ne 0) {" not in lines or not any(
-            line.startswith("throw ") for line in lines
-        ):
-            findings.append(
-                f"{path}:{line_no}: agent-runtime step {step_name!r} lacks fail-closed exit handling"
-            )
-        if any(
-            line.startswith("if:") or line.startswith("continue-on-error:")
-            for line in lines
-        ):
-            findings.append(
-                f"{path}:{line_no}: agent-runtime step {step_name!r} must not be conditional or continue on error"
+                f"{path}:{line_no}: agent-runtime step {step_name!r} executable body drifted"
             )
 
     receipt_matches = find_named_step(expanded_text, AGENT_RUNTIME_RECEIPT_STEP)
@@ -293,32 +360,43 @@ def agent_runtime_contract_findings(
             findings.append(
                 f"{path}:{receipt_line}: agent-runtime receipt must run after all eight validation steps"
             )
-        if "shell: pwsh" not in receipt_lines or "run: |" not in receipt_lines:
+        if receipt_lines != expected_agent_runtime_receipt_lines(event_name):
             findings.append(
-                f"{path}:{receipt_line}: agent-runtime receipt step must execute in pwsh"
+                f"{path}:{receipt_line}: agent-runtime receipt contract drifted"
             )
-        if any(
-            line.startswith("if:") or line.startswith("continue-on-error:")
-            for line in receipt_lines
-        ):
-            findings.append(
-                f"{path}:{receipt_line}: agent-runtime receipt step must remain success-gated"
-            )
-        if not any(
-            AGENT_RUNTIME_RECEIPT_WRITER_MARKER in line
-            and "agent_runtime_validation.json" in line
-            for line in receipt_lines
-        ):
-            findings.append(
-                f"{path}:{receipt_line}: agent-runtime receipt writer is missing"
-            )
+
+    upload_matches = find_named_step(expanded_text, AGENT_RUNTIME_UPLOAD_STEP)
+    if len(upload_matches) != 1:
+        findings.append(
+            f"{path}:1: expected exactly one {AGENT_RUNTIME_UPLOAD_STEP!r} step; "
+            f"found {len(upload_matches)}"
+        )
+    else:
+        upload_line, upload_body = upload_matches[0]
+        upload_lines = active_step_lines(upload_body)
         for marker in (
-            "head_sha = $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA",
-            "tested_commit_sha = $env:AGENT_RUNTIME_TESTED_COMMIT_SHA",
+            "id: upload_validation_artifacts",
+            "if: always()",
+            "uses: ./.github/actions/upload-chatgpt-artifact",
         ):
-            if marker not in receipt_lines:
+            if marker not in upload_lines:
                 findings.append(
-                    f"{path}:{receipt_line}: agent-runtime receipt lacks identity marker: {marker}"
+                    f"{path}:{upload_line}: validation artifact upload lacks marker: {marker}"
+                )
+
+    report_matches = find_named_step(expanded_text, AGENT_RUNTIME_REPORT_STEP)
+    if len(report_matches) != 1:
+        findings.append(
+            f"{path}:1: expected exactly one {AGENT_RUNTIME_REPORT_STEP!r} step; "
+            f"found {len(report_matches)}"
+        )
+    else:
+        report_line, report_body = report_matches[0]
+        report_lines = active_step_lines(report_body)
+        for marker in expected_agent_runtime_report_markers(event_name):
+            if marker not in report_lines:
+                findings.append(
+                    f"{path}:{report_line}: agent-runtime report lacks marker: {marker}"
                 )
     return findings
 
@@ -329,40 +407,49 @@ def run_agent_runtime_contract_selftests() -> list[str]:
     entry_lines = ["on:", f"  {event_name}:", "    paths:"]
     entry_lines.extend(f"      - '{marker}'" for marker in AGENT_RUNTIME_PATH_MARKERS)
     step_chunks = []
-    for step_name, command in AGENT_RUNTIME_VALIDATION_STEPS:
+    for step_name, command, failure_message in AGENT_RUNTIME_VALIDATION_STEPS:
         step_chunks.append(
             "\n".join(
-                [
-                    f"      - name: {step_name}",
-                    "        shell: pwsh",
-                    "        run: |",
-                    f"          {command}",
-                    "          if ($LASTEXITCODE -ne 0) {",
-                    "            throw 'validation failed'",
-                    "          }",
-                ]
+                [f"      - name: {step_name}"]
+                + [f"        {line}" for line in expected_agent_runtime_step_lines(
+                    command, failure_message
+                )]
             )
         )
-    receipt_commands = "\n".join(
-        f"            '{command}'" for _, command in AGENT_RUNTIME_VALIDATION_STEPS
-    )
     receipt = "\n".join(
+        [f"      - name: {AGENT_RUNTIME_RECEIPT_STEP}"]
+        + [f"        {line}" for line in expected_agent_runtime_receipt_lines(event_name)]
+    )
+    upload = "\n".join(
         [
-            f"      - name: {AGENT_RUNTIME_RECEIPT_STEP}",
+            f"      - name: {AGENT_RUNTIME_UPLOAD_STEP}",
+            "        id: upload_validation_artifacts",
+            "        if: always()",
+            "        uses: ./.github/actions/upload-chatgpt-artifact",
+        ]
+    )
+    reviewed, tested = agent_runtime_identity_env(event_name)
+    report = "\n".join(
+        [
+            f"      - name: {AGENT_RUNTIME_REPORT_STEP}",
+            "        if: always()",
             "        shell: pwsh",
+            "        env:",
+            f"          AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
+            f"          AGENT_RUNTIME_TESTED_COMMIT_SHA: {tested}",
+            "          AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME: ${{ steps.upload_validation_artifacts.outcome }}",
             "        run: |",
-            "          $commands = @(",
-            receipt_commands,
-            "          )",
-            "          $receipt = [ordered]@{",
-            "            head_sha = $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA",
-            "            tested_commit_sha = $env:AGENT_RUNTIME_TESTED_COMMIT_SHA",
+            "          if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -eq 'success') {",
+            "            $agentRuntimeValidation = 'passed_receipt_uploaded'",
             "          }",
-            "          $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path out/agent_runtime_validation.json",
+            "          else {",
+            "            $agentRuntimeArtifact = 'agent_runtime_validation.json was produced locally, but primary artifact upload did not succeed.'",
+            "          }",
+            "          $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'",
         ]
     )
     entry_text = "\n".join(entry_lines)
-    good_expanded = "\n".join(step_chunks + [receipt])
+    good_expanded = "\n".join(step_chunks + [receipt, upload, report])
     test_path = Path("<agent-runtime-contract-selftest>")
     selftest_findings: list[str] = []
     if agent_runtime_contract_findings(
@@ -372,11 +459,34 @@ def run_agent_runtime_contract_selftests() -> list[str]:
             "agent-runtime workflow contract selftest rejected the valid fixture"
         )
 
-    first_step, first_command = AGENT_RUNTIME_VALIDATION_STEPS[0]
+    first_step, first_command, first_failure = AGENT_RUNTIME_VALIDATION_STEPS[0]
+    first_throw = f"throw '{first_failure}'"
+    receipt_command_lines = "\n".join(
+        f"        '{command}'" for _, command, _ in AGENT_RUNTIME_VALIDATION_STEPS
+    )
+    reversed_receipt_command_lines = "\n".join(
+        f"        '{command}'"
+        for _, command, _ in reversed(AGENT_RUNTIME_VALIDATION_STEPS)
+    )
     mutations = {
         "receipt-only command": good_expanded.replace(
-            f"          {first_command}\n          if ($LASTEXITCODE",
-            "          Write-Host 'execution removed'\n          if ($LASTEXITCODE",
+            f"        {first_command}\n        if ($LASTEXITCODE",
+            "        Write-Host 'execution removed'\n        if ($LASTEXITCODE",
+            1,
+        ),
+        "early exit": good_expanded.replace(
+            f"        run: |\n        {first_command}",
+            f"        run: |\n        exit 0\n        {first_command}",
+            1,
+        ),
+        "false PowerShell branch": good_expanded.replace(
+            f"        {first_command}",
+            f"        if ($false) {{\n        {first_command}\n        }}",
+            1,
+        ),
+        "detached throw": good_expanded.replace(
+            f"        {first_throw}\n        }}",
+            "        Write-Warning 'ignored failure'\n        }\n        throw 'unrelated later failure'",
             1,
         ),
         "conditional step": good_expanded.replace(
@@ -390,9 +500,29 @@ def run_agent_runtime_contract_selftests() -> list[str]:
             1,
         ),
         "documentary-only receipt": good_expanded.replace(
-            "$receipt | ConvertTo-Json -Depth 5 | Set-Content -Path out/agent_runtime_validation.json",
+            "$receipt | ConvertTo-Json -Depth 5 | Set-Content -Path project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json -Encoding utf8",
             "# agent_runtime_validation.json is documented but not written",
             1,
+        ),
+        "wrong reviewed-head mapping": good_expanded.replace(
+            f"AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
+            "AGENT_RUNTIME_REVIEWED_HEAD_SHA: deadbeef",
+            1,
+        ),
+        "empty receipt command list": good_expanded.replace(
+            receipt_command_lines,
+            "        # receipt command list removed",
+            1,
+        ),
+        "reordered receipt command list": good_expanded.replace(
+            receipt_command_lines,
+            reversed_receipt_command_lines,
+            1,
+        ),
+        "wrong report reviewed-head mapping": good_expanded.replace(
+            f"AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
+            "AGENT_RUNTIME_REVIEWED_HEAD_SHA: deadbeef",
+            2,
         ),
     }
     for label, mutated in mutations.items():

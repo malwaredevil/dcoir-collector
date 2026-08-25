@@ -218,6 +218,7 @@ jobs:
           ./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1
 
       - name: Upload validation artifacts
+        id: upload_validation_artifacts
         if: always()
         uses: ./.github/actions/upload-chatgpt-artifact
         with:
@@ -244,11 +245,18 @@ jobs:
         env:
           AGENT_RUNTIME_REVIEWED_HEAD_SHA: ${{ github.sha }}
           AGENT_RUNTIME_TESTED_COMMIT_SHA: ${{ github.sha }}
+          AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME: ${{ steps.upload_validation_artifacts.outcome }}
         run: |
           $agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'
           if (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {
-            $agentRuntimeValidation = 'passed_receipt_produced'
-            $agentRuntimeArtifact = 'agent_runtime_validation.json is included in validate-on-push-results.'
+            if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -eq 'success') {
+              $agentRuntimeValidation = 'passed_receipt_uploaded'
+              $agentRuntimeArtifact = 'agent_runtime_validation.json is included in validate-on-push-results.'
+            }
+            else {
+              $agentRuntimeValidation = "passed_receipt_produced_artifact_upload_$($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME)"
+              $agentRuntimeArtifact = 'agent_runtime_validation.json was produced locally, but primary artifact upload did not succeed.'
+            }
           }
           else {
             $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'
