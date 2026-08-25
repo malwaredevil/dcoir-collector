@@ -225,8 +225,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -276,8 +276,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -326,8 +326,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -377,8 +377,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -428,8 +428,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -478,8 +478,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -528,8 +528,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -578,8 +578,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -629,8 +629,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -679,8 +679,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -729,8 +729,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -780,8 +780,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -830,8 +830,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -880,8 +880,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -930,8 +930,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -981,8 +981,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -1081,8 +1081,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -1131,8 +1131,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -1181,8 +1181,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -1232,8 +1232,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "adapt",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
@@ -1282,8 +1282,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1332,8 +1332,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1382,8 +1382,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1432,8 +1432,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1482,8 +1482,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1532,8 +1532,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1582,8 +1582,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1632,8 +1632,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1682,8 +1682,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
@@ -1733,8 +1733,8 @@
         },
         "openai_dcoir_analyst": {
           "mode": "flatten",
-          "owner": "openai_dcoir_bootstrap",
-          "generated_output": "openai/dcoir_analyst/Instructions.md",
+          "owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
+          "generated_output": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {

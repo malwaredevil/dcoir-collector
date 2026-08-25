@@ -22,7 +22,7 @@ EXPECTED_EDITOR_NAME = 'AFRICOM DCOIR Analyst'
 EXPECTED_RUNTIME_MODEL = 'GPT-5.4'
 EXPECTED_KNOWLEDGE_FILES = 7
 EXPECTED_BEHAVIOR_ITEMS = 30
-EXPECTED_CASES = 16
+EXPECTED_CASES = 21
 EXPECTED_PATHS = {
     'source_contract': 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
     'behavior_module_manifest': 'project_sources/agent_runtime/Behavior_Module_Manifest.json',
@@ -177,6 +177,21 @@ def _behavior_snapshot(
     }
     coverage_ids = [entry.get('id') for entry in coverage if isinstance(entry, dict)]
     expected_ids = [item.get('id') for item in applicable]
+    expected_owner = 'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py'
+    expected_output = EXPECTED_OUTPUTS['instructions']
+    for item in applicable:
+        item_id = item.get('id', '<missing-id>')
+        dispositions = item.get('target_dispositions')
+        disposition = (
+            dispositions.get(TARGET_ID) if isinstance(dispositions, dict) else None
+        )
+        if not isinstance(disposition, dict):
+            errors.append(f'{item_id} lacks a valid {TARGET_ID} disposition')
+            continue
+        if disposition.get('owner') != expected_owner:
+            errors.append(f'{item_id} {TARGET_ID} disposition owner drift')
+        if disposition.get('generated_output') != expected_output:
+            errors.append(f'{item_id} {TARGET_ID} disposition output drift')
     for duplicate in _duplicates([value for value in coverage_ids if isinstance(value, str)]):
         errors.append(f'Duplicate behavior coverage id: {duplicate}')
     if coverage_ids != expected_ids:

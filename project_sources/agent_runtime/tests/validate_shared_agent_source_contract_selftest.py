@@ -54,8 +54,16 @@ def dispositions() -> dict:
     return {
         target_id: {
             'mode': 'direct',
-            'owner': 'fixture',
-            'generated_output': None,
+            'owner': (
+                'fixture compiler'
+                if target_id == 'openai_dcoir_analyst'
+                else 'fixture'
+            ),
+            'generated_output': (
+                'fixture output'
+                if target_id == 'openai_dcoir_analyst'
+                else None
+            ),
             'notes': 'fixture',
         }
         for target_id in sorted(VALIDATOR.EXPECTED_TARGET_IDS)
@@ -504,6 +512,22 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
         target_value['capabilities']['web_search'] = True
         self.fixture.write()
         self.assert_error_contains('claims unavailable capability')
+
+    def test_openai_dcoir_disposition_owner_drift_fails(self) -> None:
+        disposition = self.fixture.manifest['behavior_items'][0][
+            'target_dispositions'
+        ]['openai_dcoir_analyst']
+        disposition['owner'] = 'legacy compiler'
+        self.fixture.write()
+        self.assert_error_contains('disposition owner disagrees with target')
+
+    def test_openai_dcoir_disposition_output_drift_fails(self) -> None:
+        disposition = self.fixture.manifest['behavior_items'][0][
+            'target_dispositions'
+        ]['openai_dcoir_analyst']
+        disposition['generated_output'] = 'legacy/Instructions.md'
+        self.fixture.write()
+        self.assert_error_contains('disposition output disagrees with target')
 
     def test_malformed_capabilities_and_dispositions_fail_without_crashing(self) -> None:
         matrix = matrix_text(self.fixture.manifest)

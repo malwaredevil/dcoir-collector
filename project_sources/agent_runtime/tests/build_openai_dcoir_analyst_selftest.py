@@ -78,7 +78,7 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         self.assertEqual([], errors)
         self.assertTrue(report['success'])
         self.assertEqual(30, report['behavior_coverage_count'])
-        self.assertEqual(16, report['behavioral_case_count'])
+        self.assertEqual(21, report['behavioral_case_count'])
         self.assertEqual(7, report['knowledge_file_count'])
         self.assertEqual(3, report['generated_file_count'])
 
@@ -113,6 +113,30 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         )
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('Behavior coverage must exactly match', check=False)
+
+    def test_behavior_disposition_owner_drift_fails(self) -> None:
+        source_path = self.repo / (
+            'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json'
+        )
+        source = _read_json(source_path)
+        disposition = source['behavior_items'][0]['target_dispositions'][
+            'openai_dcoir_analyst'
+        ]
+        disposition['owner'] = 'legacy compiler'
+        _write_json(source_path, source)
+        self.assert_error_contains('disposition owner drift', check=False)
+
+    def test_behavior_disposition_output_drift_fails(self) -> None:
+        source_path = self.repo / (
+            'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json'
+        )
+        source = _read_json(source_path)
+        disposition = source['behavior_items'][0]['target_dispositions'][
+            'openai_dcoir_analyst'
+        ]
+        disposition['generated_output'] = 'legacy/Instructions.md'
+        _write_json(source_path, source)
+        self.assert_error_contains('disposition output drift', check=False)
 
     def test_unsupported_capability_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
