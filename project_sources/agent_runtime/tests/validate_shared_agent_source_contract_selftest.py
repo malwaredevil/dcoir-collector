@@ -577,6 +577,39 @@ class SharedAgentSourceContractSelfTest(unittest.TestCase):
         bundle_path.write_text(json.dumps(bundle), encoding='utf-8')
         self.assert_error_contains('Live Gemini behavioral authority still contains')
 
+    def test_split_source_requires_provider_neutral_projection_unit(self) -> None:
+        projection_rel = (
+            'project_sources/agent_runtime/knowledge_modules/shared/output.md'
+        )
+        projection_path = self.fixture.root / projection_rel
+        projection_path.parent.mkdir(parents=True, exist_ok=True)
+        projection_content = b'# Shared output rules\n\nEvidence first.\n'
+        projection_path.write_bytes(projection_content)
+        self.fixture.manifest['canonical_source_roots'][
+            'shared_knowledge_modules'
+        ] = 'project_sources/agent_runtime/knowledge_modules'
+        item = self.fixture.manifest['knowledge_items'][0]
+        item['content_class'] = 'split'
+        item['split_disposition'] = 'Use provider-neutral target source.'
+        item['target_projection_sources'] = {
+            target_id: {
+                'id': 'knowledge.shared.output',
+                'source_path': projection_rel,
+                'source_git_blob_sha': VALIDATOR._git_blob_sha(projection_content),
+                'provider_neutral_required': True,
+            }
+            for target_id in sorted(VALIDATOR.OPENAI_TARGET_IDS)
+        }
+        self.fixture.write()
+        self.assertEqual([], self.fixture.validate())
+
+        leaked_content = b'# Gemini output rules\n'
+        projection_path.write_bytes(leaked_content)
+        for override in item['target_projection_sources'].values():
+            override['source_git_blob_sha'] = VALIDATOR._git_blob_sha(leaked_content)
+        self.fixture.write()
+        self.assert_error_contains('contains provider-specific terms')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

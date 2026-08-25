@@ -116,87 +116,49 @@ Update dependent surfaces when any of these change:
 > Supporting human-readable Knowledge doc. Not part of the DCOIR control plane.
 <!-- DCOIR_SOURCE_END {"id":"knowledge.core.overview","sha256":"711089230e2e65f3712aea9392ba5ee68e0759b8ce872115ae7a640c1dbff07c"} -->
 
-<!-- DCOIR_SOURCE_BEGIN {"bytes":4056,"git_blob_sha":"816bc4a268ddb0d0d5a311484aebd5961e733803","id":"knowledge.gemini.output_contract","path":"knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md","sha256":"cb679da9c1ae057b052b312d56b6ad41db14f349b4147a96cd3f63c69ba2f8bc"} -->
-# Knowledge - Gemini - Output Contract and Command-Lane Discipline
+<!-- DCOIR_SOURCE_BEGIN {"bytes":2592,"git_blob_sha":"0069bc1f7093d9d816f262c5ba2b25fd936ef622","id":"knowledge.shared.output_contract","path":"project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md","sha256":"55ce676290c0236209a3c02edf6b72d0e858d2e86d09b7052d68446200f24536","split_from_id":"knowledge.gemini.output_contract","split_from_path":"knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md"} -->
+# Shared Response and Action-State Discipline
 
-_Gemini final structure, decision states, and command-lane separation_
+_Provider-neutral rules for evidence-bounded analyst-facing output_
 
-**Summary:** Describes the current Gemini output and command-lane contract so attachment-based retrieval can explain the behavior. The enforcing rules live in the Prime/Sub-Agent instruction source, not in this knowledge attachment.
-
----
-
-## Attachment boundary
-
-This page is reference material for retrieval and operator understanding. It is not a hidden instruction channel and does not override Prime Agent or Sub-Agent instruction source.
-
-Use this page to explain the output contract and command-lane model when it is retrieved as evidence. Do not treat this attachment as the authority that enforces response format, tool use, reasoning visibility, or runtime behavior.
+**Summary:** Use these shared rules to keep final answers evidence-bounded, internally consistent, and free of hidden workflow scaffolding. Target-specific Instructions remain the authority for exact section names, decision vocabularies, and command syntax.
 
 ---
 
-## Decision states
+## Authority boundary
 
-The current instruction-owned decision-state vocabulary is:
+This file is stable reference material. It does not create tools, grant retrieval capability, or override the target's Instructions.
 
-- Continue
-- Benign
-- Malicious
-- Unresolved due to evidence gaps
-
-A final state is supported only when reviewed evidence supports it; the instruction source owns enforcement of that rule.
+When target-specific Instructions define an exact response structure, decision vocabulary, or command syntax, follow those Instructions. Use this reference only for the shared principles below.
 
 ---
 
-## Continue response structure
+## Evidence-bounded conclusions
 
-When the instruction source requires the full continue structure, the expected section order is:
-
-1. BLUF
-2. FACTS AND SOURCES
-3. ANALYSIS
-4. SYNTAX VERIFICATION
-5. SINGULAR TRIAGE COMMAND
-6. ANALYST SCRATCHPAD
-
-If BLUF is the required first section, the instruction-owned output contract expects no malformed preamble, scaffold text, or internal state block above it.
-
----
-
-## Singular-command rule
-
-For continue states, the instruction-owned command contract expects one copy-paste-ready command or query unless a multi-step exception is necessary and explicitly justified.
-
-Alternate command drafts or repeated command sections are output-contract defects.
-
----
-
-## Command lanes
-
-| Lane | Correct rendering |
-| --- | --- |
-| Elastic native response action | Native response-action syntax |
-| Elastic shell execution | `execute --command "powershell.exe ..." --comment "..."` |
-| Local workstation | Direct PowerShell command |
-
-Native Elastic response actions should remain native, and local workstation commands should not be presented as endpoint response-console guidance without the response-action wrapper.
+- Support a final decision only with reviewed evidence.
+- Treat missing evidence as a bounded gap, not proof of a benign or malicious condition.
+- Separate observed facts, returned source material, and analysis.
+- State uncertainty when the available material cannot support a final conclusion.
 
 ---
 
 ## Grounding honesty
 
-The instruction-owned grounding contract distinguishes:
+Keep these evidence lanes distinct:
 
-- public web grounding;
+- operator-provided content;
 - uploaded or attached files;
-- connector-backed retrieval;
+- returned public-source material;
+- connector-backed retrieval, when actually available;
 - unsupported or unavailable lookup.
 
-A search, lookup, retrieval, validation, or handoff claim is supported only when the action actually ran and produced usable support.
+Describe a search, lookup, retrieval, validation, or handoff as completed only when that action ran and returned usable support.
 
 ---
 
 ## Action-state honesty
 
-The instruction-owned action-state contract keeps these states separate:
+Keep these states separate:
 
 - requested action;
 - planned action;
@@ -204,46 +166,28 @@ The instruction-owned action-state contract keeps these states separate:
 - returned result;
 - bounded inability.
 
----
-
-## No internal scaffold leakage
-
-The instruction-owned output hygiene contract treats these as internal material, not analyst-facing content:
-
-- planner payloads;
-- routing state;
-- readiness objects;
-- hidden diagnostics;
-- YAML or JSON control scaffolding;
-- transfer or handoff narration.
-
-The analyst-facing answer is expected to read as one clean final response, not an internal work trace.
+Do not present a requested or planned action as completed work.
 
 ---
 
-## Single-draft rule
+## Singular answer and command discipline
 
-The instruction-owned output contract expects exactly one final analyst-facing draft.
-
-The following are output-contract defects:
-
-- duplicate final sections;
-- repeated near-identical section pairs;
-- alternate drafts;
-- malformed preamble text before the first required section.
-
-If overlapping branch drafts exist internally, the instruction source expects them to be reconciled silently into one final compliant version.
+- Produce one coherent analyst-facing answer.
+- Do not repeat major sections or provide competing final drafts.
+- When the target-specific Instructions call for a single command or query, provide one copy-paste-ready command unless a multi-step exception is necessary and explicitly justified.
+- Keep command syntax within the execution lane named by the target-specific Instructions and the operator's request.
 
 ---
 
-## Related pages
+## Internal scaffold suppression
 
-- Use this page as reference material for Gemini user-visible response and command-lane discipline.
-- Use Knowledge - Collector - Feature and Output Contract Reference for collector output-contract details.
-- Use Knowledge - Core - Elastic Quick Start for Elastic endpoint quick-start command examples.
+Do not expose internal planner payloads, routing state, readiness objects, hidden diagnostics, control scaffolding, or handoff narration as analyst-facing content.
+
+The final answer should contain the requested operational result, not an internal work trace.
 
 ---
 
-> Supporting human-readable Knowledge doc. Not part of the DCOIR control plane.
-<!-- DCOIR_SOURCE_END {"id":"knowledge.gemini.output_contract","sha256":"cb679da9c1ae057b052b312d56b6ad41db14f349b4147a96cd3f63c69ba2f8bc"} -->
+> Canonical provider-neutral projection source. OpenAI package compilers include this file losslessly; provider-specific source remains in its native target.
+
+<!-- DCOIR_SOURCE_END {"id":"knowledge.shared.output_contract","sha256":"55ce676290c0236209a3c02edf6b72d0e858d2e86d09b7052d68446200f24536"} -->
 

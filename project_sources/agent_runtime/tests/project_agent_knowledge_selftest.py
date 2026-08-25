@@ -36,6 +36,7 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
             'alpha': b'# Alpha\n\nCanonical alpha.\n',
             'bravo': b'# Bravo\n\nCanonical bravo.\n',
         }
+        self.shared_alpha = b'# Shared alpha\n\nProvider-neutral alpha.\n'
         self._build_fixture()
 
     def tearDown(self) -> None:
@@ -52,10 +53,21 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
             path = self.repo / f'knowledge/{source_id}.md'
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
+        shared_path = (
+            self.repo
+            / 'project_sources/agent_runtime/knowledge_modules/shared-alpha.md'
+        )
+        shared_path.parent.mkdir(parents=True, exist_ok=True)
+        shared_path.write_bytes(self.shared_alpha)
 
         contract = {
             'schema': projector.SOURCE_CONTRACT_SCHEMA,
-            'canonical_source_roots': {'knowledge': 'knowledge'},
+            'canonical_source_roots': {
+                'knowledge': 'knowledge',
+                'shared_knowledge_modules': (
+                    'project_sources/agent_runtime/knowledge_modules'
+                ),
+            },
             'knowledge_projection_manifest': (
                 'project_sources/agent_runtime/Knowledge_Projection_Manifest.json'
             ),
@@ -82,6 +94,7 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
                     'id': 'alpha',
                     'source_path': 'knowledge/alpha.md',
                     'source_git_blob_sha': _git_blob_sha(self.contents['alpha']),
+                    'content_class': 'split',
                     'applies_to': [
                         'gemini_dcoir_agent',
                         'openai_dcoir_analyst',
@@ -89,11 +102,24 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
                     ],
                     'openai_dcoir_projection_group': 'dcoir_core',
                     'openai_usb_projection_group': 'usb_core',
+                    'target_projection_sources': {
+                        target_id: {
+                            'id': 'alpha.shared',
+                            'source_path': (
+                                'project_sources/agent_runtime/knowledge_modules/'
+                                'shared-alpha.md'
+                            ),
+                            'source_git_blob_sha': _git_blob_sha(self.shared_alpha),
+                            'provider_neutral_required': True,
+                        }
+                        for target_id in projector.OPENAI_TARGETS
+                    },
                 },
                 {
                     'id': 'bravo',
                     'source_path': 'knowledge/bravo.md',
                     'source_git_blob_sha': _git_blob_sha(self.contents['bravo']),
+                    'content_class': 'runtime_reference',
                     'applies_to': [
                         'gemini_dcoir_agent',
                         'openai_dcoir_analyst',
@@ -123,8 +149,12 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
                     'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json'
                 ),
                 'canonical_knowledge_root': 'knowledge',
+                'canonical_projection_source_roots': [
+                    'project_sources/agent_runtime/knowledge_modules'
+                ],
                 'generated_root': 'project_sources/agent_runtime/generated/knowledge',
                 'expected_canonical_source_count': 2,
+                'expected_projection_source_count': 1,
                 'strict_file_count_ceiling': 3,
                 'targets': {
                     'gemini_dcoir_agent': {
@@ -198,7 +228,10 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         for projection in generated.rglob('*.md'):
             for entry in projector.recover_projection(projection.read_bytes()):
                 recovered[entry['metadata']['id']] = entry['content']
-        self.assertEqual(self.contents, recovered)
+        self.assertEqual(
+            {'alpha.shared': self.shared_alpha, 'bravo': self.contents['bravo']},
+            recovered,
+        )
 
     def test_source_blob_drift_fails_closed(self) -> None:
         self.assertEqual([], self._run(check=False)[0])
@@ -310,6 +343,24 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         (generated / 'unexpected-link').symlink_to(self.repo / 'knowledge/alpha.md')
         errors, _ = self._run(check=True)
         self.assertTrue(any('must not contain symlinks' in error for error in errors))
+
+    def test_split_projection_rejects_provider_specific_content(self) -> None:
+        shared_path = (
+            self.repo
+            / 'project_sources/agent_runtime/knowledge_modules/shared-alpha.md'
+        )
+        leaked = b'# Gemini-only output rules\n'
+        shared_path.write_bytes(leaked)
+        contract_path = (
+            self.repo / 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json'
+        )
+        contract = json.loads(contract_path.read_text(encoding='utf-8'))
+        overrides = contract['knowledge_items'][0]['target_projection_sources']
+        for override in overrides.values():
+            override['source_git_blob_sha'] = _git_blob_sha(leaked)
+        _write_json(contract_path, contract)
+        errors, _ = self._run(check=False)
+        self.assertTrue(any('provider-specific terms' in error for error in errors))
 
 
 if __name__ == '__main__':

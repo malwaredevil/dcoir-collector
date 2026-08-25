@@ -3,11 +3,11 @@
   "projection_file_count": 2,
   "projections": [
     {
-      "bytes": 11215,
+      "bytes": 9913,
       "id": "usb_reporting_core",
       "order": 0,
       "output_path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md",
-      "sha256": "804e382ddc5a4102ee186f00fd6527ccaaa724b6019502d75b5715925f2ed853",
+      "sha256": "f390805084e399858038384bdf070e3a045894126c26b8010278e05021f1c4e1",
       "source_count": 2,
       "sources": [
         {
@@ -18,11 +18,13 @@
           "sha256": "711089230e2e65f3712aea9392ba5ee68e0759b8ce872115ae7a640c1dbff07c"
         },
         {
-          "bytes": 4056,
-          "git_blob_sha": "816bc4a268ddb0d0d5a311484aebd5961e733803",
-          "id": "knowledge.gemini.output_contract",
-          "path": "knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md",
-          "sha256": "cb679da9c1ae057b052b312d56b6ad41db14f349b4147a96cd3f63c69ba2f8bc"
+          "bytes": 2592,
+          "git_blob_sha": "0069bc1f7093d9d816f262c5ba2b25fd936ef622",
+          "id": "knowledge.shared.output_contract",
+          "path": "project_sources/agent_runtime/knowledge_modules/shared/knowledge.shared.output_contract.md",
+          "sha256": "55ce676290c0236209a3c02edf6b72d0e858d2e86d09b7052d68446200f24536",
+          "split_from_id": "knowledge.gemini.output_contract",
+          "split_from_path": "knowledge/Knowledge - Gemini - Output Contract and Command-Lane Discipline.md"
         }
       ]
     },
@@ -53,7 +55,7 @@
   ],
   "schema": "dcoir.agent_runtime.knowledge_projection.target.v1",
   "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-  "source_contract_sha256": "27d3c66c0e715b07183745f7205cb6a6d7dca4442dba0019c8521cc9b326d6c1",
+  "source_contract_sha256": "5f7fb753e7c701ec9b784de2bdcb5d382faf650d22dcb03d471169e32a941516",
   "strict_file_count_ceiling": 20,
   "target_id": "openai_usb_reporting"
 }

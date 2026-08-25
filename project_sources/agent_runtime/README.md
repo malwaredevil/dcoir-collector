@@ -9,7 +9,8 @@ This directory defines how one governed source set is projected into the current
 - `docs/Behavior_Ownership_Matrix.md` is the human-readable projection of that contract and must cover the same stable ids.
 - `behavior_modules/` is the canonical editable source for the 21 Prime chunks and 11 specialist prompts.
 - The corresponding files under `project_sources/gemini/bundle_source/` are checked-in generated adapters. They remain present for the existing Gemini compiler and review workflow but are not canonical.
-- `knowledge/*.md` remains the canonical atomic knowledge source set.
+- `knowledge/*.md` remains the canonical atomic Gemini knowledge source set.
+- `knowledge_modules/` contains canonical provider-neutral projection units used only when a split-disposition source cannot be copied safely into another provider target.
 - Generated Gemini and OpenAI packages are never canonical source.
 
 The extraction deliberately preserves the accepted Gemini prompt text byte-for-byte. Provider-neutral ownership does not imply that every current sentence is already suitable for OpenAI; later target compilers must apply the declared dispositions and capability boundaries.
@@ -44,9 +45,9 @@ A direct WebUI or Gemini target edit is a temporary hotfix. Record the exact edi
 
 The 28 maintained Gemini knowledge attachments remain atomic canonical files. OpenAI packages will consolidate them into target-specific projection groups while preserving ordered source-boundary markers and a SHA-256 value for every included source. Consolidation must be lossless for normative content and must stay within the strict file-count ceiling declared in the manifest.
 
-The four `Knowledge - Gemini -*` documents are not blindly copied into OpenAI packages. Three are classified as provider maintainer guidance; the output-contract document has a split disposition so shared response rules may project while Gemini-only topology and command-lane guidance remains provider-specific.
+The four `Knowledge - Gemini -*` documents are not blindly copied into OpenAI packages. Three are classified as provider maintainer guidance. The output-contract document has a split disposition: Gemini keeps the complete canonical attachment, while OpenAI targets receive the canonical provider-neutral `knowledge.shared.output_contract` projection unit. Gemini-only topology, response-shape, and command-lane guidance never enters the OpenAI projection.
 
-`Knowledge_Projection_Manifest.json` is the target-specific projection contract. It keeps the Gemini target on all 28 direct canonical attachments and maps the same source inventory into seven DCOIR Analyst Markdown files and two USB Reporting Markdown files. Generated files and their per-target manifests live under `generated/knowledge/`; they are review and upload surfaces, never editable authority.
+`Knowledge_Projection_Manifest.json` is the target-specific projection contract. It keeps the Gemini target on all 28 direct canonical attachments and maps the applicable inventory into seven DCOIR Analyst Markdown files and two USB Reporting Markdown files. One canonical provider-neutral split unit replaces the Gemini-only output-contract attachment in both OpenAI targets. Generated files and their per-target manifests live under `generated/knowledge/`; they are review and upload surfaces, never editable authority.
 
 Materialize projections after an intentional canonical knowledge or mapping change:
 

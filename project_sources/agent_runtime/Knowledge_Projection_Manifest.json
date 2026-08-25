@@ -3,8 +3,12 @@
   "projection_contract_version": "1.0.0",
   "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
   "canonical_knowledge_root": "knowledge",
+  "canonical_projection_source_roots": [
+    "project_sources/agent_runtime/knowledge_modules"
+  ],
   "generated_root": "project_sources/agent_runtime/generated/knowledge",
   "expected_canonical_source_count": 28,
+  "expected_projection_source_count": 1,
   "strict_file_count_ceiling": 20,
   "targets": {
     "gemini_dcoir_agent": {

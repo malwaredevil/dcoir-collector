@@ -15,6 +15,7 @@ from typing import Any
 SCHEMA = 'dcoir.agent_runtime.knowledge_projection.v1'
 SOURCE_CONTRACT_SCHEMA = 'dcoir.agent_runtime.source_contract.v1'
 OPENAI_TARGETS = ('openai_dcoir_analyst', 'openai_usb_reporting')
+PROVIDER_SPECIFIC_TERMS = ('gemini', 'prime agent', 'sub-agent', 'sub agent')
 BEGIN_PREFIX = b'<!-- DCOIR_SOURCE_BEGIN '
 END_PREFIX = b'<!-- DCOIR_SOURCE_END '
 MARKER_SUFFIX = b' -->'
@@ -116,6 +117,9 @@ def _projection_bytes(
             'path': source['path'],
             'sha256': source['sha256'],
         }
+        if source.get('split_from_id'):
+            metadata['split_from_id'] = source['split_from_id']
+            metadata['split_from_path'] = source['split_from_path']
         parts.append(_source_marker(BEGIN_PREFIX, metadata))
         parts.append(source['content'])
         parts.append(b'\n')
@@ -244,6 +248,111 @@ def _source_records(
     return records
 
 
+def _projection_source_records(
+    repo_root: Path,
+    records: list[dict[str, Any]],
+    projection_roots: list[Path],
+    errors: list[str],
+) -> dict[tuple[str, str], dict[str, Any]]:
+    unique_sources: dict[tuple[str, str], dict[str, Any]] = {}
+    for record in records:
+        item = record['item']
+        overrides = item.get('target_projection_sources')
+        applicable_openai = {
+            target_id
+            for target_id in OPENAI_TARGETS
+            if target_id in (
+                item.get('applies_to')
+                if isinstance(item.get('applies_to'), list)
+                else []
+            )
+        }
+        if item.get('content_class') == 'split':
+            if not isinstance(overrides, dict) or set(overrides) != applicable_openai:
+                errors.append(
+                    f"{record['id']} split source must define projection sources for "
+                    f'{sorted(applicable_openai)}'
+                )
+                continue
+        elif overrides is not None:
+            errors.append(
+                f"{record['id']} target_projection_sources requires split content_class"
+            )
+            continue
+        else:
+            continue
+
+        target_records: dict[str, dict[str, Any]] = {}
+        for target_id, override in overrides.items():
+            if target_id not in OPENAI_TARGETS or not isinstance(override, dict):
+                errors.append(
+                    f"{record['id']} has an invalid target projection source: {target_id}"
+                )
+                continue
+            override_id = override.get('id')
+            override_path_value = override.get('source_path')
+            if not isinstance(override_id, str) or not override_id:
+                errors.append(f"{record['id']} {target_id} projection source lacks an id")
+                continue
+            override_path = _resolve_repo_path(
+                repo_root,
+                override_path_value,
+                f"{record['id']} {target_id} projection source_path",
+                errors,
+            )
+            if override_path is None:
+                continue
+            if not any(
+                override_path.is_relative_to(root.resolve())
+                for root in projection_roots
+            ):
+                errors.append(
+                    f"{record['id']} {target_id} projection source is outside "
+                    'canonical_projection_source_roots'
+                )
+                continue
+            try:
+                content = override_path.read_bytes()
+            except FileNotFoundError:
+                errors.append(
+                    f'Missing canonical projection source: {override_path_value}'
+                )
+                continue
+            actual_blob = _git_blob_sha(content)
+            expected_blob = override.get('source_git_blob_sha')
+            if actual_blob != expected_blob:
+                errors.append(
+                    f"{record['id']} {target_id} projection Git blob SHA mismatch: "
+                    f'expected {expected_blob}, got {actual_blob}'
+                )
+            if override.get('provider_neutral_required') is not True:
+                errors.append(
+                    f"{record['id']} {target_id} projection source must require "
+                    'provider-neutral content'
+                )
+            lowered = content.decode('utf-8', errors='replace').casefold()
+            leaked = [term for term in PROVIDER_SPECIFIC_TERMS if term in lowered]
+            if leaked:
+                errors.append(
+                    f"{record['id']} {target_id} projection source contains "
+                    f'provider-specific terms: {leaked}'
+                )
+            override_record = {
+                'id': override_id,
+                'path': override_path.relative_to(repo_root).as_posix(),
+                'git_blob_sha': actual_blob,
+                'sha256': _sha256(content),
+                'content': content,
+                'item': item,
+                'split_from_id': record['id'],
+                'split_from_path': record['path'],
+            }
+            target_records[target_id] = override_record
+            unique_sources[(override_id, override_record['path'])] = override_record
+        record['target_projection_records'] = target_records
+    return unique_sources
+
+
 def _validate_gemini_inventory(
     repo_root: Path,
     target: dict[str, Any],
@@ -332,6 +441,20 @@ def project_knowledge(
     generated_root = _resolve_repo_path(
         repo_root, manifest.get('generated_root'), 'generated_root', errors
     )
+    projection_root_values = manifest.get('canonical_projection_source_roots')
+    projection_roots: list[Path] = []
+    if not isinstance(projection_root_values, list) or not projection_root_values:
+        errors.append('canonical_projection_source_roots must be a non-empty path array')
+    else:
+        for index, root_value in enumerate(projection_root_values):
+            root = _resolve_repo_path(
+                repo_root,
+                root_value,
+                f'canonical_projection_source_roots[{index}]',
+                errors,
+            )
+            if root is not None:
+                projection_roots.append(root)
     if source_contract_path is None or knowledge_root is None or generated_root is None:
         return errors, {}
     if (
@@ -342,6 +465,15 @@ def project_knowledge(
         errors.append(
             'generated_root must be disjoint from the repository root and canonical knowledge root'
         )
+    for projection_root in projection_roots:
+        if (
+            projection_root == repo_root
+            or projection_root.is_relative_to(generated_root)
+            or generated_root.is_relative_to(projection_root)
+        ):
+            errors.append(
+                'canonical projection source roots must be disjoint from generated_root'
+            )
     try:
         source_contract = _load_json(source_contract_path)
     except ValueError as exc:
@@ -357,6 +489,15 @@ def project_knowledge(
     ):
         errors.append(
             'Projection canonical_knowledge_root disagrees with the source contract'
+        )
+    declared_projection_roots = (
+        [canonical_roots.get('shared_knowledge_modules')]
+        if isinstance(canonical_roots, dict)
+        else []
+    )
+    if declared_projection_roots != projection_root_values:
+        errors.append(
+            'Projection source roots disagree with the shared source contract'
         )
     expected_manifest_rel = manifest_path.relative_to(repo_root).as_posix()
     if source_contract.get('knowledge_projection_manifest') != expected_manifest_rel:
@@ -376,6 +517,19 @@ def project_knowledge(
         errors.append(
             f'Canonical knowledge count mismatch: expected {expected_source_count}, '
             f'got {len(records)}'
+        )
+    projection_sources = _projection_source_records(
+        repo_root, records, projection_roots, errors
+    )
+    expected_projection_source_count = manifest.get(
+        'expected_projection_source_count'
+    )
+    if not _is_positive_int(expected_projection_source_count):
+        errors.append('expected_projection_source_count must be a positive integer')
+    elif len(projection_sources) != expected_projection_source_count:
+        errors.append(
+            'Canonical projection source count mismatch: expected '
+            f'{expected_projection_source_count}, got {len(projection_sources)}'
         )
 
     groups = source_contract.get('knowledge_projection_groups')
@@ -510,7 +664,10 @@ def project_knowledge(
                             f"{record['id']} references an unknown {projection_field}: "
                             f'{group_id}'
                         )
-                    group_sources[group_id].append(record)
+                    projected_record = record.get(
+                        'target_projection_records', {}
+                    ).get(target_id, record)
+                    group_sources[group_id].append(projected_record)
             elif group_id is not None:
                 errors.append(
                     f"{record['id']} declares {projection_field} but does not apply to {target_id}"
@@ -562,6 +719,14 @@ def project_knowledge(
                     'git_blob_sha': source['git_blob_sha'],
                     'sha256': source['sha256'],
                     'bytes': len(source['content']),
+                    **(
+                        {
+                            'split_from_id': source['split_from_id'],
+                            'split_from_path': source['split_from_path'],
+                        }
+                        if source.get('split_from_id')
+                        else {}
+                    ),
                 }
                 for source in sources
             ]
@@ -676,6 +841,7 @@ def project_knowledge(
         'projection_contract_version': manifest.get('projection_contract_version'),
         'action': 'check' if check else 'materialize',
         'canonical_source_count': len(records),
+        'canonical_projection_source_count': len(projection_sources),
         'generated_file_count': len(expected_files),
         'targets': result_targets,
         'errors': errors,
