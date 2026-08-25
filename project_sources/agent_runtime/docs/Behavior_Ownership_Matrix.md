@@ -8,7 +8,7 @@ The manifest is machine-readable contract authority; this file must cover the sa
 | Target | Output owner | Instruction mode | Knowledge mode | Current live lookup | Current external actions |
 | --- | --- | --- | --- | --- | --- |
 | `gemini_dcoir_agent` | project_sources/gemini bundle compiler | prime_plus_sub_agents | direct_canonical_attachments | Runtime-dependent; never assumed | Unavailable unless returned execution evidence exists |
-| `openai_dcoir_analyst` | future OpenAI DCOIR package compiler | static_instructions | static_knowledge | Unavailable | Unavailable unless returned execution evidence exists |
+| `openai_dcoir_analyst` | project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py | static_instructions | static_knowledge | Unavailable | Unavailable unless returned execution evidence exists |
 | `openai_usb_reporting` | future OpenAI USB package compiler | static_instructions | static_knowledge | Unavailable | Unavailable unless returned execution evidence exists |
 
 ## Behavior Ownership

@@ -1,6 +1,6 @@
 {
   "schema": "dcoir.agent_runtime.source_contract.v1",
-  "source_contract_version": "1.2.0",
+  "source_contract_version": "1.3.0",
   "canonical_repository": "malwaredevil/dcoir-collector",
   "canonical_source_roots": {
     "shared_contract": "project_sources/agent_runtime",
@@ -8,7 +8,8 @@
     "gemini_runtime": "project_sources/gemini/bundle_source",
     "knowledge": "knowledge",
     "shared_behavior_modules": "project_sources/agent_runtime/behavior_modules",
-    "shared_knowledge_modules": "project_sources/agent_runtime/knowledge_modules"
+    "shared_knowledge_modules": "project_sources/agent_runtime/knowledge_modules",
+    "provider_adapters": "project_sources/agent_runtime/provider_adapters"
   },
   "generated_artifact_policy": {
     "generated_outputs_are_canonical": false,
@@ -56,7 +57,7 @@
     },
     {
       "id": "openai_dcoir_analyst",
-      "output_owner": "future OpenAI DCOIR package compiler",
+      "output_owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
       "provider": "openai_webui_bedrock_hosted",
       "runtime_model": "GPT-5.4",
       "instruction_mode": "static_instructions",
@@ -81,7 +82,9 @@
         }
       },
       "generated_outputs": [
-        "OpenAI DCOIR Analyst upload package"
+        "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
+        "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json",
+        "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/manifest.json"
       ]
     },
     {
@@ -123,8 +126,8 @@
     },
     {
       "id": "adapter.openai_dcoir",
-      "owner": "future compiler issue",
-      "purpose": "Flatten applicable shared behavior into short bootstrap instructions and consolidated knowledge."
+      "owner": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst plus build_openai_dcoir_analyst.py",
+      "purpose": "Flatten all 30 applicable shared behavior responsibilities into one static WebUI Instructions surface, bind exactly seven consolidated Knowledge files, and fail on shared-source or generated-target drift."
     },
     {
       "id": "adapter.openai_usb",
@@ -3033,6 +3036,7 @@
   ],
   "behavior_module_manifest": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
   "knowledge_projection_manifest": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
+  "openai_dcoir_adapter_manifest": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Adapter_Manifest.json",
   "gemini_behavioral_authority_sources": [
     "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
     "project_sources/agent_runtime/Behavior_Module_Manifest.json"

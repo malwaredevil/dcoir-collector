@@ -1,0 +1,380 @@
+{
+  "adapter_contract_version": "1.0.0",
+  "behavior_coverage": [
+    {
+      "id": "prime.chunk.00",
+      "sections": [
+        "identity_scope"
+      ],
+      "sha256": "5790f1bc1fa4fc18afd87d1961ac32b86102273550eabe50ed11c759d178432f",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.00.md"
+    },
+    {
+      "id": "prime.chunk.01",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ],
+      "sha256": "067f83f5612343c2c569db6f8d7b0952a56cde4663ef6d75e2d178f979110ac8",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.01.md"
+    },
+    {
+      "id": "prime.chunk.02",
+      "sections": [
+        "analysis_workflow"
+      ],
+      "sha256": "90274af4c446a47eba36deaa8ea5a6b2f325fa78b999e57a018363304280e7ae",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.02.md"
+    },
+    {
+      "id": "prime.chunk.03",
+      "sections": [
+        "identity_scope",
+        "queries_commands_collection"
+      ],
+      "sha256": "591b2085cf349205f1572258ba7d384789af3672f385fcc3c6a7c137d4f7a362",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.03.md"
+    },
+    {
+      "id": "prime.chunk.04",
+      "sections": [
+        "authority_evidence_lanes"
+      ],
+      "sha256": "43aff2e5e176c13b27733cc83b7009169eaebcb72113d40f62c273c672abaea6",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.04.md"
+    },
+    {
+      "id": "prime.chunk.05",
+      "sections": [
+        "queries_commands_collection"
+      ],
+      "sha256": "0adee5c3476aa0437bede2035d5ddab5b6ff5f1ba3577feda2c12599f8dae58a",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.05.md"
+    },
+    {
+      "id": "prime.chunk.06",
+      "sections": [
+        "analysis_workflow",
+        "ioc_encoded_content"
+      ],
+      "sha256": "d06faac89de986d2140d7674e6f2b6448a95da95cd807eb5f6e1e603e507f5d9",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.06.md"
+    },
+    {
+      "id": "prime.chunk.07",
+      "sections": [
+        "analysis_workflow",
+        "conclusions_output"
+      ],
+      "sha256": "318004f778305a3b1187765a5a51ae91c190ef315a82ec9afaa9a05294afe3a6",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.07.md"
+    },
+    {
+      "id": "prime.chunk.08",
+      "sections": [
+        "conclusions_output"
+      ],
+      "sha256": "588b3b11feb95ca35192682d416a9128e4a51b1f4695d1f383bbf216f23225d0",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.08.md"
+    },
+    {
+      "id": "prime.chunk.09",
+      "sections": [
+        "analysis_workflow"
+      ],
+      "sha256": "d9524e86d637f8cf7c7994b0dfeadd8093034cdb5b1ee2573d1eeafefbec3155",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.09.md"
+    },
+    {
+      "id": "prime.chunk.10",
+      "sections": [
+        "authority_evidence_lanes",
+        "capability_boundaries"
+      ],
+      "sha256": "ea40dafe369eade2b8590869f1c4029da1f12c8dbe7162e52f13dcb066e4732f",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.10.md"
+    },
+    {
+      "id": "prime.chunk.11",
+      "sections": [
+        "authority_evidence_lanes",
+        "analysis_workflow"
+      ],
+      "sha256": "92df8cb7ddbb78f5d3571b686643916908b5fc8d18675818de881ff8a050a1d1",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.11.md"
+    },
+    {
+      "id": "prime.chunk.12",
+      "sections": [
+        "authority_evidence_lanes",
+        "capability_boundaries"
+      ],
+      "sha256": "be169913f79b20a5d8835e8b00498165e622766c059fb162c5ebb8db4bb510c8",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.12.md"
+    },
+    {
+      "id": "prime.chunk.13",
+      "sections": [
+        "queries_commands_collection"
+      ],
+      "sha256": "2e10b17fa7b143fd4e50b51283ee3cd1ed57119c783b59684659a3c4e884c477",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.13.md"
+    },
+    {
+      "id": "prime.chunk.14",
+      "sections": [
+        "authority_evidence_lanes",
+        "analysis_workflow"
+      ],
+      "sha256": "57c511cc2a11f5f022e25deb665e5ca84612639392701ea1a72bb02ab7482ea6",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.14.md"
+    },
+    {
+      "id": "prime.chunk.15",
+      "sections": [
+        "identity_scope",
+        "conclusions_output"
+      ],
+      "sha256": "015f08af347a61064a808ba05e3a94c4f5349b06ba5472c3df7705c7a18d84e5",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.15.md"
+    },
+    {
+      "id": "prime.chunk.17",
+      "sections": [
+        "identity_scope",
+        "queries_commands_collection"
+      ],
+      "sha256": "45e5f43498e6e3eeec37579a8717a71ec61c04a37a411277cef6b372cdecb676",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.17.md"
+    },
+    {
+      "id": "prime.chunk.18",
+      "sections": [
+        "ioc_encoded_content"
+      ],
+      "sha256": "45d506132e68365aa322259d7283439560728ee3f210f999d87723f2811fe1b5",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.18.md"
+    },
+    {
+      "id": "prime.chunk.19",
+      "sections": [
+        "analysis_workflow",
+        "conclusions_output"
+      ],
+      "sha256": "b6dd561b3596c6975aba78a1b5358e83ae249fb984203ce2755782c530890735",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.19.md"
+    },
+    {
+      "id": "prime.chunk.20",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ],
+      "sha256": "569f8b4a691b01c8e7a42133c81ac0ae27bc619ae64bc13a24f84a8f9ef4692a",
+      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.20.md"
+    },
+    {
+      "id": "sub_agent.01",
+      "sections": [
+        "analysis_workflow"
+      ],
+      "sha256": "ffe4906b5d4b9891142ca3af533d0a357c05ebb374c5e99e42b3a93dfec658de",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.01.md"
+    },
+    {
+      "id": "sub_agent.02",
+      "sections": [
+        "authority_evidence_lanes",
+        "analysis_workflow"
+      ],
+      "sha256": "4ee82729b228250a112e0fc791e819749489cffb03703725b2602450496d69b3",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.02.md"
+    },
+    {
+      "id": "sub_agent.03",
+      "sections": [
+        "analysis_workflow",
+        "conclusions_output"
+      ],
+      "sha256": "70dbe49a4cfca9f7710dc75121d618768e69f2e7a692c7067ca53d028ca0dcb7",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.03.md"
+    },
+    {
+      "id": "sub_agent.04",
+      "sections": [
+        "authority_evidence_lanes"
+      ],
+      "sha256": "edb4246aa2e9037819feda0023580bb366ee7b9af603ce502264360f6a3040ba",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.04.md"
+    },
+    {
+      "id": "sub_agent.05",
+      "sections": [
+        "queries_commands_collection"
+      ],
+      "sha256": "441d47db3c94d9d93aa09365f34b921b9a1a355b8ecac1af86f4a1d4281d6473",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.05.md"
+    },
+    {
+      "id": "sub_agent.06",
+      "sections": [
+        "queries_commands_collection"
+      ],
+      "sha256": "4f25093422aca47b0ce7f651e12c067285ea8e28da15344701762d96687eb707",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.06.md"
+    },
+    {
+      "id": "sub_agent.07",
+      "sections": [
+        "queries_commands_collection",
+        "conclusions_output"
+      ],
+      "sha256": "9f51fa66c3753e9046dbc3ed22bf4e5d1e614bce5338d16bcf833349a33996e8",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.07.md"
+    },
+    {
+      "id": "sub_agent.08",
+      "sections": [
+        "ioc_encoded_content"
+      ],
+      "sha256": "bf57f8cb9bbf60bd1c23975b969ee4ea4266451be88b9bf5e14a2d0c7477608d",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.08.md"
+    },
+    {
+      "id": "sub_agent.09",
+      "sections": [
+        "queries_commands_collection"
+      ],
+      "sha256": "d1c798f1656c621e3c4b81d0d347c8bc62b066ba0afbfb7533c3679ff0ec0325",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.09.md"
+    },
+    {
+      "id": "sub_agent.10",
+      "sections": [
+        "conclusions_output"
+      ],
+      "sha256": "11d587b19f12af39a63c76e80cdf497ed88e018fecb7a4de3ff9918a4e231413",
+      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md"
+    }
+  ],
+  "behavior_coverage_count": 30,
+  "behavior_source_snapshot_sha256": "13229b83255e43ec4a141c2f856d1ef3ae8c26baa32b29d89d27af697dcfd7ab",
+  "behavioral_case_count": 16,
+  "behavioral_case_ids": [
+    "elastic_alert_triage",
+    "missing_evidence_readiness",
+    "zero_result",
+    "query_without_execution",
+    "collector_state_uncertainty",
+    "collector_artifacts",
+    "ioc_supplied_enrichment",
+    "ioc_unavailable_enrichment",
+    "encoded_artifact",
+    "targeted_collection",
+    "hypothesis_discipline",
+    "conclusion_report_timing",
+    "usb_redirect",
+    "knowledge_instruction_injection",
+    "scaffold_and_duplicate_suppression",
+    "request_coverage"
+  ],
+  "direct_target_edits_require_reverse_reconciliation": true,
+  "generated_files": [
+    {
+      "bytes": 7808,
+      "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
+      "sha256": "3a011b0ba7b24f7ff4e5575b1056361fca4cf9bf07b6e3eba92880a202fee66e"
+    },
+    {
+      "bytes": 3212,
+      "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json",
+      "sha256": "e23e424dccddfff47b1aa4d79b0a991796df32b91a69bde60b892c05c44fcca3"
+    }
+  ],
+  "generated_outputs_are_canonical": false,
+  "instruction_character_ceiling": 8000,
+  "instruction_character_count": 7808,
+  "knowledge_file_count": 7,
+  "knowledge_files": [
+    {
+      "bytes": 14200,
+      "id": "dcoir_core",
+      "order": 0,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/01-dcoir-core.md",
+      "sha256": "c9df417085d6490ea169ee77d6c2dd1067ee7d25f05afa88642ba057758811b0"
+    },
+    {
+      "bytes": 4633,
+      "id": "dcoir_elastic_ops",
+      "order": 1,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/02-dcoir-elastic-ops.md",
+      "sha256": "a274f10b54b9d75aa36af17390204a59148dbc9f450dfd5040fb61e4646fd03c"
+    },
+    {
+      "bytes": 65954,
+      "id": "dcoir_collection",
+      "order": 2,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/03-dcoir-collection.md",
+      "sha256": "51fe9cf55d4329037babafc70ea98bb86181df2fbcb13962168a7d828f1ea3a7"
+    },
+    {
+      "bytes": 9648,
+      "id": "dcoir_artifacts",
+      "order": 3,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/04-dcoir-artifacts.md",
+      "sha256": "98c7726e846189980cb1adb63cbad50b9e9b09feaca60a526d6b4497e5dcd42a"
+    },
+    {
+      "bytes": 2823,
+      "id": "dcoir_ioc_enrichment",
+      "order": 4,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/05-dcoir-ioc-enrichment.md",
+      "sha256": "4b4a6efe1d263f384507c35d66a8eaef377f068b2af58bbdcfd922f43c3d4815"
+    },
+    {
+      "bytes": 79712,
+      "id": "dcoir_elastic_reference",
+      "order": 5,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/06-dcoir-elastic-reference.md",
+      "sha256": "de9b676cea8bcc27c56153fdaa02187f308754674734848fc23ab7cbd562e6c4"
+    },
+    {
+      "bytes": 234714,
+      "id": "dcoir_osquery_reference",
+      "order": 6,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/07-dcoir-osquery-reference.md",
+      "sha256": "2f1f80f77395650cc19e247551e3ef2d38bfdf799c2cbdfa743d54598981102b"
+    }
+  ],
+  "live_webui_validation_performed": false,
+  "schema": "dcoir.agent_runtime.openai_dcoir_package.v1",
+  "source_base_commit": "bd69c7a5e5f236e03774a0aedf93a3d818650d81",
+  "source_contracts": {
+    "behavior_module_manifest": {
+      "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
+      "sha256": "60a6c824cb5c58045b61d87533ac0ab86519176176647b974af8bd2852965014"
+    },
+    "behavioral_cases": {
+      "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
+      "sha256": "87c8d9864753c023ac0030e9e6dea113556699e4c94babb71bc331314b88aece"
+    },
+    "canonical_instructions_source": {
+      "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Instructions.md",
+      "sha256": "3a011b0ba7b24f7ff4e5575b1056361fca4cf9bf07b6e3eba92880a202fee66e"
+    },
+    "knowledge_projection_manifest": {
+      "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
+      "sha256": "5d7f418a77550c8c4fd5019e4550dc4ec171ed02d5b60132a24cdf8b238561be"
+    },
+    "knowledge_target_manifest": {
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/manifest.json",
+      "sha256": "8a7fc4fe69a4abebc586dc4b204e3002cf8c9e058e039e8f62682301ffe25e8b"
+    },
+    "source_contract": {
+      "path": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+      "sha256": "a883cd2979cbacd6354458f796973f64f8178933e0a1505d876039d61729014c"
+    }
+  },
+  "strict_knowledge_file_ceiling": 20,
+  "target_id": "openai_dcoir_analyst"
+}
