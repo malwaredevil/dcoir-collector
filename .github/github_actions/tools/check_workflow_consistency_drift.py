@@ -298,8 +298,45 @@ def expected_agent_runtime_receipt_lines(event_name: str) -> list[str]:
     return lines
 
 
-def expected_agent_runtime_report_markers(event_name: str) -> list[str]:
+def expected_agent_runtime_upload_lines(event_name: str) -> list[str]:
+    lane = "pr" if event_name == "pull_request" else "push"
+    return [
+        "id: upload_validation_artifacts",
+        "if: always()",
+        "uses: ./.github/actions/upload-chatgpt-artifact",
+        "with:",
+        f"name: validate-on-{lane}-results",
+        "path: |",
+        "project_sources/TestResults/**",
+        f"project_sources/validation/out_validate_on_{lane}_gemini/**",
+        f"project_sources/validation/out_validate_on_{lane}_agent_runtime/**",
+        f"project_sources/validation/out_validate_on_{lane}_collector/**",
+        f"project_sources/validation/out_validate_on_{lane}_validate_dcoir_run_fixtures/**",
+        "project_sources/validation/out_preflight_documentation_quality/**",
+        f"project_sources/validation/out_validate_on_{lane}_documentation_quality/**",
+        "project_sources/collector/powershell_analyzer_report.json",
+        "project_sources/collector/powershell_duplicate_function_report.json",
+        "project_sources/collector/powershell_duplicate_function_report.md",
+        "project_sources/collector/powershell_review_assist_workflow_report.json",
+        "project_sources/collector/powershell_review_assist_workflow_report.md",
+        "if-no-files-found: warn",
+        "retention-days: 14",
+    ]
+
+
+def expected_agent_runtime_report_lines(event_name: str) -> list[str]:
     reviewed, tested = agent_runtime_identity_env(event_name)
+    lane = "pr" if event_name == "pull_request" else "push"
+    additional_output = (
+        "collector runtime output"
+        if event_name == "pull_request"
+        else "collector package smoke-build output"
+    )
+    artifact_claims = (
+        "package, harness, or report-specific claims"
+        if event_name == "pull_request"
+        else "harness, package, documentation, or report-specific claims"
+    )
     return [
         "if: always()",
         "shell: pwsh",
@@ -308,10 +345,43 @@ def expected_agent_runtime_report_markers(event_name: str) -> list[str]:
         f"AGENT_RUNTIME_TESTED_COMMIT_SHA: {tested}",
         "AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME: ${{ steps.upload_validation_artifacts.outcome }}",
         "run: |",
+        f"$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_{lane}_agent_runtime/agent_runtime_validation.json'",
+        "if (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {",
         "if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -eq 'success') {",
         "$agentRuntimeValidation = 'passed_receipt_uploaded'",
+        f"$agentRuntimeArtifact = 'agent_runtime_validation.json is included in validate-on-{lane}-results.'",
+        "}",
+        "else {",
+        '$agentRuntimeValidation = "passed_receipt_produced_artifact_upload_$($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME)"',
         "$agentRuntimeArtifact = 'agent_runtime_validation.json was produced locally, but primary artifact upload did not succeed.'",
+        "}",
+        "}",
+        "else {",
         "$agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'",
+        "$agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the eight-command contract did not complete successfully.'",
+        "}",
+        "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null",
+        '@"',
+        f"- workflow: validate-on-{lane}",
+        "- workflow_run_id: $env:GITHUB_RUN_ID",
+        "- workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT",
+        "- head_sha: $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA",
+        "- tested_commit_sha: $env:AGENT_RUNTIME_TESTED_COMMIT_SHA",
+        "- ref: $env:GITHUB_REF",
+        "- event_name: $env:GITHUB_EVENT_NAME",
+        f"- primary_artifact: validate-on-{lane}-results",
+        "- artifact_note: includes the agent-runtime validation receipt only when all eight commands pass; "
+        f"also includes Gemini smoke-build output, {additional_output}, validate_DCOIR_Run fixture output, "
+        "documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, "
+        "PowerShell review-assist JSON/Markdown, and TestResults when produced.",
+        "- agent_runtime_validation: $agentRuntimeValidation",
+        "- agent_runtime_artifact: $agentRuntimeArtifact",
+        "- job_summary: review-assist report written to GITHUB_STEP_SUMMARY.",
+        "- duplicate_function_check: emits JSON/Markdown artifacts before the static analysis validation gate blocks merge on any cross-file function name collision in collector source.",
+        "- psscriptanalyzer_gate: emits JSON before the static analysis validation gate blocks merge on any Error-severity finding; Warnings reported but non-blocking.",
+        "- static_analysis_gate: runs after static reports are generated so review tooling can consume the evidence artifact even when the gate fails.",
+        f"The workflow conclusion is the authoritative pass/fail signal for the {lane.upper() if lane == 'pr' else lane} validation lane. Use artifact readback for {artifact_claims}.",
+        '"@ | Set-Content -Path chatgpt_workflow_report_section/chatgpt_workflow_report_section.md -Encoding utf8',
     ]
 
 
@@ -374,15 +444,14 @@ def agent_runtime_contract_findings(
     else:
         upload_line, upload_body = upload_matches[0]
         upload_lines = active_step_lines(upload_body)
-        for marker in (
-            "id: upload_validation_artifacts",
-            "if: always()",
-            "uses: ./.github/actions/upload-chatgpt-artifact",
-        ):
-            if marker not in upload_lines:
-                findings.append(
-                    f"{path}:{upload_line}: validation artifact upload lacks marker: {marker}"
-                )
+        if receipt_matches and upload_line <= receipt_matches[0][0]:
+            findings.append(
+                f"{path}:{upload_line}: validation artifact upload must run after the agent-runtime receipt"
+            )
+        if upload_lines != expected_agent_runtime_upload_lines(event_name):
+            findings.append(
+                f"{path}:{upload_line}: validation artifact upload contract drifted"
+            )
 
     report_matches = find_named_step(expanded_text, AGENT_RUNTIME_REPORT_STEP)
     if len(report_matches) != 1:
@@ -393,11 +462,14 @@ def agent_runtime_contract_findings(
     else:
         report_line, report_body = report_matches[0]
         report_lines = active_step_lines(report_body)
-        for marker in expected_agent_runtime_report_markers(event_name):
-            if marker not in report_lines:
-                findings.append(
-                    f"{path}:{report_line}: agent-runtime report lacks marker: {marker}"
-                )
+        if upload_matches and report_line <= upload_matches[0][0]:
+            findings.append(
+                f"{path}:{report_line}: agent-runtime report must run after validation artifact upload"
+            )
+        if report_lines != expected_agent_runtime_report_lines(event_name):
+            findings.append(
+                f"{path}:{report_line}: agent-runtime report contract drifted"
+            )
     return findings
 
 
@@ -421,32 +493,13 @@ def run_agent_runtime_contract_selftests() -> list[str]:
         + [f"        {line}" for line in expected_agent_runtime_receipt_lines(event_name)]
     )
     upload = "\n".join(
-        [
-            f"      - name: {AGENT_RUNTIME_UPLOAD_STEP}",
-            "        id: upload_validation_artifacts",
-            "        if: always()",
-            "        uses: ./.github/actions/upload-chatgpt-artifact",
-        ]
+        [f"      - name: {AGENT_RUNTIME_UPLOAD_STEP}"]
+        + [f"        {line}" for line in expected_agent_runtime_upload_lines(event_name)]
     )
-    reviewed, tested = agent_runtime_identity_env(event_name)
+    reviewed, _ = agent_runtime_identity_env(event_name)
     report = "\n".join(
-        [
-            f"      - name: {AGENT_RUNTIME_REPORT_STEP}",
-            "        if: always()",
-            "        shell: pwsh",
-            "        env:",
-            f"          AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
-            f"          AGENT_RUNTIME_TESTED_COMMIT_SHA: {tested}",
-            "          AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME: ${{ steps.upload_validation_artifacts.outcome }}",
-            "        run: |",
-            "          if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -eq 'success') {",
-            "            $agentRuntimeValidation = 'passed_receipt_uploaded'",
-            "          }",
-            "          else {",
-            "            $agentRuntimeArtifact = 'agent_runtime_validation.json was produced locally, but primary artifact upload did not succeed.'",
-            "          }",
-            "          $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'",
-        ]
+        [f"      - name: {AGENT_RUNTIME_REPORT_STEP}"]
+        + [f"        {line}" for line in expected_agent_runtime_report_lines(event_name)]
     )
     entry_text = "\n".join(entry_lines)
     good_expanded = "\n".join(step_chunks + [receipt, upload, report])
@@ -523,6 +576,26 @@ def run_agent_runtime_contract_selftests() -> list[str]:
             f"AGENT_RUNTIME_REVIEWED_HEAD_SHA: {reviewed}",
             "AGENT_RUNTIME_REVIEWED_HEAD_SHA: deadbeef",
             2,
+        ),
+        "omitted receipt artifact glob": good_expanded.replace(
+            "        project_sources/validation/out_validate_on_pr_agent_runtime/**\n",
+            "",
+            1,
+        ),
+        "wrong primary artifact name": good_expanded.replace(
+            "        name: validate-on-pr-results",
+            "        name: validate-on-pr-result",
+            1,
+        ),
+        "upload continue-on-error": good_expanded.replace(
+            f"      - name: {AGENT_RUNTIME_UPLOAD_STEP}\n",
+            f"      - name: {AGENT_RUNTIME_UPLOAD_STEP}\n        continue-on-error: true\n",
+            1,
+        ),
+        "report early exit": good_expanded.replace(
+            "        run: |\n        $agentRuntimeReceiptPath",
+            "        run: |\n        exit 0\n        $agentRuntimeReceiptPath",
+            1,
         ),
     }
     for label, mutated in mutations.items():
