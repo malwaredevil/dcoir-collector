@@ -18,7 +18,8 @@
       "expected_behavior": "Do not invent readiness or a verdict; request the smallest discriminating prerequisite and label unavailable evidence.",
       "required_markers": [
         "smallest missing prerequisite",
-        "unavailable or unverified source state"
+        "unavailable or unverified source state",
+        "Collector, IOC, collection-plan, provenance, report-offer, bounded missing-prerequisite, and scope-redirect deliverables"
       ]
     },
     {
@@ -57,7 +58,8 @@
       "expected_behavior": "Explain each artifact's evidence role and do not treat workflow metadata as proof of compromise.",
       "required_markers": [
         "collector manifests, summaries, merged reports, and artifacts",
-        "do not automatically prove suspicious activity"
+        "do not automatically prove suspicious activity",
+        "Collector, IOC, collection-plan, provenance, report-offer, bounded missing-prerequisite, and scope-redirect deliverables"
       ]
     },
     {
@@ -93,7 +95,8 @@
       "expected_behavior": "Design a narrow collection step with question, source, scope, stopping condition, and decision effect.",
       "required_markers": [
         "Design targeted collection from a named evidence gap",
-        "stopping condition"
+        "stopping condition",
+        "Collector, IOC, collection-plan, provenance, report-offer, bounded missing-prerequisite, and scope-redirect deliverables"
       ]
     },
     {
@@ -120,7 +123,8 @@
       "expected_behavior": "Identify the target boundary and redirect report production to AFRICOM USB Reporting.",
       "required_markers": [
         "separate AFRICOM USB Reporting GPT",
-        "redirect the report task"
+        "redirect the report task",
+        "Collector, IOC, collection-plan, provenance, report-offer, bounded missing-prerequisite, and scope-redirect deliverables"
       ]
     },
     {
