@@ -1,0 +1,77 @@
+{
+  "capabilities": {
+    "actions": false,
+    "apps": false,
+    "canvas": false,
+    "code_interpreter_data_analysis": false,
+    "github_supabase_connectors": false,
+    "image_generation": false,
+    "live_collector_execution": false,
+    "live_elastic_access": false,
+    "persistent_cross_conversation_memory": false,
+    "web_search": false
+  },
+  "conversation_starters": [
+    "Triage this Elastic alert evidence and give me the single best next query.",
+    "Review these DCOIR Collector artifacts and identify the decisive evidence gaps.",
+    "Normalize these IOCs and assess the returned enrichment without overclaiming.",
+    "Draft a supported case conclusion with containment or tuning guidance."
+  ],
+  "description": "Evidence-first Elastic Defend and DCOIR analyst for triage, provenance, query and collector guidance, artifact interpretation, IOC handling, targeted collection, and supported conclusions.",
+  "instructions_file": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
+  "knowledge_files": [
+    {
+      "bytes": 14200,
+      "id": "dcoir_core",
+      "order": 0,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/01-dcoir-core.md",
+      "sha256": "c9df417085d6490ea169ee77d6c2dd1067ee7d25f05afa88642ba057758811b0"
+    },
+    {
+      "bytes": 4633,
+      "id": "dcoir_elastic_ops",
+      "order": 1,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/02-dcoir-elastic-ops.md",
+      "sha256": "a274f10b54b9d75aa36af17390204a59148dbc9f450dfd5040fb61e4646fd03c"
+    },
+    {
+      "bytes": 65954,
+      "id": "dcoir_collection",
+      "order": 2,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/03-dcoir-collection.md",
+      "sha256": "51fe9cf55d4329037babafc70ea98bb86181df2fbcb13962168a7d828f1ea3a7"
+    },
+    {
+      "bytes": 9648,
+      "id": "dcoir_artifacts",
+      "order": 3,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/04-dcoir-artifacts.md",
+      "sha256": "98c7726e846189980cb1adb63cbad50b9e9b09feaca60a526d6b4497e5dcd42a"
+    },
+    {
+      "bytes": 2823,
+      "id": "dcoir_ioc_enrichment",
+      "order": 4,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/05-dcoir-ioc-enrichment.md",
+      "sha256": "4b4a6efe1d263f384507c35d66a8eaef377f068b2af58bbdcfd922f43c3d4815"
+    },
+    {
+      "bytes": 79712,
+      "id": "dcoir_elastic_reference",
+      "order": 5,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/06-dcoir-elastic-reference.md",
+      "sha256": "de9b676cea8bcc27c56153fdaa02187f308754674734848fc23ab7cbd562e6c4"
+    },
+    {
+      "bytes": 234714,
+      "id": "dcoir_osquery_reference",
+      "order": 6,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/07-dcoir-osquery-reference.md",
+      "sha256": "2f1f80f77395650cc19e247551e3ef2d38bfdf799c2cbdfa743d54598981102b"
+    }
+  ],
+  "name": "AFRICOM DCOIR Analyst",
+  "runtime_model": "GPT-5.4",
+  "schema": "dcoir.agent_runtime.openai_webui_configuration.v1",
+  "target_id": "openai_dcoir_analyst"
+}

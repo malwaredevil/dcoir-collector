@@ -680,6 +680,28 @@ def validate_contract(
         dispositions = item.get('target_dispositions')
         if not isinstance(dispositions, dict) or set(dispositions) != EXPECTED_TARGET_IDS:
             errors.append(f'{item_id} must disposition all three targets')
+        applies_to = item.get('applies_to')
+        if isinstance(dispositions, dict) and isinstance(applies_to, list):
+            for target_id in ('openai_dcoir_analyst',):
+                if target_id not in applies_to:
+                    continue
+                disposition = dispositions.get(target_id)
+                target = target_by_id.get(target_id)
+                if not isinstance(disposition, dict) or not isinstance(target, dict):
+                    errors.append(f'{item_id} lacks a valid {target_id} disposition')
+                    continue
+                if disposition.get('owner') != target.get('output_owner'):
+                    errors.append(
+                        f'{item_id} {target_id} disposition owner disagrees with target'
+                    )
+                generated_outputs = target.get('generated_outputs')
+                if (
+                    not isinstance(generated_outputs, list)
+                    or disposition.get('generated_output') not in generated_outputs
+                ):
+                    errors.append(
+                        f'{item_id} {target_id} disposition output disagrees with target'
+                    )
         if isinstance(source_path, str) and item.get('canonical') is True:
             candidate = _canonical_source_path(
                 errors, repo_root, approved_source_roots, str(item_id), source_path
