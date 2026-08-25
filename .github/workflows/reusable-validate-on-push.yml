@@ -100,6 +100,9 @@ jobs:
 
       - name: Write agent-runtime validation receipt
         shell: pwsh
+        env:
+          AGENT_RUNTIME_REVIEWED_HEAD_SHA: ${{ github.sha }}
+          AGENT_RUNTIME_TESTED_COMMIT_SHA: ${{ github.sha }}
         run: |
           $commands = @(
             'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'
@@ -116,7 +119,8 @@ jobs:
             workflow = 'validate-on-push'
             workflow_run_id = $env:GITHUB_RUN_ID
             workflow_run_attempt = $env:GITHUB_RUN_ATTEMPT
-            head_sha = $env:GITHUB_SHA
+            head_sha = $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA
+            tested_commit_sha = $env:AGENT_RUNTIME_TESTED_COMMIT_SHA
             event_name = $env:GITHUB_EVENT_NAME
             documented_contract = 'project_sources/agent_runtime/README.md'
             command_count = $commands.Count
@@ -237,7 +241,19 @@ jobs:
       - name: Write ChatGPT workflow report section
         if: always()
         shell: pwsh
+        env:
+          AGENT_RUNTIME_REVIEWED_HEAD_SHA: ${{ github.sha }}
+          AGENT_RUNTIME_TESTED_COMMIT_SHA: ${{ github.sha }}
         run: |
+          $agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'
+          if (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {
+            $agentRuntimeValidation = 'passed_receipt_produced'
+            $agentRuntimeArtifact = 'agent_runtime_validation.json is included in validate-on-push-results.'
+          }
+          else {
+            $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'
+            $agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the eight-command contract did not complete successfully.'
+          }
           New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
           @"
           ## Push validation summary
@@ -245,12 +261,14 @@ jobs:
           - workflow: validate-on-push
           - workflow_run_id: $env:GITHUB_RUN_ID
           - workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT
-          - head_sha: $env:GITHUB_SHA
+          - head_sha: $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA
+          - tested_commit_sha: $env:AGENT_RUNTIME_TESTED_COMMIT_SHA
           - ref: $env:GITHUB_REF
           - event_name: $env:GITHUB_EVENT_NAME
           - primary_artifact: validate-on-push-results
-          - artifact_note: includes the eight-command agent-runtime validation receipt, Gemini smoke-build output, collector package smoke-build output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
-          - agent_runtime_validation: all eight commands documented in project_sources/agent_runtime/README.md run as named fail-fast steps; successful runs include agent_runtime_validation.json in the primary artifact.
+          - artifact_note: includes the agent-runtime validation receipt only when all eight commands pass; also includes Gemini smoke-build output, collector package smoke-build output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
+          - agent_runtime_validation: $agentRuntimeValidation
+          - agent_runtime_artifact: $agentRuntimeArtifact
           - job_summary: review-assist report written to GITHUB_STEP_SUMMARY.
           - duplicate_function_check: emits JSON/Markdown artifacts before the static analysis validation gate blocks merge on any cross-file function name collision in collector source.
           - psscriptanalyzer_gate: emits JSON before the static analysis validation gate blocks merge on any Error-severity finding; Warnings reported but non-blocking.

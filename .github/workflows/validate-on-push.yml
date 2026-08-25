@@ -63,6 +63,7 @@ on:
       - 'project_sources/gemini/tools/**'
       - 'project_sources/validation/**'
       - 'knowledge/**'
+      - '.gitattributes'
       - 'docs/validation/dcoir_collector_capability_coverage_matrix.md'
       - 'supporting_assets/DCOIR_Collector.zip'
       - '.github/workflows/**'

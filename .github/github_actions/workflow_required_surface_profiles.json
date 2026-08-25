@@ -1,6 +1,7 @@
 {
   "validate_on_push": [
     "README.md",
+    ".gitattributes",
     "project_sources/agent_runtime/README.md",
     "project_sources/agent_runtime/Behavior_Module_Manifest.json",
     "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
@@ -104,6 +105,7 @@
   ],
   "validate_on_pr": [
     "README.md",
+    ".gitattributes",
     "project_sources/agent_runtime/README.md",
     "project_sources/agent_runtime/Behavior_Module_Manifest.json",
     "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
