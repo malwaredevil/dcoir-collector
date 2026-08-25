@@ -230,6 +230,13 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         errors, _ = self._run(check=False)
         self.assertTrue(any('exceeds ceiling' in error for error in errors))
 
+        self._build_fixture()
+        manifest = self._read_manifest()
+        manifest['strict_file_count_ceiling'] = True
+        self._write_manifest(manifest)
+        errors, _ = self._run(check=False)
+        self.assertTrue(any('positive integer' in error for error in errors))
+
     def test_gemini_inventory_drift_fails_closed(self) -> None:
         bundle_path = (
             self.repo
@@ -238,6 +245,19 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         _write_json(bundle_path, {'knowledge_attachment_sources': ['knowledge/alpha.md']})
         errors, _ = self._run(check=False)
         self.assertTrue(any('Gemini attachment' in error for error in errors))
+
+        _write_json(
+            bundle_path,
+            {
+                'knowledge_attachment_sources': [
+                    'knowledge/alpha.md',
+                    'knowledge/bravo.md',
+                    'knowledge/alpha.md',
+                ]
+            },
+        )
+        errors, _ = self._run(check=False)
+        self.assertTrue(any('Duplicate Gemini' in error for error in errors))
 
     def test_path_escape_and_cross_target_output_fail_closed(self) -> None:
         manifest = self._read_manifest()

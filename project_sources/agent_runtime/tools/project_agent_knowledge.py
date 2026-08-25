@@ -46,6 +46,14 @@ def _duplicates(values: list[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
 
 
+def _is_positive_int(value: Any) -> bool:
+    return type(value) is int and value > 0
+
+
+def _is_nonnegative_int(value: Any) -> bool:
+    return type(value) is int and value >= 0
+
+
 def _resolve_repo_path(
     repo_root: Path,
     value: Any,
@@ -136,7 +144,7 @@ def recover_projection(data: bytes) -> list[dict[str, Any]]:
             raise ValueError('Malformed projection begin marker')
         metadata = json.loads(marker[:-len(MARKER_SUFFIX)].decode('ascii'))
         byte_count = metadata.get('bytes')
-        if not isinstance(byte_count, int) or byte_count < 0:
+        if not _is_nonnegative_int(byte_count):
             raise ValueError('Projection begin marker has an invalid byte count')
         content_start = line_end + 1
         content_end = content_start + byte_count
@@ -272,6 +280,8 @@ def _validate_gemini_inventory(
             'Gemini attachment count mismatch: '
             f"expected {target.get('expected_attachment_count')}, got {len(attachments)}"
         )
+    for duplicate in _duplicates(attachments):
+        errors.append(f'Duplicate Gemini knowledge attachment: {duplicate}')
     if set(attachments) != set(applicable_by_path):
         errors.append('Gemini attachment inventory disagrees with the source contract')
     inventory = []
@@ -353,14 +363,14 @@ def project_knowledge(
         errors.append('Shared source contract points to the wrong projection manifest')
     policy = source_contract.get('knowledge_projection_policy')
     ceiling = manifest.get('strict_file_count_ceiling')
-    if not isinstance(ceiling, int) or ceiling < 1:
+    if not _is_positive_int(ceiling):
         errors.append('strict_file_count_ceiling must be a positive integer')
         ceiling = 0
     if not isinstance(policy, dict) or policy.get('strict_file_count_ceiling') != ceiling:
         errors.append('Projection manifest file ceiling disagrees with source contract')
     records = _source_records(repo_root, source_contract, knowledge_root, errors)
     expected_source_count = manifest.get('expected_canonical_source_count')
-    if not isinstance(expected_source_count, int) or expected_source_count < 1:
+    if not _is_positive_int(expected_source_count):
         errors.append('expected_canonical_source_count must be a positive integer')
     elif len(records) != expected_source_count:
         errors.append(
@@ -443,7 +453,7 @@ def project_knowledge(
                 f'exceeds ceiling {ceiling}'
             )
         expected_projection_count = target.get('expected_projection_count')
-        if not isinstance(expected_projection_count, int) or expected_projection_count < 1:
+        if not _is_positive_int(expected_projection_count):
             errors.append(f'{target_id} expected_projection_count must be positive')
         elif len(declared_groups) != expected_projection_count:
             errors.append(
@@ -462,7 +472,10 @@ def project_knowledge(
             [value for value in group_ids if isinstance(value, str)]
         ):
             errors.append(f'{target_id} has duplicate projection group: {duplicate}')
-        if orders != list(range(len(declared_groups))):
+        if (
+            not all(type(order) is int for order in orders)
+            or orders != list(range(len(declared_groups)))
+        ):
             errors.append(f'{target_id} projection group order must be contiguous')
         contract_group_ids = [
             group.get('id') for group in groups
@@ -641,6 +654,11 @@ def project_knowledge(
                     continue
                 resolved_output.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(stage_path, resolved_output)
+                if resolved_output.read_bytes() != expected:
+                    errors.append(
+                        'Generated knowledge write readback failed: '
+                        f'{resolved_output.relative_to(repo_root).as_posix()}'
+                    )
 
     report = {
         'success': not errors,
