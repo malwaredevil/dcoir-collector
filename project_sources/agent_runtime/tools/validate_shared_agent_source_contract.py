@@ -514,6 +514,7 @@ def validate_contract(
     matrix_path: Path,
     repo_root: Path,
 ) -> tuple[list[str], dict[str, int]]:
+    repo_root = repo_root.resolve()
     errors: list[str] = []
     try:
         manifest = _load_json(manifest_path)
