@@ -47,6 +47,31 @@ GEMINI_TARGETED_WORKFLOWS = [
     Path(".github/workflows/manual-gemini-bundle-build.yml"),
 ]
 
+AGENT_RUNTIME_TARGETED_WORKFLOWS = [
+    Path(".github/workflows/validate-on-push.yml"),
+    Path(".github/workflows/validate-on-pr.yml"),
+]
+
+AGENT_RUNTIME_PATH_MARKERS = [
+    "project_sources/agent_runtime/**",
+    "project_sources/gemini/docs/**",
+    "project_sources/gemini/README.md",
+    "knowledge/**",
+]
+
+AGENT_RUNTIME_VALIDATION_COMMANDS = [
+    "python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py",
+    "python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py",
+    "python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check",
+    "python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py",
+    "python project_sources/agent_runtime/tools/project_agent_knowledge.py --check",
+    "python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py",
+    "python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check",
+    "python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py",
+]
+
+AGENT_RUNTIME_RECEIPT_MARKER = "agent_runtime_validation.json"
+
 SHARED_CONTRACT_FILES = [
     Path(REQUIRED_SURFACES_HELPER),
     Path(GEMINI_MANIFEST_HELPER),
@@ -145,6 +170,23 @@ def main() -> int:
             findings.append(f"{path}:1: missing required shared Gemini manifest helper call: {GEMINI_MANIFEST_HELPER}")
         for needle in INLINE_GEMINI_MARKERS:
             add_string_findings(findings, path, needle)
+
+    for path in AGENT_RUNTIME_TARGETED_WORKFLOWS:
+        if not ensure_exists(findings, path):
+            continue
+        entry_text = path.read_text(encoding="utf-8")
+        expanded_text = expanded_local_text(path)
+        for marker in AGENT_RUNTIME_PATH_MARKERS:
+            if marker not in entry_text:
+                findings.append(f"{path}:1: missing agent-runtime path coverage marker: {marker}")
+        for command in AGENT_RUNTIME_VALIDATION_COMMANDS:
+            if command not in expanded_text:
+                findings.append(f"{path}:1: missing agent-runtime validation command: {command}")
+        if AGENT_RUNTIME_RECEIPT_MARKER not in expanded_text:
+            findings.append(
+                f"{path}:1: missing agent-runtime validation receipt marker: "
+                f"{AGENT_RUNTIME_RECEIPT_MARKER}"
+            )
 
     if findings:
         print("Workflow consistency drift audit failed:")

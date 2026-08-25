@@ -2,7 +2,7 @@
 # Workflow key:
 # - workflow-validation-validate-on-pr-0001
 # Purpose:
-# - Automatic PR-focused validation for collector, Gemini, packaging, validation, maintained knowledge, supporting asset, GitHub intake, operator patch tooling, and workflow definition changes.
+# - Automatic PR-focused validation for collector, shared agent-runtime packages, Gemini, packaging, validation, maintained knowledge, supporting asset, GitHub intake, operator patch tooling, and workflow definition changes.
 # Use when:
 # - Use at meaningful PR checkpoints to run the heavier runtime build and core harness proof before merge.
 # - Use workflow_dispatch on the trusted default branch to seed baseline static validation evidence for governed PR review context.
@@ -10,16 +10,16 @@
 # - Do not use as the quick push gate when validate-on-push is sufficient, and do not treat it as a replacement for deeper manual-full-validation coverage.
 # - Do not treat a workflow_dispatch baseline run as exact validation of a feature branch or PR head.
 # Trigger model:
-# - pull_request types: opened, reopened, synchronize, ready_for_review; scoped paths include maintained source, GitHub intake templates, operator patch tooling, knowledge/README.md, docs/validation/dcoir_collector_capability_coverage_matrix.md, and governed workflow definitions.
+# - pull_request types: opened, reopened, synchronize, ready_for_review; scoped paths include maintained collector, shared agent-runtime, Gemini, knowledge, GitHub intake, operator patch tooling, validation, and governed workflow sources.
 # - workflow_dispatch runs from the trusted selected branch and is consumed by /dcoir-review only when the run is from the repository default branch.
 # Required inputs:
 # - none
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses syntax checks, harness assembly parity, required surface list, Gemini packaging smoke build, validation fixtures, documentation validation, collector runtime packaging, and the Core harness suite.
+# - Uses syntax checks, the eight-command shared agent-runtime contract, harness assembly parity, required surface list, Gemini packaging smoke build, validation fixtures, documentation validation, collector runtime packaging, and the Core harness suite.
 # Expected outputs/readback:
-# - PR validation artifacts, job summary, ChatGPT workflow report section artifact, and repo-workflows report.
+# - PR validation artifacts including the agent-runtime JSON receipt, job summary, ChatGPT workflow report section artifact, and repo-workflows report.
 # - Default-branch workflow_dispatch runs produce the trusted baseline validate-on-pr-results artifact used by /dcoir-review static context lookup.
 # Safety notes:
 # - Skip heavy execution while the pull request is still draft; run when the PR becomes ready or later meaningful sync events occur.
@@ -41,7 +41,7 @@ run-name: Pull Request Validation | PR #${{ github.event.pull_request.number || 
 # - Do not rely on adjacent folder changes or implicit coverage.
 #
 # PR checkpoint posture (2026-05-25):
-# - Pull-request triggering is enabled only for collector, Gemini, packaging, validation,
+# - Pull-request triggering is enabled only for collector, shared agent-runtime, Gemini, packaging, validation,
 #   maintained knowledge, GitHub intake, and workflow definition paths covered by this lane split.
 # - Draft pull requests do not run the heavy lane until a meaningful checkpoint such as
 #   ready_for_review, opened non-draft, reopened, or later synchronize events.
@@ -67,11 +67,13 @@ on:
       - 'project_sources/collector/harness/**'
       - 'project_sources/collector/tools/**'
       - 'project_sources/collector/manifests/**'
+      - 'project_sources/agent_runtime/**'
       - 'project_sources/gemini/bundle_source/**'
+      - 'project_sources/gemini/docs/**'
+      - 'project_sources/gemini/README.md'
       - 'project_sources/gemini/tools/**'
       - 'project_sources/validation/**'
-      - 'knowledge/Knowledge - *.md'
-      - 'knowledge/README.md'
+      - 'knowledge/**'
       - 'docs/validation/dcoir_collector_capability_coverage_matrix.md'
       - 'supporting_assets/DCOIR_Collector.zip'
       - '.github/ISSUE_TEMPLATE/**'
