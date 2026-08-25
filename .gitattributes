@@ -1,4 +1,5 @@
 # Byte-stable governed agent behavior sources and generated Gemini adapters.
+knowledge/**/*.md text eol=lf
 project_sources/agent_runtime/behavior_modules/prime/*.md text eol=lf
 project_sources/agent_runtime/behavior_modules/specialists/*.md text eol=lf
 project_sources/agent_runtime/knowledge_modules/**/*.md text eol=lf
