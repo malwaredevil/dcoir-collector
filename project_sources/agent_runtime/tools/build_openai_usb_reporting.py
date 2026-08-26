@@ -137,9 +137,14 @@ def _resolve_repo_path(
     if not candidate.is_relative_to(resolved_repo):
         errors.append(f'{label} escapes the repository: {value}')
         return None
-    if required_root is not None and not candidate.is_relative_to(required_root.resolve()):
-        errors.append(f'{label} is outside its declared root: {value}')
-        return None
+    if required_root is not None:
+        resolved_required_root = required_root.resolve()
+        if not resolved_required_root.is_relative_to(resolved_repo):
+            errors.append(f'{label} declared root escapes the repository: {value}')
+            return None
+        if not candidate.is_relative_to(resolved_required_root):
+            errors.append(f'{label} is outside its declared root: {value}')
+            return None
     return candidate
 
 
@@ -390,6 +395,11 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         errors,
         repo_root / EXPECTED_PATHS['generated_root'],
     ) or repo_root / '.invalid-openai-usb-generated-root'
+    if generated_root.exists() and generated_root.is_symlink():
+        errors.append(
+            'Generated package root must not be a symlink: '
+            f'{generated_root.relative_to(repo_root)}'
+        )
     required_paths = {}
     for key in (
         'source_contract',
