@@ -179,7 +179,10 @@ def test_generated_root_symlink_is_rejected() -> None:
     shutil.rmtree(generated_root, ignore_errors=True)
     redirect.mkdir(parents=True, exist_ok=True)
     generated_root.parent.mkdir(parents=True, exist_ok=True)
-    generated_root.symlink_to(redirect, target_is_directory=True)
+    try:
+        generated_root.symlink_to(redirect, target_is_directory=True)
+    except (NotImplementedError, OSError):
+        return
     errors, _ = module.build_package(
         repo,
         repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
