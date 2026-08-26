@@ -9,7 +9,7 @@ The manifest is machine-readable contract authority; this file must cover the sa
 | --- | --- | --- | --- | --- | --- |
 | `gemini_dcoir_agent` | project_sources/gemini bundle compiler | prime_plus_sub_agents | direct_canonical_attachments | Runtime-dependent; never assumed | Unavailable unless returned execution evidence exists |
 | `openai_dcoir_analyst` | project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py | static_instructions | static_knowledge | Unavailable | Unavailable unless returned execution evidence exists |
-| `openai_usb_reporting` | future OpenAI USB package compiler | static_instructions | static_knowledge | Unavailable | Unavailable unless returned execution evidence exists |
+| `openai_usb_reporting` | project_sources/agent_runtime/tools/build_openai_usb_reporting.py | static_instructions | static_knowledge | Unavailable | Unavailable unless returned execution evidence exists |
 
 ## Behavior Ownership
 
@@ -76,9 +76,9 @@ The manifest is machine-readable contract authority; this file must cover the sa
 <!-- contract-behavior-id:sub_agent.09 -->
 | `sub_agent.09` | `project_sources/agent_runtime/behavior_modules/specialists/sub_agent.09.md` / `09` | shared_behavior_source | materialize | flatten | exclude | Designs targeted follow-up collection to reduce material gaps. |
 <!-- contract-behavior-id:sub_agent.10 -->
-| `sub_agent.10` | `project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md` / `10` | shared_behavior_source | materialize | flatten | flatten | Composes consistent analyst-facing conclusions and reports. |
+| `sub_agent.10` | `project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md` / `10` | shared_behavior_source | materialize | flatten | adapt | Composes consistent analyst-facing conclusions and reports. |
 <!-- contract-behavior-id:sub_agent.11 -->
-| `sub_agent.11` | `project_sources/agent_runtime/behavior_modules/specialists/sub_agent.11.md` / `11` | workflow_specific_behavior | materialize | exclude | flatten | Owns the separately gated weekly USB violations reporting workflow. |
+| `sub_agent.11` | `project_sources/agent_runtime/behavior_modules/specialists/sub_agent.11.md` / `11` | workflow_specific_behavior | materialize | exclude | adapt | Owns the separately gated weekly USB violations reporting workflow. |
 <!-- contract-behavior-id:gemini.topology.bundle_manifest -->
 | `gemini.topology.bundle_manifest` | `project_sources/gemini/bundle_source/Gemini_Bundle_Source_Manifest.json` / `whole-file` | topology_manifest | metadata | reference_only | reference_only | Canonical Gemini bundle topology and attachment inventory. |
 <!-- contract-behavior-id:gemini.topology.prime_chunk_manifest -->
