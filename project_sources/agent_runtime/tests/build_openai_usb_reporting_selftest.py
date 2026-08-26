@@ -191,6 +191,26 @@ def test_generated_root_symlink_is_rejected() -> None:
     assert any('Generated package root must not be a symlink' in error for error in errors), errors
 
 
+def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
+    repo = stage_repo()
+    manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+    outside = Path(tempfile.mkdtemp(prefix='openai-usb-outside-'))
+    target = outside / 'redirect-target'
+    symlink = outside / 'redirect-link'
+    target.mkdir(parents=True, exist_ok=True)
+    try:
+        symlink.symlink_to(target, target_is_directory=True)
+    except (NotImplementedError, OSError):
+        return
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+    manifest['generated_root'] = symlink.as_posix()
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+    errors, _ = module.build_package(repo, manifest_path, check=True)
+    assert any('generated_root must remain bound' in error for error in errors), errors
+    assert any('generated_root must not be absolute' in error for error in errors), errors
+    assert any('Generated package root must not be a symlink' in error for error in errors), errors
+
+
 def main() -> int:
     tests = [
         test_materialize_and_check,
@@ -202,6 +222,7 @@ def main() -> int:
         test_missing_confirmation_marker_is_rejected,
         test_stale_generated_file_is_rejected,
         test_generated_root_symlink_is_rejected,
+        test_absolute_generated_root_symlink_is_reported_without_crash,
     ]
     for test in tests:
         test()
