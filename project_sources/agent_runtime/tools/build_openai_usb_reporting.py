@@ -400,10 +400,12 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         repo_root / EXPECTED_PATHS['generated_root'],
     ) or repo_root / '.invalid-openai-usb-generated-root'
     if generated_root_path is not None and generated_root_path.is_symlink():
-        errors.append(
-            'Generated package root must not be a symlink: '
-            f'{generated_root_path.relative_to(repo_root)}'
-        )
+        generated_root_label = str(generated_root_value)
+        try:
+            generated_root_label = generated_root_path.relative_to(repo_root).as_posix()
+        except ValueError:
+            pass
+        errors.append(f'Generated package root must not be a symlink: {generated_root_label}')
     required_paths = {}
     for key in (
         'source_contract',
