@@ -388,17 +388,21 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     source_base_commit = manifest.get('source_base_commit')
     if not isinstance(source_base_commit, str) or re.fullmatch(r'[0-9a-f]{40}', source_base_commit) is None:
         errors.append('source_base_commit must be a lowercase 40-character Git SHA')
+    generated_root_value = manifest.get('generated_root')
+    generated_root_path = (
+        repo_root / generated_root_value if isinstance(generated_root_value, str) else None
+    )
     generated_root = _resolve_repo_path(
         repo_root,
-        manifest.get('generated_root'),
+        generated_root_value,
         'generated_root',
         errors,
         repo_root / EXPECTED_PATHS['generated_root'],
     ) or repo_root / '.invalid-openai-usb-generated-root'
-    if generated_root.exists() and generated_root.is_symlink():
+    if generated_root_path is not None and generated_root_path.is_symlink():
         errors.append(
             'Generated package root must not be a symlink: '
-            f'{generated_root.relative_to(repo_root)}'
+            f'{generated_root_path.relative_to(repo_root)}'
         )
     required_paths = {}
     for key in (
