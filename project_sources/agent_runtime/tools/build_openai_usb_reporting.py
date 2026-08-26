@@ -154,7 +154,9 @@ def _resolve_repo_path(
             )
             return None
         if not resolved_required_root.is_relative_to(resolved_repo):
-            errors.append(f'{label} declared root escapes the repository: {value}')
+            errors.append(
+                f'{label} declared root escapes the repository: {resolved_required_root.as_posix()}'
+            )
             return None
         if not candidate.is_relative_to(resolved_required_root):
             errors.append(f'{label} is outside its declared root: {value}')
