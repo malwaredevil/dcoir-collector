@@ -595,11 +595,17 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     expected_set = set(expected_files)
     actual_files: set[Path] = set()
     if generated_root.exists():
-        for path in generated_root.rglob('*'):
-            if path.is_symlink():
-                errors.append(f'Generated package must not contain symlinks: {path}')
-            elif path.is_file():
-                actual_files.add(path.resolve())
+        stack = [generated_root]
+        while stack:
+            current = stack.pop()
+            for entry in current.iterdir():
+                if entry.is_symlink():
+                    errors.append(f'Generated package must not contain symlinks: {entry}')
+                    continue
+                if entry.is_dir():
+                    stack.append(entry)
+                elif entry.is_file():
+                    actual_files.add(entry.resolve())
     stale = sorted(path.relative_to(repo_root).as_posix() for path in actual_files - expected_set)
     if stale:
         errors.append(f'Stale generated package files: {stale}')
