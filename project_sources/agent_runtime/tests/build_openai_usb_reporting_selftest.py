@@ -31,6 +31,17 @@ def stage_repo() -> Path:
     paths = [
         'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
         'project_sources/agent_runtime/Behavior_Module_Manifest.json',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.00.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.01.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.03.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.04.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.08.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.11.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.15.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.17.md',
+        'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.20.md',
+        'project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md',
+        'project_sources/agent_runtime/behavior_modules/specialists/sub_agent.11.md',
         'project_sources/agent_runtime/Knowledge_Projection_Manifest.json',
         'project_sources/agent_runtime/generated/knowledge/openai_usb_reporting',
         'project_sources/agent_runtime/provider_adapters/openai_usb_reporting',
@@ -108,6 +119,18 @@ def test_behavior_coverage_order_is_rejected() -> None:
     assert any('Behavior coverage must exactly match' in error for error in errors), errors
 
 
+def test_behavior_source_hash_drift_is_rejected() -> None:
+    repo = stage_repo()
+    source = repo / 'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.00.md'
+    source.write_text(source.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
+    errors, _ = module.build_package(
+        repo,
+        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+        check=True,
+    )
+    assert any('Behavior source hash drift for prime.chunk.00' in error for error in errors), errors
+
+
 def test_knowledge_drift_is_rejected() -> None:
     repo = stage_repo()
     projection = repo / 'project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md'
@@ -156,6 +179,7 @@ def main() -> int:
         test_generated_drift_is_rejected,
         test_unknown_capability_is_rejected,
         test_behavior_coverage_order_is_rejected,
+        test_behavior_source_hash_drift_is_rejected,
         test_knowledge_drift_is_rejected,
         test_missing_confirmation_marker_is_rejected,
         test_stale_generated_file_is_rejected,
