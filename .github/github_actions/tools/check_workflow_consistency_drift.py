@@ -101,6 +101,16 @@ AGENT_RUNTIME_VALIDATION_STEPS = [
         "python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py",
         "OpenAI DCOIR package self-tests failed.",
     ),
+    (
+        "Verify OpenAI USB package materialization",
+        "python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check",
+        "OpenAI USB package materialization check failed.",
+    ),
+    (
+        "Run OpenAI USB package self-tests",
+        "python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py",
+        "OpenAI USB package self-tests failed.",
+    ),
 ]
 
 AGENT_RUNTIME_RECEIPT_STEP = "Write agent-runtime validation receipt"
@@ -358,7 +368,7 @@ def expected_agent_runtime_report_lines(event_name: str) -> list[str]:
         "}",
         "else {",
         "$agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'",
-        "$agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the eight-command contract did not complete successfully.'",
+        "$agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the ten-command contract did not complete successfully.'",
         "}",
         "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null",
         '@"',
@@ -370,7 +380,7 @@ def expected_agent_runtime_report_lines(event_name: str) -> list[str]:
         "- ref: $env:GITHUB_REF",
         "- event_name: $env:GITHUB_EVENT_NAME",
         f"- primary_artifact: validate-on-{lane}-results",
-        "- artifact_note: includes the agent-runtime validation receipt only when all eight commands pass; "
+        "- artifact_note: includes the agent-runtime validation receipt only when all ten commands pass; "
         f"also includes Gemini smoke-build output, {additional_output}, validate_DCOIR_Run fixture output, "
         "documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, "
         "PowerShell review-assist JSON/Markdown, and TestResults when produced.",
@@ -428,7 +438,7 @@ def agent_runtime_contract_findings(
         receipt_lines = active_step_lines(receipt_body)
         if execution_lines and receipt_line <= max(execution_lines):
             findings.append(
-                f"{path}:{receipt_line}: agent-runtime receipt must run after all eight validation steps"
+                f"{path}:{receipt_line}: agent-runtime receipt must run after all ten validation steps"
             )
         if receipt_lines != expected_agent_runtime_receipt_lines(event_name):
             findings.append(
