@@ -15,6 +15,7 @@ from typing import Any
 
 SCHEMA = 'dcoir.agent_runtime.openai_usb_reporting_adapter.v1'
 SOURCE_SCHEMA = 'dcoir.agent_runtime.source_contract.v1'
+BEHAVIOR_SCHEMA = 'dcoir.agent_runtime.behavior_modules.v1'
 KNOWLEDGE_SCHEMA = 'dcoir.agent_runtime.knowledge_projection.target.v1'
 TARGET_ID = 'openai_usb_reporting'
 EXPECTED_EDITOR_NAME = 'AFRICOM USB Reporting'
@@ -220,21 +221,44 @@ def _validate_instructions(
 
 
 def _behavior_snapshot(
+    repo_root: Path,
     source_contract: dict[str, Any],
+    behavior_manifest: dict[str, Any],
     coverage: list[dict[str, Any]],
     errors: list[str],
 ) -> tuple[list[dict[str, Any]], str]:
     items = source_contract.get('behavior_items')
-    if not isinstance(items, list):
-        errors.append('Shared source contract behavior_items must be an array')
+    modules = behavior_manifest.get('modules')
+    if not isinstance(items, list) or not isinstance(modules, list):
+        errors.append('Behavior source inventories must be arrays')
         return [], _sha256(_json_bytes([]))
     applicable = [
         item for item in items
         if isinstance(item, dict)
         and TARGET_ID in (item.get('applies_to') if isinstance(item.get('applies_to'), list) else [])
     ]
+    module_by_id = {
+        module.get('id'): module for module in modules if isinstance(module, dict)
+    }
     coverage_ids = [entry.get('id') for entry in coverage if isinstance(entry, dict)]
     expected_ids = [item.get('id') for item in applicable]
+    expected_owner = 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
+    expected_output = EXPECTED_OUTPUTS['instructions']
+    for item in applicable:
+        item_id = item.get('id', '<missing-id>')
+        dispositions = item.get('target_dispositions')
+        disposition = (
+            dispositions.get(TARGET_ID) if isinstance(dispositions, dict) else None
+        )
+        if not isinstance(disposition, dict):
+            errors.append(f'{item_id} lacks a valid {TARGET_ID} disposition')
+            continue
+        if disposition.get('mode') != 'adapt':
+            errors.append(f'{item_id} must be adapted for {TARGET_ID}')
+        if disposition.get('owner') != expected_owner:
+            errors.append(f'{item_id} {TARGET_ID} disposition owner drift')
+        if disposition.get('generated_output') != expected_output:
+            errors.append(f'{item_id} {TARGET_ID} disposition output drift')
     for duplicate in _duplicates([value for value in coverage_ids if isinstance(value, str)]):
         errors.append(f'Duplicate behavior coverage id: {duplicate}')
     if coverage_ids != expected_ids:
@@ -250,20 +274,36 @@ def _behavior_snapshot(
     snapshot: list[dict[str, Any]] = []
     for item, coverage_entry in zip(applicable, coverage):
         item_id = item.get('id')
+        source_path_value = item.get('source_path')
+        source_path = _resolve_repo_path(
+            repo_root,
+            source_path_value,
+            f'{item_id} source_path',
+            errors,
+        )
+        if source_path is None:
+            continue
+        content = _read_bytes(source_path, f'behavior source {item_id}', errors)
+        actual_sha = _sha256(content)
+        module = module_by_id.get(item_id)
+        if module is None:
+            errors.append(f'Behavior module manifest lacks {item_id}')
+        else:
+            if module.get('source_path') != source_path_value:
+                errors.append(f'Behavior path disagreement for {item_id}')
+            if module.get('sha256') != actual_sha:
+                errors.append(f'Behavior source hash drift for {item_id}')
         sections = coverage_entry.get('sections') if isinstance(coverage_entry, dict) else None
         if not isinstance(sections, list) or not sections or not all(
             isinstance(section, str) and section in SECTION_HEADINGS for section in sections
         ):
             errors.append(f'{item_id} has invalid instruction section coverage')
             sections = []
-        disposition = item.get('target_dispositions', {}).get(TARGET_ID)
-        if not isinstance(disposition, dict):
-            errors.append(f'{item_id} lacks a valid {TARGET_ID} disposition')
-        elif disposition.get('mode') != 'adapt':
-            errors.append(f'{item_id} must be adapted for {TARGET_ID}')
         snapshot.append(
             {
                 'id': item_id,
+                'source_path': source_path_value,
+                'sha256': actual_sha,
                 'sections': sections,
             }
         )
@@ -364,7 +404,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
             required_paths[key] = path
     try:
         source_contract = _load_json(required_paths['source_contract'])
-        _load_json(required_paths['behavior_module_manifest'])
+        behavior_manifest = _load_json(required_paths['behavior_module_manifest'])
         knowledge_projection_manifest = _load_json(required_paths['knowledge_projection_manifest'])
         target_manifest = _load_json(required_paths['knowledge_target_manifest'])
         cases = _load_json(required_paths['behavioral_cases'])
@@ -373,6 +413,8 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         return errors, {'success': False, 'errors': errors}
     if source_contract.get('schema') != SOURCE_SCHEMA:
         errors.append('Unexpected shared source contract schema')
+    if behavior_manifest.get('schema') != BEHAVIOR_SCHEMA:
+        errors.append('Unexpected behavior module manifest schema')
     source_contract_sha = _sha256(required_paths['source_contract'].read_bytes())
     target = next(
         (item for item in source_contract.get('targets', []) if isinstance(item, dict) and item.get('id') == TARGET_ID),
@@ -407,7 +449,13 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     if not isinstance(coverage, list):
         errors.append('Adapter coverage must be an array')
         coverage = []
-    behavior_snapshot, snapshot_sha = _behavior_snapshot(source_contract, coverage, errors)
+    behavior_snapshot, snapshot_sha = _behavior_snapshot(
+        repo_root,
+        source_contract,
+        behavior_manifest,
+        coverage,
+        errors,
+    )
     instruction_path = required_paths.get('canonical_instructions_source')
     instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
     case_ids = _validate_instructions(instructions, manifest, cases, errors)
