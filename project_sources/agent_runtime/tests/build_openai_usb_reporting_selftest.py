@@ -172,6 +172,22 @@ def test_stale_generated_file_is_rejected() -> None:
     assert any('Stale generated package files' in error for error in errors), errors
 
 
+def test_generated_root_symlink_is_rejected() -> None:
+    repo = stage_repo()
+    generated_root = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting'
+    redirect = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting_redirect'
+    shutil.rmtree(generated_root, ignore_errors=True)
+    redirect.mkdir(parents=True, exist_ok=True)
+    generated_root.parent.mkdir(parents=True, exist_ok=True)
+    generated_root.symlink_to(redirect, target_is_directory=True)
+    errors, _ = module.build_package(
+        repo,
+        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+        check=True,
+    )
+    assert any('Generated package root must not be a symlink' in error for error in errors), errors
+
+
 def main() -> int:
     tests = [
         test_materialize_and_check,
@@ -182,6 +198,7 @@ def main() -> int:
         test_knowledge_drift_is_rejected,
         test_missing_confirmation_marker_is_rejected,
         test_stale_generated_file_is_rejected,
+        test_generated_root_symlink_is_rejected,
     ]
     for test in tests:
         test()
