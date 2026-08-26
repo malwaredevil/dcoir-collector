@@ -191,6 +191,30 @@ def test_generated_root_symlink_is_rejected() -> None:
     assert any('Generated package root must not be a symlink' in error for error in errors), errors
 
 
+def test_generated_root_symlink_loop_is_reported_without_crash() -> None:
+    repo = stage_repo()
+    generated_root = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting'
+    shutil.rmtree(generated_root, ignore_errors=True)
+    generated_root.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        generated_root.symlink_to(generated_root, target_is_directory=True)
+    except (NotImplementedError, OSError):
+        return
+    try:
+        errors, _ = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+    except RuntimeError as exc:
+        raise AssertionError(f'expected validation error instead of exception: {exc}') from exc
+    assert any(
+        'path could not be resolved:' in error
+        or 'Generated package root must not be a symlink' in error
+        for error in errors
+    ), errors
+
+
 def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
     repo = stage_repo()
     manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
@@ -222,6 +246,7 @@ def main() -> int:
         test_missing_confirmation_marker_is_rejected,
         test_stale_generated_file_is_rejected,
         test_generated_root_symlink_is_rejected,
+        test_generated_root_symlink_loop_is_reported_without_crash,
         test_absolute_generated_root_symlink_is_reported_without_crash,
     ]
     for test in tests:

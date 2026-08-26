@@ -132,13 +132,27 @@ def _resolve_repo_path(
     if relative.is_absolute() or '..' in relative.parts:
         errors.append(f'{label} must not be absolute or contain traversal: {value}')
         return None
-    resolved_repo = repo_root.resolve()
-    candidate = (resolved_repo / relative).resolve()
+    try:
+        resolved_repo = repo_root.resolve()
+    except (OSError, RuntimeError) as exc:
+        errors.append(f'{label} repository root could not be resolved: {type(exc).__name__}')
+        return None
+    try:
+        candidate = (resolved_repo / relative).resolve()
+    except (OSError, RuntimeError) as exc:
+        errors.append(f'{label} path could not be resolved: {type(exc).__name__}')
+        return None
     if not candidate.is_relative_to(resolved_repo):
         errors.append(f'{label} escapes the repository: {value}')
         return None
     if required_root is not None:
-        resolved_required_root = required_root.resolve()
+        try:
+            resolved_required_root = required_root.resolve()
+        except (OSError, RuntimeError) as exc:
+            errors.append(
+                f'{label} declared root could not be resolved: {type(exc).__name__}'
+            )
+            return None
         if not resolved_required_root.is_relative_to(resolved_repo):
             errors.append(f'{label} declared root escapes the repository: {value}')
             return None
@@ -404,7 +418,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         try:
             generated_root_label = generated_root_path.relative_to(repo_root).as_posix()
         except ValueError:
-            pass
+            generated_root_label = str(generated_root_path)
         errors.append(f'Generated package root must not be a symlink: {generated_root_label}')
     required_paths = {}
     for key in (
