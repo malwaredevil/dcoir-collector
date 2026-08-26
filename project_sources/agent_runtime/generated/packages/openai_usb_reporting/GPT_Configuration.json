@@ -1,0 +1,42 @@
+{
+  "capabilities": {
+    "actions": false,
+    "apps": false,
+    "canvas": false,
+    "code_interpreter_data_analysis": false,
+    "github_supabase_connectors": false,
+    "image_generation": false,
+    "live_collector_execution": false,
+    "live_elastic_access": false,
+    "persistent_cross_conversation_memory": false,
+    "web_search": false
+  },
+  "conversation_starters": [
+    "Prepare the weekly USB reporting evidence checklist for this date range.",
+    "Draft one Elastic query for USB device activity in this reporting window.",
+    "Normalize these pasted USB event rows into report-ready findings.",
+    "Check whether this USB evidence set is ready for final report drafting."
+  ],
+  "description": "Static USB reporting assistant for AFRICOM weekly USB evidence review, query drafting, result normalization, readiness checks, and operator-confirmed report drafting.",
+  "instructions_file": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
+  "knowledge_files": [
+    {
+      "bytes": 9913,
+      "id": "usb_reporting_core",
+      "order": 0,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md",
+      "sha256": "295f6d6ef95413897996dbd02b74c8859bd10ab970680f1f3b6a82f29c528a0e"
+    },
+    {
+      "bytes": 67948,
+      "id": "usb_query_reference",
+      "order": 1,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-query-reference.md",
+      "sha256": "3001b6138bc620eb17501ccb8cc266b493cfe97b22cb209f4aa45ff0ea99557e"
+    }
+  ],
+  "name": "AFRICOM USB Reporting",
+  "runtime_model": "GPT-5.4",
+  "schema": "dcoir.agent_runtime.openai_webui_configuration.v1",
+  "target_id": "openai_usb_reporting"
+}

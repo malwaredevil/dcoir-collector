@@ -17,7 +17,7 @@
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses syntax checks, the eight-command shared agent-runtime contract, harness assembly parity, required surface list, Gemini packaging smoke build, validation fixtures, documentation validation, collector runtime packaging, and the Core harness suite.
+# - Uses syntax checks, the ten-command shared agent-runtime contract, harness assembly parity, required surface list, Gemini packaging smoke build, validation fixtures, documentation validation, collector runtime packaging, and the Core harness suite.
 # Expected outputs/readback:
 # - PR validation artifacts including the agent-runtime JSON receipt, job summary, ChatGPT workflow report section artifact, and repo-workflows report.
 # - Default-branch workflow_dispatch runs produce the trusted baseline validate-on-pr-results artifact used by /dcoir-review static context lookup.
