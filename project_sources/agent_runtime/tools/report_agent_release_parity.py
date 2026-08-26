@@ -81,12 +81,14 @@ def _resolve_repo_path(
     try:
         root = repo_root.resolve()
     except (OSError, RuntimeError) as exc:
-        errors.append(f'{label} repository root could not be resolved: {type(exc).__name__}')
+        errors.append(
+            f'{label} repository root could not be resolved: {type(exc).__name__}: {exc}'
+        )
         return None
     try:
         candidate = (root / relative).resolve(strict=False)
     except (OSError, RuntimeError) as exc:
-        errors.append(f'{label} path could not be resolved: {type(exc).__name__}')
+        errors.append(f'{label} path could not be resolved: {type(exc).__name__}: {exc}')
         return None
     if not candidate.is_relative_to(root):
         errors.append(f'{label} escapes repository root: {relative_value}')
@@ -115,7 +117,7 @@ def _manifest_identity(
     }
 
 
-def resolve_source_commit(repo_root: Path, explicit: str | None = None) -> tuple[str, str]:
+def resolve_source_commit(repo_root: Path | None, explicit: str | None = None) -> tuple[str, str]:
     if explicit:
         return explicit, 'explicit_argument'
     reviewed = os.environ.get('AGENT_RUNTIME_REVIEWED_HEAD_SHA')
@@ -137,15 +139,16 @@ def resolve_source_commit(repo_root: Path, explicit: str | None = None) -> tuple
     github_sha = os.environ.get('GITHUB_SHA')
     if github_sha:
         return github_sha, 'GITHUB_SHA'
-    try:
-        completed = subprocess.run(
-            ['git', 'rev-parse', 'HEAD'], cwd=repo_root, check=False,
-            capture_output=True, text=True, timeout=10,
-        )
-    except (OSError, subprocess.SubprocessError):
-        completed = None
-    if completed and completed.returncode == 0 and completed.stdout.strip():
-        return completed.stdout.strip(), 'git_rev_parse_head'
+    if repo_root is not None:
+        try:
+            completed = subprocess.run(
+                ['git', 'rev-parse', 'HEAD'], cwd=repo_root, check=False,
+                capture_output=True, text=True, timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            completed = None
+        if completed and completed.returncode == 0 and completed.stdout.strip():
+            return completed.stdout.strip(), 'git_rev_parse_head'
     return 'unknown', 'unavailable'
 
 
@@ -227,6 +230,56 @@ def _validate_guide(repo_root: Path, errors: list[str]) -> dict[str, Any]:
         'path': MANUAL_GUIDE.as_posix(),
         'sha256': _sha256_file(path),
         'required_markers_present': not missing,
+    }
+
+
+def _failure_report(commit: str, commit_basis: str, errors: list[str]) -> dict[str, Any]:
+    return {
+        'schema': SCHEMA,
+        'report_version': REPORT_VERSION,
+        'source_commit': commit,
+        'source_commit_basis': commit_basis,
+        'scope': {
+            'target_ids': list(EXPECTED_TARGET_IDS),
+            'static_repository_evidence_only': True,
+            'live_model_parity_claimed': False,
+        },
+        'source_contracts': {
+            'shared_source_contract': {
+                'path': SHARED_MANIFEST.as_posix(),
+                'sha256': None,
+                'version': None,
+                'schema': None,
+            },
+            'behavior_module_manifest': {
+                'path': BEHAVIOR_MANIFEST.as_posix(),
+                'sha256': None,
+                'version': None,
+                'schema': None,
+            },
+            'knowledge_projection_manifest': {
+                'path': KNOWLEDGE_MANIFEST.as_posix(),
+                'sha256': None,
+                'version': None,
+                'schema': None,
+            },
+        },
+        'targets': [],
+        'governed_provider_differences': [],
+        'blocking_parity_gaps': [
+            {'classification': 'blocking_static_parity_gap', 'message': message}
+            for message in errors
+        ],
+        'pending_live_evidence': [],
+        'target_check_results': [],
+        'manual_deployment_readback_guide': {
+            'path': MANUAL_GUIDE.as_posix(),
+            'sha256': None,
+            'required_markers_present': False,
+        },
+        'static_parity_status': 'fail',
+        'live_parity_status': 'pending_manual_readback',
+        'reverse_reconciliation_required': False,
     }
 
 
@@ -431,7 +484,9 @@ def build_release_report(
     try:
         repo_root = repo_root.resolve()
     except (OSError, RuntimeError) as exc:
-        errors.append(f'Repository root could not be resolved: {type(exc).__name__}')
+        errors.append(f'Repository root could not be resolved: {type(exc).__name__}: {exc}')
+        commit, commit_basis = resolve_source_commit(None, source_commit)
+        return errors, _failure_report(commit, commit_basis, errors)
     commit, commit_basis = resolve_source_commit(repo_root, source_commit)
     source_manifest, source_identity = _manifest_identity(
         repo_root, SHARED_MANIFEST, errors, 'source_contract_version'

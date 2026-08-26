@@ -300,7 +300,37 @@ def test_projection_manifest_symlink_loop_is_reported_without_crash() -> None:
             errors, report = build(root)
         except RuntimeError as exc:
             raise AssertionError(f'expected validation error instead of exception: {exc}') from exc
-        assert any('path could not be resolved: RuntimeError' in error for error in errors), errors
+        assert any(
+            'path could not be resolved: RuntimeError:' in error
+            or 'path could not be resolved: OSError:' in error
+            for error in errors
+        ), errors
+        assert report['static_parity_status'] == 'fail'
+    finally:
+        td.cleanup()
+
+
+def test_repo_root_symlink_loop_returns_failure_report_without_crash() -> None:
+    td, root = stage_repo()
+    try:
+        loop = root / 'repo-loop'
+        try:
+            loop.symlink_to(loop, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            return
+        try:
+            errors, report = module.build_release_report(
+                loop, source_commit='fixture-commit', run_target_checks=False
+            )
+        except RuntimeError as exc:
+            raise AssertionError(f'expected failure report instead of exception: {exc}') from exc
+        assert any(
+            'Repository root could not be resolved: RuntimeError:' in error
+            or 'Repository root could not be resolved: OSError:' in error
+            for error in errors
+        ), errors
+        assert report['source_commit'] == 'fixture-commit'
+        assert report['targets'] == []
         assert report['static_parity_status'] == 'fail'
     finally:
         td.cleanup()
@@ -373,6 +403,7 @@ def main() -> int:
         test_knowledge_count_mismatch_is_blocking_gap,
         test_projection_manifest_path_escape_is_rejected,
         test_projection_manifest_symlink_loop_is_reported_without_crash,
+        test_repo_root_symlink_loop_returns_failure_report_without_crash,
         test_manual_guide_marker_is_required,
         test_live_readback_state_changes_when_recorded,
         test_gemini_module_contract_mismatch_is_blocking_gap,
