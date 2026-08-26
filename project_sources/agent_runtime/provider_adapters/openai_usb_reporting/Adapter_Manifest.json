@@ -1,0 +1,56 @@
+{
+  "schema": "dcoir.agent_runtime.openai_usb_reporting_adapter.v1",
+  "adapter_contract_version": "1.0.0",
+  "target_id": "openai_usb_reporting",
+  "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+  "behavior_module_manifest": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
+  "knowledge_projection_manifest": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
+  "knowledge_target_manifest": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/manifest.json",
+  "canonical_instructions_source": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md",
+  "behavioral_cases": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Behavioral_Contract_Cases.json",
+  "generated_root": "project_sources/agent_runtime/generated/packages/openai_usb_reporting",
+  "source_base_commit": "3f98f43000a6cf0707e330fba4eb94d35a937bd2",
+  "instruction_character_ceiling": 8000,
+  "editor": {
+    "name": "AFRICOM USB Reporting",
+    "description": "Static USB reporting assistant for AFRICOM weekly USB evidence review, query drafting, result normalization, readiness checks, and operator-confirmed report drafting.",
+    "conversation_starters": [
+      "Prepare the weekly USB reporting evidence checklist for this date range.",
+      "Draft one Elastic query for USB device activity in this reporting window.",
+      "Normalize these pasted USB event rows into report-ready findings.",
+      "Check whether this USB evidence set is ready for final report drafting."
+    ]
+  },
+  "capabilities": {
+    "web_search": false,
+    "code_interpreter_data_analysis": false,
+    "canvas": false,
+    "image_generation": false,
+    "apps": false,
+    "actions": false,
+    "live_elastic_access": false,
+    "live_collector_execution": false,
+    "github_supabase_connectors": false,
+    "persistent_cross_conversation_memory": false
+  },
+  "coverage": [
+    {"id": "prime.chunk.00", "sections": ["identity_scope"]},
+    {"id": "prime.chunk.01", "sections": ["identity_scope", "capability_boundaries"]},
+    {"id": "prime.chunk.03", "sections": ["identity_scope", "queries_report_preparation"]},
+    {"id": "prime.chunk.04", "sections": ["authority_evidence_lanes"]},
+    {"id": "prime.chunk.08", "sections": ["conclusions_output"]},
+    {"id": "prime.chunk.11", "sections": ["authority_evidence_lanes", "usb_reporting_workflow"]},
+    {"id": "prime.chunk.15", "sections": ["identity_scope", "conclusions_output"]},
+    {"id": "prime.chunk.17", "sections": ["identity_scope", "queries_report_preparation"]},
+    {"id": "prime.chunk.20", "sections": ["identity_scope", "capability_boundaries"]},
+    {"id": "sub_agent.10", "sections": ["conclusions_output"]},
+    {"id": "sub_agent.11", "sections": ["usb_reporting_workflow", "conclusions_output"]}
+  ],
+  "generated_outputs": {
+    "instructions": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
+    "configuration": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/GPT_Configuration.json",
+    "package_manifest": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/manifest.json"
+  },
+  "generated_outputs_are_canonical": false,
+  "direct_target_edits_require_reverse_reconciliation": true
+}
