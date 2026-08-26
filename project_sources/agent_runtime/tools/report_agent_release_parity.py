@@ -120,8 +120,12 @@ def resolve_source_commit(repo_root: Path, explicit: str | None = None) -> tuple
             head_sha = event.get('pull_request', {}).get('head', {}).get('sha')
             if isinstance(head_sha, str) and head_sha:
                 return head_sha, 'github_event_pull_request_head_sha'
-        except (OSError, json.JSONDecodeError, AttributeError):
-            pass
+        except (OSError, json.JSONDecodeError, AttributeError) as exc:
+            print(
+                'warning: unable to read pull_request head sha from '
+                f'GITHUB_EVENT_PATH ({event_path}): {exc}',
+                file=sys.stderr,
+            )
     github_sha = os.environ.get('GITHUB_SHA')
     if github_sha:
         return github_sha, 'GITHUB_SHA'
