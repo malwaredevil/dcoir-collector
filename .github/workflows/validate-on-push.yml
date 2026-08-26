@@ -2,21 +2,21 @@
 # Workflow key:
 # - workflow-validation-validate-on-push-0023
 # Purpose:
-# - Automatic fast validation for collector, Gemini, validation, maintained knowledge, supporting asset, operator patch tooling, and workflow definition changes.
+# - Automatic fast validation for collector, shared agent-runtime packages, Gemini, validation, maintained knowledge, supporting asset, operator patch tooling, and workflow definition changes.
 # Use when:
 # - Use as the normal fast validation gate for relevant push paths and manual smoke validation.
 # Do not use when:
 # - Do not treat as full regression or pre-merge proof; validate-on-pr owns the heavier PR-focused runtime and harness validation.
 # Trigger model:
-# - push paths: project_sources/collector/source/**, project_sources/collector/harness/**, project_sources/collector/tools/**, project_sources/collector/manifests/**, project_sources/gemini/bundle_source/**, project_sources/gemini/tools/**, project_sources/validation/**, knowledge/Knowledge - *.md, knowledge/README.md, docs/validation/dcoir_collector_capability_coverage_matrix.md, operator patch tooling, governed workflow definitions ...; workflow_dispatch
+# - push paths: maintained collector, shared agent-runtime, Gemini, knowledge, validation, supporting asset, operator patch tooling, and governed workflow sources; workflow_dispatch
 # Required inputs:
 # - none
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses syntax checks, required surface checks, harness assembly parity, Gemini smoke build, collector package smoke build, validate_DCOIR_Run fixture tests, and documentation validation.
+# - Uses syntax checks, the eight-command shared agent-runtime contract, required surface checks, harness assembly parity, Gemini smoke build, collector package smoke build, validate_DCOIR_Run fixture tests, and documentation validation.
 # Expected outputs/readback:
-# - Fast validation artifacts, ChatGPT workflow report section artifact, and repo-workflows report.
+# - Fast validation artifacts including the agent-runtime JSON receipt, ChatGPT workflow report section artifact, and repo-workflows report.
 # Safety notes:
 # - Path coverage must be explicit in this file. If a maintained behavior should be validated here, add its watched path or validation logic directly.
 # Maintenance notes:
@@ -36,7 +36,7 @@ run-name: Main Push Validation | ${{ github.ref_name }} | #${{ github.run_number
 # - Do not rely on adjacent folder changes or implicit coverage.
 #
 # Restored automatic posture (2026-04-30):
-# - Push triggering is enabled only for collector, Gemini, packaging, validation,
+# - Push triggering is enabled only for collector, shared agent-runtime, Gemini, packaging, validation,
 #   maintained knowledge, and governed workflow definition paths.
 # - Routine automatic coverage keeps lightweight syntax, governed-surface, harness
 #   assembly parity, Gemini, collector package smoke, validate_DCOIR_Run, and
@@ -56,11 +56,14 @@ on:
       - 'project_sources/collector/harness/**'
       - 'project_sources/collector/tools/**'
       - 'project_sources/collector/manifests/**'
+      - 'project_sources/agent_runtime/**'
       - 'project_sources/gemini/bundle_source/**'
+      - 'project_sources/gemini/docs/**'
+      - 'project_sources/gemini/README.md'
       - 'project_sources/gemini/tools/**'
       - 'project_sources/validation/**'
-      - 'knowledge/Knowledge - *.md'
-      - 'knowledge/README.md'
+      - 'knowledge/**'
+      - '.gitattributes'
       - 'docs/validation/dcoir_collector_capability_coverage_matrix.md'
       - 'supporting_assets/DCOIR_Collector.zip'
       - '.github/workflows/**'

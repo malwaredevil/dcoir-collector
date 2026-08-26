@@ -376,6 +376,7 @@ def _knowledge_files(
 def build_package(
     repo_root: Path, manifest_path: Path, check: bool
 ) -> tuple[list[str], dict[str, Any]]:
+    repo_root = repo_root.resolve()
     errors: list[str] = []
     try:
         manifest = _load_json(manifest_path)

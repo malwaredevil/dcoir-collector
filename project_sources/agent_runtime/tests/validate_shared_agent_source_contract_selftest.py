@@ -348,7 +348,7 @@ class ContractFixture:
         ):
             path = self.root / relative
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text('fixture\n', encoding='utf-8')
+            path.write_bytes(b'fixture\n')
         digest = hashlib.sha256(b'fixture\n').hexdigest()
         module_manifest_path = (
             self.root

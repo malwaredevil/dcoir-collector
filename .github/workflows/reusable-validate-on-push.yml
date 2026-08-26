@@ -1,6 +1,6 @@
 # DCOIR REUSABLE WORKFLOW CONTRACT
 # Source entry workflow: validate-on-push.yml
-# Purpose: reusable implementation module for validate-on-push; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
+# Purpose: reusable implementation module for validate-on-push, including the eight-command shared agent-runtime contract; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
 name: 99 Module - Validate On Push
 run-name: Module Validate On Push | ${{ github.workflow }} | #${{ github.run_number }}
 
@@ -33,6 +33,101 @@ jobs:
 
       - name: Validate Python syntax
         uses: ./.github/actions/validate-python-syntax
+
+      - name: Validate shared agent source contract
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Shared agent source contract validation failed.'
+          }
+
+      - name: Run shared agent source contract self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Shared agent source contract self-tests failed.'
+          }
+
+      - name: Verify agent behavior adapter materialization
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent behavior adapter materialization check failed.'
+          }
+
+      - name: Run agent behavior adapter self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent behavior adapter self-tests failed.'
+          }
+
+      - name: Verify agent knowledge projection
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/project_agent_knowledge.py --check
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent knowledge projection check failed.'
+          }
+
+      - name: Run agent knowledge projection self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent knowledge projection self-tests failed.'
+          }
+
+      - name: Verify OpenAI DCOIR package materialization
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI DCOIR package materialization check failed.'
+          }
+
+      - name: Run OpenAI DCOIR package self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI DCOIR package self-tests failed.'
+          }
+
+      - name: Write agent-runtime validation receipt
+        shell: pwsh
+        env:
+          AGENT_RUNTIME_REVIEWED_HEAD_SHA: ${{ github.sha }}
+          AGENT_RUNTIME_TESTED_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          $commands = @(
+            'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'
+            'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'
+            'python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check'
+            'python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py'
+            'python project_sources/agent_runtime/tools/project_agent_knowledge.py --check'
+            'python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py'
+            'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check'
+            'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'
+          )
+          $receipt = [ordered]@{
+            schema_version = 'dcoir_agent_runtime_validation_workflow_receipt_v1'
+            workflow = 'validate-on-push'
+            workflow_run_id = $env:GITHUB_RUN_ID
+            workflow_run_attempt = $env:GITHUB_RUN_ATTEMPT
+            head_sha = $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA
+            tested_commit_sha = $env:AGENT_RUNTIME_TESTED_COMMIT_SHA
+            event_name = $env:GITHUB_EVENT_NAME
+            documented_contract = 'project_sources/agent_runtime/README.md'
+            command_count = $commands.Count
+            commands = @($commands | ForEach-Object { [ordered]@{ command = $_; result = 'pass' } })
+          }
+          New-Item -ItemType Directory -Force -Path project_sources/validation/out_validate_on_push_agent_runtime | Out-Null
+          $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json -Encoding utf8
 
       - name: Run documentation validator self-tests
         shell: pwsh
@@ -123,6 +218,7 @@ jobs:
           ./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1
 
       - name: Upload validation artifacts
+        id: upload_validation_artifacts
         if: always()
         uses: ./.github/actions/upload-chatgpt-artifact
         with:
@@ -130,6 +226,7 @@ jobs:
           path: |
             project_sources/TestResults/**
             project_sources/validation/out_validate_on_push_gemini/**
+            project_sources/validation/out_validate_on_push_agent_runtime/**
             project_sources/validation/out_validate_on_push_collector/**
             project_sources/validation/out_validate_on_push_validate_dcoir_run_fixtures/**
             project_sources/validation/out_preflight_documentation_quality/**
@@ -145,7 +242,26 @@ jobs:
       - name: Write ChatGPT workflow report section
         if: always()
         shell: pwsh
+        env:
+          AGENT_RUNTIME_REVIEWED_HEAD_SHA: ${{ github.sha }}
+          AGENT_RUNTIME_TESTED_COMMIT_SHA: ${{ github.sha }}
+          AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME: ${{ steps.upload_validation_artifacts.outcome }}
         run: |
+          $agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'
+          if (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {
+            if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -eq 'success') {
+              $agentRuntimeValidation = 'passed_receipt_uploaded'
+              $agentRuntimeArtifact = 'agent_runtime_validation.json is included in validate-on-push-results.'
+            }
+            else {
+              $agentRuntimeValidation = "passed_receipt_produced_artifact_upload_$($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME)"
+              $agentRuntimeArtifact = 'agent_runtime_validation.json was produced locally, but primary artifact upload did not succeed.'
+            }
+          }
+          else {
+            $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'
+            $agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the eight-command contract did not complete successfully.'
+          }
           New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
           @"
           ## Push validation summary
@@ -153,11 +269,14 @@ jobs:
           - workflow: validate-on-push
           - workflow_run_id: $env:GITHUB_RUN_ID
           - workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT
-          - head_sha: $env:GITHUB_SHA
+          - head_sha: $env:AGENT_RUNTIME_REVIEWED_HEAD_SHA
+          - tested_commit_sha: $env:AGENT_RUNTIME_TESTED_COMMIT_SHA
           - ref: $env:GITHUB_REF
           - event_name: $env:GITHUB_EVENT_NAME
           - primary_artifact: validate-on-push-results
-          - artifact_note: includes Gemini smoke-build output, collector package smoke-build output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
+          - artifact_note: includes the agent-runtime validation receipt only when all eight commands pass; also includes Gemini smoke-build output, collector package smoke-build output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
+          - agent_runtime_validation: $agentRuntimeValidation
+          - agent_runtime_artifact: $agentRuntimeArtifact
           - job_summary: review-assist report written to GITHUB_STEP_SUMMARY.
           - duplicate_function_check: emits JSON/Markdown artifacts before the static analysis validation gate blocks merge on any cross-file function name collision in collector source.
           - psscriptanalyzer_gate: emits JSON before the static analysis validation gate blocks merge on any Error-severity finding; Warnings reported but non-blocking.

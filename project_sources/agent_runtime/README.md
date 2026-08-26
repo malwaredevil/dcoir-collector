@@ -58,7 +58,7 @@ Check source coverage, capability truthfulness, behavioral markers, Knowledge bi
 python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check
 ```
 
-The 16 offline cases validate the static instruction contract only. They do not prove live GPT-5.4 behavior or WebUI upload success.
+The 21 offline cases validate the static instruction contract only. They do not prove live GPT-5.4 behavior or WebUI upload success.
 
 ## Knowledge Projection
 
@@ -98,6 +98,8 @@ python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py
 python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check
 python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py
 ```
+
+The `validate-on-pr` and `validate-on-push` workflows run these exact eight commands as named fail-fast steps when shared agent-runtime, governed knowledge, or directly dependent Gemini source changes. Successful runs also place an `agent_runtime_validation.json` receipt in the lane's primary validation artifact so the reviewed head, command list, and pass state can be read back without relying on console text alone.
 
 The validators compare the shared contract, behavior-module manifest, checked-in Gemini adapters, live Gemini bundle manifest, and Prime chunk manifest. They fail on unmapped or duplicate Prime, specialist, or knowledge ownership; source/adapter hash or byte drift; path escape; topology disagreement; missing source paths without an explicit stale disposition; conflicting authority; generated artifacts marked canonical; unavailable OpenAI capability claims; projection-budget overflow; missing source-map or reverse-reconciliation metadata; duplicate ids; or manifest/matrix drift.
 
