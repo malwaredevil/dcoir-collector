@@ -1,0 +1,144 @@
+{
+  "adapter_contract_version": "1.0.0",
+  "behavior_coverage": [
+    {
+      "id": "prime.chunk.00",
+      "sections": [
+        "identity_scope"
+      ]
+    },
+    {
+      "id": "prime.chunk.01",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "prime.chunk.03",
+      "sections": [
+        "identity_scope",
+        "queries_report_preparation"
+      ]
+    },
+    {
+      "id": "prime.chunk.04",
+      "sections": [
+        "authority_evidence_lanes"
+      ]
+    },
+    {
+      "id": "prime.chunk.08",
+      "sections": [
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.11",
+      "sections": [
+        "authority_evidence_lanes",
+        "usb_reporting_workflow"
+      ]
+    },
+    {
+      "id": "prime.chunk.15",
+      "sections": [
+        "identity_scope",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.17",
+      "sections": [
+        "identity_scope",
+        "queries_report_preparation"
+      ]
+    },
+    {
+      "id": "prime.chunk.20",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "sub_agent.10",
+      "sections": [
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "sub_agent.11",
+      "sections": [
+        "usb_reporting_workflow",
+        "conclusions_output"
+      ]
+    }
+  ],
+  "behavior_coverage_count": 11,
+  "behavior_source_snapshot_sha256": "5e3d83545ee0f5cf1a46e99bdaf01739b22c9087b9e34d000898fee908d54c66",
+  "behavioral_case_count": 11,
+  "behavioral_case_ids": [
+    "usb_reporting_intake",
+    "ordinary_triage_redirect",
+    "missing_data_readiness",
+    "query_without_execution",
+    "pasted_result_transformation",
+    "final_drafting_confirmation",
+    "unsupported_capabilities",
+    "source_reference_inference_split",
+    "scaffold_suppression",
+    "knowledge_instruction_injection",
+    "request_coverage"
+  ],
+  "direct_target_edits_require_reverse_reconciliation": true,
+  "generated_files": [
+    {
+      "bytes": 6328,
+      "path": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
+      "sha256": "37a853bc5cc5df57f3bf3d455bf2a2d11d99d41cf5bf3ec3c00f7aceeb213bd2"
+    },
+    {
+      "bytes": 1763,
+      "path": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/GPT_Configuration.json",
+      "sha256": "400de41d491610b7dee16030a7e0bc25cd4c8560a2b1dc93738f0bfc15fcc13c"
+    }
+  ],
+  "generated_outputs_are_canonical": false,
+  "instruction_character_ceiling": 8000,
+  "instruction_character_count": 6328,
+  "knowledge_file_count": 2,
+  "knowledge_files": [
+    {
+      "bytes": 9913,
+      "id": "usb_reporting_core",
+      "order": 0,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md",
+      "sha256": "295f6d6ef95413897996dbd02b74c8859bd10ab970680f1f3b6a82f29c528a0e"
+    },
+    {
+      "bytes": 67948,
+      "id": "usb_query_reference",
+      "order": 1,
+      "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-query-reference.md",
+      "sha256": "3001b6138bc620eb17501ccb8cc266b493cfe97b22cb209f4aa45ff0ea99557e"
+    }
+  ],
+  "live_webui_validation_performed": false,
+  "manual_deployment_required": true,
+  "schema": "dcoir.agent_runtime.openai_usb_reporting_package.v1",
+  "source_base_commit": "3f98f43000a6cf0707e330fba4eb94d35a937bd2",
+  "source_contract_sha256": "475b586f4fb3a34cac4befd125df2a4d341dd1a5080d79325f9af0ee30a1d4bf",
+  "source_contracts": {
+    "behavioral_cases": {
+      "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Behavioral_Contract_Cases.json",
+      "sha256": "95d6c5e55e11346d4bb074d37ae9bcf481ac17fe53faa7f67b2b7d64e26ed6d7"
+    },
+    "canonical_instructions_source": {
+      "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md",
+      "sha256": "37a853bc5cc5df57f3bf3d455bf2a2d11d99d41cf5bf3ec3c00f7aceeb213bd2"
+    }
+  },
+  "strict_knowledge_file_ceiling": 20,
+  "target_id": "openai_usb_reporting"
+}
