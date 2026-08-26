@@ -78,8 +78,16 @@ def _resolve_repo_path(
     if relative.is_absolute() or '..' in relative.parts:
         errors.append(f'{label} must be repository-relative without traversal: {relative_value}')
         return None
-    root = repo_root.resolve()
-    candidate = (root / relative).resolve(strict=False)
+    try:
+        root = repo_root.resolve()
+    except (OSError, RuntimeError) as exc:
+        errors.append(f'{label} repository root could not be resolved: {type(exc).__name__}')
+        return None
+    try:
+        candidate = (root / relative).resolve(strict=False)
+    except (OSError, RuntimeError) as exc:
+        errors.append(f'{label} path could not be resolved: {type(exc).__name__}')
+        return None
     if not candidate.is_relative_to(root):
         errors.append(f'{label} escapes repository root: {relative_value}')
         return None
@@ -419,8 +427,11 @@ def build_release_report(
     source_commit: str | None = None,
     run_target_checks: bool = True,
 ) -> tuple[list[str], dict[str, Any]]:
-    repo_root = repo_root.resolve()
     errors: list[str] = []
+    try:
+        repo_root = repo_root.resolve()
+    except (OSError, RuntimeError) as exc:
+        errors.append(f'Repository root could not be resolved: {type(exc).__name__}')
     commit, commit_basis = resolve_source_commit(repo_root, source_commit)
     source_manifest, source_identity = _manifest_identity(
         repo_root, SHARED_MANIFEST, errors, 'source_contract_version'

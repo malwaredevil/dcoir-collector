@@ -284,6 +284,28 @@ def test_projection_manifest_path_escape_is_rejected() -> None:
         td.cleanup()
 
 
+def test_projection_manifest_symlink_loop_is_reported_without_crash() -> None:
+    td, root = stage_repo()
+    try:
+        loop = root / 'loop.json'
+        try:
+            loop.symlink_to(loop)
+        except (NotImplementedError, OSError):
+            return
+        path = root / module.KNOWLEDGE_MANIFEST
+        value = json.loads(path.read_text(encoding='utf-8'))
+        value['targets']['openai_usb_reporting']['target_manifest_path'] = 'loop.json'
+        write_json(root, module.KNOWLEDGE_MANIFEST.as_posix(), value)
+        try:
+            errors, report = build(root)
+        except RuntimeError as exc:
+            raise AssertionError(f'expected validation error instead of exception: {exc}') from exc
+        assert any('path could not be resolved: RuntimeError' in error for error in errors), errors
+        assert report['static_parity_status'] == 'fail'
+    finally:
+        td.cleanup()
+
+
 def test_manual_guide_marker_is_required() -> None:
     td, root = stage_repo()
     try:
@@ -350,6 +372,7 @@ def main() -> int:
         test_source_hash_changes_after_source_edit,
         test_knowledge_count_mismatch_is_blocking_gap,
         test_projection_manifest_path_escape_is_rejected,
+        test_projection_manifest_symlink_loop_is_reported_without_crash,
         test_manual_guide_marker_is_required,
         test_live_readback_state_changes_when_recorded,
         test_gemini_module_contract_mismatch_is_blocking_gap,
