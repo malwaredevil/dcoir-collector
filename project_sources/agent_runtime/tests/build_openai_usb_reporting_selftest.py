@@ -25,8 +25,9 @@ def copy_tree(src: Path, dst: Path) -> None:
         shutil.copy2(src, dst)
 
 
-def stage_repo() -> Path:
-    temp_dir = Path(tempfile.mkdtemp(prefix='openai-usb-selftest-'))
+def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
+    td = tempfile.TemporaryDirectory(prefix='openai-usb-selftest-')
+    temp_dir = Path(td.name)
     paths = [
         'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
         'project_sources/agent_runtime/Behavior_Module_Manifest.json',
@@ -47,7 +48,7 @@ def stage_repo() -> Path:
     ]
     for rel in paths:
         copy_tree(ROOT / rel, temp_dir / rel)
-    return temp_dir
+    return td, temp_dir
 
 
 def expect_failure(repo: Path, reason: str, mutate) -> None:
@@ -62,177 +63,212 @@ def expect_failure(repo: Path, reason: str, mutate) -> None:
 
 
 def test_materialize_and_check() -> None:
-    repo = stage_repo()
-    errors, report = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=False,
-    )
-    assert not errors, report
-    assert report['behavior_coverage_count'] == 11
-    assert report['knowledge_file_count'] == 2
-    errors, report = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert not errors, report
+    td, repo = stage_repo()
+    try:
+        errors, report = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=False,
+        )
+        assert not errors, report
+        assert report['behavior_coverage_count'] == 11
+        assert report['knowledge_file_count'] == 2
+        errors, report = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+        assert not errors, report
+    finally:
+        td.cleanup()
 
 
 def test_generated_drift_is_rejected() -> None:
-    repo = stage_repo()
-    module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=False,
-    )
-    generated = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md'
-    generated.write_text(generated.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
-    errors, _ = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert any('Generated package drift' in error for error in errors), errors
-
-
-def test_unknown_capability_is_rejected() -> None:
-    repo = stage_repo()
-    manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
-    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-    manifest['capabilities']['web_search'] = True
-    manifest['capabilities']['surprise'] = False
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-    errors, _ = module.build_package(repo, manifest_path, check=True)
-    assert any('Unsupported capability' in error for error in errors), errors
-    assert any('exactly the governed keys' in error for error in errors), errors
-
-
-def test_behavior_coverage_order_is_rejected() -> None:
-    repo = stage_repo()
-    manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
-    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-    manifest['coverage'] = list(reversed(manifest['coverage']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-    errors, _ = module.build_package(repo, manifest_path, check=True)
-    assert any('Behavior coverage must exactly match' in error for error in errors), errors
-
-
-def test_behavior_source_hash_drift_is_rejected() -> None:
-    repo = stage_repo()
-    source = repo / 'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.00.md'
-    source.write_text(source.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
-    errors, _ = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert any('Behavior source hash drift for prime.chunk.00' in error for error in errors), errors
-
-
-def test_knowledge_drift_is_rejected() -> None:
-    repo = stage_repo()
-    projection = repo / 'project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md'
-    projection.write_text(projection.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
-    errors, _ = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert any('Knowledge projection drift' in error for error in errors), errors
-
-
-def test_missing_confirmation_marker_is_rejected() -> None:
-    repo = stage_repo()
-    instructions = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md'
-    text = instructions.read_text(encoding='utf-8')
-    instructions.write_text(text.replace('require operator confirmation before final report drafting', ''), encoding='utf-8')
-    errors, _ = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert any('require operator confirmation' in error for error in errors), errors
-
-
-def test_stale_generated_file_is_rejected() -> None:
-    repo = stage_repo()
-    module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=False,
-    )
-    stale = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting/stale.txt'
-    stale.write_text('stale', encoding='utf-8')
-    errors, _ = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert any('Stale generated package files' in error for error in errors), errors
-
-
-def test_generated_root_symlink_is_rejected() -> None:
-    repo = stage_repo()
-    generated_root = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting'
-    redirect = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting_redirect'
-    shutil.rmtree(generated_root, ignore_errors=True)
-    redirect.mkdir(parents=True, exist_ok=True)
-    generated_root.parent.mkdir(parents=True, exist_ok=True)
+    td, repo = stage_repo()
     try:
-        generated_root.symlink_to(redirect, target_is_directory=True)
-    except (NotImplementedError, OSError):
-        return
-    errors, _ = module.build_package(
-        repo,
-        repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
-        check=True,
-    )
-    assert any('Generated package root must not be a symlink' in error for error in errors), errors
-
-
-def test_generated_root_symlink_loop_is_reported_without_crash() -> None:
-    repo = stage_repo()
-    generated_root = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting'
-    shutil.rmtree(generated_root, ignore_errors=True)
-    generated_root.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        generated_root.symlink_to(generated_root, target_is_directory=True)
-    except (NotImplementedError, OSError):
-        return
-    try:
+        module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=False,
+        )
+        generated = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md'
+        generated.write_text(generated.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
         errors, _ = module.build_package(
             repo,
             repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
             check=True,
         )
-    except RuntimeError as exc:
-        raise AssertionError(f'expected validation error instead of exception: {exc}') from exc
-    assert any(
-        'path could not be resolved:' in error
-        or 'Generated package root must not be a symlink' in error
-        for error in errors
-    ), errors
+        assert any('Generated package drift' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_unknown_capability_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        manifest['capabilities']['web_search'] = True
+        manifest['capabilities']['surprise'] = False
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        errors, _ = module.build_package(repo, manifest_path, check=True)
+        assert any('Unsupported capability' in error for error in errors), errors
+        assert any('exactly the governed keys' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_behavior_coverage_order_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        manifest['coverage'] = list(reversed(manifest['coverage']))
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        errors, _ = module.build_package(repo, manifest_path, check=True)
+        assert any('Behavior coverage must exactly match' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_behavior_source_hash_drift_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        source = repo / 'project_sources/agent_runtime/behavior_modules/prime/prime.chunk.00.md'
+        source.write_text(source.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
+        errors, _ = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+        assert any('Behavior source hash drift for prime.chunk.00' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_knowledge_drift_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        projection = repo / 'project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md'
+        projection.write_text(projection.read_text(encoding='utf-8') + '\nDRIFT\n', encoding='utf-8')
+        errors, _ = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+        assert any('Knowledge projection drift' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_missing_confirmation_marker_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        instructions = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md'
+        text = instructions.read_text(encoding='utf-8')
+        instructions.write_text(text.replace('require operator confirmation before final report drafting', ''), encoding='utf-8')
+        errors, _ = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+        assert any('require operator confirmation' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_stale_generated_file_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=False,
+        )
+        stale = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting/stale.txt'
+        stale.write_text('stale', encoding='utf-8')
+        errors, _ = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+        assert any('Stale generated package files' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_generated_root_symlink_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        generated_root = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting'
+        redirect = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting_redirect'
+        shutil.rmtree(generated_root, ignore_errors=True)
+        redirect.mkdir(parents=True, exist_ok=True)
+        generated_root.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            generated_root.symlink_to(redirect, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            return
+        errors, _ = module.build_package(
+            repo,
+            repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+            check=True,
+        )
+        assert any('Generated package root must not be a symlink' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_generated_root_symlink_loop_is_reported_without_crash() -> None:
+    td, repo = stage_repo()
+    try:
+        generated_root = repo / 'project_sources/agent_runtime/generated/packages/openai_usb_reporting'
+        shutil.rmtree(generated_root, ignore_errors=True)
+        generated_root.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            generated_root.symlink_to(generated_root, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            return
+        try:
+            errors, _ = module.build_package(
+                repo,
+                repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
+                check=True,
+            )
+        except RuntimeError as exc:
+            raise AssertionError(f'expected validation error instead of exception: {exc}') from exc
+        assert any(
+            'path could not be resolved:' in error
+            or 'Generated package root must not be a symlink' in error
+            for error in errors
+        ), errors
+    finally:
+        td.cleanup()
 
 
 def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
-    repo = stage_repo()
-    manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
-    outside = Path(tempfile.mkdtemp(prefix='openai-usb-outside-'))
-    target = outside / 'redirect-target'
-    symlink = outside / 'redirect-link'
-    target.mkdir(parents=True, exist_ok=True)
+    td, repo = stage_repo()
+    outside_td = tempfile.TemporaryDirectory(prefix='openai-usb-outside-')
     try:
-        symlink.symlink_to(target, target_is_directory=True)
-    except (NotImplementedError, OSError):
-        return
-    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-    manifest['generated_root'] = symlink.as_posix()
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-    errors, _ = module.build_package(repo, manifest_path, check=True)
-    assert any('generated_root must remain bound' in error for error in errors), errors
-    assert any('generated_root must not be absolute' in error for error in errors), errors
-    assert any('Generated package root must not be a symlink' in error for error in errors), errors
+        manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+        outside = Path(outside_td.name)
+        target = outside / 'redirect-target'
+        symlink = outside / 'redirect-link'
+        target.mkdir(parents=True, exist_ok=True)
+        try:
+            symlink.symlink_to(target, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            return
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        manifest['generated_root'] = symlink.as_posix()
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        errors, _ = module.build_package(repo, manifest_path, check=True)
+        assert any('generated_root must remain bound' in error for error in errors), errors
+        assert any('generated_root must not be absolute' in error for error in errors), errors
+        assert any('Generated package root must not be a symlink' in error for error in errors), errors
+    finally:
+        outside_td.cleanup()
+        td.cleanup()
 
 
 def main() -> int:
