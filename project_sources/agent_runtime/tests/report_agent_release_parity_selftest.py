@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -58,6 +57,7 @@ def source_manifest() -> dict:
         'behavior_items': [
             {'id': 'shared.1', 'canonical': True, 'applies_to': list(module.EXPECTED_TARGET_IDS)},
             {'id': 'shared.2', 'canonical': True, 'applies_to': ['gemini_dcoir_agent', 'openai_dcoir_analyst']},
+            {'id': 'gemini.nonmodule.1', 'canonical': True, 'applies_to': ['gemini_dcoir_agent']},
             {'id': 'generated.1', 'canonical': False, 'applies_to': ['gemini_dcoir_agent']},
         ],
     }
@@ -97,9 +97,33 @@ def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
         {
             'schema': 'dcoir.agent_runtime.behavior_modules.v1',
             'module_contract_version': 'fixture-1',
+            'target_adapters': {
+                'gemini_dcoir_agent': {
+                    'expected_prime_chunks': 1,
+                    'expected_specialists': 1,
+                }
+            },
             'modules': [
-                {'id': 'shared.1'},
-                {'id': 'shared.2'},
+                {
+                    'id': 'shared.1',
+                    'kind': 'prime_chunk',
+                    'projections': {
+                        'gemini_dcoir_agent': {
+                            'output_path': 'generated/prime.md',
+                            'sha256': 'd' * 64,
+                        }
+                    },
+                },
+                {
+                    'id': 'shared.2',
+                    'kind': 'specialist',
+                    'projections': {
+                        'gemini_dcoir_agent': {
+                            'output_path': 'generated/specialist.md',
+                            'sha256': 'e' * 64,
+                        }
+                    },
+                },
             ],
         },
     )
@@ -162,6 +186,12 @@ def test_valid_fixture_and_reporting_fields() -> None:
         assert report['static_parity_status'] == 'pass'
         assert report['live_parity_status'] == 'pending_manual_readback'
         assert [item['id'] for item in report['targets']] == list(module.EXPECTED_TARGET_IDS)
+        gemini_behavior = report['targets'][0]['behavior']
+        assert gemini_behavior['expected_canonical_items'] == 3
+        assert gemini_behavior['expected_module_count'] == 2
+        assert gemini_behavior['reported_module_count'] == 2
+        assert gemini_behavior['reported_prime_chunk_count'] == 1
+        assert gemini_behavior['reported_specialist_count'] == 1
         assert report['targets'][0]['bundle_version'] == 'fixture-1'
         assert report['targets'][1]['knowledge']['reported_file_count'] == 2
         assert report['targets'][2]['behavior']['reported_coverage_count'] == 1
@@ -281,6 +311,20 @@ def test_live_readback_state_changes_when_recorded() -> None:
         td.cleanup()
 
 
+def test_gemini_module_contract_mismatch_is_blocking_gap() -> None:
+    td, root = stage_repo()
+    try:
+        path = root / module.BEHAVIOR_MANIFEST
+        value = json.loads(path.read_text(encoding='utf-8'))
+        value['target_adapters']['gemini_dcoir_agent']['expected_specialists'] = 2
+        write_json(root, module.BEHAVIOR_MANIFEST.as_posix(), value)
+        errors, report = build(root)
+        assert any('behavior module mismatch' in error for error in errors), errors
+        assert report['static_parity_status'] == 'fail'
+    finally:
+        td.cleanup()
+
+
 def test_write_outputs_are_parseable_and_consistent() -> None:
     td, root = stage_repo()
     try:
@@ -308,6 +352,7 @@ def main() -> int:
         test_projection_manifest_path_escape_is_rejected,
         test_manual_guide_marker_is_required,
         test_live_readback_state_changes_when_recorded,
+        test_gemini_module_contract_mismatch_is_blocking_gap,
         test_write_outputs_are_parseable_and_consistent,
     ]
     for test in tests:
