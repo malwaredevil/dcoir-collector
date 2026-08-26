@@ -373,11 +373,11 @@
     },
     "knowledge_target_manifest": {
       "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/manifest.json",
-      "sha256": "4c53700b92c3814433b783bbc28da800c1351fbf975c0741603b2ecf5cbe89ac"
+      "sha256": "dcaa0b91f0d9f7ca20a03dbcc6ca35372ade6f94b74d74f94af2e6ba9ea67f34"
     },
     "source_contract": {
       "path": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-      "sha256": "475b586f4fb3a34cac4befd125df2a4d341dd1a5080d79325f9af0ee30a1d4bf"
+      "sha256": "80cd4ea44efe2a773b815b79633df244161d3eda104cdcde941a9053b34f8b5a"
     }
   },
   "strict_knowledge_file_ceiling": 20,
