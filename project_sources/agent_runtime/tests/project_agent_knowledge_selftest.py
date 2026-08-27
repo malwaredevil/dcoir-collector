@@ -363,5 +363,20 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         self.assertTrue(any('provider-specific terms' in error for error in errors))
 
 
+def load_tests(
+    loader: unittest.TestLoader,
+    tests: unittest.TestSuite,
+    pattern: str | None,
+) -> unittest.TestSuite:
+    import evaluate_gemini_knowledge_consolidation_selftest as consolidation_selftest
+
+    tests.addTests(
+        loader.loadTestsFromTestCase(
+            consolidation_selftest.GeminiKnowledgeConsolidationEvaluationSelfTest
+        )
+    )
+    return tests
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
