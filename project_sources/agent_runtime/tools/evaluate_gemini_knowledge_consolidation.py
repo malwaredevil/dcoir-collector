@@ -20,7 +20,7 @@ FALLBACK_GROUP_PURPOSE = (
     'full canonical sources.'
 )
 VALID_LIVE_EVIDENCE = ('unavailable', 'pass', 'fail')
-SAFE_GROUP_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_]*$')
+SAFE_GROUP_ID_PATTERN = r'^[a-z0-9][a-z0-9_]*$'
 
 
 def _sha256(data: bytes) -> str:
@@ -122,7 +122,7 @@ def _candidate_group_order(
         if not isinstance(group_id, str) or not group_id:
             errors.append('Reference projection group lacks an id')
             continue
-        if not SAFE_GROUP_ID_RE.fullmatch(group_id):
+        if re.fullmatch(SAFE_GROUP_ID_PATTERN, group_id) is None:
             errors.append(f'Unsafe reference projection group id: {group_id}')
             continue
         if group_id in seen:
@@ -424,7 +424,7 @@ def evaluate_consolidation(
                 f"{record['id']} has invalid openai_dcoir_projection_group"
             )
             continue
-        elif not SAFE_GROUP_ID_RE.fullmatch(group_id):
+        elif re.fullmatch(SAFE_GROUP_ID_PATTERN, group_id) is None:
             errors.append(
                 f"{record['id']} has unsafe openai_dcoir_projection_group: {group_id}"
             )
