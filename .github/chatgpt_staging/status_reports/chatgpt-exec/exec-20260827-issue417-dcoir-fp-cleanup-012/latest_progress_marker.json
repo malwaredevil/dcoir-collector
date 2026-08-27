@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33049543318",
   "github_sha": "951c1cd70e7e6f98b77305379f4b9f3e42cccf66",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260827-issue417-dcoir-fp-cleanup-012",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-issue417-dcoir-fp-cleanup-012.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T07:24:40Z",
+  "updated_utc": "2026-08-27T07:24:42Z",
   "workflow": "chatgpt-exec"
 }
