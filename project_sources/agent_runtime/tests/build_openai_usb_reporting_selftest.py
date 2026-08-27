@@ -10,11 +10,22 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
+RELEASE_REPORTER = ROOT / 'project_sources/agent_runtime/tools/report_agent_release_parity.py'
+RELEASE_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
 SPEC = importlib.util.spec_from_file_location('build_openai_usb_reporting', SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise SystemExit('Unable to load build_openai_usb_reporting.py')
 module = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(module)
+
+
+def load_module(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise AssertionError(f'Unable to load {path.name}')
+    loaded = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(loaded)
+    return loaded
 
 
 def copy_tree(src: Path, dst: Path) -> None:
@@ -271,6 +282,24 @@ def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
         td.cleanup()
 
 
+def test_unified_release_parity_report() -> None:
+    selftest = load_module(RELEASE_SELFTEST, 'report_agent_release_parity_selftest')
+    assert selftest.main() == 0
+
+    reporter = load_module(RELEASE_REPORTER, 'report_agent_release_parity')
+    errors, report = reporter.build_release_report(ROOT, run_target_checks=True)
+    assert not errors, errors
+    assert report['static_parity_status'] == 'pass'
+    assert report['scope']['target_ids'] == list(reporter.EXPECTED_TARGET_IDS)
+    assert report['live_parity_status'] in {'pending_manual_readback', 'readback_recorded'}
+    json_path, markdown_path = reporter.write_outputs(
+        report,
+        reporter.default_output_root(ROOT),
+    )
+    assert json.loads(json_path.read_text(encoding='utf-8')) == report
+    assert '# Agent Release and Parity Report' in markdown_path.read_text(encoding='utf-8')
+
+
 def main() -> int:
     tests = [
         test_materialize_and_check,
@@ -284,6 +313,7 @@ def main() -> int:
         test_generated_root_symlink_is_rejected,
         test_generated_root_symlink_loop_is_reported_without_crash,
         test_absolute_generated_root_symlink_is_reported_without_crash,
+        test_unified_release_parity_report,
     ]
     for test in tests:
         test()
