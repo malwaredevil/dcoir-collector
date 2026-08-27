@@ -212,6 +212,60 @@ def test_source_commit_mismatch_blocks_release() -> None:
         td.cleanup()
 
 
+def test_unsafe_existing_delivery_root_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        output_dir = repo / "project_sources/validation/out"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        unsafe = output_dir / module.DELIVERY_ROOT_NAME
+        unsafe.write_text("do-not-overwrite\n", encoding="utf-8")
+        errors, report = module.build_release(
+            repo,
+            output_dir,
+            repo / "project_sources/validation/parity",
+            source_commit=SOURCE_COMMIT,
+        )
+        assert errors
+        assert report["success"] is False
+        assert report["zip_path"] is None
+        assert any("Unsafe existing delivery root" in error for error in errors), errors
+        assert unsafe.is_file()
+        assert unsafe.read_text(encoding="utf-8") == "do-not-overwrite\n"
+    finally:
+        td.cleanup()
+
+
+def test_existing_delivery_root_symlink_fails_closed_when_supported() -> None:
+    td, repo = stage_repo()
+    try:
+        output_dir = repo / "project_sources/validation/out"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        target = repo / "project_sources/validation/symlink-target"
+        target.mkdir(parents=True, exist_ok=True)
+        marker = target / "marker.txt"
+        marker.write_text("preserve\n", encoding="utf-8")
+        link = output_dir / module.DELIVERY_ROOT_NAME
+        try:
+            link.symlink_to(target, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            return
+        errors, report = module.build_release(
+            repo,
+            output_dir,
+            repo / "project_sources/validation/parity",
+            source_commit=SOURCE_COMMIT,
+        )
+        assert errors
+        assert report["success"] is False
+        assert report["zip_path"] is None
+        assert any("Unsafe existing delivery root" in error for error in errors), errors
+        assert link.is_symlink()
+        assert marker.read_text(encoding="utf-8") == "preserve\n"
+        assert sorted(path.name for path in target.iterdir()) == ["marker.txt"]
+    finally:
+        td.cleanup()
+
+
 def test_output_escape_is_rejected() -> None:
     td, repo = stage_repo()
     outside = tempfile.TemporaryDirectory(prefix="openai-gpt-release-outside-")
@@ -240,6 +294,8 @@ def main() -> int:
         test_knowledge_drift_fails_closed,
         test_parity_failure_blocks_release,
         test_source_commit_mismatch_blocks_release,
+        test_unsafe_existing_delivery_root_fails_closed,
+        test_existing_delivery_root_symlink_fails_closed_when_supported,
         test_output_escape_is_rejected,
     ]
     for test in tests:

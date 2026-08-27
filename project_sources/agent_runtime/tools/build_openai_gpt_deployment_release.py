@@ -322,11 +322,24 @@ def build_release(
         errors.append("Deployment/readback guide is unavailable")
 
     delivery_root = output_dir / DELIVERY_ROOT_NAME
-    if delivery_root.exists():
+    if delivery_root.exists() or delivery_root.is_symlink():
         if delivery_root.is_symlink() or not delivery_root.is_dir():
             errors.append(f"Unsafe existing delivery root: {delivery_root.as_posix()}")
-        else:
-            shutil.rmtree(delivery_root)
+            return errors, {
+                "schema": REPORT_SCHEMA,
+                "success": False,
+                "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                "source_commit": commit,
+                "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
+                "zip_path": None,
+                "zip_sha256": None,
+                "target_count": 0,
+                "targets": [],
+                "static_parity_status": parity.get("static_parity_status"),
+                "live_parity_status": parity.get("live_parity_status"),
+                "errors": errors,
+            }
+        shutil.rmtree(delivery_root)
     delivery_root.mkdir(parents=True, exist_ok=True)
 
     target_reports = [
