@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33084361768",
   "github_sha": "3d5b87082bcdba2433580605f22491edb2b69439",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260827-pr419-readme-alignment-001",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-pr419-readme-alignment-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T14:49:33Z",
+  "updated_utc": "2026-08-27T14:49:36Z",
   "workflow": "chatgpt-exec"
 }
