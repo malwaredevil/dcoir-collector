@@ -143,6 +143,20 @@ Outside GitHub Actions, reports default to `project_sources/validation/out_agent
 
 A static report pass means the repository source and generated target surfaces are internally accounted for by the existing checks. It does not mean the OpenAI WebUI targets were updated or that hosted-model behavior was observed. Manual deployment, readback, and hotfix reverse reconciliation are governed by `docs/Release_Parity_Deployment_Readback.md`.
 
+## Manual OpenAI GPT Deployment Package Build
+
+The operator-facing workflow `.github/workflows/manual-openai-gpt-deployment-package-build.yml` (`07 Operator - Build OpenAI GPT Deployment Packages`) builds both OpenAI WebUI deployment targets in one manual run. It mirrors the established Gemini delivery pattern: a thin `workflow_dispatch` entry calls a reusable workflow module, runs the governed ten-command agent-runtime validation contract, builds the unified static release/parity report, assembles one deterministic delivery ZIP, surfaces a direct operator artifact, retains a fuller evidence artifact, and emits a ChatGPT workflow report section.
+
+The direct artifact expands the production ZIP so the operator can open one download and find `AFRICOM_DCOIR_Analyst/` and `AFRICOM_USB_Reporting/` beneath `OpenAI_GPT_Deployment_Packages/`. Each target folder contains `GPT_Configuration.json`, `Instructions.md`, `manifest.json`, and a `Knowledge/` folder containing exactly the governed seven or two files. The package root also carries the deployment/readback guide, release/parity JSON and Markdown, and delivery manifests.
+
+The workflow fails closed on source/package drift, Knowledge hash/count drift, blocking static parity gaps, source-commit mismatch, unsafe output paths, or release-builder self-test failure. Its successful output is still static deployment material only: it does not create or modify either hosted GPT and does not prove live GPT-5.4 behavior. Manual WebUI deployment and live readback remain governed by `docs/Release_Parity_Deployment_Readback.md`.
+
+Run it from GitHub Actions when an operator-ready package is needed. For local or runner-side release proof, the underlying deterministic builder is:
+
+```bash
+python project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py --source-commit <tested-sha> --output-dir project_sources/validation/out_openai_gpt_deployment --parity-root project_sources/validation/out_openai_gpt_deployment/parity
+```
+
 ## IOC Enrichment
 
 IOC enrichment is optional, additive, and capability-gated. It applies only to case-grounded indicators, and a source may be named as checked only when returned evidence exists. Failed or unavailable enrichment is silently omitted by default. No reputation result alone proves compromise or benignity. The current OpenAI targets may analyze operator-supplied returned source material but must not claim live lookup capability.

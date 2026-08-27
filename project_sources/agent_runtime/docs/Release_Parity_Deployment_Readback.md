@@ -20,6 +20,12 @@ The unified report is a static-repository release gate. It records the source/re
 
 Before deployment, archive the JSON and Markdown report from the applicable validation output directory with the GitHub run/readback evidence for the reviewed commit. Do not continue to manual deployment while the report contains a blocking static parity gap.
 
+## One-click OpenAI deployment package build
+
+For the normal operator release lane, prefer GitHub Actions workflow `07 Operator - Build OpenAI GPT Deployment Packages`. One manual run validates both OpenAI targets, produces the unified static parity report, and creates one direct delivery artifact containing both GPT folders plus their ordered Knowledge files and deployment/readback evidence. Download that direct artifact and use its contents for the manual WebUI steps below.
+
+The workflow is a packaging convenience, not a deployment agent. A successful run does not modify either live GPT and does not change the live-readback requirements in this procedure.
+
 ## AFRICOM DCOIR Analyst manual deployment
 
 Use only the generated package under `project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/` and the seven Knowledge files enumerated by that package manifest.

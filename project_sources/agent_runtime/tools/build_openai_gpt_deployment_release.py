@@ -109,13 +109,18 @@ def _source_commit(repo_root: Path, explicit: str | None) -> str:
     return "unknown"
 
 
-def _copy_record(source: Path, destination: Path, delivery_root: Path) -> dict[str, Any]:
+def _copy_record(
+    source: Path,
+    destination: Path,
+    delivery_root: Path,
+    repo_root: Path,
+) -> dict[str, Any]:
     destination.parent.mkdir(parents=True, exist_ok=True)
     data = source.read_bytes()
     destination.write_bytes(data)
     return {
         "delivery_path": destination.relative_to(delivery_root).as_posix(),
-        "source_path": source.as_posix(),
+        "source_path": source.relative_to(repo_root).as_posix(),
         "sha256": _sha256_bytes(data),
         "bytes": len(data),
     }
@@ -173,7 +178,7 @@ def _validate_and_copy_target(
         if not source.is_file() or source.is_symlink():
             errors.append(f"Missing or unsafe {target['target_id']} package file: {source.as_posix()}")
             continue
-        file_records.append(_copy_record(source, destination_root / name, delivery_root))
+        file_records.append(_copy_record(source, destination_root / name, delivery_root, repo_root))
 
     knowledge_records: list[dict[str, Any]] = []
     seen_names: set[str] = set()
@@ -204,7 +209,7 @@ def _validate_and_copy_target(
         actual_sha = _sha256_bytes(data)
         if item.get("sha256") != actual_sha or item.get("bytes") != len(data):
             errors.append(f"Knowledge hash/size drift for {declared_path}")
-        record = _copy_record(source, destination_root / "Knowledge" / source.name, delivery_root)
+        record = _copy_record(source, destination_root / "Knowledge" / source.name, delivery_root, repo_root)
         record.update({"id": item.get("id"), "order": item.get("order")})
         knowledge_records.append(record)
 
@@ -280,9 +285,24 @@ def build_release(
         errors.append("output_dir must be a non-root path inside the repository")
     if not parity_root.is_relative_to(repo_root):
         errors.append("parity_root must be inside the repository")
+    commit = _source_commit(repo_root, source_commit)
+    if errors:
+        return errors, {
+            "schema": REPORT_SCHEMA,
+            "success": False,
+            "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "source_commit": commit,
+            "delivery_root": None,
+            "zip_path": None,
+            "zip_sha256": None,
+            "target_count": 0,
+            "targets": [],
+            "static_parity_status": None,
+            "live_parity_status": None,
+            "errors": errors,
+        }
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    commit = _source_commit(repo_root, source_commit)
     parity_json_path = parity_root / PARITY_JSON
     parity_md_path = parity_root / PARITY_MD
     parity = _load_json(parity_json_path, errors, "release parity report")
@@ -314,11 +334,11 @@ def build_release(
         for target in TARGETS
     ]
     if guide_path is not None and guide_path.is_file():
-        _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root)
+        _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root, repo_root)
     if parity_json_path.is_file():
-        _copy_record(parity_json_path, delivery_root / PARITY_JSON, delivery_root)
+        _copy_record(parity_json_path, delivery_root / PARITY_JSON, delivery_root, repo_root)
     if parity_md_path.is_file():
-        _copy_record(parity_md_path, delivery_root / PARITY_MD, delivery_root)
+        _copy_record(parity_md_path, delivery_root / PARITY_MD, delivery_root, repo_root)
 
     manifest = {
         "schema": SCHEMA,

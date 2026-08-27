@@ -1,19 +1,20 @@
 {
   "composite_action_count": 18,
-  "existing_workflow_count": 29,
+  "existing_workflow_count": 30,
   "governing_issue": 194,
   "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
   "inventory_outputs": {
     "json": ".github/github_actions/workflow_inventory.json",
     "markdown": ".github/github_actions/workflow_inventory.md"
   },
-  "primary_workflow_count": 29,
+  "primary_workflow_count": 30,
   "required_contract_families": [
     "static-validation",
     "required-surfaces",
     "collector-runtime-package",
     "collector-optional-exe",
     "gemini-bundle",
+    "openai-gpt-bundle",
     "gemini-model-comparison",
     "gemini-behavioral-replay",
     "gemini-production-like-harness",
@@ -34,7 +35,7 @@
     "codeql-security",
     "openrouter-pr-review"
   ],
-  "reusable_workflow_count": 28,
+  "reusable_workflow_count": 29,
   "schema_version": "dcoir_workflow_modularization_contracts_v1",
   "workflow_contracts": [
     {
@@ -206,6 +207,16 @@
       "risk": "medium",
       "rollback": "Restore prior inline Gemini bundle workflow body.",
       "target_architecture": "Gemini bundle reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Exact-head ten-command agent-runtime validation, combined release self-test, static parity report, direct two-GPT delivery artifact contents/hashes, full evidence artifact, workflow run/job readback, and manual/live evidence boundary.",
+      "contract_family": "openai-gpt-bundle",
+      "family": "OpenAI GPT packaging",
+      "file": ".github/workflows/manual-openai-gpt-deployment-package-build.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Remove the OpenAI deployment package entry/reusable workflows and retain the existing target-specific builders and manual WebUI procedure.",
+      "target_architecture": "One operator-triggered entry workflow calls a family-specific reusable workflow that runs the governed agent-runtime validation contract, unified static parity reporting, deterministic two-target delivery assembly, direct artifact surfacing, evidence upload, and ChatGPT workflow report section without mutating live OpenAI targets."
     },
     {
       "acceptance_evidence": "Live/model comparison report and secret handling.",

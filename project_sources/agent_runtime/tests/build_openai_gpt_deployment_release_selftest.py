@@ -143,6 +143,29 @@ def test_combined_delivery_and_determinism() -> None:
         td.cleanup()
 
 
+def test_cross_checkout_root_determinism() -> None:
+    td_a, repo_a = stage_repo()
+    td_b, repo_b = stage_repo()
+    try:
+        errors_a, report_a = _build(repo_a, "out")
+        errors_b, report_b = _build(repo_b, "out")
+        assert not errors_a, errors_a
+        assert not errors_b, errors_b
+        zip_a = repo_a / report_a["zip_path"]
+        zip_b = repo_b / report_b["zip_path"]
+        assert zip_a.read_bytes() == zip_b.read_bytes()
+        manifest_a = json.loads(
+            (repo_a / "project_sources/validation/out" / module.DELIVERY_ROOT_NAME / "delivery_manifest.json").read_text(encoding="utf-8")
+        )
+        for target in manifest_a["targets"]:
+            for record in target["package_files"] + target["knowledge_files"]:
+                assert not Path(record["source_path"]).is_absolute(), record
+                assert not record["source_path"].startswith(repo_a.as_posix()), record
+    finally:
+        td_b.cleanup()
+        td_a.cleanup()
+
+
 def test_knowledge_drift_fails_closed() -> None:
     td, repo = stage_repo()
     try:
@@ -201,7 +224,10 @@ def test_output_escape_is_rejected() -> None:
         )
         assert errors
         assert report["success"] is False
+        assert report["delivery_root"] is None
+        assert report["zip_path"] is None
         assert any("output_dir must be" in error for error in errors), errors
+        assert not (Path(outside.name) / module.DELIVERY_ROOT_NAME).exists()
     finally:
         outside.cleanup()
         td.cleanup()
@@ -210,6 +236,7 @@ def test_output_escape_is_rejected() -> None:
 def main() -> int:
     tests = [
         test_combined_delivery_and_determinism,
+        test_cross_checkout_root_determinism,
         test_knowledge_drift_fails_closed,
         test_parity_failure_blocks_release,
         test_source_commit_mismatch_blocks_release,
