@@ -156,7 +156,7 @@ Hardening and governed validation integration:
 - real-repository evaluator: pass
 - `git diff --check`: pass
 
-The evaluator self-tests are imported by the existing Knowledge projection self-test entry point, so the established agent-runtime validation lane exercises them without workflow-YAML changes.
+The evaluator self-tests are loaded by the explicit `unittest` `load_tests` hook in the existing Knowledge projection self-test entry point, so the established agent-runtime validation lane exercises them without workflow-YAML changes.
 
 ## Next action
 

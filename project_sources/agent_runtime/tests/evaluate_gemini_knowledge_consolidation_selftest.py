@@ -441,6 +441,47 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
         self.assertFalse(report['candidate']['exact_source_coverage'])
         self.assertFalse(report['candidate']['lossless_reconstruction'])
 
+    def test_extra_recovered_candidate_source_is_rejected(self) -> None:
+        original_recover = evaluator.knowledge_projection.recover_projection
+        injected = False
+
+        def recover_with_extra(data: bytes) -> list[dict[str, object]]:
+            nonlocal injected
+            recovered = original_recover(data)
+            if (
+                recovered
+                and not injected
+                and b'- Target: gemini_dcoir_agent_candidate\n' in data
+            ):
+                injected = True
+                recovered.append(
+                    {
+                        'metadata': {'id': 'knowledge.unexpected.extra'},
+                        'content': b'unexpected extra source',
+                    }
+                )
+            return recovered
+
+        with mock.patch.object(
+            evaluator.knowledge_projection,
+            'recover_projection',
+            side_effect=recover_with_extra,
+        ):
+            errors, report = self._evaluate()
+        self.assertTrue(injected)
+        self.assertTrue(errors)
+        self.assertTrue(
+            any(
+                'not losslessly recoverable' in error
+                or 'source coverage' in error
+                for error in errors
+            ),
+            errors,
+        )
+        self.assertFalse(report['candidate']['exact_source_coverage'])
+        self.assertFalse(report['candidate']['lossless_reconstruction'])
+        self.assertEqual(report['decision']['recommended'], 'REVISE')
+
     def test_evaluation_does_not_mutate_active_repository_state(self) -> None:
         before = self._snapshot()
         errors, _ = self._evaluate()
