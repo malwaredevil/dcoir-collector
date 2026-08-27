@@ -155,6 +155,9 @@ def _copy_record(
     repo_root: Path,
     errors: list[str],
 ) -> dict[str, Any] | None:
+    if source.is_symlink() or not source.is_file():
+        errors.append(f"Missing or unsafe source file: {source.as_posix()}")
+        return None
     data = source.read_bytes()
     if not _write_output_bytes(
         delivery_root,

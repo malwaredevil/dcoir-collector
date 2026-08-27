@@ -290,6 +290,35 @@ def test_copy_record_rejects_destination_escape() -> None:
         td.cleanup()
 
 
+def test_copy_record_rejects_symlink_source_when_supported() -> None:
+    td, repo = stage_repo()
+    try:
+        delivery_root = repo / "project_sources/validation/delivery"
+        delivery_root.mkdir(parents=True, exist_ok=True)
+        target = repo / "source-target.txt"
+        target.write_text("target\n", encoding="utf-8")
+        source = repo / "source-link.txt"
+        try:
+            source.symlink_to(target)
+        except (OSError, NotImplementedError):
+            return
+        destination = delivery_root / "copied.txt"
+        errors: list[str] = []
+        record = module._copy_record(
+            source,
+            destination,
+            delivery_root,
+            repo,
+            errors,
+        )
+        assert record is None
+        assert errors
+        assert any("Missing or unsafe source file" in error for error in errors), errors
+        assert not destination.exists()
+    finally:
+        td.cleanup()
+
+
 def test_existing_report_output_directory_fails_closed() -> None:
     td, repo = stage_repo()
     try:
@@ -389,6 +418,7 @@ def main() -> int:
         test_unsafe_existing_delivery_root_fails_closed,
         test_existing_delivery_root_symlink_fails_closed_when_supported,
         test_copy_record_rejects_destination_escape,
+        test_copy_record_rejects_symlink_source_when_supported,
         test_existing_report_output_directory_fails_closed,
         test_existing_zip_output_directory_fails_closed,
         test_output_leaf_symlink_fails_closed_when_supported,
