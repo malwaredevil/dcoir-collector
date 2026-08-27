@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260827-issue421-governance-validation-003",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-27T16:34:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 5,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run corrected Stage 9 worktree validation. It fixes fail-closed output-path handling and cross-checkout deterministic metadata, aligns workflow governance/docs, runs exact-head workflow/agent-runtime validation and combined bundle inspection, then pushes only issue #421 branch. No live target mutation.",
+  "command": "& .\\.github\\chatgpt_staging\\exec_scripts\\issue421_openai_bundle_governance_and_validation_v2.ps1"
+}
