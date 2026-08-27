@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260827-issue417-extra-source-coverage-010",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33048907822",
   "github_sha": "cbfa398e4336e43ffb16ccd55744059d8e75bf50",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260827-issue417-extra-source-coverage-010",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-issue417-extra-source-coverage-010.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T07:14:53Z",
+  "updated_utc": "2026-08-27T07:15:13Z",
   "workflow": "chatgpt-exec"
 }
