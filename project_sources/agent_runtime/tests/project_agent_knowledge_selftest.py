@@ -13,6 +13,9 @@ TOOLS_DIR = Path(__file__).resolve().parents[1] / 'tools'
 sys.path.insert(0, str(TOOLS_DIR))
 
 import project_agent_knowledge as projector  # noqa: E402
+from evaluate_gemini_knowledge_consolidation_selftest import (  # noqa: E402,F401
+    GeminiKnowledgeConsolidationEvaluationSelfTest,
+)
 
 
 def _write_json(path: Path, value: object) -> None:

@@ -339,6 +339,13 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(report['decision']['recommended'], 'DEFER')
 
+    def test_live_failure_requires_specific_run(self) -> None:
+        errors, report = self._evaluate(live_status='fail')
+        self.assertTrue(
+            any('live_evidence_run is required' in error for error in errors)
+        )
+        self.assertEqual(report['decision']['recommended'], 'REVISE')
+
     def test_missing_source_fails_closed(self) -> None:
         (self.repo / 'knowledge/charlie.md').unlink()
         errors, report = self._evaluate()
@@ -368,6 +375,19 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
         errors, report = self._evaluate()
         self.assertTrue(
             any('unknown' in error.casefold() for error in errors),
+            errors,
+        )
+        self.assertEqual(report['decision']['recommended'], 'REVISE')
+
+    def test_unsafe_candidate_group_id_is_rejected(self) -> None:
+        contract = self._read_json(self.contract_path)
+        contract['knowledge_projection_groups'][0]['id'] = 'bad/group'
+        contract['knowledge_items'][0]['openai_dcoir_projection_group'] = 'bad/group'
+        contract['knowledge_items'][3]['openai_dcoir_projection_group'] = 'bad/group'
+        self._write_contract(contract)
+        errors, report = self._evaluate()
+        self.assertTrue(
+            any('unsafe' in error.casefold() and 'group' in error.casefold() for error in errors),
             errors,
         )
         self.assertEqual(report['decision']['recommended'], 'REVISE')

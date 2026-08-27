@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -20,14 +21,21 @@ FALLBACK_GROUP_PURPOSE = (
     'full canonical sources.'
 )
 VALID_LIVE_EVIDENCE = ('unavailable', 'pass', 'fail')
-
-
-def _json_bytes(value: Any) -> bytes:
-    return (json.dumps(value, indent=2, sort_keys=True) + '\n').encode('utf-8')
+SAFE_GROUP_ID_RE = re.compile(r'^[a-z0-9][a-z0-9_]*$')
 
 
 def _sha256(data: bytes) -> str:
     return knowledge_projection._sha256(data)
+
+
+def _file_sha256(
+    path: Path, label: str, errors: list[str]
+) -> str | None:
+    try:
+        return _sha256(path.read_bytes())
+    except (OSError, RuntimeError) as exc:
+        errors.append(f'Unable to hash {label} {path}: {exc}')
+        return None
 
 
 def _load_json(path: Path, label: str, errors: list[str]) -> dict[str, Any] | None:
@@ -114,6 +122,9 @@ def _candidate_group_order(
         purpose = group.get('purpose')
         if not isinstance(group_id, str) or not group_id:
             errors.append('Reference projection group lacks an id')
+            continue
+        if not SAFE_GROUP_ID_RE.fullmatch(group_id):
+            errors.append(f'Unsafe reference projection group id: {group_id}')
             continue
         if group_id in seen:
             errors.append(f'Duplicate reference projection group id: {group_id}')
@@ -206,9 +217,9 @@ def evaluate_consolidation(
             'live_evidence_status must be one of '
             + ', '.join(VALID_LIVE_EVIDENCE)
         )
-    if live_evidence_status == 'pass' and not live_evidence_run:
+    if live_evidence_status in {'pass', 'fail'} and not live_evidence_run:
         errors.append(
-            'live_evidence_run is required when live_evidence_status is pass'
+            'live_evidence_run is required when live_evidence_status is pass or fail'
         )
     if type(behavior_tracker_issue) is not int or behavior_tracker_issue <= 0:
         errors.append('behavior_tracker_issue must be a positive integer')
@@ -339,6 +350,20 @@ def evaluate_consolidation(
             except (OSError, RuntimeError, ValueError) as exc:
                 errors.append(f'Canonical Knowledge inventory raised: {exc}')
 
+    projection_manifest_sha256 = _file_sha256(
+        resolved_manifest, 'projection manifest', errors
+    )
+    source_contract_sha256 = (
+        _file_sha256(source_contract_path, 'source contract', errors)
+        if source_contract_path is not None
+        else None
+    )
+    bundle_manifest_sha256 = (
+        _file_sha256(bundle_path, 'Gemini bundle manifest', errors)
+        if bundle_path is not None
+        else None
+    )
+
     gemini_records = [
         record
         for record in records
@@ -398,6 +423,11 @@ def evaluate_consolidation(
         elif not isinstance(group_id, str) or not group_id:
             errors.append(
                 f"{record['id']} has invalid openai_dcoir_projection_group"
+            )
+            continue
+        elif not SAFE_GROUP_ID_RE.fullmatch(group_id):
+            errors.append(
+                f"{record['id']} has unsafe openai_dcoir_projection_group: {group_id}"
             )
             continue
         group_sources[group_id].append(record)
@@ -557,26 +587,24 @@ def evaluate_consolidation(
         'baseline': {
             'baseline_commit': baseline_commit,
             'projection_manifest': resolved_manifest.relative_to(resolved_repo).as_posix(),
-            'projection_manifest_sha256': _sha256(resolved_manifest.read_bytes()),
+            'projection_manifest_sha256': projection_manifest_sha256,
             'source_contract': (
                 source_contract_path.relative_to(resolved_repo).as_posix()
                 if source_contract_path is not None
                 else None
             ),
-            'source_contract_sha256': (
-                _sha256(source_contract_path.read_bytes())
-                if source_contract_path is not None and source_contract_path.exists()
-                else None
-            ),
+            'source_contract_sha256': source_contract_sha256,
             'gemini_bundle_manifest': (
                 bundle_path.relative_to(resolved_repo).as_posix()
                 if bundle_path is not None
                 else None
             ),
-            'gemini_bundle_manifest_sha256': (
-                _sha256(bundle_path.read_bytes())
-                if bundle_path is not None and bundle_path.exists()
-                else None
+            'gemini_bundle_manifest_sha256': bundle_manifest_sha256,
+            'gemini_bundle_version': (
+                bundle.get('bundle_version') if isinstance(bundle, dict) else None
+            ),
+            'gemini_bundle_source_strategy': (
+                bundle.get('source_strategy') if isinstance(bundle, dict) else None
             ),
             'active_mode': active_mode,
             'active_attachment_count': active_count,
