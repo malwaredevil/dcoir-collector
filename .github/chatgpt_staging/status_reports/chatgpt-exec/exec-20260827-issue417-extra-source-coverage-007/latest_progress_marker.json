@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33048326596",
   "github_sha": "0fda0a9ef35adee549d32a9943ae02526a571096",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260827-issue417-extra-source-coverage-007",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-issue417-extra-source-coverage-007.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T07:06:16Z",
+  "updated_utc": "2026-08-27T07:06:19Z",
   "workflow": "chatgpt-exec"
 }
