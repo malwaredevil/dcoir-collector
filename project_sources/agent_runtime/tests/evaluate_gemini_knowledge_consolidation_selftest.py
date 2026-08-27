@@ -8,8 +8,8 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest import mock
 
+mock = unittest.mock
 
 TOOLS_DIR = Path(__file__).resolve().parents[1] / 'tools'
 sys.path.insert(0, str(TOOLS_DIR))
