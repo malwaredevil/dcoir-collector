@@ -60,13 +60,13 @@ The profiles prioritize the shared source contract and operating guide, then onl
 
 The maintained agent-runtime tools are registered as active operational tools with their GitHub paths and use/avoid boundaries:
 
-- `validate_shared_agent_source_contract.py`
-- `materialize_agent_behavior_adapters.py`
-- `project_agent_knowledge.py`
-- `build_openai_dcoir_analyst.py`
-- `build_openai_usb_reporting.py`
-- `report_agent_release_parity.py`
-- `evaluate_gemini_knowledge_consolidation.py`
+- `project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py`
+- `project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py`
+- `project_sources/agent_runtime/tools/project_agent_knowledge.py`
+- `project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py`
+- `project_sources/agent_runtime/tools/build_openai_usb_reporting.py`
+- `project_sources/agent_runtime/tools/report_agent_release_parity.py`
+- `project_sources/agent_runtime/tools/evaluate_gemini_knowledge_consolidation.py`
 
 The catalog describes what each tool is for; it does not duplicate implementation logic, source hashes, projection maps, or target semantics from GitHub.
 
