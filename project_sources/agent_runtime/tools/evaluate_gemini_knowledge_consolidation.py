@@ -560,11 +560,24 @@ def evaluate_consolidation(
             'Static file-count reduction is not evidence of equal or better Gemini retrieval behavior.',
         ]
 
-    benefits = [
-        (
+    if baseline_errors:
+        file_count_benefit = (
+            'Candidate file-count reduction is not claimed because active '
+            'projection validation did not pass.'
+        )
+    elif reduction_count > 0:
+        file_count_benefit = (
             f'Candidate reduces runtime Knowledge files from {active_count} to '
             f'{candidate_count} without changing the canonical atomic sources.'
-        ),
+        )
+    else:
+        file_count_benefit = (
+            f'Candidate does not reduce runtime Knowledge files '
+            f'({active_count} active; {candidate_count} candidate) while '
+            'leaving the canonical atomic sources unchanged.'
+        )
+    benefits = [
+        file_count_benefit,
         'Every candidate source boundary retains id, canonical path, Git blob SHA, SHA-256, and byte count.',
         'Candidate grouping reuses the reviewed OpenAI DCOIR knowledge taxonomy and adds one explicit Gemini-only group.',
     ]

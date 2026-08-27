@@ -301,6 +301,7 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
         self.assertEqual(report['candidate']['file_count'], 3)
         self.assertEqual(report['candidate']['source_count'], 4)
         self.assertEqual(report['candidate']['attachment_reduction_count'], 1)
+        self.assertIn('reduces runtime Knowledge files from 4 to 3', report['benefits'][0])
         self.assertTrue(report['candidate']['exact_source_coverage'])
         self.assertTrue(report['candidate']['lossless_reconstruction'])
         self.assertTrue(report['candidate']['active_contract_unchanged'])
@@ -431,6 +432,7 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
         self.assertEqual(report['decision']['recommended'], 'REVISE')
         self.assertEqual(report['candidate']['attachment_reduction_count'], 0)
         self.assertEqual(report['candidate']['attachment_reduction_percent'], 0.0)
+        self.assertIn('file-count reduction is not claimed', report['benefits'][0])
 
     def test_corrupt_candidate_recovery_is_rejected(self) -> None:
         with mock.patch.object(
