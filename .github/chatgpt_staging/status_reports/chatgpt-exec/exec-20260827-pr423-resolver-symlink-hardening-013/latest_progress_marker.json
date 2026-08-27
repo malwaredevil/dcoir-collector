@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-harness-failure-20260827T182132Z",
+  "exit_code": "1",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33103015330",
   "github_sha": "4e5979deadfa4572b2cdf4d3e50f289af58febf8",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260827-pr423-resolver-symlink-hardening-013",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-pr423-resolver-symlink-hardening-013.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T18:21:29Z",
+  "updated_utc": "2026-08-27T18:21:32Z",
   "workflow": "chatgpt-exec"
 }
