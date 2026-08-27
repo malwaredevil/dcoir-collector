@@ -7,9 +7,8 @@ import json
 import sys
 import tempfile
 import unittest
+import unittest.mock as mock
 from pathlib import Path
-
-mock = unittest.mock
 
 TOOLS_DIR = Path(__file__).resolve().parents[1] / 'tools'
 sys.path.insert(0, str(TOOLS_DIR))
