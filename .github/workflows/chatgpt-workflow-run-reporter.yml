@@ -47,6 +47,7 @@ on:
       - 23 Validation - Collector Documentation Quality
       - 30 Maintenance - Workflow Audit
       - 02 Operator - Build Gemini Agent Bundle
+      - 07 Operator - Build OpenAI GPT Deployment Packages
       - 04 Operator - Gemini Model Comparison
       - 10 Operator - GitHub Artifact Readback
       - 01 Operator - Build Collector Runtime Bundle
