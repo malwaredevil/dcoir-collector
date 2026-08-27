@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260827-issue421-delivery-root-safety-006",
+  "exit_code": "1",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33094429613",
   "github_sha": "e2dc8173d80b073f2aa7622a63531cd97e2a55b3",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260827-issue421-delivery-root-safety-006",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-issue421-delivery-root-safety-006.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T16:40:48Z",
+  "updated_utc": "2026-08-27T16:40:53Z",
   "workflow": "chatgpt-exec"
 }
