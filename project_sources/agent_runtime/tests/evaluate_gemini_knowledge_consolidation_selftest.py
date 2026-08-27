@@ -429,6 +429,8 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
             errors,
         )
         self.assertEqual(report['decision']['recommended'], 'REVISE')
+        self.assertEqual(report['candidate']['attachment_reduction_count'], 0)
+        self.assertEqual(report['candidate']['attachment_reduction_percent'], 0.0)
 
     def test_corrupt_candidate_recovery_is_rejected(self) -> None:
         with mock.patch.object(
@@ -507,6 +509,11 @@ class GeminiKnowledgeConsolidationEvaluationSelfTest(unittest.TestCase):
         self.assertIn('Recommended decision: **DEFER**', markdown)
         self.assertIn('Active attachment count: 4', markdown)
         self.assertIn('Candidate file count: 3', markdown)
+        self.assertEqual(report['candidate']['groups'][0]['order'], 0)
+        self.assertIn('| 1 | `dcoir_core` |', markdown)
+        self.assertIn('| 2 | `dcoir_reference` |', markdown)
+        self.assertIn('| 3 | `gemini_provider_specific` |', markdown)
+        self.assertNotIn('| 0 | `dcoir_core` |', markdown)
 
     def test_invalid_direct_api_inputs_fail_closed(self) -> None:
         errors, report = evaluator.evaluate_consolidation(
