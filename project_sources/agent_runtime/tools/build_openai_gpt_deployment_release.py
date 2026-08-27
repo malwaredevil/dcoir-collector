@@ -87,6 +87,45 @@ def _resolve_repo_path(repo_root: Path, relative: str | Path, errors: list[str],
     return _resolve_inside(repo_root, relative, errors, label)
 
 
+def _validate_output_path(
+    root: Path,
+    destination: Path,
+    errors: list[str],
+    label: str,
+) -> Path | None:
+    try:
+        resolved_root = root.resolve()
+        resolved_parent = destination.parent.resolve(strict=False)
+    except (OSError, RuntimeError) as exc:
+        errors.append(f"{label} could not be resolved safely: {type(exc).__name__}: {exc}")
+        return None
+    if not resolved_parent.is_relative_to(resolved_root):
+        errors.append(f"{label} escapes its allowed output root: {destination.as_posix()}")
+        return None
+    if destination.is_symlink():
+        errors.append(f"{label} must not be a symlink: {destination.as_posix()}")
+        return None
+    if destination.exists() and not destination.is_file():
+        errors.append(f"{label} must be a regular file or absent: {destination.as_posix()}")
+        return None
+    return destination
+
+
+def _write_output_bytes(
+    root: Path,
+    destination: Path,
+    data: bytes,
+    errors: list[str],
+    label: str,
+) -> bool:
+    safe_destination = _validate_output_path(root, destination, errors, label)
+    if safe_destination is None:
+        return False
+    safe_destination.parent.mkdir(parents=True, exist_ok=True)
+    safe_destination.write_bytes(data)
+    return True
+
+
 def _source_commit(repo_root: Path, explicit: str | None) -> str:
     if explicit:
         return explicit
@@ -114,10 +153,17 @@ def _copy_record(
     destination: Path,
     delivery_root: Path,
     repo_root: Path,
-) -> dict[str, Any]:
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    errors: list[str],
+) -> dict[str, Any] | None:
     data = source.read_bytes()
-    destination.write_bytes(data)
+    if not _write_output_bytes(
+        delivery_root,
+        destination,
+        data,
+        errors,
+        "delivery file",
+    ):
+        return None
     return {
         "delivery_path": destination.relative_to(delivery_root).as_posix(),
         "source_path": source.relative_to(repo_root).as_posix(),
@@ -178,7 +224,15 @@ def _validate_and_copy_target(
         if not source.is_file() or source.is_symlink():
             errors.append(f"Missing or unsafe {target['target_id']} package file: {source.as_posix()}")
             continue
-        file_records.append(_copy_record(source, destination_root / name, delivery_root, repo_root))
+        record = _copy_record(
+            source,
+            destination_root / name,
+            delivery_root,
+            repo_root,
+            errors,
+        )
+        if record is not None:
+            file_records.append(record)
 
     knowledge_records: list[dict[str, Any]] = []
     seen_names: set[str] = set()
@@ -209,9 +263,16 @@ def _validate_and_copy_target(
         actual_sha = _sha256_bytes(data)
         if item.get("sha256") != actual_sha or item.get("bytes") != len(data):
             errors.append(f"Knowledge hash/size drift for {declared_path}")
-        record = _copy_record(source, destination_root / "Knowledge" / source.name, delivery_root, repo_root)
-        record.update({"id": item.get("id"), "order": item.get("order")})
-        knowledge_records.append(record)
+        record = _copy_record(
+            source,
+            destination_root / "Knowledge" / source.name,
+            delivery_root,
+            repo_root,
+            errors,
+        )
+        if record is not None:
+            record.update({"id": item.get("id"), "order": item.get("order")})
+            knowledge_records.append(record)
 
     return {
         "target_id": target["target_id"],
@@ -302,6 +363,26 @@ def build_release(
             "errors": errors,
         }
     output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = output_dir / "build_openai_gpt_deployment_release_report.json"
+    zip_name = f"DCOIR_OpenAI_GPT_Deployment_Packages_{commit[:12] if commit != 'unknown' else 'unknown'}.zip"
+    zip_path = output_dir / zip_name
+    _validate_output_path(output_dir, report_path, errors, "build report")
+    _validate_output_path(output_dir, zip_path, errors, "delivery ZIP")
+    if errors:
+        return errors, {
+            "schema": REPORT_SCHEMA,
+            "success": False,
+            "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "source_commit": commit,
+            "delivery_root": None,
+            "zip_path": None,
+            "zip_sha256": None,
+            "target_count": 0,
+            "targets": [],
+            "static_parity_status": None,
+            "live_parity_status": None,
+            "errors": errors,
+        }
 
     parity_json_path = parity_root / PARITY_JSON
     parity_md_path = parity_root / PARITY_MD
@@ -347,11 +428,11 @@ def build_release(
         for target in TARGETS
     ]
     if guide_path is not None and guide_path.is_file():
-        _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root, repo_root)
+        _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root, repo_root, errors)
     if parity_json_path.is_file():
-        _copy_record(parity_json_path, delivery_root / PARITY_JSON, delivery_root, repo_root)
+        _copy_record(parity_json_path, delivery_root / PARITY_JSON, delivery_root, repo_root, errors)
     if parity_md_path.is_file():
-        _copy_record(parity_md_path, delivery_root / PARITY_MD, delivery_root, repo_root)
+        _copy_record(parity_md_path, delivery_root / PARITY_MD, delivery_root, repo_root, errors)
 
     manifest = {
         "schema": SCHEMA,
@@ -363,13 +444,21 @@ def build_release(
         "generated_outputs_are_canonical": False,
         "targets": target_reports,
     }
-    (delivery_root / "delivery_manifest.json").write_bytes(_json_bytes(manifest))
-    (delivery_root / "delivery_manifest.md").write_text(
-        _delivery_markdown(manifest), encoding="utf-8"
+    _write_output_bytes(
+        delivery_root,
+        delivery_root / "delivery_manifest.json",
+        _json_bytes(manifest),
+        errors,
+        "delivery manifest JSON",
+    )
+    _write_output_bytes(
+        delivery_root,
+        delivery_root / "delivery_manifest.md",
+        _delivery_markdown(manifest).encode("utf-8"),
+        errors,
+        "delivery manifest Markdown",
     )
 
-    zip_name = f"DCOIR_OpenAI_GPT_Deployment_Packages_{commit[:12] if commit != 'unknown' else 'unknown'}.zip"
-    zip_path = output_dir / zip_name
     if zip_path.exists():
         zip_path.unlink()
     if not errors:
@@ -389,8 +478,15 @@ def build_release(
         "live_parity_status": parity.get("live_parity_status"),
         "errors": errors,
     }
-    report_path = output_dir / "build_openai_gpt_deployment_release_report.json"
-    report_path.write_bytes(_json_bytes(report))
+    if not _write_output_bytes(
+        output_dir,
+        report_path,
+        _json_bytes(report),
+        errors,
+        "build report",
+    ):
+        report["success"] = False
+        report["errors"] = errors
     return errors, report
 
 
