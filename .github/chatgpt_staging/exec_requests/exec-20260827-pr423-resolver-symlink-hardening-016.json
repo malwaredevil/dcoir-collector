@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260827-pr423-resolver-symlink-hardening-016",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/pr423_resolver_symlink_hardening_016.ps1",
+  "approved_command_preview": "Run the robust newline-independent PR #423 resolver-hardening wrapper, then commit, exact-head validate, and push the narrow source-symlink hardening only on a clean result.",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 5,
+  "cleanup_request_after_run": true
+}
