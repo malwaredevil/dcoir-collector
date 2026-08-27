@@ -1,0 +1,212 @@
+# DCOIR reusable workflow module.
+# Entry workflow keeps the manual trigger, permissions, concurrency, and operator-visible contract notes.
+name: 99 Module - OpenAI GPT Deployment Packages
+run-name: Module OpenAI GPT Deployment Packages | ${{ github.workflow }} | #${{ github.run_number }}
+
+on:
+  workflow_call:
+    inputs: {}
+    outputs: {}
+    secrets: {}
+
+permissions:
+  contents: read
+
+jobs:
+  build_openai_gpt_deployment_packages:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up workflow runtime
+        uses: ./.github/actions/setup-workflow-runtime
+        with:
+          python-version: '3.11'
+
+      - name: Validate Python syntax
+        uses: ./.github/actions/validate-python-syntax
+
+      - name: Verify OpenAI deployment package required surfaces
+        uses: ./.github/actions/verify-required-surfaces
+        with:
+          profile: manual_openai_gpt_deployment_package_build
+
+      - name: Run combined OpenAI deployment release self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Combined OpenAI GPT deployment release self-tests failed.'
+          }
+
+      - name: Run governed agent-runtime validation contract
+        shell: pwsh
+        run: |
+          $commands = @(
+            @('Shared source contract', 'python', 'project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'),
+            @('Shared source contract self-tests', 'python', 'project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'),
+            @('Behavior adapter materialization check', 'python', 'project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py', '--check'),
+            @('Behavior adapter self-tests', 'python', 'project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py'),
+            @('Knowledge projection check', 'python', 'project_sources/agent_runtime/tools/project_agent_knowledge.py', '--check'),
+            @('Knowledge projection self-tests', 'python', 'project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py'),
+            @('OpenAI DCOIR package check', 'python', 'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py', '--check'),
+            @('OpenAI DCOIR package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'),
+            @('OpenAI USB package check', 'python', 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py', '--check'),
+            @('OpenAI USB package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py')
+          )
+          foreach ($command in $commands) {
+            $label = $command[0]
+            $exe = $command[1]
+            $arguments = @($command[2..($command.Count - 1)])
+            Write-Host "=== $label ==="
+            & $exe $arguments
+            if ($LASTEXITCODE -ne 0) {
+              throw "$label failed with exit $LASTEXITCODE"
+            }
+          }
+
+      - name: Write agent-runtime validation receipt
+        shell: pwsh
+        run: |
+          $commands = @(
+            'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py',
+            'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py',
+            'python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check',
+            'python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py',
+            'python project_sources/agent_runtime/tools/project_agent_knowledge.py --check',
+            'python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py',
+            'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check',
+            'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py',
+            'python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check',
+            'python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'
+          )
+          $receipt = [ordered]@{
+            schema_version = 'dcoir_agent_runtime_validation_workflow_receipt_v1'
+            workflow = 'manual-openai-gpt-deployment-package-build'
+            workflow_run_id = $env:GITHUB_RUN_ID
+            workflow_run_attempt = $env:GITHUB_RUN_ATTEMPT
+            head_sha = $env:GITHUB_SHA
+            tested_commit_sha = $env:GITHUB_SHA
+            event_name = $env:GITHUB_EVENT_NAME
+            documented_contract = 'project_sources/agent_runtime/README.md'
+            command_count = $commands.Count
+            commands = @($commands | ForEach-Object { [ordered]@{ command = $_; result = 'pass' } })
+          }
+          New-Item -ItemType Directory -Force -Path project_sources/validation/out_openai_gpt_deployment | Out-Null
+          $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path project_sources/validation/out_openai_gpt_deployment/agent_runtime_validation.json -Encoding utf8
+
+      - name: Build unified static release and parity report
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/report_agent_release_parity.py `
+            --source-commit $env:GITHUB_SHA `
+            --output-root project_sources/validation/out_openai_gpt_deployment/parity
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Unified agent release/parity report failed.'
+          }
+
+      - name: Build combined OpenAI GPT deployment release
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py `
+            --source-commit $env:GITHUB_SHA `
+            --output-dir project_sources/validation/out_openai_gpt_deployment `
+            --parity-root project_sources/validation/out_openai_gpt_deployment/parity
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Combined OpenAI GPT deployment release build failed.'
+          }
+
+      - name: Surface OpenAI GPT delivery ZIP
+        shell: pwsh
+        run: |
+          python .github/github_actions/tools/surface_delivery_zip.py `
+            --build-report project_sources/validation/out_openai_gpt_deployment/build_openai_gpt_deployment_release_report.json `
+            --output-dir project_sources/validation/delivery_artifact/openai-gpt-deployment `
+            --manifest-dir project_sources/validation/out_openai_gpt_deployment/delivery_surface_manifest `
+            --extract-for-artifact `
+            --artifact-label dcoir-openai-gpt-deployment-packages `
+            --workflow-name manual-openai-gpt-deployment-package-build
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT delivery ZIP surfacing failed.'
+          }
+
+      - name: Set OpenAI delivery artifact name
+        shell: pwsh
+        run: |
+          $manifest = Get-Content -Raw -Path project_sources/validation/out_openai_gpt_deployment/delivery_surface_manifest/delivery_manifest.json | ConvertFrom-Json
+          $artifactName = [System.IO.Path]::GetFileNameWithoutExtension([string]$manifest.delivery_zip_name)
+          if ([string]::IsNullOrWhiteSpace($artifactName)) {
+            throw 'OpenAI GPT delivery artifact name could not be derived from delivery manifest.'
+          }
+          "OPENAI_GPT_DELIVERY_ARTIFACT_NAME=$artifactName" | Add-Content -Path $env:GITHUB_ENV
+
+      - name: Upload OpenAI GPT delivery artifact
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: ${{ env.OPENAI_GPT_DELIVERY_ARTIFACT_NAME || 'dcoir-openai-gpt-deployment-packages' }}
+          path: project_sources/validation/delivery_artifact/openai-gpt-deployment/**
+          if-no-files-found: error
+          retention-days: 21
+
+      - name: Upload OpenAI GPT build evidence
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: manual-openai-gpt-deployment-package-build
+          path: |
+            project_sources/validation/out_openai_gpt_deployment/**
+          if-no-files-found: warn
+          retention-days: 21
+
+      - name: Write ChatGPT workflow report section
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
+          $reportPath = 'project_sources/validation/out_openai_gpt_deployment/build_openai_gpt_deployment_release_report.json'
+          if (Test-Path -LiteralPath $reportPath -PathType Leaf) {
+            $report = Get-Content -Raw -Path $reportPath | ConvertFrom-Json
+            $buildResult = if ($report.success) { 'pass' } else { 'fail' }
+            $staticParity = [string]$report.static_parity_status
+            $liveParity = [string]$report.live_parity_status
+            $zipSha = [string]$report.zip_sha256
+          }
+          else {
+            $buildResult = 'incomplete_or_failed_report_missing'
+            $staticParity = 'unknown'
+            $liveParity = 'unknown'
+            $zipSha = 'unavailable'
+          }
+          @"
+          ## OpenAI GPT deployment package build summary
+
+          - workflow: manual-openai-gpt-deployment-package-build
+          - workflow_run_id: $env:GITHUB_RUN_ID
+          - workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT
+          - head_sha: $env:GITHUB_SHA
+          - ref: $env:GITHUB_REF
+          - build_result: $buildResult
+          - static_parity: $staticParity
+          - live_parity: $liveParity
+          - targets: AFRICOM DCOIR Analyst (7 Knowledge files); AFRICOM USB Reporting (2 Knowledge files)
+          - primary_artifact: manual-openai-gpt-deployment-package-build
+          - direct_delivery_artifact: $env:OPENAI_GPT_DELIVERY_ARTIFACT_NAME
+          - direct_delivery_artifact_path: project_sources/validation/delivery_artifact/openai-gpt-deployment/**
+          - delivery_zip_sha256: $zipSha
+          - manual_deployment_boundary: this workflow builds static deployment files only; it does not create or modify either live OpenAI GPT and does not claim live-model parity.
+
+          Download the direct delivery artifact for the operator-ready two-GPT package. Use manual-openai-gpt-deployment-package-build for validation, parity, release, and delivery-manifest evidence.
+          The workflow conclusion is the authoritative pass/fail signal for this build lane.
+          "@ | Set-Content -Path chatgpt_workflow_report_section/chatgpt_workflow_report_section.md -Encoding utf8
+
+      - name: Upload ChatGPT workflow report section
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: chatgpt-workflow-report-section
+          path: chatgpt_workflow_report_section/chatgpt_workflow_report_section.md
+          if-no-files-found: error
+          retention-days: 14
