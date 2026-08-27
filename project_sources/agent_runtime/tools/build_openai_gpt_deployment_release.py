@@ -73,7 +73,13 @@ def _resolve_inside(root: Path, relative: str | Path, errors: list[str], label: 
         return None
     try:
         resolved_root = root.resolve()
-        candidate = (resolved_root / value).resolve(strict=False)
+        lexical_candidate = resolved_root
+        for part in value.parts:
+            lexical_candidate = lexical_candidate / part
+            if lexical_candidate.is_symlink():
+                errors.append(f"{label} must not traverse a symlink: {relative}")
+                return None
+        candidate = lexical_candidate.resolve(strict=False)
     except (OSError, RuntimeError) as exc:
         errors.append(f"{label} could not be resolved: {type(exc).__name__}: {exc}")
         return None

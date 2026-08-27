@@ -319,6 +319,30 @@ def test_copy_record_rejects_symlink_source_when_supported() -> None:
         td.cleanup()
 
 
+
+def test_repo_source_resolver_rejects_symlink_component_when_supported() -> None:
+    td, repo = stage_repo()
+    try:
+        target_dir = repo / "real-source"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        link_dir = repo / "linked-source"
+        try:
+            link_dir.symlink_to(target_dir, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            return
+        errors: list[str] = []
+        resolved = module._resolve_repo_path(
+            repo,
+            "linked-source",
+            errors,
+            "test source",
+        )
+        assert resolved is None
+        assert errors
+        assert any("must not traverse a symlink" in error for error in errors), errors
+    finally:
+        td.cleanup()
+
 def test_existing_report_output_directory_fails_closed() -> None:
     td, repo = stage_repo()
     try:
@@ -419,6 +443,7 @@ def main() -> int:
         test_existing_delivery_root_symlink_fails_closed_when_supported,
         test_copy_record_rejects_destination_escape,
         test_copy_record_rejects_symlink_source_when_supported,
+        test_repo_source_resolver_rejects_symlink_component_when_supported,
         test_existing_report_output_directory_fails_closed,
         test_existing_zip_output_directory_fails_closed,
         test_output_leaf_symlink_fails_closed_when_supported,
