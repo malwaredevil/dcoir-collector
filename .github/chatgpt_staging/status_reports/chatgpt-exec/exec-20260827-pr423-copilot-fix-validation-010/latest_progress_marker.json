@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260827-pr423-copilot-fix-validation-010",
+  "exit_code": "1",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33102427710",
   "github_sha": "6d49c739530c485eb87880e6857110936805553b",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260827-pr423-copilot-fix-validation-010",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-pr423-copilot-fix-validation-010.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T18:14:17Z",
+  "updated_utc": "2026-08-27T18:14:47Z",
   "workflow": "chatgpt-exec"
 }
