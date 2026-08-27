@@ -104,6 +104,18 @@ The largest candidate is `dcoir_osquery_reference`: 10 canonical sources and 234
 - #184 remains open with unresolved live Gemini behavioral replay failures. This evaluation does not attribute those failures to Knowledge file count and does not claim consolidation would fix them.
 - No live Gemini environment was deployed with this candidate, so there is no candidate-specific retrieval/behavior run to support promotion.
 
+## Operational impact on deployment, readback, reverse reconciliation, and parity
+
+The current **DEFER** decision changes none of the active deployment or readback mechanics. `Knowledge_Projection_Manifest.json` still declares 28 direct Gemini attachments, the Gemini bundle contract still points at those canonical attachments, and the unified release/parity reporter should continue to report that active 28-file Gemini shape. The 8-file candidate is not an upload surface until a later governed activation changes the active contract.
+
+If a later evidence-backed change promotes this candidate, deployment/readback must record the exact eight projected files, per-file hashes, source maps, and attached-file count and must verify those values against the live Gemini target. A smaller attachment count is a deployment convenience only; it does not replace live readback or behavioral replay.
+
+Reverse reconciliation remains source-first. The 28 files under `knowledge/` stay the editable authority, candidate projections remain generated/noncanonical derivatives, and any emergency edit made directly to a projected/runtime attachment would be drift that must be reconciled back to the affected canonical source document(s) before rebuilding all governed targets. Consolidation must never make an 8-file runtime projection a second hand-maintained Knowledge authority.
+
+The unified parity surface is intentionally unchanged by #416 because the active Gemini target contract is unchanged. A future activation would require a separate governed change to the relevant Gemini projection/bundle contract and any parity expectations that describe the active runtime shape, followed by full cross-target validation so the OpenAI DCOIR and USB projections remain unaffected and source-accounted.
+
+`--live-evidence-status` and `--live-evidence-run` are recording inputs, not an external evidence fetcher. The evaluator does not retrieve or independently validate the referenced live run. A caller must use `pass` only after the controlled deployment/readback, retrieval tests, #184 replay gates, and other promotion requirements below have already been independently verified through the governed evidence/readback process. Supplying an identifier by itself is not proof that those gates passed.
+
 ## Promotion gates for reconsideration
 
 A future **PROMOTE** decision requires all of the following evidence rather than file-count reduction alone:

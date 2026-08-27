@@ -112,9 +112,9 @@ python project_sources/agent_runtime/tools/evaluate_gemini_knowledge_consolidati
 python project_sources/agent_runtime/tools/evaluate_gemini_knowledge_consolidation.py --baseline-commit <tested-sha> --markdown
 ```
 
-A clean static run with no live evidence intentionally reports `DEFER`. A future `PROMOTE` result requires a specifically identified passing live candidate evidence run and must be invoked with both `--live-evidence-status pass` and `--live-evidence-run <evidence>`. A candidate-specific live failure can be recorded with `--live-evidence-status fail --live-evidence-run <evidence>` and remains `DEFER`; blocking static errors report `REVISE`. None of these evaluation outcomes silently changes `Knowledge_Projection_Manifest.json` or the live Gemini Agent.
+A clean static run with no live evidence intentionally reports `DEFER`. A future `PROMOTE` result requires a specifically identified passing live candidate evidence run and must be invoked with both `--live-evidence-status pass` and `--live-evidence-run <evidence>`. These flags record an already-governed live-evidence disposition; the evaluator does not fetch or independently verify the referenced run, so an identifier alone is never evidence that the promotion gates passed. A candidate-specific live failure can be recorded with `--live-evidence-status fail --live-evidence-run <evidence>` and remains `DEFER`; blocking static errors report `REVISE`. None of these evaluation outcomes silently changes `Knowledge_Projection_Manifest.json` or the live Gemini Agent.
 
-The evaluator's fail-closed self-tests are imported by `tests/project_agent_knowledge_selftest.py`, so the existing governed Knowledge self-test command exercises both the canonical projection contract and the consolidation evaluator without adding or changing workflow YAML.
+The evaluator's fail-closed self-tests are loaded by the explicit `unittest` `load_tests` hook in `tests/project_agent_knowledge_selftest.py`, so the existing governed Knowledge self-test command exercises both the canonical projection contract and the consolidation evaluator without adding or changing workflow YAML.
 
 ## Unified Release, Drift, and Parity Report
 
