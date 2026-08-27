@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33103420186",
   "github_sha": "c724b327f9f644a21b6cb625e126098ffcc0c1e2",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260827-pr423-resolver-symlink-hardening-016",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-pr423-resolver-symlink-hardening-016.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T18:26:30Z",
+  "updated_utc": "2026-08-27T18:26:33Z",
   "workflow": "chatgpt-exec"
 }
