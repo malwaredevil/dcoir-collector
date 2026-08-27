@@ -319,7 +319,6 @@ def test_copy_record_rejects_symlink_source_when_supported() -> None:
         td.cleanup()
 
 
-
 def test_repo_source_resolver_rejects_symlink_component_when_supported() -> None:
     td, repo = stage_repo()
     try:
@@ -342,6 +341,31 @@ def test_repo_source_resolver_rejects_symlink_component_when_supported() -> None
         assert any("must not traverse a symlink" in error for error in errors), errors
     finally:
         td.cleanup()
+
+
+def test_deterministic_zip_rejects_symlinked_delivery_file_when_supported() -> None:
+    td, repo = stage_repo()
+    try:
+        delivery_root = repo / "project_sources/validation/delivery"
+        delivery_root.mkdir(parents=True, exist_ok=True)
+        (delivery_root / "regular.txt").write_text("regular\n", encoding="utf-8")
+        target = repo / "project_sources/validation/outside-target.txt"
+        target.write_text("outside\n", encoding="utf-8")
+        link = delivery_root / "linked.txt"
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError):
+            return
+        zip_path = repo / "project_sources/validation/delivery.zip"
+        errors: list[str] = []
+        written = module._write_deterministic_zip(delivery_root, zip_path, errors)
+        assert written is False
+        assert errors
+        assert any("Unsafe symlink in delivery tree" in error for error in errors), errors
+        assert not zip_path.exists()
+    finally:
+        td.cleanup()
+
 
 def test_existing_report_output_directory_fails_closed() -> None:
     td, repo = stage_repo()
@@ -444,6 +468,7 @@ def main() -> int:
         test_copy_record_rejects_destination_escape,
         test_copy_record_rejects_symlink_source_when_supported,
         test_repo_source_resolver_rejects_symlink_component_when_supported,
+        test_deterministic_zip_rejects_symlinked_delivery_file_when_supported,
         test_existing_report_output_directory_fails_closed,
         test_existing_zip_output_directory_fails_closed,
         test_output_leaf_symlink_fails_closed_when_supported,
