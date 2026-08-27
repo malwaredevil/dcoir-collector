@@ -329,15 +329,37 @@ def _delivery_markdown(manifest: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _write_deterministic_zip(delivery_root: Path, zip_path: Path) -> None:
-    files = sorted(path for path in delivery_root.rglob("*") if path.is_file())
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
-        for path in files:
-            archive_name = (Path(delivery_root.name) / path.relative_to(delivery_root)).as_posix()
-            info = zipfile.ZipInfo(archive_name, date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = 0o100644 << 16
-            zf.writestr(info, path.read_bytes())
+def _write_deterministic_zip(
+    delivery_root: Path,
+    zip_path: Path,
+    errors: list[str],
+) -> bool:
+    files: list[Path] = []
+    for path in sorted(delivery_root.rglob("*")):
+        if path.is_symlink():
+            errors.append(
+                f"Unsafe symlink in delivery tree: {path.relative_to(delivery_root).as_posix()}"
+            )
+            return False
+        if path.is_file():
+            files.append(path)
+
+    try:
+        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
+            for path in files:
+                if path.is_symlink() or not path.is_file():
+                    raise OSError(f"unsafe delivery file changed during ZIP assembly: {path.as_posix()}")
+                archive_name = (Path(delivery_root.name) / path.relative_to(delivery_root)).as_posix()
+                info = zipfile.ZipInfo(archive_name, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o100644 << 16
+                zf.writestr(info, path.read_bytes())
+    except OSError as exc:
+        if zip_path.exists():
+            zip_path.unlink()
+        errors.append(f"Delivery ZIP assembly failed: {exc}")
+        return False
+    return True
 
 
 def build_release(
@@ -471,7 +493,7 @@ def build_release(
     if zip_path.exists():
         zip_path.unlink()
     if not errors:
-        _write_deterministic_zip(delivery_root, zip_path)
+        _write_deterministic_zip(delivery_root, zip_path, errors)
 
     report = {
         "schema": REPORT_SCHEMA,
