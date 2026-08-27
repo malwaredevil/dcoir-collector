@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33069827317",
+  "github_sha": "702f9509b2036478dadcd11535f10b6cbe1c1e1e",
+  "phase": "request-resolved",
+  "request_id": "exec-20260827-pr417-failure-metric-wording-014",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-pr417-failure-metric-wording-014.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-08-27T12:00:07Z",
+  "workflow": "chatgpt-exec"
+}
