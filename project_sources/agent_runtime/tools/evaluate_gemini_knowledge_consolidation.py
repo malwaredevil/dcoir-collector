@@ -181,7 +181,7 @@ def _render_markdown(report: dict[str, Any]) -> str:
     ]
     for group in candidate.get('groups', []):
         lines.append(
-            f"| {group.get('order')} | `{group.get('id')}` | "
+            f"| {group.get('order', 0) + 1} | `{group.get('id')}` | "
             f"{group.get('source_count')} | {group.get('bytes')} | "
             f"`{group.get('sha256')}` |"
         )
@@ -517,7 +517,7 @@ def evaluate_consolidation(
     )
     active_count = len(active_inventory)
     candidate_count = len(candidate_groups)
-    reduction_count = active_count - candidate_count
+    reduction_count = max(active_count - candidate_count, 0)
     reduction_percent = (
         (reduction_count / active_count) * 100.0 if active_count else 0.0
     )
