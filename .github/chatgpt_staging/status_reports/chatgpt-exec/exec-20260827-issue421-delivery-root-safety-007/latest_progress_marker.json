@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33094618654",
   "github_sha": "398dbe85aafa10c837cda5d5fbe39a99d609e797",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260827-issue421-delivery-root-safety-007",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260827-issue421-delivery-root-safety-007.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-27T16:43:07Z",
+  "updated_utc": "2026-08-27T16:43:11Z",
   "workflow": "chatgpt-exec"
 }
