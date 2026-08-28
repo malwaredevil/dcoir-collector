@@ -63,7 +63,7 @@ def _stage_target(
         "runtime_model": "GPT-5.4",
         "instructions_file": (Path(package_dir) / "Instructions.md").as_posix(),
         "knowledge_files": knowledge_files,
-        "capabilities": {},
+        "capabilities": {"web_search": False, "image_generation": True},
         "description": "test",
         "conversation_starters": ["Starter one", "Starter two", "Starter three", "Starter four"],
     }
@@ -239,6 +239,11 @@ def test_human_markdown_tracks_json_and_instructions() -> None:
         handoff = (root / module.HUMAN_WEBUI_FILENAME).read_text(encoding="utf-8")
         assert config["name"] in handoff
         assert config["description"] in handoff
+        assert f"`{config['runtime_model']}`" in handoff
+        for capability, enabled in config["capabilities"].items():
+            label = module.CAPABILITY_LABELS.get(capability, capability.replace("_", " ").title())
+            state = "ON" if enabled is True else "OFF" if enabled is False else "UNSPECIFIED"
+            assert f"- {label}: **{state}**" in handoff
         for starter in config["conversation_starters"]:
             assert starter in handoff
         assert instructions in handoff
