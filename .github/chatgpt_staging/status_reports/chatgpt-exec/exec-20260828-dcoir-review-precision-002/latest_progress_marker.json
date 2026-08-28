@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33184421720",
   "github_sha": "8f5e597b99ee462efede3aefbffa117cde1f9a59",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260828-dcoir-review-precision-002",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-dcoir-review-precision-002.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T15:17:55Z",
+  "updated_utc": "2026-08-28T15:17:58Z",
   "workflow": "chatgpt-exec"
 }
