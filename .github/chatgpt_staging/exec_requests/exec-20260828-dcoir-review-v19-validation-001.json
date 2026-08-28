@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260828-dcoir-review-v19-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-28T14:43:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 1200,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Validate the DCOIR Review v19 suggestion-quality overlay and existing DCOIR reviewer regressions on current main without mutating product source.",
+  "command": "$ErrorActionPreference = 'Stop'\n$requiredAncestor = '357a239964fc6fab529cbac38187eaf822c00a7b'\ngit merge-base --is-ancestor $requiredAncestor HEAD\nif ($LASTEXITCODE -ne 0) { throw 'Expected DCOIR Review v19 source commit is not an ancestor of the executor checkout' }\npython -m py_compile .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py .github/dcoir_review/scripts/dcoir_review/entrypoint.py\nif ($LASTEXITCODE -ne 0) { throw 'v19 py_compile failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'v19 selftest failed' }\npython .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'Pareto context selftest failed' }\npython .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'Hardened selftest failed' }\npython .github/dcoir_review/scripts/openrouter_pr_review_quality_recovery_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'Quality recovery selftest failed' }\npython .github/dcoir_review/scripts/validate-codeql-security-workflow.py\nif ($LASTEXITCODE -ne 0) { throw 'CodeQL workflow validator failed' }\ngit diff --check $requiredAncestor HEAD -- .github/dcoir_review\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR Review diff check failed' }\nWrite-Host ('validated_source_ancestor=' + $requiredAncestor)\nWrite-Host ('executor_head=' + (& git rev-parse HEAD).Trim())\nWrite-Host 'dcoir_review_v19_validation=PASS'\n"
+}
