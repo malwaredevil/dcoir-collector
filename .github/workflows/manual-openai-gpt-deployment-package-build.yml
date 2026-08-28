@@ -24,7 +24,7 @@
 # Authority routing:
 # - GitHub is canonical for source/build truth. Supabase ircore owns operational routing/receipts. Live OpenAI WebUI state remains operator-observed evidence.
 name: 02 Operator - Build OpenAI GPT Deployment Packages
-run-name: OpenAI GPT Deployment Packages | ${{ github.event.inputs.bundle_version_override || 'default-version' }} | #${{ github.run_number }}
+run-name: OpenAI GPT Deployment Packages | ${{ github.ref_name }} | ${{ github.event.inputs.bundle_version_override || 'default-version' }} | #${{ github.run_number }}
 
 on:
   workflow_dispatch:
