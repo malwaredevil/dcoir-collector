@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33181449271",
   "github_sha": "dc02221f3344900e651686da3eb7d4b72570a145",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260828-dcoir-review-v19-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-dcoir-review-v19-validation-001.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T14:42:08Z",
+  "updated_utc": "2026-08-28T14:42:10Z",
   "workflow": "chatgpt-exec"
 }
