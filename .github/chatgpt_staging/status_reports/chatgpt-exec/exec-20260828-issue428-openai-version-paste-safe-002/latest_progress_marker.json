@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260828-issue428-openai-version-paste-safe-002",
+  "exit_code": "1",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33172464060",
   "github_sha": "d19ddfbbf42b1ceac6a5b7407ffa28ec3ca046e9",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260828-issue428-openai-version-paste-safe-002",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-issue428-openai-version-paste-safe-002.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T12:46:35Z",
+  "updated_utc": "2026-08-28T12:46:41Z",
   "workflow": "chatgpt-exec"
 }
