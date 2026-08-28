@@ -26,6 +26,11 @@ DESCRIPTION_CHARACTER_CEILING = 300
 INSTRUCTIONS_CHARACTER_CEILING = 8000
 
 
+def _webui_character_count(value: str) -> int:
+    """Count UTF-16 code units, conservatively matching browser-style string limits."""
+    return len(value.encode("utf-16-le")) // 2
+
+
 def _max_backtick_run(text: str) -> int:
     longest = 0
     current = 0
@@ -52,6 +57,8 @@ def _webui_setup_markdown(
     description = config["description"]
     starters = config["conversation_starters"]
     capabilities = config["capabilities"]
+    description_count = _webui_character_count(description)
+    instructions_count = _webui_character_count(instructions)
     lines = [
         f"# {config['name']} - GPT WebUI Setup",
         "",
@@ -61,8 +68,8 @@ def _webui_setup_markdown(
         "",
         "## Field-limit readback",
         "",
-        f"- Description: **{len(description)} / {DESCRIPTION_CHARACTER_CEILING} characters** (governed package ceiling)",
-        f"- Instructions: **{len(instructions)} / {INSTRUCTIONS_CHARACTER_CEILING} characters** (hard package ceiling)",
+        f"- Description: **{description_count} / {DESCRIPTION_CHARACTER_CEILING} characters** (governed package ceiling)",
+        f"- Instructions: **{instructions_count} / {INSTRUCTIONS_CHARACTER_CEILING} characters** (hard package ceiling)",
         "",
         "## 1. Name / Title",
         "",
@@ -136,11 +143,13 @@ def _prevalidate_webui_inputs(repo_root: Path) -> tuple[list[str], dict[str, dic
         description = config.get("description")
         if not isinstance(description, str) or not description.strip():
             errors.append(f"{target_id} Description must be a non-empty string")
-        elif len(description) > DESCRIPTION_CHARACTER_CEILING:
-            errors.append(
-                f"{target_id} Description exceeds character ceiling: "
-                f"{len(description)} > {DESCRIPTION_CHARACTER_CEILING}"
-            )
+        else:
+            description_count = _webui_character_count(description)
+            if description_count > DESCRIPTION_CHARACTER_CEILING:
+                errors.append(
+                    f"{target_id} Description exceeds character ceiling: "
+                    f"{description_count} > {DESCRIPTION_CHARACTER_CEILING}"
+                )
         starters = config.get("conversation_starters")
         if not isinstance(starters, list) or not starters or not all(
             isinstance(value, str) and value for value in starters
@@ -160,10 +169,11 @@ def _prevalidate_webui_inputs(repo_root: Path) -> tuple[list[str], dict[str, dic
             except UnicodeDecodeError:
                 errors.append(f"{target_id} Instructions must be UTF-8")
             else:
-                if len(instructions) > INSTRUCTIONS_CHARACTER_CEILING:
+                instructions_count = _webui_character_count(instructions)
+                if instructions_count > INSTRUCTIONS_CHARACTER_CEILING:
                     errors.append(
                         f"{target_id} Instructions exceed character ceiling: "
-                        f"{len(instructions)} > {INSTRUCTIONS_CHARACTER_CEILING}"
+                        f"{instructions_count} > {INSTRUCTIONS_CHARACTER_CEILING}"
                     )
         inputs[target_id] = {
             "config_path": config_path,
@@ -325,9 +335,9 @@ def build_release(
         }
         target_report["package_files"].append(setup_record)
         target_report["webui_setup_file"] = setup_record
-        target_report["description_character_count"] = len(sync_config["description"])
+        target_report["description_character_count"] = _webui_character_count(sync_config["description"])
         target_report["description_character_ceiling"] = DESCRIPTION_CHARACTER_CEILING
-        target_report["instructions_character_count"] = len(sync_instructions)
+        target_report["instructions_character_count"] = _webui_character_count(sync_instructions)
         target_report["instructions_character_ceiling"] = INSTRUCTIONS_CHARACTER_CEILING
 
         root_markdowns = sorted(path.name for path in destination_root.glob("*.md") if path.is_file())

@@ -172,6 +172,25 @@ def test_exact_character_ceilings_and_nested_fences() -> None:
         td.cleanup()
 
 
+def test_non_bmp_characters_use_webui_safe_counting() -> None:
+    td, repo = legacy.stage_repo()
+    try:
+        # Python len() reports 300 here, but a browser-style UTF-16 counter reports 301.
+        _write_config(
+            repo,
+            "openai_dcoir_analyst",
+            lambda value: value.__setitem__("description", "d" * 299 + "😀"),
+        )
+        errors, report = _human_build(repo, "utf16-over")
+        assert errors
+        assert report["success"] is False
+        assert report["zip_path"] is None
+        assert module._webui_character_count("😀") == 2
+        assert any("Description exceeds character ceiling: 301 > 300" in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
 def main() -> int:
     legacy_result = legacy.main()
     if legacy_result != 0:
@@ -181,6 +200,7 @@ def main() -> int:
         test_description_character_ceiling_fails_closed,
         test_instructions_character_ceiling_fails_closed,
         test_exact_character_ceilings_and_nested_fences,
+        test_non_bmp_characters_use_webui_safe_counting,
     ]
     for test in tests:
         test()
