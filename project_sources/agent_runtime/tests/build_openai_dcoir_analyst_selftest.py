@@ -275,6 +275,13 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('Description exceeds character ceiling', check=False)
 
+    def test_lone_surrogate_description_fails_closed(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['editor']['description'] = 'surrogate-' + '\ud800'
+        self.assertEqual(11, MODULE._webui_character_count(manifest['editor']['description']))
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('lone UTF-16 surrogate', check=False)
+
     def test_duplicate_behavioral_case_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
         cases_path = self.repo / manifest['behavioral_cases']

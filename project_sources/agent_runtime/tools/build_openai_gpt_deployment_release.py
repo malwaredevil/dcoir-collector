@@ -71,6 +71,10 @@ def _webui_character_count(value: str) -> int:
     return len(value.encode("utf-16-le", errors="surrogatepass")) // 2
 
 
+def _contains_lone_surrogate(value: str) -> bool:
+    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
+
+
 def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -236,6 +240,8 @@ def _validate_webui_limits(
     if not isinstance(description, str) or not description.strip():
         errors.append(f"{target_id} Description must be a non-empty string")
         description = ""
+    if _contains_lone_surrogate(description):
+        errors.append(f"{target_id} Description must not contain lone UTF-16 surrogate code points")
 
     instruction_character_count = _webui_character_count(instructions_text)
     description_character_count = _webui_character_count(description)
@@ -264,6 +270,8 @@ def _validate_webui_limits(
         isinstance(value, str) and value.strip() for value in starters
     ):
         errors.append(f"{target_id} must define exactly four non-empty conversation starters")
+    elif any(_contains_lone_surrogate(value) for value in starters):
+        errors.append(f"{target_id} conversation starters must not contain lone UTF-16 surrogate code points")
 
     return instructions_text
 
@@ -428,10 +436,16 @@ def _validate_and_copy_target(
         for item in knowledge
         if isinstance(item, dict) and isinstance(item.get("path"), str) and item.get("path")
     ]
-    handoff_bytes = _webui_configuration_markdown(config, instructions_text, knowledge_names)
     handoff_path = destination_root / HUMAN_WEBUI_FILENAME
     handoff_record: dict[str, Any] | None = None
-    if _write_output_bytes(
+    try:
+        handoff_bytes = _webui_configuration_markdown(config, instructions_text, knowledge_names)
+    except UnicodeEncodeError as exc:
+        errors.append(
+            f"{target['target_id']} WebUI configuration is not valid UTF-8: {exc}"
+        )
+        handoff_bytes = None
+    if handoff_bytes is not None and _write_output_bytes(
         delivery_root, handoff_path, handoff_bytes, errors, "human WebUI configuration"
     ):
         handoff_record = {

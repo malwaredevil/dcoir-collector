@@ -107,6 +107,10 @@ def _webui_character_count(value: str) -> int:
     return len(value.encode('utf-16-le', errors='surrogatepass')) // 2
 
 
+def _contains_lone_surrogate(value: str) -> bool:
+    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
+
+
 def _duplicates(values: list[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
 
@@ -524,6 +528,8 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     if not isinstance(description, str) or not description.strip():
         errors.append('Editor description must be a non-empty string')
         description = ''
+    if _contains_lone_surrogate(description):
+        errors.append('Editor description must not contain lone UTF-16 surrogate code points')
     description_ceiling = manifest.get('description_character_ceiling')
     description_character_count = _webui_character_count(description)
     if type(description_ceiling) is not int or description_ceiling <= 0:
@@ -535,6 +541,8 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     starters = editor.get('conversation_starters')
     if not isinstance(starters, list) or len(starters) != 4 or not all(isinstance(value, str) and value for value in starters):
         errors.append('Exactly four non-empty conversation starters are required')
+    elif any(_contains_lone_surrogate(value) for value in starters):
+        errors.append('Conversation starters must not contain lone UTF-16 surrogate code points')
     elif len(set(starters)) != len(starters):
         errors.append('Conversation starters must be unique')
     configuration = {
