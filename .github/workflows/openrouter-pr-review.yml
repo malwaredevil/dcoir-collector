@@ -9,7 +9,7 @@
 # - Do not use for automatic PR gating, required checks, untrusted authors, or broad workflow mutation.
 # - Do not use in place of governed Prog, Adva, Codi, external Codex, or GitHub Actions review gates.
 # Trigger model:
-# - issue_comment created; the outer job guard requires a PR comment from non-bot malwaredevil containing a configured review-command alias. The trusted Python script remains the exact authority for the first nonblank command line and optional review-mode suffix.
+# - issue_comment created; the outer job guard requires a PR comment from non-bot malwaredevil whose body starts with a configured review-command alias. The trusted Python script remains the exact authority for command syntax and optional review-mode suffix.
 # Required inputs:
 # - PR issue number and trigger comment metadata from github.event.
 # Required secrets/config:
@@ -55,9 +55,9 @@ jobs:
         github.event.comment.user.type != 'Bot' &&
         github.event.comment.user.login == 'malwaredevil' &&
         (
-          contains(github.event.comment.body, '/dcoir-review') ||
-          contains(github.event.comment.body, '/or-review') ||
-          contains(github.event.comment.body, '/openrouter-review')
+          startsWith(github.event.comment.body, '/dcoir-review') ||
+          startsWith(github.event.comment.body, '/or-review') ||
+          startsWith(github.event.comment.body, '/openrouter-review')
         )
       }}
     uses: ./.github/workflows/reusable-openrouter-pr-review.yml
