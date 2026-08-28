@@ -41,6 +41,10 @@ def _has_truthy_branch(path: str, source: str) -> bool:
     return any(str(getattr(item, "label", "")) == TRUTHY_BRANCH_LABEL for item in _sentinels(path, source))
 
 
+def _has_label(path: str, source: str, label: str) -> bool:
+    return any(str(getattr(item, "label", "")) == label for item in _sentinels(path, source))
+
+
 def main() -> None:
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
@@ -81,6 +85,14 @@ def main() -> None:
         elif check == "truthy_branch_present":
             metrics["known_true_positive_count"] += 1
             passed = _has_truthy_branch(str(fixture["path"]), str(fixture["source"]))
+            metrics["known_true_positives_retained"] += int(passed)
+        elif check == "risk_label_absent":
+            metrics["known_false_positive_count"] += 1
+            passed = not _has_label(str(fixture["path"]), str(fixture["source"]), str(fixture["label"]))
+            metrics["known_false_positives_suppressed"] += int(passed)
+        elif check == "risk_label_present":
+            metrics["known_true_positive_count"] += 1
+            passed = _has_label(str(fixture["path"]), str(fixture["source"]), str(fixture["label"]))
             metrics["known_true_positives_retained"] += int(passed)
         elif check == "deep_context_priority":
             metrics["context_precision_count"] += 1
