@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33154628535",
+  "github_sha": "5874a69c1a01504e4e9de13393555b4b2bd2f40d",
+  "phase": "request-resolved",
+  "request_id": "exec-20260828-issue426-human-first-openai-packages-002",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-issue426-human-first-openai-packages-002.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-08-28T08:15:47Z",
+  "workflow": "chatgpt-exec"
+}
