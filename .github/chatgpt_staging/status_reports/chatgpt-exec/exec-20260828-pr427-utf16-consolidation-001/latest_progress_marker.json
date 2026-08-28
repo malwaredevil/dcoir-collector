@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33163011723",
   "github_sha": "746325ad89c5a18060aac9c6109116b25a97b6a0",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260828-pr427-utf16-consolidation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-pr427-utf16-consolidation-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T10:21:21Z",
+  "updated_utc": "2026-08-28T10:21:23Z",
   "workflow": "chatgpt-exec"
 }
