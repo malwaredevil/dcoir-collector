@@ -65,8 +65,8 @@ Required readback:
 1. Target name and unambiguous WebUI identity. Record a stable target identifier only when the platform exposes one safely; never invent an identifier.
 2. Date/time of deployment and the approved repository commit.
 3. Model/runtime shown by the WebUI.
-4. Name, description, conversation starters, and capability-toggle state compared with `GPT_Configuration.json`.
-5. Full Instructions readback compared with the generated `Instructions.md`. If the WebUI permits copying the full text back out, compare exact text or a locally computed SHA-256. If it does not, record that limitation and perform a complete visual/text review.
+4. Name, description, conversation starters, and capability-toggle state compared with `GPT_WebUI_Configuration.md` (or `GPT_Configuration.json`).
+5. Full Instructions readback compared with `GPT_WebUI_Configuration.md`. If the WebUI permits copying the full text back out, compare exact text or a locally computed SHA-256. If it does not, record that limitation and perform a complete visual/text review.
 6. Knowledge attachment filenames and count compared with the package manifest: seven for DCOIR Analyst and two for USB Reporting.
 7. A small live behavioral smoke set appropriate to the target. At minimum verify identity/scope, unsupported-capability truthfulness, evidence-versus-inference language, and the target-specific redirect/confirmation behavior represented by its offline cases.
 8. Any discrepancy, editor normalization, platform limitation, or unresolved behavior as an explicit gap rather than silently treating it as parity.
