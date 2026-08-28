@@ -84,7 +84,9 @@ ignored_providers:
 
 validation_commands:
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v16_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_quality_recovery_selftest.py
   # Requires a real git checkout for full changed-file discovery; extracted
