@@ -36,10 +36,14 @@ def _stage_target(
     package_dir: str,
     knowledge_dir: str,
     knowledge_count: int,
+    instructions_text: str | None = None,
+    description: str = "test",
 ) -> None:
     package_root = repo / package_dir
     knowledge_root = repo / knowledge_dir
-    instructions = f"# {webui_name}\n\nGoverned instructions.\n".encode()
+    if instructions_text is None:
+        instructions_text = f"# {webui_name}\n\nGoverned instructions.\n"
+    instructions = instructions_text.encode("utf-8")
     _write(package_root / "Instructions.md", instructions)
     knowledge_files = []
     for order in range(knowledge_count):
@@ -64,15 +68,15 @@ def _stage_target(
         "instructions_file": (Path(package_dir) / "Instructions.md").as_posix(),
         "knowledge_files": knowledge_files,
         "capabilities": {"web_search": False, "image_generation": True},
-        "description": "test",
+        "description": description,
         "conversation_starters": ["Starter one", "Starter two", "Starter three", "Starter four"],
     }
     _write(package_root / "GPT_Configuration.json", module._json_bytes(config))
     package_manifest = {
         "target_id": target_id,
-        "instruction_character_count": len(instructions.decode("utf-8")),
+        "instruction_character_count": module._webui_character_count(instructions.decode("utf-8")),
         "instruction_character_ceiling": module.INSTRUCTION_CHARACTER_CEILING,
-        "description_character_count": len(config["description"]),
+        "description_character_count": module._webui_character_count(config["description"]),
         "description_character_ceiling": module.DESCRIPTION_CHARACTER_CEILING,
     }
     _write(package_root / "manifest.json", module._json_bytes(package_manifest))
@@ -224,6 +228,64 @@ def test_instruction_limit_fails_closed() -> None:
         assert report["success"] is False
         assert any("Instructions exceed 8000 characters" in error for error in errors), errors
         assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_package_manifest_integer_type_drift_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for field in (
+            "instruction_character_count",
+            "instruction_character_ceiling",
+            "description_character_count",
+            "description_character_ceiling",
+        ):
+            manifest[field] = float(manifest[field])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        for message in (
+            "package manifest instruction character count drift",
+            "package manifest instruction ceiling drift",
+            "package manifest description character count drift",
+            "package manifest description ceiling drift",
+        ):
+            assert any(message in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_stage_target_uses_webui_safe_counts_for_non_bmp() -> None:
+    td = tempfile.TemporaryDirectory(prefix="openai-gpt-release-non-bmp-fixture-")
+    repo = Path(td.name)
+    try:
+        instructions_text = "# Test\n\nInstruction-\U0001F600\n"
+        description = "desc-\U0001F600"
+        _stage_target(
+            repo,
+            target_id="openai_dcoir_analyst",
+            webui_name="AFRICOM DCOIR Analyst",
+            package_dir="project_sources/agent_runtime/generated/packages/openai_dcoir_analyst",
+            knowledge_dir="project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst",
+            knowledge_count=7,
+            instructions_text=instructions_text,
+            description=description,
+        )
+        manifest = json.loads(
+            (
+                repo
+                / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert manifest["instruction_character_count"] == module._webui_character_count(instructions_text)
+        assert manifest["description_character_count"] == module._webui_character_count(description)
+        assert manifest["instruction_character_count"] == len(instructions_text) + 1
+        assert manifest["description_character_count"] == len(description) + 1
     finally:
         td.cleanup()
 
@@ -595,6 +657,8 @@ def main() -> int:
         test_cross_checkout_root_determinism,
         test_description_limit_fails_closed,
         test_instruction_limit_fails_closed,
+        test_package_manifest_integer_type_drift_fails_closed,
+        test_stage_target_uses_webui_safe_counts_for_non_bmp,
         test_non_bmp_description_uses_webui_safe_counting,
         test_lone_surrogate_description_fails_closed_without_crash,
         test_human_markdown_tracks_json_and_instructions,

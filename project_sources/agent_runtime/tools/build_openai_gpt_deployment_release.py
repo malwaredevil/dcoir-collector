@@ -256,13 +256,23 @@ def _validate_webui_limits(
             f"{description_character_count}"
         )
 
-    if package_manifest.get("instruction_character_count") != instruction_character_count:
+    manifest_instruction_count = package_manifest.get("instruction_character_count")
+    if type(manifest_instruction_count) is not int or manifest_instruction_count != instruction_character_count:
         errors.append(f"{target_id} package manifest instruction character count drift")
-    if package_manifest.get("instruction_character_ceiling") != INSTRUCTION_CHARACTER_CEILING:
+    manifest_instruction_ceiling = package_manifest.get("instruction_character_ceiling")
+    if (
+        type(manifest_instruction_ceiling) is not int
+        or manifest_instruction_ceiling != INSTRUCTION_CHARACTER_CEILING
+    ):
         errors.append(f"{target_id} package manifest instruction ceiling drift")
-    if package_manifest.get("description_character_count") != description_character_count:
+    manifest_description_count = package_manifest.get("description_character_count")
+    if type(manifest_description_count) is not int or manifest_description_count != description_character_count:
         errors.append(f"{target_id} package manifest description character count drift")
-    if package_manifest.get("description_character_ceiling") != DESCRIPTION_CHARACTER_CEILING:
+    manifest_description_ceiling = package_manifest.get("description_character_ceiling")
+    if (
+        type(manifest_description_ceiling) is not int
+        or manifest_description_ceiling != DESCRIPTION_CHARACTER_CEILING
+    ):
         errors.append(f"{target_id} package manifest description ceiling drift")
 
     starters = config.get("conversation_starters")
