@@ -20,6 +20,8 @@ KNOWLEDGE_SCHEMA = 'dcoir.agent_runtime.knowledge_projection.target.v1'
 TARGET_ID = 'openai_usb_reporting'
 EXPECTED_EDITOR_NAME = 'AFRICOM USB Reporting'
 EXPECTED_RUNTIME_MODEL = 'GPT-5.4'
+EXPECTED_INSTRUCTION_CHARACTER_CEILING = 8000
+EXPECTED_DESCRIPTION_CHARACTER_CEILING = 300
 EXPECTED_KNOWLEDGE_FILES = 2
 EXPECTED_BEHAVIOR_ITEMS = 11
 EXPECTED_CASES = 11
@@ -100,6 +102,15 @@ def _json_bytes(value: Any) -> bytes:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def _webui_character_count(value: str) -> int:
+    """Count UTF-16 code units conservatively for browser-style WebUI limits."""
+    return len(value.encode('utf-16-le', errors='surrogatepass')) // 2
+
+
+def _contains_lone_surrogate(value: str) -> bool:
+    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
 
 
 def _duplicates(values: list[str]) -> list[str]:
@@ -190,10 +201,17 @@ def _validate_instructions(
         errors.append('Canonical Instructions must be UTF-8')
         return []
     ceiling = manifest.get('instruction_character_ceiling')
-    if type(ceiling) is not int or ceiling <= 0:
-        errors.append('instruction_character_ceiling must be a positive integer')
-    elif len(text) > ceiling:
-        errors.append(f'Instructions exceed character ceiling: {len(text)} > {ceiling}')
+    if type(ceiling) is not int or ceiling != EXPECTED_INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            'instruction_character_ceiling must remain '
+            f'{EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
+        )
+    instruction_character_count = _webui_character_count(text)
+    if instruction_character_count > EXPECTED_INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            'Instructions exceed character ceiling: '
+            f'{instruction_character_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
+        )
     for section_id, heading in SECTION_HEADINGS.items():
         if text.count(heading) != 1:
             errors.append(f'Instructions must contain one {section_id} heading')
@@ -511,16 +529,36 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         editor = {}
     if editor.get('name') != EXPECTED_EDITOR_NAME:
         errors.append(f'Editor name must remain {EXPECTED_EDITOR_NAME}')
+    description = editor.get('description')
+    if not isinstance(description, str) or not description.strip():
+        errors.append('Editor description must be a non-empty string')
+        description = ''
+    if _contains_lone_surrogate(description):
+        errors.append('Editor description must not contain lone UTF-16 surrogate code points')
+    description_ceiling = manifest.get('description_character_ceiling')
+    description_character_count = _webui_character_count(description)
+    if type(description_ceiling) is not int or description_ceiling != EXPECTED_DESCRIPTION_CHARACTER_CEILING:
+        errors.append(
+            'description_character_ceiling must remain '
+            f'{EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
+        )
+    if description_character_count > EXPECTED_DESCRIPTION_CHARACTER_CEILING:
+        errors.append(
+            'Description exceeds character ceiling: '
+            f'{description_character_count} > {EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
+        )
     starters = editor.get('conversation_starters')
-    if not isinstance(starters, list) or len(starters) != 4 or not all(isinstance(value, str) and value for value in starters):
+    if not isinstance(starters, list) or len(starters) != 4 or not all(isinstance(value, str) and value.strip() for value in starters):
         errors.append('Exactly four non-empty conversation starters are required')
+    elif any(_contains_lone_surrogate(value) for value in starters):
+        errors.append('Conversation starters must not contain lone UTF-16 surrogate code points')
     elif len(set(starters)) != len(starters):
         errors.append('Conversation starters must be unique')
     configuration = {
         'schema': 'dcoir.agent_runtime.openai_webui_configuration.v1',
         'target_id': TARGET_ID,
         'name': editor.get('name'),
-        'description': editor.get('description'),
+        'description': description,
         'conversation_starters': starters,
         'runtime_model': target.get('runtime_model'),
         'instructions_file': manifest.get('generated_outputs', {}).get('instructions'),
@@ -568,8 +606,12 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         'behavior_coverage': behavior_snapshot,
         'behavioral_case_count': len(case_ids),
         'behavioral_case_ids': case_ids,
-        'instruction_character_count': len(instructions.decode('utf-8', errors='ignore')),
-        'instruction_character_ceiling': manifest.get('instruction_character_ceiling'),
+        'instruction_character_count': _webui_character_count(
+            instructions.decode('utf-8', errors='ignore')
+        ),
+        'instruction_character_ceiling': EXPECTED_INSTRUCTION_CHARACTER_CEILING,
+        'description_character_count': description_character_count,
+        'description_character_ceiling': EXPECTED_DESCRIPTION_CHARACTER_CEILING,
         'knowledge_file_count': len(knowledge_files),
         'strict_knowledge_file_ceiling': target_manifest.get('strict_file_count_ceiling'),
         'knowledge_files': knowledge_files,

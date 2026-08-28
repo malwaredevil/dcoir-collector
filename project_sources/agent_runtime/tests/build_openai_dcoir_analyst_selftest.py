@@ -251,6 +251,63 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('Editor name must remain', check=False)
 
+    def test_instruction_character_ceiling_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        path = self.repo / manifest['canonical_instructions_source']
+        text = path.read_text(encoding='utf-8')
+        excess = manifest['instruction_character_ceiling'] - len(text) + 1
+        self.assertGreater(excess, 0)
+        path.write_text(text + ('x' * excess), encoding='utf-8')
+        self.assert_error_contains('Instructions exceed character ceiling', check=False)
+
+    def test_description_character_ceiling_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['editor']['description'] = 'x' * (manifest['description_character_ceiling'] + 1)
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('Description exceeds character ceiling', check=False)
+
+    def test_instruction_character_ceiling_contract_drift_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['instruction_character_ceiling'] = 8001
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('instruction_character_ceiling must remain 8000', check=False)
+
+    def test_description_character_ceiling_contract_drift_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['description_character_ceiling'] = 301
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('description_character_ceiling must remain 300', check=False)
+
+    def test_character_ceiling_type_drift_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['instruction_character_ceiling'] = 8000.0
+        manifest['description_character_ceiling'] = 300.0
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('instruction_character_ceiling must remain 8000', check=False)
+        self.assert_error_contains('description_character_ceiling must remain 300', check=False)
+
+    def test_whitespace_conversation_starter_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['editor']['conversation_starters'][0] = '   '
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('Exactly four non-empty conversation starters are required', check=False)
+
+    def test_non_bmp_description_uses_webui_safe_counting(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        ceiling = manifest['description_character_ceiling']
+        manifest['editor']['description'] = ('x' * (ceiling - 1)) + '😀'
+        self.assertEqual(ceiling, len(manifest['editor']['description']))
+        self.assertEqual(ceiling + 1, MODULE._webui_character_count(manifest['editor']['description']))
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('Description exceeds character ceiling', check=False)
+
+    def test_lone_surrogate_description_fails_closed(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['editor']['description'] = 'surrogate-' + '\ud800'
+        self.assertEqual(11, MODULE._webui_character_count(manifest['editor']['description']))
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('lone UTF-16 surrogate', check=False)
+
     def test_duplicate_behavioral_case_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
         cases_path = self.repo / manifest['behavioral_cases']

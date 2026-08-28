@@ -113,6 +113,8 @@
     "knowledge_instruction_injection",
     "request_coverage"
   ],
+  "description_character_ceiling": 300,
+  "description_character_count": 166,
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {

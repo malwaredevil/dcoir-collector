@@ -36,10 +36,14 @@ def _stage_target(
     package_dir: str,
     knowledge_dir: str,
     knowledge_count: int,
+    instructions_text: str | None = None,
+    description: str = "test",
 ) -> None:
     package_root = repo / package_dir
     knowledge_root = repo / knowledge_dir
-    instructions = f"# {webui_name}\n\nGoverned instructions.\n".encode()
+    if instructions_text is None:
+        instructions_text = f"# {webui_name}\n\nGoverned instructions.\n"
+    instructions = instructions_text.encode("utf-8")
     _write(package_root / "Instructions.md", instructions)
     knowledge_files = []
     for order in range(knowledge_count):
@@ -63,12 +67,19 @@ def _stage_target(
         "runtime_model": "GPT-5.4",
         "instructions_file": (Path(package_dir) / "Instructions.md").as_posix(),
         "knowledge_files": knowledge_files,
-        "capabilities": {},
-        "description": "test",
-        "conversation_starters": [],
+        "capabilities": {"web_search": False, "image_generation": True},
+        "description": description,
+        "conversation_starters": ["Starter one", "Starter two", "Starter three", "Starter four"],
     }
     _write(package_root / "GPT_Configuration.json", module._json_bytes(config))
-    _write(package_root / "manifest.json", module._json_bytes({"target_id": target_id}))
+    package_manifest = {
+        "target_id": target_id,
+        "instruction_character_count": module._webui_character_count(instructions.decode("utf-8")),
+        "instruction_character_ceiling": module.INSTRUCTION_CHARACTER_CEILING,
+        "description_character_count": module._webui_character_count(config["description"]),
+        "description_character_ceiling": module.DESCRIPTION_CHARACTER_CEILING,
+    }
+    _write(package_root / "manifest.json", module._json_bytes(package_manifest))
 
 
 def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
@@ -127,6 +138,10 @@ def test_combined_delivery_and_determinism() -> None:
             names = zf.namelist()
         assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/GPT_Configuration.json" in names
         assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/GPT_Configuration.json" in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/{module.HUMAN_WEBUI_FILENAME}" in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/{module.HUMAN_WEBUI_FILENAME}" in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/Instructions.md" not in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Instructions.md" not in names
         assert f"{module.DELIVERY_ROOT_NAME}/delivery_manifest.json" in names
         assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/Knowledge/") for name in names) == 7
         assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Knowledge/") for name in names) == 2
@@ -139,6 +154,17 @@ def test_combined_delivery_and_determinism() -> None:
         assert manifest["static_parity_status"] == "pass"
         assert manifest["live_model_parity_claimed"] is False
         assert manifest["manual_webui_deployment_required"] is True
+        handoff = (
+            repo
+            / "project_sources/validation/out_a"
+            / module.DELIVERY_ROOT_NAME
+            / "AFRICOM_DCOIR_Analyst"
+            / module.HUMAN_WEBUI_FILENAME
+        ).read_text(encoding="utf-8")
+        assert "AFRICOM DCOIR Analyst" in handoff
+        assert "Character count: **4 / 300**" in handoff
+        assert "Governed instructions." in handoff
+        assert handoff.index("01-knowledge-1.md") < handoff.index("07-knowledge-7.md")
     finally:
         td.cleanup()
 
@@ -164,6 +190,175 @@ def test_cross_checkout_root_determinism() -> None:
     finally:
         td_b.cleanup()
         td_a.cleanup()
+
+
+def test_description_limit_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        config_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["description"] = "x" * (module.DESCRIPTION_CHARACTER_CEILING + 1)
+        config_path.write_bytes(module._json_bytes(config))
+        manifest_path = config_path.parent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["description_character_count"] = len(config["description"])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("Description exceeds 300 characters" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_instruction_limit_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        package_root = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst"
+        instructions_path = package_root / "Instructions.md"
+        instructions = "x" * (module.INSTRUCTION_CHARACTER_CEILING + 1)
+        instructions_path.write_text(instructions, encoding="utf-8")
+        manifest_path = package_root / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["instruction_character_count"] = len(instructions)
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("Instructions exceed 8000 characters" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_package_manifest_integer_type_drift_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for field in (
+            "instruction_character_count",
+            "instruction_character_ceiling",
+            "description_character_count",
+            "description_character_ceiling",
+        ):
+            manifest[field] = float(manifest[field])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        for message in (
+            "package manifest instruction character count drift",
+            "package manifest instruction ceiling drift",
+            "package manifest description character count drift",
+            "package manifest description ceiling drift",
+        ):
+            assert any(message in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_stage_target_uses_webui_safe_counts_for_non_bmp() -> None:
+    td = tempfile.TemporaryDirectory(prefix="openai-gpt-release-non-bmp-fixture-")
+    repo = Path(td.name)
+    try:
+        instructions_text = "# Test\n\nInstruction-\U0001F600\n"
+        description = "desc-\U0001F600"
+        _stage_target(
+            repo,
+            target_id="openai_dcoir_analyst",
+            webui_name="AFRICOM DCOIR Analyst",
+            package_dir="project_sources/agent_runtime/generated/packages/openai_dcoir_analyst",
+            knowledge_dir="project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst",
+            knowledge_count=7,
+            instructions_text=instructions_text,
+            description=description,
+        )
+        manifest = json.loads(
+            (
+                repo
+                / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/manifest.json"
+            ).read_text(encoding="utf-8")
+        )
+        assert manifest["instruction_character_count"] == module._webui_character_count(instructions_text)
+        assert manifest["description_character_count"] == module._webui_character_count(description)
+        assert manifest["instruction_character_count"] == len(instructions_text) + 1
+        assert manifest["description_character_count"] == len(description) + 1
+    finally:
+        td.cleanup()
+
+
+def test_non_bmp_description_uses_webui_safe_counting() -> None:
+    td, repo = stage_repo()
+    try:
+        config_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["description"] = ("x" * (module.DESCRIPTION_CHARACTER_CEILING - 1)) + "😀"
+        assert len(config["description"]) == module.DESCRIPTION_CHARACTER_CEILING
+        assert module._webui_character_count(config["description"]) == module.DESCRIPTION_CHARACTER_CEILING + 1
+        config_path.write_bytes(module._json_bytes(config))
+        manifest_path = config_path.parent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["description_character_count"] = module._webui_character_count(config["description"])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("Description exceeds 300 characters" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_lone_surrogate_description_fails_closed_without_crash() -> None:
+    td, repo = stage_repo()
+    try:
+        config_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["description"] = "surrogate-" + "\ud800"
+        assert module._webui_character_count(config["description"]) == 11
+        config_path.write_bytes(module._json_bytes(config))
+        manifest_path = config_path.parent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["description_character_count"] = module._webui_character_count(config["description"])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("lone UTF-16 surrogate" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_human_markdown_tracks_json_and_instructions() -> None:
+    td, repo = stage_repo()
+    try:
+        errors, report = _build(repo, "out")
+        assert not errors, errors
+        root = repo / "project_sources/validation/out" / module.DELIVERY_ROOT_NAME / "AFRICOM_USB_Reporting"
+        config = json.loads((repo / "project_sources/agent_runtime/generated/packages/openai_usb_reporting/GPT_Configuration.json").read_text(encoding="utf-8"))
+        instructions = (repo / "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md").read_text(encoding="utf-8")
+        handoff = (root / module.HUMAN_WEBUI_FILENAME).read_text(encoding="utf-8")
+        assert config["name"] in handoff
+        assert config["description"] in handoff
+        assert f"`{config['runtime_model']}`" in handoff
+        for capability, enabled in config["capabilities"].items():
+            label = module.CAPABILITY_LABELS.get(capability, capability.replace("_", " ").title())
+            state = "ON" if enabled is True else "OFF" if enabled is False else "UNSPECIFIED"
+            assert f"- {label}: **{state}**" in handoff
+        for starter in config["conversation_starters"]:
+            assert starter in handoff
+        assert instructions in handoff
+        knowledge_names = [Path(item["path"]).name for item in config["knowledge_files"]]
+        positions = [handoff.index(name) for name in knowledge_names]
+        assert positions == sorted(positions)
+        target = next(item for item in report["targets"] if item["target_id"] == "openai_usb_reporting")
+        assert target["operator_handoff_file"]["delivery_path"].endswith(module.HUMAN_WEBUI_FILENAME)
+    finally:
+        td.cleanup()
 
 
 def test_knowledge_drift_fails_closed() -> None:
@@ -460,6 +655,13 @@ def main() -> int:
     tests = [
         test_combined_delivery_and_determinism,
         test_cross_checkout_root_determinism,
+        test_description_limit_fails_closed,
+        test_instruction_limit_fails_closed,
+        test_package_manifest_integer_type_drift_fails_closed,
+        test_stage_target_uses_webui_safe_counts_for_non_bmp,
+        test_non_bmp_description_uses_webui_safe_counting,
+        test_lone_surrogate_description_fails_closed_without_crash,
+        test_human_markdown_tracks_json_and_instructions,
         test_knowledge_drift_fails_closed,
         test_parity_failure_blocks_release,
         test_source_commit_mismatch_blocks_release,

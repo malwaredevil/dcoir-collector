@@ -12,6 +12,7 @@
   "source_base_commit": "bd69c7a5e5f236e03774a0aedf93a3d818650d81",
   "behavior_source_snapshot_sha256": "13229b83255e43ec4a141c2f856d1ef3ae8c26baa32b29d89d27af697dcfd7ab",
   "instruction_character_ceiling": 8000,
+  "description_character_ceiling": 300,
   "editor": {
     "name": "AFRICOM DCOIR Analyst",
     "description": "Evidence-first Elastic Defend and DCOIR analyst for triage, provenance, query and collector guidance, artifact interpretation, IOC handling, targeted collection, and supported conclusions.",
