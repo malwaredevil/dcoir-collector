@@ -36,6 +36,21 @@ def build_python_os_alias_context(gh: Any, pr: dict[str, Any], files: list[dict[
     return os_alias_context
 
 
+def deep_context_priority(item: dict[str, Any]) -> tuple[int, int, int, str]:
+    """Prefer substantive source before derived/generated evidence under the deep-context budget."""
+    path = str(item.get("filename", "") or "").replace("\\", "/")
+    normalized = path.lower()
+    derived = int(
+        "/generated/" in normalized
+        or normalized in {
+            ".github/github_actions/workflow_inventory.json",
+            ".github/github_actions/workflow_inventory.md",
+        }
+    )
+    family, negative_changes, path_key = per_file_priority(item, "")
+    return derived, family, negative_changes, path_key
+
+
 def build_deep_context_block(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]], config: Any, review_mode: str) -> tuple[str, str]:
     if review_mode == "diff":
         return "", "diff-focused review; no full changed-file context requested"
@@ -55,7 +70,7 @@ def build_deep_context_block(gh: Any, pr: dict[str, Any], files: list[dict[str, 
     omitted: list[str] = []
     remaining = max_total_chars
 
-    for item in files:
+    for item in sorted(files, key=deep_context_priority):
         if len(included) >= max_files:
             break
         path = str(item.get("filename", "")).strip()
@@ -118,5 +133,4 @@ def truncate_with_balanced_fences(text: str, max_chars: int, marker: str) -> str
         if partial.count("~~~") % 2 == 1:
             partial = f"{partial}{fence_close}"
     return f"{partial}{marker}"
-
 
