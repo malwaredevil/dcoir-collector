@@ -5,8 +5,6 @@ from __future__ import annotations
 
 import importlib
 
-import dcoir_review_required_runtime_patch_v16 as v16
-import dcoir_review_required_runtime_patch_v20 as v20
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -16,15 +14,19 @@ PROBE_TEXT = '    if severity == "critical" or "high":'
 EXPECTED_REPLACEMENT = '    if severity == "critical" or severity == "high":'
 
 
-def patched_review_module():
+def patched_review_modules():
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     DcoirReviewEntrypoint().apply_runtime_patches(review)
+    # Import these only after the full patch chain has run, matching production
+    # entrypoint import/application order rather than priming the module cache.
+    v16 = importlib.import_module("dcoir_review_required_runtime_patch_v16")
+    v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
     # Selection selftests must not invoke optional prompt-engineering/provider work.
     v16.v9._ensure_prompt_review = lambda _config: None
-    return review
+    return review, v16, v20
 
 
-def test_truthy_branch_survives_full_stack_selection(review) -> dict:
+def test_truthy_branch_survives_full_stack_selection(review, v16, v20) -> dict:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     sentinel = review.hardened.RiskSentinel(
         path=PROBE_PATH,
@@ -44,7 +46,7 @@ def test_truthy_branch_survives_full_stack_selection(review) -> dict:
     return finding
 
 
-def test_detector_suggestion_stays_untrusted(review, finding: dict) -> None:
+def test_detector_suggestion_stays_untrusted(review, v20, finding: dict) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     detector = dict(finding)
     detector["suggested_replacement"] = EXPECTED_REPLACEMENT
@@ -57,7 +59,7 @@ def test_detector_suggestion_stays_untrusted(review, finding: dict) -> None:
     assert "```suggestion" not in rendered
 
 
-def test_verified_independent_synthesis_renders_native_suggestion(review, finding: dict) -> None:
+def test_verified_independent_synthesis_renders_native_suggestion(review, v20, finding: dict) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     synthesized = dict(finding)
     synthesized["suggested_replacement"] = EXPECTED_REPLACEMENT
@@ -68,10 +70,10 @@ def test_verified_independent_synthesis_renders_native_suggestion(review, findin
 
 
 def main() -> None:
-    review = patched_review_module()
-    finding = test_truthy_branch_survives_full_stack_selection(review)
-    test_detector_suggestion_stays_untrusted(review, finding)
-    test_verified_independent_synthesis_renders_native_suggestion(review, finding)
+    review, v16, v20 = patched_review_modules()
+    finding = test_truthy_branch_survives_full_stack_selection(review, v16, v20)
+    test_detector_suggestion_stays_untrusted(review, v20, finding)
+    test_verified_independent_synthesis_renders_native_suggestion(review, v20, finding)
     print("dcoir_review_required_runtime_patch_v20_selftest passed")
 
 
