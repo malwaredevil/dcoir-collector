@@ -31,10 +31,10 @@ def summary_suggests_problem(summary: str) -> bool:
         "looks good",
         "clean review",
     )
-    problem_noun_pattern = r"(?:findings?|issues?|problems?|regressions?|risks?|failures?|bypasses?)"
-    remaining_problem_noun_pattern = r"(?:issues?|problems?|regressions?|risks?|failures?|bypasses?)"
+    problem_noun_pattern = r"(?:findings?|issues?|problems?|regressions?|risks?|failures?|bypasses?|errors?)"
+    remaining_problem_noun_pattern = r"(?:issues?|problems?|regressions?|risks?|failures?|bypasses?|errors?)"
     introduced_problem_noun_pattern = (
-        r"(?:findings?|issues?|problems?|defects?|vulnerabilities?|regressions?|risks?|failures?|bypasses?|injection paths?)"
+        r"(?:findings?|issues?|problems?|defects?|vulnerabilities?|regressions?|risks?|failures?|bypasses?|errors?|injection paths?)"
     )
     modified_problem_noun_pattern = rf"(?:[a-z0-9-]+\s+){{0,4}}{problem_noun_pattern}"
     clean_two_item_problem_noun_pattern = (
@@ -76,7 +76,7 @@ def summary_suggests_problem(summary: str) -> bool:
     negated_problem_patterns = (
         *negated_list_patterns,
         *negated_introduced_problem_patterns,
-        r"\bno\b(?:\s+[a-z0-9]+){0,8}\s+(?:findings?|issues?|problems?|regressions?|risks?|failures?|bypasses?)\b"
+        r"\bno\b(?:\s+[a-z0-9]+){0,8}\s+(?:findings?|issues?|problems?|regressions?|risks?|failures?|bypasses?|errors?)\b"
         r"(?:\s+(?:were|was|are|is|found|identified|detected|observed|present|remaining|remain))*",
         r"\bnot\b(?:\s+[a-z0-9]+){0,5}\s+(?:found|identified|detected|observed)\b",
     )
@@ -87,7 +87,14 @@ def summary_suggests_problem(summary: str) -> bool:
             stripped = re.sub(pattern, " ", stripped)
         for phrase in negative_phrases:
             stripped = stripped.replace(phrase, " ")
-        return any(re.search(rf"\b{re.escape(term)}s?\b", stripped) for term in positive_terms)
+        if any(re.search(rf"\b{re.escape(term)}s?\b", stripped) for term in positive_terms):
+            return True
+        return bool(
+            re.search(
+                r"\b(?:found|identified|detected|observed)\b(?:\s+[a-z0-9-]+){0,6}\s+errors?\b",
+                stripped,
+            )
+        )
 
     cleaned_summary = summary.lower()
     for pattern in (*negated_introduced_problem_patterns, *negated_list_patterns):
