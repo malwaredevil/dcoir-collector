@@ -102,6 +102,11 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _webui_character_count(value: str) -> int:
+    """Count UTF-16 code units conservatively for browser-style WebUI limits."""
+    return len(value.encode('utf-16-le')) // 2
+
+
 def _duplicates(values: list[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
 
@@ -192,8 +197,12 @@ def _validate_instructions(
     ceiling = manifest.get('instruction_character_ceiling')
     if type(ceiling) is not int or ceiling <= 0:
         errors.append('instruction_character_ceiling must be a positive integer')
-    elif len(text) > ceiling:
-        errors.append(f'Instructions exceed character ceiling: {len(text)} > {ceiling}')
+    else:
+        instruction_character_count = _webui_character_count(text)
+        if instruction_character_count > ceiling:
+            errors.append(
+                f'Instructions exceed character ceiling: {instruction_character_count} > {ceiling}'
+            )
     for section_id, heading in SECTION_HEADINGS.items():
         if text.count(heading) != 1:
             errors.append(f'Instructions must contain one {section_id} heading')
@@ -516,11 +525,12 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         errors.append('Editor description must be a non-empty string')
         description = ''
     description_ceiling = manifest.get('description_character_ceiling')
+    description_character_count = _webui_character_count(description)
     if type(description_ceiling) is not int or description_ceiling <= 0:
         errors.append('description_character_ceiling must be a positive integer')
-    elif len(description) > description_ceiling:
+    elif description_character_count > description_ceiling:
         errors.append(
-            f'Description exceeds character ceiling: {len(description)} > {description_ceiling}'
+            f'Description exceeds character ceiling: {description_character_count} > {description_ceiling}'
         )
     starters = editor.get('conversation_starters')
     if not isinstance(starters, list) or len(starters) != 4 or not all(isinstance(value, str) and value for value in starters):
@@ -579,9 +589,11 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         'behavior_coverage': behavior_snapshot,
         'behavioral_case_count': len(case_ids),
         'behavioral_case_ids': case_ids,
-        'instruction_character_count': len(instructions.decode('utf-8', errors='ignore')),
+        'instruction_character_count': _webui_character_count(
+            instructions.decode('utf-8', errors='ignore')
+        ),
         'instruction_character_ceiling': manifest.get('instruction_character_ceiling'),
-        'description_character_count': len(description),
+        'description_character_count': description_character_count,
         'description_character_ceiling': description_ceiling,
         'knowledge_file_count': len(knowledge_files),
         'strict_knowledge_file_ceiling': target_manifest.get('strict_file_count_ceiling'),

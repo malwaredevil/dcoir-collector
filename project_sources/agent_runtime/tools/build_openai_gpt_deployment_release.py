@@ -66,6 +66,11 @@ def _sha256_file(path: Path) -> str:
     return _sha256_bytes(path.read_bytes())
 
 
+def _webui_character_count(value: str) -> int:
+    """Count UTF-16 code units conservatively for browser-style WebUI limits."""
+    return len(value.encode("utf-16-le")) // 2
+
+
 def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -232,22 +237,24 @@ def _validate_webui_limits(
         errors.append(f"{target_id} Description must be a non-empty string")
         description = ""
 
-    if len(instructions_text) > INSTRUCTION_CHARACTER_CEILING:
+    instruction_character_count = _webui_character_count(instructions_text)
+    description_character_count = _webui_character_count(description)
+    if instruction_character_count > INSTRUCTION_CHARACTER_CEILING:
         errors.append(
             f"{target_id} Instructions exceed {INSTRUCTION_CHARACTER_CEILING} characters: "
-            f"{len(instructions_text)}"
+            f"{instruction_character_count}"
         )
-    if len(description) > DESCRIPTION_CHARACTER_CEILING:
+    if description_character_count > DESCRIPTION_CHARACTER_CEILING:
         errors.append(
             f"{target_id} Description exceeds {DESCRIPTION_CHARACTER_CEILING} characters: "
-            f"{len(description)}"
+            f"{description_character_count}"
         )
 
-    if package_manifest.get("instruction_character_count") != len(instructions_text):
+    if package_manifest.get("instruction_character_count") != instruction_character_count:
         errors.append(f"{target_id} package manifest instruction character count drift")
     if package_manifest.get("instruction_character_ceiling") != INSTRUCTION_CHARACTER_CEILING:
         errors.append(f"{target_id} package manifest instruction ceiling drift")
-    if package_manifest.get("description_character_count") != len(description):
+    if package_manifest.get("description_character_count") != description_character_count:
         errors.append(f"{target_id} package manifest description character count drift")
     if package_manifest.get("description_character_ceiling") != DESCRIPTION_CHARACTER_CEILING:
         errors.append(f"{target_id} package manifest description ceiling drift")
@@ -287,7 +294,7 @@ def _webui_configuration_markdown(
         "",
         "## Description",
         "",
-        f"Character count: **{len(description)} / {DESCRIPTION_CHARACTER_CEILING}**",
+        f"Character count: **{_webui_character_count(description)} / {DESCRIPTION_CHARACTER_CEILING}**",
         "",
         _fenced_text(description),
         "",
@@ -316,7 +323,7 @@ def _webui_configuration_markdown(
             "",
             "## Instructions",
             "",
-            f"Character count: **{len(instructions_text)} / {INSTRUCTION_CHARACTER_CEILING}**",
+            f"Character count: **{_webui_character_count(instructions_text)} / {INSTRUCTION_CHARACTER_CEILING}**",
             "",
             "Copy the complete contents of the block below into the GPT Instructions field.",
             "",

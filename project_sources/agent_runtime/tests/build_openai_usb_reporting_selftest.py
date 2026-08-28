@@ -311,6 +311,23 @@ def test_description_character_ceiling_is_rejected() -> None:
         td.cleanup()
 
 
+def test_non_bmp_instruction_uses_webui_safe_counting() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        ceiling = manifest['instruction_character_ceiling']
+        instructions = repo / manifest['canonical_instructions_source']
+        text = ('x' * (ceiling - 1)) + '😀'
+        assert len(text) == ceiling
+        assert module._webui_character_count(text) == ceiling + 1
+        instructions.write_text(text, encoding='utf-8')
+        errors, _ = module.build_package(repo, manifest_path, check=True)
+        assert any('Instructions exceed character ceiling' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
 def test_unified_release_parity_report() -> None:
     selftest = load_module(RELEASE_SELFTEST, 'report_agent_release_parity_selftest')
     assert selftest.main() == 0
@@ -344,6 +361,7 @@ def main() -> int:
         test_absolute_generated_root_symlink_is_reported_without_crash,
         test_instruction_character_ceiling_is_rejected,
         test_description_character_ceiling_is_rejected,
+        test_non_bmp_instruction_uses_webui_safe_counting,
         test_unified_release_parity_report,
     ]
     for test in tests:

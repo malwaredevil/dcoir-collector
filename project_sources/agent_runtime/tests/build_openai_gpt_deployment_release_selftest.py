@@ -228,6 +228,28 @@ def test_instruction_limit_fails_closed() -> None:
         td.cleanup()
 
 
+def test_non_bmp_description_uses_webui_safe_counting() -> None:
+    td, repo = stage_repo()
+    try:
+        config_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["description"] = ("x" * (module.DESCRIPTION_CHARACTER_CEILING - 1)) + "😀"
+        assert len(config["description"]) == module.DESCRIPTION_CHARACTER_CEILING
+        assert module._webui_character_count(config["description"]) == module.DESCRIPTION_CHARACTER_CEILING + 1
+        config_path.write_bytes(module._json_bytes(config))
+        manifest_path = config_path.parent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["description_character_count"] = module._webui_character_count(config["description"])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("Description exceeds 300 characters" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
 def test_human_markdown_tracks_json_and_instructions() -> None:
     td, repo = stage_repo()
     try:
@@ -552,6 +574,7 @@ def main() -> int:
         test_cross_checkout_root_determinism,
         test_description_limit_fails_closed,
         test_instruction_limit_fails_closed,
+        test_non_bmp_description_uses_webui_safe_counting,
         test_human_markdown_tracks_json_and_instructions,
         test_knowledge_drift_fails_closed,
         test_parity_failure_blocks_release,

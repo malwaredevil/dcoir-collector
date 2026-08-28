@@ -266,6 +266,15 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('Description exceeds character ceiling', check=False)
 
+    def test_non_bmp_description_uses_webui_safe_counting(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        ceiling = manifest['description_character_ceiling']
+        manifest['editor']['description'] = ('x' * (ceiling - 1)) + '😀'
+        self.assertEqual(ceiling, len(manifest['editor']['description']))
+        self.assertEqual(ceiling + 1, MODULE._webui_character_count(manifest['editor']['description']))
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('Description exceeds character ceiling', check=False)
+
     def test_duplicate_behavioral_case_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
         cases_path = self.repo / manifest['behavioral_cases']
