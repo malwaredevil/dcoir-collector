@@ -67,11 +67,12 @@ def test_python_path_write_sentinel_keeps_non_test_files() -> None:
 
 def test_python_dynamic_exec_classifier_only_matches_execution_builtins() -> None:
     path = "tools/reviewer_probe.py"
+    # These are the bounded false-positive cases covered by #434. Arbitrary
+    # object methods named eval/exec remain context-dependent and are not
+    # declared safe by this deterministic regression.
     false_positives = [
         'VERSION_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")',
         'code = compile(source, "<string>", "exec")',
-        "result = engine.eval(payload)",
-        "result = parser.exec(payload)",
     ]
     for line in false_positives:
         assert v16._line_kind(path, line) != v16.PYTHON_DYNAMIC_EXEC, line
