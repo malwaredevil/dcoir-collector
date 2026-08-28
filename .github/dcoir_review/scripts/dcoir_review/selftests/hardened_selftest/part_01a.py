@@ -84,6 +84,17 @@ index 0000000..1111111 100644
 +"""
 assert mod.detect_risk_sentinels(comment_only_diff) == []
 
+fallback_expression_diff = """diff --git a/tools/fallback.py b/tools/fallback.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/fallback.py
+@@ -0,0 +1,2 @@
++label = configured_label or "default"
++rendered = f"{manifest.get('bundle_version') or 'default'}"
++"""
+fallback_sentinels = mod.detect_risk_sentinels(fallback_expression_diff)
+assert not any(item.label == "truthy literal branch condition" for item in fallback_sentinels)
+
 probe_diff = """diff --git a/validation-review-probes/Invoke-IntentionalFlawedReviewBaseline.ps1 b/validation-review-probes/Invoke-IntentionalFlawedReviewBaseline.ps1
 index 0000000..1111111 100644
 --- /dev/null
@@ -129,11 +140,12 @@ index 0000000..2222222 100644
 +    shutil.rmtree(path_from_comment, ignore_errors=True)
 +def export_env_to_report(report_path):
 +    Path(report_path).write_text("\\n".join(f"{key}={value}" for key, value in os.environ.items()))
-"""
++"""
 sentinels = mod.detect_risk_sentinels(probe_diff)
 assert len(sentinels) >= 10
 assert any(item.path.endswith(".py") and item.label == "shell=True subprocess invocation" for item in sentinels)
 assert any(item.path.endswith(".py") and item.label == "truthy literal branch condition" for item in sentinels)
+assert any(item.path.endswith(".ps1") and item.label == "truthy literal branch condition" for item in sentinels)
 assert any(item.path.endswith(".ps1") and item.label == "PowerShell Invoke-Expression" for item in sentinels)
 assert any(item.path.endswith(".ps1") and item.label == "PowerShell unsafe file-write path" for item in sentinels)
 assert any(item.path.endswith(".ps1") and item.label == "environment dump or exfiltration primitive" for item in sentinels)
