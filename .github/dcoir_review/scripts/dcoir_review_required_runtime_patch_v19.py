@@ -22,6 +22,7 @@ from typing import Any
 
 VERSION = "v19"
 OUTCOME_ARTIFACT = "metadata/fix-synthesis-outcomes-v19.json"
+WEAK_NO_REPAIR_REASON = "fix synthesis says no code change is warranted"
 
 SELF_DISQUALIFYING_FIX_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
@@ -37,17 +38,28 @@ SELF_DISQUALIFYING_FIX_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (
         re.compile(
-            r"\bno\s+(?:code\s+)?change\s+(?:is\s+)?(?:warranted|required|needed|necessary)\b",
+            r"\bno\s+(?:code\s+)?(?:change|modification|edit|patch|fix)\s+(?:is\s+)?(?:warranted|required|needed|necessary)\b",
             re.IGNORECASE,
         ),
-        "fix synthesis says no code change is warranted",
+        WEAK_NO_REPAIR_REASON,
     ),
 )
 
 
+def _guidance(finding: dict[str, Any]) -> dict[str, Any]:
+    return finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
+
+
 def _fix_guidance_text(finding: dict[str, Any]) -> str:
-    guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
+    guidance = _guidance(finding)
     return "\n".join(str(guidance.get(key, "") or "") for key in ("remove", "replace", "add", "notes"))
+
+
+def _has_substantive_repair(finding: dict[str, Any]) -> bool:
+    if str(finding.get("suggested_replacement", "") or "").strip():
+        return True
+    guidance = _guidance(finding)
+    return any(str(guidance.get(key, "") or "").strip() for key in ("remove", "replace", "add"))
 
 
 def fix_synthesis_self_disqualification_reason(finding: dict[str, Any]) -> str:
@@ -55,9 +67,13 @@ def fix_synthesis_self_disqualification_reason(finding: dict[str, Any]) -> str:
     text = _fix_guidance_text(finding)
     if not text.strip():
         return ""
+    substantive_repair = _has_substantive_repair(finding)
     for pattern, reason in SELF_DISQUALIFYING_FIX_PATTERNS:
-        if pattern.search(text):
-            return reason
+        if not pattern.search(text):
+            continue
+        if reason == WEAK_NO_REPAIR_REASON and substantive_repair:
+            continue
+        return reason
     return ""
 
 
@@ -65,7 +81,7 @@ def repair_outcome(finding: dict[str, Any]) -> str:
     suggestion = str(finding.get("suggested_replacement", "") or "").strip()
     if suggestion:
         return "native-suggestion"
-    guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
+    guidance = _guidance(finding)
     if any(str(guidance.get(key, "") or "").strip() for key in ("remove", "replace", "add", "notes")):
         return "fallback-guidance"
     return "none"
