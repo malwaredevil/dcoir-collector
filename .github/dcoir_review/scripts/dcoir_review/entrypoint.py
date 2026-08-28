@@ -31,6 +31,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v17',
         'dcoir_review_required_runtime_patch_v18',
         'dcoir_review_required_runtime_patch_v19',
+        'dcoir_review_required_runtime_patch_v20',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
