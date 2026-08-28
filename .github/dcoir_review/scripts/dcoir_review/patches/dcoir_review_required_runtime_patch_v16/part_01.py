@@ -58,6 +58,10 @@ PR_METADATA_TOKEN_RE = re.compile(
     r".*(?:secrets\.github_token|github_token|authorization\s*:?|bearer)",
     re.I,
 )
+PYTHON_BUILTIN_DYNAMIC_EXEC_RE = re.compile(
+    r"(?<![A-Za-z0-9_.])(?:eval|exec)\s*\(|(?:builtins|__builtins__)\.(?:eval|exec)\s*\(",
+    re.IGNORECASE,
+)
 
 
 def _normalize(value: Any) -> str:
@@ -114,7 +118,7 @@ def _line_kind(path: str, text: str) -> str:
             return v9.PYTHON_PICKLE_LOAD
         if "yaml.load" in lower:
             return v5.PYTHON_YAML_LOAD
-        if re.search(r"\b(?:eval|exec|compile)\s*\(", lower):
+        if PYTHON_BUILTIN_DYNAMIC_EXEC_RE.search(lower):
             return PYTHON_DYNAMIC_EXEC
         if "shell=true" in lower or "os.system(" in lower or "os.popen(" in lower:
             return v5.PYTHON_SHELL_EXEC
