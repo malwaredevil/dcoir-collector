@@ -10,7 +10,7 @@
 # Trigger model:
 # - workflow_dispatch inputs: bundle_version_override; the operator may select the source ref in the GitHub Actions UI.
 # Required inputs:
-# - bundle_version_override: Optional bundle version override (for example 3_0_1) default=. The selected workflow ref remains the package source identity.
+# - bundle_version_override: Optional bundle version override (for example 3_0_1) default='' (empty string). The selected workflow ref remains the package source identity.
 # Required secrets/config:
 # - No external secrets. Uses repository source and existing local workflow actions only.
 # Runtime dependencies:
