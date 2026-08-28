@@ -266,6 +266,24 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('Description exceeds character ceiling', check=False)
 
+    def test_instruction_character_ceiling_contract_drift_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['instruction_character_ceiling'] = 8001
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('instruction_character_ceiling must remain 8000', check=False)
+
+    def test_description_character_ceiling_contract_drift_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['description_character_ceiling'] = 301
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('description_character_ceiling must remain 300', check=False)
+
+    def test_whitespace_conversation_starter_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['editor']['conversation_starters'][0] = '   '
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('Exactly four non-empty conversation starters are required', check=False)
+
     def test_non_bmp_description_uses_webui_safe_counting(self) -> None:
         manifest = _read_json(self.manifest_path)
         ceiling = manifest['description_character_ceiling']

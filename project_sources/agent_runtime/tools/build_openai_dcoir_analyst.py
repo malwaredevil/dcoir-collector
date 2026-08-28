@@ -20,6 +20,8 @@ KNOWLEDGE_SCHEMA = 'dcoir.agent_runtime.knowledge_projection.target.v1'
 TARGET_ID = 'openai_dcoir_analyst'
 EXPECTED_EDITOR_NAME = 'AFRICOM DCOIR Analyst'
 EXPECTED_RUNTIME_MODEL = 'GPT-5.4'
+EXPECTED_INSTRUCTION_CHARACTER_CEILING = 8000
+EXPECTED_DESCRIPTION_CHARACTER_CEILING = 300
 EXPECTED_KNOWLEDGE_FILES = 7
 EXPECTED_BEHAVIOR_ITEMS = 30
 EXPECTED_CASES = 21
@@ -269,14 +271,17 @@ def _validate_instructions(
         errors.append('Canonical Instructions must be UTF-8')
         return []
     ceiling = manifest.get('instruction_character_ceiling')
-    if type(ceiling) is not int or ceiling <= 0:
-        errors.append('instruction_character_ceiling must be a positive integer')
-    else:
-        instruction_character_count = _webui_character_count(text)
-        if instruction_character_count > ceiling:
-            errors.append(
-                f'Instructions exceed character ceiling: {instruction_character_count} > {ceiling}'
-            )
+    if ceiling != EXPECTED_INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            'instruction_character_ceiling must remain '
+            f'{EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
+        )
+    instruction_character_count = _webui_character_count(text)
+    if instruction_character_count > EXPECTED_INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            'Instructions exceed character ceiling: '
+            f'{instruction_character_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
+        )
     for section_id, heading in SECTION_HEADINGS.items():
         if text.count(heading) != 1:
             errors.append(f'Instructions must contain one {section_id} heading')
@@ -534,15 +539,19 @@ def build_package(
         errors.append('Editor description must not contain lone UTF-16 surrogate code points')
     description_ceiling = manifest.get('description_character_ceiling')
     description_character_count = _webui_character_count(description)
-    if type(description_ceiling) is not int or description_ceiling <= 0:
-        errors.append('description_character_ceiling must be a positive integer')
-    elif description_character_count > description_ceiling:
+    if description_ceiling != EXPECTED_DESCRIPTION_CHARACTER_CEILING:
         errors.append(
-            f'Description exceeds character ceiling: {description_character_count} > {description_ceiling}'
+            'description_character_ceiling must remain '
+            f'{EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
+        )
+    if description_character_count > EXPECTED_DESCRIPTION_CHARACTER_CEILING:
+        errors.append(
+            'Description exceeds character ceiling: '
+            f'{description_character_count} > {EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
         )
     starters = editor.get('conversation_starters')
     if not isinstance(starters, list) or len(starters) != 4 or not all(
-        isinstance(value, str) and value for value in starters
+        isinstance(value, str) and value.strip() for value in starters
     ):
         errors.append('Exactly four non-empty conversation starters are required')
     elif any(_contains_lone_surrogate(value) for value in starters):
@@ -605,9 +614,9 @@ def build_package(
         'instruction_character_count': _webui_character_count(
             instructions.decode('utf-8', errors='ignore')
         ),
-        'instruction_character_ceiling': manifest.get('instruction_character_ceiling'),
+        'instruction_character_ceiling': EXPECTED_INSTRUCTION_CHARACTER_CEILING,
         'description_character_count': description_character_count,
-        'description_character_ceiling': description_ceiling,
+        'description_character_ceiling': EXPECTED_DESCRIPTION_CHARACTER_CEILING,
         'knowledge_file_count': len(knowledge_files),
         'strict_knowledge_file_ceiling': target_manifest.get('strict_file_count_ceiling'),
         'knowledge_files': knowledge_files,
