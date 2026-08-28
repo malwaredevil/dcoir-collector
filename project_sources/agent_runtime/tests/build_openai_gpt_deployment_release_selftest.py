@@ -7,13 +7,13 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-LEGACY = ROOT / "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_core_selftest.py"
+LEGACY = ROOT / "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_core_fixture.py"
 SCRIPT = ROOT / "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py"
 CORE = ROOT / "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release_core.py"
 
-LEGACY_SPEC = importlib.util.spec_from_file_location("build_openai_gpt_deployment_release_core_selftest", LEGACY)
+LEGACY_SPEC = importlib.util.spec_from_file_location("build_openai_gpt_deployment_release_core_fixture", LEGACY)
 if LEGACY_SPEC is None or LEGACY_SPEC.loader is None:
-    raise SystemExit("Unable to load core release-builder self-tests")
+    raise SystemExit("Unable to load core release-builder test fixture")
 legacy = importlib.util.module_from_spec(LEGACY_SPEC)
 LEGACY_SPEC.loader.exec_module(legacy)
 
@@ -29,9 +29,9 @@ if CORE_SPEC is None or CORE_SPEC.loader is None:
 core_module = importlib.util.module_from_spec(CORE_SPEC)
 CORE_SPEC.loader.exec_module(core_module)
 
-# The legacy test module is retained byte-for-byte from the original builder tests.
-# Rebind its runtime module to the preserved core implementation so those tests keep
-# exercising the original safety/determinism contract rather than the new wrapper.
+# The fixture retains the original builder tests. Rebind its runtime module to
+# the preserved core implementation so those tests keep exercising the original
+# safety/determinism contract rather than the human-facing wrapper.
 legacy.module = core_module
 
 
