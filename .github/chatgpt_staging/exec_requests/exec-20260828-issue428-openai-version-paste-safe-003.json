@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260828-issue428-openai-version-paste-safe-003",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue428_openai_version_paste_safe_v3.ps1",
+  "approved_command_preview": "Retry issue #428 with protected DCOIR behavioral markers preserved and explicitly materialize the intentionally changed generated DCOIR OpenAI package before its later drift-check gate. Then run workflow inventory regeneration/check, focused OpenAI regressions, real CRLF paste-safe counts, the ten-command agent-runtime contract, diff/allowlist/head guards, commit, push, and push readback.",
+  "shell": "pwsh",
+  "timeout_seconds": 1200,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true
+}
