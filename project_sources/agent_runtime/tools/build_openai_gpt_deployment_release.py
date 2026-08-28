@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -22,6 +23,7 @@ GUIDE = Path("project_sources/agent_runtime/docs/Release_Parity_Deployment_Readb
 HUMAN_WEBUI_FILENAME = "GPT_WebUI_Configuration.md"
 INSTRUCTION_CHARACTER_CEILING = 8000
 DESCRIPTION_CHARACTER_CEILING = 300
+VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 CAPABILITY_LABELS = {
     "web_search": "Web search",
     "code_interpreter_data_analysis": "Code Interpreter / Data Analysis",
@@ -69,6 +71,12 @@ def _sha256_file(path: Path) -> str:
 def _webui_character_count(value: str) -> int:
     """Count UTF-16 code units conservatively for browser-style WebUI limits."""
     return len(value.encode("utf-16-le", errors="surrogatepass")) // 2
+
+
+def _webui_paste_safe_character_count(value: str) -> int:
+    """Count UTF-16 code units after normalizing line endings to Windows CRLF."""
+    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
+    return _webui_character_count(normalized.replace("\n", "\r\n"))
 
 
 def _contains_lone_surrogate(value: str) -> bool:
@@ -244,11 +252,17 @@ def _validate_webui_limits(
         errors.append(f"{target_id} Description must not contain lone UTF-16 surrogate code points")
 
     instruction_character_count = _webui_character_count(instructions_text)
+    instruction_paste_safe_character_count = _webui_paste_safe_character_count(instructions_text)
     description_character_count = _webui_character_count(description)
     if instruction_character_count > INSTRUCTION_CHARACTER_CEILING:
         errors.append(
             f"{target_id} Instructions exceed {INSTRUCTION_CHARACTER_CEILING} characters: "
             f"{instruction_character_count}"
+        )
+    if instruction_paste_safe_character_count > INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            f"{target_id} Instructions exceed {INSTRUCTION_CHARACTER_CEILING} paste-safe characters "
+            f"after CRLF expansion: {instruction_paste_safe_character_count}"
         )
     if description_character_count > DESCRIPTION_CHARACTER_CEILING:
         errors.append(
@@ -341,9 +355,17 @@ def _webui_configuration_markdown(
             "",
             "## Instructions",
             "",
-            f"Character count: **{_webui_character_count(instructions_text)} / {INSTRUCTION_CHARACTER_CEILING}**",
+            (
+                "Paste-safe character count (Windows CRLF): "
+                f"**{_webui_paste_safe_character_count(instructions_text)} / {INSTRUCTION_CHARACTER_CEILING}**"
+            ),
+            f"Source character count (LF): **{_webui_character_count(instructions_text)}**",
             "",
-            "Copy the complete contents of the block below into the GPT Instructions field.",
+            (
+                "Copy only the text inside the fenced block below into the GPT Instructions field. "
+                "The paste-safe count includes Markdown markers, spaces, and CRLF line endings; "
+                "it excludes the fence itself."
+            ),
             "",
             _fenced_text(instructions_text),
             "",
@@ -525,6 +547,7 @@ def _delivery_markdown(manifest: dict[str, Any]) -> str:
         "# OpenAI GPT deployment package manifest",
         "",
         f"- source_commit: `{manifest['source_commit']}`",
+        f"- bundle_version: `{manifest.get('bundle_version') or 'default'}`",
         f"- static_parity_status: **{manifest['static_parity_status']}**",
         f"- live_parity_status: **{manifest['live_parity_status']}**",
         "- live_model_parity_claimed: `false`",
@@ -594,6 +617,7 @@ def build_release(
     parity_root: Path,
     *,
     source_commit: str | None = None,
+    version: str | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
     errors: list[str] = []
     repo_root = repo_root.resolve()
@@ -604,12 +628,22 @@ def build_release(
     if not parity_root.is_relative_to(repo_root):
         errors.append("parity_root must be inside the repository")
     commit = _source_commit(repo_root, source_commit)
+    bundle_version = None
+    if version is not None and str(version).strip():
+        candidate_version = str(version).strip()
+        if not VERSION_PATTERN.fullmatch(candidate_version):
+            errors.append(
+                "bundle version override must match ^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+            )
+        else:
+            bundle_version = candidate_version
     if errors:
         return errors, {
             "schema": REPORT_SCHEMA,
             "success": False,
             "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "source_commit": commit,
+            "bundle_version": bundle_version,
             "delivery_root": None,
             "zip_path": None,
             "zip_sha256": None,
@@ -621,7 +655,8 @@ def build_release(
         }
     output_dir.mkdir(parents=True, exist_ok=True)
     report_path = output_dir / "build_openai_gpt_deployment_release_report.json"
-    zip_name = f"DCOIR_OpenAI_GPT_Deployment_Packages_{commit[:12] if commit != 'unknown' else 'unknown'}.zip"
+    zip_identity = bundle_version or (commit[:12] if commit != "unknown" else "unknown")
+    zip_name = f"DCOIR_OpenAI_GPT_Deployment_Packages_{zip_identity}.zip"
     zip_path = output_dir / zip_name
     _validate_output_path(output_dir, report_path, errors, "build report")
     _validate_output_path(output_dir, zip_path, errors, "delivery ZIP")
@@ -631,6 +666,7 @@ def build_release(
             "success": False,
             "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "source_commit": commit,
+            "bundle_version": bundle_version,
             "delivery_root": None,
             "zip_path": None,
             "zip_sha256": None,
@@ -668,6 +704,7 @@ def build_release(
                 "success": False,
                 "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "source_commit": commit,
+                "bundle_version": bundle_version,
                 "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
                 "zip_path": None,
                 "zip_sha256": None,
@@ -694,6 +731,7 @@ def build_release(
     manifest = {
         "schema": SCHEMA,
         "source_commit": commit,
+        "bundle_version": bundle_version,
         "static_parity_status": parity.get("static_parity_status"),
         "live_parity_status": parity.get("live_parity_status"),
         "live_model_parity_claimed": False,
@@ -726,6 +764,7 @@ def build_release(
         "success": not errors,
         "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "source_commit": commit,
+        "bundle_version": bundle_version,
         "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
         "zip_path": zip_path.relative_to(repo_root).as_posix() if zip_path.exists() else None,
         "zip_sha256": _sha256_file(zip_path) if zip_path.exists() else None,
@@ -764,6 +803,10 @@ def main(argv: list[str] | None = None) -> int:
         default=Path("project_sources/validation/out_openai_gpt_deployment/parity"),
     )
     parser.add_argument("--source-commit")
+    parser.add_argument(
+        "--version",
+        help="Optional bundle version override used in the delivery ZIP identity",
+    )
     args = parser.parse_args(argv)
     repo_root = args.repo_root.resolve()
     output_dir = args.output_dir if args.output_dir.is_absolute() else repo_root / args.output_dir
@@ -773,6 +816,7 @@ def main(argv: list[str] | None = None) -> int:
         output_dir,
         parity_root,
         source_commit=args.source_commit,
+        version=args.version,
     )
     print(json.dumps(report, indent=2), file=sys.stderr if errors else sys.stdout)
     return 1 if errors else 0

@@ -22,7 +22,7 @@ Before deployment, archive the JSON and Markdown report from the applicable vali
 
 ## One-click OpenAI deployment package build
 
-For the normal operator release lane, prefer GitHub Actions workflow `07 Operator - Build OpenAI GPT Deployment Packages`. One manual run validates both OpenAI targets, produces the unified static parity report, and creates one direct delivery artifact containing both GPT folders plus their ordered Knowledge files and deployment/readback evidence. Download that direct artifact and use its contents for the manual WebUI steps below.
+For the normal operator release lane, prefer GitHub Actions workflow `02 Operator - Build OpenAI GPT Deployment Packages`. One manual run validates both OpenAI targets, produces the unified static parity report, and creates one direct delivery artifact containing both GPT folders plus their ordered Knowledge files and deployment/readback evidence. Download that direct artifact and use its contents for the manual WebUI steps below.
 
 Inside each target folder in the direct delivery artifact, start with `GPT_WebUI_Configuration.md`. That single human-facing sheet is generated from the same `GPT_Configuration.json` values plus the exact generated Instructions bytes, and it lists the ordered Knowledge filenames. The JSON and package manifest remain machine-readable validation evidence; the operator should not need to open raw JSON during a normal deployment. The release build fails if Instructions exceed 8,000 characters, if Description exceeds the operator-approved 300-character package ceiling, or if the package evidence disagrees with those counts.
 

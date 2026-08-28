@@ -5,7 +5,11 @@ run-name: Module OpenAI GPT Deployment Packages | ${{ github.workflow }} | #${{ 
 
 on:
   workflow_call:
-    inputs: {}
+    inputs:
+      bundle_version_override:
+        required: false
+        default: ""
+        type: string
     outputs: {}
     secrets: {}
 
@@ -17,6 +21,8 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
+    env:
+      OPENAI_GPT_BUNDLE_VERSION_OVERRIDE: ${{ inputs.bundle_version_override }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -40,6 +46,10 @@ jobs:
           python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'Combined OpenAI GPT deployment release self-tests failed.'
+          }
+          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Issue #428 OpenAI GPT deployment release self-tests failed.'
           }
 
       - name: Run governed agent-runtime validation contract
@@ -111,10 +121,16 @@ jobs:
       - name: Build combined OpenAI GPT deployment release
         shell: pwsh
         run: |
-          python project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py `
-            --source-commit $env:GITHUB_SHA `
-            --output-dir project_sources/validation/out_openai_gpt_deployment `
-            --parity-root project_sources/validation/out_openai_gpt_deployment/parity
+          $buildArgs = @(
+            'project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py',
+            '--source-commit', $env:GITHUB_SHA,
+            '--output-dir', 'project_sources/validation/out_openai_gpt_deployment',
+            '--parity-root', 'project_sources/validation/out_openai_gpt_deployment/parity'
+          )
+          if (-not [string]::IsNullOrWhiteSpace($env:OPENAI_GPT_BUNDLE_VERSION_OVERRIDE)) {
+            $buildArgs += @('--version', $env:OPENAI_GPT_BUNDLE_VERSION_OVERRIDE)
+          }
+          python @buildArgs
           if ($LASTEXITCODE -ne 0) {
             throw 'Combined OpenAI GPT deployment release build failed.'
           }
@@ -188,6 +204,7 @@ jobs:
           - workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT
           - head_sha: $env:GITHUB_SHA
           - ref: $env:GITHUB_REF
+          - bundle_version_override: $env:OPENAI_GPT_BUNDLE_VERSION_OVERRIDE
           - build_result: $buildResult
           - static_parity: $staticParity
           - live_parity: $liveParity
