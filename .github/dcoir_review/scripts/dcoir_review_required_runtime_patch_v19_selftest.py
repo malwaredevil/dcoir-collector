@@ -77,6 +77,47 @@ def test_fix_synthesis_false_positive_contradiction_fails_closed() -> None:
     assert any(stage == "fix-synthesis" and "quality contradiction" in detail for stage, detail in reporter.updates)
 
 
+def test_live_no_code_modification_wording_fails_closed() -> None:
+    finding = {
+        "path": "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
+        "line": 26,
+        "title": "Python executes caller-controlled code",
+        "body": "This line evaluates text as Python code.",
+        "suggested_replacement": "",
+        "fix_guidance": {
+            "language": "python",
+            "notes": (
+                "Line 26 defines a static regular expression constant using re.compile on a fixed string literal. "
+                "It does not evaluate dynamic expressions or execute caller-controlled Python code. "
+                "No code modification is required for this line."
+            ),
+        },
+    }
+    assert v19.fix_synthesis_self_disqualification_reason(finding) == v19.WEAK_NO_REPAIR_REASON
+    module, _hardened, reporter = _module_returning([finding])
+    try:
+        module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
+    except FakeReviewQualityError:
+        pass
+    else:
+        raise AssertionError("live no-code-modification contradiction must fail closed")
+
+
+def test_weak_no_repair_wording_does_not_override_concrete_repair() -> None:
+    finding = {
+        "path": "tools/example.py",
+        "line": 7,
+        "title": "Bound the caller-provided limit",
+        "body": "The caller can request an unbounded result set.",
+        "suggested_replacement": "limit = min(limit, 100)",
+        "fix_guidance": {
+            "language": "python",
+            "notes": "No additional code modification is required after applying this exact replacement.",
+        },
+    }
+    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
+
+
 def test_normal_fix_guidance_is_not_self_disqualifying() -> None:
     finding = {
         "path": "tools/example.py",
@@ -137,6 +178,8 @@ def test_detector_text_alone_cannot_self_disqualify_after_synthesis() -> None:
 
 def main() -> None:
     test_fix_synthesis_false_positive_contradiction_fails_closed()
+    test_live_no_code_modification_wording_fails_closed()
+    test_weak_no_repair_wording_does_not_override_concrete_repair()
     test_normal_fix_guidance_is_not_self_disqualifying()
     test_safe_native_suggestion_is_recorded_and_renders_github_suggestion_fence()
     test_detector_text_alone_cannot_self_disqualify_after_synthesis()
