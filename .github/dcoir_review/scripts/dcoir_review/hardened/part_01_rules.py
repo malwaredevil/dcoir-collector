@@ -152,8 +152,11 @@ RISK_SENTINEL_RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
     ),
     (
         "truthy literal branch condition",
-        "a literal string after or/-or is always truthy and can bypass intended severity or confidence checks",
-        re.compile(r"(?:\bor\b|\b-or\b)\s+['\"][^'\"]+['\"]", re.IGNORECASE),
+        "a literal string after or/-or inside a branch condition is always truthy and can bypass intended severity or confidence checks",
+        re.compile(
+            r"^\s*(?:if|elif|elseif|while)\b[^\n]*(?:\bor\b|\b-or\b)\s+['\"][^'\"]+['\"]",
+            re.IGNORECASE,
+        ),
     ),
     (
         "recursive delete primitive",
@@ -193,4 +196,3 @@ RISK_SENTINEL_EXTENSIONS = {
 }
 
 RISK_SENTINEL_COVERAGE_LINE_WINDOW = 4
-
