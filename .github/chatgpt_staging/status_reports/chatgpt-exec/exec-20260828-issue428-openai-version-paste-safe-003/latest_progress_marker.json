@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33172575117",
   "github_sha": "807c41c0bb72f7daa526208fd20e013d0e93b0ae",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260828-issue428-openai-version-paste-safe-003",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-issue428-openai-version-paste-safe-003.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T12:48:41Z",
+  "updated_utc": "2026-08-28T12:48:44Z",
   "workflow": "chatgpt-exec"
 }
