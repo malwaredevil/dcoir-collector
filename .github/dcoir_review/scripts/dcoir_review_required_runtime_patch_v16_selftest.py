@@ -65,6 +65,27 @@ def test_python_path_write_sentinel_keeps_non_test_files() -> None:
     assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found)
 
 
+def test_python_dynamic_exec_classifier_only_matches_execution_builtins() -> None:
+    path = "tools/reviewer_probe.py"
+    false_positives = [
+        'VERSION_PATTERN = re.compile(r"^[A-Za-z0-9._-]+$")',
+        'code = compile(source, "<string>", "exec")',
+        "result = engine.eval(payload)",
+        "result = parser.exec(payload)",
+    ]
+    for line in false_positives:
+        assert v16._line_kind(path, line) != v16.PYTHON_DYNAMIC_EXEC, line
+
+    true_positives = [
+        "result = eval(user_input)",
+        "exec(payload)",
+        "result = builtins.eval(user_input)",
+        "__builtins__.exec(payload)",
+    ]
+    for line in true_positives:
+        assert v16._line_kind(path, line) == v16.PYTHON_DYNAMIC_EXEC, line
+
+
 def main() -> None:
     workflow = ".github/workflows/dcoir-review-v16-probe.yml"
     py = ".github/chatgpt_staging/dcoir_review_probe/v16_probe.py"
@@ -121,6 +142,7 @@ def main() -> None:
 
     test_python_path_write_sentinel_skips_test_files()
     test_python_path_write_sentinel_keeps_non_test_files()
+    test_python_dynamic_exec_classifier_only_matches_execution_builtins()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
 
