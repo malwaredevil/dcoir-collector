@@ -1,0 +1,98 @@
+{
+  "schema_version": "dcoir_review_precision_corpus_v1",
+  "description": "Versioned regression corpus for deterministic DCOIR Review precision. Known false positives must remain suppressed while established true positives remain detectable.",
+  "fixtures": [
+    {
+      "id": "fp_static_re_compile",
+      "classification": "known_false_positive",
+      "check": "python_dynamic_exec_absent",
+      "path": "tools/reviewer_probe.py",
+      "source": "VERSION_PATTERN = re.compile(r\"^[A-Za-z0-9._-]+$\")",
+      "provenance": "PR #429 DCOIR Review false positive at build_openai_gpt_deployment_release.py:26"
+    },
+    {
+      "id": "fp_builtin_compile_without_execution",
+      "classification": "known_false_positive",
+      "check": "python_dynamic_exec_absent",
+      "path": "tools/reviewer_probe.py",
+      "source": "code = compile(source, \"<string>\", \"exec\")",
+      "provenance": "Precision boundary: compile creates a code object but does not itself execute it"
+    },
+    {
+      "id": "tp_builtin_eval",
+      "classification": "known_true_positive",
+      "check": "python_dynamic_exec_present",
+      "path": "tools/reviewer_probe.py",
+      "source": "result = eval(user_input)",
+      "provenance": "Established dynamic-execution security sentinel"
+    },
+    {
+      "id": "tp_builtins_exec",
+      "classification": "known_true_positive",
+      "check": "python_dynamic_exec_present",
+      "path": "tools/reviewer_probe.py",
+      "source": "builtins.exec(payload)",
+      "provenance": "Established dynamic-execution security sentinel"
+    },
+    {
+      "id": "fp_python_fallback_expression",
+      "classification": "known_false_positive",
+      "check": "truthy_branch_absent",
+      "path": "tools/fallback.py",
+      "source": "label = configured_label or \"default\"",
+      "provenance": "Ordinary fallback expression, not a branch bypass"
+    },
+    {
+      "id": "fp_pr429_bundle_version_fallback",
+      "classification": "known_false_positive",
+      "check": "truthy_branch_absent",
+      "path": "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
+      "source": "rendered = f\"{manifest.get('bundle_version') or 'default'}\"",
+      "provenance": "PR #429 deterministic sentinel false positive near delivery Markdown rendering"
+    },
+    {
+      "id": "tp_python_truthy_literal_branch",
+      "classification": "known_true_positive",
+      "check": "truthy_branch_present",
+      "path": "tools/branch_probe.py",
+      "source": "if severity == \"critical\" or \"high\":",
+      "provenance": "Established Python truthy-literal branch bug fixture"
+    },
+    {
+      "id": "tp_powershell_truthy_literal_branch",
+      "classification": "known_true_positive",
+      "check": "truthy_branch_present",
+      "path": "tools/branch_probe.ps1",
+      "source": "if ($Severity -eq \"High\" -or \"Critical\") {",
+      "provenance": "Established PowerShell truthy-literal branch bug fixture"
+    },
+    {
+      "id": "context_source_before_workflow_inventory",
+      "classification": "context_precision",
+      "check": "deep_context_priority",
+      "preferred": {
+        "filename": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
+        "changes": 8
+      },
+      "deprioritized": {
+        "filename": ".github/github_actions/workflow_inventory.json",
+        "changes": 500
+      },
+      "provenance": "PR #429 first-pass deep context previously exhausted its budget on generated workflow inventory"
+    },
+    {
+      "id": "context_source_before_generated_package",
+      "classification": "context_precision",
+      "check": "deep_context_priority",
+      "preferred": {
+        "filename": "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
+        "changes": 25
+      },
+      "deprioritized": {
+        "filename": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/manifest.json",
+        "changes": 800
+      },
+      "provenance": "Generated package evidence must not crowd substantive source out of full-file context"
+    }
+  ]
+}
