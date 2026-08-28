@@ -106,7 +106,7 @@ def _sha256(data: bytes) -> str:
 
 def _webui_character_count(value: str) -> int:
     """Count UTF-16 code units conservatively for browser-style WebUI limits."""
-    return len(value.encode('utf-16-le')) // 2
+    return len(value.encode('utf-16-le', errors='surrogatepass')) // 2
 
 
 def _duplicates(values: list[str]) -> list[str]:
