@@ -49,6 +49,7 @@ class ProgressReporter:
                 ],
             ),
             create_if_missing=True,
+            force=True,
         )
 
     def _record(self, stage: str, message: str) -> None:
@@ -74,8 +75,8 @@ class ProgressReporter:
             lines.append(f"- `{sanitize_public_identity(stage)}`: {message}")
         return github_safe_body("\n".join(lines), limit=12000)
 
-    def _update_comment(self, body: str, create_if_missing: bool = False) -> None:
-        if not self.config.post_progress_comment:
+    def _update_comment(self, body: str, create_if_missing: bool = False, force: bool = False) -> None:
+        if not force and not self.config.post_progress_comment:
             return
         try:
             if self.comment_id:
