@@ -290,7 +290,7 @@
     {
       "bytes": 7810,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
-      "sha256": "b4d18cc10bcad2b4d7ae8139863ca5b238f6bc16e6f4097b8bcbae0164489533"
+      "sha256": "b4d59e706c75e38b581d23b69ce3fa64eea3eef6580752c9a1cf36b225cb7f57"
     },
     {
       "bytes": 3212,
@@ -367,7 +367,7 @@
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Instructions.md",
-      "sha256": "b4d18cc10bcad2b4d7ae8139863ca5b238f6bc16e6f4097b8bcbae0164489533"
+      "sha256": "b4d59e706c75e38b581d23b69ce3fa64eea3eef6580752c9a1cf36b225cb7f57"
     },
     "knowledge_projection_manifest": {
       "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
