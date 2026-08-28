@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260828-issue426-human-first-openai-packages-004",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33154914951",
   "github_sha": "5ce6c4f3d1f92d6ae87530efc05d9be1001dd7d9",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260828-issue426-human-first-openai-packages-004",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-issue426-human-first-openai-packages-004.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T08:20:13Z",
+  "updated_utc": "2026-08-28T08:20:32Z",
   "workflow": "chatgpt-exec"
 }
