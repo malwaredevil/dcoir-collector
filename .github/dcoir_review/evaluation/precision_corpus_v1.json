@@ -51,6 +51,24 @@
       "provenance": "PR #429 deterministic sentinel false positive near delivery Markdown rendering"
     },
     {
+      "id": "fp_pr435_powershell_fixture_text_in_python",
+      "classification": "known_false_positive",
+      "check": "risk_label_absent",
+      "label": "PowerShell Invoke-Expression",
+      "path": "project_sources/collector/tools/test_run_powershell_function_reachability_report.py",
+      "source": "fixture = {\"text\": \"Invoke-Expression $scriptText\"}",
+      "provenance": "PR #435 deep run 33190231548 treated Python regression-fixture text as executable PowerShell and forced a contradictory quality retry"
+    },
+    {
+      "id": "tp_powershell_invoke_expression_source",
+      "classification": "known_true_positive",
+      "check": "risk_label_present",
+      "label": "PowerShell Invoke-Expression",
+      "path": "tools/powershell_probe.ps1",
+      "source": "Invoke-Expression $scriptText",
+      "provenance": "Language-scope boundary: a real PowerShell Invoke-Expression changed line must remain detected"
+    },
+    {
       "id": "tp_python_truthy_literal_branch",
       "classification": "known_true_positive",
       "check": "truthy_branch_present",
