@@ -1,0 +1,43 @@
+# DCOIR WORKFLOW OPERATOR NOTES
+# Workflow key:
+# - workflow-build_package-manual-openai-gpt-deployment-package-build-0033
+# Purpose:
+# - Build and validate both governed OpenAI WebUI GPT deployment packages in one operator-triggered run.
+# Use when:
+# - Use when the operator needs fresh AFRICOM DCOIR Analyst and AFRICOM USB Reporting files for manual WebUI paste/upload/configuration.
+# Do not use when:
+# - Do not use to mutate a live OpenAI GPT, to replace canonical behavior/Knowledge source, or to claim live model parity from static package success.
+# Trigger model:
+# - workflow_dispatch only; the operator may select the source ref in the GitHub Actions UI.
+# Required inputs:
+# - None. The selected workflow ref is the package source identity.
+# Required secrets/config:
+# - No external secrets. Uses repository source and existing local workflow actions only.
+# Runtime dependencies:
+# - Uses the governed agent-runtime validators, OpenAI package builders, unified parity reporter, combined deployment release builder, and delivery surfacing helper.
+# Expected outputs/readback:
+# - One direct operator-facing artifact containing both GPT deployment folders, one fuller evidence artifact, a delivery manifest, static parity reports, and a ChatGPT workflow report section.
+# Safety notes:
+# - Generated package/delivery files are noncanonical. OpenAI WebUI deployment remains manual and separately evidenced.
+# Maintenance notes:
+# - Keep this header, reusable workflow, required-surface profile, workflow inventory, reporter allowlist, and modularization contract aligned when behavior changes.
+# Authority routing:
+# - GitHub is canonical for source/build truth. Supabase ircore owns operational routing/receipts. Live OpenAI WebUI state remains operator-observed evidence.
+name: 07 Operator - Build OpenAI GPT Deployment Packages
+run-name: OpenAI GPT Deployment Packages | ${{ github.ref_name }} | #${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-openai-gpt-deployment-package-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_openai_gpt_deployment_packages:
+    uses: ./.github/workflows/reusable-openai-gpt-deployment-package-build.yml
+    permissions:
+      contents: read

@@ -6,7 +6,7 @@ from pathlib import Path
 
 WORKFLOW_DIR = Path(".github/workflows")
 ACTION_DIR = Path(".github/actions")
-EXPECTED_PRIMARY_WORKFLOW_COUNT = 29
+EXPECTED_PRIMARY_WORKFLOW_COUNT = 30
 
 USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 COMPOSITE_USING_RE = re.compile(r"^\s*using:\s*['\"]?composite['\"]?\s*$", re.IGNORECASE | re.MULTILINE)
