@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260828-issue428-openai-version-paste-safe-001",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue428_openai_version_paste_safe.ps1",
+  "approved_command_preview": "On issue-428-openai-version-paste-safe at exact base 8838f94b4090, rename the OpenAI deployment workflow to 02, add Gemini-style optional bundle_version_override plumbing, make combined OpenAI delivery ZIP naming version-aware, enforce CRLF-expanded UTF-16 paste-safe Instructions limits, minimally shorten canonical DCOIR Instructions, regenerate tracked DCOIR package/workflow inventory, run focused tests plus the full ten-command agent-runtime validation contract, and push only the allowlisted branch changes.",
+  "shell": "pwsh",
+  "timeout_seconds": 1200,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true
+}
