@@ -278,6 +278,14 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('description_character_ceiling must remain 300', check=False)
 
+    def test_character_ceiling_type_drift_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['instruction_character_ceiling'] = 8000.0
+        manifest['description_character_ceiling'] = 300.0
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('instruction_character_ceiling must remain 8000', check=False)
+        self.assert_error_contains('description_character_ceiling must remain 300', check=False)
+
     def test_whitespace_conversation_starter_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
         manifest['editor']['conversation_starters'][0] = '   '

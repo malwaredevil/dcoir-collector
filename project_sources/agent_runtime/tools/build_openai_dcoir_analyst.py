@@ -271,7 +271,7 @@ def _validate_instructions(
         errors.append('Canonical Instructions must be UTF-8')
         return []
     ceiling = manifest.get('instruction_character_ceiling')
-    if ceiling != EXPECTED_INSTRUCTION_CHARACTER_CEILING:
+    if type(ceiling) is not int or ceiling != EXPECTED_INSTRUCTION_CHARACTER_CEILING:
         errors.append(
             'instruction_character_ceiling must remain '
             f'{EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
@@ -539,7 +539,7 @@ def build_package(
         errors.append('Editor description must not contain lone UTF-16 surrogate code points')
     description_ceiling = manifest.get('description_character_ceiling')
     description_character_count = _webui_character_count(description)
-    if description_ceiling != EXPECTED_DESCRIPTION_CHARACTER_CEILING:
+    if type(description_ceiling) is not int or description_ceiling != EXPECTED_DESCRIPTION_CHARACTER_CEILING:
         errors.append(
             'description_character_ceiling must remain '
             f'{EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
