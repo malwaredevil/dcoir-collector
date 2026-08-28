@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33166056839",
   "github_sha": "0f738260d3434c8a0d565c6aad43d0ab864af562",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260828-pr427-hard-limit-alignment-001",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-pr427-hard-limit-alignment-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-28T11:09:19Z",
+  "updated_utc": "2026-08-28T11:09:21Z",
   "workflow": "chatgpt-exec"
 }
