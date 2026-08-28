@@ -511,6 +511,17 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         editor = {}
     if editor.get('name') != EXPECTED_EDITOR_NAME:
         errors.append(f'Editor name must remain {EXPECTED_EDITOR_NAME}')
+    description = editor.get('description')
+    if not isinstance(description, str) or not description.strip():
+        errors.append('Editor description must be a non-empty string')
+        description = ''
+    description_ceiling = manifest.get('description_character_ceiling')
+    if type(description_ceiling) is not int or description_ceiling <= 0:
+        errors.append('description_character_ceiling must be a positive integer')
+    elif len(description) > description_ceiling:
+        errors.append(
+            f'Description exceeds character ceiling: {len(description)} > {description_ceiling}'
+        )
     starters = editor.get('conversation_starters')
     if not isinstance(starters, list) or len(starters) != 4 or not all(isinstance(value, str) and value for value in starters):
         errors.append('Exactly four non-empty conversation starters are required')
@@ -520,7 +531,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         'schema': 'dcoir.agent_runtime.openai_webui_configuration.v1',
         'target_id': TARGET_ID,
         'name': editor.get('name'),
-        'description': editor.get('description'),
+        'description': description,
         'conversation_starters': starters,
         'runtime_model': target.get('runtime_model'),
         'instructions_file': manifest.get('generated_outputs', {}).get('instructions'),
@@ -570,6 +581,8 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         'behavioral_case_ids': case_ids,
         'instruction_character_count': len(instructions.decode('utf-8', errors='ignore')),
         'instruction_character_ceiling': manifest.get('instruction_character_ceiling'),
+        'description_character_count': len(description),
+        'description_character_ceiling': description_ceiling,
         'knowledge_file_count': len(knowledge_files),
         'strict_knowledge_file_ceiling': target_manifest.get('strict_file_count_ceiling'),
         'knowledge_files': knowledge_files,

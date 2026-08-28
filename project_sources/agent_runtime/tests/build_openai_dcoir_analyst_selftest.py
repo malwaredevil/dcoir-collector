@@ -251,6 +251,21 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('Editor name must remain', check=False)
 
+    def test_instruction_character_ceiling_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        path = self.repo / manifest['canonical_instructions_source']
+        text = path.read_text(encoding='utf-8')
+        excess = manifest['instruction_character_ceiling'] - len(text) + 1
+        self.assertGreater(excess, 0)
+        path.write_text(text + ('x' * excess), encoding='utf-8')
+        self.assert_error_contains('Instructions exceed character ceiling', check=False)
+
+    def test_description_character_ceiling_fails(self) -> None:
+        manifest = _read_json(self.manifest_path)
+        manifest['editor']['description'] = 'x' * (manifest['description_character_ceiling'] + 1)
+        _write_json(self.manifest_path, manifest)
+        self.assert_error_contains('Description exceeds character ceiling', check=False)
+
     def test_duplicate_behavioral_case_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
         cases_path = self.repo / manifest['behavioral_cases']

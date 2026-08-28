@@ -19,6 +19,21 @@ DELIVERY_ROOT_NAME = "OpenAI_GPT_Deployment_Packages"
 PARITY_JSON = "agent_release_parity_report.json"
 PARITY_MD = "agent_release_parity_report.md"
 GUIDE = Path("project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md")
+HUMAN_WEBUI_FILENAME = "GPT_WebUI_Configuration.md"
+INSTRUCTION_CHARACTER_CEILING = 8000
+DESCRIPTION_CHARACTER_CEILING = 300
+CAPABILITY_LABELS = {
+    "web_search": "Web search",
+    "code_interpreter_data_analysis": "Code Interpreter / Data Analysis",
+    "canvas": "Canvas",
+    "image_generation": "Image generation",
+    "apps": "Apps",
+    "actions": "Actions",
+    "live_elastic_access": "Live Elastic access",
+    "live_collector_execution": "Live collector execution",
+    "github_supabase_connectors": "GitHub / Supabase connectors",
+    "persistent_cross_conversation_memory": "Persistent cross-conversation memory",
+}
 TARGETS = (
     {
         "target_id": "openai_dcoir_analyst",
@@ -181,6 +196,157 @@ def _copy_record(
     }
 
 
+def _markdown_fence(value: str) -> str:
+    longest = 0
+    current = 0
+    for char in value:
+        if char == "`":
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    return "`" * max(4, longest + 1)
+
+
+def _fenced_text(value: str) -> str:
+    fence = _markdown_fence(value)
+    suffix = "" if value.endswith("\n") else "\n"
+    return f"{fence}text\n{value}{suffix}{fence}"
+
+
+def _validate_webui_limits(
+    config: dict[str, Any],
+    instructions: bytes,
+    package_manifest: dict[str, Any],
+    target_id: str,
+    errors: list[str],
+) -> str:
+    try:
+        instructions_text = instructions.decode("utf-8")
+    except UnicodeDecodeError:
+        errors.append(f"{target_id} Instructions must be UTF-8")
+        instructions_text = ""
+
+    description = config.get("description")
+    if not isinstance(description, str) or not description.strip():
+        errors.append(f"{target_id} Description must be a non-empty string")
+        description = ""
+
+    if len(instructions_text) > INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            f"{target_id} Instructions exceed {INSTRUCTION_CHARACTER_CEILING} characters: "
+            f"{len(instructions_text)}"
+        )
+    if len(description) > DESCRIPTION_CHARACTER_CEILING:
+        errors.append(
+            f"{target_id} Description exceeds {DESCRIPTION_CHARACTER_CEILING} characters: "
+            f"{len(description)}"
+        )
+
+    if package_manifest.get("instruction_character_count") != len(instructions_text):
+        errors.append(f"{target_id} package manifest instruction character count drift")
+    if package_manifest.get("instruction_character_ceiling") != INSTRUCTION_CHARACTER_CEILING:
+        errors.append(f"{target_id} package manifest instruction ceiling drift")
+    if package_manifest.get("description_character_count") != len(description):
+        errors.append(f"{target_id} package manifest description character count drift")
+    if package_manifest.get("description_character_ceiling") != DESCRIPTION_CHARACTER_CEILING:
+        errors.append(f"{target_id} package manifest description ceiling drift")
+
+    starters = config.get("conversation_starters")
+    if not isinstance(starters, list) or len(starters) != 4 or not all(
+        isinstance(value, str) and value.strip() for value in starters
+    ):
+        errors.append(f"{target_id} must define exactly four non-empty conversation starters")
+
+    return instructions_text
+
+
+def _webui_configuration_markdown(
+    config: dict[str, Any],
+    instructions_text: str,
+    knowledge_names: list[str],
+) -> bytes:
+    name = config.get("name") if isinstance(config.get("name"), str) else ""
+    description = config.get("description") if isinstance(config.get("description"), str) else ""
+    starters = config.get("conversation_starters")
+    if not isinstance(starters, list):
+        starters = []
+    capabilities = config.get("capabilities")
+    if not isinstance(capabilities, dict):
+        capabilities = {}
+
+    lines = [
+        f"# {name} - GPT WebUI Configuration",
+        "",
+        "> Generated operator handoff. Copy these values into the existing GPT editor.",
+        "> Do not upload this setup sheet as Knowledge and do not edit it as canonical source.",
+        "",
+        "## Name",
+        "",
+        _fenced_text(name),
+        "",
+        "## Description",
+        "",
+        f"Character count: **{len(description)} / {DESCRIPTION_CHARACTER_CEILING}**",
+        "",
+        _fenced_text(description),
+        "",
+        "## Conversation starters",
+        "",
+    ]
+    for index, starter in enumerate(starters, start=1):
+        lines.append(f"{index}. {starter}")
+    lines.extend(
+        [
+            "",
+            "## Model / runtime",
+            "",
+            f"`{config.get('runtime_model', '')}`",
+            "",
+            "## Capabilities",
+            "",
+        ]
+    )
+    for key, value in capabilities.items():
+        label = CAPABILITY_LABELS.get(key, key.replace("_", " ").title())
+        state = "ON" if value is True else "OFF" if value is False else "UNSPECIFIED"
+        lines.append(f"- {label}: **{state}**")
+    lines.extend(
+        [
+            "",
+            "## Instructions",
+            "",
+            f"Character count: **{len(instructions_text)} / {INSTRUCTION_CHARACTER_CEILING}**",
+            "",
+            "Copy the complete contents of the block below into the GPT Instructions field.",
+            "",
+            _fenced_text(instructions_text),
+            "",
+            "## Knowledge files",
+            "",
+            f"Upload exactly **{len(knowledge_names)}** files from the adjacent `Knowledge/` folder, in this order:",
+            "",
+        ]
+    )
+    for index, name_value in enumerate(knowledge_names, start=1):
+        lines.append(f"{index}. `{name_value}`")
+    lines.extend(
+        [
+            "",
+            "## Final WebUI checklist",
+            "",
+            "- [ ] Name and Description match this sheet.",
+            "- [ ] All four conversation starters match this sheet.",
+            "- [ ] Model/runtime and capability toggles match this sheet.",
+            "- [ ] Instructions were copied in full without hand edits.",
+            f"- [ ] Exactly {len(knowledge_names)} Knowledge files were uploaded with the listed filenames.",
+            "- [ ] Save/update the GPT, then perform the governed live readback/smoke checks.",
+            "",
+        ]
+    )
+    return "\n".join(lines).encode("utf-8")
+
+
 def _validate_and_copy_target(
     repo_root: Path,
     delivery_root: Path,
@@ -197,6 +363,14 @@ def _validate_and_copy_target(
     manifest_path = package_root / "manifest.json"
     config = _load_json(config_path, errors, f"{target['target_id']} configuration")
     package_manifest = _load_json(manifest_path, errors, f"{target['target_id']} package manifest")
+    if instructions_path.is_symlink() or not instructions_path.is_file():
+        errors.append(f"Missing or unsafe {target['target_id']} Instructions: {instructions_path.as_posix()}")
+        instructions = b""
+    else:
+        instructions = instructions_path.read_bytes()
+    instructions_text = _validate_webui_limits(
+        config, instructions, package_manifest, target["target_id"], errors
+    )
 
     if config.get("target_id") != target["target_id"]:
         errors.append(f"{target['target_id']} configuration target_id drift")
@@ -227,7 +401,6 @@ def _validate_and_copy_target(
     file_records: list[dict[str, Any]] = []
     for source, name in (
         (config_path, "GPT_Configuration.json"),
-        (instructions_path, "Instructions.md"),
         (manifest_path, "manifest.json"),
     ):
         if not source.is_file() or source.is_symlink():
@@ -242,6 +415,27 @@ def _validate_and_copy_target(
         )
         if record is not None:
             file_records.append(record)
+
+    knowledge_names = [
+        Path(item.get("path")).name
+        for item in knowledge
+        if isinstance(item, dict) and isinstance(item.get("path"), str) and item.get("path")
+    ]
+    handoff_bytes = _webui_configuration_markdown(config, instructions_text, knowledge_names)
+    handoff_path = destination_root / HUMAN_WEBUI_FILENAME
+    handoff_record: dict[str, Any] | None = None
+    if _write_output_bytes(
+        delivery_root, handoff_path, handoff_bytes, errors, "human WebUI configuration"
+    ):
+        handoff_record = {
+            "delivery_path": handoff_path.relative_to(delivery_root).as_posix(),
+            "sha256": _sha256_bytes(handoff_bytes),
+            "bytes": len(handoff_bytes),
+            "derived_from": [
+                config_path.relative_to(repo_root).as_posix(),
+                instructions_path.relative_to(repo_root).as_posix(),
+            ],
+        }
 
     knowledge_records: list[dict[str, Any]] = []
     seen_names: set[str] = set()
@@ -289,6 +483,7 @@ def _validate_and_copy_target(
         "runtime_model": config.get("runtime_model"),
         "delivery_directory": target["delivery_dir"],
         "package_files": file_records,
+        "operator_handoff_file": handoff_record,
         "knowledge_file_count": len(knowledge_records),
         "knowledge_files": knowledge_records,
     }

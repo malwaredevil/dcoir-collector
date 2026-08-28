@@ -283,6 +283,8 @@
     "malicious_conclusion_schema",
     "unresolved_conclusion_schema"
   ],
+  "description_character_ceiling": 300,
+  "description_character_count": 188,
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {

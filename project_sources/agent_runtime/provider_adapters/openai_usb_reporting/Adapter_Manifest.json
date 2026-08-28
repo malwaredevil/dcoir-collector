@@ -11,6 +11,7 @@
   "generated_root": "project_sources/agent_runtime/generated/packages/openai_usb_reporting",
   "source_base_commit": "3f98f43000a6cf0707e330fba4eb94d35a937bd2",
   "instruction_character_ceiling": 8000,
+  "description_character_ceiling": 300,
   "editor": {
     "name": "AFRICOM USB Reporting",
     "description": "Static USB reporting assistant for AFRICOM weekly USB evidence review, query drafting, result normalization, readiness checks, and operator-confirmed report drafting.",

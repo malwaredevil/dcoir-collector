@@ -282,6 +282,35 @@ def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
         td.cleanup()
 
 
+def test_instruction_character_ceiling_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        instructions = repo / manifest['canonical_instructions_source']
+        text = instructions.read_text(encoding='utf-8')
+        excess = manifest['instruction_character_ceiling'] - len(text) + 1
+        assert excess > 0
+        instructions.write_text(text + ('x' * excess), encoding='utf-8')
+        errors, _ = module.build_package(repo, manifest_path, check=True)
+        assert any('Instructions exceed character ceiling' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_description_character_ceiling_is_rejected() -> None:
+    td, repo = stage_repo()
+    try:
+        manifest_path = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json'
+        manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+        manifest['editor']['description'] = 'x' * (manifest['description_character_ceiling'] + 1)
+        manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+        errors, _ = module.build_package(repo, manifest_path, check=True)
+        assert any('Description exceeds character ceiling' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
 def test_unified_release_parity_report() -> None:
     selftest = load_module(RELEASE_SELFTEST, 'report_agent_release_parity_selftest')
     assert selftest.main() == 0
@@ -313,6 +342,8 @@ def main() -> int:
         test_generated_root_symlink_is_rejected,
         test_generated_root_symlink_loop_is_reported_without_crash,
         test_absolute_generated_root_symlink_is_reported_without_crash,
+        test_instruction_character_ceiling_is_rejected,
+        test_description_character_ceiling_is_rejected,
         test_unified_release_parity_report,
     ]
     for test in tests:

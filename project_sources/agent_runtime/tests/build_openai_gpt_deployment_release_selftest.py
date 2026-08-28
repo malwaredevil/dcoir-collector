@@ -65,10 +65,17 @@ def _stage_target(
         "knowledge_files": knowledge_files,
         "capabilities": {},
         "description": "test",
-        "conversation_starters": [],
+        "conversation_starters": ["Starter one", "Starter two", "Starter three", "Starter four"],
     }
     _write(package_root / "GPT_Configuration.json", module._json_bytes(config))
-    _write(package_root / "manifest.json", module._json_bytes({"target_id": target_id}))
+    package_manifest = {
+        "target_id": target_id,
+        "instruction_character_count": len(instructions.decode("utf-8")),
+        "instruction_character_ceiling": module.INSTRUCTION_CHARACTER_CEILING,
+        "description_character_count": len(config["description"]),
+        "description_character_ceiling": module.DESCRIPTION_CHARACTER_CEILING,
+    }
+    _write(package_root / "manifest.json", module._json_bytes(package_manifest))
 
 
 def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
@@ -127,6 +134,10 @@ def test_combined_delivery_and_determinism() -> None:
             names = zf.namelist()
         assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/GPT_Configuration.json" in names
         assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/GPT_Configuration.json" in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/{module.HUMAN_WEBUI_FILENAME}" in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/{module.HUMAN_WEBUI_FILENAME}" in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/Instructions.md" not in names
+        assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Instructions.md" not in names
         assert f"{module.DELIVERY_ROOT_NAME}/delivery_manifest.json" in names
         assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/Knowledge/") for name in names) == 7
         assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Knowledge/") for name in names) == 2
@@ -139,6 +150,17 @@ def test_combined_delivery_and_determinism() -> None:
         assert manifest["static_parity_status"] == "pass"
         assert manifest["live_model_parity_claimed"] is False
         assert manifest["manual_webui_deployment_required"] is True
+        handoff = (
+            repo
+            / "project_sources/validation/out_a"
+            / module.DELIVERY_ROOT_NAME
+            / "AFRICOM_DCOIR_Analyst"
+            / module.HUMAN_WEBUI_FILENAME
+        ).read_text(encoding="utf-8")
+        assert "AFRICOM DCOIR Analyst" in handoff
+        assert "Character count: **4 / 300**" in handoff
+        assert "Governed instructions." in handoff
+        assert handoff.index("01-knowledge-1.md") < handoff.index("07-knowledge-7.md")
     finally:
         td.cleanup()
 
@@ -164,6 +186,69 @@ def test_cross_checkout_root_determinism() -> None:
     finally:
         td_b.cleanup()
         td_a.cleanup()
+
+
+def test_description_limit_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        config_path = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json"
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        config["description"] = "x" * (module.DESCRIPTION_CHARACTER_CEILING + 1)
+        config_path.write_bytes(module._json_bytes(config))
+        manifest_path = config_path.parent / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["description_character_count"] = len(config["description"])
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("Description exceeds 300 characters" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_instruction_limit_fails_closed() -> None:
+    td, repo = stage_repo()
+    try:
+        package_root = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst"
+        instructions_path = package_root / "Instructions.md"
+        instructions = "x" * (module.INSTRUCTION_CHARACTER_CEILING + 1)
+        instructions_path.write_text(instructions, encoding="utf-8")
+        manifest_path = package_root / "manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["instruction_character_count"] = len(instructions)
+        manifest_path.write_bytes(module._json_bytes(manifest))
+        errors, report = _build(repo, "out")
+        assert errors
+        assert report["success"] is False
+        assert any("Instructions exceed 8000 characters" in error for error in errors), errors
+        assert report["zip_path"] is None
+    finally:
+        td.cleanup()
+
+
+def test_human_markdown_tracks_json_and_instructions() -> None:
+    td, repo = stage_repo()
+    try:
+        errors, report = _build(repo, "out")
+        assert not errors, errors
+        root = repo / "project_sources/validation/out" / module.DELIVERY_ROOT_NAME / "AFRICOM_USB_Reporting"
+        config = json.loads((repo / "project_sources/agent_runtime/generated/packages/openai_usb_reporting/GPT_Configuration.json").read_text(encoding="utf-8"))
+        instructions = (repo / "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md").read_text(encoding="utf-8")
+        handoff = (root / module.HUMAN_WEBUI_FILENAME).read_text(encoding="utf-8")
+        assert config["name"] in handoff
+        assert config["description"] in handoff
+        for starter in config["conversation_starters"]:
+            assert starter in handoff
+        assert instructions in handoff
+        knowledge_names = [Path(item["path"]).name for item in config["knowledge_files"]]
+        positions = [handoff.index(name) for name in knowledge_names]
+        assert positions == sorted(positions)
+        target = next(item for item in report["targets"] if item["target_id"] == "openai_usb_reporting")
+        assert target["operator_handoff_file"]["delivery_path"].endswith(module.HUMAN_WEBUI_FILENAME)
+    finally:
+        td.cleanup()
 
 
 def test_knowledge_drift_fails_closed() -> None:
@@ -460,6 +545,9 @@ def main() -> int:
     tests = [
         test_combined_delivery_and_determinism,
         test_cross_checkout_root_determinism,
+        test_description_limit_fails_closed,
+        test_instruction_limit_fails_closed,
+        test_human_markdown_tracks_json_and_instructions,
         test_knowledge_drift_fails_closed,
         test_parity_failure_blocks_release,
         test_source_commit_mismatch_blocks_release,
