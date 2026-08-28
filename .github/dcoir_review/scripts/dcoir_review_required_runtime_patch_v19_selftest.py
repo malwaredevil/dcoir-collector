@@ -44,6 +44,40 @@ def _module_returning(enriched: list[dict[str, Any]]) -> tuple[SimpleNamespace, 
     return module, hardened, reporter
 
 
+def test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text() -> None:
+    false_python_powershell = SimpleNamespace(
+        path="project_sources/collector/tools/test_run_powershell_function_reachability_report.py",
+        line=293,
+        label="PowerShell Invoke-Expression",
+        detail="fixture text only",
+        text='"text": "Invoke-Expression $scriptText"',
+    )
+    real_powershell = SimpleNamespace(
+        path="tools/probe.ps1",
+        line=7,
+        label="PowerShell Invoke-Expression",
+        detail="real PowerShell execution primitive",
+        text="Invoke-Expression $scriptText",
+    )
+    generic_python = SimpleNamespace(
+        path="tools/probe.py",
+        line=9,
+        label="truthy literal branch condition",
+        detail="generic cross-language condition rule",
+        text='if severity == "critical" or "high":',
+    )
+
+    module = SimpleNamespace(detect_risk_sentinels=lambda _diff: [false_python_powershell, real_powershell, generic_python])
+    v19.apply_pareto_context_module(module)
+    filtered = module.detect_risk_sentinels("synthetic diff")
+
+    assert false_python_powershell not in filtered
+    assert real_powershell in filtered
+    assert generic_python in filtered
+    assert not v19.sentinel_matches_source_language(false_python_powershell)
+    assert v19.sentinel_matches_source_language(real_powershell)
+
+
 def test_fix_synthesis_false_positive_contradiction_fails_closed() -> None:
     finding = {
         "path": "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
@@ -177,6 +211,7 @@ def test_detector_text_alone_cannot_self_disqualify_after_synthesis() -> None:
 
 
 def main() -> None:
+    test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text()
     test_fix_synthesis_false_positive_contradiction_fails_closed()
     test_live_no_code_modification_wording_fails_closed()
     test_weak_no_repair_wording_does_not_override_concrete_repair()
