@@ -2,295 +2,192 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
+import importlib.util
 import json
-import os
-import shutil
-import subprocess
 import sys
-import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release.v1"
-REPORT_SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release_report.v1"
-DELIVERY_ROOT_NAME = "OpenAI_GPT_Deployment_Packages"
-PARITY_JSON = "agent_release_parity_report.json"
-PARITY_MD = "agent_release_parity_report.md"
-GUIDE = Path("project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md")
-TARGETS = (
-    {
-        "target_id": "openai_dcoir_analyst",
-        "webui_name": "AFRICOM DCOIR Analyst",
-        "delivery_dir": "AFRICOM_DCOIR_Analyst",
-        "package_root": Path("project_sources/agent_runtime/generated/packages/openai_dcoir_analyst"),
-        "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst"),
-        "knowledge_count": 7,
-    },
-    {
-        "target_id": "openai_usb_reporting",
-        "webui_name": "AFRICOM USB Reporting",
-        "delivery_dir": "AFRICOM_USB_Reporting",
-        "package_root": Path("project_sources/agent_runtime/generated/packages/openai_usb_reporting"),
-        "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_usb_reporting"),
-        "knowledge_count": 2,
-    },
-)
+CORE_PATH = Path(__file__).with_name("build_openai_gpt_deployment_release_core.py")
+SPEC = importlib.util.spec_from_file_location("build_openai_gpt_deployment_release_core", CORE_PATH)
+if SPEC is None or SPEC.loader is None:
+    raise SystemExit("Unable to load build_openai_gpt_deployment_release_core.py")
+_core = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(_core)
+
+# Preserve the original builder API for existing tests and callers.
+for _name in dir(_core):
+    if not _name.startswith("__"):
+        globals()[_name] = getattr(_core, _name)
+
+WEBUI_SETUP_FILE = "GPT_WebUI_Setup.md"
+DESCRIPTION_CHARACTER_CEILING = 300
+INSTRUCTIONS_CHARACTER_CEILING = 8000
 
 
-def _json_bytes(value: Any) -> bytes:
-    return (json.dumps(value, indent=2, sort_keys=True) + "\n").encode("utf-8")
+def _max_backtick_run(text: str) -> int:
+    longest = 0
+    current = 0
+    for character in text:
+        if character == "`":
+            current += 1
+            longest = max(longest, current)
+        else:
+            current = 0
+    return longest
 
 
-def _sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
+def _fenced_value(value: str, language: str = "text") -> str:
+    fence = "`" * max(3, _max_backtick_run(value) + 1)
+    normalized = value if value.endswith("\n") else value + "\n"
+    return f"{fence}{language}\n{normalized}{fence}"
 
 
-def _sha256_file(path: Path) -> str:
-    return _sha256_bytes(path.read_bytes())
+def _webui_setup_markdown(
+    config: dict[str, Any],
+    instructions: str,
+    knowledge_names: list[str],
+) -> str:
+    description = config["description"]
+    starters = config["conversation_starters"]
+    capabilities = config["capabilities"]
+    lines = [
+        f"# {config['name']} - GPT WebUI Setup",
+        "",
+        "This is the single human-facing setup file for this GPT. It is generated from the validated JSON configuration, exact Instructions, and ordered Knowledge list. Do not hand-edit it.",
+        "",
+        "Use this file from top to bottom in the ChatGPT GPT editor. `GPT_Configuration.json` and `manifest.json` remain machine-readable validation evidence and are not the normal copy/paste surface.",
+        "",
+        "## Field-limit readback",
+        "",
+        f"- Description: **{len(description)} / {DESCRIPTION_CHARACTER_CEILING} characters** (governed package ceiling)",
+        f"- Instructions: **{len(instructions)} / {INSTRUCTIONS_CHARACTER_CEILING} characters** (hard package ceiling)",
+        "",
+        "## 1. Name / Title",
+        "",
+        _fenced_value(config["name"]),
+        "",
+        "## 2. Description",
+        "",
+        _fenced_value(description),
+        "",
+        "## 3. Instructions",
+        "",
+        "Copy the complete contents of the block below into the GPT Instructions field. The character count above applies only to the block contents, not this setup file.",
+        "",
+        _fenced_value(instructions, "markdown"),
+        "",
+        "## 4. Conversation starters",
+        "",
+    ]
+    for index, starter in enumerate(starters, start=1):
+        lines.extend([f"### Starter {index}", "", _fenced_value(starter), ""])
+    lines.extend(
+        [
+            "## 5. Recommended model / runtime",
+            "",
+            _fenced_value(config["runtime_model"]),
+            "",
+            "## 6. Capabilities",
+            "",
+            "Apply these settings exactly unless a separately governed capability change supersedes this package.",
+            "",
+            "| Capability | State |",
+            "| --- | --- |",
+        ]
+    )
+    for capability in sorted(capabilities):
+        lines.append(f"| `{capability}` | {'ON' if capabilities[capability] else 'OFF'} |")
+    lines.extend(
+        [
+            "",
+            "## 7. Knowledge attachments",
+            "",
+            f"Upload exactly these **{len(knowledge_names)}** files from this target's `Knowledge/` folder, in this order:",
+            "",
+        ]
+    )
+    for index, name in enumerate(knowledge_names, start=1):
+        lines.append(f"{index}. `{name}`")
+    lines.extend(
+        [
+            "",
+            "## 8. Save and read back",
+            "",
+            "Save/update the existing GPT, then verify the target name, model/runtime, Description, conversation starters, capability states, complete Instructions, and Knowledge filenames/count against this file before claiming live deployment complete.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
 
 
-def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
-    try:
-        value = json.loads(path.read_text(encoding="utf-8"))
-    except FileNotFoundError:
-        errors.append(f"Missing {label}: {path.as_posix()}")
-        return {}
-    except json.JSONDecodeError as exc:
-        errors.append(f"Invalid JSON in {label} {path.as_posix()}: {exc}")
-        return {}
-    if not isinstance(value, dict):
-        errors.append(f"{label} must be a JSON object: {path.as_posix()}")
-        return {}
-    return value
+def _prevalidate_webui_inputs(repo_root: Path) -> tuple[list[str], dict[str, dict[str, Any]]]:
+    errors: list[str] = []
+    inputs: dict[str, dict[str, Any]] = {}
+    for target in TARGETS:
+        target_id = target["target_id"]
+        package_root = _resolve_repo_path(repo_root, target["package_root"], errors, f"{target_id} package root")
+        if package_root is None:
+            continue
+        config_path = package_root / "GPT_Configuration.json"
+        instructions_path = package_root / "Instructions.md"
+        config = _load_json(config_path, errors, f"{target_id} configuration")
+        description = config.get("description")
+        if not isinstance(description, str) or not description.strip():
+            errors.append(f"{target_id} Description must be a non-empty string")
+        elif len(description) > DESCRIPTION_CHARACTER_CEILING:
+            errors.append(
+                f"{target_id} Description exceeds character ceiling: "
+                f"{len(description)} > {DESCRIPTION_CHARACTER_CEILING}"
+            )
+        starters = config.get("conversation_starters")
+        if not isinstance(starters, list) or not starters or not all(
+            isinstance(value, str) and value for value in starters
+        ):
+            errors.append(f"{target_id} conversation_starters must be a non-empty array of strings")
+        capabilities = config.get("capabilities")
+        if not isinstance(capabilities, dict) or not all(
+            isinstance(key, str) and type(value) is bool for key, value in capabilities.items()
+        ):
+            errors.append(f"{target_id} capabilities must be a boolean-valued object")
+        instructions = ""
+        if instructions_path.is_symlink() or not instructions_path.is_file():
+            errors.append(f"Missing or unsafe {target_id} Instructions: {instructions_path.as_posix()}")
+        else:
+            try:
+                instructions = instructions_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                errors.append(f"{target_id} Instructions must be UTF-8")
+            else:
+                if len(instructions) > INSTRUCTIONS_CHARACTER_CEILING:
+                    errors.append(
+                        f"{target_id} Instructions exceed character ceiling: "
+                        f"{len(instructions)} > {INSTRUCTIONS_CHARACTER_CEILING}"
+                    )
+        inputs[target_id] = {
+            "config_path": config_path,
+            "instructions_path": instructions_path,
+            "config": config,
+            "instructions": instructions,
+        }
+    return errors, inputs
 
 
-def _resolve_inside(root: Path, relative: str | Path, errors: list[str], label: str) -> Path | None:
-    value = Path(relative)
-    if value.is_absolute() or ".." in value.parts:
-        errors.append(f"{label} must be repository-relative without traversal: {relative}")
-        return None
-    try:
-        resolved_root = root.resolve()
-        lexical_candidate = resolved_root
-        for part in value.parts:
-            lexical_candidate = lexical_candidate / part
-            if lexical_candidate.is_symlink():
-                errors.append(f"{label} must not traverse a symlink: {relative}")
-                return None
-        candidate = lexical_candidate.resolve(strict=False)
-    except (OSError, RuntimeError) as exc:
-        errors.append(f"{label} could not be resolved: {type(exc).__name__}: {exc}")
-        return None
-    if not candidate.is_relative_to(resolved_root):
-        errors.append(f"{label} escapes its allowed root: {relative}")
-        return None
-    return candidate
-
-
-def _resolve_repo_path(repo_root: Path, relative: str | Path, errors: list[str], label: str) -> Path | None:
-    return _resolve_inside(repo_root, relative, errors, label)
-
-
-def _validate_output_path(
-    root: Path,
-    destination: Path,
-    errors: list[str],
-    label: str,
-) -> Path | None:
-    try:
-        resolved_root = root.resolve()
-        resolved_parent = destination.parent.resolve(strict=False)
-    except (OSError, RuntimeError) as exc:
-        errors.append(f"{label} could not be resolved safely: {type(exc).__name__}: {exc}")
-        return None
-    if not resolved_parent.is_relative_to(resolved_root):
-        errors.append(f"{label} escapes its allowed output root: {destination.as_posix()}")
-        return None
-    if destination.is_symlink():
-        errors.append(f"{label} must not be a symlink: {destination.as_posix()}")
-        return None
-    if destination.exists() and not destination.is_file():
-        errors.append(f"{label} must be a regular file or absent: {destination.as_posix()}")
-        return None
-    return destination
-
-
-def _write_output_bytes(
-    root: Path,
-    destination: Path,
-    data: bytes,
-    errors: list[str],
-    label: str,
-) -> bool:
-    safe_destination = _validate_output_path(root, destination, errors, label)
-    if safe_destination is None:
-        return False
-    safe_destination.parent.mkdir(parents=True, exist_ok=True)
-    safe_destination.write_bytes(data)
-    return True
-
-
-def _source_commit(repo_root: Path, explicit: str | None) -> str:
-    if explicit:
-        return explicit
-    github_sha = os.environ.get("GITHUB_SHA")
-    if github_sha:
-        return github_sha
-    try:
-        completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.SubprocessError):
-        completed = None
-    if completed and completed.returncode == 0 and completed.stdout.strip():
-        return completed.stdout.strip()
-    return "unknown"
-
-
-def _copy_record(
-    source: Path,
-    destination: Path,
-    delivery_root: Path,
-    repo_root: Path,
-    errors: list[str],
-) -> dict[str, Any] | None:
-    if source.is_symlink() or not source.is_file():
-        errors.append(f"Missing or unsafe source file: {source.as_posix()}")
-        return None
-    data = source.read_bytes()
-    if not _write_output_bytes(
-        delivery_root,
-        destination,
-        data,
-        errors,
-        "delivery file",
-    ):
-        return None
+def _failure_report(repo_root: Path, source_commit: str | None, errors: list[str]) -> dict[str, Any]:
     return {
-        "delivery_path": destination.relative_to(delivery_root).as_posix(),
-        "source_path": source.relative_to(repo_root).as_posix(),
-        "sha256": _sha256_bytes(data),
-        "bytes": len(data),
-    }
-
-
-def _validate_and_copy_target(
-    repo_root: Path,
-    delivery_root: Path,
-    target: dict[str, Any],
-    errors: list[str],
-) -> dict[str, Any]:
-    package_root = _resolve_repo_path(repo_root, target["package_root"], errors, "package root")
-    knowledge_root = _resolve_repo_path(repo_root, target["knowledge_root"], errors, "knowledge root")
-    if package_root is None or knowledge_root is None:
-        return {"target_id": target["target_id"], "success": False}
-
-    config_path = package_root / "GPT_Configuration.json"
-    instructions_path = package_root / "Instructions.md"
-    manifest_path = package_root / "manifest.json"
-    config = _load_json(config_path, errors, f"{target['target_id']} configuration")
-    package_manifest = _load_json(manifest_path, errors, f"{target['target_id']} package manifest")
-
-    if config.get("target_id") != target["target_id"]:
-        errors.append(f"{target['target_id']} configuration target_id drift")
-    if package_manifest.get("target_id") != target["target_id"]:
-        errors.append(f"{target['target_id']} package manifest target_id drift")
-    if config.get("name") != target["webui_name"]:
-        errors.append(f"{target['target_id']} WebUI name drift")
-    if config.get("runtime_model") != "GPT-5.4":
-        errors.append(f"{target['target_id']} runtime model drift")
-
-    expected_instructions = (target["package_root"] / "Instructions.md").as_posix()
-    if config.get("instructions_file") != expected_instructions:
-        errors.append(f"{target['target_id']} instructions_file drift")
-
-    knowledge = config.get("knowledge_files")
-    if not isinstance(knowledge, list):
-        errors.append(f"{target['target_id']} knowledge_files must be an array")
-        knowledge = []
-    if len(knowledge) != target["knowledge_count"]:
-        errors.append(
-            f"{target['target_id']} expected {target['knowledge_count']} Knowledge files, got {len(knowledge)}"
-        )
-    orders = [item.get("order") for item in knowledge if isinstance(item, dict)]
-    if orders != list(range(len(knowledge))):
-        errors.append(f"{target['target_id']} Knowledge order must be contiguous from zero")
-
-    destination_root = delivery_root / target["delivery_dir"]
-    file_records: list[dict[str, Any]] = []
-    for source, name in (
-        (config_path, "GPT_Configuration.json"),
-        (instructions_path, "Instructions.md"),
-        (manifest_path, "manifest.json"),
-    ):
-        if not source.is_file() or source.is_symlink():
-            errors.append(f"Missing or unsafe {target['target_id']} package file: {source.as_posix()}")
-            continue
-        record = _copy_record(
-            source,
-            destination_root / name,
-            delivery_root,
-            repo_root,
-            errors,
-        )
-        if record is not None:
-            file_records.append(record)
-
-    knowledge_records: list[dict[str, Any]] = []
-    seen_names: set[str] = set()
-    for item in knowledge:
-        if not isinstance(item, dict):
-            errors.append(f"{target['target_id']} contains a non-object Knowledge entry")
-            continue
-        declared_path = item.get("path")
-        if not isinstance(declared_path, str) or not declared_path:
-            errors.append(f"{target['target_id']} Knowledge entry lacks path")
-            continue
-        source = _resolve_repo_path(repo_root, declared_path, errors, "Knowledge file")
-        if source is None:
-            continue
-        try:
-            source.relative_to(knowledge_root)
-        except ValueError:
-            errors.append(f"{target['target_id']} Knowledge file escapes target root: {declared_path}")
-            continue
-        if not source.is_file() or source.is_symlink():
-            errors.append(f"Missing or unsafe Knowledge file: {declared_path}")
-            continue
-        if source.name in seen_names:
-            errors.append(f"Duplicate Knowledge filename for {target['target_id']}: {source.name}")
-            continue
-        seen_names.add(source.name)
-        data = source.read_bytes()
-        actual_sha = _sha256_bytes(data)
-        if item.get("sha256") != actual_sha or item.get("bytes") != len(data):
-            errors.append(f"Knowledge hash/size drift for {declared_path}")
-        record = _copy_record(
-            source,
-            destination_root / "Knowledge" / source.name,
-            delivery_root,
-            repo_root,
-            errors,
-        )
-        if record is not None:
-            record.update({"id": item.get("id"), "order": item.get("order")})
-            knowledge_records.append(record)
-
-    return {
-        "target_id": target["target_id"],
-        "webui_name": target["webui_name"],
-        "runtime_model": config.get("runtime_model"),
-        "delivery_directory": target["delivery_dir"],
-        "package_files": file_records,
-        "knowledge_file_count": len(knowledge_records),
-        "knowledge_files": knowledge_records,
+        "schema": REPORT_SCHEMA,
+        "success": False,
+        "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "source_commit": _source_commit(repo_root, source_commit),
+        "delivery_root": None,
+        "zip_path": None,
+        "zip_sha256": None,
+        "target_count": 0,
+        "targets": [],
+        "static_parity_status": None,
+        "live_parity_status": None,
+        "errors": errors,
     }
 
 
@@ -308,12 +205,16 @@ def _delivery_markdown(manifest: dict[str, Any]) -> str:
         "",
     ]
     for target in manifest["targets"]:
+        setup = target.get("webui_setup_file") or {}
         lines.extend(
             [
                 f"### {target['webui_name']}",
                 "",
                 f"- target_id: `{target['target_id']}`",
                 f"- runtime_model: `{target['runtime_model']}`",
+                f"- WebUI setup: `{setup.get('delivery_path', 'unavailable')}`",
+                f"- Description characters: {target.get('description_character_count')} / {DESCRIPTION_CHARACTER_CEILING}",
+                f"- Instructions characters: {target.get('instructions_character_count')} / {INSTRUCTIONS_CHARACTER_CEILING}",
                 f"- Knowledge files: {target['knowledge_file_count']}",
                 f"- delivery_directory: `{target['delivery_directory']}`",
                 "",
@@ -321,45 +222,13 @@ def _delivery_markdown(manifest: dict[str, Any]) -> str:
         )
     lines.extend(
         [
-            "The files in this package are generated deployment surfaces, not canonical editable source.",
+            "Each target folder exposes one human-facing `GPT_WebUI_Setup.md`; JSON and manifests remain machine-readable evidence.",
+            "Generated deployment files are not canonical editable source.",
             "OpenAI WebUI deployment and live behavior remain manual evidence steps.",
             "",
         ]
     )
     return "\n".join(lines)
-
-
-def _write_deterministic_zip(
-    delivery_root: Path,
-    zip_path: Path,
-    errors: list[str],
-) -> bool:
-    files: list[Path] = []
-    for path in sorted(delivery_root.rglob("*")):
-        if path.is_symlink():
-            errors.append(
-                f"Unsafe symlink in delivery tree: {path.relative_to(delivery_root).as_posix()}"
-            )
-            return False
-        if path.is_file():
-            files.append(path)
-
-    try:
-        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
-            for path in files:
-                if path.is_symlink() or not path.is_file():
-                    raise OSError(f"unsafe delivery file changed during ZIP assembly: {path.as_posix()}")
-                archive_name = (Path(delivery_root.name) / path.relative_to(delivery_root)).as_posix()
-                info = zipfile.ZipInfo(archive_name, date_time=(1980, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = 0o100644 << 16
-                zf.writestr(info, path.read_bytes())
-    except OSError as exc:
-        if zip_path.exists():
-            zip_path.unlink()
-        errors.append(f"Delivery ZIP assembly failed: {exc}")
-        return False
-    return True
 
 
 def build_release(
@@ -369,115 +238,111 @@ def build_release(
     *,
     source_commit: str | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
-    errors: list[str] = []
     repo_root = repo_root.resolve()
-    output_dir = output_dir.resolve()
-    parity_root = parity_root.resolve()
-    if not output_dir.is_relative_to(repo_root) or output_dir == repo_root:
-        errors.append("output_dir must be a non-root path inside the repository")
-    if not parity_root.is_relative_to(repo_root):
-        errors.append("parity_root must be inside the repository")
-    commit = _source_commit(repo_root, source_commit)
-    if errors:
-        return errors, {
-            "schema": REPORT_SCHEMA,
-            "success": False,
-            "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            "source_commit": commit,
-            "delivery_root": None,
-            "zip_path": None,
-            "zip_sha256": None,
-            "target_count": 0,
-            "targets": [],
-            "static_parity_status": None,
-            "live_parity_status": None,
-            "errors": errors,
-        }
-    output_dir.mkdir(parents=True, exist_ok=True)
-    report_path = output_dir / "build_openai_gpt_deployment_release_report.json"
-    zip_name = f"DCOIR_OpenAI_GPT_Deployment_Packages_{commit[:12] if commit != 'unknown' else 'unknown'}.zip"
-    zip_path = output_dir / zip_name
-    _validate_output_path(output_dir, report_path, errors, "build report")
-    _validate_output_path(output_dir, zip_path, errors, "delivery ZIP")
-    if errors:
-        return errors, {
-            "schema": REPORT_SCHEMA,
-            "success": False,
-            "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
-            "source_commit": commit,
-            "delivery_root": None,
-            "zip_path": None,
-            "zip_sha256": None,
-            "target_count": 0,
-            "targets": [],
-            "static_parity_status": None,
-            "live_parity_status": None,
-            "errors": errors,
-        }
+    pre_errors, inputs = _prevalidate_webui_inputs(repo_root)
+    if pre_errors:
+        return pre_errors, _failure_report(repo_root, source_commit, pre_errors)
 
-    parity_json_path = parity_root / PARITY_JSON
-    parity_md_path = parity_root / PARITY_MD
-    parity = _load_json(parity_json_path, errors, "release parity report")
-    if parity.get("static_parity_status") != "pass":
-        errors.append("Unified release parity report is not statically clean")
-    if parity.get("blocking_parity_gaps") not in ([], None):
-        errors.append("Unified release parity report contains blocking gaps")
-    if commit != "unknown" and parity.get("source_commit") != commit:
-        errors.append(
-            f"Release parity report source commit mismatch: {parity.get('source_commit')!r} != {commit!r}"
+    errors, report = _core.build_release(
+        repo_root,
+        output_dir,
+        parity_root,
+        source_commit=source_commit,
+    )
+    if errors:
+        return errors, report
+
+    delivery_root = repo_root / report["delivery_root"]
+    zip_path = repo_root / report["zip_path"]
+    targets_by_id = {target["target_id"]: target for target in TARGETS}
+
+    for target_report in report["targets"]:
+        target_id = target_report["target_id"]
+        target = targets_by_id[target_id]
+        target_input = inputs[target_id]
+        destination_root = delivery_root / target["delivery_dir"]
+        old_instructions = destination_root / "Instructions.md"
+        if old_instructions.is_symlink() or not old_instructions.is_file():
+            errors.append(f"Expected direct-delivery Instructions file is missing or unsafe for {target_id}")
+            continue
+        old_instructions.unlink()
+        target_report["package_files"] = [
+            record
+            for record in target_report["package_files"]
+            if record.get("delivery_path") != f"{target['delivery_dir']}/Instructions.md"
+        ]
+
+        knowledge_records = sorted(target_report["knowledge_files"], key=lambda item: item.get("order", -1))
+        knowledge_names = [Path(record["delivery_path"]).name for record in knowledge_records]
+        setup_text = _webui_setup_markdown(
+            target_input["config"],
+            target_input["instructions"],
+            knowledge_names,
         )
-    if not parity_md_path.is_file():
-        errors.append(f"Missing release parity Markdown: {parity_md_path.as_posix()}")
+        setup_path = destination_root / WEBUI_SETUP_FILE
+        if not _write_output_bytes(
+            delivery_root,
+            setup_path,
+            setup_text.encode("utf-8"),
+            errors,
+            f"{target_id} WebUI setup Markdown",
+        ):
+            continue
 
-    guide_path = _resolve_repo_path(repo_root, GUIDE, errors, "deployment/readback guide")
-    if guide_path is None or not guide_path.is_file():
-        errors.append("Deployment/readback guide is unavailable")
+        # Re-read every source after writing and require exact regeneration.
+        sync_errors: list[str] = []
+        sync_config = _load_json(target_input["config_path"], sync_errors, f"{target_id} sync configuration")
+        try:
+            sync_instructions = target_input["instructions_path"].read_text(encoding="utf-8")
+        except (FileNotFoundError, UnicodeDecodeError):
+            sync_errors.append(f"{target_id} sync Instructions are unavailable or invalid")
+            sync_instructions = ""
+        sync_knowledge = sync_config.get("knowledge_files")
+        if not isinstance(sync_knowledge, list):
+            sync_errors.append(f"{target_id} sync knowledge_files must be an array")
+            sync_names: list[str] = []
+        else:
+            sync_names = [Path(item.get("path", "")).name for item in sync_knowledge if isinstance(item, dict)]
+        if sync_names != knowledge_names:
+            sync_errors.append(f"{target_id} Knowledge filenames changed during setup generation")
+        expected_setup = _webui_setup_markdown(sync_config, sync_instructions, sync_names) if not sync_errors else ""
+        if sync_errors or setup_path.read_text(encoding="utf-8") != expected_setup:
+            errors.extend(sync_errors)
+            errors.append(f"{target_id} WebUI setup Markdown is not synchronized with JSON/Instructions/Knowledge inputs")
+            continue
 
-    delivery_root = output_dir / DELIVERY_ROOT_NAME
-    if delivery_root.exists() or delivery_root.is_symlink():
-        if delivery_root.is_symlink() or not delivery_root.is_dir():
-            errors.append(f"Unsafe existing delivery root: {delivery_root.as_posix()}")
-            return errors, {
-                "schema": REPORT_SCHEMA,
-                "success": False,
-                "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
-                "source_commit": commit,
-                "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
-                "zip_path": None,
-                "zip_sha256": None,
-                "target_count": 0,
-                "targets": [],
-                "static_parity_status": parity.get("static_parity_status"),
-                "live_parity_status": parity.get("live_parity_status"),
-                "errors": errors,
-            }
-        shutil.rmtree(delivery_root)
-    delivery_root.mkdir(parents=True, exist_ok=True)
+        setup_bytes = setup_path.read_bytes()
+        setup_record = {
+            "delivery_path": setup_path.relative_to(delivery_root).as_posix(),
+            "source_path": target_input["config_path"].relative_to(repo_root).as_posix(),
+            "derived_from": [
+                target_input["config_path"].relative_to(repo_root).as_posix(),
+                target_input["instructions_path"].relative_to(repo_root).as_posix(),
+                *[record["source_path"] for record in knowledge_records],
+            ],
+            "sha256": _sha256_bytes(setup_bytes),
+            "bytes": len(setup_bytes),
+        }
+        target_report["package_files"].append(setup_record)
+        target_report["webui_setup_file"] = setup_record
+        target_report["description_character_count"] = len(sync_config["description"])
+        target_report["description_character_ceiling"] = DESCRIPTION_CHARACTER_CEILING
+        target_report["instructions_character_count"] = len(sync_instructions)
+        target_report["instructions_character_ceiling"] = INSTRUCTIONS_CHARACTER_CEILING
 
-    target_reports = [
-        _validate_and_copy_target(repo_root, delivery_root, target, errors)
-        for target in TARGETS
-    ]
-    if guide_path is not None and guide_path.is_file():
-        _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root, repo_root, errors)
-    if parity_json_path.is_file():
-        _copy_record(parity_json_path, delivery_root / PARITY_JSON, delivery_root, repo_root, errors)
-    if parity_md_path.is_file():
-        _copy_record(parity_md_path, delivery_root / PARITY_MD, delivery_root, repo_root, errors)
+        root_markdowns = sorted(path.name for path in destination_root.glob("*.md") if path.is_file())
+        if root_markdowns != [WEBUI_SETUP_FILE]:
+            errors.append(
+                f"{target_id} must expose exactly one human-facing Markdown at target root: "
+                f"{root_markdowns}"
+            )
 
-    manifest = {
-        "schema": SCHEMA,
-        "source_commit": commit,
-        "static_parity_status": parity.get("static_parity_status"),
-        "live_parity_status": parity.get("live_parity_status"),
-        "live_model_parity_claimed": False,
-        "manual_webui_deployment_required": True,
-        "generated_outputs_are_canonical": False,
-        "targets": target_reports,
-    }
+    manifest_path = delivery_root / "delivery_manifest.json"
+    manifest = _load_json(manifest_path, errors, "delivery manifest")
+    manifest["targets"] = report["targets"]
     _write_output_bytes(
         delivery_root,
-        delivery_root / "delivery_manifest.json",
+        manifest_path,
         _json_bytes(manifest),
         errors,
         "delivery manifest JSON",
@@ -495,35 +360,37 @@ def build_release(
     if not errors:
         _write_deterministic_zip(delivery_root, zip_path, errors)
 
-    report = {
-        "schema": REPORT_SCHEMA,
-        "success": not errors,
-        "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
-        "source_commit": commit,
-        "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
-        "zip_path": zip_path.relative_to(repo_root).as_posix() if zip_path.exists() else None,
-        "zip_sha256": _sha256_file(zip_path) if zip_path.exists() else None,
-        "target_count": len(target_reports),
-        "targets": target_reports,
-        "static_parity_status": parity.get("static_parity_status"),
-        "live_parity_status": parity.get("live_parity_status"),
-        "errors": errors,
-    }
-    if not _write_output_bytes(
-        output_dir,
+    report["success"] = not errors
+    report["zip_path"] = zip_path.relative_to(repo_root).as_posix() if zip_path.exists() else None
+    report["zip_sha256"] = _sha256_file(zip_path) if zip_path.exists() else None
+    report["errors"] = errors
+    report_path = Path(output_dir).resolve() / "build_openai_gpt_deployment_release_report.json"
+    _write_output_bytes(
+        Path(output_dir).resolve(),
         report_path,
         _json_bytes(report),
         errors,
         "build report",
-    ):
+    )
+    if errors and zip_path.exists():
+        zip_path.unlink()
         report["success"] = False
+        report["zip_path"] = None
+        report["zip_sha256"] = None
         report["errors"] = errors
+        _write_output_bytes(
+            Path(output_dir).resolve(),
+            report_path,
+            _json_bytes(report),
+            errors,
+            "build report",
+        )
     return errors, report
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Build one deterministic manual-deployment ZIP containing both governed OpenAI GPT packages."
+        description="Build one deterministic human-first manual-deployment ZIP containing both governed OpenAI GPT packages."
     )
     default_repo = Path(__file__).resolve().parents[3]
     parser.add_argument("--repo-root", type=Path, default=default_repo)

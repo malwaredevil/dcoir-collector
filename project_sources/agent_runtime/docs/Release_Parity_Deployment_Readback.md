@@ -24,35 +24,41 @@ Before deployment, archive the JSON and Markdown report from the applicable vali
 
 For the normal operator release lane, prefer GitHub Actions workflow `07 Operator - Build OpenAI GPT Deployment Packages`. One manual run validates both OpenAI targets, produces the unified static parity report, and creates one direct delivery artifact containing both GPT folders plus their ordered Knowledge files and deployment/readback evidence. Download that direct artifact and use its contents for the manual WebUI steps below.
 
+Each target folder exposes exactly one human-facing setup document, `GPT_WebUI_Setup.md`. That file is generated from the same validated `GPT_Configuration.json`, exact generated Instructions, and ordered Knowledge list used by the machine-readable package. It contains the exact Name/Title, Description, Instructions, conversation starters, model/runtime, capability states, and Knowledge filenames to apply in the GPT editor. `GPT_Configuration.json` and `manifest.json` remain machine-readable evidence; they are not the normal copy/paste surface.
+
+The direct package builder fails closed if the Description exceeds the governed 300-character package ceiling, if Instructions exceed the 8,000-character hard package ceiling, if the generated setup Markdown cannot be regenerated exactly from the current JSON/Instructions/Knowledge inputs, or if more than one human-facing Markdown file appears at a target-folder root. The internal generated OpenAI package may retain `Instructions.md` as a build/validation surface, but the direct operator target folder does not expose a second Instructions Markdown file.
+
 The workflow is a packaging convenience, not a deployment agent. A successful run does not modify either live GPT and does not change the live-readback requirements in this procedure.
 
 ## AFRICOM DCOIR Analyst manual deployment
 
-Use only the generated package under `project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/` and the seven Knowledge files enumerated by that package manifest.
+Use only the `AFRICOM_DCOIR_Analyst/` folder from the validated direct delivery artifact and the seven files under its `Knowledge/` folder.
 
 1. Confirm the approved commit and a passing static release/parity report.
-2. Run `python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check` immediately before deployment.
-3. Open the company OpenAI/ChatGPT WebUI and edit the existing `AFRICOM DCOIR Analyst` GPT. Do not create a replacement target unless the operator explicitly intends a new GPT.
-4. Apply the name, description, conversation starters, model/runtime selection, and capability settings from `GPT_Configuration.json`.
-5. Replace the WebUI Instructions with the complete generated `Instructions.md` contents. Do not hand-edit generated wording during the normal release lane.
-6. Remove stale Knowledge attachments and upload exactly the seven ordered Knowledge paths and filenames listed by the package manifest. Do not upload maintainer-only Gemini material.
-7. Verify that unsupported capabilities remain disabled: web search, Code Interpreter/Data Analysis, Canvas, image generation, Apps, Actions, live Elastic access, live collector execution, GitHub/Supabase connectors, and persistent cross-conversation memory unless a separately approved capability update changes the canonical contract.
-8. Save/update the GPT.
-9. Perform the live readback steps below before claiming deployment or live parity complete.
+2. Run `python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check` immediately before deployment when working from a repository checkout; the one-click workflow already performs this check for its direct artifact.
+3. Open `AFRICOM_DCOIR_Analyst/GPT_WebUI_Setup.md`. Confirm its field-limit readback reports Description at or below 300 characters and Instructions at or below 8,000 characters.
+4. Open the company OpenAI/ChatGPT WebUI and edit the existing `AFRICOM DCOIR Analyst` GPT. Do not create a replacement target unless the operator explicitly intends a new GPT.
+5. Work down `GPT_WebUI_Setup.md` from top to bottom: copy the Name/Title, Description, complete Instructions, conversation starters, and model/runtime exactly; apply the listed capability states exactly unless a separately governed capability change supersedes the package.
+6. Remove stale Knowledge attachments and upload exactly the seven ordered filenames listed by `GPT_WebUI_Setup.md` from that target's `Knowledge/` folder. Do not upload maintainer-only Gemini material.
+7. Save/update the GPT.
+8. Perform the live readback steps below before claiming deployment or live parity complete.
+
+Do not hand-edit the generated setup wording during the normal release lane. If a direct WebUI hotfix is necessary, use the reverse-reconciliation procedure below.
 
 ## AFRICOM USB Reporting manual deployment
 
-Use only the generated package under `project_sources/agent_runtime/generated/packages/openai_usb_reporting/` and the two Knowledge files enumerated by that package manifest.
+Use only the `AFRICOM_USB_Reporting/` folder from the validated direct delivery artifact and the two files under its `Knowledge/` folder.
 
 1. Confirm the approved commit and a passing static release/parity report.
-2. Run `python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check` immediately before deployment.
-3. Open the company OpenAI/ChatGPT WebUI and edit the existing `AFRICOM USB Reporting` GPT. Do not convert the general DCOIR Analyst GPT into the USB target.
-4. Apply the name, description, conversation starters, model/runtime selection, and capability settings from `GPT_Configuration.json`.
-5. Replace the WebUI Instructions with the complete generated `Instructions.md` contents. Do not hand-edit generated wording during the normal release lane.
-6. Remove stale Knowledge attachments and upload exactly the two ordered Knowledge paths and filenames listed by the package manifest.
-7. Verify that the same unsupported OpenAI capabilities remain disabled unless a separately approved canonical capability change exists.
-8. Save/update the GPT.
-9. Perform the live readback steps below before claiming deployment or live parity complete.
+2. Run `python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check` immediately before deployment when working from a repository checkout; the one-click workflow already performs this check for its direct artifact.
+3. Open `AFRICOM_USB_Reporting/GPT_WebUI_Setup.md`. Confirm its field-limit readback reports Description at or below 300 characters and Instructions at or below 8,000 characters.
+4. Open the company OpenAI/ChatGPT WebUI and edit the existing `AFRICOM USB Reporting` GPT. Do not convert the general DCOIR Analyst GPT into the USB target.
+5. Work down `GPT_WebUI_Setup.md` from top to bottom: copy the Name/Title, Description, complete Instructions, conversation starters, and model/runtime exactly; apply the listed capability states exactly unless a separately governed capability change supersedes the package.
+6. Remove stale Knowledge attachments and upload exactly the two ordered filenames listed by `GPT_WebUI_Setup.md` from that target's `Knowledge/` folder.
+7. Save/update the GPT.
+8. Perform the live readback steps below before claiming deployment or live parity complete.
+
+Do not hand-edit the generated setup wording during the normal release lane. If a direct WebUI hotfix is necessary, use the reverse-reconciliation procedure below.
 
 ## Live readback evidence
 
@@ -63,9 +69,9 @@ Required readback:
 1. Target name and unambiguous WebUI identity. Record a stable target identifier only when the platform exposes one safely; never invent an identifier.
 2. Date/time of deployment and the approved repository commit.
 3. Model/runtime shown by the WebUI.
-4. Name, description, conversation starters, and capability-toggle state compared with `GPT_Configuration.json`.
-5. Full Instructions readback compared with the generated `Instructions.md`. If the WebUI permits copying the full text back out, compare exact text or a locally computed SHA-256. If it does not, record that limitation and perform a complete visual/text review.
-6. Knowledge attachment filenames and count compared with the package manifest: seven for DCOIR Analyst and two for USB Reporting.
+4. Name, Description, conversation starters, and capability-toggle state compared with `GPT_WebUI_Setup.md`; use `GPT_Configuration.json` as the machine-readable cross-check if needed.
+5. Full Instructions readback compared with the Instructions block in `GPT_WebUI_Setup.md`. If the WebUI permits copying the full text back out, compare exact text or a locally computed SHA-256. If it does not, record that limitation and perform a complete visual/text review.
+6. Knowledge attachment filenames and count compared with the setup document and package manifest: seven for DCOIR Analyst and two for USB Reporting.
 7. A small live behavioral smoke set appropriate to the target. At minimum verify identity/scope, unsupported-capability truthfulness, evidence-versus-inference language, and the target-specific redirect/confirmation behavior represented by its offline cases.
 8. Any discrepancy, editor normalization, platform limitation, or unresolved behavior as an explicit gap rather than silently treating it as parity.
 
