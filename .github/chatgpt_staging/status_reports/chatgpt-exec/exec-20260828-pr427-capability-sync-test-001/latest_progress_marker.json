@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33155291285",
+  "github_sha": "cc380d390a9279205a4d02339cc28ea28a1d9e97",
+  "phase": "request-resolved",
+  "request_id": "exec-20260828-pr427-capability-sync-test-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-pr427-capability-sync-test-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-08-28T08:26:02Z",
+  "workflow": "chatgpt-exec"
+}
