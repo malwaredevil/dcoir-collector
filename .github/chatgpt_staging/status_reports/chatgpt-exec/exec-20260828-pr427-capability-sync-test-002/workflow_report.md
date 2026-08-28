@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: failure
+- phase: harness-finished
 - request_id: exec-20260828-pr427-capability-sync-test-002
 - request_path: .github/chatgpt_staging/exec_requests/exec-20260828-pr427-capability-sync-test-002.json
 - github_run_id: 33155381799
@@ -18,9 +18,11 @@
 - github_sha: 668ff8b89a7f4ea8a7193c4010b646a9a200483b
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/33155381799
-- report_updated_utc: 2026-08-28T08:27:17Z
+- report_updated_utc: 2026-08-28T08:27:20Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260828-pr427-capability-sync-test-002/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260828-pr427-capability-sync-test-002/latest_progress_marker.json
+- artifact_name: chatgpt-exec-harness-failure-20260828T082720Z
+- exit_code: 1
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 1. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-08-28T08:27:15Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-08-28T08:27:17Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-08-28T08:27:20Z | phase=harness-finished | result=failure | Approved command harness finished with exit code 1. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
