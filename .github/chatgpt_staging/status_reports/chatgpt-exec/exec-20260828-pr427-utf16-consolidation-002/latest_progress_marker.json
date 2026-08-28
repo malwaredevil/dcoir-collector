@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33163102360",
+  "github_sha": "2f409b3629fe54e56c04f2d49e95347d4dcae658",
+  "phase": "request-resolved",
+  "request_id": "exec-20260828-pr427-utf16-consolidation-002",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260828-pr427-utf16-consolidation-002.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-08-28T10:22:38Z",
+  "workflow": "chatgpt-exec"
+}
