@@ -4,10 +4,12 @@ This narrow overlay advances #433 and #434 without granting DCOIR Review any
 branch-write capability. It:
 
 - records whether each post-synthesis finding received a native GitHub
-  suggestion, fallback guidance, or no repair proposal; and
+  suggestion, fallback guidance, or no repair proposal;
 - fails closed when the independent fix-synthesis pass explicitly contradicts
   the detector by calling the finding a false positive, recommending dismissal,
-  or saying no code change is warranted.
+  or saying no code change is warranted; and
+- suppresses explicitly language-specific risk sentinels when their changed
+  file extension belongs to a different language family.
 
 The contradiction path intentionally does not silently turn the review clean.
 The existing terminal-failure reporter makes the quality failure visible on the
@@ -17,12 +19,36 @@ pull request so an operator can disposition it.
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import Any
 
 
 VERSION = "v19"
 OUTCOME_ARTIFACT = "metadata/fix-synthesis-outcomes-v19.json"
 WEAK_NO_REPAIR_REASON = "fix synthesis says no code change is warranted"
+
+POWERSHELL_EXTENSIONS = frozenset({".ps1", ".psd1", ".psm1"})
+PYTHON_EXTENSIONS = frozenset({".py"})
+JAVASCRIPT_EXTENSIONS = frozenset({".cjs", ".js", ".mjs", ".ts"})
+YAML_EXTENSIONS = frozenset({".yaml", ".yml"})
+
+LANGUAGE_SCOPED_SENTINEL_EXTENSIONS: dict[str, frozenset[str]] = {
+    "PowerShell Invoke-Expression": POWERSHELL_EXTENSIONS,
+    "PowerShell process launch": POWERSHELL_EXTENSIONS,
+    "PowerShell unsafe archive extraction": POWERSHELL_EXTENSIONS,
+    "PowerShell outbound request or download": POWERSHELL_EXTENSIONS,
+    "PowerShell broad ACL grant": POWERSHELL_EXTENSIONS,
+    "PowerShell unsafe file-write path": POWERSHELL_EXTENSIONS,
+    "shell=True subprocess invocation": PYTHON_EXTENSIONS,
+    "Python unsafe archive extraction": PYTHON_EXTENSIONS,
+    "Node.js command execution": JAVASCRIPT_EXTENSIONS,
+    "TypeScript/JavaScript unsafe path construction": JAVASCRIPT_EXTENSIONS,
+    "TypeScript/JavaScript unsafe file write": JAVASCRIPT_EXTENSIONS,
+    "GitHub Actions privileged PR context": YAML_EXTENSIONS,
+    "GitHub Actions untrusted metadata shell execution": YAML_EXTENSIONS,
+    "Kubernetes privileged container setting": YAML_EXTENSIONS,
+    "Kubernetes host filesystem exposure": YAML_EXTENSIONS,
+}
 
 SELF_DISQUALIFYING_FIX_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
@@ -44,6 +70,36 @@ SELF_DISQUALIFYING_FIX_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
         WEAK_NO_REPAIR_REASON,
     ),
 )
+
+
+def sentinel_matches_source_language(sentinel: Any) -> bool:
+    """Return False only when an explicitly language-scoped sentinel crosses languages."""
+    label = str(getattr(sentinel, "label", "") or "").strip()
+    allowed_extensions = LANGUAGE_SCOPED_SENTINEL_EXTENSIONS.get(label)
+    if allowed_extensions is None:
+        return True
+    suffix = Path(str(getattr(sentinel, "path", "") or "")).suffix.lower()
+    return suffix in allowed_extensions
+
+
+def _patch_language_scoped_sentinels(owner: Any) -> None:
+    storage = "_dcoir_required_v19_original_detect_risk_sentinels"
+    original = getattr(owner, storage, None)
+    if original is None:
+        original = getattr(owner, "detect_risk_sentinels", None)
+        if callable(original):
+            setattr(owner, storage, original)
+    if not callable(original):
+        return
+
+    def detect_risk_sentinels(diff: str, *args: Any, **kwargs: Any) -> list[Any]:
+        try:
+            sentinels = list(original(diff, *args, **kwargs))
+        except TypeError:
+            sentinels = list(original(diff))
+        return [sentinel for sentinel in sentinels if sentinel_matches_source_language(sentinel)]
+
+    owner.detect_risk_sentinels = detect_risk_sentinels
 
 
 def _guidance(finding: dict[str, Any]) -> dict[str, Any]:
@@ -177,4 +233,8 @@ def _patch_fix_synthesis_collection(module: Any) -> None:
 
 
 def apply_pareto_context_module(module: Any) -> None:
+    _patch_language_scoped_sentinels(module)
+    hardened = getattr(module, "hardened", None)
+    if hardened is not None:
+        _patch_language_scoped_sentinels(hardened)
     _patch_fix_synthesis_collection(module)
