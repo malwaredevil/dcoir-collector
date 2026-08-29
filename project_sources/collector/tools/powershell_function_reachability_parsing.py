@@ -1,33 +1,19 @@
 #!/usr/bin/env python3
-"""PowerShell parsing helpers for the function reachability report."""
+"""PowerShell lexical parsing helpers for the function reachability report."""
 from __future__ import annotations
 
-import json
 import re
-import shutil
-import subprocess
-import tempfile
-from pathlib import Path
 from typing import Any
 
 from powershell_function_reachability_contract import (
     Definition,
     Reference,
     SourceFile,
-    ast_definition_kind,
-    ast_invocation_kind,
     context_line,
     line_column,
     normalize_newlines,
     scalar,
 )
-
-from powershell_function_reachability_ast import (
-    POWERSHELL_AST_SCRIPT,
-    parse_with_powershell_ast,
-    powershell_executable,
-)
-
 
 
 def powershell_backtick_tolerant_literal(value: str) -> str:
@@ -232,12 +218,6 @@ def fallback_parse_source(
                 }
             )
     return definitions, references, dynamic_sites, []
-
-
-
-
-
-
 
 
 def parse_sources(sources: list[SourceFile], parser_mode: str) -> tuple[list[Definition], list[Reference], list[dict[str, Any]], list[dict[str, Any]], str]:
