@@ -205,7 +205,7 @@ function New-CollectUploadArtifacts {
     $safeTotal += $sizeKB
     [void]$recommended.Add([ordered]@{
       path = $path
-      relative_path = [string](Resolve-Path -LiteralPath $path | ForEach-Object { $_.Path.Replace($State.RunRoot + '\', '') })
+      relative_path = [string](Resolve-Path -LiteralPath $path | ForEach-Object { $_.Path.Replace($State.RunRoot + '\\', '') })
       size_kb = $sizeKB
       within_safe_per_file = ($sizeKB -le $budget.SafePerFileKB)
       within_hard_per_file = ($sizeKB -le $budget.HardPerFileKB)
