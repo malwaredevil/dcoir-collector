@@ -336,3 +336,4 @@ function Write-StepLog {
     Add-Content -Path $Global:ExecutionJsonlPath -Value (Convert-ToCollectorJsonText -InputObject $obj -Compress -Label 'execution step JSONL') -Encoding UTF8 -ErrorAction Stop
   }
 }
+# DCOIR_REVIEW_AUDIT_BATCH_1_MARKER

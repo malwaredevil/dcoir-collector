@@ -190,3 +190,4 @@ function Get-RegistryQueryText {
   }
   return (Get-CombinedProcessOutput -Result $result)
 }
+# DCOIR_REVIEW_AUDIT_BATCH_1_MARKER

@@ -291,3 +291,4 @@ function Get-CombinedProcessOutput {
   [void]$lines.Add(($Result.StdErr))
   return ($lines -join [Environment]::NewLine)
 }
+# DCOIR_REVIEW_AUDIT_BATCH_1_MARKER

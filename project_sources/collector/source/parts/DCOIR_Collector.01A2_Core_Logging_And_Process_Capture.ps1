@@ -327,3 +327,4 @@ function Invoke-CmdCapture {
   )
   return (Invoke-ProcessCapture -FilePath "cmd.exe" -Arguments @("/c", $Command) -StepName $StepName -AllowedExitCodes $AllowedExitCodes -TimeoutSeconds $TimeoutSeconds)
 }
+# DCOIR_REVIEW_AUDIT_BATCH_1_MARKER
