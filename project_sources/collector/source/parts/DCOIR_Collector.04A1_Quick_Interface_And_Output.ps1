@@ -315,3 +315,4 @@ function Get-CollectorHelpText {
   $lines += "  - Prefer PowerShell 5.1 syntax and the runtime filename DCOIR_Collector.ps1."
   return ($lines -join [Environment]::NewLine)
 }
+# DCOIR_REVIEW_AUDIT_BATCH_2C_MARKER
