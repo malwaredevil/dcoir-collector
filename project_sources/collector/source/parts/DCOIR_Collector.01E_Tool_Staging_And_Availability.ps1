@@ -161,7 +161,7 @@ function Get-TaskXml {
     $result = Invoke-ProcessCapture -FilePath "schtasks.exe" -Arguments @("/query","/tn",$TaskName,"/xml") -StepName "ENRICH_PULL_TASK_XML"
     return (Get-CombinedProcessOutput -Result $result)
   } catch {
-    Add-CollectorError "Failed to export task XML for [$TaskName]: $($_.Exception.Message)"
+    Add-CollectorError "Failed to export task XML for [$Name]: $($_.Exception.Message)"
     return "ERROR exporting task XML: $($_.Exception.Message)"
   }
 }
@@ -226,3 +226,4 @@ function Get-CommandAvailabilityTable {
   }
   return ($rows | Format-Table -AutoSize | Out-String -Width 500)
 }
+# DCOIR_REVIEW_AUDIT_BATCH_2A_MARKER
