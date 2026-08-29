@@ -187,3 +187,4 @@ if ($status -eq "SUCCESS" -and @($Global:CollectorErrors).Count -gt 0) { $status
 
 Write-DCOIRCollectFinalStatus -State $state -RunId $RunId -Status $status -BundlePath $bundlePath -MetadataReportPath $metadataReportPath -CollectPackageSkipped $collectPackageSkipped -CollectManifestSkipped $collectManifestSkipped -CollectManifestFinalizationSkipped $collectManifestFinalizationSkipped -MetadataReportSkipped $metadataReportSkipped -StateSaveSkipped $stateSaveSkipped -UploadSummarySkipped $uploadSummarySkipped -AttachmentBudgetManifestSkipped $attachmentBudgetManifestSkipped -UploadSafeChunkManifestSkipped $uploadSafeChunkManifestSkipped -AnalystOverviewSkipped $analystOverviewSkipped -CollectionScopeSkipped $collectionScopeSkipped -ParallelismAssessmentSkipped $parallelismAssessmentSkipped -TargetedCollectionPlanSkipped $targetedCollectionPlanSkipped -CollectGuidanceSkipped $collectGuidanceSkipped
 }
+# DCOIR_REVIEW_AUDIT_BATCH_2H5_MARKER
