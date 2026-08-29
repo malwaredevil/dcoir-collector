@@ -58,4 +58,3 @@ try {
   Write-Output ("MESSAGE={0}" -f $_.Exception.Message)
   exit 1
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2H8_MARKER
