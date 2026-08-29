@@ -94,6 +94,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v25_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v26_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v27_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v28_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_quality_recovery_selftest.py
