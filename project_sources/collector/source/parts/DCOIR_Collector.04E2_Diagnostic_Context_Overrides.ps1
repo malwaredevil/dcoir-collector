@@ -254,4 +254,3 @@ function Get-SecurityHighSignalSummaryText {
     return ("ERROR collecting condensed Security summary: {0}" -f $msg)
   }
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2F_MARKER

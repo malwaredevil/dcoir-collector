@@ -109,4 +109,3 @@ function Get-EventText {
     return (("ERROR collecting event log text for [{0}]: {1}" -f $Channel, $msg))
   }
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2F_MARKER
