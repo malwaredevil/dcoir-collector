@@ -20,6 +20,7 @@ function Run-MajorVersionSuite {
   Run-CoreSuite
   Run-QuickAliasesSuite
   Run-SessionBehaviorSuite
+  Run-SessionArtifactLiteralPathRegression
   Run-TargetedCollectionSuite
   Run-ChunkingOversizeArtifactSuite
   Run-ChunkingReconstructionMetadataSuite
@@ -34,7 +35,10 @@ try {
     "Core" { Run-CoreSuite }
     "Retrieval" { Run-RetrievalSuite }
     "QuickAliases" { Run-QuickAliasesSuite }
-    "SessionBehavior" { Run-SessionBehaviorSuite }
+    "SessionBehavior" {
+      Run-SessionBehaviorSuite
+      Run-SessionArtifactLiteralPathRegression
+    }
     "TargetedCollection" { Run-TargetedCollectionSuite }
     "ChunkingOversizeArtifact" { Run-ChunkingOversizeArtifactSuite }
     "ChunkingReconstructionMetadata" { Run-ChunkingReconstructionMetadataSuite }
@@ -46,6 +50,7 @@ try {
       Run-RetrievalSuite
       Run-QuickAliasesSuite
       Run-SessionBehaviorSuite
+      Run-SessionArtifactLiteralPathRegression
       Run-TargetedCollectionSuite
       Run-ChunkingOversizeArtifactSuite
       Run-ChunkingReconstructionMetadataSuite
