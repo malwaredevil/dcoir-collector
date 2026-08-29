@@ -291,4 +291,3 @@ function Write-ArtifactText {
   if ($wroteRootArtifact) { return $path }
   return $null
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2G2_MARKER
