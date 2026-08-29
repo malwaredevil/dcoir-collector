@@ -39,6 +39,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v25',
         'dcoir_review_required_runtime_patch_v26',
         'dcoir_review_required_runtime_patch_v27',
+        'dcoir_review_required_runtime_patch_v29',
         'dcoir_review_required_runtime_patch_v28',
     )
 
