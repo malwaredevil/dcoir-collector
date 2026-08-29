@@ -38,7 +38,7 @@ fallback_models:
 
 openrouter_route:
 openrouter_service_tier:
-openrouter_session_id_prefix: dcoir-review
+openrouter-session_id_prefix: dcoir-review
 
 max_prompt_chars: 60000
 max_files: 30
@@ -92,6 +92,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v23_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v24_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v25_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v26_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_quality_recovery_selftest.py
