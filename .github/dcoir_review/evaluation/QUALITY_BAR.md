@@ -14,7 +14,9 @@ DCOIR Review uses layered evidence rather than a confidence threshold alone:
    - ordinary candidates receive a bounded independent judge pass using the exact line and full head-file context;
    - unsupported candidates are suppressed;
    - malformed, ambiguous, provider-failed, or overflow verifier states fail closed rather than publish unverified findings;
-5. applyable GitHub suggestions are stricter than ordinary findings: detector-authored replacement text is stripped, independent fix synthesis runs after publication verification, exact single-line safety checks run, and only verified synthesis output may render a native `suggestion` fence.
+5. applyable GitHub suggestions are stricter than ordinary findings: detector-authored replacement text is stripped; a dedicated repair-author AI runs only after publication verification; the exact one-line candidate must pass deterministic prechecks; a separate repair-critic AI independently evaluates that already-verified repair; deterministic exact-head validation runs again; and only an accepted, exact, single-line repair may render a native `suggestion` fence.
+
+The verifier, repair author, repair critic, and deterministic validators have separate responsibilities. A repair-stage failure must not erase a verified finding, but it must withhold the one-click suggestion. No stage in this architecture writes to the PR branch.
 
 ## Measured evidence
 
@@ -34,7 +36,7 @@ Production verifier readback additionally records:
 - model-judged findings;
 - unsupported findings suppressed.
 
-Live reviewer evidence must record the reviewed head SHA, DCOIR workflow run, context mode, finding anchors, and any native suggestion/fallback outcome.
+Live reviewer evidence must record the reviewed head SHA, DCOIR workflow run, context mode, finding anchors, and any native suggestion/fallback outcome. Verified-repair evidence must additionally record the repair-author model and confidence, repair-critic model and confidence, critic disposition, exact replacement text, and final deterministic suggestion outcome.
 
 ## "Approaching Copilot-level usefulness" gate
 
@@ -50,4 +52,8 @@ All conditions below are required before that phrase may be used without qualifi
 
 ## Current evidence boundary
 
-The controlled `TEST ONLY — NEVER MERGE` PR #436 proves a live known true positive can survive final selection, pass the independent fix-synthesis path, and render as GitHub's native suggested-change component without mutating the PR branch. That is one controlled data point, not enough by itself to claim the rolling naturalistic precision or suggestion-safety sample requirements above.
+The controlled `TEST ONLY — NEVER MERGE` PR #436 proves a live known true positive can survive final selection and render as GitHub's native suggested-change component without mutating the PR branch. That established the GitHub-native rendering mechanism.
+
+The separate controlled `TEST ONLY — NEVER MERGE` PR #437 proves the stricter ordinary semantic path end to end. On unchanged probe head `f59f8da397276718b64cc9fa034b2a4228cc86da`, DCOIR Review run `33244004569` used deep full-file context with zero risk-sentinel anchors, published one ordinary model-judged finding at the exact changed line, passed it through the independent finding verifier, invoked a dedicated repair author, invoked a separate repair critic, passed deterministic exact-line validation, and rendered a native GitHub suggestion. The repair author proposed `return age_minutes >= 0 and age_minutes <= 60` at confidence 1.00; the served repair critic accepted that exact repair at confidence 0.97; and the final repair metric recorded one verified finding, one native suggestion, and zero fallback/declined suggestions. The PR branch remained unchanged.
+
+These are controlled quality data points, not a claim that the rolling naturalistic precision or suggestion-safety sample requirements above have been met. In particular, #293 remains blocked and autonomous branch writes remain unauthorized.
