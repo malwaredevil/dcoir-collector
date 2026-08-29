@@ -151,6 +151,9 @@ Describe 'DCOIR collector deterministic function behavior' {
     $artifactPath = Write-SessionArtifactText -SessionArtifactsDir $artifacts -ActionName 'PullScriptOrConfig' -TargetLabel 'C:\Temp\[case]\sample_[artifact].ps1' -Text $text -Confirm:$false
 
     $artifactPath | Should -Not -BeNullOrEmpty
+    $artifactDirectory = [System.IO.Path]::GetFullPath((Split-Path -Parent $artifactPath))
+    $expectedArtifactDirectory = [System.IO.Path]::GetFullPath($artifacts)
+    $artifactDirectory | Should -BeExactly $expectedArtifactDirectory
     $artifactPath | Should -Match '\['
     $artifactPath | Should -Match '\]'
     Test-Path -LiteralPath $artifactPath -PathType Leaf | Should -BeTrue
