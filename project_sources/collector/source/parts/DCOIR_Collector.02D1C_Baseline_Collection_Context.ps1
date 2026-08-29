@@ -80,3 +80,4 @@ function Add-BaselineCollectionContext {
   [void]$artifactPaths.Add($p); $artifactMap['collection_notes_and_limitations'] = $p
   Add-Section -Builder $sb -Name "COLLECTION_NOTES_AND_LIMITATIONS" -Text $limitationText
 }
+# DCOIR_REVIEW_AUDIT_BATCH_2B_MARKER
