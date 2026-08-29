@@ -279,4 +279,3 @@ function New-AnalystOverviewArtifact {
   }
   return $null
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2D_MARKER
