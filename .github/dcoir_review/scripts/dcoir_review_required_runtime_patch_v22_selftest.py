@@ -34,6 +34,9 @@ def main() -> None:
         "Found a semantic defect in the changed boundary check.",
         "Detected a vulnerability in the changed authorization branch.",
         "Observed a correctness bug in the new comparison.",
+        "A vulnerability was identified in the changed authorization branch.",
+        "A correctness bug was found in the new comparison.",
+        "No unrelated issues were found. Identified a correctness bug in the changed comparison.",
     ):
         assert review.hardened.summary_suggests_problem(positive_summary), positive_summary
 
@@ -42,6 +45,8 @@ def main() -> None:
         "Found no defects in the changed code.",
         "No vulnerabilities were identified.",
         "This behavior is not a bug and requires no code change.",
+        "The change is not a security vulnerability.",
+        "A vulnerability was not identified in this change.",
         "Bug fixes were applied; no actionable findings were found.",
     ):
         assert not review.hardened.summary_suggests_problem(clean_summary), clean_summary
