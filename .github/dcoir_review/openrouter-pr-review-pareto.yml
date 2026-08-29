@@ -53,7 +53,9 @@ deep_review_max_total_chars: 24000
 per_file_first_pass_review: true
 per_file_review_concurrency: 4
 per_file_review_max_files: 8
-per_file_review_max_file_chars: 12000
+# Keep enough room to present complete collector source parts while retaining
+# substantial prompt headroom under max_prompt_chars for instructions and diff context.
+per_file_review_max_file_chars: 30000
 fix_synthesis_enabled: true
 fix_synthesis_max_findings: 8
 fix_synthesis_min_confidence: 0.80
