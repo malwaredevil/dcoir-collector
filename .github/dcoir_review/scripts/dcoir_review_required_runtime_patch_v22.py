@@ -5,6 +5,10 @@ returning an empty structured findings array. The existing recovery classifier
 already recognizes issue/problem/error language, but it did not recognize
 bug/defect/vulnerability discovery wording. This overlay adds that vocabulary
 without treating explicitly negated statements as actionable problems.
+
+The production per-file path calls ``hardened.review_quality_retry_reason``
+directly, so v22 wraps that callable as the authoritative recovery seam instead
+of depending on an older function's module-global symbol lookup.
 """
 
 from __future__ import annotations
@@ -16,6 +20,7 @@ from typing import Any
 VERSION = "v22"
 PROBLEM_NOUN = r"(?:bugs?|defects?|vulnerabilit(?:y|ies))"
 DISCOVERY_VERB = r"(?:found|identified|detected|observed)"
+SEMANTIC_RETRY_REASON = "model summary indicated a possible issue while the structured findings array was empty"
 
 ACTIVE_DISCOVERY_RE = re.compile(
     rf"\b{DISCOVERY_VERB}\b(?:\s+[a-z0-9_-]+){{0,7}}\s+\b{PROBLEM_NOUN}\b",
@@ -55,20 +60,55 @@ def _explicit_semantic_problem_discovery(summary: str) -> bool:
     return False
 
 
+def _has_no_structured_findings(result: Any) -> bool:
+    if not isinstance(result, dict):
+        return True
+    findings = result.get("findings", [])
+    return not isinstance(findings, list) or not findings
+
+
 def apply_pareto_context_module(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
     if hardened is None:
         return
-    storage = "_dcoir_required_v22_original_summary_suggests_problem"
-    original = getattr(hardened, storage, None)
-    if original is None:
-        original = getattr(hardened, "summary_suggests_problem", None)
-        if callable(original):
-            setattr(hardened, storage, original)
-    if not callable(original):
+
+    summary_storage = "_dcoir_required_v22_original_summary_suggests_problem"
+    original_summary = getattr(hardened, summary_storage, None)
+    if original_summary is None:
+        original_summary = getattr(hardened, "summary_suggests_problem", None)
+        if callable(original_summary):
+            setattr(hardened, summary_storage, original_summary)
+    if callable(original_summary):
+        def summary_suggests_problem(summary: str) -> bool:
+            return bool(original_summary(summary) or _explicit_semantic_problem_discovery(summary))
+
+        hardened.summary_suggests_problem = summary_suggests_problem
+
+    retry_storage = "_dcoir_required_v22_original_review_quality_retry_reason"
+    original_retry = getattr(hardened, retry_storage, None)
+    if original_retry is None:
+        original_retry = getattr(hardened, "review_quality_retry_reason", None)
+        if callable(original_retry):
+            setattr(hardened, retry_storage, original_retry)
+    if not callable(original_retry):
         return
 
-    def summary_suggests_problem(summary: str) -> bool:
-        return bool(original(summary) or _explicit_semantic_problem_discovery(summary))
+    def review_quality_retry_reason(
+        result: dict[str, Any],
+        config: Any,
+        risk_sentinels: list[Any],
+        line_index: dict[tuple[str, int], int] | None = None,
+    ) -> str:
+        existing_reason = str(original_retry(result, config, risk_sentinels, line_index) or "")
+        if existing_reason:
+            return existing_reason
+        if not getattr(config, "review_quality_retry_on_rejected_output", True):
+            return ""
+        if not getattr(config, "fail_on_summary_only_problem", True):
+            return ""
+        if not _has_no_structured_findings(result):
+            return ""
+        summary = str(result.get("summary", "") or "") if isinstance(result, dict) else ""
+        return SEMANTIC_RETRY_REASON if _explicit_semantic_problem_discovery(summary) else ""
 
-    hardened.summary_suggests_problem = summary_suggests_problem
+    hardened.review_quality_retry_reason = review_quality_retry_reason
