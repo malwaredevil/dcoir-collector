@@ -320,4 +320,3 @@ function New-CollectUploadArtifacts {
     UploadSafeChunkCompanionCount = @($chunkCompanions).Count
   }
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2A_MARKER
