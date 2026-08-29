@@ -146,3 +146,4 @@ function Invoke-CollectorBoundedWinEventQuery {
   $events = @(Get-WinEvent -FilterHashtable $FilterHashtable -MaxEvents $MaxEvents -ErrorAction Stop)
   return @($events | Sort-Object TimeCreated -Descending)
 }
+# DCOIR_REVIEW_AUDIT_BATCH_2F_MARKER
