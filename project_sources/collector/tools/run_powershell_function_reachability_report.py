@@ -12,10 +12,12 @@ looking for definitions and literal references.
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
+from powershell_function_reachability_ast import (
+    parse_with_powershell_ast as _parse_with_powershell_ast,
+)
 from powershell_function_reachability_contract import (
     CLASSIFICATIONS,
     DEFAULT_JSON_OUTPUT,
@@ -44,13 +46,11 @@ from powershell_function_reachability_contract import (
     sha256_file,
     write_json,
 )
-import powershell_function_reachability_parsing as _parsing
 from powershell_function_reachability_parsing import (
     AST_DYNAMIC_TEXT_RE,
     DYNAMIC_PATTERNS,
     FUNCTION_RE,
     INVOKE_EXPRESSION_RE,
-    POWERSHELL_AST_SCRIPT,
     TOKEN_RE,
     brace_depths,
     captured_text,
@@ -59,9 +59,7 @@ from powershell_function_reachability_parsing import (
     has_dynamic_command_text,
     mask_powershell_non_code,
     parse_sources as _parse_sources,
-    parse_with_powershell_ast as _parse_with_powershell_ast,
     powershell_backtick_tolerant_literal,
-    powershell_executable,
 )
 from powershell_function_reachability_reporting import (
     classify_functions,
@@ -74,12 +72,7 @@ from powershell_function_reachability_reporting import (
 
 
 def parse_with_powershell_ast(sources: list[SourceFile]) -> tuple[list[Definition], list[Reference], list[dict[str, object]], list[dict[str, object]], str]:
-    original_powershell_executable = _parsing.powershell_executable
-    _parsing.powershell_executable = powershell_executable
-    try:
-        return _parse_with_powershell_ast(sources)
-    finally:
-        _parsing.powershell_executable = original_powershell_executable
+    return _parse_with_powershell_ast(sources)
 
 
 def parse_sources(sources: list[SourceFile], parser_mode: str) -> tuple[list[Definition], list[Reference], list[dict[str, object]], list[dict[str, object]], str]:

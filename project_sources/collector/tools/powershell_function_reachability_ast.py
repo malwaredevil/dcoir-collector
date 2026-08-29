@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PowerShell parsing helpers for the function reachability report."""
+"""PowerShell AST parsing helpers for the function reachability report."""
 from __future__ import annotations
 
 import json
@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from powershell_function_reachability_contract import Definition, Reference, SourceFile, ast_definition_kind, ast_invocation_kind, scalar
+from powershell_function_reachability_parsing import captured_text, has_dynamic_command_text
 
 POWERSHELL_AST_SCRIPT = r"""
 param(

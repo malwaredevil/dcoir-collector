@@ -11,6 +11,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import powershell_function_reachability_ast as reach_ast
 import run_powershell_function_reachability_report as reach
 import validate_powershell_function_reachability_report as reach_gate
 
@@ -126,6 +127,74 @@ class PowerShellFunctionReachabilityReportTests(unittest.TestCase):
         self.assertEqual(by_name["Invoke-Uncalled"]["classification"], "dynamic_invocation_uncertain")
         self.assertEqual(by_name["Invoke-PartTwo"]["reference_count"], 1)
 
+    def test_python_fallback_ignores_comments_strings_and_here_strings(self) -> None:
+        with self.make_repo(
+            wrapper_text="""
+            function Invoke-Wrapper { Invoke-Live }
+            """,
+            part_texts={
+                "PartA.ps1": """
+                function Invoke-Live { 'called' }
+                function Invoke-Unused { 'not called' }
+                # Invoke-Unused
+                $doubleQuoted = "Invoke-Unused"
+                $singleQuoted = 'Invoke-Unused'
+                $hereSingle = @'
+                Invoke-Unused
+'@
+                $hereDouble = @"
+                Invoke-Unused
+"@
+                """,
+            },
+        ) as temp:
+            report = self.build(Path(temp), entrypoint=["Invoke-Wrapper"])
+
+        self.assertTrue(report["validation"]["success"])
+        by_name = {item["name"]: item for item in report["functions"]}
+        self.assertEqual(by_name["Invoke-Wrapper"]["classification"], "entrypoint")
+        self.assertEqual(by_name["Invoke-Live"]["classification"], "literal_referenced")
+        self.assertEqual(by_name["Invoke-Unused"]["classification"], "static_unreferenced")
+        self.assertEqual(by_name["Invoke-Unused"]["reference_count"], 0)
+
+    def test_python_fallback_matches_function_calls_case_insensitively(self) -> None:
+        with self.make_repo(
+            wrapper_text="""
+            function Invoke-Wrapper { invoke-target }
+            """,
+            part_texts={
+                "PartA.ps1": """
+                function Invoke-Target { 'called with different casing' }
+                """,
+            },
+        ) as temp:
+            report = self.build(Path(temp), entrypoint=["Invoke-Wrapper"])
+
+        self.assertTrue(report["validation"]["success"])
+        by_name = {item["name"]: item for item in report["functions"]}
+        self.assertEqual(by_name["Invoke-Target"]["classification"], "literal_referenced")
+        self.assertEqual(by_name["Invoke-Target"]["reference_count"], 1)
+
+    def test_python_fallback_dynamic_call_operator_preserves_uncertainty(self) -> None:
+        with self.make_repo(
+            wrapper_text="""
+            function Invoke-Wrapper { 'entry' }
+            """,
+            part_texts={
+                "PartA.ps1": """
+                function Invoke-Uncalled { 'not directly called' }
+                & $FunctionName
+                """,
+            },
+        ) as temp:
+            report = self.build(Path(temp), entrypoint=["Invoke-Wrapper"])
+
+        self.assertTrue(report["validation"]["success"])
+        self.assertEqual(report["summary"]["dynamic_invocation_site_count"], 1)
+        self.assertEqual(report["dynamic_invocation_sites"][0]["kind"], "call_operator_variable")
+        by_name = {item["name"]: item for item in report["functions"]}
+        self.assertEqual(by_name["Invoke-Uncalled"]["classification"], "dynamic_invocation_uncertain")
+
     def test_python_fallback_detects_backtick_obfuscated_invoke_expression(self) -> None:
         with self.make_repo(
             wrapper_text="""
@@ -190,6 +259,120 @@ class PowerShellFunctionReachabilityReportTests(unittest.TestCase):
         self.assertEqual(report["summary"]["parser_mode"], "python_lexical_fallback")
         self.assertEqual(report["generated_from"]["parser_mode"], "python_lexical_fallback")
 
+    def test_powershell_ast_dynamic_command_path_uses_shared_helpers(self) -> None:
+        with self.make_repo(
+            wrapper_text="function Invoke-Wrapper { }\n",
+            part_texts={"PartA.ps1": "function Invoke-PartOne { }\n"},
+        ) as temp:
+            root = Path(temp)
+            _manifest, sources, errors = reach.resolve_sources(root, root / reach.DEFAULT_MANIFEST)
+            self.assertEqual([], errors)
+
+            def fake_run(command: list[str], **_kwargs: object) -> reach_ast.subprocess.CompletedProcess[str]:
+                output_json = Path(command[-1])
+                output_json.write_text(
+                    json.dumps(
+                        [
+                            {
+                                "repo_path": sources[0].repo_path,
+                                "load_order": 0,
+                                "parse_errors": [],
+                                "definitions": [
+                                    {
+                                        "name": "Invoke-Wrapper",
+                                        "source_path": sources[0].repo_path,
+                                        "line": 1,
+                                        "column": 1,
+                                        "end_line": 1,
+                                        "definition_kind": "top_level",
+                                        "load_order": 0,
+                                    }
+                                ],
+                                "commands": [
+                                    {
+                                        "name": "Invoke-Expression",
+                                        "source_path": sources[0].repo_path,
+                                        "line": 2,
+                                        "column": 1,
+                                        "invocation_operator": "Unknown",
+                                        "text": "Invoke-Expression $scriptText",
+                                    }
+                                ],
+                            }
+                        ]
+                    ),
+                    encoding="utf-8",
+                )
+                return reach_ast.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+            with patch.object(reach_ast, "powershell_executable", return_value="pwsh"):
+                with patch.object(reach_ast.subprocess, "run", side_effect=fake_run):
+                    definitions, references, dynamic_sites, warnings, parser_mode = reach.parse_with_powershell_ast(sources)
+
+        self.assertEqual("powershell_ast", parser_mode)
+        self.assertEqual([], warnings)
+        self.assertEqual(1, len(definitions))
+        self.assertEqual([], references)
+        self.assertEqual(1, len(dynamic_sites))
+        self.assertEqual("ast_dynamic_or_expression_command", dynamic_sites[0]["kind"])
+        self.assertEqual("Invoke-Expression $scriptText", dynamic_sites[0]["context"])
+
+    def test_powershell_ast_dot_source_remains_conservative_uncertainty(self) -> None:
+        with self.make_repo(
+            wrapper_text="function Invoke-Wrapper { }\n",
+            part_texts={"PartA.ps1": "function Invoke-Uncalled { }\n"},
+        ) as temp:
+            root = Path(temp)
+            _manifest, sources, errors = reach.resolve_sources(root, root / reach.DEFAULT_MANIFEST)
+            self.assertEqual([], errors)
+
+            def fake_run(command: list[str], **_kwargs: object) -> reach_ast.subprocess.CompletedProcess[str]:
+                output_json = Path(command[-1])
+                output_json.write_text(
+                    json.dumps(
+                        [
+                            {
+                                "repo_path": sources[0].repo_path,
+                                "load_order": 0,
+                                "parse_errors": [],
+                                "definitions": [
+                                    {
+                                        "name": "Invoke-Wrapper",
+                                        "source_path": sources[0].repo_path,
+                                        "line": 1,
+                                        "column": 1,
+                                        "end_line": 1,
+                                        "definition_kind": "top_level",
+                                        "load_order": 0,
+                                    }
+                                ],
+                                "commands": [
+                                    {
+                                        "name": None,
+                                        "source_path": sources[0].repo_path,
+                                        "line": 2,
+                                        "column": 1,
+                                        "invocation_operator": "Dot",
+                                        "text": ". $partPath",
+                                    }
+                                ],
+                            }
+                        ]
+                    ),
+                    encoding="utf-8",
+                )
+                return reach_ast.subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+            with patch.object(reach_ast, "powershell_executable", return_value="pwsh"):
+                with patch.object(reach_ast.subprocess, "run", side_effect=fake_run):
+                    _definitions, _references, dynamic_sites, warnings, parser_mode = reach.parse_with_powershell_ast(sources)
+
+        self.assertEqual("powershell_ast", parser_mode)
+        self.assertEqual([], warnings)
+        self.assertEqual(1, len(dynamic_sites))
+        self.assertEqual("ast_dynamic_or_expression_command", dynamic_sites[0]["kind"])
+        self.assertEqual(". $partPath", dynamic_sites[0]["context"])
+
     def test_powershell_ast_timeout_falls_back_with_text_warnings(self) -> None:
         with self.make_repo(
             wrapper_text="function Invoke-Wrapper { Invoke-PartOne }\n",
@@ -198,14 +381,14 @@ class PowerShellFunctionReachabilityReportTests(unittest.TestCase):
             root = Path(temp)
             _manifest, sources, errors = reach.resolve_sources(root, root / reach.DEFAULT_MANIFEST)
             self.assertEqual([], errors)
-            timeout = reach.subprocess.TimeoutExpired(
+            timeout = reach_ast.subprocess.TimeoutExpired(
                 cmd=["pwsh"],
                 timeout=60,
                 output=b"stdout bytes",
                 stderr=b"stderr bytes",
             )
-            with patch.object(reach, "powershell_executable", return_value="pwsh"):
-                with patch.object(reach.subprocess, "run", side_effect=timeout):
+            with patch.object(reach_ast, "powershell_executable", return_value="pwsh"):
+                with patch.object(reach_ast.subprocess, "run", side_effect=timeout):
                     definitions, references, dynamic_sites, warnings, parser_mode = reach.parse_with_powershell_ast(sources)
 
         self.assertEqual([], definitions)
