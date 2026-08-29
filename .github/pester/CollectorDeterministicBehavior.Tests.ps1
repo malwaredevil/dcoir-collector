@@ -144,6 +144,22 @@ Describe 'DCOIR collector deterministic function behavior' {
     @(Get-ChildItem -LiteralPath $artifacts -File).Count | Should -Be 0
   }
 
+  It 'writes enrichment session artifacts literally when target labels contain wildcard brackets' {
+    $artifacts = Join-Path $TestDrive 'session-artifacts'
+    $text = 'literal bracket path regression'
+
+    $artifactPath = Write-SessionArtifactText -SessionArtifactsDir $artifacts -ActionName 'PullScriptOrConfig' -TargetLabel 'C:\Temp\[case]\sample_[artifact].ps1' -Text $text -Confirm:$false
+
+    $artifactPath | Should -Not -BeNullOrEmpty
+    $artifactDirectory = [System.IO.Path]::GetFullPath((Split-Path -Parent $artifactPath))
+    $expectedArtifactDirectory = [System.IO.Path]::GetFullPath($artifacts)
+    $artifactDirectory | Should -BeExactly $expectedArtifactDirectory
+    $artifactPath | Should -Match '\['
+    $artifactPath | Should -Match '\]'
+    Test-Path -LiteralPath $artifactPath -PathType Leaf | Should -BeTrue
+    (Get-Content -LiteralPath $artifactPath -Raw).TrimEnd("`r", "`n") | Should -BeExactly $text
+  }
+
   It 'applies collect and targeted quick aliases to runtime state' {
     $script:Quick = 'collect-t2'
     Apply-QuickShortcut
