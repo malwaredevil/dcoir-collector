@@ -9,8 +9,8 @@ robust and observable:
   title/body rather than failing an otherwise useful exact repair;
 - do not spend a critic call when the author declines or deterministic precheck
   already rejects the proposed one-line replacement;
-- persist critic results independently;
-- persist bounded failure diagnostics on every fail-closed path;
+- persist author/critic call and parse failures independently;
+- persist bounded diagnostics on every fail-closed repair path;
 - keep native suggestion eligibility exactly as strict as v25.
 
 No branch writes are introduced.
@@ -110,6 +110,50 @@ def _declined_item(
     return item
 
 
+def _stage_failure(
+    module: Any,
+    config: Any,
+    ordinal: int,
+    finding: dict[str, Any],
+    path: str,
+    line: int,
+    stage: str,
+    exc: Exception,
+    *,
+    author: dict[str, Any] | None = None,
+    author_model: str = "",
+    author_tier: str = "",
+) -> dict[str, Any]:
+    reason = f"{stage} failed closed: {type(exc).__name__}: {str(exc)[:500]}"
+    _debug(
+        module,
+        config,
+        f"responses/repair-v28/{ordinal:02d}-{stage}-failure.json",
+        {
+            "path": path,
+            "line": line,
+            "stage": stage,
+            "error_type": type(exc).__name__,
+            "error": str(exc)[:1200],
+        },
+    )
+    return _declined_item(
+        finding,
+        path,
+        line,
+        reason,
+        author=author,
+        author_model=author_model,
+        author_tier=author_tier,
+        outcome=f"{stage}-stage-failed-closed",
+    )
+
+
+def _persist_final(module: Any, config: Any, ordinal: int, item: dict[str, Any]) -> None:
+    marker = item.get(v25.REPAIR_MARKER) if isinstance(item.get(v25.REPAIR_MARKER), dict) else {}
+    _debug(module, config, f"responses/repair-v28/{ordinal:02d}-final.json", dict(marker))
+
+
 def build_repair_for_finding(
     module: Any,
     ordinal: int,
@@ -124,9 +168,15 @@ def build_repair_for_finding(
         raise hardened.ReviewQualityError("DCOIR repair stage received an unreadable anchored finding")
 
     author_prompt = v25._repair_author_prompt(module, finding, path, line, original, file_text, config)
-    author_raw, author_model, author_tier = hardened.openrouter_review(
-        author_prompt, v25.REPAIR_AUTHOR_SCHEMA, config, reporter=None
-    )
+    try:
+        author_raw, author_model, author_tier = hardened.openrouter_review(
+            author_prompt, v25.REPAIR_AUTHOR_SCHEMA, config, reporter=None
+        )
+    except Exception as exc:
+        item = _stage_failure(module, config, ordinal, finding, path, line, "author-call", exc)
+        _persist_final(module, config, ordinal, item)
+        return item
+
     _debug(
         module,
         config,
@@ -139,7 +189,12 @@ def build_repair_for_finding(
             "result": author_raw if isinstance(author_raw, dict) else {"shape": type(author_raw).__name__},
         },
     )
-    author = _author_result(author_raw, finding, path, line, hardened)
+    try:
+        author = _author_result(author_raw, finding, path, line, hardened)
+    except Exception as exc:
+        item = _stage_failure(module, config, ordinal, finding, path, line, "author-parse", exc)
+        _persist_final(module, config, ordinal, item)
+        return item
 
     if author["action"] != "replace_line":
         reason = author["rationale"] or "Repair author did not support a safe exact one-line replacement."
@@ -153,7 +208,7 @@ def build_repair_for_finding(
             author_tier=author_tier,
             outcome="author-declined",
         )
-        _debug(module, config, f"responses/repair-v28/{ordinal:02d}-final.json", item[v25.REPAIR_MARKER])
+        _persist_final(module, config, ordinal, item)
         return item
 
     precheck_reason = v25._replacement_validation_reason(
@@ -176,12 +231,32 @@ def build_repair_for_finding(
             f"responses/repair-v28/{ordinal:02d}-precheck.json",
             {"path": path, "line": line, "reason": precheck_reason, "replacement": author["replacement"]},
         )
+        _persist_final(module, config, ordinal, item)
         return item
 
     critic_prompt = v25._repair_critic_prompt(module, finding, author, path, line, original, file_text, config)
-    critic_raw, critic_model, critic_tier = hardened.openrouter_review(
-        critic_prompt, v25.REPAIR_CRITIC_SCHEMA, v25._independent_config(config), reporter=None
-    )
+    critic_config = v25._independent_config(config)
+    try:
+        critic_raw, critic_model, critic_tier = hardened.openrouter_review(
+            critic_prompt, v25.REPAIR_CRITIC_SCHEMA, critic_config, reporter=None
+        )
+    except Exception as exc:
+        item = _stage_failure(
+            module,
+            config,
+            ordinal,
+            finding,
+            path,
+            line,
+            "critic-call",
+            exc,
+            author=author,
+            author_model=author_model,
+            author_tier=author_tier,
+        )
+        _persist_final(module, config, ordinal, item)
+        return item
+
     _debug(
         module,
         config,
@@ -194,7 +269,25 @@ def build_repair_for_finding(
             "result": critic_raw if isinstance(critic_raw, dict) else {"shape": type(critic_raw).__name__},
         },
     )
-    accepted, critic_confidence, critic_reason = v25._parse_critic(critic_raw, hardened)
+    try:
+        accepted, critic_confidence, critic_reason = v25._parse_critic(critic_raw, hardened)
+    except Exception as exc:
+        item = _stage_failure(
+            module,
+            config,
+            ordinal,
+            finding,
+            path,
+            line,
+            "critic-parse",
+            exc,
+            author=author,
+            author_model=author_model,
+            author_tier=author_tier,
+        )
+        _persist_final(module, config, ordinal, item)
+        return item
+
     if not accepted:
         item = _declined_item(
             finding,
@@ -213,6 +306,7 @@ def build_repair_for_finding(
                 "critic_confidence": critic_confidence,
             }
         )
+        _persist_final(module, config, ordinal, item)
         return item
 
     final_reason = v25._replacement_validation_reason(
@@ -237,6 +331,7 @@ def build_repair_for_finding(
                 "critic_accepted": True,
             }
         )
+        _persist_final(module, config, ordinal, item)
         return item
 
     item = dict(finding)
@@ -260,32 +355,60 @@ def build_repair_for_finding(
         "critic_accepted": True,
         "reason": critic_reason,
     }
-    _debug(
-        module,
-        config,
-        f"responses/repair-v28/{ordinal:02d}-final.json",
-        {
-            "path": path,
-            "line": line,
-            "outcome": "native-suggestion",
-            "replacement": author["replacement"],
-            "author_model": author_model,
-            "critic_model": critic_model,
-            "critic_confidence": critic_confidence,
-        },
-    )
+    _persist_final(module, config, ordinal, item)
     return item
 
 
+def _render_v28(module: Any, finding: dict[str, Any], config: Any) -> str:
+    base = module.base
+    marker = finding.get(v25.REPAIR_MARKER) if isinstance(finding.get(v25.REPAIR_MARKER), dict) else {}
+    title = base.markdown_emphasis_safe_text(
+        base.sanitize_github_output(str(finding.get("title", "Finding") or "Finding").strip(), config)
+    )
+    severity = base.markdown_emphasis_safe_text(str(finding.get("severity", "medium") or "medium").upper())
+    body = base.strip_model_validation_section(
+        base.sanitize_github_output(str(finding.get("body", "") or "").strip(), config)
+    )
+    parts = [f"**{severity}: {title}**", "", body]
+
+    suggestion = str(finding.get("suggested_replacement", "") or "")
+    if marker.get("outcome") == "native-suggestion" and suggestion:
+        path, line = v25._path_line(finding)
+        if (
+            path
+            and line > 0
+            and not any(token in suggestion for token in ("\n", "\r", "```", "~~~"))
+            and len(suggestion) <= 1000
+            and base.is_safe_suggestion(suggestion)
+        ):
+            safe = base.sanitize_github_output(suggestion, config, neutralize_mentions=False)
+            parts.extend(["", "**Suggested change:**", "", "```suggestion", safe, "```"])
+
+    guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
+    notes = base.fix_guidance_value_text(guidance.get("notes", ""), config) if guidance else ""
+    if notes:
+        parts.extend(["", "**Repair status:**", "", notes])
+
+    validation = base.sanitize_github_output(base.validation_text_for_finding(finding), config)
+    if validation:
+        parts.extend(["", "**Validation expected after fix:**"])
+        base.append_language_fence(parts, "bash", validation)
+    pipeline_version = str(marker.get("version", VERSION) or VERSION)
+    parts.extend(["", f"<sub>{base.REVIEW_DISPLAY_NAME} · verified repair pipeline {pipeline_version}</sub>"])
+    return base.github_safe_body("\n".join(parts), limit=12000)
+
+
 def apply_pareto_context_module(module: Any) -> None:
-    # v25.synthesize_verified_repairs resolves this global dynamically, so
-    # replacing the helper upgrades the active production pipeline without
-    # re-wrapping the verifier or renderer.
+    # v25.synthesize_verified_repairs resolves this helper dynamically, so
+    # replacing it upgrades the active production repair path without another
+    # verifier wrapper or any branch-writing capability.
     v25._build_repair_for_finding = lambda mod, ordinal, finding, file_text, config: build_repair_for_finding(
         mod, ordinal, finding, file_text, config
     )
+    v25._render_v25 = lambda mod, finding, config: _render_v28(mod, finding, config)
 
-    # Add bounded failure diagnostics around the v25 synthesize boundary.
+    # Keep a bounded terminal diagnostic for failures outside the per-finding
+    # author/critic stages. Per-finding failures are handled inside v28 above.
     storage = "_dcoir_required_v28_original_synthesize_verified_repairs"
     original = getattr(v25, storage, None)
     if original is None:
