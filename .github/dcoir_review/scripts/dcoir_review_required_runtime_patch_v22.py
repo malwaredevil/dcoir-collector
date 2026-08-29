@@ -62,11 +62,34 @@ def _explicit_semantic_problem_discovery(summary: str) -> bool:
     return False
 
 
-def _has_no_structured_findings(result: Any) -> bool:
+def _structured_findings(result: Any) -> list[dict[str, Any]]:
     if not isinstance(result, dict):
-        return True
+        return []
     findings = result.get("findings", [])
-    return not isinstance(findings, list) or not findings
+    if not isinstance(findings, list):
+        return []
+    return [item for item in findings if isinstance(item, dict)]
+
+
+def _has_no_structured_findings(result: Any) -> bool:
+    return not _structured_findings(result)
+
+
+def _structured_finding_digest(result: Any) -> str:
+    findings = _structured_findings(result)
+    anchors: list[str] = []
+    for finding in findings[:3]:
+        path = str(finding.get("path", "") or "").strip() or "<missing-path>"
+        try:
+            line = int(finding.get("line", 0) or 0)
+        except (TypeError, ValueError):
+            line = 0
+        try:
+            confidence = float(finding.get("confidence", 0) or 0)
+        except (TypeError, ValueError):
+            confidence = 0.0
+        anchors.append(f"{path}:{line}@{confidence:.2f}")
+    return ", ".join(anchors) if anchors else "none"
 
 
 def semantic_recovery_reason(result: Any, config: Any) -> str:
@@ -156,6 +179,16 @@ def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
             context_summary,
             gh,
         )
+        summary = str(result.get("summary", "") or "") if isinstance(result, dict) else ""
+        semantic_signal = _explicit_semantic_problem_discovery(summary)
+        diagnostic = (
+            f"v22 active; structured_findings={len(_structured_findings(result))}; "
+            f"semantic_signal={str(semantic_signal).lower()}; "
+            f"retry_attempted={str(bool(isinstance(result, dict) and result.get('_quality_retry_attempted'))).lower()}; "
+            f"anchors={_structured_finding_digest(result)}"
+        )
+        reporter.update("semantic-recovery", hardened.sanitize_github_output(diagnostic, config))
+
         retry_reason = semantic_recovery_reason(result, config)
         if not retry_reason:
             return result, model_used, service_tier
