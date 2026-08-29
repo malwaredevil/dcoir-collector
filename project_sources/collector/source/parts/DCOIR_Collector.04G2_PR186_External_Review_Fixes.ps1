@@ -226,4 +226,3 @@ function New-BundleZip {
   Compress-Archive -LiteralPath $existing -DestinationPath $bundlePath -CompressionLevel Optimal -Force -ErrorAction Stop
   return $bundlePath
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2G3_MARKER
