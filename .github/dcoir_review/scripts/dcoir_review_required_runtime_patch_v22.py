@@ -6,9 +6,10 @@ already recognizes issue/problem/error language, but it did not recognize
 bug/defect/vulnerability discovery wording. This overlay adds that vocabulary
 without treating explicitly negated statements as actionable problems.
 
-The production per-file path calls ``hardened.review_quality_retry_reason``
-directly, so v22 wraps that callable as the authoritative recovery seam instead
-of depending on an older function's module-global symbol lookup.
+Several historical compatibility layers can replace lower-level quality
+helpers. v22 therefore also wraps the production hybrid first-pass boundary:
+a semantic summary-only result that has not already retried receives the same
+bounded whole-PR quality-retry flow before normalization/publication.
 """
 
 from __future__ import annotations
@@ -43,8 +44,6 @@ DIRECT_NEGATION_PATTERNS = (
 
 def _semantic_clauses(summary: str) -> list[str]:
     text = str(summary or "").lower()
-    # Keep conjunctions inside a clause because they frequently belong to the
-    # evidence statement; punctuation gives a safer boundary for negation.
     return [re.sub(r"[^a-z0-9_-]+", " ", part).strip() for part in re.split(r"[.;:!?\n]+", text) if part.strip()]
 
 
@@ -67,11 +66,20 @@ def _has_no_structured_findings(result: Any) -> bool:
     return not isinstance(findings, list) or not findings
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    hardened = getattr(module, "hardened", None)
-    if hardened is None:
-        return
+def semantic_recovery_reason(result: Any, config: Any) -> str:
+    if not isinstance(result, dict) or result.get("_quality_retry_attempted"):
+        return ""
+    if not getattr(config, "review_quality_retry_on_rejected_output", True):
+        return ""
+    if not getattr(config, "fail_on_summary_only_problem", True):
+        return ""
+    if not _has_no_structured_findings(result):
+        return ""
+    summary = str(result.get("summary", "") or "")
+    return SEMANTIC_RETRY_REASON if _explicit_semantic_problem_discovery(summary) else ""
 
+
+def _patch_hardened_helpers(hardened: Any) -> None:
     summary_storage = "_dcoir_required_v22_original_summary_suggests_problem"
     original_summary = getattr(hardened, summary_storage, None)
     if original_summary is None:
@@ -102,13 +110,105 @@ def apply_pareto_context_module(module: Any) -> None:
         existing_reason = str(original_retry(result, config, risk_sentinels, line_index) or "")
         if existing_reason:
             return existing_reason
-        if not getattr(config, "review_quality_retry_on_rejected_output", True):
-            return ""
-        if not getattr(config, "fail_on_summary_only_problem", True):
-            return ""
-        if not _has_no_structured_findings(result):
-            return ""
-        summary = str(result.get("summary", "") or "") if isinstance(result, dict) else ""
-        return SEMANTIC_RETRY_REASON if _explicit_semantic_problem_discovery(summary) else ""
+        return semantic_recovery_reason(result, config)
 
     hardened.review_quality_retry_reason = review_quality_retry_reason
+
+
+def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
+    storage = "_dcoir_required_v22_original_hybrid_first_pass"
+    original = getattr(module, storage, None)
+    if original is None:
+        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
+        if callable(original):
+            setattr(module, storage, original)
+    if not callable(original):
+        return
+
+    def openrouter_review_with_hybrid_first_pass(
+        pr: dict[str, Any],
+        files: list[dict[str, Any]],
+        diff: str,
+        schema: dict[str, Any],
+        config: Any,
+        reporter: Any,
+        risk_sentinels: list[Any],
+        line_index: dict[tuple[str, int], int],
+        deep_context_block: str,
+        review_mode: str,
+        context_summary: str,
+        gh: Any,
+    ) -> tuple[dict[str, Any], str, str]:
+        result, model_used, service_tier = original(
+            pr,
+            files,
+            diff,
+            schema,
+            config,
+            reporter,
+            risk_sentinels,
+            line_index,
+            deep_context_block,
+            review_mode,
+            context_summary,
+            gh,
+        )
+        retry_reason = semantic_recovery_reason(result, config)
+        if not retry_reason:
+            return result, model_used, service_tier
+
+        safe_reason = hardened.sanitize_github_output(retry_reason, config)
+        reporter.update("quality-retry", f"{safe_reason}; retrying with whole-PR repair prompt")
+        aggregate_prompt = module.build_prompt(
+            pr,
+            files,
+            diff,
+            config,
+            risk_sentinels,
+            deep_context_block,
+            review_mode,
+            context_summary,
+        )
+        retry_sentinels = hardened.required_risk_sentinels(risk_sentinels) or risk_sentinels
+        retry_prompt = hardened.build_quality_retry_prompt(
+            aggregate_prompt,
+            result,
+            retry_sentinels,
+            config,
+            retry_reason,
+        )
+        hardened.write_debug_text_artifact_safely(config, "prompts/02-v22-semantic-quality-retry-prompt.txt", retry_prompt)
+        retry_result, retry_model_used, retry_service_tier = hardened.openrouter_review(
+            retry_prompt,
+            schema,
+            config,
+            reporter,
+        )
+        hardened.write_debug_json_artifact_safely(
+            config,
+            "responses/02-v22-semantic-quality-retry-result.json",
+            {"model_used": retry_model_used, "service_tier": retry_service_tier, "result": retry_result},
+        )
+        initial_summary = str(result.get("summary", "") or "").strip()
+        retry_summary = str(retry_result.get("summary", "") or "").strip()
+        merged_result = hardened.merge_review_results(result, retry_result)
+        merged_result["_quality_retry_attempted"] = True
+        merged_result["_quality_retry_reason"] = retry_reason
+        merged_result["_quality_retry_initial_summary"] = initial_summary
+        merged_result["_quality_retry_retry_summary"] = retry_summary
+        hardened.write_debug_json_artifact_safely(
+            config,
+            "responses/03-v22-semantic-quality-retry-merged-result.json",
+            {"model_used": retry_model_used, "service_tier": retry_service_tier, "result": merged_result},
+        )
+        return merged_result, retry_model_used, retry_service_tier
+
+    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+
+
+def apply_pareto_context_module(module: Any) -> None:
+    hardened = getattr(module, "hardened", None)
+    if hardened is None:
+        return
+    _patch_hardened_helpers(hardened)
+    _patch_hybrid_boundary(module, hardened)
