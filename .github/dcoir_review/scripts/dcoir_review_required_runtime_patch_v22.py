@@ -1,10 +1,11 @@
 """DCOIR Review v22 summary-only semantic-problem recovery overlay.
 
-The detector can sometimes describe a real bug in the review summary while
+The detector can sometimes describe a real problem in the review summary while
 returning an empty structured findings array. The existing recovery classifier
 already recognizes issue/problem/error language, but it did not recognize
-bug/defect/vulnerability discovery wording. This overlay adds that vocabulary
-without treating explicitly negated statements as actionable problems.
+bug/defect/vulnerability wording or typed finding phrases such as
+"correctness finding". This overlay adds that vocabulary without treating
+explicitly negated or zero-count statements as actionable problems.
 
 Several historical compatibility layers can replace lower-level quality
 helpers. v22 therefore also wraps the production hybrid first-pass boundary:
@@ -19,8 +20,10 @@ from typing import Any
 
 
 VERSION = "v22"
-PROBLEM_NOUN = r"(?:bugs?|defects?|vulnerabilit(?:y|ies))"
+TYPED_FINDING = r"(?:(?:correctness|logic|semantic|security|functional|behavioral)\s+findings?)"
+PROBLEM_NOUN = rf"(?:bugs?|defects?|vulnerabilit(?:y|ies)|{TYPED_FINDING})"
 DISCOVERY_VERB = r"(?:found|identified|detected|observed)"
+ZERO_OR_NEGATIVE_COUNT = r"(?:no|zero|0)"
 SEMANTIC_RETRY_REASON = "model summary indicated a possible issue while the structured findings array was empty"
 
 ACTIVE_DISCOVERY_RE = re.compile(
@@ -32,9 +35,9 @@ PASSIVE_DISCOVERY_RE = re.compile(
     re.IGNORECASE,
 )
 DIRECT_NEGATION_PATTERNS = (
-    re.compile(rf"\bno\b(?:\s+[a-z0-9_-]+){{0,4}}\s+\b{PROBLEM_NOUN}\b", re.IGNORECASE),
+    re.compile(rf"\b{ZERO_OR_NEGATIVE_COUNT}\b(?:\s+[a-z0-9_-]+){{0,4}}\s+\b{PROBLEM_NOUN}\b", re.IGNORECASE),
     re.compile(rf"\b(?:not|without)\b(?:\s+(?:a|an|any|the))?(?:\s+[a-z0-9_-]+){{0,3}}\s+\b{PROBLEM_NOUN}\b", re.IGNORECASE),
-    re.compile(rf"\b{DISCOVERY_VERB}\b\s+no\b(?:\s+[a-z0-9_-]+){{0,4}}\s+\b{PROBLEM_NOUN}\b", re.IGNORECASE),
+    re.compile(rf"\b{DISCOVERY_VERB}\b\s+{ZERO_OR_NEGATIVE_COUNT}\b(?:\s+[a-z0-9_-]+){{0,4}}\s+\b{PROBLEM_NOUN}\b", re.IGNORECASE),
     re.compile(
         rf"\b{PROBLEM_NOUN}\b(?:\s+[a-z0-9_-]+){{0,3}}\s+(?:(?:was|were|is|are)\s+)?not\s+\b{DISCOVERY_VERB}\b",
         re.IGNORECASE,
