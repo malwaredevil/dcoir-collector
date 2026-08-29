@@ -251,3 +251,4 @@ function Get-CollectorEventWindowTargetDetails {
   if ($Take -gt 0) { [void]$parts.Add(("MaxEvents={0}" -f $Take)) }
   return ($parts -join '; ')
 }
+# DCOIR_REVIEW_AUDIT_BATCH_2G1_MARKER
