@@ -93,17 +93,26 @@ def build_diff_line_index(diff: str) -> dict[tuple[str, int], int]:
     current_path: str | None = None
     position = 0
     right_line: int | None = None
+    seen_hunk = False
     for line in diff.splitlines():
         if line.startswith("diff --git "):
             current_path = None
             position = 0
             right_line = None
+            seen_hunk = False
             continue
         if line.startswith("+++ b/"):
             current_path = line[6:]
             continue
         if line.startswith("@@"):
-            position += 1
+            # GitHub's review-comment `position` is 1-based from the first line
+            # *after* the first hunk header. Subsequent hunk headers consume a
+            # position as the patch continues, but the first hunk header does
+            # not. Counting it shifted every first-hunk comment one line early.
+            if seen_hunk:
+                position += 1
+            else:
+                seen_hunk = True
             match = re.search(r"\+(\d+)(?:,(\d+))?", line)
             right_line = int(match.group(1)) if match else None
             continue
