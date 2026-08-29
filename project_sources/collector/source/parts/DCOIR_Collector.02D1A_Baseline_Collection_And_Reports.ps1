@@ -65,4 +65,3 @@ function Add-BaselineSuspiciousProcessRecommendations {
     Add-Recommendation 'No heuristic-driven process review candidates were generated from baseline collection.'
   }
 }
-# DCOIR_REVIEW_AUDIT_BATCH_2B_MARKER
