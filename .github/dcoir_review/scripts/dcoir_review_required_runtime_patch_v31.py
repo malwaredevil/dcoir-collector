@@ -13,6 +13,11 @@ structural layer also adds true candidates missed by the legacy line regex, such
 as a parenthesized bare literal. Parse failures remain fail-closed and preserve
 any existing sentinel rather than suppressing uncertain code.
 
+The runtime has both a raw risk-sentinel label and a later deterministic
+canonical title for this same finding family. v31 treats both as the same
+semantic sentinel so filtering and true-positive injection stay aligned across
+all compatibility layers.
+
 PowerShell detection remains governed by the comparison-aware v30 rule. This
 overlay adds no branch-write or autonomous remediation capability.
 """
@@ -30,8 +35,10 @@ import dcoir_review_required_runtime_patch_v20 as v20
 
 VERSION = "v31"
 APPLIED_MARKER = "_dcoir_review_v31_applied"
-TRUTHY_LABEL = "truthy literal branch condition"
+RAW_TRUTHY_LABEL = "truthy literal branch condition"
 PYTHON_TRUTHY_KIND = v20.PYTHON_TRUTHY_LITERAL_BRANCH
+CANONICAL_TRUTHY_LABEL = v20._template_for_kind(PYTHON_TRUTHY_KIND)[0]
+TRUTHY_LABELS = frozenset({RAW_TRUTHY_LABEL, CANONICAL_TRUTHY_LABEL})
 
 
 def _python_branch_source(text: str) -> str:
@@ -69,7 +76,7 @@ def python_bare_truthy_or_operand(text: str) -> bool | None:
 
 def _truthy_detail(hardened: Any) -> str:
     for label, detail, _pattern in tuple(getattr(hardened, "RISK_SENTINEL_RULES", ())):
-        if label == TRUTHY_LABEL:
+        if label == RAW_TRUTHY_LABEL:
             return str(detail)
     return "a bare non-empty string operand of boolean or is always truthy and can bypass the intended comparison"
 
@@ -96,9 +103,10 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
         # Ask the prior layer for the full candidate set so filtering does not
         # consume an anchor slot that should be available to a later real risk.
         candidates = list(original(diff, None))
-        seen = {
-            (str(getattr(item, "path", "")), int(getattr(item, "line", 0) or 0), str(getattr(item, "label", "")))
+        truthy_locations = {
+            (str(getattr(item, "path", "")), int(getattr(item, "line", 0) or 0))
             for item in candidates
+            if str(getattr(item, "label", "")) in TRUTHY_LABELS
         }
 
         # Make structural Python detection authoritative in both directions:
@@ -115,15 +123,15 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
             if python_bare_truthy_or_operand(text) is not True:
                 continue
             line = int(getattr(changed_line, "line", 0) or 0)
-            key = (path, line, TRUTHY_LABEL)
-            if key in seen:
+            location = (path, line)
+            if location in truthy_locations:
                 continue
-            seen.add(key)
+            truthy_locations.add(location)
             candidates.append(
                 sentinel_type(
                     path=path,
                     line=line,
-                    label=TRUTHY_LABEL,
+                    label=CANONICAL_TRUTHY_LABEL,
                     detail=detail,
                     text=text,
                 )
@@ -132,7 +140,7 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
         kept = []
         for sentinel in candidates:
             if (
-                str(getattr(sentinel, "label", "")) == TRUTHY_LABEL
+                str(getattr(sentinel, "label", "")) in TRUTHY_LABELS
                 and Path(str(getattr(sentinel, "path", ""))).suffix.lower() == ".py"
             ):
                 structural = python_bare_truthy_or_operand(str(getattr(sentinel, "text", "")))
