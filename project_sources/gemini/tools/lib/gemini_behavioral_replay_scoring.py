@@ -26,6 +26,32 @@ CONTRADICTION_PAIRS = [
     ("cleanup now", "do not clean up yet"),
 ]
 
+FINAL_SECTION_HEADERS = [
+    "bluf",
+    "facts and sources",
+    "analysis",
+    "syntax verification",
+    "singular triage command",
+    "analyst scratchpad",
+    "executive summary",
+    "benign rationale",
+    "supporting evidence",
+    "tuning recommendation",
+    "residual uncertainty",
+    "timeline",
+    "root cause or true source",
+    "impact and scope",
+    "containment and remediation recommendations",
+    "hunting pivots and derived indicators",
+    "what is known",
+    "what is blocked",
+    "what evidence paths were exhausted",
+    "why scope cannot be declared",
+    "best next steps",
+    "required telemetry or artifacts",
+    "why containment or troubleshooting is not yet justified",
+]
+
 NEGATION_PATTERN = re.compile(
     r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)\s+(?:the\s+|an?\s+)?$"
 )
@@ -115,6 +141,23 @@ def _find_contextual_term_hits(
     return hits
 
 
+def _normalized_header_line(line: str) -> str:
+    value = str(line).strip().lower()
+    value = re.sub(r"^[#>*_\-\s]+", "", value)
+    value = re.sub(r"[*_`]+", "", value)
+    value = value.rstrip(":").strip()
+    return " ".join(value.split())
+
+
+def duplicate_final_sections(response_text: str) -> List[str]:
+    counts = {header: 0 for header in FINAL_SECTION_HEADERS}
+    for line in str(response_text).splitlines():
+        normalized = _normalized_header_line(line)
+        if normalized in counts:
+            counts[normalized] += 1
+    return [header for header, count in counts.items() if count > 1]
+
+
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
     matched = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
@@ -180,6 +223,10 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
 
     if "output_shape_drift" in requested_checks and len(response_text.strip().split()) < 20:
         anomalies.append({"type": "output_shape_drift", "detail": "Response is unusually short for an operator-guidance turn."})
+
+    if "duplicate_final_sections" in requested_checks:
+        for header in duplicate_final_sections(response_text):
+            anomalies.append({"type": "duplicate_final_sections", "detail": f"Repeated final section header: {header}"})
 
     return anomalies
 
