@@ -161,12 +161,22 @@ def _normalized_header_line(line: str) -> str:
     return " ".join(value.split())
 
 
+def _final_section_header_for_line(line: str) -> str | None:
+    normalized = _normalized_header_line(line)
+    if normalized in FINAL_SECTION_HEADERS:
+        return normalized
+    for header in FINAL_SECTION_HEADERS:
+        if re.match(rf"^{re.escape(header)}\s*[:\-–—]\s*.+$", normalized):
+            return header
+    return None
+
+
 def duplicate_final_sections(response_text: str) -> List[str]:
     counts = {header: 0 for header in FINAL_SECTION_HEADERS}
     for line in str(response_text).splitlines():
-        normalized = _normalized_header_line(line)
-        if normalized in counts:
-            counts[normalized] += 1
+        header = _final_section_header_for_line(line)
+        if header is not None:
+            counts[header] += 1
     return [header for header, count in counts.items() if count > 1]
 
 
