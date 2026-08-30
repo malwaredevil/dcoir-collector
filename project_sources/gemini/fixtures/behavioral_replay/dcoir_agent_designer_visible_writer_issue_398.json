@@ -65,8 +65,11 @@
         "delegating to",
         "sub-agent",
         "handoff",
+        "prime summary",
         "planner payload",
-        "routing state"
+        "planner_payload",
+        "routing state",
+        "routing_state"
       ],
       "anomaly_checks": [
         "unsupported_certainty_claims",
@@ -74,7 +77,7 @@
       ],
       "minimum_required_marker_ratio": 1.0,
       "maximum_anomaly_count": 0,
-      "scoring_notes": "The visible response should be exactly one operator-facing continue response. Internal routing or delegated-agent vocabulary must remain invisible even when negated or disclaimed, and required section headers must not repeat."
+      "scoring_notes": "The visible response should be exactly one operator-facing continue response. Internal routing or delegated-agent vocabulary, including serialized internal-state keys, must remain invisible even when negated or disclaimed, and required section headers must not repeat."
     }
   ],
   "available_evidence_by_turn": {
@@ -94,7 +97,7 @@
   ],
   "forbidden_behaviors": [
     "Visible transfer or routing narration, including negated or disclaimer-style orchestration vocabulary.",
-    "Visible sub-agent names or internal packets used as workflow narration.",
+    "Visible sub-agent names, internal packets, serialized routing/planner state, or Prime-summary restatements used as workflow narration.",
     "Duplicate BLUF, facts, analysis, syntax, command, or scratchpad sections.",
     "A second Prime summary after the final output writer's answer.",
     "Unsupported benign, malicious, or compromise conclusion."
@@ -114,8 +117,11 @@
     "delegating to",
     "sub-agent",
     "handoff",
+    "prime summary",
     "planner payload",
-    "routing state"
+    "planner_payload",
+    "routing state",
+    "routing_state"
   ],
   "expected_next_move_shapes": [
     "One bounded investigative next step rendered through the normal continue-response contract with no visible orchestration chatter."
