@@ -54,6 +54,7 @@ ALLOWED_RESPONSE_MODES = {
     "deterministic",
     "live_gemini",
     "fallback_emulation",
+    "agent_designer_capture",
 }
 
 EXPECTED_RESPONSE_PACK_SCHEMA_VERSION = "gemini_behavioral_replay_response_pack_v1"
