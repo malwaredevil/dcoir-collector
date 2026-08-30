@@ -91,6 +91,11 @@ AGENT_DESIGNER_CAPTURE_BAD = [
         "Issue 398 visible-writer negated-routing-only control",
     ),
     (
+        "dcoir_agent_designer_visible_writer_issue_398",
+        "dcoir_agent_designer_visible_writer_issue_398_known_bad_internal_state_only_capture.json",
+        "Issue 398 visible-writer internal-state-only control",
+    ),
+    (
         "dcoir_agent_designer_collector_procedure_issue_398",
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_capture.json",
         "Issue 398 collector-procedure bad capture",
@@ -222,6 +227,10 @@ def assert_isolated_control_reason(label: str, payload: dict) -> None:
     elif "negated-routing-only" in label:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 1 or forbidden.get("literal_hits") != ["routing to"] or anomaly_types:
             raise SystemExit(f"{label} did not fail solely on literal negated routing leakage: {json.dumps(row, sort_keys=True)}")
+    elif "internal-state-only" in label:
+        expected_hits = ["prime summary", "planner_payload", "routing_state"]
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 3 or forbidden.get("literal_hits") != expected_hits or anomaly_types:
+            raise SystemExit(f"{label} did not fail solely on serialized internal-state leakage: {json.dumps(row, sort_keys=True)}")
     elif "missing-stage-only" in label:
         if required.get("missing") != ["interpret"] or required.get("ratio") != 0.8 or forbidden.get("count") != 0 or anomaly_types:
             raise SystemExit(f"{label} did not fail solely on the missing interpret lifecycle stage: {json.dumps(row, sort_keys=True)}")
