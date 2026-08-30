@@ -38,6 +38,19 @@ def main() -> None:
     v28 = importlib.import_module("dcoir_review_required_runtime_patch_v28")
     v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
 
+    # Applying only the v30 overlay again in a reused interpreter must be a no-op
+    # rather than stacking prompt/parser/synthesis wrappers.
+    prompt_before = v25._repair_author_prompt
+    author_result_before = v28._author_result
+    declined_before = v28._declined_item
+    synthesis_before = review.synthesize_fixes_for_findings
+    v30.apply_pareto_context_module(review)
+    v30.apply_pareto_context_module(review)
+    assert v25._repair_author_prompt is prompt_before
+    assert v28._author_result is author_result_before
+    assert v28._declined_item is declined_before
+    assert review.synthesize_fixes_for_findings is synthesis_before
+
     valid_python = [
         'if len(rejected) != 1 or "fallback_emulation" not in rejected[0].get("reason", ""): raise SystemExit()',
         'if ready or "x" in allowed: return True',
