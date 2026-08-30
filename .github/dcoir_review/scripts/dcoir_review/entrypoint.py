@@ -42,8 +42,11 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v29',
         'dcoir_review_required_runtime_patch_v28',
         'dcoir_review_required_runtime_patch_v30',
-        'dcoir_review_required_runtime_patch_v31',
+        # v32 wraps model/prompt/hybrid review behavior. v31 remains terminal so
+        # its long-standing sentinel/line-kind compatibility assertions stay
+        # true; v31 does not overwrite any v32 review-process surface.
         'dcoir_review_required_runtime_patch_v32',
+        'dcoir_review_required_runtime_patch_v31',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
