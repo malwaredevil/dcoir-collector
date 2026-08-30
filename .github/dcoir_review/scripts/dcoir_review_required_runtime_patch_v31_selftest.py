@@ -8,9 +8,6 @@ import importlib
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
-TRUTHY_LABEL = "truthy literal branch condition"
-
-
 def _diff(path: str, line: str) -> str:
     return (
         f"diff --git a/{path} b/{path}\n"
@@ -22,8 +19,8 @@ def _diff(path: str, line: str) -> str:
     )
 
 
-def _has_truthy_sentinel(review, path: str, line: str) -> bool:
-    return any(item.label == TRUTHY_LABEL for item in review.detect_risk_sentinels(_diff(path, line)))
+def _has_truthy_sentinel(review, labels: set[str] | frozenset[str], path: str, line: str) -> bool:
+    return any(item.label in labels for item in review.detect_risk_sentinels(_diff(path, line)))
 
 
 def main() -> None:
@@ -34,6 +31,10 @@ def main() -> None:
     entrypoint.apply_runtime_patches(review)
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
     v31 = importlib.import_module("dcoir_review_required_runtime_patch_v31")
+
+    assert v31.RAW_TRUTHY_LABEL in v31.TRUTHY_LABELS
+    assert v31.CANONICAL_TRUTHY_LABEL in v31.TRUTHY_LABELS
+    assert v31.CANONICAL_TRUTHY_LABEL == "Python branch condition contains an always-truthy literal"
 
     valid_python = [
         'if not ("local" in clause or "workstation" in clause):',
@@ -49,7 +50,7 @@ def main() -> None:
     ]
     for line in valid_python:
         assert v31.python_bare_truthy_or_operand(line) is False, line
-        assert not _has_truthy_sentinel(review, "probe.py", line), line
+        assert not _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.py", line), line
         assert v20._line_kind("probe.py", line) != v20.PYTHON_TRUTHY_LITERAL_BRANCH, line
 
     invalid_python = [
@@ -60,18 +61,19 @@ def main() -> None:
     ]
     for line in invalid_python:
         assert v31.python_bare_truthy_or_operand(line) is True, line
-        assert _has_truthy_sentinel(review, "probe.py", line), line
+        assert _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.py", line), line
         assert v20._line_kind("probe.py", line) == v20.PYTHON_TRUTHY_LITERAL_BRANCH, line
 
     # A line that the Python parser cannot safely classify must not be silently
     # suppressed; fail-closed behavior preserves the pre-v31 risk signal.
     unparsable = 'if ready or "fallback": ???'
     assert v31.python_bare_truthy_or_operand(unparsable) is None
-    assert _has_truthy_sentinel(review, "probe.py", unparsable)
+    assert _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.py", unparsable)
 
-    # PowerShell remains governed by the comparison-aware v30 detector.
-    assert not _has_truthy_sentinel(review, "probe.ps1", 'if ($Ready -or "Critical" -eq $Severity) { return $true }')
-    assert _has_truthy_sentinel(review, "probe.ps1", 'if ($Ready -or "Critical") { return $true }')
+    # PowerShell remains governed by the comparison-aware v30 detector and can
+    # still use the raw hardened label rather than the Python canonical title.
+    assert not _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.ps1", 'if ($Ready -or "Critical" -eq $Severity) { return $true }')
+    assert _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.ps1", 'if ($Ready -or "Critical") { return $true }')
 
     detector_before = review.detect_risk_sentinels
     line_kind_before = v20._line_kind
