@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v31-validation-r5-20260830T160300Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-30T16:03:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run the complete governed DCOIR Review v31 validation after updating historical v28/v29/v30 ordering assertions: compile focused files, run v31 and v30 regression selftests, then run the full aggregate fail-closed harness.",
+  "command": "$ErrorActionPreference = 'Stop'\npython -m py_compile .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v29_selftest.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v28_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v31 historical-stack Python compilation failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v31 selftest failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v30 regression selftest failed under v31' }\n& pwsh -NoProfile -File '.github/chatgpt_staging/exec_scripts/dcoir-review-v30-validation-20260830T141500Z.ps1'\nif ($LASTEXITCODE -ne 0) { throw \"Governed DCOIR aggregate validation failed with code $LASTEXITCODE\" }\n"
+}
