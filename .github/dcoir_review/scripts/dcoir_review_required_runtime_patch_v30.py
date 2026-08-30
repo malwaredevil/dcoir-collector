@@ -46,10 +46,23 @@ TRUTHY_LITERAL_BRANCH_PATTERN = re.compile(
 )
 
 
+def _sentinel_rule_owner(module: Any) -> Any:
+    # Production detection lives on the hardened implementation module exposed
+    # by the Pareto context facade. Retain a direct-module fallback for focused
+    # unit probes that may expose the rule tuple directly.
+    hardened = getattr(module, "hardened", None)
+    if hardened is not None and hasattr(hardened, "RISK_SENTINEL_RULES"):
+        return hardened
+    if hasattr(module, "RISK_SENTINEL_RULES"):
+        return module
+    raise RuntimeError("DCOIR v30 could not locate the active risk-sentinel rule owner")
+
+
 def _patch_truthy_literal_rule(module: Any) -> None:
+    owner = _sentinel_rule_owner(module)
     patched = []
     replaced = False
-    for label, detail, pattern in tuple(module.RISK_SENTINEL_RULES):
+    for label, detail, pattern in tuple(owner.RISK_SENTINEL_RULES):
         if label == "truthy literal branch condition":
             patched.append((label, detail, TRUTHY_LITERAL_BRANCH_PATTERN))
             replaced = True
@@ -57,7 +70,7 @@ def _patch_truthy_literal_rule(module: Any) -> None:
             patched.append((label, detail, pattern))
     if not replaced:
         raise RuntimeError("DCOIR v30 could not locate the truthy-literal risk-sentinel rule")
-    module.RISK_SENTINEL_RULES = tuple(patched)
+    owner.RISK_SENTINEL_RULES = tuple(patched)
 
 
 def _patch_author_schema() -> None:
