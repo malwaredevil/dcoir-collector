@@ -13,7 +13,7 @@ empty_headers = Message()
 
 def fake_request_once(_prompt: str, _schema: dict, _config: object, _ignored: list[str], model: str):
     called_models.append(model)
-    if model == "openrouter/pareto-code":
+    if model == "anthropic/claude-opus-5":
         raise urllib.error.HTTPError(
             url="https://openrouter.ai/api/v1/chat/completions",
             code=404,
@@ -29,7 +29,7 @@ try:
     result, model_used, _tier = mod.hardened.openrouter_review("prompt", schema, config, None)
 finally:
     mod.hardened.openrouter_request_once = original_request_once
-assert called_models == ["openrouter/pareto-code", "openrouter/auto"]
+assert called_models == ["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"]
 assert model_used == "fallback-model"
 assert result["findings"] == []
 
