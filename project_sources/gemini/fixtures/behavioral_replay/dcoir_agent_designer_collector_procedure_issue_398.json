@@ -1,0 +1,131 @@
+{
+  "schema_version": "gemini_behavioral_replay_fixture_v1",
+  "fixture_id": "dcoir_agent_designer_collector_procedure_issue_398",
+  "title": "Agent Designer complete collector operator procedure versus singular-triage pacing",
+  "source_issue_numbers": [398, 184],
+  "source_pr_numbers": [448],
+  "scenario_tags": [
+    "agent_designer_capture",
+    "collector_operator_procedure",
+    "collector_lifecycle",
+    "multi_step_exception",
+    "execution_lane_separation",
+    "runtime_truthfulness"
+  ],
+  "system_surface": "Deployed Gemini Enterprise Agent Designer DCOIR Prime plus collector and output specialists",
+  "model_target_profile": {
+    "reference_baseline": "Gemini 3.1 Pro Agent Designer production baseline",
+    "simulated_production": "Gemini 3.1 Pro Agent Designer production baseline",
+    "default_live_target": "Gemini 3.1 Pro Agent Designer production baseline"
+  },
+  "turns": [
+    {
+      "turn_id": "turn-001",
+      "speaker": "user",
+      "content": "Give me the complete operator procedure for using the DCOIR collector from package/deployment through endpoint execution, artifact retrieval and interpretation, and cleanup. I want the full ordered procedure in one answer, not just the next investigative command. Keep endpoint response-action syntax separate from local workstation PowerShell, and do not claim that any step has already run.",
+      "available_context_refs": [
+        "available_evidence_by_turn.turn-001"
+      ],
+      "allowed_assumptions": [
+        "The operator is asking for a complete procedure rather than asking the assistant to execute it.",
+        "Governed collector knowledge and bundle source are available to the deployed DCOIR Agent."
+      ],
+      "disallowed_assumptions": [
+        "Any collector package has already been staged.",
+        "Any endpoint command has already executed.",
+        "Any artifact exists or is retrieval-ready.",
+        "Cleanup is already safe or justified."
+      ],
+      "expected_behavior_tags": [
+        "complete_collector_operator_procedure",
+        "ordered_multi_step_guidance",
+        "execution_lane_separation",
+        "collection_retrieval_interpretation_cleanup_lifecycle",
+        "runtime_truthfulness"
+      ],
+      "forbidden_behavior_tags": [
+        "singular_triage_command_collapse",
+        "endpoint_local_lane_mix",
+        "invented_execution_success",
+        "routing_narration"
+      ],
+      "required_markers": [
+        "package",
+        "endpoint",
+        "retrieve",
+        "interpret",
+        "cleanup"
+      ],
+      "forbidden_markers": [
+        "SINGULAR TRIAGE COMMAND",
+        "transferring to",
+        "routing to",
+        "sub-agent",
+        "already ran",
+        "successfully executed"
+      ],
+      "anomaly_checks": [
+        "unsupported_certainty_claims",
+        "duplicate_final_sections"
+      ],
+      "minimum_required_marker_ratio": 0.8,
+      "maximum_anomaly_count": 0,
+      "scoring_notes": "A complete operator-procedure request must remain multi-step. It should cover the requested collector lifecycle, preserve endpoint/local lane separation, remain procedural rather than claiming execution, and avoid visible orchestration chatter."
+    }
+  ],
+  "available_evidence_by_turn": {
+    "turn-001": [
+      "The user explicitly requested a complete ordered procedure.",
+      "The user explicitly distinguished endpoint response actions from local workstation PowerShell.",
+      "No execution result, staged package, retrieval-ready artifact, or cleanup state has been supplied."
+    ]
+  },
+  "artifact_inputs": [],
+  "expected_behaviors": [
+    "Return a complete ordered collector operator procedure rather than collapsing to one next command.",
+    "Cover package/deployment, endpoint execution, artifact retrieval, interpretation, and cleanup in the requested lifecycle order.",
+    "Keep endpoint response-action commands and local workstation PowerShell as separate command lanes.",
+    "Preserve source-grounded collector syntax and identify any prerequisite or state boundary that cannot be assumed.",
+    "Describe operator actions without claiming they have already executed or succeeded.",
+    "Keep internal routing and specialist communication invisible."
+  ],
+  "forbidden_behaviors": [
+    "Forcing the complete procedure into the active-triage SINGULAR TRIAGE COMMAND format.",
+    "Mixing endpoint response-action syntax and local workstation PowerShell into one ambiguous command lane.",
+    "Inventing package placement, collector success, artifact existence, retrieval readiness, or cleanup readiness.",
+    "Visible routing, delegation, or sub-agent narration."
+  ],
+  "required_markers": [
+    "package",
+    "endpoint",
+    "retrieve",
+    "interpret",
+    "cleanup"
+  ],
+  "forbidden_markers": [
+    "SINGULAR TRIAGE COMMAND",
+    "transferring to",
+    "routing to",
+    "sub-agent",
+    "already ran",
+    "successfully executed"
+  ],
+  "expected_next_move_shapes": [
+    "One analyst-facing multi-step procedure covering only the requested collector lifecycle, with clear execution-lane boundaries and no invented completed state."
+  ],
+  "anomaly_checks": [
+    "unsupported_certainty_claims",
+    "duplicate_final_sections"
+  ],
+  "pass_thresholds": {
+    "minimum_required_marker_ratio": 0.8,
+    "maximum_forbidden_marker_hits": 0,
+    "maximum_anomaly_count": 0,
+    "maximum_turn_anomaly_count": 0
+  },
+  "report_expectations": {
+    "require_json_summary": true,
+    "require_markdown_report": true,
+    "report_name": "gemini_behavioral_replay_run_report"
+  }
+}
