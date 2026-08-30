@@ -77,7 +77,7 @@ if ($script:Failures.Count -gt 0) {
     foreach ($failure in $script:Failures) {
         Write-Host "- $failure"
     }
-    exit 1
+    throw ("DCOIR v30 governed validation failed: " + ($script:Failures -join '; '))
 }
 
 Write-Host 'DCOIR v30 governed validation completed successfully.'
