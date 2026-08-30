@@ -166,18 +166,66 @@ def has_execution_lane_separation(response_text: str) -> bool:
     has_local_lane = "powershell" in lowered and (
         "local" in lowered or "workstation" in lowered
     )
-    has_separation_language = any(
-        marker in lowered
-        for marker in (
-            "separate",
-            "do not mix",
-            "don't mix",
-            "dont mix",
-            "different lane",
-            "distinct lane",
+    positive_separation = bool(
+        _find_contextual_term_hits(
+            lowered,
+            ["separate", "different lane", "distinct lane"],
+            skip_negated=True,
+            skip_quoted=True,
         )
     )
-    return has_endpoint_lane and has_local_lane and has_separation_language
+    explicit_no_mix = bool(
+        _find_contextual_term_hits(
+            lowered,
+            ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
+            skip_quoted=True,
+        )
+    )
+    return has_endpoint_lane and has_local_lane and (positive_separation or explicit_no_mix)
+
+
+def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
+    lowered = normalize_text(response_text)
+    gaps: List[str] = []
+
+    numbered_steps = len(re.findall(r"(?m)^\s*\d+[.)]\s+", str(response_text)))
+    if numbered_steps < 5:
+        gaps.append("ordered_procedure")
+
+    has_package_deployment = (
+        "dcoir_collector.ps1" in lowered
+        and "dcoir_collector.zip" in lowered
+        and "upload --file" in lowered
+        and any(marker in lowered for marker in ("same directory", "co-located", "alongside"))
+    )
+    if not has_package_deployment:
+        gaps.append("package_deployment")
+
+    has_local_collect = (
+        "powershell.exe" in lowered
+        and "dcoir_collector.ps1" in lowered
+        and ("-quick collect-t1" in lowered or "-mode collect" in lowered)
+    )
+    has_endpoint_collect = "execute --command" in lowered and "dcoir_collector.ps1" in lowered
+    if not (has_local_collect and has_endpoint_collect):
+        gaps.append("execution_commands")
+
+    if not ("next_get_file" in lowered and "get-file --path" in lowered):
+        gaps.append("retrieval")
+
+    interpretation_surfaces = (
+        "analyst_overview_path",
+        "upload_summary_path",
+        "metadata_report_path",
+        "security_high_signal_summary_path",
+    )
+    if not all(marker in lowered for marker in interpretation_surfaces):
+        gaps.append("interpretation")
+
+    if "cleanup_command" not in lowered:
+        gaps.append("cleanup")
+
+    return gaps
 
 
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
@@ -204,10 +252,21 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
     return {"matched": matched, "missing": missing, "invalidated": invalidated, "ratio": ratio}
 
 
-def score_forbidden_markers(response_text: str, markers: List[str]) -> Dict[str, Any]:
+def score_forbidden_markers(
+    response_text: str,
+    markers: List[str],
+    literal_markers: List[str] | None = None,
+) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
-    hits = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
-    return {"hits": hits, "count": len(hits)}
+    contextual_hits = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
+    literal_hits = _find_contextual_term_hits(lowered, literal_markers or [])
+    hits = list(dict.fromkeys(contextual_hits + literal_hits))
+    return {
+        "hits": hits,
+        "count": len(hits),
+        "contextual_hits": contextual_hits,
+        "literal_hits": literal_hits,
+    }
 
 
 def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Dict[str, str]]:
@@ -254,9 +313,19 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
         anomalies.append(
             {
                 "type": "missing_execution_lane_separation",
-                "detail": "No explicit separation between endpoint response-action commands and local/workstation PowerShell was found.",
+                "detail": "No explicit non-negated separation between endpoint response-action commands and local/workstation PowerShell was found.",
             }
         )
+
+    if "incomplete_collector_procedure_actionability" in requested_checks:
+        gaps = collector_procedure_actionability_gaps(response_text)
+        if gaps:
+            anomalies.append(
+                {
+                    "type": "incomplete_collector_procedure_actionability",
+                    "detail": "Missing source-grounded actionable procedure phases: " + ", ".join(gaps),
+                }
+            )
 
     return anomalies
 
@@ -268,10 +337,11 @@ def score_turn(fixture: Dict[str, Any], turn: Dict[str, Any], response_turn: Dic
     maximum_turn_anomalies = int(turn.get("maximum_anomaly_count", thresholds.get("maximum_turn_anomaly_count", 0)))
     turn_required_markers = turn.get("required_markers", fixture.get("required_markers", []))
     turn_forbidden_markers = turn.get("forbidden_markers", fixture.get("forbidden_markers", []))
+    turn_literal_forbidden_markers = turn.get("literal_forbidden_markers", fixture.get("literal_forbidden_markers", []))
     turn_anomaly_checks = turn.get("anomaly_checks", fixture.get("anomaly_checks", []))
 
     required = score_marker_presence(response_text, turn_required_markers)
-    forbidden = score_forbidden_markers(response_text, turn_forbidden_markers)
+    forbidden = score_forbidden_markers(response_text, turn_forbidden_markers, turn_literal_forbidden_markers)
     anomalies = detect_anomalies(response_text, turn_anomaly_checks)
     success = forbidden["count"] == 0 and required["ratio"] >= minimum_required_ratio and len(anomalies) <= maximum_turn_anomalies
     return {
@@ -300,7 +370,7 @@ def score_response_pack(fixture: Dict[str, Any], response_pack: Dict[str, Any]) 
                     "turn_id": turn_id,
                     "response_length": 0,
                     "required_markers": {"matched": [], "missing": turn.get("required_markers", fixture.get("required_markers", [])), "invalidated": [], "ratio": 0.0},
-                    "forbidden_markers": {"hits": [], "count": 0},
+                    "forbidden_markers": {"hits": [], "count": 0, "contextual_hits": [], "literal_hits": []},
                     "anomalies": [{"type": "missing_turn", "detail": "No response supplied for turn."}],
                     "success": False,
                 }
