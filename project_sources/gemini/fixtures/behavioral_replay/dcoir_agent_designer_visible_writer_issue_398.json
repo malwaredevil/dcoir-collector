@@ -58,7 +58,8 @@
         "SINGULAR TRIAGE COMMAND",
         "ANALYST SCRATCHPAD"
       ],
-      "forbidden_markers": [
+      "forbidden_markers": [],
+      "literal_forbidden_markers": [
         "transferring to",
         "routing to",
         "delegating to",
@@ -73,7 +74,7 @@
       ],
       "minimum_required_marker_ratio": 1.0,
       "maximum_anomaly_count": 0,
-      "scoring_notes": "The visible response should be exactly one operator-facing continue response. Internal routing or delegated-agent narration must remain invisible, and required section headers must not repeat."
+      "scoring_notes": "The visible response should be exactly one operator-facing continue response. Internal routing or delegated-agent vocabulary must remain invisible even when negated or disclaimed, and required section headers must not repeat."
     }
   ],
   "available_evidence_by_turn": {
@@ -92,7 +93,7 @@
     "Preserve bounded evidence language and avoid a premature disposition."
   ],
   "forbidden_behaviors": [
-    "Visible transfer or routing narration.",
+    "Visible transfer or routing narration, including negated or disclaimer-style orchestration vocabulary.",
     "Visible sub-agent names or internal packets used as workflow narration.",
     "Duplicate BLUF, facts, analysis, syntax, command, or scratchpad sections.",
     "A second Prime summary after the final output writer's answer.",
@@ -106,7 +107,8 @@
     "SINGULAR TRIAGE COMMAND",
     "ANALYST SCRATCHPAD"
   ],
-  "forbidden_markers": [
+  "forbidden_markers": [],
+  "literal_forbidden_markers": [
     "transferring to",
     "routing to",
     "delegating to",
