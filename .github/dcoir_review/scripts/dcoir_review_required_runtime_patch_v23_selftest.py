@@ -37,17 +37,27 @@ def ordinary_finding() -> dict:
 def test_ordinary_finding_survives_both_selector_passes(review, v16) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     candidate = ordinary_finding()
-    path, line, kind = v16._postable_key(candidate)
-    assert path == PROBE_PATH and line == PROBE_LINE and kind == "", (path, line, kind)
+    path, line, _legacy_kind = v16._postable_key(candidate)
+    # Later v26 explicitly tolerates legacy sentinel-kind inference from ordinary
+    # finding prose; the production contract is immutable model anchoring when
+    # no real risk sentinel was detected. Keep this v23 regression focused on
+    # the stable path/line and verbatim finding semantics instead of an obsolete
+    # internal-kind assumption.
+    assert path == PROBE_PATH and line == PROBE_LINE, (path, line, _legacy_kind)
 
     selected = review.hardened.add_risk_sentinel_fallback_findings([candidate], [], config, [])
     assert len(selected) == 1, selected
     assert selected[0]["path"] == PROBE_PATH
     assert int(selected[0]["line"]) == PROBE_LINE
+    assert selected[0]["title"] == candidate["title"]
+    assert selected[0]["body"] == candidate["body"]
 
     review.hardened.enforce_risk_sentinel_findings(selected, [], config, [])
     assert len(selected) == 1, selected
+    assert selected[0]["path"] == PROBE_PATH
+    assert int(selected[0]["line"]) == PROBE_LINE
     assert selected[0]["title"] == candidate["title"]
+    assert selected[0]["body"] == candidate["body"]
 
 
 def test_required_sentinel_keeps_priority_under_one_comment_budget(review, v20) -> None:
