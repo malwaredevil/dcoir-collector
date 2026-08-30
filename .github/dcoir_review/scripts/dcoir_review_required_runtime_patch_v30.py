@@ -25,6 +25,7 @@ import dcoir_review_required_runtime_patch_v28 as v28
 
 
 VERSION = "v30"
+APPLIED_MARKER = "_dcoir_review_v30_applied"
 SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE = 0.95
 SUPPRESSED_OUTCOME = "defect-absent-suppressed"
 
@@ -169,6 +170,11 @@ def filter_suppressed_findings(findings: list[dict[str, Any]]) -> tuple[list[dic
 
 
 def apply_pareto_context_module(module: Any) -> None:
+    # Selftests and composite harnesses can reuse one imported review module in
+    # a process. Do not stack prompt/parser/synthesis wrappers on repeated apply.
+    if getattr(module, APPLIED_MARKER, False):
+        return
+
     _patch_truthy_literal_rule(module)
     _patch_author_schema()
 
@@ -213,3 +219,4 @@ def apply_pareto_context_module(module: Any) -> None:
         return kept
 
     module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
+    setattr(module, APPLIED_MARKER, True)
