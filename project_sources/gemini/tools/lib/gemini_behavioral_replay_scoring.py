@@ -50,6 +50,16 @@ FINAL_SECTION_HEADERS = [
     "best next steps",
     "required telemetry or artifacts",
     "why containment or troubleshooting is not yet justified",
+    "package/deployment",
+    "package deployment",
+    "package and deployment",
+    "endpoint execution",
+    "endpoint response-action execution",
+    "artifact retrieval",
+    "retrieve",
+    "evidence interpretation",
+    "interpret",
+    "cleanup",
 ]
 
 NEGATION_PATTERN = re.compile(
@@ -181,7 +191,12 @@ def duplicate_final_sections(response_text: str) -> List[str]:
 
 
 def _clause_has_endpoint_lane(clause: str) -> bool:
-    return "endpoint" in clause and ("response action" in clause or "response-action" in clause)
+    return "endpoint" in clause and (
+        "response action" in clause
+        or "response-action" in clause
+        or "endpoint execution" in clause
+        or "execute --command" in clause
+    )
 
 
 def _clause_has_local_lane(clause: str) -> bool:
@@ -216,9 +231,9 @@ def has_execution_lane_separation(response_text: str) -> bool:
 
 def _has_standalone_local_collect(response_text: str) -> bool:
     for clause in _iter_clauses(response_text):
-        if "execute --command" in clause:
+        if not _clause_has_local_lane(clause):
             continue
-        if not ("local" in clause or "workstation" in clause):
+        if "execute --command" in clause:
             continue
         for collect_flag in ("-quick collect-t1", "-mode collect"):
             if collect_flag not in clause:
@@ -233,11 +248,11 @@ def _has_standalone_local_collect(response_text: str) -> bool:
 
 def _has_endpoint_collect(response_text: str) -> bool:
     for clause in _iter_clauses(response_text):
-        if (
-            "execute --command" in clause
-            and "dcoir_collector.ps1" in clause
-            and ("-quick collect-t1" in clause or "-mode collect" in clause)
-        ):
+        if not _clause_has_endpoint_lane(clause):
+            continue
+        if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"]):
+            return True
+        if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", "-mode collect"]):
             return True
     return False
 
@@ -289,10 +304,7 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         gaps.append("package_deployment")
 
     has_local_collect = _has_standalone_local_collect(response_text)
-    has_endpoint_collect = _has_assertive_phase(
-        response_text,
-        ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"],
-    )
+    has_endpoint_collect = _has_endpoint_collect(response_text)
     if not (has_local_collect and has_endpoint_collect):
         gaps.append("execution_commands")
 
@@ -392,8 +404,14 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
         anomalies.append({"type": "output_shape_drift", "detail": "Response is unusually short for an operator-guidance turn."})
 
     if "duplicate_final_sections" in requested_checks:
-        for header in duplicate_final_sections(response_text):
-            anomalies.append({"type": "duplicate_final_sections", "detail": f"Repeated final section header: {header}"})
+        duplicate_headers = duplicate_final_sections(response_text)
+        if duplicate_headers:
+            anomalies.append(
+                {
+                    "type": "duplicate_final_sections",
+                    "detail": "Repeated final section headers: " + ", ".join(duplicate_headers),
+                }
+            )
 
     if "missing_execution_lane_separation" in requested_checks and not has_execution_lane_separation(response_text):
         anomalies.append(

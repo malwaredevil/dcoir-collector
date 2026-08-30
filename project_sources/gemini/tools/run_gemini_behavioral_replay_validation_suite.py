@@ -102,6 +102,11 @@ AGENT_DESIGNER_CAPTURE_BAD = [
     ),
     (
         "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_duplicate_only_capture.json",
+        "Issue 398 collector duplicate-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_missing_stage_capture.json",
         "Issue 398 collector missing-stage-only control",
     ),
