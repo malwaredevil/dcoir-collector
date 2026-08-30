@@ -7,22 +7,22 @@ commands:
   - /openrouter-review
   - /dcoir-review
 
-# Use OpenRouter Pareto Code as the governed coding-review default so the
-# review gate gets a coding-model quality floor without pinning one provider.
-model: openrouter/pareto-code
+# Issue #456: use a fixed frontier review model instead of a cost-optimized
+# router for the primary detector.  The prior Pareto route could legitimately
+# serve a cheaper model that cleared a coding-score threshold, which is not the
+# same contract as adversarial semantic review quality.
+model: anthropic/claude-opus-5
 model_stack:
-  - openrouter/pareto-code
-  - openrouter/auto
+  - anthropic/claude-opus-5
+  - openai/gpt-5.6-sol-pro
 smoke_test_free_model: false
 
-# Pareto Router plugin controls. Higher min_coding_score values require
-# stronger coding models. OpenRouter currently maps >= 0.66 to its high tier.
+# Retained for compatibility with the Pareto payload layer; it is inactive while
+# the governed primary model is fixed rather than openrouter/pareto-code.
 pareto_min_coding_score: 0.80
 
-# Auto Router remains only as a secondary fallback.
-# OpenRouter Auto Router allowed_models uses documented model patterns:
-# https://openrouter.ai/docs/guides/routing/routers/auto-router#pattern-syntax
-# Keep the list narrow and coding-focused instead of allowing broad family globs.
+# Auto Router remains configured only for compatibility/smoke surfaces and is
+# not in the governed production model_stack.
 auto_cost_quality_tradeoff: 2
 auto_allowed_models:
   - anthropic/claude-sonnet*
@@ -40,22 +40,33 @@ openrouter_route:
 openrouter_service_tier:
 openrouter_session_id_prefix: dcoir-review
 
-max_prompt_chars: 60000
-max_files: 30
+# Frontier models used by the governed review path support substantially larger
+# context than the old 60k reviewer budget.  Preserve enough room for a full PR
+# aggregate challenger while keeping per-file prompts independently bounded.
+max_prompt_chars: 120000
+max_files: 100
 max_inline_comments: 12
 
-# First successful governed review after this wrapper is in use gets broader
-# changed-file context. Later reruns stay diff-focused unless requested.
+# Deep review must not silently equate "top eight files" with "the PR".  The
+# per-file detector covers every fetched changed file up to the governed 100-file
+# ceiling; the aggregate context remains separately bounded for synthesis.
 first_pass_deep_review: true
-deep_review_max_files: 8
-deep_review_max_file_chars: 12000
-deep_review_max_total_chars: 24000
+deep_review_max_files: 20
+deep_review_max_file_chars: 20000
+deep_review_max_total_chars: 60000
 per_file_first_pass_review: true
-per_file_review_concurrency: 4
-per_file_review_max_files: 8
-# Keep enough room to present complete collector source parts while retaining
-# substantial prompt headroom under max_prompt_chars for instructions and diff context.
-per_file_review_max_file_chars: 30000
+per_file_review_concurrency: 6
+per_file_review_max_files: 100
+per_file_review_max_file_chars: 40000
+
+# v32 requires an independent model-family challenger before a deep result is
+# finalized.  This pass is intentionally not a fallback for model failure; it is
+# a second semantic review whose findings are unioned with the primary pass.
+adversarial_confirmation_review: true
+adversarial_confirmation_model_stack:
+  - openai/gpt-5.6-sol-pro
+review_reasoning_effort: xhigh
+
 fix_synthesis_enabled: true
 fix_synthesis_max_findings: 8
 fix_synthesis_min_confidence: 0.80
@@ -99,6 +110,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v28_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v29_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_quality_recovery_selftest.py
