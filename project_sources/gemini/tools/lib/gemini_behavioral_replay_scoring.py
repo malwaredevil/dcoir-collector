@@ -64,6 +64,10 @@ POST_MARKER_REJECTION_PATTERN = re.compile(
     r"^\s*(?:[,;:.!?]\s*)?(?:(?:no|nope)\b[\s,;:-]*)?(?:(?:but|however|though|although|yet|nevertheless|even so)\s+)?(?:(?:that|this|it|which|they)\s+)?(?:(?:is|are|was|were)\s+(?:(?:also|still|clearly|simply|just|really|only)\s+)?(?:an?\s+)?)?(?:(?:also|still|clearly|simply|just|really|only)\s+)?(?:the\s+)?(?:wrong|incorrect|false|invalid|misleading|wrong framing|wrong frame|incorrect framing|incorrect frame|false framing|false frame|wrong conclusion|incorrect conclusion|false conclusion|not enough|not necessary|not needed|not required|unnecessary|insufficient|unsupported|unfounded|overstated|in name only|nominal|label only|just a label|only a label|phrase i would not use|phrase we would not use|a phrase i would not use|a phrase we would not use|should be ignored|should be discarded|should not be used|should not be relied on|can be ignored|can be discarded|does not matter|doesn't matter|doesnt matter|prove it|infer .* anyway|require the full transcript|request the full transcript|ask for the full transcript)"
 )
 
+POST_ACTION_REJECTION_PATTERN = re.compile(
+    r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:that|this|it|which|they)\s+)?(?:is|are|was|were)\s+(?:unavailable|prohibited)\b"
+)
+
 QUOTE_CHARS = {'"', "'", "`"}
 
 
@@ -235,6 +239,19 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
             clause,
         ):
             continue
+        if not re.search(
+            r"\b(?:use|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)\b",
+            clause,
+        ):
+            continue
+        if any(
+            _occurrence_is_negated(clause, occurrence.start())
+            or _occurrence_is_rejected_after(clause, occurrence.end())
+            or POST_ACTION_REJECTION_PATTERN.search(clause[occurrence.end():])
+            for token in required_tokens
+            for occurrence in _iter_term_occurrences(clause, token)
+        ):
+            continue
         return True
     return False
 
@@ -260,13 +277,7 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if not has_package_deployment:
         gaps.append("package_deployment")
 
-    has_local_collect = _has_assertive_phase(
-        response_text,
-        ["local", "powershell", "dcoir_collector.ps1", "-quick collect-t1"],
-    ) or _has_assertive_phase(
-        response_text,
-        ["workstation", "powershell", "dcoir_collector.ps1", "-quick collect-t1"],
-    )
+    has_local_collect = _has_standalone_local_collect(response_text)
     has_endpoint_collect = _has_assertive_phase(
         response_text,
         ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"],

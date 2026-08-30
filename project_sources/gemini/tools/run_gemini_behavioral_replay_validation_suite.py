@@ -117,6 +117,21 @@ AGENT_DESIGNER_CAPTURE_BAD = [
     ),
     (
         "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_mixed_wrapper_capture.json",
+        "Issue 398 collector mixed-wrapper-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_retrieval_unavailable_capture.json",
+        "Issue 398 collector retrieval-unavailable-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_cleanup_prohibited_capture.json",
+        "Issue 398 collector cleanup-prohibited-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_vague_summary_capture.json",
         "Issue 398 collector vague-summary-only control",
     ),
@@ -217,6 +232,13 @@ def assert_isolated_control_reason(label: str, payload: dict) -> None:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
             raise SystemExit(f"{label} did not fail solely on missing_execution_lane_separation: {json.dumps(row, sort_keys=True)}")
     elif "negated-action-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
+            raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
+    elif (
+        "mixed-wrapper-only" in label
+        or "retrieval-unavailable-only" in label
+        or "cleanup-prohibited-only" in label
+    ):
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
             raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
     elif "vague-summary-only" in label:
