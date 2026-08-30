@@ -5,14 +5,15 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
-from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v32"
+    assert "dcoir_review_required_runtime_patch_v32" in entrypoint.patch_module_names
+    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
+    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v32") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
