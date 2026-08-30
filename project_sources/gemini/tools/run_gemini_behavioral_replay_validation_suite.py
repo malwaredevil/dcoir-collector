@@ -164,6 +164,27 @@ def run_known_bad(fixtures_root: Path, output_dir: Path) -> None:
             raise SystemExit(f"Known-bad report did not contain success=false: {output}")
 
 
+def assert_isolated_control_reason(label: str, payload: dict) -> None:
+    result = payload.get("result") or {}
+    rows = result.get("per_turn") or []
+    if len(rows) != 1:
+        raise SystemExit(f"{label} expected exactly one scored turn, found {len(rows)}")
+    row = rows[0]
+    required = row.get("required_markers") or {}
+    forbidden = row.get("forbidden_markers") or {}
+    anomaly_types = [str(item.get("type")) for item in (row.get("anomalies") or [])]
+
+    if "duplicate-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["duplicate_final_sections"]:
+            raise SystemExit(f"{label} did not fail solely on duplicate_final_sections: {json.dumps(row, sort_keys=True)}")
+    elif "missing-stage-only" in label:
+        if required.get("missing") != ["interpret"] or required.get("ratio") != 0.8 or forbidden.get("count") != 0 or anomaly_types:
+            raise SystemExit(f"{label} did not fail solely on the missing interpret lifecycle stage: {json.dumps(row, sort_keys=True)}")
+    elif "lane-separation-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
+            raise SystemExit(f"{label} did not fail solely on missing_execution_lane_separation: {json.dumps(row, sort_keys=True)}")
+
+
 def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
     capture_dir = output_dir / "agent_designer_capture_results"
     capture_dir.mkdir(parents=True, exist_ok=True)
@@ -208,6 +229,7 @@ def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) 
         payload = json.loads(output.read_text(encoding="utf-8"))
         if payload.get("success") is not False:
             raise SystemExit(f"Known-bad Agent Designer capture did not contain success=false: {output}")
+        assert_isolated_control_reason(label, payload)
 
 
 def run_mode_mismatch(fixtures_root: Path) -> None:
