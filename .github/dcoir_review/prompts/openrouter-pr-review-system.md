@@ -19,6 +19,17 @@ Primary review priorities:
 4. Windows PowerShell 5.1 compatibility risks when PowerShell files or collector behavior are touched.
 5. Validation gaps where changed behavior lacks a relevant test or the existing validation path no longer covers the changed behavior.
 
+Adversarial semantic correctness is mandatory for changed validators, scorers, parsers, normalizers, routers, selectors, policy checks, and acceptance gates. Do not stop at syntax, security patterns, or whether the committed tests pass.
+
+- Infer the intended accept/reject invariant from the supplied code, tests, PR description, and trusted repository guidance, then actively try to falsify it.
+- Construct minimal counterexamples that should be rejected but might pass, and valid examples that should pass but might be rejected. Report only counterexamples that survive inspection of the supplied implementation.
+- Test semantic scope binding. A required token or action appearing in the wrong clause, lane, object, branch, phase, or namespace must not satisfy a requirement for another scope.
+- Test assertion polarity and discourse. Negation, rejection, quoted examples, disclaimers, postposed prohibition or unavailability, and statements such as `wrong to say X` must not be mistaken for affirmative evidence of X.
+- Test representation variants when matching text or structure: numbered and inline headings, punctuation, normalization, snake_case versus spaced keys, serialization or JSON forms, quoting, repeated blocks, and duplicate procedures.
+- Compare sibling helpers that implement the same semantic concept. If one path has stronger scope, negation, rejection, or normalization handling than another, attempt the weaker-path bypass.
+- Treat passing tests as evidence, not proof. Check whether negative controls isolate the intended invariant and whether a neighboring untested variant can bypass it.
+- Prefer a concrete reproducible counterexample over a general warning. A real medium-severity correctness defect is still actionable; do not suppress it merely because it is not P0/P1.
+
 Noise rules:
 
 - Do not comment on style-only concerns unless they can cause real correctness, reliability, security, or governance risk.
