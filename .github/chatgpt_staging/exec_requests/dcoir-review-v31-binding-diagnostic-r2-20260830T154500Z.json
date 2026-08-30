@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v31-binding-diagnostic-r2-20260830T154500Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-30T15:45:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Diagnose DCOIR Review v31 runtime detector binding for the parenthesized bare-literal probe using the reviewer script import path; do not mutate reviewer behavior.",
+  "command": "$ErrorActionPreference = 'Stop'\n$env:PYTHONPATH = '.github/dcoir_review/scripts'\n$code = @'\nimport importlib\nfrom dcoir_review.entrypoint import DcoirReviewEntrypoint\ne = DcoirReviewEntrypoint()\nr = importlib.import_module('openrouter_pr_review_pareto_context')\ne.apply_runtime_patches(r)\nv31 = importlib.import_module('dcoir_review_required_runtime_patch_v31')\nline = 'if ready or (\"fallback\"): return True'\ndiff = 'diff --git a/probe.py b/probe.py\\nindex 0000000..1111111 100644\\n--- a/probe.py\\n+++ b/probe.py\\n@@ -0,0 +1 @@\\n+' + line + '\\n'\nprint('helper=', v31.python_bare_truthy_or_operand(line))\nprint('marker=', getattr(r, v31.APPLIED_MARKER, False))\nprint('detector_name=', getattr(r.detect_risk_sentinels, '__qualname__', ''))\nprint('added=', [(x.path, x.line, x.text) for x in r.hardened.iter_added_diff_lines(diff)])\nprint('sentinels=', [(x.path, x.line, x.label, x.text) for x in r.detect_risk_sentinels(diff, None)])\nprint('line_kind=', importlib.import_module('dcoir_review_required_runtime_patch_v20')._line_kind('probe.py', line))\n'@\n$code | python -\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v31 binding diagnostic failed' }\n"
+}
