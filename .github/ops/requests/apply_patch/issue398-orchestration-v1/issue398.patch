@@ -147,11 +147,16 @@ index 6de1b74..0000000 100644
          'description': 'The stored Gemini source should preserve the weekly USB violations report workflow, conservative parsing, Stuttgart date-window handling, SNOW-prefix classification, and NIPR/SIPR split output rules.',
          'all_markers': ['usb violations', 'stuttgart', 'last friday', 'this friday', 'snow ticket', 'incn', 'incs', 'nipr', 'sipr', 'on-site', 'off-site/vpn', 'plaintext'],
          'any_marker_groups': [
+             ['last week', "last week's"],
+             ['weekly usb violations', 'recipient', 'message draft'],
+         ],
+     },
+ }
 diff --git a/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt b/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt
 index c4d2e42..0000000 100644
 --- a/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt
 +++ b/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt
-@@ -27,9 +27,9 @@ The active agent topology now includes eleven sub-agents:
+@@ -27,8 +27,8 @@ The active agent topology now includes eleven sub-agents:
  10. Output-contract consistency guard and report composition
  11. USB violations report composition
  
@@ -163,4 +168,3 @@ index c4d2e42..0000000 100644
 +- 17 through 28 preserve the governed Elastic field/response-action references and the sharded OSQuery reference set
  
  ## Starter prompts
- 
