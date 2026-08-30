@@ -34,22 +34,26 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
+    v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
+    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
     v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
     v28 = importlib.import_module("dcoir_review_required_runtime_patch_v28")
     v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
 
     # Applying only the v30 overlay again in a reused interpreter must be a no-op
-    # rather than stacking prompt/parser/synthesis wrappers.
+    # rather than stacking prompt/parser/synthesis/renderer wrappers.
     prompt_before = v25._repair_author_prompt
     author_result_before = v28._author_result
     declined_before = v28._declined_item
     synthesis_before = review.synthesize_fixes_for_findings
+    renderer_before = review.base.build_inline_comment
     v30.apply_pareto_context_module(review)
     v30.apply_pareto_context_module(review)
     assert v25._repair_author_prompt is prompt_before
     assert v28._author_result is author_result_before
     assert v28._declined_item is declined_before
     assert review.synthesize_fixes_for_findings is synthesis_before
+    assert review.base.build_inline_comment is renderer_before
 
     valid_python = [
         'if len(rejected) != 1 or "fallback_emulation" not in rejected[0].get("reason", ""): raise SystemExit()',
@@ -167,6 +171,69 @@ def main() -> None:
     assert count == 0
     assert len(kept) == 1
     assert kept[0][v25.REPAIR_MARKER].get("suppression_declined")
+
+    # The final renderer must ignore model-authored semantics for a verifier-
+    # proven deterministic sentinel while preserving the human-applied native
+    # GitHub suggestion produced by the verified repair pipeline.
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    deterministic = {
+        "title": "model wording should not replace deterministic sentinel template",
+        "severity": "high",
+        "confidence": 0.99,
+        "path": ".github/dcoir_review/evaluation/live_suggestion_probe.py",
+        "line": 10,
+        "body": "model body should not replace deterministic sentinel detail",
+        "suggested_replacement": '    if severity in {"critical", "high"}:',
+        "_anchored_line_text": '    if severity == "critical" or "high":',
+        "_risk_sentinel_key": [
+            ".github/dcoir_review/evaluation/live_suggestion_probe.py",
+            10,
+            v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+        ],
+        "_risk_sentinel_kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+        v21.VERIFIER_MARKER: {
+            "mode": "deterministic-core-sentinel",
+            "supported": True,
+            "kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+            "head_sha": "probe-head",
+            "line": 10,
+        },
+        v25.REPAIR_MARKER: {
+            "version": v30.VERSION,
+            "outcome": "native-suggestion",
+            "path": ".github/dcoir_review/evaluation/live_suggestion_probe.py",
+            "line": 10,
+        },
+    }
+    rendered = review.base.build_inline_comment(deterministic, "test-model", config)
+    assert "Python branch condition contains an always-truthy literal" in rendered
+    assert "A non-empty string literal after `or` is always truthy" in rendered
+    assert "model wording should not replace deterministic sentinel template" not in rendered
+    assert "model body should not replace deterministic sentinel detail" not in rendered
+    assert '```suggestion\n    if severity in {"critical", "high"}:\n```' in rendered
+
+    # A verifier-supported ordinary model finding remains model-authored; v30
+    # canonicalization is deliberately scoped to deterministic-core-sentinel.
+    ordinary = {
+        "title": "Verified ordinary title",
+        "severity": "medium",
+        "confidence": 0.99,
+        "path": "probe.py",
+        "line": 3,
+        "body": "Verified ordinary body.",
+        "suggested_replacement": "",
+        v21.VERIFIER_MARKER: {
+            "mode": "model-judge",
+            "supported": True,
+            "confidence": 0.99,
+            "evidence": "The exact line contradicts the documented boundary.",
+            "head_sha": "probe-head",
+            "line": 3,
+        },
+    }
+    ordinary_rendered = review.base.build_inline_comment(ordinary, "test-model", config)
+    assert "Verified ordinary title" in ordinary_rendered
+    assert "Verified ordinary body." in ordinary_rendered
 
     print("dcoir_review_required_runtime_patch_v30_selftest passed")
 
