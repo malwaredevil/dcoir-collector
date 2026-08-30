@@ -79,9 +79,24 @@ AGENT_DESIGNER_CAPTURE_BAD = [
         "Issue 398 visible-writer bad capture",
     ),
     (
+        "dcoir_agent_designer_visible_writer_issue_398",
+        "dcoir_agent_designer_visible_writer_issue_398_known_bad_duplicate_only_capture.json",
+        "Issue 398 visible-writer duplicate-only control",
+    ),
+    (
         "dcoir_agent_designer_collector_procedure_issue_398",
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_capture.json",
         "Issue 398 collector-procedure bad capture",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_missing_stage_capture.json",
+        "Issue 398 collector missing-stage-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_lane_separation_capture.json",
+        "Issue 398 collector lane-separation-only control",
     ),
 ]
 
