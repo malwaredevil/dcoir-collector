@@ -50,6 +50,28 @@ def _semantic_clauses(summary: str) -> list[str]:
     return [re.sub(r"[^a-z0-9_-]+", " ", part).strip() for part in re.split(r"[.;:!?\n]+", text) if part.strip()]
 
 
+def _scrub_explicit_semantic_negations(summary: str) -> str:
+    """Remove only v22-owned explicit negative/zero discovery phrases.
+
+    The lower-level classifier predates typed-finding/zero-count semantics and
+    can otherwise turn ``Found 0 correctness findings`` back into a positive
+    signal simply because the word ``finding`` remains. Scrubbing the explicit
+    negative phrase before delegating preserves the lower-level vocabulary for
+    unrelated issue/problem/error wording while honoring v22's documented
+    zero-count contract.
+    """
+
+    scrubbed_clauses: list[str] = []
+    for clause in _semantic_clauses(summary):
+        scrubbed = clause
+        for pattern in DIRECT_NEGATION_PATTERNS:
+            scrubbed = pattern.sub(" ", scrubbed)
+        scrubbed = re.sub(r"\s+", " ", scrubbed).strip()
+        if scrubbed:
+            scrubbed_clauses.append(scrubbed)
+    return ". ".join(scrubbed_clauses)
+
+
 def _explicit_semantic_problem_discovery(summary: str) -> bool:
     for clause in _semantic_clauses(summary):
         if not clause:
@@ -114,7 +136,9 @@ def _patch_hardened_helpers(hardened: Any) -> None:
             setattr(hardened, summary_storage, original_summary)
     if callable(original_summary):
         def summary_suggests_problem(summary: str) -> bool:
-            return bool(original_summary(summary) or _explicit_semantic_problem_discovery(summary))
+            if _explicit_semantic_problem_discovery(summary):
+                return True
+            return bool(original_summary(_scrub_explicit_semantic_negations(summary)))
 
         hardened.summary_suggests_problem = summary_suggests_problem
 
