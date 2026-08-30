@@ -1,17 +1,31 @@
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 Set-StrictMode -Version Latest
 
 Set-Location $env:GITHUB_WORKSPACE
 
-function Invoke-Checked {
+$script:Failures = @()
+
+function Invoke-Recorded {
     param(
         [Parameter(Mandatory = $true)][string]$Label,
         [Parameter(Mandatory = $true)][scriptblock]$Command
     )
     Write-Host "=== $Label ==="
-    & $Command
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Label failed with exit code $LASTEXITCODE"
+    $global:LASTEXITCODE = 0
+    try {
+        & $Command
+        $code = [int]$LASTEXITCODE
+    }
+    catch {
+        Write-Error $_
+        $code = 1
+    }
+    if ($code -ne 0) {
+        Write-Host "FAILED: $Label (exit $code)"
+        $script:Failures += "$Label (exit $code)"
+    }
+    else {
+        Write-Host "PASSED: $Label"
     }
 }
 
@@ -38,7 +52,7 @@ $pythonTests = @(
     '.github/dcoir_review/scripts/validate-codeql-security-workflow.py'
 )
 
-Invoke-Checked 'Compile v30 runtime and tests' {
+Invoke-Recorded 'Compile v30 runtime and tests' {
     & $python -m py_compile `
         '.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30.py' `
         '.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py' `
@@ -46,15 +60,25 @@ Invoke-Checked 'Compile v30 runtime and tests' {
 }
 
 foreach ($test in $pythonTests) {
-    Invoke-Checked "Python validation: $test" { & $python $test }
+    $currentTest = $test
+    Invoke-Recorded "Python validation: $currentTest" { & $python $currentTest }
 }
 
-Invoke-Checked 'Codex-local DCOIR validation smoke' {
+Invoke-Recorded 'Codex-local DCOIR validation smoke' {
     & bash '.github/dcoir_review/scripts/validate-codex-local.sh'
 }
 
-Invoke-Checked 'PowerShell validation surface' {
+Invoke-Recorded 'PowerShell validation surface' {
     & pwsh -NoProfile -File '.github/dcoir_review/scripts/validate-windows-powershell-51.ps1' -AllowPowerShell7 -AllowEmpty
 }
 
+if ($script:Failures.Count -gt 0) {
+    Write-Host '=== DCOIR v30 governed validation failures ==='
+    foreach ($failure in $script:Failures) {
+        Write-Host "- $failure"
+    }
+    exit 1
+}
+
 Write-Host 'DCOIR v30 governed validation completed successfully.'
+exit 0
