@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v31-validation-r3-20260830T154700Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-30T15:47:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Validate DCOIR Review issue #455 v31 after aligning raw and canonical truthy-literal sentinel labels: Python compilation, v31 regression, v30 regression, and the full governed DCOIR aggregate suite. Fail closed on any command failure.",
+  "command": "$ErrorActionPreference = 'Stop'\npython -m py_compile .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v31 Python compilation failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v31 selftest failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'DCOIR v30 regression selftest failed under v31' }\n& pwsh -NoProfile -File '.github/chatgpt_staging/exec_scripts/dcoir-review-v30-validation-20260830T141500Z.ps1'\nif ($LASTEXITCODE -ne 0) { throw \"Governed DCOIR aggregate validation failed with code $LASTEXITCODE\" }\n"
+}
