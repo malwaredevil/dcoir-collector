@@ -59,6 +59,32 @@ KNOWN_BAD = [
     ("dcoir_kql_unique_value_miss_issue_174", "dcoir_kql_unique_value_miss_issue_174_known_bad_invented_search_response_pack.json", "Issue 174 invented-search"),
 ]
 
+AGENT_DESIGNER_CAPTURE_GOOD = [
+    (
+        "dcoir_agent_designer_visible_writer_issue_398",
+        "dcoir_agent_designer_visible_writer_issue_398_known_good_capture.json",
+        "Issue 398 visible-writer good capture",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_good_capture.json",
+        "Issue 398 collector-procedure good capture",
+    ),
+]
+
+AGENT_DESIGNER_CAPTURE_BAD = [
+    (
+        "dcoir_agent_designer_visible_writer_issue_398",
+        "dcoir_agent_designer_visible_writer_issue_398_known_bad_capture.json",
+        "Issue 398 visible-writer bad capture",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_capture.json",
+        "Issue 398 collector-procedure bad capture",
+    ),
+]
+
 
 def safe_label(label: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in label)
@@ -123,6 +149,52 @@ def run_known_bad(fixtures_root: Path, output_dir: Path) -> None:
             raise SystemExit(f"Known-bad report did not contain success=false: {output}")
 
 
+def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
+    capture_dir = output_dir / "agent_designer_capture_results"
+    capture_dir.mkdir(parents=True, exist_ok=True)
+    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_GOOD:
+        output = capture_dir / f"{safe_label(label)}.json"
+        run(
+            [
+                sys.executable,
+                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
+                "--fixtures-root",
+                str(fixtures_root),
+                "--response-pack",
+                str(SUPPORT / response_pack_name),
+                "--fixture-id",
+                fixture_id,
+                "--expected-mode",
+                "agent_designer_capture",
+            ],
+            stdout=output,
+        )
+        payload = json.loads(output.read_text(encoding="utf-8"))
+        if payload.get("success") is not True:
+            raise SystemExit(f"Known-good Agent Designer capture did not contain success=true: {output}")
+    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
+        output = capture_dir / f"{safe_label(label)}.json"
+        run(
+            [
+                sys.executable,
+                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
+                "--fixtures-root",
+                str(fixtures_root),
+                "--response-pack",
+                str(SUPPORT / response_pack_name),
+                "--fixture-id",
+                fixture_id,
+                "--expected-mode",
+                "agent_designer_capture",
+            ],
+            stdout=output,
+            expect_success=False,
+        )
+        payload = json.loads(output.read_text(encoding="utf-8"))
+        if payload.get("success") is not False:
+            raise SystemExit(f"Known-bad Agent Designer capture did not contain success=false: {output}")
+
+
 def run_mode_mismatch(fixtures_root: Path) -> None:
     result = subprocess.run(
         [
@@ -172,6 +244,7 @@ def main() -> int:
         ]
     )
     run_known_bad(args.fixtures_root, args.output_dir)
+    run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
     run_mode_mismatch(args.fixtures_root)
     return 0
 
