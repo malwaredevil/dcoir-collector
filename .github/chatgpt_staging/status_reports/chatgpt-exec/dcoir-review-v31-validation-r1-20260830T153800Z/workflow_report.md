@@ -10,7 +10,7 @@
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
 - result: failure
-- phase: harness-finished
+- phase: final-readback-commit
 - request_id: dcoir-review-v31-validation-r1-20260830T153800Z
 - request_path: .github/chatgpt_staging/exec_requests/dcoir-review-v31-validation-r1-20260830T153800Z.json
 - github_run_id: 33320222904
@@ -18,7 +18,7 @@
 - github_sha: 3c2025c97374c9593efa20ef76e769f3e417fc5c
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/33320222904
-- report_updated_utc: 2026-08-30T15:39:01Z
+- report_updated_utc: 2026-08-30T15:39:03Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/dcoir-review-v31-validation-r1-20260830T153800Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/dcoir-review-v31-validation-r1-20260830T153800Z/latest_progress_marker.json
 - artifact_name: chatgpt-exec-dcoir-review-v31-validation-r1-20260830T153800Z
@@ -30,14 +30,30 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness finished with exit code 1. Final native exec status commit is next.
+Final exec status is being committed with workflow report, progress history, marker, and any tracked summary files already produced by the request/tool. Full output remains in the uploaded GitHub Actions artifact.
 
 ## Phase history
 
 - 2026-08-30T15:38:52Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-08-30T15:38:54Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 - 2026-08-30T15:39:01Z | phase=harness-finished | result=failure | Approved command harness finished with exit code 1. Final native exec status commit is next.
+- 2026-08-30T15:39:03Z | phase=final-readback-commit | result=failure | Final exec status is being committed with workflow report, progress history, marker, and any tracked summary files already produced by the request/tool. Full output remains in the uploaded GitHub Actions artifact.
 
 ## Next ChatGPT action
 
 Poll this same report path until result is success or failure. If result is running, use the phase history to decide whether to wait, inspect the run URL, or report a blocker.
+
+## GitHub Actions run
+
+- github_run_id: 33320222904
+- github_run_attempt: 1
+- github_sha: 3c2025c97374c9593efa20ef76e769f3e417fc5c
+- github_ref: refs/heads/main
+- workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/33320222904
+
+## Output readback contract
+
+- heartbeat_report: committed in this request-scoped status directory
+- tracked_summaries: read any concise summary files beside this report when present
+- full_output: uploaded GitHub Actions artifact named in this report
+- artifact_readback: optional and normally not committed for chatgpt-exec because .gitignore intentionally excludes unzipped artifact_readback trees
