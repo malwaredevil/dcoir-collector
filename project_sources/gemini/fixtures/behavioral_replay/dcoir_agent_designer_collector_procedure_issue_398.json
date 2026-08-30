@@ -58,33 +58,38 @@
       ],
       "forbidden_markers": [
         "SINGULAR TRIAGE COMMAND",
-        "transferring to",
-        "routing to",
-        "sub-agent",
         "already ran",
         "successfully executed"
+      ],
+      "literal_forbidden_markers": [
+        "transferring to",
+        "routing to",
+        "sub-agent"
       ],
       "anomaly_checks": [
         "unsupported_certainty_claims",
         "duplicate_final_sections",
-        "missing_execution_lane_separation"
+        "missing_execution_lane_separation",
+        "incomplete_collector_procedure_actionability"
       ],
       "minimum_required_marker_ratio": 1.0,
       "maximum_anomaly_count": 0,
-      "scoring_notes": "A complete operator-procedure request must remain multi-step. It must cover every requested collector lifecycle stage, explicitly preserve endpoint response-action versus local/workstation PowerShell lane separation, remain procedural rather than claiming execution, and avoid visible orchestration chatter."
+      "scoring_notes": "A complete operator-procedure request must remain multi-step. It must cover every requested collector lifecycle stage, use source-grounded actionable deployment/execution/retrieval/interpretation/cleanup guidance, explicitly preserve endpoint response-action versus local/workstation PowerShell lane separation, remain procedural rather than claiming execution, and avoid visible orchestration chatter."
     }
   ],
   "available_evidence_by_turn": {
     "turn-001": [
       "The user explicitly requested a complete ordered procedure.",
       "The user explicitly distinguished endpoint response actions from local workstation PowerShell.",
-      "No execution result, staged package, retrieval-ready artifact, or cleanup state has been supplied."
+      "No execution result, staged package, retrieval-ready artifact, or cleanup state has been supplied.",
+      "Governed collector source supports the PS1 runtime DCOIR_Collector.ps1, retained package DCOIR_Collector.zip, Tier 1 local and endpoint execute forms, NEXT_GET_FILE retrieval handoff, analyst-first output surfaces, and emitted CLEANUP_COMMAND handoff."
     ]
   },
   "artifact_inputs": [],
   "expected_behaviors": [
     "Return a complete ordered collector operator procedure rather than collapsing to one next command.",
     "Cover package/deployment, endpoint execution, artifact retrieval, interpretation, and cleanup in the requested lifecycle order.",
+    "Use source-grounded collector and response-action syntax for actionable procedure steps rather than vague lifecycle nouns alone.",
     "Keep endpoint response-action commands and local workstation PowerShell as separate command lanes.",
     "Preserve source-grounded collector syntax and identify any prerequisite or state boundary that cannot be assumed.",
     "Describe operator actions without claiming they have already executed or succeeded.",
@@ -93,8 +98,9 @@
   "forbidden_behaviors": [
     "Forcing the complete procedure into the active-triage SINGULAR TRIAGE COMMAND format.",
     "Mixing endpoint response-action syntax and local workstation PowerShell into one ambiguous command lane.",
+    "Mentioning all lifecycle nouns without giving source-grounded actionable operator steps.",
     "Inventing package placement, collector success, artifact existence, retrieval readiness, or cleanup readiness.",
-    "Visible routing, delegation, or sub-agent narration."
+    "Visible routing, delegation, or sub-agent narration, including negated or disclaimer-style orchestration vocabulary."
   ],
   "required_markers": [
     "package",
@@ -105,19 +111,22 @@
   ],
   "forbidden_markers": [
     "SINGULAR TRIAGE COMMAND",
-    "transferring to",
-    "routing to",
-    "sub-agent",
     "already ran",
     "successfully executed"
   ],
+  "literal_forbidden_markers": [
+    "transferring to",
+    "routing to",
+    "sub-agent"
+  ],
   "expected_next_move_shapes": [
-    "One analyst-facing multi-step procedure covering the complete requested collector lifecycle, with explicit endpoint response-action versus local/workstation PowerShell lane separation and no invented completed state."
+    "One analyst-facing multi-step procedure covering the complete requested collector lifecycle, with source-grounded actionable commands/handoffs, explicit endpoint response-action versus local/workstation PowerShell lane separation, and no invented completed state."
   ],
   "anomaly_checks": [
     "unsupported_certainty_claims",
     "duplicate_final_sections",
-    "missing_execution_lane_separation"
+    "missing_execution_lane_separation",
+    "incomplete_collector_procedure_actionability"
   ],
   "pass_thresholds": {
     "minimum_required_marker_ratio": 1.0,
