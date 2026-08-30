@@ -5,11 +5,13 @@ proved to be a false positive. v31 moves the same precision upstream for Python
 branch conditions so valid grouped membership/comparison expressions do not
 force an unnecessary quality retry and repair-author pass.
 
-Python truthy-literal classification is structural: a finding is retained only
-when the parsed boolean ``or`` expression actually contains a bare non-empty
-string constant as one of its operands. Strings that are operands of ``in``,
-``not in``, equality, identity, or ordering comparisons are not bare truthy
-operands. Parse failures remain fail-closed and preserve the existing sentinel.
+Python truthy-literal classification is structural: a finding exists only when
+the parsed boolean ``or`` expression actually contains a bare non-empty string
+constant as one of its operands. Strings that are operands of ``in``, ``not in``,
+equality, identity, or ordering comparisons are not bare truthy operands. The
+structural layer also adds true candidates missed by the legacy line regex, such
+as a parenthesized bare literal. Parse failures remain fail-closed and preserve
+any existing sentinel rather than suppressing uncertain code.
 
 PowerShell detection remains governed by the comparison-aware v30 rule. This
 overlay adds no branch-write or autonomous remediation capability.
@@ -65,6 +67,13 @@ def python_bare_truthy_or_operand(text: str) -> bool | None:
     return False
 
 
+def _truthy_detail(hardened: Any) -> str:
+    for label, detail, _pattern in tuple(getattr(hardened, "RISK_SENTINEL_RULES", ())):
+        if label == TRUTHY_LABEL:
+            return str(detail)
+    return "a bare non-empty string operand of boolean or is always truthy and can bypass the intended comparison"
+
+
 def _patch_final_risk_sentinel_filter(module: Any) -> None:
     storage = "_dcoir_required_v31_original_detect_risk_sentinels"
     original = getattr(module, storage, None)
@@ -77,13 +86,49 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
 
     hardened = getattr(module, "hardened", None)
     selector = getattr(hardened, "select_risk_sentinels", None) if hardened is not None else None
-    if not callable(selector):
-        raise RuntimeError("DCOIR v31 could not locate risk-sentinel selector")
+    iter_added = getattr(hardened, "iter_added_diff_lines", None) if hardened is not None else None
+    sentinel_type = getattr(hardened, "RiskSentinel", None) if hardened is not None else None
+    is_comment = getattr(hardened, "is_comment_only_added_line", None) if hardened is not None else None
+    if not all(callable(item) for item in (selector, iter_added, sentinel_type, is_comment)):
+        raise RuntimeError("DCOIR v31 could not locate the hardened risk-sentinel construction surface")
 
     def detect_risk_sentinels(diff: str, max_anchors: int | None = None):
         # Ask the prior layer for the full candidate set so filtering does not
         # consume an anchor slot that should be available to a later real risk.
         candidates = list(original(diff, None))
+        seen = {
+            (str(getattr(item, "path", "")), int(getattr(item, "line", 0) or 0), str(getattr(item, "label", "")))
+            for item in candidates
+        }
+
+        # Make structural Python detection authoritative in both directions:
+        # add real bare-literal cases the old regex missed, then filter old
+        # candidates that parse as comparison/membership expressions.
+        detail = _truthy_detail(hardened)
+        for changed_line in iter_added(diff):
+            path = str(getattr(changed_line, "path", ""))
+            if Path(path).suffix.lower() != ".py":
+                continue
+            text = str(getattr(changed_line, "text", ""))
+            if is_comment(path, text):
+                continue
+            if python_bare_truthy_or_operand(text) is not True:
+                continue
+            line = int(getattr(changed_line, "line", 0) or 0)
+            key = (path, line, TRUTHY_LABEL)
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(
+                sentinel_type(
+                    path=path,
+                    line=line,
+                    label=TRUTHY_LABEL,
+                    detail=detail,
+                    text=text,
+                )
+            )
+
         kept = []
         for sentinel in candidates:
             if (
