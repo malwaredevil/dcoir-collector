@@ -13,9 +13,12 @@ def main() -> None:
     names = entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v29" in names
     assert "dcoir_review_required_runtime_patch_v28" in names
-    assert names[-1] == "dcoir_review_required_runtime_patch_v30", names[-4:]
+    assert "dcoir_review_required_runtime_patch_v30" in names
+    assert "dcoir_review_required_runtime_patch_v31" in names
+    assert names[-1] == "dcoir_review_required_runtime_patch_v31", names[-4:]
     assert names.index("dcoir_review_required_runtime_patch_v29") < names.index("dcoir_review_required_runtime_patch_v28")
     assert names.index("dcoir_review_required_runtime_patch_v28") < names.index("dcoir_review_required_runtime_patch_v30")
+    assert names.index("dcoir_review_required_runtime_patch_v30") < names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
