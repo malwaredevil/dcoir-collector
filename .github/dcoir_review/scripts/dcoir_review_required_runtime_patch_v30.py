@@ -1,13 +1,16 @@
 """DCOIR Review v30 false-positive precision overlay for issue #449.
 
-v30 addresses two coupled precision failures observed while reviewing PR #448:
+v30 addresses coupled precision failures observed while reviewing PR #448:
 
 1. the truthy-literal risk sentinel must distinguish a bare literal operand
    (``condition or "high"``) from a quoted literal that participates in a real
    comparison or membership expression (``condition or "x" not in values``);
 2. the repair author needs an explicit, fail-closed way to say that the alleged
    defect is absent. A high-confidence defect-absent attestation suppresses the
-   finding instead of publishing a self-contradictory "no safe fix" comment.
+   finding instead of publishing a self-contradictory "no safe fix" comment;
+3. deterministic sentinel findings must retain canonical deterministic wording
+   at the final renderer boundary instead of allowing model-authored title/body
+   text to replace the sentinel template.
 
 A real finding that simply lacks a safe one-line repair is still published.
 Native GitHub suggestions remain human-applied only; this overlay performs no
@@ -20,6 +23,8 @@ import copy
 import re
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v20 as v20
+import dcoir_review_required_runtime_patch_v21 as v21
 import dcoir_review_required_runtime_patch_v25 as v25
 import dcoir_review_required_runtime_patch_v28 as v28
 
@@ -182,9 +187,64 @@ def filter_suppressed_findings(findings: list[dict[str, Any]]) -> tuple[list[dic
     return kept, suppressed
 
 
+def _deterministic_sentinel_kind(finding: Any) -> str:
+    """Return the verifier-proven deterministic kind, never an inferred model kind."""
+
+    if not isinstance(finding, dict):
+        return ""
+    verifier = finding.get(v21.VERIFIER_MARKER)
+    if not isinstance(verifier, dict):
+        return ""
+    if verifier.get("mode") != "deterministic-core-sentinel" or verifier.get("supported") is not True:
+        return ""
+
+    verifier_kind = str(verifier.get("kind", "") or "").strip()
+    explicit_kind = str(finding.get("_risk_sentinel_kind", "") or "").strip()
+    raw_key = finding.get("_risk_sentinel_key")
+    keyed_kind = ""
+    if isinstance(raw_key, (list, tuple)) and len(raw_key) == 3:
+        keyed_kind = str(raw_key[2] or "").strip()
+
+    # Prefer the verifier's independently proven kind. If the historical marker
+    # lacks it, use only explicit sentinel provenance carried by the finding.
+    return verifier_kind or explicit_kind or keyed_kind
+
+
+def _patch_deterministic_sentinel_renderer(module: Any) -> None:
+    """Keep deterministic sentinel semantics canonical through later renderers."""
+
+    base = getattr(module, "base", None)
+    if base is None:
+        return
+    storage = "_dcoir_required_v30_original_build_inline_comment"
+    original = getattr(base, storage, None)
+    if original is None:
+        original = getattr(base, "build_inline_comment", None)
+        if callable(original):
+            setattr(base, storage, original)
+    if not callable(original):
+        return
+
+    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
+        kind = _deterministic_sentinel_kind(finding)
+        if not kind:
+            return original(finding, model_used, config)
+
+        item = dict(finding)
+        title, body, _notes = v20._template_for_kind(kind)
+        item["title"] = str(title or item.get("title", "") or "DCOIR Review finding").strip()
+        item["body"] = str(body or item.get("body", "") or "").strip()
+        # Preserve all repair provenance and suggested_replacement fields. The
+        # previously installed renderer remains responsible for suggestion
+        # safety and native GitHub suggestion-fence emission.
+        return original(item, model_used, config)
+
+    base.build_inline_comment = build_inline_comment
+
+
 def apply_pareto_context_module(module: Any) -> None:
     # Selftests and composite harnesses can reuse one imported review module in
-    # a process. Do not stack prompt/parser/synthesis wrappers on repeated apply.
+    # a process. Do not stack prompt/parser/synthesis/renderer wrappers on repeated apply.
     if getattr(module, APPLIED_MARKER, False):
         return
 
@@ -232,4 +292,5 @@ def apply_pareto_context_module(module: Any) -> None:
         return kept
 
     module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
+    _patch_deterministic_sentinel_renderer(module)
     setattr(module, APPLIED_MARKER, True)
