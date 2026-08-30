@@ -66,11 +66,12 @@
       ],
       "anomaly_checks": [
         "unsupported_certainty_claims",
-        "duplicate_final_sections"
+        "duplicate_final_sections",
+        "missing_execution_lane_separation"
       ],
-      "minimum_required_marker_ratio": 0.8,
+      "minimum_required_marker_ratio": 1.0,
       "maximum_anomaly_count": 0,
-      "scoring_notes": "A complete operator-procedure request must remain multi-step. It should cover the requested collector lifecycle, preserve endpoint/local lane separation, remain procedural rather than claiming execution, and avoid visible orchestration chatter."
+      "scoring_notes": "A complete operator-procedure request must remain multi-step. It must cover every requested collector lifecycle stage, explicitly preserve endpoint response-action versus local/workstation PowerShell lane separation, remain procedural rather than claiming execution, and avoid visible orchestration chatter."
     }
   ],
   "available_evidence_by_turn": {
@@ -111,14 +112,15 @@
     "successfully executed"
   ],
   "expected_next_move_shapes": [
-    "One analyst-facing multi-step procedure covering only the requested collector lifecycle, with clear execution-lane boundaries and no invented completed state."
+    "One analyst-facing multi-step procedure covering the complete requested collector lifecycle, with explicit endpoint response-action versus local/workstation PowerShell lane separation and no invented completed state."
   ],
   "anomaly_checks": [
     "unsupported_certainty_claims",
-    "duplicate_final_sections"
+    "duplicate_final_sections",
+    "missing_execution_lane_separation"
   ],
   "pass_thresholds": {
-    "minimum_required_marker_ratio": 0.8,
+    "minimum_required_marker_ratio": 1.0,
     "maximum_forbidden_marker_hits": 0,
     "maximum_anomaly_count": 0,
     "maximum_turn_anomaly_count": 0
