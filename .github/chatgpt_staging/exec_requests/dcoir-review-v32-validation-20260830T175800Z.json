@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v32-validation-20260830T175800Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-30T17:58:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Validate DCOIR Review v32 syntax, all runtime-patch selftests, semantic-recall selftest, precision regression, hardened reviewer recovery/summary checks, and workflow validator on current main; fail closed on any error.",
+  "command": "$ErrorActionPreference = 'Stop'\nfunction Invoke-Checked([string]$Label, [scriptblock]$Action) { Write-Host \"=== $Label ===\"; & $Action; if ($LASTEXITCODE -ne 0) { throw \"$Label failed with exit $LASTEXITCODE\" } }\n$head = (git rev-parse HEAD).Trim()\nWrite-Host \"validation_head=$head\"\nInvoke-Checked 'Compile v32 and entrypoint' { python -m py_compile .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py .github/dcoir_review/scripts/dcoir_review/entrypoint.py }\nInvoke-Checked 'Pareto context selftest' { python .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py }\n$patchTests = Get-ChildItem '.github/dcoir_review/scripts' -Filter 'dcoir_review_required_runtime_patch_v*_selftest.py' | Sort-Object Name\nforeach ($test in $patchTests) { Invoke-Checked (\"Runtime patch selftest: \" + $test.Name) { python $test.FullName } }\nInvoke-Checked 'DCOIR precision regression' { python .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py }\nInvoke-Checked 'Hardened reviewer selftest' { python .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py }\nInvoke-Checked 'Quality recovery selftest' { python .github/dcoir_review/scripts/openrouter_pr_review_quality_recovery_selftest.py }\nInvoke-Checked 'Summary problem selftest' { python .github/dcoir_review/scripts/openrouter_pr_review_summary_problem_selftest.py }\nInvoke-Checked 'CodeQL workflow validator' { python .github/dcoir_review/scripts/validate-codeql-security-workflow.py }\nWrite-Host 'dcoir_v32_validation=pass'\n"
+}
