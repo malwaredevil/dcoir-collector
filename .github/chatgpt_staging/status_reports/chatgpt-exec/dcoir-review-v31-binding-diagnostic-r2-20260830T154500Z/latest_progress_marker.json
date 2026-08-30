@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33320485365",
   "github_sha": "4c1cc135808fbe9513d1fb7097b2b3a28e93361f",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "dcoir-review-v31-binding-diagnostic-r2-20260830T154500Z",
   "request_path": ".github/chatgpt_staging/exec_requests/dcoir-review-v31-binding-diagnostic-r2-20260830T154500Z.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-30T15:44:47Z",
+  "updated_utc": "2026-08-30T15:44:49Z",
   "workflow": "chatgpt-exec"
 }
