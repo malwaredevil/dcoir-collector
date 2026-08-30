@@ -5,7 +5,7 @@
   "operation": "apply",
   "target_branch": "issue-398-gemini-architecture-hardening",
   "patch_path": ".github/ops/requests/apply_patch/issue398-orchestration-v1/issue398.patch",
-  "expected_patch_sha256": "c23e4dc2b7b64d401f17e2d731b7931e65105dbd1cdd4fdf12f107bafcf0c6e0",
+  "expected_patch_sha256": "b0752a817314d75a1456281b1db5f0c1e9e68b92332e96bdccfb7f205fae79a4",
   "commit_message": "Harden Gemini orchestration and collector procedure routing (#398)",
   "targets": [
     {"path":"project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md","allowed_roots":["project_sources/agent_runtime"],"expected_target_blob_sha":"cd1e8a63ecd00d16eca72dae8527f3289fd6ce4b"},
