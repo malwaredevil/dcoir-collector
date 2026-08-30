@@ -76,7 +76,7 @@ diff --git a/project_sources/agent_runtime/Behavior_Module_Manifest.json b/proje
 index 7efdbfa..0000000 100644
 --- a/project_sources/agent_runtime/Behavior_Module_Manifest.json
 +++ b/project_sources/agent_runtime/Behavior_Module_Manifest.json
-@@ -251,12 +251,12 @@
+@@ -251,13 +251,13 @@
        "id": "prime.chunk.16",
        "kind": "prime_chunk",
        "order": 16,
@@ -111,7 +111,7 @@ diff --git a/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.p
 index 6de1b74..0000000 100644
 --- a/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py
 +++ b/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py
-@@ -137,6 +137,35 @@ SCENARIOS = {
+@@ -137,8 +137,35 @@ SCENARIOS = {
          'any_marker_groups': [
              ['state', 'current', 'resume', 'repeatable', 'continuity'],
          ],

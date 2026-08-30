@@ -5,38 +5,14 @@
   "operation": "apply",
   "target_branch": "issue-398-gemini-architecture-hardening",
   "patch_path": ".github/ops/requests/apply_patch/issue398-orchestration-v1/issue398.patch",
-  "expected_patch_sha256": "b11104a92fcae35c4d6c6d8fa132713137e3c955cf0764c3b71fb42371190d2a",
+  "expected_patch_sha256": "e43a8cfbbb9112998f3609d976098bcea3e13e7c59ab4899e29b742914f3f1dd",
   "commit_message": "Harden Gemini orchestration and collector procedure routing (#398)",
   "targets": [
-    {
-      "path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md",
-      "allowed_roots": ["project_sources/agent_runtime"],
-      "expected_target_blob_sha": "cd1e8a63ecd00d16eca72dae8527f3289fd6ce4b"
-    },
-    {
-      "path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
-      "allowed_roots": ["project_sources/gemini"],
-      "expected_target_blob_sha": "cd1e8a63ecd00d16eca72dae8527f3289fd6ce4b"
-    },
-    {
-      "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
-      "allowed_roots": ["project_sources/agent_runtime"],
-      "expected_target_blob_sha": "7efdbfafb7815727da5d2a05def704c40f3e47f7"
-    },
-    {
-      "path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json",
-      "allowed_roots": ["project_sources/gemini"],
-      "expected_target_blob_sha": "50de4add7c8f6b8be8b0a1e4478f8dce9631c62d"
-    },
-    {
-      "path": "project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py",
-      "allowed_roots": ["project_sources/gemini"],
-      "expected_target_blob_sha": "6de1b74495701ff2254c825b326892c3a8b410bc"
-    },
-    {
-      "path": "project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt",
-      "allowed_roots": ["project_sources/gemini"],
-      "expected_target_blob_sha": "c4d2e42dc5d53fdb94ab0c319736e78ee7bf699e"
-    }
+    {"path":"project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md","allowed_roots":["project_sources/agent_runtime"],"expected_target_blob_sha":"cd1e8a63ecd00d16eca72dae8527f3289fd6ce4b"},
+    {"path":"project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt","allowed_roots":["project_sources/gemini"],"expected_target_blob_sha":"cd1e8a63ecd00d16eca72dae8527f3289fd6ce4b"},
+    {"path":"project_sources/agent_runtime/Behavior_Module_Manifest.json","allowed_roots":["project_sources/agent_runtime"],"expected_target_blob_sha":"7efdbfafb7815727da5d2a05def704c40f3e47f7"},
+    {"path":"project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json","allowed_roots":["project_sources/gemini"],"expected_target_blob_sha":"50de4add7c8f6b8be8b0a1e4478f8dce9631c62d"},
+    {"path":"project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py","allowed_roots":["project_sources/gemini"],"expected_target_blob_sha":"6de1b74495701ff2254c825b326892c3a8b410bc"},
+    {"path":"project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt","allowed_roots":["project_sources/gemini"],"expected_target_blob_sha":"c4d2e42dc5d53fdb94ab0c319736e78ee7bf699e"}
   ]
 }
