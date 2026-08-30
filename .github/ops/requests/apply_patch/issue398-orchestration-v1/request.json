@@ -5,7 +5,7 @@
   "operation": "apply",
   "target_branch": "issue-398-gemini-architecture-hardening",
   "patch_path": ".github/ops/requests/apply_patch/issue398-orchestration-v1/issue398.patch",
-  "expected_patch_sha256": "f40aa38d2dc04409b4d48c187b459debc3f79be1d24cf41920c97ecd325aea88",
+  "expected_patch_sha256": "b11104a92fcae35c4d6c6d8fa132713137e3c955cf0764c3b71fb42371190d2a",
   "commit_message": "Harden Gemini orchestration and collector procedure routing (#398)",
   "targets": [
     {
