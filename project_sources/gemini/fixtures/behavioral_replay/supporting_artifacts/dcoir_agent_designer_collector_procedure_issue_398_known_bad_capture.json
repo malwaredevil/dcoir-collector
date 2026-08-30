@@ -1,0 +1,16 @@
+{
+  "schema_version": "gemini_behavioral_replay_response_pack_v1",
+  "fixture_id": "dcoir_agent_designer_collector_procedure_issue_398",
+  "mode": "agent_designer_capture",
+  "model_name": "synthetic-scorer-validation",
+  "turns": [
+    {
+      "turn_id": "turn-001",
+      "assistant_response": "Routing to the sub-agent for the collector workflow.\n\nSINGULAR TRIAGE COMMAND\nRun the endpoint collection command now. The package already ran successfully, so retrieve the results afterward."
+    }
+  ],
+  "metadata": {
+    "synthetic_validation_only": true,
+    "capture_condition": "scorer_known_bad"
+  }
+}
