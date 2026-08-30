@@ -144,8 +144,8 @@
       "chunk_id": "16",
       "title": "Internal_Orchestration_Model",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
-      "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8",
-      "line_count": 16,
+      "sha256": "248884bf81654050e10cbf1edc082dc93875efd3801be7b4a139868c4ea33ef1",
+      "line_count": 30,
       "starts_with": "### Internal orchestration model"
     },
     {

@@ -148,6 +148,33 @@ SCENARIOS = {
             ['state', 'current', 'resume', 'repeatable', 'continuity'],
         ],
     },
+    'GeminiSingleVisibleFinalWriter': {
+        'description': 'The stored Gemini source should enforce one visible final writer so delegated final rendering cannot be followed by a Prime restatement or second draft.',
+        'all_markers': [
+            'one-visible-writer invariant',
+            'sole user-visible response',
+            'prime must not restate, summarize, acknowledge, append to, or emit a second draft',
+            'forward it exactly once without adding a second response',
+        ],
+        'any_marker_groups': [
+            ['output contract consistency guard and report composer', 'usb violations report composer'],
+            ['intermediate specialists remain internal', 'structured packets, transfer notes, routing state, and planner material are not user-facing output'],
+        ],
+    },
+    'GeminiCollectorProcedureVsTriage': {
+        'description': 'The stored Gemini source should distinguish one-command investigation continuation from a complete multi-step collector operator procedure.',
+        'all_markers': [
+            'complete_collector_operator_procedure',
+            'real multi-step exception and not a singular triage command lane',
+            'internal ordered procedure packet',
+            'do not force the procedure into one command',
+        ],
+        'any_marker_groups': [
+            ['investigation_next_move', 'singular-command pacing'],
+            ['deploy, package, place, run, retrieve, interpret, or clean up', 'relevant lifecycle phases'],
+            ['execution-lane boundaries and preconditions', 'returned evidence proves that state'],
+        ],
+    },
     'GeminiUSBViolationsReportComposer': {
         'description': 'The stored Gemini source should preserve the weekly USB violations report workflow, conservative parsing, Stuttgart date-window handling, SNOW-prefix classification, and NIPR/SIPR split output rules.',
         'all_markers': ['usb violations', 'stuttgart', 'last friday', 'this friday', 'snow ticket', 'incn', 'incs', 'nipr', 'sipr', 'on-site', 'off-site/vpn', 'plaintext'],
