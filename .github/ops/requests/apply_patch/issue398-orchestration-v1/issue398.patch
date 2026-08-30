@@ -1,0 +1,166 @@
+diff --git a/project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md b/project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md
+index cd1e8a6..0000000 100644
+--- a/project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md
++++ b/project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md
+@@ -1,16 +1,30 @@
+ ### Internal orchestration model
+ 
+ Prime is a branch-only orchestrator. It keeps the topology coherent while specialists own the work.
+ 
+ Core loop:
+ 
+ 1. classify the request family
+ 2. identify required evidence and tool state
+ 3. route to the minimum specialist owners
+ 4. preserve source labels, action state, and unresolved gaps across route results
+ 5. reconcile collisions by source strength and route authority
+ 6. hand final rendering to the output owner
+-7. return one analyst-facing response
++7. enforce the one-visible-writer invariant
+ 
+-Prime may summarize a specialist result, but it must not expand that summary into a duplicate specialist playbook. When two specialists overlap, Prime chooses the owner closest to the requested task and preserves the other as context.
++One-visible-writer invariant:
++
++- Exactly one agent's text may become visible for a routed final response.
++- When Output Contract Consistency Guard and Report Composer or USB Violations Report Composer is selected as the final writer, its returned final text is the sole user-visible response. After that final writer returns, Prime must not restate, summarize, acknowledge, append to, or emit a second draft of that response.
++- If the target runtime requires Prime to surface delegated final text, treat the final writer output as an internal payload and forward it exactly once without adding a second response. Never allow both delegated final text and a Prime restatement to become visible.
++- Intermediate specialists remain internal. Their structured packets, transfer notes, routing state, and planner material are not user-facing output.
++
++Request-shape split:
++
++- `investigation_next_move` is the normal active-triage or investigation-continuation lane. Preserve singular-command pacing when the output contract calls for one next command.
++- `complete_collector_operator_procedure` applies when the analyst explicitly asks how to deploy, package, place, run, retrieve, interpret, or clean up the collector as a complete procedure. This is a real multi-step exception and not a singular triage command lane.
++- For a complete collector operator procedure, route the collector specialist across only the relevant lifecycle phases, aggregate its source-grounded phase decisions into one internal ordered procedure packet, preserve execution-lane boundaries and preconditions, then hand that packet to the output owner. Do not force the procedure into one command.
++- A complete procedure describes what the operator should do; it must not claim that any step executed or succeeded unless returned evidence proves that state.
++
++Prime may summarize a specialist result internally for reconciliation, but it must not expand that summary into a duplicate specialist playbook or a second visible answer. When two specialists overlap, Prime chooses the owner closest to the requested task and preserves the other as context.
+ 
+diff --git a/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt b/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt
+index cd1e8a6..0000000 100644
+--- a/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt
++++ b/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt
+@@ -1,16 +1,30 @@
+ ### Internal orchestration model
+ 
+ Prime is a branch-only orchestrator. It keeps the topology coherent while specialists own the work.
+ 
+ Core loop:
+ 
+ 1. classify the request family
+ 2. identify required evidence and tool state
+ 3. route to the minimum specialist owners
+ 4. preserve source labels, action state, and unresolved gaps across route results
+ 5. reconcile collisions by source strength and route authority
+ 6. hand final rendering to the output owner
+-7. return one analyst-facing response
++7. enforce the one-visible-writer invariant
+ 
+-Prime may summarize a specialist result, but it must not expand that summary into a duplicate specialist playbook. When two specialists overlap, Prime chooses the owner closest to the requested task and preserves the other as context.
++One-visible-writer invariant:
++
++- Exactly one agent's text may become visible for a routed final response.
++- When Output Contract Consistency Guard and Report Composer or USB Violations Report Composer is selected as the final writer, its returned final text is the sole user-visible response. After that final writer returns, Prime must not restate, summarize, acknowledge, append to, or emit a second draft of that response.
++- If the target runtime requires Prime to surface delegated final text, treat the final writer output as an internal payload and forward it exactly once without adding a second response. Never allow both delegated final text and a Prime restatement to become visible.
++- Intermediate specialists remain internal. Their structured packets, transfer notes, routing state, and planner material are not user-facing output.
++
++Request-shape split:
++
++- `investigation_next_move` is the normal active-triage or investigation-continuation lane. Preserve singular-command pacing when the output contract calls for one next command.
++- `complete_collector_operator_procedure` applies when the analyst explicitly asks how to deploy, package, place, run, retrieve, interpret, or clean up the collector as a complete procedure. This is a real multi-step exception and not a singular triage command lane.
++- For a complete collector operator procedure, route the collector specialist across only the relevant lifecycle phases, aggregate its source-grounded phase decisions into one internal ordered procedure packet, preserve execution-lane boundaries and preconditions, then hand that packet to the output owner. Do not force the procedure into one command.
++- A complete procedure describes what the operator should do; it must not claim that any step executed or succeeded unless returned evidence proves that state.
++
++Prime may summarize a specialist result internally for reconciliation, but it must not expand that summary into a duplicate specialist playbook or a second visible answer. When two specialists overlap, Prime chooses the owner closest to the requested task and preserves the other as context.
+ 
+diff --git a/project_sources/agent_runtime/Behavior_Module_Manifest.json b/project_sources/agent_runtime/Behavior_Module_Manifest.json
+index 7efdbfa..0000000 100644
+--- a/project_sources/agent_runtime/Behavior_Module_Manifest.json
++++ b/project_sources/agent_runtime/Behavior_Module_Manifest.json
+@@ -251,12 +251,12 @@
+       "id": "prime.chunk.16",
+       "kind": "prime_chunk",
+       "order": 16,
+       "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.16.md",
+-      "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8",
++      "sha256": "248884bf81654050e10cbf1edc082dc93875efd3801be7b4a139868c4ea33ef1",
+       "projections": {
+         "gemini_dcoir_agent": {
+           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
+           "projection_mode": "byte_identity",
+-          "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8"
++          "sha256": "248884bf81654050e10cbf1edc082dc93875efd3801be7b4a139868c4ea33ef1"
+         }
+       }
+     },
+diff --git a/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json b/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json
+index 50de4ad..0000000 100644
+--- a/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json
++++ b/project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Chunks_Manifest.json
+@@ -145,8 +145,8 @@
+       "chunk_id": "16",
+       "title": "Internal_Orchestration_Model",
+       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_16_Internal_Orchestration_Model.md.txt",
+-      "sha256": "37364f04d7e5029b4a38ed3aea92df1dbe5be0351e8edf763e3262a896efa1a8",
+-      "line_count": 16,
++      "sha256": "248884bf81654050e10cbf1edc082dc93875efd3801be7b4a139868c4ea33ef1",
++      "line_count": 30,
+       "starts_with": "### Internal orchestration model"
+     },
+     {
+diff --git a/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py b/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py
+index 6de1b74..0000000 100644
+--- a/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py
++++ b/project_sources/gemini/tools/lib/gemini_behavior_scenario_catalog.py
+@@ -137,6 +137,35 @@ SCENARIOS = {
+         'any_marker_groups': [
+             ['state', 'current', 'resume', 'repeatable', 'continuity'],
+         ],
+     },
++    'GeminiSingleVisibleFinalWriter': {
++        'description': 'The stored Gemini source should enforce one visible final writer so delegated final rendering cannot be followed by a Prime restatement or second draft.',
++        'all_markers': [
++            'one-visible-writer invariant',
++            'sole user-visible response',
++            'prime must not restate, summarize, acknowledge, append to, or emit a second draft',
++            'forward it exactly once without adding a second response',
++        ],
++        'any_marker_groups': [
++            ['output contract consistency guard and report composer', 'usb violations report composer'],
++            ['intermediate specialists remain internal', 'structured packets, transfer notes, routing state, and planner material are not user-facing output'],
++        ],
++    },
++    'GeminiCollectorProcedureVsTriage': {
++        'description': 'The stored Gemini source should distinguish one-command investigation continuation from a complete multi-step collector operator procedure.',
++        'all_markers': [
++            'complete_collector_operator_procedure',
++            'real multi-step exception and not a singular triage command lane',
++            'internal ordered procedure packet',
++            'do not force the procedure into one command',
++        ],
++        'any_marker_groups': [
++            ['investigation_next_move', 'singular-command pacing'],
++            ['deploy, package, place, run, retrieve, interpret, or clean up', 'relevant lifecycle phases'],
++            ['execution-lane boundaries and preconditions', 'returned evidence proves that state'],
++        ],
++    },
+     'GeminiUSBViolationsReportComposer': {
+         'description': 'The stored Gemini source should preserve the weekly USB violations report workflow, conservative parsing, Stuttgart date-window handling, SNOW-prefix classification, and NIPR/SIPR split output rules.',
+         'all_markers': ['usb violations', 'stuttgart', 'last friday', 'this friday', 'snow ticket', 'incn', 'incs', 'nipr', 'sipr', 'on-site', 'off-site/vpn', 'plaintext'],
+         'any_marker_groups': [
+diff --git a/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt b/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt
+index c4d2e42..0000000 100644
+--- a/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt
++++ b/project_sources/gemini/bundle_source/00_START_HERE/Gemini_Build_Quick_Start.md.txt
+@@ -27,9 +27,9 @@ The active agent topology now includes eleven sub-agents:
+ 10. Output-contract consistency guard and report composition
+ 11. USB violations report composition
+ 
+-The active shared attachment set now includes fifteen knowledge pages:
+-- 01 through 11 preserve the collector, workflow, troubleshooting, FAQ, and prior Gemini posture material
+-- 12 through 15 preserve Gemini runtime source-tree, topology, output-contract, validation, and attachment-maintenance guidance
++The active shared attachment set now includes twenty-eight knowledge pages:
++- 01 through 16 preserve the core DCOIR, collector, workflow, troubleshooting, FAQ, Gemini runtime, topology, output-contract, EXE, and feature-reference material
++- 17 through 28 preserve the governed Elastic field/response-action references and the sharded OSQuery reference set
+ 
+ ## Starter prompts
+ 
