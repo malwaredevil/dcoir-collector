@@ -112,6 +112,11 @@ AGENT_DESIGNER_CAPTURE_BAD = [
     ),
     (
         "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_negated_action_capture.json",
+        "Issue 398 collector negated-action-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_vague_summary_capture.json",
         "Issue 398 collector vague-summary-only control",
     ),
@@ -211,6 +216,9 @@ def assert_isolated_control_reason(label: str, payload: dict) -> None:
     elif "lane-separation-only" in label:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
             raise SystemExit(f"{label} did not fail solely on missing_execution_lane_separation: {json.dumps(row, sort_keys=True)}")
+    elif "negated-action-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
+            raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
     elif "vague-summary-only" in label:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
             raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")

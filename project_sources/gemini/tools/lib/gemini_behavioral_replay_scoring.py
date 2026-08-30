@@ -226,6 +226,19 @@ def _has_endpoint_collect(response_text: str) -> bool:
     return False
 
 
+def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool:
+    for clause in _iter_clauses(response_text):
+        if not all(token in clause for token in required_tokens):
+            continue
+        if re.search(
+            r"\b(?:do not|don't|dont|must not|should not|never|avoid|cannot|can't|can not|not)\b.*\b(?:use|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|mix|keep|invoke)\b",
+            clause,
+        ):
+            continue
+        return True
+    return False
+
+
 def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     lowered = normalize_text(response_text)
     gaps: List[str] = []
@@ -234,21 +247,34 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if numbered_steps < 5:
         gaps.append("ordered_procedure")
 
-    has_package_deployment = (
-        "dcoir_collector.ps1" in lowered
-        and "dcoir_collector.zip" in lowered
-        and "upload --file" in lowered
-        and any(marker in lowered for marker in ("same directory", "co-located", "alongside"))
+    has_package_deployment = _has_assertive_phase(
+        response_text,
+        ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "same directory"],
+    ) or _has_assertive_phase(
+        response_text,
+        ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "co-located"],
+    ) or _has_assertive_phase(
+        response_text,
+        ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "alongside"],
     )
     if not has_package_deployment:
         gaps.append("package_deployment")
 
-    has_local_collect = _has_standalone_local_collect(response_text)
-    has_endpoint_collect = _has_endpoint_collect(response_text)
+    has_local_collect = _has_assertive_phase(
+        response_text,
+        ["local", "powershell", "dcoir_collector.ps1", "-quick collect-t1"],
+    ) or _has_assertive_phase(
+        response_text,
+        ["workstation", "powershell", "dcoir_collector.ps1", "-quick collect-t1"],
+    )
+    has_endpoint_collect = _has_assertive_phase(
+        response_text,
+        ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"],
+    )
     if not (has_local_collect and has_endpoint_collect):
         gaps.append("execution_commands")
 
-    if not ("next_get_file" in lowered and "get-file --path" in lowered):
+    if not _has_assertive_phase(response_text, ["next_get_file", "get-file --path"]):
         gaps.append("retrieval")
 
     interpretation_surfaces = (
@@ -257,10 +283,10 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         "metadata_report_path",
         "security_high_signal_summary_path",
     )
-    if not all(marker in lowered for marker in interpretation_surfaces):
+    if not _has_assertive_phase(response_text, list(interpretation_surfaces)):
         gaps.append("interpretation")
 
-    if "cleanup_command" not in lowered:
+    if not _has_assertive_phase(response_text, ["cleanup_command"]):
         gaps.append("cleanup")
 
     return gaps
