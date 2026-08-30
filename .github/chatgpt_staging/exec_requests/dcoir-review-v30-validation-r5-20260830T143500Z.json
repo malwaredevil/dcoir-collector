@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v30-validation-r5-20260830T143500Z",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v30-validation-20260830T141500Z.ps1",
+  "approved_command_preview": "Run the full governed DCOIR Review selftest set with aggregate failure capture, py_compile the v30/entrypoint surfaces, run codex-local validation smoke, run PowerShell validation, and make no source changes or autonomous remediations.",
+  "shell": "pwsh",
+  "timeout_seconds": 1200,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "trigger_nonce": "20260830T1435Z"
+}
