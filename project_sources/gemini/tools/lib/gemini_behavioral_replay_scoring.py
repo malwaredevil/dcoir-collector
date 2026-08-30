@@ -240,7 +240,7 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
 
 
 def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
-    lowered = normalize_text(response_text)
+    normalize_text(response_text)
     gaps: List[str] = []
 
     numbered_steps = len(re.findall(r"(?m)^\s*\d+[.)]\s+", str(response_text)))
