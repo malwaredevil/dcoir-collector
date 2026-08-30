@@ -141,9 +141,17 @@ def _find_contextual_term_hits(
     return hits
 
 
+def _iter_clauses(text: str) -> Iterable[str]:
+    for clause in re.split(r"(?:\r?\n)+|(?<=[.!?;])\s+", str(text)):
+        normalized = normalize_text(clause)
+        if normalized:
+            yield normalized
+
+
 def _normalized_header_line(line: str) -> str:
     value = str(line).strip().lower()
     value = re.sub(r"^[#>*_\-\s]+", "", value)
+    value = re.sub(r"^\d{1,3}[.)]\s+", "", value)
     value = re.sub(r"[*_`]+", "", value)
     value = value.rstrip(":").strip()
     return " ".join(value.split())
@@ -158,30 +166,64 @@ def duplicate_final_sections(response_text: str) -> List[str]:
     return [header for header, count in counts.items() if count > 1]
 
 
+def _clause_has_endpoint_lane(clause: str) -> bool:
+    return "endpoint" in clause and ("response action" in clause or "response-action" in clause)
+
+
+def _clause_has_local_lane(clause: str) -> bool:
+    return ("local" in clause or "workstation" in clause) and (
+        "powershell" in clause or "command" in clause
+    )
+
+
 def has_execution_lane_separation(response_text: str) -> bool:
-    lowered = normalize_text(response_text)
-    has_endpoint_lane = "endpoint" in lowered and (
-        "response action" in lowered or "response-action" in lowered
-    )
-    has_local_lane = "powershell" in lowered and (
-        "local" in lowered or "workstation" in lowered
-    )
-    positive_separation = bool(
-        _find_contextual_term_hits(
-            lowered,
-            ["separate", "different lane", "distinct lane"],
-            skip_negated=True,
-            skip_quoted=True,
+    for clause in _iter_clauses(response_text):
+        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+            continue
+        positive_separation = bool(
+            _find_contextual_term_hits(
+                clause,
+                ["separate", "different lane", "distinct lane"],
+                skip_negated=True,
+                skip_quoted=True,
+            )
         )
-    )
-    explicit_no_mix = bool(
-        _find_contextual_term_hits(
-            lowered,
-            ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
-            skip_quoted=True,
+        explicit_no_mix = bool(
+            _find_contextual_term_hits(
+                clause,
+                ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
+                skip_quoted=True,
+            )
         )
-    )
-    return has_endpoint_lane and has_local_lane and (positive_separation or explicit_no_mix)
+        if positive_separation or explicit_no_mix:
+            return True
+    return False
+
+
+def _has_standalone_local_collect(response_text: str) -> bool:
+    for clause in _iter_clauses(response_text):
+        if "execute --command" in clause:
+            continue
+        if not ("local" in clause or "workstation" in clause):
+            continue
+        if (
+            "powershell.exe" in clause
+            and "dcoir_collector.ps1" in clause
+            and ("-quick collect-t1" in clause or "-mode collect" in clause)
+        ):
+            return True
+    return False
+
+
+def _has_endpoint_collect(response_text: str) -> bool:
+    for clause in _iter_clauses(response_text):
+        if (
+            "execute --command" in clause
+            and "dcoir_collector.ps1" in clause
+            and ("-quick collect-t1" in clause or "-mode collect" in clause)
+        ):
+            return True
+    return False
 
 
 def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
@@ -201,12 +243,8 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if not has_package_deployment:
         gaps.append("package_deployment")
 
-    has_local_collect = (
-        "powershell.exe" in lowered
-        and "dcoir_collector.ps1" in lowered
-        and ("-quick collect-t1" in lowered or "-mode collect" in lowered)
-    )
-    has_endpoint_collect = "execute --command" in lowered and "dcoir_collector.ps1" in lowered
+    has_local_collect = _has_standalone_local_collect(response_text)
+    has_endpoint_collect = _has_endpoint_collect(response_text)
     if not (has_local_collect and has_endpoint_collect):
         gaps.append("execution_commands")
 
