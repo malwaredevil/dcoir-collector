@@ -1,0 +1,16 @@
+{
+  "schema_version": "gemini_behavioral_replay_response_pack_v1",
+  "fixture_id": "dcoir_agent_designer_collector_procedure_issue_398",
+  "mode": "agent_designer_capture",
+  "model_name": "synthetic-scorer-validation",
+  "turns": [
+    {
+      "turn_id": "turn-001",
+      "assistant_response": "Use the collector as an ordered operator procedure, keeping each execution lane separate.\n\n1. Package/deployment: obtain the governed collector package and verify the intended target and prerequisites before placement.\n2. Endpoint execution: use only the approved endpoint response-action lane for commands that run on the endpoint; do not mix those commands with local workstation PowerShell.\n3. Retrieval: after returned evidence shows collection completed and an artifact is available, retrieve the artifact through the governed retrieval path.\n4. Interpret: inspect the returned collector artifact and distinguish observed evidence from inference before deciding whether additional collection is needed.\n5. Cleanup: perform cleanup only after retrieval/readback confirms the required evidence is preserved and the cleanup preconditions are satisfied.\n\nThese are operator actions to perform in order; no package placement, endpoint command, retrieval, interpretation, or cleanup step is being represented as completed here."
+    }
+  ],
+  "metadata": {
+    "synthetic_validation_only": true,
+    "capture_condition": "scorer_known_good"
+  }
+}
