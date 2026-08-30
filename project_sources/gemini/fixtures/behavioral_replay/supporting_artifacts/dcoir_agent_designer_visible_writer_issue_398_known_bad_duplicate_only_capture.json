@@ -6,11 +6,11 @@
   "turns": [
     {
       "turn_id": "turn-001",
-      "assistant_response": "BLUF\nThe encoded PowerShell alert is not enough to determine intent; the next step is to inspect the encoded command context without declaring a disposition.\n\nFACTS AND SOURCES\nThe alert reports powershell.exe with an encoded command. No decoded payload or corroborating telemetry is available.\n\nANALYSIS\nThe behavior is suspicious enough to investigate but does not establish benign or malicious intent.\n\nSYNTAX VERIFICATION\nUse the normal governed Elastic query syntax for the environment and verify the fields returned before drawing conclusions.\n\nSINGULAR TRIAGE COMMAND\nRun the single governed query that retrieves the process command line and surrounding process context for the affected workstation.\n\nANALYST SCRATCHPAD\nDisposition remains open pending decoded command and corroborating evidence.\n\nBLUF\nThe encoded PowerShell alert remains unresolved pending command-context evidence."
+      "assistant_response": "1. BLUF\nThe encoded PowerShell alert is not enough to determine intent; the next step is to inspect the encoded command context without declaring a disposition.\n\n2. FACTS AND SOURCES\nThe alert reports powershell.exe with an encoded command. No decoded payload or corroborating telemetry is available.\n\n3. ANALYSIS\nThe behavior is suspicious enough to investigate but does not establish benign or malicious intent.\n\n4. SYNTAX VERIFICATION\nUse the normal governed Elastic query syntax for the environment and verify the fields returned before drawing conclusions.\n\n5. SINGULAR TRIAGE COMMAND\nRun the single governed query that retrieves the process command line and surrounding process context for the affected workstation.\n\n6. ANALYST SCRATCHPAD\nDisposition remains open pending decoded command and corroborating evidence.\n\n7. BLUF\nThe encoded PowerShell alert remains unresolved pending command-context evidence."
     }
   ],
   "metadata": {
     "synthetic_validation_only": true,
-    "capture_condition": "scorer_known_bad_duplicate_only"
+    "capture_condition": "scorer_known_bad_numbered_duplicate_only"
   }
 }
