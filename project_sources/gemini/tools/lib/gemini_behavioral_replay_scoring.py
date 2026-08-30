@@ -220,12 +220,14 @@ def _has_standalone_local_collect(response_text: str) -> bool:
             continue
         if not ("local" in clause or "workstation" in clause):
             continue
-        if (
-            "powershell.exe" in clause
-            and "dcoir_collector.ps1" in clause
-            and ("-quick collect-t1" in clause or "-mode collect" in clause)
-        ):
-            return True
+        for collect_flag in ("-quick collect-t1", "-mode collect"):
+            if collect_flag not in clause:
+                continue
+            if _has_assertive_phase(
+                clause,
+                ["powershell.exe", "dcoir_collector.ps1", collect_flag],
+            ):
+                return True
     return False
 
 
@@ -267,7 +269,6 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
 
 
 def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
-    normalize_text(response_text)
     gaps: List[str] = []
 
     numbered_steps = len(re.findall(r"(?m)^\s*\d+[.)]\s+", str(response_text)))
