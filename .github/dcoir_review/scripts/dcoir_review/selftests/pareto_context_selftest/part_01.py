@@ -44,19 +44,21 @@ os.environ["PR_NUMBER"] = "287"
 os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
 config = mod.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
-assert config.model == "openrouter/pareto-code"
-assert config.model_stack == ["openrouter/pareto-code", "openrouter/auto"]
+assert config.model == "anthropic/claude-opus-5"
+assert config.model_stack == ["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"]
 assert config.pareto_min_coding_score == 0.80
 assert config.auto_cost_quality_tradeoff == 2
 assert "google/gemini-*" not in config.auto_allowed_models
 assert "google/gemini-3.1-pro-preview*" in config.auto_allowed_models
 assert "google/gemini-3.1-pro*" not in config.auto_allowed_models
 assert config.first_pass_deep_review is True
-assert config.deep_review_max_files == 8
+assert config.max_files == 100
+assert config.deep_review_max_files == 20
 assert config.debug is False
 assert config.post_progress_comment is False
 assert config.per_file_first_pass_review is True
-assert config.per_file_review_concurrency == 4
+assert config.per_file_review_concurrency == 6
+assert config.per_file_review_max_files == 100
 assert config.fix_synthesis_enabled is True
 assert config.required_finding_reserved_budget == 9
 assert config.required_finding_min_per_family == 2
