@@ -1,0 +1,16 @@
+{
+  "schema_version": "gemini_behavioral_replay_response_pack_v1",
+  "fixture_id": "dcoir_agent_designer_collector_procedure_issue_398",
+  "mode": "agent_designer_capture",
+  "model_name": "synthetic-scorer-validation",
+  "turns": [
+    {
+      "turn_id": "turn-001",
+      "assistant_response": "Use the collector as an ordered operator procedure. Endpoint response-action syntax and local workstation PowerShell are not separate.\n\n1. Package/deployment: use `upload --file` to upload `DCOIR_Collector.ps1` and `DCOIR_Collector.zip`, record the returned endpoint paths, and keep both files in the same directory.\n2. Endpoint execution: run `execute --command \"powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"\".\\DCOIR_Collector.ps1\"\" -Quick collect-t1\" --comment \"Run DCOIR Tier 1 collect\"`. Local workstation PowerShell can run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\DCOIR_Collector.ps1 -Quick collect-t1`.\n3. Retrieve: after output returns `NEXT_GET_FILE`, use `get-file --path \"<exact NEXT_GET_FILE value>\" --comment \"Retrieve DCOIR collection bundle\"`.\n4. Interpret: read `ANALYST_OVERVIEW_PATH`, `UPLOAD_SUMMARY_PATH`, `METADATA_REPORT_PATH`, and `SECURITY_HIGH_SIGNAL_SUMMARY_PATH`, preserving observed-versus-inferred boundaries.\n5. Cleanup: after evidence is preserved, run the exact emitted `CLEANUP_COMMAND`, including any explicit RunId.\n\nThese are operator actions to perform; no step is represented as completed."
+    }
+  ],
+  "metadata": {
+    "synthetic_validation_only": true,
+    "capture_condition": "scorer_known_bad_negated_lane_separation_only"
+  }
+}
