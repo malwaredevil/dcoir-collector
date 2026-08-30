@@ -262,8 +262,11 @@ def run_fixture_mode_selection_selftests(fixtures_root: Path) -> None:
         script_path,
     )
     rejected = fallback_custom.get("rejected_selected_fixtures") or []
-    if len(rejected) != 1 or "fallback_emulation" not in rejected[0].get("reason", ""):
-        raise SystemExit("Explicit fallback selection of an Agent Designer-only fixture was not rejected correctly.")
+    if len(rejected) != 1:
+        raise SystemExit("Explicit fallback selection must produce exactly one rejection.")
+    fallback_reason = str(rejected[0].get("reason", ""))
+    if "fallback_emulation" not in fallback_reason:
+        raise SystemExit("Explicit fallback rejection must identify fallback_emulation as the unsupported fixture mode.")
 
 
 def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
