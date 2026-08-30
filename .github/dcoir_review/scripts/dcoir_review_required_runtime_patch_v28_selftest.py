@@ -31,7 +31,9 @@ def is_recent(age_minutes: int) -> bool:
 def patched_modules():
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v28"
+    assert "dcoir_review_required_runtime_patch_v28" in entrypoint.patch_module_names
+    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v30"
+    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v28") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v30")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
     v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
@@ -90,6 +92,7 @@ def test_native_suggestion_survives_missing_author_display_text(review, v21, v25
         if title == "DCOIR Verified Finding Repair Author":
             return (
                 {
+                    "defect_present": True,
                     "action": "replace_line",
                     "replacement": REPLACEMENT,
                     "confidence": 0.99,
@@ -136,6 +139,7 @@ def test_author_decline_skips_critic(review, v21, v25, v28) -> None:
         assert title == "DCOIR Verified Finding Repair Author"
         return (
             {
+                "defect_present": True,
                 "action": "no_safe_single_line_fix",
                 "replacement": "",
                 "confidence": 0.98,
@@ -168,6 +172,7 @@ def test_deterministic_precheck_skips_critic(review, v21, v25, v28) -> None:
         assert title == "DCOIR Verified Finding Repair Author"
         return (
             {
+                "defect_present": True,
                 "action": "replace_line",
                 "replacement": "return age_minutes >= 0 and age_minutes <= 60",
                 "confidence": 0.99,
@@ -216,6 +221,7 @@ def test_critic_call_failure_is_bounded(review, v21, v25, v28) -> None:
         if schema_title(schema) == "DCOIR Verified Finding Repair Author":
             return (
                 {
+                    "defect_present": True,
                     "action": "replace_line",
                     "replacement": REPLACEMENT,
                     "confidence": 0.99,
