@@ -43,6 +43,14 @@ DIRECT_NEGATION_PATTERNS = (
         re.IGNORECASE,
     ),
 )
+NEUTRAL_META_FINDING_REFERENCE_PATTERNS = (
+    re.compile(
+        r"\b(?:mentions?|references?|documents?|describes?|includes?|uses?)\b"
+        r"(?:\s+(?:a|an|the|this|that|its))?(?:\s+[a-z0-9_-]+){0,3}"
+        r"\s+findings?\s+(?:schema|array|format|contract|field|key|object|payload|response)\b",
+        re.IGNORECASE,
+    ),
+)
 
 
 def _semantic_clauses(summary: str) -> list[str]:
@@ -51,20 +59,23 @@ def _semantic_clauses(summary: str) -> list[str]:
 
 
 def _scrub_explicit_semantic_negations(summary: str) -> str:
-    """Remove only v22-owned explicit negative/zero discovery phrases.
+    """Remove explicit negative/zero and neutral schema-only finding phrases.
 
     The lower-level classifier predates typed-finding/zero-count semantics and
     can otherwise turn ``Found 0 correctness findings`` back into a positive
-    signal simply because the word ``finding`` remains. Scrubbing the explicit
-    negative phrase before delegating preserves the lower-level vocabulary for
-    unrelated issue/problem/error wording while honoring v22's documented
-    zero-count contract.
+    signal simply because the word ``finding`` remains. It can likewise treat
+    neutral metadata prose such as ``mentions a finding schema`` as substantive
+    review output. Scrubbing only those bounded phrases before delegating keeps
+    the older issue/problem/error vocabulary while honoring v22's precision
+    contract.
     """
 
     scrubbed_clauses: list[str] = []
     for clause in _semantic_clauses(summary):
         scrubbed = clause
         for pattern in DIRECT_NEGATION_PATTERNS:
+            scrubbed = pattern.sub(" ", scrubbed)
+        for pattern in NEUTRAL_META_FINDING_REFERENCE_PATTERNS:
             scrubbed = pattern.sub(" ", scrubbed)
         scrubbed = re.sub(r"\s+", " ", scrubbed).strip()
         if scrubbed:
