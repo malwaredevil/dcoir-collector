@@ -158,6 +158,28 @@ def duplicate_final_sections(response_text: str) -> List[str]:
     return [header for header, count in counts.items() if count > 1]
 
 
+def has_execution_lane_separation(response_text: str) -> bool:
+    lowered = normalize_text(response_text)
+    has_endpoint_lane = "endpoint" in lowered and (
+        "response action" in lowered or "response-action" in lowered
+    )
+    has_local_lane = "powershell" in lowered and (
+        "local" in lowered or "workstation" in lowered
+    )
+    has_separation_language = any(
+        marker in lowered
+        for marker in (
+            "separate",
+            "do not mix",
+            "don't mix",
+            "dont mix",
+            "different lane",
+            "distinct lane",
+        )
+    )
+    return has_endpoint_lane and has_local_lane and has_separation_language
+
+
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
     matched = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
@@ -227,6 +249,14 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
     if "duplicate_final_sections" in requested_checks:
         for header in duplicate_final_sections(response_text):
             anomalies.append({"type": "duplicate_final_sections", "detail": f"Repeated final section header: {header}"})
+
+    if "missing_execution_lane_separation" in requested_checks and not has_execution_lane_separation(response_text):
+        anomalies.append(
+            {
+                "type": "missing_execution_lane_separation",
+                "detail": "No explicit separation between endpoint response-action commands and local/workstation PowerShell was found.",
+            }
+        )
 
     return anomalies
 
