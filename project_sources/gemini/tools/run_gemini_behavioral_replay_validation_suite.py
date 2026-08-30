@@ -8,6 +8,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from lib.gemini_behavioral_replay_selection import resolve_fixtures
+
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
 
 KNOWN_GOOD = [
@@ -84,6 +86,11 @@ AGENT_DESIGNER_CAPTURE_BAD = [
         "Issue 398 visible-writer duplicate-only control",
     ),
     (
+        "dcoir_agent_designer_visible_writer_issue_398",
+        "dcoir_agent_designer_visible_writer_issue_398_known_bad_negated_routing_capture.json",
+        "Issue 398 visible-writer negated-routing-only control",
+    ),
+    (
         "dcoir_agent_designer_collector_procedure_issue_398",
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_capture.json",
         "Issue 398 collector-procedure bad capture",
@@ -98,7 +105,22 @@ AGENT_DESIGNER_CAPTURE_BAD = [
         "dcoir_agent_designer_collector_procedure_issue_398_known_bad_lane_separation_capture.json",
         "Issue 398 collector lane-separation-only control",
     ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_negated_lane_separation_capture.json",
+        "Issue 398 collector negated-lane-separation-only control",
+    ),
+    (
+        "dcoir_agent_designer_collector_procedure_issue_398",
+        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_vague_summary_capture.json",
+        "Issue 398 collector vague-summary-only control",
+    ),
 ]
+
+ISSUE_398_AGENT_DESIGNER_FIXTURES = {
+    "dcoir_agent_designer_visible_writer_issue_398",
+    "dcoir_agent_designer_collector_procedure_issue_398",
+}
 
 
 def safe_label(label: str) -> str:
@@ -177,12 +199,71 @@ def assert_isolated_control_reason(label: str, payload: dict) -> None:
     if "duplicate-only" in label:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["duplicate_final_sections"]:
             raise SystemExit(f"{label} did not fail solely on duplicate_final_sections: {json.dumps(row, sort_keys=True)}")
+    elif "negated-routing-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 1 or forbidden.get("literal_hits") != ["routing to"] or anomaly_types:
+            raise SystemExit(f"{label} did not fail solely on literal negated routing leakage: {json.dumps(row, sort_keys=True)}")
     elif "missing-stage-only" in label:
         if required.get("missing") != ["interpret"] or required.get("ratio") != 0.8 or forbidden.get("count") != 0 or anomaly_types:
             raise SystemExit(f"{label} did not fail solely on the missing interpret lifecycle stage: {json.dumps(row, sort_keys=True)}")
+    elif "negated-lane-separation-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
+            raise SystemExit(f"{label} did not fail solely on negated lane separation: {json.dumps(row, sort_keys=True)}")
     elif "lane-separation-only" in label:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
             raise SystemExit(f"{label} did not fail solely on missing_execution_lane_separation: {json.dumps(row, sort_keys=True)}")
+    elif "vague-summary-only" in label:
+        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
+            raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
+
+
+def _selection_args(mode: str, *, custom_fixture: str = "", run_all: bool = True) -> argparse.Namespace:
+    return argparse.Namespace(
+        mode=mode,
+        fixture_ids_csv=None,
+        fixture_id=None,
+        custom_fixtures_csv=custom_fixture,
+        run_all_active_fixtures=run_all,
+    )
+
+
+def run_fixture_mode_selection_selftests(fixtures_root: Path) -> None:
+    script_path = Path("project_sources/gemini/tools/run_gemini_behavioral_replay.py").resolve()
+
+    deterministic, deterministic_meta = resolve_fixtures(
+        _selection_args("deterministic"), fixtures_root, script_path
+    )
+    deterministic_ids = {row["fixture"].get("fixture_id") for row in deterministic}
+    if not ISSUE_398_AGENT_DESIGNER_FIXTURES.issubset(deterministic_ids):
+        raise SystemExit("Issue #398 Agent Designer fixtures must remain deterministic-scorer eligible.")
+    if deterministic_meta.get("required_fixture_mode") != "deterministic":
+        raise SystemExit("Deterministic fixture-mode mapping is incorrect.")
+
+    for mode, expected_fixture_mode in (("live", "live_gemini"), ("fallback", "fallback_emulation")):
+        selected, metadata = resolve_fixtures(_selection_args(mode), fixtures_root, script_path)
+        selected_ids = {row["fixture"].get("fixture_id") for row in selected}
+        if ISSUE_398_AGENT_DESIGNER_FIXTURES.intersection(selected_ids):
+            raise SystemExit(f"Agent Designer-only fixtures leaked into {mode} replay selection.")
+        if not ISSUE_398_AGENT_DESIGNER_FIXTURES.issubset(set(metadata.get("excluded_from_mode") or [])):
+            raise SystemExit(f"Agent Designer-only fixtures were not reported as mode-ineligible for {mode}.")
+        if metadata.get("required_fixture_mode") != expected_fixture_mode:
+            raise SystemExit(f"Runner mode {mode} mapped to the wrong fixture mode support value.")
+
+    _, live_metadata = resolve_fixtures(_selection_args("live"), fixtures_root, script_path)
+    if not ISSUE_398_AGENT_DESIGNER_FIXTURES.issubset(set(live_metadata.get("excluded_from_live_api") or [])):
+        raise SystemExit("Agent Designer-only fixtures must remain explicitly excluded from raw live API replay.")
+
+    _, fallback_custom = resolve_fixtures(
+        _selection_args(
+            "fallback",
+            custom_fixture="dcoir_agent_designer_visible_writer_issue_398",
+            run_all=False,
+        ),
+        fixtures_root,
+        script_path,
+    )
+    rejected = fallback_custom.get("rejected_selected_fixtures") or []
+    if len(rejected) != 1 or "fallback_emulation" not in rejected[0].get("reason", ""):
+        raise SystemExit("Explicit fallback selection of an Agent Designer-only fixture was not rejected correctly.")
 
 
 def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
@@ -269,6 +350,7 @@ def main() -> int:
             str(args.output_dir / "fixtures"),
         ]
     )
+    run_fixture_mode_selection_selftests(args.fixtures_root)
     run_known_good(args.fixtures_root, args.output_dir)
     run(
         [
