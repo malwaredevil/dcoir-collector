@@ -7,14 +7,24 @@ from typing import Any, Dict, List
 from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture_index, repo_root_from_script
 from lib.gemini_behavioral_replay_utils import csv
 
+
 def resolve_fixtures(
     args: argparse.Namespace,
     fixtures_root: Path,
     script_path: Path,
 ) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
     repo_root = repo_root_from_script(script_path)
-    entries = [e for e in load_fixture_index(fixtures_root).get("fixtures", []) if e.get("status") == "active"]
+    all_active_entries = [e for e in load_fixture_index(fixtures_root).get("fixtures", []) if e.get("status") == "active"]
+    if args.mode == "live":
+        entries = [e for e in all_active_entries if e.get("live_api_eligible", True)]
+    else:
+        entries = all_active_entries
     active = [e.get("fixture_id") for e in entries]
+    excluded_from_live_api = [
+        e.get("fixture_id")
+        for e in all_active_entries
+        if args.mode == "live" and not e.get("live_api_eligible", True)
+    ]
     checked = csv(args.fixture_ids_csv)
     if args.fixture_ids_csv is None and not checked:
         checked = [args.fixture_id] if args.fixture_id else active
@@ -28,7 +38,8 @@ def resolve_fixtures(
             if fid in active:
                 selected.append(fid)
             else:
-                rejected.append({"fixture_id": fid, "reason": "not in active fixture index"})
+                reason = "not eligible for raw live Gemini API replay" if fid in excluded_from_live_api else "not in active fixture index"
+                rejected.append({"fixture_id": fid, "reason": reason})
     elif args.mode == "deterministic" and not checked:
         selected, source = active, "deterministic_response_pack_default"
     else:
@@ -37,6 +48,13 @@ def resolve_fixtures(
             if fid in active:
                 selected.append(fid)
             else:
-                rejected.append({"fixture_id": fid, "reason": "not in active fixture index"})
+                reason = "not eligible for raw live Gemini API replay" if fid in excluded_from_live_api else "not in active fixture index"
+                rejected.append({"fixture_id": fid, "reason": reason})
     loaded = [load_fixture_entry(repo_root, e) for e in entries if e.get("fixture_id") in set(selected)]
-    return loaded, {"selection_source": source, "active_fixtures": active, "selected_fixtures_to_run": selected, "rejected_selected_fixtures": rejected}
+    return loaded, {
+        "selection_source": source,
+        "active_fixtures": active,
+        "selected_fixtures_to_run": selected,
+        "rejected_selected_fixtures": rejected,
+        "excluded_from_live_api": excluded_from_live_api,
+    }
