@@ -10,7 +10,7 @@
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
 - result: running
-- phase: request-resolved
+- phase: running-harness
 - request_id: dcoir-review-v39-codeql-dispatch-20260831T123800Z
 - request_path: .github/chatgpt_staging/exec_requests/dcoir-review-v39-codeql-dispatch-20260831T123800Z.json
 - github_run_id: 33392668553
@@ -18,7 +18,7 @@
 - github_sha: 400c49d9e96fd75a23fea42d178f56f24e5d34b0
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/33392668553
-- report_updated_utc: 2026-08-31T12:37:39Z
+- report_updated_utc: 2026-08-31T12:37:42Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/dcoir-review-v39-codeql-dispatch-20260831T123800Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/dcoir-review-v39-codeql-dispatch-20260831T123800Z/latest_progress_marker.json
 
@@ -28,11 +28,12 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Exec request path resolved. The workflow is preparing to run the approved command harness.
+Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 
 ## Phase history
 
 - 2026-08-31T12:37:39Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
+- 2026-08-31T12:37:42Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 
 ## Next ChatGPT action
 
