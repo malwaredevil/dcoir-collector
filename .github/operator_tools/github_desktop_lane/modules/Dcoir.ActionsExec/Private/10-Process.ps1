@@ -5,16 +5,23 @@ function New-DcoirActionsExecPowerShellWrapper {
 `$ErrorActionPreference = 'Stop'
 try {
     `$global:LASTEXITCODE = 0
+    `$dcoirErrorCountBefore = `$global:Error.Count
     & {
 $CommandText
     }
-    # Command resolution failures in Windows PowerShell may emit an error yet
-    # neither enter catch nor set LASTEXITCODE. Capture `$? immediately before
-    # any wrapper statement can overwrite it.
+    # Windows PowerShell can treat the child script-block invocation as
+    # successful even when a command inside it emitted a non-terminating
+    # command-resolution error. Capture all three signals before any wrapper
+    # statement can change them: native exit code, PowerShell success state,
+    # and newly-added error records.
     `$dcoirCommandSucceeded = `$?
     `$dcoirNativeExitCode = `$global:LASTEXITCODE
+    `$dcoirErrorCountAfter = `$global:Error.Count
     if (`$null -ne `$dcoirNativeExitCode -and [int]`$dcoirNativeExitCode -ne 0) {
         exit [int]`$dcoirNativeExitCode
+    }
+    if (`$dcoirErrorCountAfter -gt `$dcoirErrorCountBefore) {
+        exit 1
     }
     if (-not `$dcoirCommandSucceeded) {
         exit 1
@@ -50,7 +57,8 @@ function Invoke-DcoirActionsExecProcess {
         'powershell_5' {
             # Windows PowerShell can emit a command error from a -File script yet
             # still return process exit code 0 unless the script explicitly maps
-            # PowerShell `$? and native LASTEXITCODE to a process exit status.
+            # PowerShell failure state, newly-added error records, and native
+            # LASTEXITCODE to a process exit status.
             (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
