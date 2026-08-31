@@ -10,20 +10,22 @@ function New-DcoirActionsExecPowerShellWrapper {
 `$ErrorActionPreference = 'Stop'
 try {
     `$LASTEXITCODE = 0
-    `$dcoirErrorCountBefore = `$Error.Count
 $CommandText
     # Keep failure detection in the same PowerShell scope as the approved
     # command. Windows PowerShell 5.1 can still report process exit 0 after a
     # native nonzero result, so persist the resolved status before asking the
     # host to exit; the parent process reads this sidecar when available.
+    # Do not treat growth of `$Error as failure by itself: callers may
+    # intentionally handle or suppress non-terminating errors. Unhandled
+    # PowerShell error records remain fail-closed through the parent stderr
+    # guard below.
     `$dcoirCommandSucceeded = `$?
     `$dcoirNativeExitCode = `$LASTEXITCODE
-    `$dcoirErrorCountAfter = `$Error.Count
     `$dcoirResolvedExitCode = 0
     if (`$null -ne `$dcoirNativeExitCode -and [int]`$dcoirNativeExitCode -ne 0) {
         `$dcoirResolvedExitCode = [int]`$dcoirNativeExitCode
     }
-    elseif (`$dcoirErrorCountAfter -gt `$dcoirErrorCountBefore -or -not `$dcoirCommandSucceeded) {
+    elseif (-not `$dcoirCommandSucceeded) {
         `$dcoirResolvedExitCode = 1
     }
     if (-not [string]::IsNullOrWhiteSpace(`$dcoirExitCodePath)) {
@@ -77,7 +79,7 @@ function Invoke-DcoirActionsExecProcess {
             # still return process exit code 0. The wrapper therefore persists a
             # resolved status sidecar when it reaches normal/catch resolution,
             # while the parent also retains the canonical PowerShell error-record
-            # stderr guard for host-terminating failures that bypass the wrapper.
+            # stderr guard for host-terminating or otherwise unhandled failures.
             (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText -ExitCodePath $resolvedExitCodePath) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
