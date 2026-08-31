@@ -57,7 +57,7 @@ assert config.deep_review_max_files == 20
 assert config.debug is False
 assert config.post_progress_comment is False
 assert config.per_file_first_pass_review is True
-assert config.per_file_review_concurrency == 6
+assert config.per_file_review_concurrency == 4
 assert config.per_file_review_max_files == 100
 assert config.fix_synthesis_enabled is True
 assert config.required_finding_reserved_budget == 9
