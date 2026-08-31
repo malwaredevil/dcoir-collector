@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33369149626",
+  "github_sha": "87d3c04f474a71d6f023a0b36954bce6a4d469db",
+  "phase": "request-resolved",
+  "request_id": "dcoir-review-v32-verifier-budget-validation-r7-20260831T073700Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/dcoir-review-v32-verifier-budget-validation-r7-20260831T073700Z.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-08-31T07:37:05Z",
+  "workflow": "chatgpt-exec"
+}
