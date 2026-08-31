@@ -33,17 +33,17 @@ function Invoke-ChildScript {
 
 $missingCommand = "& 'Z:\\definitely-missing-dcoir-script.ps1'"
 $wrapper = New-DcoirActionsExecPowerShellWrapper -CommandText $missingCommand
-Write-Host '=== generated wrapper ==='
+Write-Host '=== generated wrapper: missing command ==='
 Write-Host $wrapper
 $null = Invoke-ChildScript -Name 'generated-wrapper-missing' -ScriptText $wrapper
 
 $directProbe = @'
 $ErrorActionPreference = 'Stop'
-$global:LASTEXITCODE = 0
+$LASTEXITCODE = 0
 $before = $Error.Count
 & 'Z:\definitely-missing-dcoir-script.ps1'
 $succeeded = $?
-$last = $global:LASTEXITCODE
+$last = $LASTEXITCODE
 $after = $Error.Count
 Write-Output "before=$before after=$after succeeded=$succeeded last=$last"
 exit 0
@@ -52,17 +52,45 @@ $null = Invoke-ChildScript -Name 'direct-same-scope-missing' -ScriptText $direct
 
 $healedProbe = @'
 $ErrorActionPreference = 'Continue'
-$global:LASTEXITCODE = 0
+$LASTEXITCODE = 0
 $before = $Error.Count
 & 'Z:\definitely-missing-dcoir-script.ps1'
 Write-Output 'continued-after-error'
 $succeeded = $?
-$last = $global:LASTEXITCODE
+$last = $LASTEXITCODE
 $after = $Error.Count
 Write-Output "before=$before after=$after succeeded=$succeeded last=$last"
 exit 0
 '@
 $null = Invoke-ChildScript -Name 'direct-healed-missing' -ScriptText $healedProbe
+
+$nativeExitPlain = 'cmd /d /c exit 7'
+$nativeWrapperPlain = New-DcoirActionsExecPowerShellWrapper -CommandText $nativeExitPlain
+Write-Host '=== generated wrapper: cmd exit 7 ==='
+Write-Host $nativeWrapperPlain
+$null = Invoke-ChildScript -Name 'generated-wrapper-native-exit-plain' -ScriptText $nativeWrapperPlain
+
+$nativeExitB = 'cmd /d /c "exit /b 7"'
+$nativeWrapperB = New-DcoirActionsExecPowerShellWrapper -CommandText $nativeExitB
+Write-Host '=== generated wrapper: cmd exit /b 7 ==='
+Write-Host $nativeWrapperB
+$null = Invoke-ChildScript -Name 'generated-wrapper-native-exit-b' -ScriptText $nativeWrapperB
+
+$directNativeProbe = @'
+$ErrorActionPreference = 'Stop'
+$LASTEXITCODE = 0
+cmd /d /c exit 7
+$succeeded = $?
+$last = $LASTEXITCODE
+Write-Output "plain succeeded=$succeeded last=$last"
+$LASTEXITCODE = 0
+cmd /d /c "exit /b 7"
+$succeededB = $?
+$lastB = $LASTEXITCODE
+Write-Output "slash-b succeeded=$succeededB last=$lastB"
+exit 0
+'@
+$null = Invoke-ChildScript -Name 'direct-native-exit' -ScriptText $directNativeProbe
 
 Write-Host 'ChatGPT exec PowerShell exit diagnostic complete'
 exit 0
