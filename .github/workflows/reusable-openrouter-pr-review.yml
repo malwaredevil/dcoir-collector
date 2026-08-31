@@ -23,7 +23,10 @@ jobs:
   review:
     name: DCOIR review
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # v40 gives bounded per-file saturation recovery enough room while leaving
+    # a five-minute margin beyond the reviewer's 40-minute internal alarm for
+    # terminal reporting and debug artifact upload.
+    timeout-minutes: 45
 
     steps:
       - name: Check out trusted default branch
