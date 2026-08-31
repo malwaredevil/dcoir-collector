@@ -42,10 +42,12 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v29',
         'dcoir_review_required_runtime_patch_v28',
         'dcoir_review_required_runtime_patch_v30',
-        # v32 wraps model/prompt/hybrid review behavior. v31 remains terminal so
-        # its long-standing sentinel/line-kind compatibility assertions stay
-        # true; v31 does not overwrite any v32 review-process surface.
+        # v32 owns adversarial model/prompt/hybrid review behavior. v33 then
+        # separates pre-publication verification capacity from the bounded
+        # one-click repair budget. v31 remains terminal because it does not
+        # overwrite either review-process surface.
         'dcoir_review_required_runtime_patch_v32',
+        'dcoir_review_required_runtime_patch_v33',
         'dcoir_review_required_runtime_patch_v31',
     )
 
