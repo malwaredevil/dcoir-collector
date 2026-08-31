@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v40-focused-validation-20260831T132100Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-31T13:21:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v40-focused-validation-20260831T132100Z.ps1",
+  "approved_command_preview": "Run focused DCOIR v40 validation on current main: compile the coverage recovery source and selftest, execute the v40/v39/Pareto/hardened regressions, and verify production debug=false, primary concurrency=4, internal timeout=2400 seconds, governed v40 selftest registration, and reusable workflow timeout=45 minutes. No branch or PR-head mutation is performed by the script.",
+  "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\chatgpt_staging\\exec_scripts\\dcoir-review-v40-focused-validation-20260831T132100Z.ps1'"
+}
