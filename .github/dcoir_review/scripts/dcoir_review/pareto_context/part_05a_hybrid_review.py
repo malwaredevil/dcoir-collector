@@ -301,9 +301,6 @@ def openrouter_review_with_hybrid_first_pass(
         initial_summary = str(merged_result.get("summary", "") if isinstance(merged_result, dict) else "").strip()
         retry_summary = str(retry_result.get("summary", "") if isinstance(retry_result, dict) else "").strip()
         merged_result = hardened.merge_review_results(merged_result, retry_result)
-        # Preserve the exhausted-retry state across the per-file aggregate boundary.
-        # The normalizer uses this marker to keep an ambiguous summary visible in
-        # the review body without converting it into a false clean result.
         merged_result["_quality_retry_attempted"] = True
         merged_result["_quality_retry_reason"] = str(retry_reason)
         merged_result["_quality_retry_initial_summary"] = initial_summary
