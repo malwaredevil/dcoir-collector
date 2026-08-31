@@ -54,7 +54,11 @@ class DcoirReviewEntrypoint:
         # v38 makes repair-author confidence advisory, normalizes only missing
         # explanatory repair metadata, and raises the independent critic hard
         # acceptance threshold while preserving exact-head structural checks.
-        # v31 remains terminal because it does not overwrite these review surfaces.
+        # v39 handles one additional provider-schema seam: when an otherwise
+        # complete semantic-adjudication finding omits confidence, it assigns only
+        # the configured normal floor to admit the candidate to v21 verification;
+        # verifier support remains mandatory before repair/publication. v31 stays
+        # terminal because it does not overwrite these review surfaces.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review_required_runtime_patch_v34',
@@ -62,6 +66,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v36',
         'dcoir_review_required_runtime_patch_v37',
         'dcoir_review_required_runtime_patch_v38',
+        'dcoir_review_required_runtime_patch_v39',
         'dcoir_review_required_runtime_patch_v31',
     )
 
