@@ -53,6 +53,13 @@ try {
         throw 'Command-not-found probe did not preserve failure evidence in sanitized stderr.'
     }
 
+    # A later successful statement must not heal an earlier command-resolution
+    # failure into success/0.
+    $healed = Invoke-Probe -Id 'healed-error-probe' -Command "& 'Z:\\definitely-missing-dcoir-script.ps1'`nWrite-Output 'continued-after-error'"
+    if ($healed.result -ne 'failure' -or [int]$healed.exit_code -eq 0) {
+        throw "Earlier PowerShell error was healed into false green: $($healed.result)/$($healed.exit_code)"
+    }
+
     $throwing = Invoke-Probe -Id 'throw-probe' -Command "throw 'intentional exec failure probe'"
     if ($throwing.result -ne 'failure' -or [int]$throwing.exit_code -eq 0) {
         throw "PowerShell throw was falsely green: $($throwing.result)/$($throwing.exit_code)"
