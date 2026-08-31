@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33377139636",
   "github_sha": "1d4c73c732f2a163d5fb65d186c023ac1742a706",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "dcoir-review-v36-canonical-sentinel-render-20260831T092300Z",
   "request_path": ".github/chatgpt_staging/exec_requests/dcoir-review-v36-canonical-sentinel-render-20260831T092300Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-31T09:20:33Z",
+  "updated_utc": "2026-08-31T09:20:36Z",
   "workflow": "chatgpt-exec"
 }
