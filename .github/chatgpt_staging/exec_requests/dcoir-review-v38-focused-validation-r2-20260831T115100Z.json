@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v38-focused-validation-r2-20260831T115100Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-31T11:51:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 1200,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Re-run focused DCOIR v38 validation after correcting only the synthetic Python fixture: compile v38 and selftest, run the live-shape repair-author production-chain regression, rerun v36 coordinated-repair selftest under v38, verify debug false and 0.95 critic gate, and run git diff --check.",
+  "command": "$ErrorActionPreference = 'Stop'\npython -m py_compile .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38.py .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'v38 py_compile failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'v38 focused selftest failed' }\npython .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36_selftest.py\nif ($LASTEXITCODE -ne 0) { throw 'v36 regression under v38 overlay failed' }\npython -c \"import sys; sys.path.insert(0, '.github/dcoir_review/scripts'); from dcoir_review.entrypoint import DcoirReviewEntrypoint; import openrouter_pr_review_pareto_context as r; DcoirReviewEntrypoint().apply_runtime_patches(r); c=r.load_pareto_context_config('.github/dcoir_review/openrouter-pr-review-pareto.yml'); assert c.debug is False; import dcoir_review_required_runtime_patch_v36 as v36; assert v36.AUTHOR_MIN_CONFIDENCE == 0.0; assert v36.CRITIC_MIN_CONFIDENCE == 0.95; print('v38 active config readback passed')\"\nif ($LASTEXITCODE -ne 0) { throw 'v38 active config readback failed' }\ngit diff --check\nif ($LASTEXITCODE -ne 0) { throw 'git diff --check failed' }\nWrite-Host 'DCOIR v38 focused validation PASSED'\n"
+}
