@@ -51,6 +51,9 @@ class DcoirReviewEntrypoint:
         # edit sets (multi-line, non-contiguous, and cross-file) while keeping
         # human-only application. v37 strictly normalizes the adjudicator's valid
         # flat-single-finding compatibility shape before v35 capping/publication.
+        # v38 makes repair-author confidence advisory, normalizes only missing
+        # explanatory repair metadata, and raises the independent critic hard
+        # acceptance threshold while preserving exact-head structural checks.
         # v31 remains terminal because it does not overwrite these review surfaces.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
@@ -58,6 +61,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v36',
         'dcoir_review_required_runtime_patch_v37',
+        'dcoir_review_required_runtime_patch_v38',
         'dcoir_review_required_runtime_patch_v31',
     )
 
