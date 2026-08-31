@@ -133,8 +133,11 @@ assert "subprocess.run(command, shell=True)" in prompt
 assert "exact correction guidance" in prompt
 assert "smallest safe patch direction" in prompt
 assert "Leave suggested_replacement empty in this detector pass" in prompt
-assert "separate fix-synthesis pass" in prompt
-assert "multiline, range, or speculative fixes" in prompt
+assert "separate verified repair stage" in prompt
+assert "contiguous multi-line" in prompt
+assert "non-contiguous" in prompt
+assert "cross-file coordinated repairs" in prompt
+assert "independent repair critic" in prompt
 assert "selected range" not in prompt
 
 small_config = mod.copy.copy(config)
