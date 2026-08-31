@@ -1,31 +1,40 @@
 function New-DcoirActionsExecPowerShellWrapper {
-    param([Parameter(Mandatory=$true)][string]$CommandText)
+    param(
+        [Parameter(Mandatory=$true)][string]$CommandText,
+        [string]$ExitCodePath = ''
+    )
 
+    $escapedExitCodePath = $ExitCodePath.Replace("'", "''")
     @"
+`$dcoirExitCodePath = '$escapedExitCodePath'
 `$ErrorActionPreference = 'Stop'
 try {
     `$LASTEXITCODE = 0
     `$dcoirErrorCountBefore = `$Error.Count
 $CommandText
     # Keep failure detection in the same PowerShell scope as the approved
-    # command. A nested child script block can report a successful invocation
-    # even when a command inside it emitted a non-terminating resolution error.
+    # command. Windows PowerShell 5.1 can still report process exit 0 after a
+    # native nonzero result, so persist the resolved status before asking the
+    # host to exit; the parent process reads this sidecar when available.
     `$dcoirCommandSucceeded = `$?
     `$dcoirNativeExitCode = `$LASTEXITCODE
     `$dcoirErrorCountAfter = `$Error.Count
+    `$dcoirResolvedExitCode = 0
     if (`$null -ne `$dcoirNativeExitCode -and [int]`$dcoirNativeExitCode -ne 0) {
-        `$dcoirProcessExitCode = [int]`$dcoirNativeExitCode
-        exit `$dcoirProcessExitCode
+        `$dcoirResolvedExitCode = [int]`$dcoirNativeExitCode
     }
-    if (`$dcoirErrorCountAfter -gt `$dcoirErrorCountBefore) {
-        exit 1
+    elseif (`$dcoirErrorCountAfter -gt `$dcoirErrorCountBefore -or -not `$dcoirCommandSucceeded) {
+        `$dcoirResolvedExitCode = 1
     }
-    if (-not `$dcoirCommandSucceeded) {
-        exit 1
+    if (-not [string]::IsNullOrWhiteSpace(`$dcoirExitCodePath)) {
+        [System.IO.File]::WriteAllText(`$dcoirExitCodePath, [string]`$dcoirResolvedExitCode)
     }
-    exit 0
+    exit `$dcoirResolvedExitCode
 }
 catch {
+    if (-not [string]::IsNullOrWhiteSpace(`$dcoirExitCodePath)) {
+        try { [System.IO.File]::WriteAllText(`$dcoirExitCodePath, '1') } catch { }
+    }
     [Console]::Error.WriteLine((`$_ | Out-String))
     exit 1
 }
@@ -56,6 +65,8 @@ function Invoke-DcoirActionsExecProcess {
     $cmdPath = Join-Path $RunRoot 'approved_command.cmd'
     $stdoutPath = Join-Path $RunRoot 'stdout.raw.txt'
     $stderrPath = Join-Path $RunRoot 'stderr.raw.txt'
+    $resolvedExitCodePath = Join-Path $RunRoot 'powershell.resolved_exit_code.txt'
+    Remove-Item -LiteralPath $resolvedExitCodePath -Force -ErrorAction SilentlyContinue
 
     $started = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
     $timedOut = $false
@@ -63,19 +74,17 @@ function Invoke-DcoirActionsExecProcess {
     switch ($Shell) {
         'powershell_5' {
             # Windows PowerShell can emit a command error from a -File script yet
-            # still return process exit code 0 unless the wrapper explicitly maps
-            # same-scope PowerShell failure/error state and the automatic
-            # LASTEXITCODE to the process exit status. The parent process also
-            # performs a narrow canonical error-record stderr readback for
-            # statement-terminating errors that Windows PowerShell can otherwise
-            # serialize as exit 0.
-            (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
+            # still return process exit code 0. The wrapper therefore persists a
+            # resolved status sidecar when it reaches normal/catch resolution,
+            # while the parent also retains the canonical PowerShell error-record
+            # stderr guard for host-terminating failures that bypass the wrapper.
+            (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText -ExitCodePath $resolvedExitCodePath) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
             $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $commandPath)
         }
         'pwsh' {
-            (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
+            (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText -ExitCodePath $resolvedExitCodePath) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = 'pwsh'
             $args = @('-NoProfile', '-File', $commandPath)
@@ -98,6 +107,21 @@ function Invoke-DcoirActionsExecProcess {
     }
     else {
         $exitCode = [int]$p.ExitCode
+    }
+
+    if (
+        $exitCode -eq 0 -and
+        $Shell -in @('powershell_5','pwsh') -and
+        (Test-Path -LiteralPath $resolvedExitCodePath -PathType Leaf)
+    ) {
+        $resolvedText = (Get-Content -LiteralPath $resolvedExitCodePath -Raw -Encoding UTF8 -ErrorAction SilentlyContinue).Trim()
+        $resolvedExitCode = 0
+        if ([int]::TryParse($resolvedText, [ref]$resolvedExitCode)) {
+            $exitCode = $resolvedExitCode
+        }
+        else {
+            $exitCode = 1
+        }
     }
 
     if (
