@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-dcoir-review-v38-focused-validation-20260831T114900Z",
+  "exit_code": "1",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33388603022",
   "github_sha": "bf8d0eb14ed13165d6588fd8f056297255f3e295",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "dcoir-review-v38-focused-validation-20260831T114900Z",
   "request_path": ".github/chatgpt_staging/exec_requests/dcoir-review-v38-focused-validation-20260831T114900Z.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-31T11:47:41Z",
+  "updated_utc": "2026-08-31T11:47:47Z",
   "workflow": "chatgpt-exec"
 }
