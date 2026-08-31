@@ -31,6 +31,16 @@ catch {
 "@
 }
 
+function Test-DcoirActionsExecPowerShellErrorRecord {
+    param([AllowNull()][string]$StderrText)
+
+    if ([string]::IsNullOrWhiteSpace($StderrText)) { return $false }
+    return (
+        $StderrText -match '(?m)^\s*\+\s*CategoryInfo\s*:' -and
+        $StderrText -match '(?m)^\s*\+\s*FullyQualifiedErrorId\s*:'
+    )
+}
+
 function Invoke-DcoirActionsExecProcess {
     param(
         [Parameter(Mandatory=$true)][string]$Shell,
@@ -54,7 +64,9 @@ function Invoke-DcoirActionsExecProcess {
             # Windows PowerShell can emit a command error from a -File script yet
             # still return process exit code 0 unless the wrapper explicitly maps
             # same-scope PowerShell failure/error state and native LASTEXITCODE to
-            # the process exit status.
+            # the process exit status. The parent process also performs a narrow
+            # canonical error-record stderr readback for statement-terminating
+            # errors that Windows PowerShell can otherwise serialize as exit 0.
             (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
@@ -84,6 +96,17 @@ function Invoke-DcoirActionsExecProcess {
     }
     else {
         $exitCode = [int]$p.ExitCode
+    }
+
+    if (
+        $exitCode -eq 0 -and
+        $Shell -in @('powershell_5','pwsh') -and
+        (Test-Path -LiteralPath $stderrPath -PathType Leaf)
+    ) {
+        $stderrText = Get-Content -LiteralPath $stderrPath -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        if (Test-DcoirActionsExecPowerShellErrorRecord -StderrText $stderrText) {
+            $exitCode = 1
+        }
     }
 
     $finished = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
