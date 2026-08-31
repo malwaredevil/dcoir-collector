@@ -79,8 +79,14 @@ def main() -> None:
     assert observed["limit"] == 12
     assert v21.VERIFIER_MAX_MODEL_FINDINGS == 8
 
-    # Prove that all nine verifier-supported findings remain publishable while
-    # only the configured eight enter repair-author/critic synthesis.
+    # Prove v33's own budget-separation contract in isolation. Later repair
+    # overlays (currently v36 coordinated repair sets) legitimately require
+    # additional PR context such as the PR number/diff and must not make this
+    # historical v33 regression accidentally test their newer responsibilities.
+    active_repair = v25.synthesize_verified_repairs
+    v33._patch_verified_repair_budget(review)
+    v33_repair = v25.synthesize_verified_repairs
+
     original_verify = v21.verify_findings_for_publication
     original_build = v25._build_repair_for_finding
     original_fetch = review.fetch_pr_file_text
@@ -108,7 +114,7 @@ def main() -> None:
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
     reporter = _Reporter()
     try:
-        repaired = v25.synthesize_verified_repairs(
+        repaired = v33_repair(
             review,
             candidates,
             object(),
@@ -120,6 +126,7 @@ def main() -> None:
     finally:
         v21.verify_findings_for_publication = original_verify
         v25._build_repair_for_finding = original_build
+        v25.synthesize_verified_repairs = active_repair
         review.fetch_pr_file_text = original_fetch
         review.hardened.write_debug_json_artifact_safely = original_debug
 
@@ -131,7 +138,8 @@ def main() -> None:
     assert deferred[0]["suggested_replacement"] == ""
     assert "repair budget was exhausted" in deferred[0]["fix_guidance"]["notes"]
 
-    # Applying v33 repeatedly must not stack wrappers.
+    # Applying v33 repeatedly must not stack wrappers or overwrite the active
+    # later-version repair implementation.
     verifier_before = v21.verify_findings_for_publication
     repair_before = v25.synthesize_verified_repairs
     v33.apply_pareto_context_module(review)
