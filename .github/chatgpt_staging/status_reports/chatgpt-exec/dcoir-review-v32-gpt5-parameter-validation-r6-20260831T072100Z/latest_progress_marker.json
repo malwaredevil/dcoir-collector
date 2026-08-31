@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-dcoir-review-v32-gpt5-parameter-validation-r6-20260831T072100Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33368083419",
   "github_sha": "a26665d73e902f0e341a291abf6a806aa18b5ed1",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "dcoir-review-v32-gpt5-parameter-validation-r6-20260831T072100Z",
   "request_path": ".github/chatgpt_staging/exec_requests/dcoir-review-v32-gpt5-parameter-validation-r6-20260831T072100Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-08-31T07:22:51Z",
+  "updated_utc": "2026-08-31T07:23:08Z",
   "workflow": "chatgpt-exec"
 }
