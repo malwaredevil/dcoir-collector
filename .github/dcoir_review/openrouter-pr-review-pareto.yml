@@ -55,7 +55,12 @@ deep_review_max_files: 20
 deep_review_max_file_chars: 20000
 deep_review_max_total_chars: 60000
 per_file_first_pass_review: true
-per_file_review_concurrency: 6
+# v40 lowers the normal fan-out from six after live blind evidence showed that
+# six simultaneous frontier calls can exceed OpenRouter's current in-flight
+# credit window. If that transient 402 still occurs, the reviewer drains the
+# parallel wave, retries only the affected files at concurrency <=2, then gives
+# any still-saturated file one final serial attempt before failing coverage closed.
+per_file_review_concurrency: 4
 per_file_review_max_files: 100
 per_file_review_max_file_chars: 40000
 
@@ -106,7 +111,10 @@ debug: false
 
 openrouter_max_attempts: 4
 openrouter_retry_max_seconds: 45
-script_timeout_seconds: 1500
+# v40 recovery may legitimately add a second, lower-concurrency detector wave.
+# Keep the internal timeout bounded below the reusable workflow's 45-minute job
+# ceiling so terminal-failure reporting and artifact upload still have headroom.
+script_timeout_seconds: 2400
 post_progress_comment: false
 
 ignored_providers:
@@ -136,6 +144,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_critic_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v39_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_per_file_coverage_recovery_v40_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
