@@ -1,3 +1,25 @@
+function New-DcoirActionsExecPowerShellWrapper {
+    param([Parameter(Mandatory=$true)][string]$CommandText)
+
+    @"
+`$ErrorActionPreference = 'Stop'
+try {
+    `$global:LASTEXITCODE = 0
+    & {
+$CommandText
+    }
+    if (`$null -ne `$global:LASTEXITCODE -and [int]`$global:LASTEXITCODE -ne 0) {
+        exit [int]`$global:LASTEXITCODE
+    }
+    exit 0
+}
+catch {
+    [Console]::Error.WriteLine((`$_ | Out-String))
+    exit 1
+}
+"@
+}
+
 function Invoke-DcoirActionsExecProcess {
     param(
         [Parameter(Mandatory=$true)][string]$Shell,
@@ -18,12 +40,19 @@ function Invoke-DcoirActionsExecProcess {
 
     switch ($Shell) {
         'powershell_5' {
-            $CommandText | Out-File -FilePath $commandPath -Encoding utf8
+            # Windows PowerShell can emit a terminating command error from a
+            # -File script yet still return process exit code 0 unless the script
+            # explicitly converts that failure to a nonzero exit. Wrap every
+            # approved command so PowerShell errors and native LASTEXITCODE are
+            # authoritative process failures for the exec result/report gate.
+            (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
+                Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
             $args = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $commandPath)
         }
         'pwsh' {
-            $CommandText | Out-File -FilePath $commandPath -Encoding utf8
+            (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
+                Out-File -FilePath $commandPath -Encoding utf8
             $exe = 'pwsh'
             $args = @('-NoProfile', '-File', $commandPath)
         }
