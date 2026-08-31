@@ -64,7 +64,14 @@
       "literal_forbidden_markers": [
         "transferring to",
         "routing to",
-        "sub-agent"
+        "delegating to",
+        "sub-agent",
+        "handoff",
+        "prime summary",
+        "planner payload",
+        "planner_payload",
+        "routing state",
+        "routing_state"
       ],
       "anomaly_checks": [
         "unsupported_certainty_claims",
@@ -117,7 +124,14 @@
   "literal_forbidden_markers": [
     "transferring to",
     "routing to",
-    "sub-agent"
+    "delegating to",
+    "sub-agent",
+    "handoff",
+    "prime summary",
+    "planner payload",
+    "planner_payload",
+    "routing state",
+    "routing_state"
   ],
   "expected_next_move_shapes": [
     "One analyst-facing multi-step procedure covering the complete requested collector lifecycle, with source-grounded actionable commands/handoffs, explicit endpoint response-action versus local/workstation PowerShell lane separation, and no invented completed state."
