@@ -8,8 +8,16 @@ try {
     & {
 $CommandText
     }
-    if (`$null -ne `$global:LASTEXITCODE -and [int]`$global:LASTEXITCODE -ne 0) {
-        exit [int]`$global:LASTEXITCODE
+    # Command resolution failures in Windows PowerShell may emit an error yet
+    # neither enter catch nor set LASTEXITCODE. Capture `$? immediately before
+    # any wrapper statement can overwrite it.
+    `$dcoirCommandSucceeded = `$?
+    `$dcoirNativeExitCode = `$global:LASTEXITCODE
+    if (`$null -ne `$dcoirNativeExitCode -and [int]`$dcoirNativeExitCode -ne 0) {
+        exit [int]`$dcoirNativeExitCode
+    }
+    if (-not `$dcoirCommandSucceeded) {
+        exit 1
     }
     exit 0
 }
@@ -40,11 +48,9 @@ function Invoke-DcoirActionsExecProcess {
 
     switch ($Shell) {
         'powershell_5' {
-            # Windows PowerShell can emit a terminating command error from a
-            # -File script yet still return process exit code 0 unless the script
-            # explicitly converts that failure to a nonzero exit. Wrap every
-            # approved command so PowerShell errors and native LASTEXITCODE are
-            # authoritative process failures for the exec result/report gate.
+            # Windows PowerShell can emit a command error from a -File script yet
+            # still return process exit code 0 unless the script explicitly maps
+            # PowerShell `$? and native LASTEXITCODE to a process exit status.
             (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
