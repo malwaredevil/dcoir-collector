@@ -15,8 +15,11 @@ repair author a proposal source rather than a semantic acceptance authority:
   with deterministic explanatory metadata derived from the verified finding;
 * missing author confidence is recorded as 0.0 rather than invented;
 * author confidence is advisory and no longer vetoes an exact repair before the
-  independent critic can inspect it; and
-* the independent cross-family critic becomes the hard semantic gate at 0.95.
+  independent critic can inspect it;
+* the independent cross-family critic becomes the hard semantic gate at 0.95;
+  and
+* critic confidence is independently range-validated from 0.0 through 1.0 so a
+  provider that drifts from its response schema still fails closed.
 
 No path, line range, original block, replacement block, exact-head match, syntax,
 edit-count, diff-anchor, or branch-write rule is relaxed. v38 never writes to the
@@ -35,6 +38,7 @@ APPLIED_MARKER = "_dcoir_review_v38_applied"
 PROMPT_STORAGE = "_dcoir_review_v38_original_repair_author_prompt"
 PARSE_STORAGE = "_dcoir_review_v38_original_parse_author"
 CRITIC_PROMPT_STORAGE = "_dcoir_review_v38_original_repair_critic_prompt"
+CRITIC_PARSE_STORAGE = "_dcoir_review_v38_original_parse_critic"
 CRITIC_MIN_CONFIDENCE = 0.95
 AUTHOR_MIN_CONFIDENCE = 0.0
 
@@ -104,6 +108,14 @@ def _patch_repair_author_contract() -> None:
     if not callable(original_critic_prompt):
         raise RuntimeError("DCOIR v38 could not locate v36 repair-critic prompt")
 
+    original_critic_parse = getattr(v36, CRITIC_PARSE_STORAGE, None)
+    if original_critic_parse is None:
+        original_critic_parse = getattr(v36, "_parse_critic", None)
+        if callable(original_critic_parse):
+            setattr(v36, CRITIC_PARSE_STORAGE, original_critic_parse)
+    if not callable(original_critic_parse):
+        raise RuntimeError("DCOIR v38 could not locate v36 repair-critic parser")
+
     def _repair_author_prompt(
         module: Any,
         finding: dict[str, Any],
@@ -152,14 +164,30 @@ REQUIRED OUTPUT CONTRACT (do not omit fields):
 CRITIC ACCEPTANCE CONTRACT:
 - ``accepted=true`` is a hard semantic authorization for human-applied repair
   publication and therefore requires confidence >= {CRITIC_MIN_CONFIDENCE:.2f}.
+- ``confidence`` MUST be numeric and remain within 0.0 through 1.0.
 - Reject when confidence is lower, even if the repair is plausible.
 - Author confidence is advisory only; independently validate the exact repair set.
 """.rstrip()
         return base_prompt + contract
 
+    def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
+        if isinstance(result, dict):
+            raw_confidence = result.get("confidence", 0)
+            if isinstance(raw_confidence, bool):
+                raise hardened.ReviewQualityError("DCOIR repair-set critic returned boolean confidence")
+            try:
+                confidence = float(raw_confidence)
+            except (TypeError, ValueError):
+                # Preserve the canonical v36 error wording for non-numeric values.
+                return original_critic_parse(result, hardened)
+            if not 0.0 <= confidence <= 1.0:
+                raise hardened.ReviewQualityError("DCOIR repair-set critic confidence was outside 0.0..1.0")
+        return original_critic_parse(result, hardened)
+
     v36._repair_author_prompt = _repair_author_prompt
     v36._parse_author = _parse_author
     v36._repair_critic_prompt = _repair_critic_prompt
+    v36._parse_critic = _parse_critic
 
 
 def apply_pareto_context_module(module: Any) -> None:
