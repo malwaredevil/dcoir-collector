@@ -62,6 +62,8 @@ FINAL_SECTION_HEADERS = [
     "cleanup",
 ]
 
+AMBIGUOUS_LIST_SECTION_HEADERS = {"retrieve", "interpret", "cleanup"}
+
 NEGATION_PATTERN = re.compile(
     r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)\s+(?:the\s+|an?\s+)?$"
 )
@@ -171,11 +173,21 @@ def _normalized_header_line(line: str) -> str:
     return " ".join(value.split())
 
 
+def _line_is_list_prefixed(line: str) -> bool:
+    value = str(line).lstrip()
+    return bool(re.match(r"^(?:[-*+]\s+|\d{1,3}[.)]\s+)", value))
+
+
 def _final_section_header_for_line(line: str) -> str | None:
     normalized = _normalized_header_line(line)
+    is_list_prefixed = _line_is_list_prefixed(line)
     if normalized in FINAL_SECTION_HEADERS:
+        if is_list_prefixed and normalized in AMBIGUOUS_LIST_SECTION_HEADERS:
+            return None
         return normalized
     for header in FINAL_SECTION_HEADERS:
+        if is_list_prefixed and header in AMBIGUOUS_LIST_SECTION_HEADERS:
+            continue
         if re.match(rf"^{re.escape(header)}\s*[:\-–—]\s*.+$", normalized):
             return header
     return None
@@ -221,6 +233,7 @@ def has_execution_lane_separation(response_text: str) -> bool:
             _find_contextual_term_hits(
                 clause,
                 ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
+                skip_negated=True,
                 skip_quoted=True,
             )
         )
