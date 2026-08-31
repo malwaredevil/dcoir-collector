@@ -63,6 +63,34 @@ def main() -> None:
     assert payload["model"] == "anthropic/claude-opus-5"
     assert payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
 
+    # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.  The
+    # reviewer must not add a second effort selector that can make the provider
+    # endpoint ineligible, while normal OpenAI SKUs still receive the governed
+    # explicit reasoning effort.
+    assert v32._model_owns_fixed_pro_reasoning("openai/gpt-5.6-sol-pro") is True
+    assert v32._model_owns_fixed_pro_reasoning("openai/gpt-5.6-sol-pro-20260709") is True
+    assert v32._model_owns_fixed_pro_reasoning("openai/gpt-5.6-sol") is False
+    assert v32._model_owns_fixed_pro_reasoning("anthropic/claude-opus-5") is False
+
+    pro_payload = review.hardened.build_openrouter_payload(
+        "probe",
+        schema,
+        config,
+        [],
+        "openai/gpt-5.6-sol-pro",
+    )
+    assert pro_payload["model"] == "openai/gpt-5.6-sol-pro"
+    assert "reasoning" not in pro_payload
+
+    regular_openai_payload = review.hardened.build_openrouter_payload(
+        "probe",
+        schema,
+        config,
+        [],
+        "openai/gpt-5.6-sol",
+    )
+    assert regular_openai_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
+
     # Prove that a clean primary pass cannot become the final deep result without
     # an independent challenger and that challenger findings are preserved.
     storage = "_dcoir_review_v32_original_hybrid_first_pass"
