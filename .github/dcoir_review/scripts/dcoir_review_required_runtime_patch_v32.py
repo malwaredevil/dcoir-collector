@@ -13,8 +13,14 @@ v32 changes the review process rather than teaching it PR-specific answers:
   checklist;
 * deep review gets an independent adversarial confirmation pass using a
   separately configured model stack and merges the union of findings;
-* OpenRouter reasoning effort is configured explicitly for review calls;
+* OpenRouter reasoning effort is requested for models whose reasoning mode is
+  not already fixed by the model SKU;
 * configuration exposes the confirmation model stack and reasoning effort.
+
+OpenRouter's ``*-pro`` OpenAI SKUs already select a fixed Pro reasoning mode.
+v32 therefore does not layer an explicit reasoning-effort override on those
+models; doing so can make an otherwise available endpoint ineligible.  Other
+configured models still receive the governed review reasoning effort.
 
 The confirmation pass is fail-closed: when enabled for a deep review, inability
 to complete the independent pass is a review failure rather than a false clean
@@ -62,6 +68,16 @@ def _as_string_list(value: Any, fallback: tuple[str, ...]) -> list[str]:
     return list(fallback)
 
 
+def _model_owns_fixed_pro_reasoning(model: Any) -> bool:
+    """Return True for OpenAI model SKUs that already encode Pro reasoning."""
+
+    value = str(model or "").strip().lower()
+    if not value.startswith("openai/"):
+        return False
+    model_id = value.split("/", 1)[1].split(":", 1)[0]
+    return model_id.endswith("-pro") or "-pro-" in model_id
+
+
 def _patch_config_loader(module: Any) -> None:
     storage = "_dcoir_review_v32_original_load_pareto_context_config"
     original = getattr(module, storage, None)
@@ -102,6 +118,12 @@ def _patch_reasoning_payload(module: Any) -> None:
 
     def build_openrouter_payload(prompt, schema, config, ignored_providers, model):
         payload = original(prompt, schema, config, ignored_providers, model)
+        if _model_owns_fixed_pro_reasoning(model):
+            # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.
+            # Do not add or retain a second reasoning selector that can make the
+            # otherwise available Pro endpoint ineligible.
+            payload.pop("reasoning", None)
+            return payload
         effort = str(getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or "").strip()
         if effort and effort.lower() != "none":
             payload["reasoning"] = {
