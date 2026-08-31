@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "dcoir-review-v39-codeql-dispatch-20260831T123800Z",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v39-codeql-dispatch-20260831T123800Z.ps1",
+  "approved_command_preview": "Use the authorized GitHub token bridge by environment-variable name only to dispatch codeql-security.yml on main. Do not print credential values and make no source changes.",
+  "shell": "pwsh",
+  "timeout_seconds": 300,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "trigger_nonce": "20260831T1238Z"
+}
