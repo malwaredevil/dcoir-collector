@@ -2,17 +2,17 @@
 
 Issue #456 showed that frontier per-file detection plus an independent whole-PR
 challenger materially improves recall, but the union can still contain dozens of
-partially overlapping or speculative hypotheses.  Sending that union directly
+partially overlapping or speculative hypotheses. Sending that union directly
 to ranking and one-by-one verification makes final quality depend too heavily on
 severity sorting and consumes verifier budget on candidates that a strong
 reviewer would first consolidate or disprove.
 
 v35 inserts one bounded semantic adjudication pass after the existing primary +
-challenger review and before normalization/publication verification.  The
+challenger review and before normalization/publication verification. The
 adjudicator treats detector output as untrusted hypotheses, independently audits
 the changed contracts, may recover a demonstrable miss that neither detector
 named, collapses duplicate variants to root causes, and must provide concrete
-counterexamples rather than speculative warnings.  v35 also makes the existing
+counterexamples rather than speculative warnings. v35 also makes the existing
 v21 verifier explicitly falsification-first.
 
 This overlay does not increase the inline publication ceiling, does not weaken
@@ -38,6 +38,17 @@ VERIFIER_PROMPT_STORAGE = "_dcoir_review_v35_original_verifier_prompt"
 DEFAULT_ADJUDICATION_MODELS = ("anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro")
 DEFAULT_ADJUDICATION_MAX_FINDINGS = 8
 DEFAULT_CANDIDATE_DIGEST_CHARS = 24000
+
+# Candidate hypotheses are supporting context, not the adjudicator's source of
+# truth. Prefer a fair, compact representation of every hypothesis over a long
+# representation of early candidates that silently drops later candidates.
+CANDIDATE_DIGEST_PROFILES = (
+    (220, 160, 400, 250),
+    (200, 150, 300, 180),
+    (180, 140, 220, 120),
+    (160, 120, 140, 80),
+    (120, 100, 80, 0),
+)
 
 ADJUDICATION_BLOCK = f"""
 Final semantic adjudication pass.
@@ -139,31 +150,75 @@ def _patch_config_loader(module: Any) -> None:
     module.load_pareto_context_config = load_pareto_context_config
 
 
+def _compact_candidate(
+    index: int,
+    item: dict[str, Any],
+    path_chars: int,
+    title_chars: int,
+    body_chars: int,
+    validation_chars: int,
+) -> dict[str, Any]:
+    return {
+        "candidate": index,
+        "path": str(item.get("path", "") or "")[:path_chars],
+        "line": item.get("line", 0),
+        "severity": str(item.get("severity", "") or "")[:16],
+        "confidence": item.get("confidence", 0),
+        "title": str(item.get("title", "") or "")[:title_chars],
+        "body": str(item.get("body", "") or "")[:body_chars],
+        "validation": str(item.get("validation", "") or "")[:validation_chars],
+    }
+
+
 def _candidate_digest(result: dict[str, Any], max_chars: int) -> tuple[str, int]:
+    """Serialize every candidate as valid JSON while respecting the digest budget.
+
+    Earlier v35 staging truncated the serialized JSON string after ``max_chars``.
+    That biased the adjudicator toward early candidates and could cut the JSON in
+    the middle of an object. Instead, progressively compact every candidate so
+    candidate order never determines whether a hypothesis is visible.
+    """
+
     findings = result.get("findings", []) if isinstance(result, dict) else []
     if not isinstance(findings, list):
         findings = []
-    compact: list[dict[str, Any]] = []
-    for index, item in enumerate(findings, start=1):
-        if not isinstance(item, dict):
-            continue
-        compact.append(
-            {
-                "candidate": index,
-                "path": str(item.get("path", "") or "")[:240],
-                "line": item.get("line", 0),
-                "severity": str(item.get("severity", "") or "")[:24],
-                "confidence": item.get("confidence", 0),
-                "title": str(item.get("title", "") or "")[:180],
-                "body": str(item.get("body", "") or "")[:700],
-                "validation": str(item.get("validation", "") or "")[:500],
-            }
-        )
-    text = json.dumps(compact, ensure_ascii=False, separators=(",", ":"))
+    valid_findings = [item for item in findings if isinstance(item, dict)]
+    count = len(valid_findings)
+
+    for path_chars, title_chars, body_chars, validation_chars in CANDIDATE_DIGEST_PROFILES:
+        compact = [
+            _compact_candidate(
+                index,
+                item,
+                path_chars,
+                title_chars,
+                body_chars,
+                validation_chars,
+            )
+            for index, item in enumerate(valid_findings, start=1)
+        ]
+        text = json.dumps(compact, ensure_ascii=False, separators=(",", ":"))
+        if len(text) <= max_chars:
+            return text, count
+
+    # Last-resort identity digest still preserves every candidate and remains
+    # valid JSON. If even this cannot fit, fail explicitly instead of silently
+    # hiding a tail of the candidate set from adjudication.
+    identity = [
+        {
+            "candidate": index,
+            "path": str(item.get("path", "") or "")[:80],
+            "line": item.get("line", 0),
+            "title": str(item.get("title", "") or "")[:60],
+        }
+        for index, item in enumerate(valid_findings, start=1)
+    ]
+    text = json.dumps(identity, ensure_ascii=False, separators=(",", ":"))
     if len(text) > max_chars:
-        marker = "...<candidate digest truncated>"
-        text = text[: max(0, max_chars - len(marker))] + marker
-    return text, len(compact)
+        raise ValueError(
+            f"DCOIR v35 candidate digest budget {max_chars} is too small to represent all {count} candidates"
+        )
+    return text, count
 
 
 def _cap_adjudicated_findings(module: Any, result: dict[str, Any], limit: int) -> dict[str, Any]:
