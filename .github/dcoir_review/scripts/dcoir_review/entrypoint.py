@@ -49,13 +49,15 @@ class DcoirReviewEntrypoint:
         # final semantic adjudicator plus falsification-first verifier guidance.
         # v36 upgrades verified repairs from one exact line to bounded coordinated
         # edit sets (multi-line, non-contiguous, and cross-file) while keeping
-        # human-only application. v31 remains terminal because it does not
-        # overwrite these review surfaces.
+        # human-only application. v37 strictly normalizes the adjudicator's valid
+        # flat-single-finding compatibility shape before v35 capping/publication.
+        # v31 remains terminal because it does not overwrite these review surfaces.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review_required_runtime_patch_v34',
         'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v36',
+        'dcoir_review_required_runtime_patch_v37',
         'dcoir_review_required_runtime_patch_v31',
     )
 
