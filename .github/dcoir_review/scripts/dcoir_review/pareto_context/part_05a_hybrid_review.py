@@ -1,3 +1,14 @@
+def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
+    """Return True only for OpenRouter's transient in-flight-credit HTTP 402."""
+
+    message = " ".join(str(exc).lower().split())
+    return (
+        "http 402" in message
+        and "current in-flight requests" in message
+        and "retry after in-flight requests settle" in message
+    )
+
+
 def openrouter_review_with_hybrid_first_pass(
     pr: dict[str, Any],
     files: list[dict[str, Any]],
@@ -45,6 +56,7 @@ def openrouter_review_with_hybrid_first_pass(
     )
     results: list[dict[str, Any]] = []
     failures: list[str] = []
+    transient_saturation_failures: list[tuple[int, dict[str, Any], str]] = []
     max_workers = max(1, int(getattr(config, "per_file_review_concurrency", 4)))
     with concurrent.futures.ThreadPoolExecutor(max_workers=min(max_workers, len(contexts))) as executor:
         future_map = {
@@ -68,19 +80,162 @@ def openrouter_review_with_hybrid_first_pass(
                 results.append(future.result())
                 reporter.update("per-file-result", f"{path}: completed")
             except Exception as exc:
+                if _is_transient_inflight_credit_saturation_error(exc):
+                    transient_saturation_failures.append((index, context, str(exc)))
+                    hardened.write_debug_json_artifact_safely(
+                        config,
+                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-transient-saturation.json",
+                        {"path": path, "error": str(exc), "recovery": "queued-for-low-concurrency-retry"},
+                    )
+                    reporter.update(
+                        "per-file-result",
+                        f"{path}: transient in-flight-credit saturation; queued for bounded recovery",
+                    )
+                    continue
+
                 failures.append(f"{path}: {str(exc)[:240]}")
                 hardened.write_debug_json_artifact_safely(
                     config,
                     f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
                     {"path": path, "error": str(exc)},
                 )
-                reporter.update("per-file-result", f"{path}: failed; continuing with remaining files")
+                reporter.update(
+                    "per-file-result",
+                    f"{path}: failed; coverage will fail closed after remaining files complete",
+                )
 
-    if not results:
-        if failures:
-            reporter.update("per-file", f"all per-file calls failed; using bounded whole-PR prompt. First failure: {failures[0]}")
-        prompt = build_prompt(pr, files, diff, config, risk_sentinels, deep_context_block, review_mode, context_summary)
-        return hardened.openrouter_review_with_quality_retry(prompt, schema, config, reporter, risk_sentinels, line_index)
+    low_concurrency_recovered_file_count = 0
+    serial_saturation_failures: list[tuple[int, dict[str, Any], str]] = []
+    if transient_saturation_failures:
+        recovery_workers = min(2, len(transient_saturation_failures))
+        reporter.update(
+            "per-file-recovery",
+            (
+                f"parallel wave settled; retrying {len(transient_saturation_failures)} "
+                f"transient in-flight-credit saturation failure(s) with recovery concurrency={recovery_workers}"
+            ),
+        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=recovery_workers) as recovery_executor:
+            recovery_future_map = {
+                recovery_executor.submit(
+                    review_single_file_context,
+                    index,
+                    context,
+                    pr,
+                    diff,
+                    schema,
+                    config,
+                    risk_sentinels,
+                    review_mode,
+                ): (index, context, initial_error)
+                for index, context, initial_error in transient_saturation_failures
+            }
+            for future in concurrent.futures.as_completed(recovery_future_map):
+                index, context, initial_error = recovery_future_map[future]
+                path = str(context["path"])
+                try:
+                    results.append(future.result())
+                    low_concurrency_recovered_file_count += 1
+                    reporter.update("per-file-recovery", f"{path}: recovered at low concurrency")
+                except Exception as exc:
+                    if _is_transient_inflight_credit_saturation_error(exc):
+                        serial_saturation_failures.append((index, context, str(exc)))
+                        reporter.update(
+                            "per-file-recovery",
+                            f"{path}: still saturated; queued for one final serial recovery attempt",
+                        )
+                        continue
+                    failures.append(f"{path}: {str(exc)[:240]}")
+                    hardened.write_debug_json_artifact_safely(
+                        config,
+                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
+                        {
+                            "path": path,
+                            "initial_error": initial_error,
+                            "recovery_error": str(exc),
+                            "recovery": "low-concurrency-retry-failed",
+                        },
+                    )
+                    reporter.update("per-file-recovery", f"{path}: low-concurrency recovery failed")
+
+    serial_recovered_saturation_file_count = 0
+    if serial_saturation_failures:
+        reporter.update(
+            "per-file-recovery",
+            (
+                f"low-concurrency recovery wave settled; serially retrying "
+                f"{len(serial_saturation_failures)} still-saturated file(s) once"
+            ),
+        )
+        for index, context, recovery_error in serial_saturation_failures:
+            path = str(context["path"])
+            try:
+                results.append(
+                    review_single_file_context(
+                        index,
+                        context,
+                        pr,
+                        diff,
+                        schema,
+                        config,
+                        risk_sentinels,
+                        review_mode,
+                    )
+                )
+                serial_recovered_saturation_file_count += 1
+                reporter.update("per-file-recovery", f"{path}: recovered serially")
+            except Exception as exc:
+                failures.append(f"{path}: {str(exc)[:240]}")
+                hardened.write_debug_json_artifact_safely(
+                    config,
+                    f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
+                    {
+                        "path": path,
+                        "initial_error": recovery_error,
+                        "recovery_error": str(exc),
+                        "recovery": "final-serial-retry-failed",
+                    },
+                )
+                reporter.update("per-file-recovery", f"{path}: final serial recovery failed")
+
+    recovered_saturation_file_count = (
+        low_concurrency_recovered_file_count + serial_recovered_saturation_file_count
+    )
+    saturation_recovery = {
+        "transient_saturation_file_count": len(transient_saturation_failures),
+        "low_concurrency_recovered_file_count": low_concurrency_recovered_file_count,
+        "serial_recovered_saturation_file_count": serial_recovered_saturation_file_count,
+        "recovered_saturation_file_count": recovered_saturation_file_count,
+        "unrecovered_saturation_file_count": len(transient_saturation_failures) - recovered_saturation_file_count,
+    }
+    hardened.write_debug_json_artifact_safely(
+        config,
+        "responses/per-file/saturation-recovery.json",
+        saturation_recovery,
+    )
+
+    if failures:
+        hardened.write_debug_json_artifact_safely(
+            config,
+            "responses/per-file/coverage-failure.json",
+            {
+                "file_prompt_count": len(contexts),
+                "completed_file_prompt_count": len(results),
+                "failed_file_count": len(failures),
+                "failures": failures,
+                **saturation_recovery,
+            },
+        )
+        raise hardened.ReviewQualityError(
+            "Per-file first-pass coverage incomplete after bounded recovery: "
+            f"{len(failures)}/{len(contexts)} file prompt(s) failed. First failure: {failures[0]}"
+        )
+
+    if len(results) != len(contexts):
+        raise hardened.ReviewQualityError(
+            "Per-file first-pass coverage accounting mismatch: "
+            f"completed={len(results)} expected={len(contexts)}"
+        )
 
     merged_result = merge_many_review_results([item["result"] for item in results])
     model_used = compact_model_label(results, getattr(config, "model", "openrouter/pareto-code"))
@@ -93,11 +248,12 @@ def openrouter_review_with_hybrid_first_pass(
             "prompt_mode": "per-file",
             "file_prompt_count": len(contexts),
             "completed_file_prompt_count": len(results),
-            "failed_file_count": len(failures),
+            "failed_file_count": 0,
             "prompt_chars": total_prompt_chars,
             "risk_sentinel_count": len(risk_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(risk_sentinels) if risk_sentinels else "",
             "line_index_entries": len(line_index),
+            **saturation_recovery,
         },
     )
     hardened.write_debug_json_artifact_safely(
@@ -108,8 +264,9 @@ def openrouter_review_with_hybrid_first_pass(
             "service_tier": service_tier,
             "prompt_mode": "per-file",
             "file_result_count": len(results),
-            "failed_file_count": len(failures),
+            "failed_file_count": 0,
             "total_prompt_chars": total_prompt_chars,
+            **saturation_recovery,
             "result": merged_result,
         },
     )
@@ -118,8 +275,9 @@ def openrouter_review_with_hybrid_first_pass(
         "responses/per-file/merged-detector-result.json",
         {
             "file_result_count": len(results),
-            "failed_file_count": len(failures),
-            "failures": failures,
+            "failed_file_count": 0,
+            "failures": [],
+            **saturation_recovery,
             "model_used": model_used,
             "service_tier": service_tier,
             "result": merged_result,
