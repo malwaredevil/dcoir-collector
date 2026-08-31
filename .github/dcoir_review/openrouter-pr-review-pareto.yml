@@ -67,6 +67,17 @@ adversarial_confirmation_model_stack:
   - openai/gpt-5.6-sol-pro
 review_reasoning_effort: xhigh
 
+# v35 turns the broad detector/challenger union into a small set of demonstrated
+# root causes before the expensive per-finding verifier. The adjudicator is an
+# authoritative review stage, not another union: it may suppress unsupported or
+# duplicate hypotheses and may independently recover a demonstrable detector miss.
+semantic_adjudication_review: true
+semantic_adjudication_model_stack:
+  - anthropic/claude-opus-5
+  - openai/gpt-5.6-sol-pro
+semantic_adjudication_max_findings: 8
+semantic_adjudication_candidate_digest_chars: 24000
+
 fix_synthesis_enabled: true
 # v33 keeps this as the one-click repair author/critic budget. It is deliberately
 # smaller than max_inline_comments: verifier-supported findings above this budget
@@ -117,6 +128,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v33_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v34_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v35_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
