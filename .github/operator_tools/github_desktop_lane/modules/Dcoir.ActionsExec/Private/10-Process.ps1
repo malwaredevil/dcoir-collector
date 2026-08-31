@@ -4,14 +4,14 @@ function New-DcoirActionsExecPowerShellWrapper {
     @"
 `$ErrorActionPreference = 'Stop'
 try {
-    `$global:LASTEXITCODE = 0
+    `$LASTEXITCODE = 0
     `$dcoirErrorCountBefore = `$Error.Count
 $CommandText
     # Keep failure detection in the same PowerShell scope as the approved
     # command. A nested child script block can report a successful invocation
     # even when a command inside it emitted a non-terminating resolution error.
     `$dcoirCommandSucceeded = `$?
-    `$dcoirNativeExitCode = `$global:LASTEXITCODE
+    `$dcoirNativeExitCode = `$LASTEXITCODE
     `$dcoirErrorCountAfter = `$Error.Count
     if (`$null -ne `$dcoirNativeExitCode -and [int]`$dcoirNativeExitCode -ne 0) {
         exit [int]`$dcoirNativeExitCode
@@ -63,10 +63,11 @@ function Invoke-DcoirActionsExecProcess {
         'powershell_5' {
             # Windows PowerShell can emit a command error from a -File script yet
             # still return process exit code 0 unless the wrapper explicitly maps
-            # same-scope PowerShell failure/error state and native LASTEXITCODE to
-            # the process exit status. The parent process also performs a narrow
-            # canonical error-record stderr readback for statement-terminating
-            # errors that Windows PowerShell can otherwise serialize as exit 0.
+            # same-scope PowerShell failure/error state and the automatic
+            # LASTEXITCODE to the process exit status. The parent process also
+            # performs a narrow canonical error-record stderr readback for
+            # statement-terminating errors that Windows PowerShell can otherwise
+            # serialize as exit 0.
             (New-DcoirActionsExecPowerShellWrapper -CommandText $CommandText) |
                 Out-File -FilePath $commandPath -Encoding utf8
             $exe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
