@@ -13,7 +13,7 @@ def build_prompt(
         f"Context readback: {context_summary}",
         "When deep context is present, use it to reason about full changed-file behavior, but anchor actionable findings to changed lines when practical.",
         "Every finding must include exact correction guidance or the smallest safe patch direction, plus validation/readback guidance.",
-        "Leave suggested_replacement empty in this detector pass. The separate fix-synthesis pass generates any exact single-line GitHub suggestion only after deterministic anchoring checks; multiline, range, or speculative fixes must stay in normal guidance fields.",
+        "Leave suggested_replacement empty in this detector pass. The separate verified repair stage may author single-line, contiguous multi-line, non-contiguous, or cross-file coordinated repairs after exact-head validation and an independent repair critic; speculative fixes must stay in normal guidance fields.",
         "Inspect dynamic path construction and file writes for traversal, arbitrary overwrite, missing root-containment checks, and unsafe staging side effects.",
         "For this repository, give extra attention to PowerShell, Python, and GitHub Actions/YAML because they carry most operational and workflow risk; keep findings generalizable and do not tune to any single fixture.",
     ]
@@ -57,6 +57,29 @@ def sanitize_context_summary(context_summary: str, config: Any) -> str:
 def append_context_to_review_body(body: str, review_mode: str, context_summary: str, config: Any) -> str:
     safe_context_summary = sanitize_context_summary(context_summary, config)
     return base.github_safe_body(f"{body}\n\n{CONTEXT_REVIEW_MARKER} `{review_mode}`\n\nContext readback: {safe_context_summary}")
+
+
+def build_review_comments_for_finding(
+    finding: dict[str, Any],
+    model_used: str,
+    config: Any,
+) -> list[dict[str, Any]]:
+    """Expand one logical finding into one or more GitHub review comments.
+
+    The default remains exactly one comment. Runtime repair overlays may replace
+    this helper to emit linked ranged suggestions for a coordinated repair set.
+    """
+
+    path = str(finding["path"])
+    line = int(finding["line"])
+    return [
+        {
+            "path": path,
+            "line": line,
+            "side": "RIGHT",
+            "body": base.build_inline_comment(finding, model_used, config),
+        }
+    ]
 
 
 FINDING_ANCHOR_HINTS: tuple[tuple[tuple[str, ...], tuple[str, ...]], ...] = (
