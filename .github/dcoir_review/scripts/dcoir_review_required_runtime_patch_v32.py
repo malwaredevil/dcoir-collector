@@ -17,6 +17,8 @@ v32 changes the review process rather than teaching it PR-specific answers:
   not already fixed by the model SKU;
 * OpenAI GPT-5 reasoning-family requests omit sampling parameters that are not
   valid for reasoning-enabled endpoints;
+* verifier and verified-repair bounds follow the governed configured finding
+  budget so the independent-review union cannot trip a stale lower ceiling;
 * configuration exposes the confirmation model stack and reasoning effort.
 
 OpenRouter's ``*-pro`` OpenAI SKUs already select a fixed Pro reasoning mode.
@@ -28,8 +30,10 @@ provider ineligible before inference starts.
 
 The confirmation pass is fail-closed: when enabled for a deep review, inability
 to complete the independent pass is a review failure rather than a false clean
-result.  This overlay adds no branch-write, commit, or autonomous remediation
-capability.  Native GitHub suggestions remain downstream human-applied output.
+result.  Finding verification and repair remain bounded by the configured
+``fix_synthesis_max_findings`` and ``max_inline_comments`` ceilings.  This
+overlay adds no branch-write, commit, or autonomous remediation capability.
+Native GitHub suggestions remain downstream human-applied output.
 """
 
 from __future__ import annotations
@@ -37,11 +41,15 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v21 as v21
+import dcoir_review_required_runtime_patch_v25 as v25
+
 
 VERSION = "v32"
 APPLIED_MARKER = "_dcoir_review_v32_applied"
 DEFAULT_CONFIRMATION_MODELS = ("openai/gpt-5.6-sol-pro",)
 DEFAULT_REASONING_EFFORT = "xhigh"
+DEFAULT_VERIFIER_REPAIR_LIMIT = 8
 
 ADVERSARIAL_SEMANTIC_BLOCK = """
 Adversarial semantic falsification requirements:
@@ -93,6 +101,20 @@ def _model_uses_openai_gpt5_reasoning(model: Any) -> bool:
     return model_id.startswith("gpt-5")
 
 
+def _configured_verifier_repair_limit(config: Any) -> int:
+    """Return the shared bounded verifier/repair ceiling for the loaded config."""
+
+    try:
+        configured = int(getattr(config, "fix_synthesis_max_findings", DEFAULT_VERIFIER_REPAIR_LIMIT))
+    except (TypeError, ValueError):
+        configured = DEFAULT_VERIFIER_REPAIR_LIMIT
+    try:
+        inline_limit = int(getattr(config, "max_inline_comments", configured))
+    except (TypeError, ValueError):
+        inline_limit = configured
+    return max(1, min(configured, inline_limit))
+
+
 def _patch_config_loader(module: Any) -> None:
     storage = "_dcoir_review_v32_original_load_pareto_context_config"
     original = getattr(module, storage, None)
@@ -115,6 +137,15 @@ def _patch_config_loader(module: Any) -> None:
         config.review_reasoning_effort = str(
             data.get("review_reasoning_effort", DEFAULT_REASONING_EFFORT) or DEFAULT_REASONING_EFFORT
         ).strip()
+
+        # v21/v25 predate the v32 two-reviewer union and historically hard-coded
+        # a six-candidate ceiling.  Keep their fail-closed bounds, but align them
+        # to the already-governed configured finding budget so a seventh valid
+        # candidate is verified instead of causing terminal overflow.
+        verifier_repair_limit = _configured_verifier_repair_limit(config)
+        v21.VERIFIER_MAX_MODEL_FINDINGS = verifier_repair_limit
+        v25.MAX_REPAIR_CANDIDATES = verifier_repair_limit
+        config.dcoir_v32_verifier_repair_limit = verifier_repair_limit
         return config
 
     module.load_pareto_context_config = load_pareto_context_config
