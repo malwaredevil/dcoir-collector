@@ -99,20 +99,21 @@ def main() -> None:
     )
     assert accepted is True and confidence == 0.95
 
-    prompt = v36._repair_author_prompt(review, finding, "x\n    old_call()\n", "", "deadbeef", config)
+    prompt = v36._repair_author_prompt(review, finding, "def f():\n    old_call()\n", "", "deadbeef", config)
     for phrase in ("EVERY edit MUST contain all six fields", "purpose", "confidence", "independent cross-family critic"):
         assert phrase in prompt
 
     # Exercise the active production synthesis chain with the same near-schema
     # author shape seen live: no purpose and no confidence. The independent
     # critic, exact-head validation, and native suggestion rendering must still
-    # execute successfully.
+    # execute successfully. The synthetic source remains valid Python both before
+    # and after the proposed edit so the real syntax safety gate is exercised.
     pipeline_diff = (
         "diff --git a/probe.py b/probe.py\n"
         "--- a/probe.py\n"
         "+++ b/probe.py\n"
         "@@ -1,2 +1,2 @@\n"
-        " x = 1\n"
+        " def f():\n"
         "+    old_call()\n"
     )
 
@@ -154,7 +155,7 @@ def main() -> None:
 
     v21.verify_findings_for_publication = _fake_verify
     review.hardened.openrouter_review = _fake_openrouter
-    review.fetch_pr_file_text = lambda gh, target, head: "x = 1\n    old_call()\n"
+    review.fetch_pr_file_text = lambda gh, target, head: "def f():\n    old_call()\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
     reporter = _Reporter()
     try:
