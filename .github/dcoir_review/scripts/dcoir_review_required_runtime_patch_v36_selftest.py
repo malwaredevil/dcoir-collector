@@ -39,6 +39,13 @@ def main() -> None:
     assert config.debug is False
     assert set(v36.REPAIR_SET_AUTHOR_SCHEMA["properties"]["action"]["enum"]) == {"repair_set", "no_safe_repair"}
     assert v36.REPAIR_SET_AUTHOR_SCHEMA["properties"]["edits"]["maxItems"] >= 3
+    critic_after_opus = v36._repair_critic_config(config, "anthropic/claude-opus-5")
+    assert critic_after_opus.model_stack == ["openai/gpt-5.6-sol-pro"]
+    assert critic_after_opus.model == "openai/gpt-5.6-sol-pro"
+    critic_after_sol = v36._repair_critic_config(config, "openai/gpt-5.6-sol-pro")
+    assert critic_after_sol.model_stack == ["anthropic/claude-opus-5"]
+    assert critic_after_sol.model == "anthropic/claude-opus-5"
+    assert config.model_stack[0] == "anthropic/claude-opus-5"  # shared config was not mutated
     source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
     for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text"):
         assert phrase in source

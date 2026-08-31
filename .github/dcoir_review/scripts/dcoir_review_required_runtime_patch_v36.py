@@ -25,6 +25,7 @@ This overlay never writes to the pull-request branch.
 from __future__ import annotations
 
 import ast
+import copy
 import json
 from pathlib import Path
 from typing import Any
@@ -238,6 +239,21 @@ def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
     if accepted and confidence < CRITIC_MIN_CONFIDENCE:
         return False, confidence, reason or "Repair-set critic confidence was below threshold."
     return accepted, confidence, reason
+
+
+def _repair_critic_config(config: Any, author_model: str) -> Any:
+    """Choose a fixed frontier critic from a different model family than the author."""
+    critic_config = copy.copy(config)
+    served_author = str(author_model or "").strip().lower()
+    if served_author.startswith("openai/"):
+        critic_model = "anthropic/claude-opus-5"
+    else:
+        critic_model = "openai/gpt-5.6-sol-pro"
+    if hasattr(critic_config, "model"):
+        critic_config.model = critic_model
+    if hasattr(critic_config, "model_stack"):
+        critic_config.model_stack = [critic_model]
+    return critic_config
 
 
 def _repair_author_prompt(
@@ -577,7 +593,7 @@ def _build_repair_set_for_finding(
         )
 
     critic_prompt = _repair_critic_prompt(module, finding, author, file_cache, config)
-    critic_config = v25._independent_config(config)
+    critic_config = _repair_critic_config(config, author_model)
     critic_raw, critic_model, critic_tier = module.hardened.openrouter_review(
         critic_prompt, REPAIR_SET_CRITIC_SCHEMA, critic_config, reporter=None
     )
