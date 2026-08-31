@@ -44,6 +44,14 @@ try {
         throw "Expected success probe to return success/0; got $($success.result)/$($success.exit_code)"
     }
 
+    # Native tools are allowed to write ordinary diagnostics to stderr while
+    # returning zero. The parent guard must recognize PowerShell error records,
+    # not blindly treat any stderr as failure.
+    $benignStderr = Invoke-Probe -Id 'benign-native-stderr-probe' -Command 'cmd /d /c "echo benign-native-stderr 1>&2"'
+    if ($benignStderr.result -ne 'success' -or [int]$benignStderr.exit_code -ne 0) {
+        throw "Benign native stderr was falsely failed: $($benignStderr.result)/$($benignStderr.exit_code)"
+    }
+
     $missing = Invoke-Probe -Id 'missing-command-probe' -Command "& 'Z:\\definitely-missing-dcoir-script.ps1'"
     if ($missing.result -ne 'failure' -or [int]$missing.exit_code -eq 0) {
         throw "Command-not-found was falsely green: $($missing.result)/$($missing.exit_code)"
