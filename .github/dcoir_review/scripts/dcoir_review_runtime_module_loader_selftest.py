@@ -14,6 +14,7 @@ if str(SCRIPTS) not in sys.path:
 
 from dcoir_review.module_loader import LAYER_SEGMENTS, RuntimeSegmentLoader
 
+MAX_SEGMENT_SOURCE_BYTES = 15_000
 
 EXPECTED_ADJACENCY = {
     "base": (
@@ -71,6 +72,11 @@ EXPECTED_EXPORTS = {
 }
 
 
+def normalized_source_size(path: Path) -> int:
+    """Measure source bytes independent of Git checkout line-ending conversion."""
+    return len(path.read_bytes().replace(b"\r\n", b"\n"))
+
+
 def assert_segment_registry_is_complete() -> None:
     """Reject missing, duplicate, or unregistered runtime segment files."""
     loader_root = SCRIPTS / "dcoir_review"
@@ -95,7 +101,7 @@ def main() -> None:
         segments = LAYER_SEGMENTS[layer]
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer
-        assert all(path.stat().st_size <= 15_000 for path in paths), layer
+        assert all(normalized_source_size(path) <= MAX_SEGMENT_SOURCE_BYTES for path in paths), layer
         for first, second in pairs:
             index = segments.index(first)
             assert segments[index + 1] == second, (layer, first, second)
@@ -104,7 +110,7 @@ def main() -> None:
         segments = LAYER_SEGMENTS[layer]
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer
-        assert all(path.stat().st_size <= 15_000 for path in paths), layer
+        assert all(normalized_source_size(path) <= MAX_SEGMENT_SOURCE_BYTES for path in paths), layer
         directory = Path(segments[0]).parent.as_posix()
         for first_name, second_name in pairs:
             first = f"{directory}/{first_name}"
@@ -116,7 +122,7 @@ def main() -> None:
         segments = LAYER_SEGMENTS[layer]
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer
-        assert all(path.stat().st_size <= 15_000 for path in paths), layer
+        assert all(normalized_source_size(path) <= MAX_SEGMENT_SOURCE_BYTES for path in paths), layer
         directory = Path(segments[0]).parent.as_posix()
         for first_name, second_name in pairs:
             first = f"{directory}/{first_name}"
