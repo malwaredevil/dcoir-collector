@@ -15,12 +15,16 @@ v32 changes the review process rather than teaching it PR-specific answers:
   separately configured model stack and merges the union of findings;
 * OpenRouter reasoning effort is requested for models whose reasoning mode is
   not already fixed by the model SKU;
+* OpenAI GPT-5 reasoning-family requests omit sampling parameters that are not
+  valid for reasoning-enabled endpoints;
 * configuration exposes the confirmation model stack and reasoning effort.
 
 OpenRouter's ``*-pro`` OpenAI SKUs already select a fixed Pro reasoning mode.
 v32 therefore does not layer an explicit reasoning-effort override on those
-models; doing so can make an otherwise available endpoint ineligible.  Other
-configured models still receive the governed review reasoning effort.
+models.  OpenAI GPT-5 reasoning-family requests also omit ``temperature`` while
+reasoning is active or fixed by the SKU.  Keeping unsupported sampling fields
+alongside ``provider.require_parameters=true`` can otherwise make every healthy
+provider ineligible before inference starts.
 
 The confirmation pass is fail-closed: when enabled for a deep review, inability
 to complete the independent pass is a review failure rather than a false clean
@@ -68,14 +72,25 @@ def _as_string_list(value: Any, fallback: tuple[str, ...]) -> list[str]:
     return list(fallback)
 
 
+def _normalized_openai_model_id(model: Any) -> str:
+    value = str(model or "").strip().lower()
+    if not value.startswith("openai/"):
+        return ""
+    return value.split("/", 1)[1].split(":", 1)[0]
+
+
 def _model_owns_fixed_pro_reasoning(model: Any) -> bool:
     """Return True for OpenAI model SKUs that already encode Pro reasoning."""
 
-    value = str(model or "").strip().lower()
-    if not value.startswith("openai/"):
-        return False
-    model_id = value.split("/", 1)[1].split(":", 1)[0]
-    return model_id.endswith("-pro") or "-pro-" in model_id
+    model_id = _normalized_openai_model_id(model)
+    return bool(model_id) and (model_id.endswith("-pro") or "-pro-" in model_id)
+
+
+def _model_uses_openai_gpt5_reasoning(model: Any) -> bool:
+    """Return True for the OpenAI GPT-5 family governed as reasoning models."""
+
+    model_id = _normalized_openai_model_id(model)
+    return model_id.startswith("gpt-5")
 
 
 def _patch_config_loader(module: Any) -> None:
@@ -118,13 +133,24 @@ def _patch_reasoning_payload(module: Any) -> None:
 
     def build_openrouter_payload(prompt, schema, config, ignored_providers, model):
         payload = original(prompt, schema, config, ignored_providers, model)
+        effort = str(getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or "").strip()
+
+        # GPT-5 reasoning requests do not use sampling temperature when reasoning
+        # is enabled.  Strip the base reviewer's generic sampling control while
+        # preserving provider.require_parameters=true as the compatibility gate.
+        if _model_uses_openai_gpt5_reasoning(model) and (
+            _model_owns_fixed_pro_reasoning(model)
+            or (effort and effort.lower() != "none")
+        ):
+            payload.pop("temperature", None)
+
         if _model_owns_fixed_pro_reasoning(model):
             # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.
             # Do not add or retain a second reasoning selector that can make the
             # otherwise available Pro endpoint ineligible.
             payload.pop("reasoning", None)
             return payload
-        effort = str(getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or "").strip()
+
         if effort and effort.lower() != "none":
             payload["reasoning"] = {
                 "enabled": True,
