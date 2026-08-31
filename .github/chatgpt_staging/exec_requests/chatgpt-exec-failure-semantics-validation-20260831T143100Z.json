@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "chatgpt-exec-failure-semantics-validation-20260831T143100Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-31T14:31:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run DCOIR ActionsExec failure-semantics regression after resolved-exit sidecar hardening",
+  "command": "& .\\.github\\chatgpt_staging\\exec_scripts\\chatgpt-exec-failure-semantics-validation-20260831T132700Z.ps1"
+}
