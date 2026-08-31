@@ -52,6 +52,14 @@ try {
         throw "Benign native stderr was falsely failed: $($benignStderr.result)/$($benignStderr.exit_code)"
     }
 
+    # A deliberately handled/suppressed PowerShell error may populate $Error,
+    # but must not make the whole approved command fail when execution recovers
+    # and no canonical error record escapes to stderr.
+    $handled = Invoke-Probe -Id 'handled-powershell-error-probe' -Command "Get-Item 'Z:\\definitely-missing-dcoir-item.txt' -ErrorAction SilentlyContinue | Out-Null`nWrite-Output 'handled-error'"
+    if ($handled.result -ne 'success' -or [int]$handled.exit_code -ne 0) {
+        throw "Handled PowerShell error was falsely failed: $($handled.result)/$($handled.exit_code)"
+    }
+
     $missing = Invoke-Probe -Id 'missing-command-probe' -Command "& 'Z:\\definitely-missing-dcoir-script.ps1'"
     if ($missing.result -ne 'failure' -or [int]$missing.exit_code -eq 0) {
         throw "Command-not-found was falsely green: $($missing.result)/$($missing.exit_code)"
