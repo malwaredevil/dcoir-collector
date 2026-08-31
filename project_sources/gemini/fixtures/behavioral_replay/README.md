@@ -47,11 +47,19 @@ Use the same governed fixture under paired session conditions. Do not manually r
 For a fresh-session pair:
 
 1. **A - no re-anchor:** start a new deployed Agent Designer session and send the fixture user turn directly.
-2. **B - with re-anchor:** start a separate new deployed Agent Designer session, send the preserved #398 re-anchor prompt first, then send the same fixture user turn.
+2. **B - with re-anchor:** start a separate new deployed Agent Designer session, send the pinned #398 re-anchor test input below first, then send the same fixture user turn.
 3. Capture only the visible assistant response to the fixture turn. Do not include the re-anchor response, UI chrome, hidden state, or analyst commentary in the scored response.
 4. Store each capture as a response pack with `mode` set to `agent_designer_capture` and metadata identifying the condition, for example `fresh_without_reanchor` or `fresh_with_reanchor`.
 
 For multi-turn continuity, use the same pattern with the applicable multi-turn fixture: one clean session without re-anchor and one clean session with re-anchor, preserving fixture turn order exactly.
+
+### Pinned #398 re-anchor test input
+
+For the B and D arms of the controlled comparison, use the exact text below. This repository copy is the versioned test input for the capture protocol; do not substitute the current issue body or another starter-prompt variant, so repeated A/B measurements remain comparable even if issue text changes later.
+
+```text
+CLICK HERE: Re-Anchor. Enumerate your complete agent hierarchy and operational purpose, detailing your primary function and the specific role of each subordinate agent you orchestrate. Do not show communication between the primary and sub-agents. Do not show CSV, JSON, YAML, or internal routing dialogue in your responses. Do not show duplicative text in the responses. When we are triaging alerts, you must strictly adhere to the output contract during this session. Just show the user facing text. When you must transfer to a sub-agent for an intermediate task or any sub-agent transfers information elsewhere, you MUST pass them an instruction to not output their findings to the screen but instead pass them in the background as internal communications hidden from user facing view and the sub-agents are to be strictly silent. When transferring to the Output Contract Consistency Guard and Report Composer (or any final output agent), that agent will display the final report. When control returns to you (the Prime agent), you MUST NOT output any text, summaries, or acknowledgments. You must remain completely silent and just wait for my next prompt. Verify these conditions before responding. After enumeration, list all of the things you can do and ask me what I want to start on.
+```
 
 A minimal captured response pack is:
 
@@ -79,6 +87,8 @@ Score a capture with:
 ```text
 python project_sources/gemini/tools/score_gemini_behavioral_replay.py --fixtures-root project_sources/gemini/fixtures/behavioral_replay --response-pack <capture.json> --fixture-id dcoir_agent_designer_visible_writer_issue_398 --expected-mode agent_designer_capture
 ```
+
+The `python` interpreter form is intentional: the governed Gemini behavioral replay workflow uses `python` after the repository workflow runtime is set up, so the operator-facing scoring example matches that repository execution contract.
 
 The same scorer is used for the collector-procedure fixture by changing the fixture ID.
 
