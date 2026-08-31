@@ -125,14 +125,23 @@ def main() -> None:
     assert non_reasoning_openai_payload["temperature"] == 0.2
     assert non_reasoning_openai_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
 
-    # Prove that a clean primary pass cannot become the final deep result without
-    # an independent challenger and that challenger findings are preserved.
+    # Prove v32's own contract in isolation: a clean primary pass cannot leave
+    # the v32 stage without the independent Sol Pro challenger, and challenger
+    # findings are preserved. Later runtime overlays (for example v35's final
+    # adjudicator) may legitimately make additional model calls after v32, so
+    # call the v32 hybrid wrapper captured by the next overlay rather than the
+    # terminal active pipeline wrapper.
     storage = "_dcoir_review_v32_original_hybrid_first_pass"
     original_first_pass = getattr(review, storage)
     original_build_prompt = review.build_prompt
     original_openrouter_review = review.hardened.openrouter_review
     original_write_text = review.hardened.write_debug_text_artifact_safely
     original_write_json = review.hardened.write_debug_json_artifact_safely
+    v32_hybrid = getattr(
+        review,
+        "_dcoir_review_v35_original_hybrid_first_pass",
+        review.openrouter_review_with_hybrid_first_pass,
+    )
     observed: dict[str, object] = {}
 
     def fake_first_pass(*args, **kwargs):
@@ -170,7 +179,7 @@ def main() -> None:
         review.hardened.openrouter_review = fake_openrouter_review
         review.hardened.write_debug_text_artifact_safely = lambda *args, **kwargs: None
         review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
-        result, model_used, service_tier = review.openrouter_review_with_hybrid_first_pass(
+        result, model_used, service_tier = v32_hybrid(
             {},
             [],
             "",
