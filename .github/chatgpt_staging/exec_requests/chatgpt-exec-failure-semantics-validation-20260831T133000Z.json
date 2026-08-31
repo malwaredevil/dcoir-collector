@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "chatgpt-exec-failure-semantics-validation-20260831T133000Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-31T13:30:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/chatgpt-exec-failure-semantics-validation-20260831T132700Z.ps1",
+  "approved_command_preview": "Re-run the ChatGPT Exec false-green regression after command-resolution hardening. Verify success/0 for a valid command, failure/nonzero for a missing command and PowerShell throw, exact exit 7 for native nonzero, and script_path expansion to the repository .github staging script."
+}
