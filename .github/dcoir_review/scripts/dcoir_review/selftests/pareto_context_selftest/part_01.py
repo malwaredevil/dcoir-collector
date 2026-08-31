@@ -54,7 +54,10 @@ assert "google/gemini-3.1-pro*" not in config.auto_allowed_models
 assert config.first_pass_deep_review is True
 assert config.max_files == 100
 assert config.deep_review_max_files == 20
-assert config.debug is False
+# Issue #456 acceptance cycle intentionally enables debug so blind-review
+# candidate/verifier artifacts can be inspected. Revert this to False with the
+# governed config after recall acceptance is proven.
+assert config.debug is True
 assert config.post_progress_comment is False
 assert config.per_file_first_pass_review is True
 assert config.per_file_review_concurrency == 6
