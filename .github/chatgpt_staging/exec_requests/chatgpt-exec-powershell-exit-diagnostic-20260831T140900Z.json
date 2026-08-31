@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "chatgpt-exec-powershell-exit-diagnostic-20260831T140900Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-08-31T14:09:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 300,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/chatgpt-exec-powershell-exit-diagnostic-20260831T140800Z.ps1",
+  "approved_command_preview": "Run a diagnostic that prints the generated PowerShell wrapper and raw child-process exit/error state for command-not-found behavior."
+}
