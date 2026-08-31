@@ -89,9 +89,7 @@ risk_sentinel_max_anchors: 12
 post_summary_when_findings: false
 include_confidence: false
 redact_secret_literals: true
-# Temporary acceptance-cycle diagnostics for #456. Disable again after blind
-# recall acceptance is proven and the debug artifacts have been read back.
-debug: true
+debug: false
 
 openrouter_max_attempts: 4
 openrouter_retry_max_seconds: 45
