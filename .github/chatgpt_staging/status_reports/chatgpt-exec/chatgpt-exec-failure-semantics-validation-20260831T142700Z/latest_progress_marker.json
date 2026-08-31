@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33401622555",
+  "github_sha": "c0c85896ffd190826a0cbf82ef74392f3cda4f81",
+  "phase": "request-resolved",
+  "request_id": "chatgpt-exec-failure-semantics-validation-20260831T142700Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/chatgpt-exec-failure-semantics-validation-20260831T142700Z.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-08-31T14:16:13Z",
+  "workflow": "chatgpt-exec"
+}
