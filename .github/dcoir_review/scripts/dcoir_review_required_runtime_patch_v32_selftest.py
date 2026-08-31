@@ -17,6 +17,8 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
+    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
     v32 = importlib.import_module("dcoir_review_required_runtime_patch_v32")
 
     assert getattr(review, v32.APPLIED_MARKER, False) is True
@@ -43,6 +45,16 @@ def main() -> None:
     assert config.adversarial_confirmation_review is True
     assert config.adversarial_confirmation_model_stack == ["openai/gpt-5.6-sol-pro"]
     assert config.review_reasoning_effort == "xhigh"
+
+    # v32's independent challenger expands the ordinary candidate set.  Keep
+    # verifier and verified-repair stages fail-closed, but bind both to the
+    # configured output budget rather than v21/v25's historical six-item cap.
+    expected_limit = min(config.fix_synthesis_max_findings, config.max_inline_comments)
+    assert expected_limit == 8
+    assert config.dcoir_v32_verifier_repair_limit == expected_limit
+    assert v21.VERIFIER_MAX_MODEL_FINDINGS == expected_limit
+    assert v25.MAX_REPAIR_CANDIDATES == expected_limit
+    assert v21.VERIFIER_MAX_MODEL_FINDINGS >= 7
 
     schema = {
         "type": "object",
