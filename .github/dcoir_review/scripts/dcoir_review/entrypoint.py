@@ -45,11 +45,14 @@ class DcoirReviewEntrypoint:
         # v32 owns adversarial model/prompt/hybrid review behavior. v33 then
         # separates pre-publication verification capacity from the bounded
         # one-click repair budget. v34 strengthens predicate/call-site recall,
-        # blank-anchor evidence handling, and debug lifecycle readback. v31
-        # remains terminal because it does not overwrite these review surfaces.
+        # blank-anchor evidence handling, and debug lifecycle readback. v35 adds
+        # a bounded final semantic adjudicator plus falsification-first verifier
+        # guidance. v31 remains terminal because it does not overwrite these
+        # review surfaces.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review_required_runtime_patch_v34',
+        'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v31',
     )
 
