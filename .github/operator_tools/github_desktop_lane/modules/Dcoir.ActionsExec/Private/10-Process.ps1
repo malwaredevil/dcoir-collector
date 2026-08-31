@@ -14,7 +14,8 @@ $CommandText
     `$dcoirNativeExitCode = `$LASTEXITCODE
     `$dcoirErrorCountAfter = `$Error.Count
     if (`$null -ne `$dcoirNativeExitCode -and [int]`$dcoirNativeExitCode -ne 0) {
-        exit [int]`$dcoirNativeExitCode
+        `$dcoirProcessExitCode = [int]`$dcoirNativeExitCode
+        exit `$dcoirProcessExitCode
     }
     if (`$dcoirErrorCountAfter -gt `$dcoirErrorCountBefore) {
         exit 1
