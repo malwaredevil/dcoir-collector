@@ -763,13 +763,16 @@ def synthesize_verified_repair_sets(
 
 def _render_primary_body(module: Any, finding: dict[str, Any], config: Any, marker: dict[str, Any]) -> str:
     base = module.base
-    title = base.markdown_emphasis_safe_text(
-        base.sanitize_github_output(str(finding.get("title", "Finding") or "Finding").strip(), config)
-    )
+    raw_title = str(finding.get("title", "Finding") or "Finding").strip()
+    raw_body = str(finding.get("body", "") or "").strip()
+    deterministic_kind = v30._deterministic_sentinel_kind(finding)
+    if deterministic_kind:
+        canonical_title, canonical_body, _notes = v30.v20._template_for_kind(deterministic_kind)
+        raw_title = str(canonical_title or raw_title).strip()
+        raw_body = str(canonical_body or raw_body).strip()
+    title = base.markdown_emphasis_safe_text(base.sanitize_github_output(raw_title, config))
     severity = base.markdown_emphasis_safe_text(str(finding.get("severity", "medium") or "medium").upper())
-    body = base.strip_model_validation_section(
-        base.sanitize_github_output(str(finding.get("body", "") or "").strip(), config)
-    )
+    body = base.strip_model_validation_section(base.sanitize_github_output(raw_body, config))
     repair_set_id = str(marker.get("repair_set_id", "") or "repair")
     edits = marker.get("edits") if isinstance(marker.get("edits"), list) else []
     native = sum(1 for edit in edits if isinstance(edit, dict) and edit.get("native_suggestion"))

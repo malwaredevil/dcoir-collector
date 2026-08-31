@@ -123,6 +123,20 @@ def main() -> None:
     assert comments[1]["path"] == "other.py" and comments[1]["line"] == 5
     assert "start_line" not in comments[1]
 
+    deterministic = dict(finding)
+    deterministic["title"] = "MODEL-TAMPERED SENTINEL TITLE"
+    deterministic["body"] = "MODEL-TAMPERED SENTINEL BODY"
+    deterministic[v30.v21.VERIFIER_MARKER] = {
+        "mode": "deterministic-core-sentinel",
+        "supported": True,
+        "kind": v30.v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+    }
+    deterministic_comments = v36.build_review_comments_for_finding(review, deterministic, "model", config)
+    canonical_title, canonical_body, _notes = v30.v20._template_for_kind(v30.v20.PYTHON_TRUTHY_LITERAL_BRANCH)
+    assert canonical_title in deterministic_comments[0]["body"]
+    assert canonical_body in deterministic_comments[0]["body"]
+    assert "MODEL-TAMPERED SENTINEL" not in deterministic_comments[0]["body"]
+
     absent_author = {
         "defect_present": False,
         "confidence": 0.99,
