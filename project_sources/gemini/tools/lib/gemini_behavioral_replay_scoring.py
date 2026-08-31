@@ -183,12 +183,13 @@ def _line_is_list_prefixed(line: str) -> bool:
 def _final_section_header_for_line(line: str) -> str | None:
     normalized = _normalized_header_line(line)
     is_list_prefixed = _line_is_list_prefixed(line)
+    is_numbered_list_item = bool(re.match(r"^\s*\d{1,3}[.)]\s+", str(line)))
     if normalized in FINAL_SECTION_HEADERS:
-        if is_list_prefixed and normalized in AMBIGUOUS_LIST_SECTION_HEADERS:
+        if is_list_prefixed and not is_numbered_list_item and normalized in AMBIGUOUS_LIST_SECTION_HEADERS:
             return None
         return normalized
     for header in FINAL_SECTION_HEADERS:
-        if is_list_prefixed and header in AMBIGUOUS_LIST_SECTION_HEADERS:
+        if is_list_prefixed and not is_numbered_list_item and header in AMBIGUOUS_LIST_SECTION_HEADERS:
             continue
         if re.match(rf"^{re.escape(header)}\s*[:\-–—]\s*.+$", normalized):
             return header

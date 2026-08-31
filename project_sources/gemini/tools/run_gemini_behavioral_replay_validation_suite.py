@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
+from lib.gemini_behavioral_replay_scoring import duplicate_final_sections
 
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
 
@@ -360,6 +361,24 @@ def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) 
         assert_isolated_control_reason(label, payload)
 
 
+def run_numbered_procedure_duplicate_selftest() -> None:
+    response = """\
+1. Package/deployment: stage the collector package.
+2. Endpoint execution: run the collector.
+3. Retrieve: use the returned artifact path.
+4. Interpret: review the collected evidence.
+5. Cleanup: preserve evidence before cleanup.
+3. Retrieve: use the returned artifact path.
+4. Interpret: review the collected evidence.
+5. Cleanup: preserve evidence before cleanup."""
+    duplicate_headers = duplicate_final_sections(response)
+    if duplicate_headers != ["retrieve", "interpret", "cleanup"]:
+        raise SystemExit(
+            "Duplicate numbered Retrieve/Interpret/Cleanup procedure steps were not detected: "
+            + json.dumps(duplicate_headers)
+        )
+
+
 def run_mode_mismatch(fixtures_root: Path) -> None:
     result = subprocess.run(
         [
@@ -411,6 +430,7 @@ def main() -> int:
     )
     run_known_bad(args.fixtures_root, args.output_dir)
     run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
+    run_numbered_procedure_duplicate_selftest()
     run_mode_mismatch(args.fixtures_root)
     return 0
 
