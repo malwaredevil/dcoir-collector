@@ -1,0 +1,102 @@
+{
+  "schema_version": "dcoir_review_semantic_recall_corpus_v1",
+  "purpose": "Generalized regression inventory for semantic reviewer recall and precision. Cases model defect classes accepted in real review without encoding any one pull request's answer.",
+  "cases": [
+    {
+      "id": "negated-positive-marker",
+      "expected": "finding",
+      "defect_class": "polarity-negation",
+      "source": "def accepted(text):\n    return 'separate' in text\n",
+      "counterexample": "The two channels are not separate.",
+      "review_contract": "A negated positive marker must not satisfy an affirmative invariant."
+    },
+    {
+      "id": "rejected-proposition-sibling-branch",
+      "expected": "finding",
+      "defect_class": "polarity-rejected-proposition",
+      "source": "def accepted(text):\n    positive = find(text, ['distinct'], skip_rejected=True)\n    prohibition = find(text, ['never combine'])\n    return bool(positive or prohibition)\n",
+      "counterexample": "It would be wrong to say never combine the alpha and beta channels.",
+      "review_contract": "Every positive-evidence disjunct must preserve rejection/polarity filtering; intrinsically prohibitive wording is not affirmative evidence when its enclosing proposition is rejected."
+    },
+    {
+      "id": "quoted-marker-only",
+      "expected": "finding",
+      "defect_class": "polarity-quotation",
+      "source": "def accepted(text):\n    return 'approved route' in text\n",
+      "counterexample": "The phrase 'approved route' appears only as an example of wording not to use.",
+      "review_contract": "Quotation or mention-only text must not satisfy affirmative evidence."
+    },
+    {
+      "id": "wrong-clause-scope-binding",
+      "expected": "finding",
+      "defect_class": "scope-binding",
+      "source": "def has_remote_action(text):\n    return 'remote' in text and 'execute --command' in text\n",
+      "counterexample": "Remote collection is discussed here. Local workstation step: execute --command tool.exe.",
+      "review_contract": "Required scope labels and actions must be bound to the same semantic clause or lane."
+    },
+    {
+      "id": "wrapped-command-counted-as-standalone",
+      "expected": "finding",
+      "defect_class": "lane-wrapper-confusion",
+      "source": "def has_local(text):\n    return 'local' in text and 'powershell.exe' in text\n",
+      "counterexample": "For local use execute --command powershell.exe -File collector.ps1.",
+      "review_contract": "A command wrapped in a remote/response-action transport must not satisfy a standalone local-command requirement."
+    },
+    {
+      "id": "postposed-prohibition",
+      "expected": "finding",
+      "defect_class": "polarity-postposed-rejection",
+      "source": "def has_retrieve(text):\n    return 'get-file --path' in text and 'NEXT_FILE' in text\n",
+      "counterexample": "NEXT_FILE and get-file --path are unavailable in this environment.",
+      "review_contract": "Postposed prohibition or unavailability must invalidate otherwise present action tokens."
+    },
+    {
+      "id": "duplicate-heading-representation",
+      "expected": "finding",
+      "defect_class": "representation-duplicate",
+      "source": "def duplicate(lines):\n    return sum(line.strip().lower() == 'cleanup' for line in lines) > 1\n",
+      "counterexample": "1. Cleanup: first block\n...\n2) Cleanup - repeated block",
+      "review_contract": "Numbering, punctuation, or inline suffixes must not let semantically duplicate section headers evade duplicate detection."
+    },
+    {
+      "id": "serialized-marker-variant",
+      "expected": "finding",
+      "defect_class": "representation-serialization",
+      "source": "def leaks(text):\n    return 'routing state' in text.lower()\n",
+      "counterexample": "{\"routing_state\": {\"owner\": \"internal\"}}",
+      "review_contract": "Equivalent serialized/name variants must be considered when the contract forbids exposing an internal semantic field."
+    },
+    {
+      "id": "mode-eligibility-partial-guard",
+      "expected": "finding",
+      "defect_class": "mode-scope",
+      "source": "def eligible(case, mode):\n    if mode == 'live':\n        return case.get('live_ok', True)\n    return True\n",
+      "counterexample": "A case declares support only for deterministic mode but is selected in fallback mode.",
+      "review_contract": "Eligibility restrictions must be enforced for every execution mode, not only one specially guarded mode."
+    },
+    {
+      "id": "raw-token-actionability",
+      "expected": "finding",
+      "defect_class": "actionability-token-cooccurrence",
+      "source": "def actionable(text):\n    return all(token in text for token in ['upload', 'execute', 'retrieve', 'cleanup'])\n",
+      "counterexample": "Do not upload, do not execute, do not retrieve, and do not cleanup.",
+      "review_contract": "Raw token co-occurrence must not be treated as affirmative executable guidance."
+    },
+    {
+      "id": "membership-expression-after-or",
+      "expected": "clean",
+      "defect_class": "precision-valid-membership-expression",
+      "source": "if len(errors) != 1 or 'fallback' not in errors[0]:\n    raise AssertionError()\n",
+      "counterexample": "The string literal is the left operand of a boolean membership expression, not a bare truthy disjunct.",
+      "review_contract": "Do not report a truthy-literal defect when the literal participates in a valid comparison or membership expression."
+    },
+    {
+      "id": "documented-mode-label-without-runtime-claim",
+      "expected": "clean",
+      "defect_class": "precision-documentation-only",
+      "source": "README: This fixture is intended for manual capture and is not live-API eligible.",
+      "counterexample": "No consuming implementation in the supplied evidence contradicts the documentation.",
+      "review_contract": "Do not invent a runtime defect from documentation or fixture metadata without evidence from the consuming implementation."
+    }
+  ]
+}
