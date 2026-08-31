@@ -79,9 +79,11 @@ semantic_adjudication_max_findings: 8
 semantic_adjudication_candidate_digest_chars: 24000
 
 fix_synthesis_enabled: true
-# v33 keeps this as the one-click repair author/critic budget. It is deliberately
-# smaller than max_inline_comments: verifier-supported findings above this budget
-# may still publish, but without an automatically synthesized Commit suggestion.
+# v33 keeps this as the bounded repair-author/critic budget, separately from the
+# larger verifier/publication ceiling. v36 may turn one verified finding inside
+# this budget into a coordinated repair set with multiple ranged GitHub
+# suggestions; findings outside the repair budget still publish without repair
+# synthesis.
 fix_synthesis_max_findings: 8
 fix_synthesis_min_confidence: 0.80
 required_finding_reserved_budget: 9
@@ -129,6 +131,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v33_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v34_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v35_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
