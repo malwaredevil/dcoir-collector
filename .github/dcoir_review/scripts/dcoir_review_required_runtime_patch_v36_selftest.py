@@ -137,6 +137,123 @@ def main() -> None:
     assert canonical_body in deterministic_comments[0]["body"]
     assert "MODEL-TAMPERED SENTINEL" not in deterministic_comments[0]["body"]
 
+    # Exercise the actual active production synthesis wrapper chain without
+    # network access. This catches later overlays that might accidentally rewrite
+    # or bypass v36 after its helpers have individually passed.
+    pipeline_finding = {
+        "title": "Two-line coordinated defect",
+        "severity": "high",
+        "confidence": 0.99,
+        "path": "probe.py",
+        "line": 1,
+        "body": "The two inputs must be corrected together.",
+        "validation": "python3 -m py_compile probe.py",
+    }
+    pipeline_diff = (
+        "diff --git a/probe.py b/probe.py\n"
+        "new file mode 100644\n"
+        "--- /dev/null\n"
+        "+++ b/probe.py\n"
+        "@@ -0,0 +1,3 @@\n"
+        "+x = 1\n"
+        "+y = 2\n"
+        "+z = x + y\n"
+    )
+
+    class _FakeGH:
+        def get_pr_diff(self, pr_number):
+            assert pr_number == 448
+            return pipeline_diff
+
+    class _PipelineReporter:
+        def __init__(self):
+            self.events = []
+
+        def update(self, stage, message):
+            self.events.append((stage, message))
+
+    original_verify = v30.v21.verify_findings_for_publication
+    original_openrouter = review.hardened.openrouter_review
+    original_fetch = review.fetch_pr_file_text
+    original_debug = review.hardened.write_debug_json_artifact_safely
+    model_calls = []
+
+    def _fake_verify(mod, findings, gh, pr, cfg, reporter):
+        assert pr["number"] == 448
+        return [dict(item) for item in findings]
+
+    def _fake_openrouter(prompt, schema_arg, config_arg, reporter=None):
+        title = str(schema_arg.get("title", ""))
+        model_calls.append((title, list(config_arg.model_stack)))
+        if title == "DCOIR Verified Repair Set Author":
+            return (
+                {
+                    "defect_present": True,
+                    "action": "repair_set",
+                    "edits": [
+                        {
+                            "path": "probe.py",
+                            "start_line": 1,
+                            "end_line": 2,
+                            "original": "x = 1\ny = 2",
+                            "replacement": "x = 2\ny = 3",
+                            "purpose": "Correct the coupled inputs together.",
+                        }
+                    ],
+                    "confidence": 0.99,
+                    "display_title": "Correct coupled inputs atomically",
+                    "display_body": "Both lines participate in the verified defect and must change together.",
+                    "rationale": "The demonstrated counterexample is removed only when both values are corrected.",
+                    "validation": "python3 -m py_compile probe.py",
+                },
+                "anthropic/claude-opus-5",
+                "tier-author",
+            )
+        if title == "DCOIR Verified Repair Set Critic":
+            assert config_arg.model_stack == ["openai/gpt-5.6-sol-pro"]
+            return (
+                {"accepted": True, "confidence": 0.99, "reason": "Complete and minimal coordinated repair."},
+                "openai/gpt-5.6-sol-pro",
+                "tier-critic",
+            )
+        raise AssertionError(f"unexpected schema title: {title}")
+
+    v30.v21.verify_findings_for_publication = _fake_verify
+    review.hardened.openrouter_review = _fake_openrouter
+    review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
+    review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
+    pipeline_reporter = _PipelineReporter()
+    try:
+        pipeline_result = review.synthesize_fixes_for_findings(
+            [pipeline_finding],
+            _FakeGH(),
+            {"number": 448, "head": {"sha": "deadbeef"}},
+            {},
+            config,
+            pipeline_reporter,
+        )
+    finally:
+        v30.v21.verify_findings_for_publication = original_verify
+        review.hardened.openrouter_review = original_openrouter
+        review.fetch_pr_file_text = original_fetch
+        review.hardened.write_debug_json_artifact_safely = original_debug
+
+    assert len(pipeline_result) == 1
+    pipeline_marker = pipeline_result[0][v25.REPAIR_MARKER]
+    assert pipeline_marker["version"] == v36.VERSION
+    assert pipeline_marker["outcome"] == v36.REPAIR_SET_OUTCOME
+    assert pipeline_marker["edit_count"] == 1
+    assert pipeline_marker["native_suggestion_count"] == 1
+    assert pipeline_marker["author_model"] == "anthropic/claude-opus-5"
+    assert pipeline_marker["critic_model"] == "openai/gpt-5.6-sol-pro"
+    assert model_calls[0][0] == "DCOIR Verified Repair Set Author"
+    assert model_calls[1] == ("DCOIR Verified Repair Set Critic", ["openai/gpt-5.6-sol-pro"])
+    pipeline_comments = review.build_review_comments_for_finding(pipeline_result[0], "model", config)
+    assert len(pipeline_comments) == 1
+    assert pipeline_comments[0]["start_line"] == 1
+    assert pipeline_comments[0]["line"] == 2
+    assert "```suggestion\nx = 2\ny = 3\n```" in pipeline_comments[0]["body"]
+
     absent_author = {
         "defect_present": False,
         "confidence": 0.99,
