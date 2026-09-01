@@ -6,12 +6,19 @@
     "reference_baseline": "gemini-3.1-pro-preview",
     "simulated_production": "gemini-3.5-flash"
   },
+  "agent_designer_capture_profile": {
+    "production_model": "Gemini 3.1 Pro",
+    "enabled_external_capability": "Enterprise web search only",
+    "governing_issue": 398,
+    "note": "Agent Designer capture fixtures exercise the deployed multi-agent topology and are not eligible for raw Gemini generateContent live replay."
+  },
   "fixtures": [
     {
       "fixture_id": "dcoir_operator_state_first_issue_124",
       "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_operator_state_first_issue_124.json",
       "source_issue_numbers": [124, 145],
       "status": "active",
+      "live_api_eligible": true,
       "mode_support": ["deterministic", "live_gemini", "fallback_emulation"]
     },
     {
@@ -19,6 +26,7 @@
       "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_byovd_evidence_discipline_issue_122.json",
       "source_issue_numbers": [122, 145],
       "status": "active",
+      "live_api_eligible": true,
       "mode_support": ["deterministic", "live_gemini", "fallback_emulation"]
     },
     {
@@ -26,6 +34,7 @@
       "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_long_transcript_continuity_issue_123.json",
       "source_issue_numbers": [123, 145],
       "status": "active",
+      "live_api_eligible": true,
       "mode_support": ["deterministic", "live_gemini", "fallback_emulation"]
     },
     {
@@ -33,7 +42,24 @@
       "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_kql_unique_value_miss_issue_174.json",
       "source_issue_numbers": [174, 178],
       "status": "active",
+      "live_api_eligible": true,
       "mode_support": ["deterministic", "live_gemini", "fallback_emulation"]
+    },
+    {
+      "fixture_id": "dcoir_agent_designer_visible_writer_issue_398",
+      "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_agent_designer_visible_writer_issue_398.json",
+      "source_issue_numbers": [398, 184],
+      "status": "active",
+      "live_api_eligible": false,
+      "mode_support": ["deterministic", "agent_designer_capture"]
+    },
+    {
+      "fixture_id": "dcoir_agent_designer_collector_procedure_issue_398",
+      "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_agent_designer_collector_procedure_issue_398.json",
+      "source_issue_numbers": [398, 184],
+      "status": "active",
+      "live_api_eligible": false,
+      "mode_support": ["deterministic", "agent_designer_capture"]
     }
   ]
 }

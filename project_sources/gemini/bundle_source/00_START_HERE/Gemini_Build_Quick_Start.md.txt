@@ -26,9 +26,9 @@ The active agent topology now includes eleven sub-agents:
 10. Output-contract consistency guard and report composition
 11. USB violations report composition
 
-The active shared attachment set now includes fifteen knowledge pages:
-- 01 through 11 preserve the collector, workflow, troubleshooting, FAQ, and prior Gemini posture material
-- 12 through 15 preserve Gemini runtime source-tree, topology, output-contract, validation, and attachment-maintenance guidance
+The active shared attachment set now includes twenty-eight knowledge pages:
+- 01 through 16 preserve the core DCOIR, collector, workflow, troubleshooting, FAQ, Gemini runtime, topology, output-contract, EXE, and feature-reference material
+- 17 through 28 preserve the governed Elastic field/response-action references and the sharded OSQuery reference set
 
 ## Starter prompts
 

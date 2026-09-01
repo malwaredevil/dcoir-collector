@@ -26,16 +26,60 @@ CONTRADICTION_PAIRS = [
     ("cleanup now", "do not clean up yet"),
 ]
 
+FINAL_SECTION_HEADERS = [
+    "bluf",
+    "facts and sources",
+    "analysis",
+    "syntax verification",
+    "singular triage command",
+    "analyst scratchpad",
+    "executive summary",
+    "benign rationale",
+    "supporting evidence",
+    "tuning recommendation",
+    "residual uncertainty",
+    "timeline",
+    "root cause or true source",
+    "impact and scope",
+    "containment and remediation recommendations",
+    "hunting pivots and derived indicators",
+    "what is known",
+    "what is blocked",
+    "what evidence paths were exhausted",
+    "why scope cannot be declared",
+    "best next steps",
+    "required telemetry or artifacts",
+    "why containment or troubleshooting is not yet justified",
+    "package/deployment",
+    "package deployment",
+    "package and deployment",
+    "endpoint execution",
+    "endpoint response-action execution",
+    "artifact retrieval",
+    "retrieve",
+    "evidence interpretation",
+    "interpret",
+    "cleanup",
+]
+
+AMBIGUOUS_LIST_SECTION_HEADERS = {"retrieve", "interpret", "cleanup"}
+
 NEGATION_PATTERN = re.compile(
     r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)\s+(?:the\s+|an?\s+)?$"
 )
 
+REJECTED_ACTION_VERBS = r"say|ask for|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
+
 REJECTED_ASSERTION_PATTERN = re.compile(
-    r"(?:wrong to (?:say|ask for|request|require|treat|frame|use|accept|rely on)|incorrect to (?:say|ask for|request|require|treat|frame|use|accept|rely on)|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on)|not enough to (?:say|claim|treat|frame|use|accept|rely on)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on)|premature to (?:say|claim|treat|frame|use|accept|rely on)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:say|ask for|request|require|treat|frame|use|accept|rely on)|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on)|no need to (?:say|ask for|request|require|treat|frame|use|accept|rely on))\s+(?:the\s+|an?\s+)?(?:\w+\s+){0,6}$"
+    rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){{0,6}}$"
 )
 
 POST_MARKER_REJECTION_PATTERN = re.compile(
     r"^\s*(?:[,;:.!?]\s*)?(?:(?:no|nope)\b[\s,;:-]*)?(?:(?:but|however|though|although|yet|nevertheless|even so)\s+)?(?:(?:that|this|it|which|they)\s+)?(?:(?:is|are|was|were)\s+(?:(?:also|still|clearly|simply|just|really|only)\s+)?(?:an?\s+)?)?(?:(?:also|still|clearly|simply|just|really|only)\s+)?(?:the\s+)?(?:wrong|incorrect|false|invalid|misleading|wrong framing|wrong frame|incorrect framing|incorrect frame|false framing|false frame|wrong conclusion|incorrect conclusion|false conclusion|not enough|not necessary|not needed|not required|unnecessary|insufficient|unsupported|unfounded|overstated|in name only|nominal|label only|just a label|only a label|phrase i would not use|phrase we would not use|a phrase i would not use|a phrase we would not use|should be ignored|should be discarded|should not be used|should not be relied on|can be ignored|can be discarded|does not matter|doesn't matter|doesnt matter|prove it|infer .* anyway|require the full transcript|request the full transcript|ask for the full transcript)"
+)
+
+POST_ACTION_REJECTION_PATTERN = re.compile(
+    r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:that|this|it|which|they)\s+)?(?:is|are|was|were)\s+(?:unavailable|prohibited)\b"
 )
 
 QUOTE_CHARS = {'"', "'", "`"}
@@ -115,6 +159,189 @@ def _find_contextual_term_hits(
     return hits
 
 
+def _iter_clauses(text: str) -> Iterable[str]:
+    for clause in re.split(r"(?:\r?\n)+|(?<=[.!?;])\s+", str(text)):
+        normalized = normalize_text(clause)
+        if normalized:
+            yield normalized
+
+
+def _normalized_header_line(line: str) -> str:
+    value = str(line).strip().lower()
+    value = re.sub(r"^[#>*_\-\s]+", "", value)
+    value = re.sub(r"^\d{1,3}[.)]\s+", "", value)
+    value = re.sub(r"[*_`]+", "", value)
+    value = value.rstrip(":").strip()
+    return " ".join(value.split())
+
+
+def _line_is_list_prefixed(line: str) -> bool:
+    value = str(line).lstrip()
+    return bool(re.match(r"^(?:[-*+]\s+|\d{1,3}[.)]\s+)", value))
+
+
+def _final_section_header_for_line(line: str) -> str | None:
+    normalized = _normalized_header_line(line)
+    is_list_prefixed = _line_is_list_prefixed(line)
+    is_numbered_list_item = bool(re.match(r"^\s*\d{1,3}[.)]\s+", str(line)))
+    if normalized in FINAL_SECTION_HEADERS:
+        if is_list_prefixed and not is_numbered_list_item and normalized in AMBIGUOUS_LIST_SECTION_HEADERS:
+            return None
+        return normalized
+    for header in FINAL_SECTION_HEADERS:
+        if is_list_prefixed and not is_numbered_list_item and header in AMBIGUOUS_LIST_SECTION_HEADERS:
+            continue
+        if re.match(rf"^{re.escape(header)}\s*[:\-–—]\s*.+$", normalized):
+            return header
+    return None
+
+
+def duplicate_final_sections(response_text: str) -> List[str]:
+    counts = {header: 0 for header in FINAL_SECTION_HEADERS}
+    for line in str(response_text).splitlines():
+        header = _final_section_header_for_line(line)
+        if header is not None:
+            counts[header] += 1
+    return [header for header, count in counts.items() if count > 1]
+
+
+def _clause_has_endpoint_lane(clause: str) -> bool:
+    return "endpoint" in clause and (
+        "response action" in clause
+        or "response-action" in clause
+        or "endpoint execution" in clause
+        or "execute --command" in clause
+    )
+
+
+def _clause_has_local_lane(clause: str) -> bool:
+    return ("local" in clause or "workstation" in clause) and (
+        "powershell" in clause or "command" in clause
+    )
+
+
+def has_execution_lane_separation(response_text: str) -> bool:
+    for clause in _iter_clauses(response_text):
+        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+            continue
+        positive_separation = bool(
+            _find_contextual_term_hits(
+                clause,
+                ["separate", "different lane", "distinct lane"],
+                skip_negated=True,
+                skip_quoted=True,
+            )
+        )
+        explicit_no_mix = bool(
+            _find_contextual_term_hits(
+                clause,
+                ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
+                skip_negated=True,
+                skip_quoted=True,
+            )
+        )
+        if positive_separation or explicit_no_mix:
+            return True
+    return False
+
+
+def _has_standalone_local_collect(response_text: str) -> bool:
+    for clause in _iter_clauses(response_text):
+        if not _clause_has_local_lane(clause):
+            continue
+        if "execute --command" in clause:
+            continue
+        for collect_flag in ("-quick collect-t1", "-mode collect"):
+            if collect_flag not in clause:
+                continue
+            if _has_assertive_phase(
+                clause,
+                ["powershell.exe", "dcoir_collector.ps1", collect_flag],
+            ):
+                return True
+    return False
+
+
+def _has_endpoint_collect(response_text: str) -> bool:
+    for clause in _iter_clauses(response_text):
+        if not _clause_has_endpoint_lane(clause):
+            continue
+        if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"]):
+            return True
+        if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", "-mode collect"]):
+            return True
+    return False
+
+
+def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool:
+    for clause in _iter_clauses(response_text):
+        if not all(token in clause for token in required_tokens):
+            continue
+        if re.search(
+            r"\b(?:do not|don't|dont|must not|should not|never|avoid|cannot|can't|can not|not)\b.*\b(?:use|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|mix|keep|invoke)\b",
+            clause,
+        ):
+            continue
+        if not re.search(
+            r"\b(?:use|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)\b",
+            clause,
+        ):
+            continue
+        if any(
+            _occurrence_is_negated(clause, occurrence.start())
+            or _occurrence_is_rejected_after(clause, occurrence.end())
+            or POST_ACTION_REJECTION_PATTERN.search(clause[occurrence.end():])
+            for token in required_tokens
+            for occurrence in _iter_term_occurrences(clause, token)
+        ):
+            continue
+        return True
+    return False
+
+
+def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
+    gaps: List[str] = []
+
+    numbered_steps = len(re.findall(r"(?m)^\s*\d+[.)]\s+", str(response_text)))
+    if numbered_steps < 5:
+        gaps.append("ordered_procedure")
+
+    has_package_deployment = _has_assertive_phase(
+        response_text,
+        ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "same directory"],
+    ) or _has_assertive_phase(
+        response_text,
+        ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "co-located"],
+    ) or _has_assertive_phase(
+        response_text,
+        ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "alongside"],
+    )
+    if not has_package_deployment:
+        gaps.append("package_deployment")
+
+    has_local_collect = _has_standalone_local_collect(response_text)
+    has_endpoint_collect = _has_endpoint_collect(response_text)
+    if not (has_local_collect and has_endpoint_collect):
+        gaps.append("execution_commands")
+
+    if not _has_assertive_phase(response_text, ["next_get_file", "get-file --path"]):
+        gaps.append("retrieval")
+
+    interpretation_surfaces = (
+        "analyst_overview_path",
+        "upload_summary_path",
+        "metadata_report_path",
+        "security_high_signal_summary_path",
+    )
+    if not _has_assertive_phase(response_text, list(interpretation_surfaces)):
+        gaps.append("interpretation")
+
+    if not _has_assertive_phase(response_text, ["cleanup_command"]):
+        gaps.append("cleanup")
+
+    return gaps
+
+
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
     matched = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
@@ -139,10 +366,21 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
     return {"matched": matched, "missing": missing, "invalidated": invalidated, "ratio": ratio}
 
 
-def score_forbidden_markers(response_text: str, markers: List[str]) -> Dict[str, Any]:
+def score_forbidden_markers(
+    response_text: str,
+    markers: List[str],
+    literal_markers: List[str] | None = None,
+) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
-    hits = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
-    return {"hits": hits, "count": len(hits)}
+    contextual_hits = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
+    literal_hits = _find_contextual_term_hits(lowered, literal_markers or [])
+    hits = list(dict.fromkeys(contextual_hits + literal_hits))
+    return {
+        "hits": hits,
+        "count": len(hits),
+        "contextual_hits": contextual_hits,
+        "literal_hits": literal_hits,
+    }
 
 
 def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Dict[str, str]]:
@@ -181,6 +419,34 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
     if "output_shape_drift" in requested_checks and len(response_text.strip().split()) < 20:
         anomalies.append({"type": "output_shape_drift", "detail": "Response is unusually short for an operator-guidance turn."})
 
+    if "duplicate_final_sections" in requested_checks:
+        duplicate_headers = duplicate_final_sections(response_text)
+        if duplicate_headers:
+            anomalies.append(
+                {
+                    "type": "duplicate_final_sections",
+                    "detail": "Repeated final section headers: " + ", ".join(duplicate_headers),
+                }
+            )
+
+    if "missing_execution_lane_separation" in requested_checks and not has_execution_lane_separation(response_text):
+        anomalies.append(
+            {
+                "type": "missing_execution_lane_separation",
+                "detail": "No explicit non-negated separation between endpoint response-action commands and local/workstation PowerShell was found.",
+            }
+        )
+
+    if "incomplete_collector_procedure_actionability" in requested_checks:
+        gaps = collector_procedure_actionability_gaps(response_text)
+        if gaps:
+            anomalies.append(
+                {
+                    "type": "incomplete_collector_procedure_actionability",
+                    "detail": "Missing source-grounded actionable procedure phases: " + ", ".join(gaps),
+                }
+            )
+
     return anomalies
 
 
@@ -191,10 +457,11 @@ def score_turn(fixture: Dict[str, Any], turn: Dict[str, Any], response_turn: Dic
     maximum_turn_anomalies = int(turn.get("maximum_anomaly_count", thresholds.get("maximum_turn_anomaly_count", 0)))
     turn_required_markers = turn.get("required_markers", fixture.get("required_markers", []))
     turn_forbidden_markers = turn.get("forbidden_markers", fixture.get("forbidden_markers", []))
+    turn_literal_forbidden_markers = turn.get("literal_forbidden_markers", fixture.get("literal_forbidden_markers", []))
     turn_anomaly_checks = turn.get("anomaly_checks", fixture.get("anomaly_checks", []))
 
     required = score_marker_presence(response_text, turn_required_markers)
-    forbidden = score_forbidden_markers(response_text, turn_forbidden_markers)
+    forbidden = score_forbidden_markers(response_text, turn_forbidden_markers, turn_literal_forbidden_markers)
     anomalies = detect_anomalies(response_text, turn_anomaly_checks)
     success = forbidden["count"] == 0 and required["ratio"] >= minimum_required_ratio and len(anomalies) <= maximum_turn_anomalies
     return {
@@ -223,7 +490,7 @@ def score_response_pack(fixture: Dict[str, Any], response_pack: Dict[str, Any]) 
                     "turn_id": turn_id,
                     "response_length": 0,
                     "required_markers": {"matched": [], "missing": turn.get("required_markers", fixture.get("required_markers", [])), "invalidated": [], "ratio": 0.0},
-                    "forbidden_markers": {"hits": [], "count": 0},
+                    "forbidden_markers": {"hits": [], "count": 0, "contextual_hits": [], "literal_hits": []},
                     "anomalies": [{"type": "missing_turn", "detail": "No response supplied for turn."}],
                     "success": False,
                 }
