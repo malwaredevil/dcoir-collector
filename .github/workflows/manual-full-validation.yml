@@ -2,25 +2,26 @@
 # Workflow key:
 # - workflow-validation-manual-full-validation-0013
 # Purpose:
-# - Run selected deep validation suite for collector/Gemini governed surfaces.
+# - Orchestrate the broad manual regression suite across collector, Gemini Agent, shared agent-runtime, and both OpenAI GPT package targets by reusing their canonical validation workflows.
 # Use when:
-# - Use for manual regression beyond validate-on-push, especially before readiness claims or after structural changes.
+# - Use for manual regression beyond validate-on-push, especially before readiness claims or after structural, package, or cross-provider agent changes.
 # Do not use when:
 # - Do not use as a quick push gate when validate-on-push is sufficient.
 # Trigger model:
 # - schedule: 30 6 * * 0; workflow_dispatch inputs: suite
 # Required inputs:
-# - suite: Validation suite to run default=FullRegression
+# - suite: Collector harness validation suite to run default=FullRegression
 # Required secrets/config:
-# - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
+# - Use secret/config names only as defined in the called reusable workflows and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses collector documentation validator, required surface checks, PowerShell 7 and Windows PowerShell 5.1 syntax parsing, pinned DCOIR Pester execution, collector runtime package validation, harness assembly parity, collector package build/restore, selected harness suite, FullRegression mission-readiness gating, and Gemini bundle smoke build.
+# - Reuses reusable-collector-validation.yml, reusable-openai-gpt-deployment-package-build.yml, reusable-gemini-bundle-build.yml, reusable-validate-gemini-behavioral-replay.yml, and reusable-validate-gemini-production-like-harness.yml so this lane inherits the governed package and behavioral validation contracts instead of duplicating them.
 # Expected outputs/readback:
-# - Validation artifacts including Pester and mission-readiness gate output, ChatGPT workflow report section artifact, and repo-workflows report.
+# - Collector FullRegression/Pester/runtime-package/mission-readiness evidence; OpenAI shared-agent-runtime, two-GPT package, combined deployment-release, and static parity evidence; Gemini validated bundle build, deterministic replay, and production-like harness evidence; per-lane report artifacts; and an aggregate manual-full-validation result artifact.
 # Safety notes:
-# - The selected suite bounds the readiness claim. Full readiness requires selecting and passing FullRegression together with the mission-readiness gate or explicit equivalent coverage.
+# - The selected collector suite bounds collector readiness claims. Broad manual validation requires every called validation lane to pass. OpenAI package/parity evidence does not prove live WebUI deployment, and Gemini bundle/replay/production-like evidence does not by itself prove live-model behavior.
 # Maintenance notes:
-# - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
+# - Keep this orchestration aligned with the canonical reusable validators instead of copying their command bodies here.
+# - Keep this header aligned with executable behavior whenever triggers, inputs, reusable validators, reports, artifacts, permissions, or safety checks change.
 # - Keep this header aligned with current repo-root GitHub guidance and the active `ircore` operating model when authority or routing language changes.
 # Authority routing:
 # - GitHub is canonical for workflow/source truth and this header owns workflow-specific execution guidance.
@@ -35,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: Validation suite to run
+        description: Collector harness validation suite to run
         required: true
         default: FullRegression
         type: choice
@@ -60,7 +61,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  full_validation:
+  collector_validation:
     uses: ./.github/workflows/reusable-collector-validation.yml
     permissions:
       contents: read
@@ -71,7 +72,6 @@ jobs:
       artifact_name: manual-full-validation-${{ inputs.suite || 'FullRegression' }}
       artifact_paths: |
         project_sources/TestResults/**
-        project_sources/validation/out_manual_full_gemini/**
         project_sources/validation/out_manual_full_collector/**
         project_sources/validation/out_manual_full_validate_dcoir_run_fixtures/**
         project_sources/validation/out_preflight_documentation_quality/**
@@ -79,10 +79,11 @@ jobs:
         project_sources/collector/powershell_review_assist_manual_full_workflow_report.json
         project_sources/collector/powershell_review_assist_manual_full_workflow_report.md
       artifact_retention_days: 21
-      report_title: Manual full validation summary
-      report_scope: selected deep validation suite
-      report_note: includes TestResults, pinned DCOIR Pester output, collector runtime package validation output, Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PowerShell review-assist JSON/Markdown, and mission-readiness gate output when produced.
-      report_claim: The workflow conclusion is the authoritative pass/fail signal. The selected suite bounds any readiness claim; use FullRegression plus the mission-readiness gate or equivalent evidence for broad readiness.
+      report_title: Manual full collector validation summary
+      report_scope: selected deep collector validation suite
+      report_note: collector-only evidence including TestResults, pinned DCOIR Pester output, collector runtime package validation output, collector runtime/harness output, validate_DCOIR_Run fixture output, documentation-quality output, PowerShell review-assist JSON/Markdown, and mission-readiness gate output when produced. The parent workflow also runs separate canonical OpenAI and Gemini validation jobs.
+      report_claim: This report section covers the collector lane only. The parent workflow conclusion aggregates collector, OpenAI GPT package, Gemini bundle, Gemini deterministic replay, and Gemini production-like harness validation. Use FullRegression plus the mission-readiness gate for broad collector readiness.
+      run_gemini_smoke_build: false
       run_windows_powershell_5_1_syntax: true
       run_dcoir_pester: true
       dcoir_pester_version: '5.7.1'
@@ -97,3 +98,154 @@ jobs:
       enforce_fullregression_mission_readiness: true
       mission_readiness_json_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.json
       mission_readiness_markdown_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.md
+
+  openai_gpt_package_validation:
+    uses: ./.github/workflows/reusable-openai-gpt-deployment-package-build.yml
+    permissions:
+      contents: read
+    with:
+      report_artifact_name: chatgpt-workflow-report-section-manual-full-openai
+
+  gemini_bundle_validation:
+    uses: ./.github/workflows/reusable-gemini-bundle-build.yml
+    permissions:
+      contents: read
+    with:
+      skip_validation: false
+      report_artifact_name: chatgpt-workflow-report-section-manual-full-gemini-bundle
+
+  gemini_behavioral_replay_validation:
+    uses: ./.github/workflows/reusable-validate-gemini-behavioral-replay.yml
+    permissions:
+      contents: read
+    with:
+      caller_event_name: ${{ github.event_name }}
+      report_artifact_name: chatgpt-workflow-report-section-manual-full-gemini-replay
+
+  gemini_production_like_harness_validation:
+    uses: ./.github/workflows/reusable-validate-gemini-production-like-harness.yml
+    permissions:
+      contents: read
+    with:
+      caller_event_name: ${{ github.event_name }}
+      harness_mode: full
+      require_stored_artifacts: false
+      report_artifact_name: chatgpt-workflow-report-section-manual-full-gemini-production-like
+
+  aggregate_validation:
+    if: ${{ always() }}
+    needs:
+      - collector_validation
+      - openai_gpt_package_validation
+      - gemini_bundle_validation
+      - gemini_behavioral_replay_validation
+      - gemini_production_like_harness_validation
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Write aggregate validation report
+        shell: bash
+        env:
+          SELECTED_SUITE: ${{ inputs.suite || 'FullRegression' }}
+          COLLECTOR_RESULT: ${{ needs.collector_validation.result }}
+          OPENAI_RESULT: ${{ needs.openai_gpt_package_validation.result }}
+          GEMINI_BUNDLE_RESULT: ${{ needs.gemini_bundle_validation.result }}
+          GEMINI_REPLAY_RESULT: ${{ needs.gemini_behavioral_replay_validation.result }}
+          GEMINI_PRODUCTION_LIKE_RESULT: ${{ needs.gemini_production_like_harness_validation.result }}
+        run: |
+          set -euo pipefail
+          mkdir -p manual_full_validation_aggregate
+          cat > manual_full_validation_aggregate/manual_full_validation_aggregate.md <<REPORT
+          ## Manual full validation aggregate
+
+          - workflow: manual-full-validation
+          - workflow_run_id: ${GITHUB_RUN_ID}
+          - workflow_run_attempt: ${GITHUB_RUN_ATTEMPT}
+          - head_sha: ${GITHUB_SHA}
+          - ref: ${GITHUB_REF}
+          - event_name: ${GITHUB_EVENT_NAME}
+          - selected_collector_suite: ${SELECTED_SUITE}
+          - collector_validation: ${COLLECTOR_RESULT}
+          - openai_gpt_package_validation: ${OPENAI_RESULT}
+          - gemini_bundle_validation: ${GEMINI_BUNDLE_RESULT}
+          - gemini_behavioral_replay_validation: ${GEMINI_REPLAY_RESULT}
+          - gemini_production_like_harness_validation: ${GEMINI_PRODUCTION_LIKE_RESULT}
+
+          Broad manual-validation success requires all five validation lanes to succeed. OpenAI evidence is static package/parity evidence only; Gemini repository-side evidence does not by itself prove live-model behavior.
+          REPORT
+
+      - name: Download per-lane report sections
+        if: always()
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: chatgpt-workflow-report-section*
+          path: manual_full_validation_report_sections
+          merge-multiple: false
+
+      - name: Write ChatGPT workflow report section
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chatgpt_workflow_report_section
+          {
+            cat manual_full_validation_aggregate/manual_full_validation_aggregate.md
+            if [ -d manual_full_validation_report_sections ]; then
+              mapfile -t report_files < <(find manual_full_validation_report_sections -type f -name 'chatgpt_workflow_report_section.md' | sort)
+            else
+              report_files=()
+            fi
+            for report_file in "${report_files[@]}"; do
+              echo
+              echo "---"
+              echo
+              cat "$report_file"
+            done
+          } > chatgpt_workflow_report_section/chatgpt_workflow_report_section.md
+
+      - name: Upload aggregate validation report
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: manual-full-validation-aggregate-report
+          path: manual_full_validation_aggregate/manual_full_validation_aggregate.md
+          if-no-files-found: error
+          retention-days: 21
+
+      - name: Upload ChatGPT workflow report section
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: chatgpt-workflow-report-section
+          path: chatgpt_workflow_report_section/chatgpt_workflow_report_section.md
+          if-no-files-found: error
+          retention-days: 21
+          overwrite: true
+
+      - name: Enforce aggregate validation result
+        shell: bash
+        env:
+          COLLECTOR_RESULT: ${{ needs.collector_validation.result }}
+          OPENAI_RESULT: ${{ needs.openai_gpt_package_validation.result }}
+          GEMINI_BUNDLE_RESULT: ${{ needs.gemini_bundle_validation.result }}
+          GEMINI_REPLAY_RESULT: ${{ needs.gemini_behavioral_replay_validation.result }}
+          GEMINI_PRODUCTION_LIKE_RESULT: ${{ needs.gemini_production_like_harness_validation.result }}
+        run: |
+          set -euo pipefail
+          for result in \
+            "$COLLECTOR_RESULT" \
+            "$OPENAI_RESULT" \
+            "$GEMINI_BUNDLE_RESULT" \
+            "$GEMINI_REPLAY_RESULT" \
+            "$GEMINI_PRODUCTION_LIKE_RESULT"; do
+            if [[ "$result" != "success" ]]; then
+              echo "Manual full validation lane result was not success: $result" >&2
+              exit 1
+            fi
+          done

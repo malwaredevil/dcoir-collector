@@ -22,6 +22,11 @@ on:
         required: false
         type: boolean
         default: false
+      report_artifact_name:
+        description: Artifact name for the ChatGPT workflow report section.
+        required: false
+        type: string
+        default: chatgpt-workflow-report-section
     outputs: {}
     secrets: {}
 
@@ -87,7 +92,7 @@ jobs:
         if: always()
         uses: ./.github/actions/upload-chatgpt-artifact
         with:
-          name: chatgpt-workflow-report-section
+          name: ${{ inputs.report_artifact_name }}
           path: project_sources/validation/out_validate_gemini_production_like_harness/chatgpt_workflow_report_section.md
           if-no-files-found: error
           retention-days: 14
