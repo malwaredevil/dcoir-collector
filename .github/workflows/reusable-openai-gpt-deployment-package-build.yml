@@ -10,6 +10,11 @@ on:
         required: false
         default: ""
         type: string
+      report_artifact_name:
+        description: Artifact name for the ChatGPT workflow report section.
+        required: false
+        default: chatgpt-workflow-report-section
+        type: string
     outputs: {}
     secrets: {}
 
@@ -223,7 +228,7 @@ jobs:
         if: always()
         uses: ./.github/actions/upload-chatgpt-artifact
         with:
-          name: chatgpt-workflow-report-section
+          name: ${{ inputs.report_artifact_name }}
           path: chatgpt_workflow_report_section/chatgpt_workflow_report_section.md
           if-no-files-found: error
           retention-days: 14
