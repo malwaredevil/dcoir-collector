@@ -94,7 +94,7 @@ jobs:
       build_runtime_for_harness: true
       run_harness_suite: true
       harness_suite: ${{ inputs.suite || 'FullRegression' }}
-      harness_output_root: project_sources\\validation\\out_manual_full_collector\\harness_results
+      harness_output_root: project_sources\validation\out_manual_full_collector\harness_results
       enforce_fullregression_mission_readiness: true
       mission_readiness_json_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.json
       mission_readiness_markdown_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.md
