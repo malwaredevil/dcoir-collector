@@ -1,5 +1,5 @@
 name: Upload ChatGPT artifact
-description: Upload a standardized ChatGPT workflow artifact while keeping artifact names and retention visible at the caller.
+description: Upload a standardized ChatGPT workflow artifact while keeping artifact names, retention, and replacement behavior visible at the caller.
 inputs:
   name:
     description: Artifact name supplied by the caller workflow.
@@ -15,6 +15,10 @@ inputs:
     description: Missing-file behavior supplied by the caller workflow. Preserve existing workflow behavior during migration.
     required: false
     default: "warn"
+  overwrite:
+    description: Replace an existing artifact with the same name in the current workflow run. Keep false unless the caller intentionally consolidates an earlier artifact.
+    required: false
+    default: "false"
 runs:
   using: composite
   steps:
@@ -25,12 +29,14 @@ runs:
         ARTIFACT_PATH: ${{ inputs.path }}
         RETENTION_DAYS: ${{ inputs.retention-days }}
         IF_NO_FILES_FOUND: ${{ inputs.if-no-files-found }}
+        OVERWRITE: ${{ inputs.overwrite }}
       run: |
         set -euo pipefail
         printf 'artifact-name: %s\n' "$ARTIFACT_NAME"
         printf 'artifact-path: %s\n' "$ARTIFACT_PATH"
         printf 'retention-days: %s\n' "$RETENTION_DAYS"
         printf 'if-no-files-found: %s\n' "$IF_NO_FILES_FOUND"
+        printf 'overwrite: %s\n' "$OVERWRITE"
     - name: Upload artifact
       uses: actions/upload-artifact@v7
       with:
@@ -38,5 +44,6 @@ runs:
         path: ${{ inputs.path }}
         if-no-files-found: ${{ inputs.if-no-files-found }}
         retention-days: ${{ inputs.retention-days }}
-# Compensating evidence: caller supplies artifact name/path/retention explicitly,
+        overwrite: ${{ inputs.overwrite }}
+# Compensating evidence: caller supplies artifact name/path/retention/replacement behavior explicitly,
 # this action prints those values, and GitHub records the uploaded artifact.
