@@ -83,6 +83,26 @@ on:
         required: false
         default: true
         type: boolean
+      run_agent_package_validation:
+        description: Run the governed shared agent-runtime contract plus both OpenAI GPT package and combined deployment-release validation.
+        required: false
+        default: false
+        type: boolean
+      run_gemini_behavioral_replay_validation:
+        description: Run the deterministic Gemini behavioral replay validation suite.
+        required: false
+        default: false
+        type: boolean
+      run_gemini_production_like_harness_validation:
+        description: Run the static/construct Gemini production-like harness validator.
+        required: false
+        default: false
+        type: boolean
+      gemini_production_like_harness_mode:
+        description: Gemini production-like harness depth when enabled.
+        required: false
+        default: medium
+        type: string
       run_collector_package_smoke:
         required: false
         default: false
@@ -190,6 +210,97 @@ jobs:
       - name: Validate Python syntax
         uses: ./.github/actions/validate-python-syntax
 
+      - name: Run governed agent-runtime validation contract
+        if: ${{ inputs.run_agent_package_validation }}
+        shell: pwsh
+        env:
+          VALIDATION_PREFIX: ${{ inputs.validation_prefix }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $commands = @(
+            @('Shared source contract', 'python', 'project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'),
+            @('Shared source contract self-tests', 'python', 'project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'),
+            @('Behavior adapter materialization check', 'python', 'project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py', '--check'),
+            @('Behavior adapter self-tests', 'python', 'project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py'),
+            @('Knowledge projection check', 'python', 'project_sources/agent_runtime/tools/project_agent_knowledge.py', '--check'),
+            @('Knowledge projection self-tests', 'python', 'project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py'),
+            @('OpenAI DCOIR package check', 'python', 'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py', '--check'),
+            @('OpenAI DCOIR package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'),
+            @('OpenAI USB package check', 'python', 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py', '--check'),
+            @('OpenAI USB package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py')
+          )
+          foreach ($command in $commands) {
+            $label = $command[0]
+            $exe = $command[1]
+            $arguments = @($command[2..($command.Count - 1)])
+            Write-Host "=== $label ==="
+            & $exe $arguments
+            if ($LASTEXITCODE -ne 0) {
+              throw "$label failed with exit $LASTEXITCODE"
+            }
+          }
+
+          $outputDir = "project_sources/validation/out_$($env:VALIDATION_PREFIX)_agent_runtime"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          $receiptCommands = @(
+            'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py',
+            'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py',
+            'python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check',
+            'python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py',
+            'python project_sources/agent_runtime/tools/project_agent_knowledge.py --check',
+            'python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py',
+            'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check',
+            'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py',
+            'python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check',
+            'python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'
+          )
+          $receipt = [ordered]@{
+            schema_version = 'dcoir_agent_runtime_validation_workflow_receipt_v1'
+            workflow = '${{ inputs.workflow_name }}'
+            workflow_run_id = $env:GITHUB_RUN_ID
+            workflow_run_attempt = $env:GITHUB_RUN_ATTEMPT
+            head_sha = $env:GITHUB_SHA
+            tested_commit_sha = $env:GITHUB_SHA
+            event_name = $env:GITHUB_EVENT_NAME
+            documented_contract = 'project_sources/agent_runtime/README.md'
+            command_count = $receiptCommands.Count
+            commands = @($receiptCommands | ForEach-Object { [ordered]@{ command = $_; result = 'pass' } })
+          }
+          $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path (Join-Path $outputDir 'agent_runtime_validation.json') -Encoding utf8
+
+      - name: Validate combined OpenAI GPT deployment packages
+        if: ${{ inputs.run_agent_package_validation }}
+        shell: pwsh
+        env:
+          VALIDATION_PREFIX: ${{ inputs.validation_prefix }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Combined OpenAI GPT deployment release self-tests failed.'
+          }
+          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Issue #428 OpenAI GPT deployment release self-tests failed.'
+          }
+
+          $outputDir = "project_sources/validation/out_$($env:VALIDATION_PREFIX)_openai_gpt"
+          $parityRoot = Join-Path $outputDir 'parity'
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          python project_sources/agent_runtime/tools/report_agent_release_parity.py `
+            --source-commit $env:GITHUB_SHA `
+            --output-root $parityRoot
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Unified agent release/parity report failed.'
+          }
+          python project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py `
+            --source-commit $env:GITHUB_SHA `
+            --output-dir $outputDir `
+            --parity-root $parityRoot
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Combined OpenAI GPT deployment release build failed.'
+          }
+
       - name: Run documentation validator self-tests
         if: ${{ inputs.run_documentation_self_tests }}
         shell: pwsh
@@ -289,6 +400,42 @@ jobs:
         with:
           output-dir: project_sources/validation/out_${{ inputs.validation_prefix }}_gemini
 
+      - name: Run deterministic Gemini behavioral replay validation
+        if: ${{ inputs.run_gemini_behavioral_replay_validation }}
+        shell: pwsh
+        env:
+          VALIDATION_PREFIX: ${{ inputs.validation_prefix }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outputDir = "project_sources/validation/out_$($env:VALIDATION_PREFIX)_gemini_replay"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          python project_sources/gemini/tools/run_gemini_behavioral_replay_validation_suite.py `
+            --fixtures-root project_sources/gemini/fixtures/behavioral_replay `
+            --output-dir $outputDir
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Deterministic Gemini behavioral replay validation failed.'
+          }
+
+      - name: Run Gemini production-like harness validation
+        if: ${{ inputs.run_gemini_production_like_harness_validation }}
+        shell: pwsh
+        timeout-minutes: 30
+        env:
+          VALIDATION_PREFIX: ${{ inputs.validation_prefix }}
+          GEMINI_HARNESS_MODE: ${{ inputs.gemini_production_like_harness_mode }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outputDir = "project_sources/validation/out_$($env:VALIDATION_PREFIX)_gemini_production_like"
+          New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+          python project_sources/gemini/tools/validate_gemini_production_like_harness.py `
+            --repo-root . `
+            --fixtures-root project_sources/gemini/fixtures/behavioral_replay `
+            --output-dir $outputDir `
+            --mode $env:GEMINI_HARNESS_MODE
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Gemini production-like harness validation failed.'
+          }
+
       - name: Enforce FullRegression mission-readiness gate
         if: ${{ inputs.enforce_fullregression_mission_readiness }}
         shell: pwsh
@@ -324,6 +471,10 @@ jobs:
           REPORT_NOTE: ${{ inputs.report_note }}
           REPORT_CLAIM: ${{ inputs.report_claim }}
           SELECTED_HARNESS_SUITE: ${{ inputs.harness_suite }}
+          AGENT_PACKAGE_VALIDATION: ${{ inputs.run_agent_package_validation }}
+          GEMINI_REPLAY_VALIDATION: ${{ inputs.run_gemini_behavioral_replay_validation }}
+          GEMINI_PRODUCTION_LIKE_VALIDATION: ${{ inputs.run_gemini_production_like_harness_validation }}
+          GEMINI_PRODUCTION_LIKE_MODE: ${{ inputs.gemini_production_like_harness_mode }}
           PESTER_VERSION: ${{ steps.pester.outputs.pester_version }}
           PESTER_TOTAL: ${{ steps.pester.outputs.total_count }}
           PESTER_PASSED: ${{ steps.pester.outputs.passed_count }}
@@ -343,6 +494,10 @@ jobs:
           - ref: $env:GITHUB_REF
           - event_name: $env:GITHUB_EVENT_NAME
           - selected_harness_suite: $env:SELECTED_HARNESS_SUITE
+          - agent_package_validation: $env:AGENT_PACKAGE_VALIDATION
+          - gemini_behavioral_replay_validation: $env:GEMINI_REPLAY_VALIDATION
+          - gemini_production_like_harness_validation: $env:GEMINI_PRODUCTION_LIKE_VALIDATION
+          - gemini_production_like_harness_mode: $env:GEMINI_PRODUCTION_LIKE_MODE
           - primary_artifact: $env:PRIMARY_ARTIFACT
           - artifact_note: $env:REPORT_NOTE
           - pester_version: $env:PESTER_VERSION
