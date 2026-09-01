@@ -2,23 +2,23 @@
 # Workflow key:
 # - workflow-validation-manual-full-validation-0013
 # Purpose:
-# - Run selected deep validation suite for collector/Gemini governed surfaces.
+# - Run the broad manual regression suite across collector, Gemini Agent, shared agent-runtime, and OpenAI GPT package surfaces.
 # Use when:
-# - Use for manual regression beyond validate-on-push, especially before readiness claims or after structural changes.
+# - Use for manual regression beyond validate-on-push, especially before readiness claims or after structural/package changes.
 # Do not use when:
 # - Do not use as a quick push gate when validate-on-push is sufficient.
 # Trigger model:
 # - schedule: 30 6 * * 0; workflow_dispatch inputs: suite
 # Required inputs:
-# - suite: Validation suite to run default=FullRegression
+# - suite: Collector harness validation suite to run default=FullRegression
 # Required secrets/config:
 # - Use secret/config names only as defined in this workflow body and Local Configuration Registry; never place secret values in workflow comments, requests, reports, logs, or bundles.
 # Runtime dependencies:
-# - Uses collector documentation validator, required surface checks, PowerShell 7 and Windows PowerShell 5.1 syntax parsing, pinned DCOIR Pester execution, collector runtime package validation, harness assembly parity, collector package build/restore, selected harness suite, FullRegression mission-readiness gating, and Gemini bundle smoke build.
+# - Uses shared agent-runtime/OpenAI GPT contract validation, combined OpenAI GPT deployment-release validation, collector documentation validator, required surface checks, PowerShell 7 and Windows PowerShell 5.1 syntax parsing, pinned DCOIR Pester execution, collector runtime package validation, harness assembly parity, collector package build/restore, selected collector harness suite, FullRegression mission-readiness gating, Gemini bundle validation/build, deterministic Gemini behavioral replay validation, and the Gemini production-like harness validator.
 # Expected outputs/readback:
-# - Validation artifacts including Pester and mission-readiness gate output, ChatGPT workflow report section artifact, and repo-workflows report.
+# - Validation artifacts including agent-runtime/OpenAI GPT receipts and release evidence, Gemini bundle/replay/production-like evidence, Pester and mission-readiness gate output, ChatGPT workflow report section artifact, and repo-workflows report.
 # Safety notes:
-# - The selected suite bounds the readiness claim. Full readiness requires selecting and passing FullRegression together with the mission-readiness gate or explicit equivalent coverage.
+# - The selected collector suite bounds collector readiness claims. Broad manual validation requires the cross-provider package and Gemini validators below to pass as well. This workflow does not prove live OpenAI WebUI deployment or live Gemini model behavior.
 # Maintenance notes:
 # - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
 # - Keep this header aligned with current repo-root GitHub guidance and the active `ircore` operating model when authority or routing language changes.
@@ -35,7 +35,7 @@ on:
   workflow_dispatch:
     inputs:
       suite:
-        description: Validation suite to run
+        description: Collector harness validation suite to run
         required: true
         default: FullRegression
         type: choice
@@ -71,7 +71,11 @@ jobs:
       artifact_name: manual-full-validation-${{ inputs.suite || 'FullRegression' }}
       artifact_paths: |
         project_sources/TestResults/**
+        project_sources/validation/out_manual_full_agent_runtime/**
+        project_sources/validation/out_manual_full_openai_gpt/**
         project_sources/validation/out_manual_full_gemini/**
+        project_sources/validation/out_manual_full_gemini_replay/**
+        project_sources/validation/out_manual_full_gemini_production_like/**
         project_sources/validation/out_manual_full_collector/**
         project_sources/validation/out_manual_full_validate_dcoir_run_fixtures/**
         project_sources/validation/out_preflight_documentation_quality/**
@@ -80,9 +84,14 @@ jobs:
         project_sources/collector/powershell_review_assist_manual_full_workflow_report.md
       artifact_retention_days: 21
       report_title: Manual full validation summary
-      report_scope: selected deep validation suite
-      report_note: includes TestResults, pinned DCOIR Pester output, collector runtime package validation output, Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PowerShell review-assist JSON/Markdown, and mission-readiness gate output when produced.
-      report_claim: The workflow conclusion is the authoritative pass/fail signal. The selected suite bounds any readiness claim; use FullRegression plus the mission-readiness gate or equivalent evidence for broad readiness.
+      report_scope: collector mission-readiness plus Gemini and OpenAI GPT package validation
+      report_note: includes the shared agent-runtime validation receipt, both OpenAI GPT package checks/self-tests, combined OpenAI deployment-release/parity evidence, Gemini validated bundle build, deterministic Gemini replay output, Gemini production-like harness output, TestResults, pinned DCOIR Pester output, collector runtime package validation output, collector runtime/harness output, validate_DCOIR_Run fixture output, documentation-quality output, PowerShell review-assist JSON/Markdown, and mission-readiness gate output when produced.
+      report_claim: The workflow conclusion is the authoritative pass/fail signal for this configured manual lane. The selected collector suite bounds collector readiness claims; use FullRegression plus the mission-readiness gate for broad collector readiness. OpenAI evidence is static package/parity evidence only, and Gemini replay/production-like evidence does not by itself prove live-model behavior.
+      run_agent_package_validation: true
+      run_gemini_smoke_build: true
+      run_gemini_behavioral_replay_validation: true
+      run_gemini_production_like_harness_validation: true
+      gemini_production_like_harness_mode: full
       run_windows_powershell_5_1_syntax: true
       run_dcoir_pester: true
       dcoir_pester_version: '5.7.1'
@@ -93,7 +102,7 @@ jobs:
       build_runtime_for_harness: true
       run_harness_suite: true
       harness_suite: ${{ inputs.suite || 'FullRegression' }}
-      harness_output_root: project_sources\validation\out_manual_full_collector\harness_results
+      harness_output_root: project_sources\\validation\\out_manual_full_collector\\harness_results
       enforce_fullregression_mission_readiness: true
       mission_readiness_json_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.json
       mission_readiness_markdown_output: project_sources/validation/out_manual_full_collector/collector_mission_readiness_gate_report.md
