@@ -2,6 +2,7 @@
   "schema_version": "dcoir_workflow_required_surface_profile_supplements_v1",
   "supplements": [
     ".github/github_actions/workflow_required_surface_profile_supplements/event_text_query_bound_policy.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/manual_full_cross_provider_validation.json",
     ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
   ]
 }
