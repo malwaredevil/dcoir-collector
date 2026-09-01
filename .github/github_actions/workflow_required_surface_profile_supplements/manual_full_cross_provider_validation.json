@@ -6,9 +6,15 @@
     ".github/workflows/reusable-validate-gemini-production-like-harness.yml",
     "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
     "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py",
+    "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py",
     "project_sources/gemini/tools/run_gemini_behavioral_replay_validation_suite.py",
     "project_sources/gemini/tools/validate_gemini_behavioral_replay_fixtures.py",
     "project_sources/gemini/tools/validate_gemini_production_like_harness.py",
+    ".github/github_actions/workflow_required_surface_profile_supplements.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/manual_full_cross_provider_validation.json"
+  ],
+  "manual_openai_gpt_deployment_package_build": [
+    "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py",
     ".github/github_actions/workflow_required_surface_profile_supplements.json",
     ".github/github_actions/workflow_required_surface_profile_supplements/manual_full_cross_provider_validation.json"
   ]
