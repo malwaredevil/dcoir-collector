@@ -110,7 +110,7 @@ on:
       harness_output_root:
         description: Output root passed to the collector harness.
         required: false
-        default: '.\\TestResults'
+        default: '.\TestResults'
         type: string
       run_dcoir_pester:
         required: false
@@ -178,7 +178,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $residue = Get-ChildItem -Path . -Recurse -Force -File |
             Where-Object {
-              $_.FullName.Contains('\\__pycache__\\') -or
+              $_.FullName.Contains('\__pycache__\') -or
               $_.Extension -eq '.pyc' -or
               $_.Name -eq '.DS_Store'
             }
@@ -234,7 +234,7 @@ jobs:
         if: ${{ inputs.run_validate_dcoir_fixtures }}
         uses: ./.github/actions/run-validate-dcoir-fixtures
         with:
-          output-root: .\\validation\\out_${{ inputs.validation_prefix }}_validate_dcoir_run_fixtures
+          output-root: .\validation\out_${{ inputs.validation_prefix }}_validate_dcoir_run_fixtures
 
       - name: Run collector documentation quality gate
         if: ${{ inputs.run_documentation_quality }}
@@ -278,7 +278,7 @@ jobs:
         run: |
           $suite = $env:SELECTED_HARNESS_SUITE
           $harnessOutputRoot = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $env:HARNESS_OUTPUT_ROOT))
-          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite $suite -OutputRoot $harnessOutputRoot -MasterZipPath $env:HARNESS_RUNTIME_ZIP -CollectorStepTimeoutSeconds 600
+          powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\collector\harness\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite $suite -OutputRoot $harnessOutputRoot -MasterZipPath $env:HARNESS_RUNTIME_ZIP -CollectorStepTimeoutSeconds 600
           if ($LASTEXITCODE -ne 0) {
             throw "Collector harness suite failed: $suite"
           }
@@ -298,7 +298,7 @@ jobs:
           MISSION_READINESS_JSON_OUTPUT: ${{ inputs.mission_readiness_json_output }}
           MISSION_READINESS_MARKDOWN_OUTPUT: ${{ inputs.mission_readiness_markdown_output }}
         run: |
-          .\\.github\\dcoir_review\\scripts\\test-collector-fullregression-mission-readiness.ps1 `
+          .\.github\dcoir_review\scripts\test-collector-fullregression-mission-readiness.ps1 `
             -HarnessOutputRoot $env:HARNESS_OUTPUT_ROOT `
             -SelectedSuite $env:SELECTED_HARNESS_SUITE `
             -JsonOutputPath $env:MISSION_READINESS_JSON_OUTPUT `
