@@ -143,6 +143,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -178,12 +179,51 @@ jobs:
           Broad manual-validation success requires all five validation lanes to succeed. OpenAI evidence is static package/parity evidence only; Gemini repository-side evidence does not by itself prove live-model behavior.
           REPORT
 
+      - name: Download per-lane report sections
+        if: always()
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          pattern: chatgpt-workflow-report-section-manual-full-*
+          path: manual_full_validation_report_sections
+          merge-multiple: false
+
+      - name: Write ChatGPT workflow report section
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p chatgpt_workflow_report_section
+          {
+            cat manual_full_validation_aggregate/manual_full_validation_aggregate.md
+            if [ -d manual_full_validation_report_sections ]; then
+              mapfile -t report_files < <(find manual_full_validation_report_sections -type f -name 'chatgpt_workflow_report_section.md' | sort)
+            else
+              report_files=()
+            fi
+            for report_file in "${report_files[@]}"; do
+              echo
+              echo "---"
+              echo
+              cat "$report_file"
+            done
+          } > chatgpt_workflow_report_section/chatgpt_workflow_report_section.md
+
       - name: Upload aggregate validation report
         if: always()
         uses: ./.github/actions/upload-chatgpt-artifact
         with:
           name: manual-full-validation-aggregate-report
           path: manual_full_validation_aggregate/manual_full_validation_aggregate.md
+          if-no-files-found: error
+          retention-days: 21
+
+      - name: Upload ChatGPT workflow report section
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: chatgpt-workflow-report-section
+          path: chatgpt_workflow_report_section/chatgpt_workflow_report_section.md
           if-no-files-found: error
           retention-days: 21
 
