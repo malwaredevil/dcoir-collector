@@ -79,6 +79,7 @@ def main() -> None:
         assert scope["current_head_sha"] == "ccc"
         assert scope["compare_status"] == "ahead"
         assert scope["fallback_reason"] == ""
+        assert review.has_prior_successful_context_review(gh, 7)
 
         # Only the initial semantic-scope diff is incremental. A later diff read
         # (used by v36 repair/publication anchoring) must be the cumulative PR diff.
@@ -111,6 +112,7 @@ def main() -> None:
         old_scope = getattr(gh_old, v41.SCOPE_CACHE_ATTR)
         assert old_scope["source"] == "cumulative-full-pr"
         assert "first-pass-deep" in old_scope["fallback_reason"]
+        assert not review.has_prior_successful_context_review(gh_old, 7)
 
         # Explicit deep review remains cumulative even with a compatible prior.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review deep"
@@ -120,13 +122,27 @@ def main() -> None:
         assert deep_scope["source"] == "cumulative-full-pr"
         assert deep_scope["review_mode"] == "deep-forced"
 
-        # A rewritten/diverged history fails closed to cumulative PR scope.
+        # A rewritten/diverged history fails closed to cumulative PR scope. The
+        # cached compatible review must not keep a plain command in lightweight
+        # diff mode after the ancestry contract failed.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
         gh_diverged = FakeClient([compatible_review], compare_status="diverged", merge_base="zzz")
         assert gh_diverged.get_pr_diff(7) == "FULL-DIFF"
         diverged_scope = getattr(gh_diverged, v41.SCOPE_CACHE_ATTR)
         assert diverged_scope["source"] == "cumulative-full-pr"
         assert "compare status is diverged" in diverged_scope["fallback_reason"]
+        assert not review.has_prior_successful_context_review(gh_diverged, 7)
+        production_config = review.load_pareto_context_config(
+            ".github/dcoir_review/openrouter-pr-review-pareto.yml"
+        )
+        assert review.review_mode_for_command(
+            "/dcoir-review", "/dcoir-review", production_config, False
+        ) == "first-pass-deep"
+        # An explicit operator-selected diff request still stays diff even when
+        # reuse validation failed; the command token is authoritative.
+        assert review.review_mode_for_command(
+            "/dcoir-review diff", "/dcoir-review", production_config, False
+        ) == "diff"
 
         # Even status=ahead is rejected if the prior reviewed head is not the
         # exact merge base, preventing unsafe reuse across rewritten ancestry.
@@ -134,6 +150,7 @@ def main() -> None:
         assert gh_wrong_base.get_pr_diff(7) == "FULL-DIFF"
         wrong_base_scope = getattr(gh_wrong_base, v41.SCOPE_CACHE_ATTR)
         assert "not the exact compare merge base" in wrong_base_scope["fallback_reason"]
+        assert not review.has_prior_successful_context_review(gh_wrong_base, 7)
     finally:
         if old_body is None:
             os.environ.pop("TRIGGER_COMMENT_BODY", None)
@@ -149,6 +166,7 @@ def main() -> None:
     assert "merge_base_commit" in source
     assert "ARCHITECTURE_CONTRACT_MARKER" in source
     assert "INITIAL_DIFF_CONSUMED_KEY" in source
+    assert 'scope.get("source"' in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 
