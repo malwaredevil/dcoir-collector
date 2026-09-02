@@ -8,7 +8,6 @@ from typing import Any
 
 from dcoir_review_required_runtime_patch_v41_review_state import (
     ARCHITECTURE_CONTRACT,
-    BASE_CONTRACT_PREFIX,
     _review_base_sha,
     latest_compatible_context_review,
 )
