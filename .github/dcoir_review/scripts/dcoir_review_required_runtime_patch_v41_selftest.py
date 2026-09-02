@@ -12,6 +12,8 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
 
+    base_a = "1" * 40
+    base_b = "2" * 40
     captured_debug: dict[str, object] = {}
     original_debug = review.hardened.write_debug_json_artifact_safely
     original_deep_context = review.build_deep_context_block
@@ -22,11 +24,18 @@ def main() -> None:
     v41.apply_pareto_context_module(review)
 
     class FakeClient(review.base.GitHubClient):
-        def __init__(self, reviews, compare_status="ahead", merge_base="aaa"):
+        def __init__(
+            self,
+            reviews,
+            compare_status="ahead",
+            merge_base="aaa",
+            current_base=base_a,
+        ):
             super().__init__("token", "malwaredevil/dcoir-collector")
             self.reviews = list(reviews)
             self.compare_status = compare_status
             self.merge_base = merge_base
+            self.current_base = current_base
             self.calls = []
 
         def request(self, method, path, body=None, accept="application/vnd.github+json"):
@@ -34,7 +43,7 @@ def main() -> None:
             if path == "/repos/malwaredevil/dcoir-collector/pulls/7":
                 if accept.endswith(".diff") or accept == "application/vnd.github.v3.diff":
                     return "FULL-DIFF"
-                return {"head": {"sha": "ccc"}}
+                return {"head": {"sha": "ccc"}, "base": {"sha": self.current_base}}
             if path.startswith("/repos/malwaredevil/dcoir-collector/pulls/7/reviews?"):
                 return list(self.reviews)
             if path.startswith("/repos/malwaredevil/dcoir-collector/pulls/7/files?"):
@@ -54,19 +63,30 @@ def main() -> None:
     context_marker = review.CONTEXT_REVIEW_MARKER
     compatible_body = (
         f"{marker}\n{context_marker} `diff`\n"
+        f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}; "
+        f"{v41.BASE_CONTRACT_PREFIX}{base_a}"
+    )
+    architecture_without_base_body = (
+        f"{marker}\n{context_marker} `diff`\n"
         f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}"
     )
     old_contract_body = f"{marker}\n{context_marker} `diff`\nContext readback: legacy"
 
     old_review = {"id": 1, "commit_id": "999", "body": old_contract_body}
-    compatible_review = {"id": 2, "commit_id": "aaa", "body": compatible_body}
+    architecture_without_base_review = {
+        "id": 2,
+        "commit_id": "998",
+        "body": architecture_without_base_body,
+    }
+    compatible_review = {"id": 3, "commit_id": "aaa", "body": compatible_body}
 
     old_body = os.environ.get("TRIGGER_COMMENT_BODY")
     try:
         # Ordinary follow-up: use only the compatible reviewed head and GitHub
-        # compare evidence. Old-contract DCOIR reviews must not authorize reuse.
+        # compare evidence. Old contracts and v41 reviews without base-state
+        # markers must not authorize reuse.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
-        gh = FakeClient([old_review, compatible_review])
+        gh = FakeClient([old_review, architecture_without_base_review, compatible_review])
         assert review.latest_compatible_context_review(gh, 7)["commit_id"] == "aaa"
         assert review.has_prior_successful_context_review(gh, 7)
         assert gh.get_pr_diff(7) == "INCREMENTAL-DIFF"
@@ -77,6 +97,8 @@ def main() -> None:
         assert scope["source"] == "incremental-reviewed-head"
         assert scope["prior_reviewed_head_sha"] == "aaa"
         assert scope["current_head_sha"] == "ccc"
+        assert scope["prior_reviewed_base_sha"] == base_a
+        assert scope["current_base_sha"] == base_a
         assert scope["compare_status"] == "ahead"
         assert scope["fallback_reason"] == ""
         assert review.has_prior_successful_context_review(gh, 7)
@@ -85,8 +107,15 @@ def main() -> None:
         # (used by v36 repair/publication anchoring) must be the cumulative PR diff.
         assert gh.get_pr_diff(7) == "FULL-DIFF"
 
-        _block, summary = review.build_deep_context_block(gh, {}, [], object(), "diff")
+        _block, summary = review.build_deep_context_block(
+            gh,
+            {"base": {"sha": base_a}},
+            [],
+            object(),
+            "diff",
+        )
         assert v41.ARCHITECTURE_CONTRACT_MARKER in summary
+        assert f"{v41.BASE_CONTRACT_PREFIX}{base_a}" in summary
         assert "incremental reviewed-head aaa -> ccc" in summary
 
         config = type("Config", (), {"debug": True})()
@@ -101,11 +130,13 @@ def main() -> None:
         assert metadata["review_scope_source"] == "incremental-reviewed-head"
         assert metadata["prior_reviewed_head_sha"] == "aaa"
         assert metadata["review_scope_current_head_sha"] == "ccc"
+        assert metadata["prior_reviewed_base_sha"] == base_a
+        assert metadata["review_scope_current_base_sha"] == base_a
         assert metadata["review_scope_file_count"] == 1
 
         # A historical DCOIR review from an older architecture contract cannot
         # make a standard request incremental; v41 re-anchors cumulatively.
-        gh_old = FakeClient([old_review])
+        gh_old = FakeClient([old_review, architecture_without_base_review])
         assert not review.has_prior_successful_context_review(gh_old, 7)
         assert gh_old.get_pr_diff(7) == "FULL-DIFF"
         assert gh_old.list_files(7)[0]["filename"] == "full.py"
@@ -151,6 +182,18 @@ def main() -> None:
         wrong_base_scope = getattr(gh_wrong_base, v41.SCOPE_CACHE_ATTR)
         assert "not the exact compare merge base" in wrong_base_scope["fallback_reason"]
         assert not review.has_prior_successful_context_review(gh_wrong_base, 7)
+
+        # Base-branch movement changes the integration context even when the
+        # reviewed head remains an ancestor. That must force a cumulative
+        # first-pass re-anchor rather than semantic reuse.
+        gh_base_moved = FakeClient([compatible_review], current_base=base_b)
+        assert gh_base_moved.get_pr_diff(7) == "FULL-DIFF"
+        base_moved_scope = getattr(gh_base_moved, v41.SCOPE_CACHE_ATTR)
+        assert base_moved_scope["source"] == "cumulative-full-pr"
+        assert base_moved_scope["prior_reviewed_base_sha"] == base_a
+        assert base_moved_scope["current_base_sha"] == base_b
+        assert "PR base moved since prior review" in base_moved_scope["fallback_reason"]
+        assert not review.has_prior_successful_context_review(gh_base_moved, 7)
     finally:
         if old_body is None:
             os.environ.pop("TRIGGER_COMMENT_BODY", None)
@@ -165,6 +208,7 @@ def main() -> None:
     assert "incremental-reviewed-head" in source
     assert "merge_base_commit" in source
     assert "ARCHITECTURE_CONTRACT_MARKER" in source
+    assert "BASE_CONTRACT_PREFIX" in source
     assert "INITIAL_DIFF_CONSUMED_KEY" in source
     assert 'scope.get("source"' in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
