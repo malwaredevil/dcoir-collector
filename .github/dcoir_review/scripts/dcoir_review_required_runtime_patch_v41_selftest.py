@@ -275,9 +275,16 @@ def main() -> None:
         review.hardened.write_debug_json_artifact_safely = original_debug
         review.build_deep_context_block = original_deep_context
 
-    source = Path(
-        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41.py"
-    ).read_text(encoding="utf-8")
+    source_root = Path(".github/dcoir_review/scripts")
+    source = "".join(
+        (source_root / name).read_text(encoding="utf-8")
+        for name in (
+            "dcoir_review_required_runtime_patch_v41.py",
+            "dcoir_review_required_runtime_patch_v41_review_state.py",
+            "dcoir_review_required_runtime_patch_v41_scope.py",
+            "dcoir_review_required_runtime_patch_v41_hooks.py",
+        )
+    )
     assert "incremental-reviewed-head" in source
     assert "merge_base_commit" in source
     assert "ARCHITECTURE_CONTRACT_MARKER" in source
