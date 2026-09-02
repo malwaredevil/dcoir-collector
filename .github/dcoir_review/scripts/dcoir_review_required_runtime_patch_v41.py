@@ -15,6 +15,8 @@ Safety contract:
 - deep/first-pass reviews remain cumulative;
 - missing, stale, divergent, oversized, malformed, or failed compare evidence
   falls back to the existing cumulative PR scope;
+- only the initial semantic-scope diff fetch may be incremental; later diff
+  readbacks (for example repair/publication anchoring) remain cumulative PR diff;
 - review-scope provenance is added to context/debug evidence;
 - no branch write, commit, or autonomous remediation capability is added.
 """
@@ -31,6 +33,7 @@ VERSION = "v41"
 ARCHITECTURE_CONTRACT = "architecture-b-v1"
 ARCHITECTURE_CONTRACT_MARKER = f"DCOIR review contract: {ARCHITECTURE_CONTRACT}"
 SCOPE_CACHE_ATTR = "_dcoir_v41_review_scope"
+INITIAL_DIFF_CONSUMED_KEY = "_initial_semantic_diff_consumed"
 
 _GET_DIFF_STORAGE = "_dcoir_v41_original_get_pr_diff"
 _LIST_FILES_STORAGE = "_dcoir_v41_original_list_files"
@@ -323,6 +326,15 @@ def apply_pareto_context_module(module: Any) -> None:
 
     def get_pr_diff(self: Any, number: int) -> str:
         global _LAST_SCOPE
+        cached = getattr(self, SCOPE_CACHE_ATTR, None)
+        if (
+            isinstance(cached, dict)
+            and int(cached.get("pr_number", -1)) == number
+            and bool(cached.get(INITIAL_DIFF_CONSUMED_KEY))
+        ):
+            # Downstream repair/publication logic validates against GitHub's
+            # cumulative PR diff, not the narrower semantic review frontier.
+            return original_get_pr_diff(self, number)
         scope = _resolve_review_scope(
             module,
             self,
@@ -330,6 +342,8 @@ def apply_pareto_context_module(module: Any) -> None:
             original_get_pr_diff,
             original_list_files,
         )
+        scope[INITIAL_DIFF_CONSUMED_KEY] = True
+        setattr(self, SCOPE_CACHE_ATTR, scope)
         _LAST_SCOPE = copy.deepcopy(scope)
         return str(scope.get("diff", "") or "")
 
