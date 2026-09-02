@@ -58,7 +58,9 @@ class DcoirReviewEntrypoint:
         # complete semantic-adjudication finding omits confidence, it assigns only
         # the configured normal floor to admit the candidate to v21 verification;
         # verifier support remains mandatory before repair/publication. v31 stays
-        # terminal because it does not overwrite these review surfaces.
+        # after those semantic overlays. v41 is terminal and changes only review
+        # scope selection: compatible reviewed-HEAD -> current-HEAD for ordinary
+        # follow-ups, with conservative cumulative fallback.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review_required_runtime_patch_v34',
@@ -68,6 +70,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v38',
         'dcoir_review_required_runtime_patch_v39',
         'dcoir_review_required_runtime_patch_v31',
+        'dcoir_review_required_runtime_patch_v41',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
