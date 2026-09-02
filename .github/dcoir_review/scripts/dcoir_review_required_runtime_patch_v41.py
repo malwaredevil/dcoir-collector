@@ -7,6 +7,8 @@ from dcoir_review_required_runtime_patch_v41_review_state import (
     BASE_CONTRACT_PREFIX,
     PROVENANCE_PREFIX,
     TRUSTED_REVIEW_AUTHORS,
+    TRUSTED_WORKFLOW_PATH,
+    build_review_provenance_marker,
     latest_compatible_context_review,
 )
 from dcoir_review_required_runtime_patch_v41_scope import (
@@ -24,9 +26,11 @@ __all__ = [
     "BASE_CONTRACT_PREFIX",
     "PROVENANCE_PREFIX",
     "TRUSTED_REVIEW_AUTHORS",
+    "TRUSTED_WORKFLOW_PATH",
     "INITIAL_DIFF_CONSUMED_KEY",
     "SCOPE_CACHE_ATTR",
     "resolve_review_scope",
     "latest_compatible_context_review",
+    "build_review_provenance_marker",
     "apply_pareto_context_module",
 ]
