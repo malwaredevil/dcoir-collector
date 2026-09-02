@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "openrouter-analytics-issue464-enhanced-20260902",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-02T10:57:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464-enhanced.ps1",
+  "approved_command_preview": "Run the operator-approved enhanced read-only OpenRouter Analytics collector for issue #464. Query only /api/v1/analytics/meta and /api/v1/analytics/query using the repository OPENROUTER_MANAGEMENT_KEY secret; do not invoke model/inference endpoints and do not print or persist the credential. Collect session-scoped historical spend, request, token, cache-potential, latency, throughput, provider/model, and generation evidence for DCOIR runs 33405123156, 33409318802, 33415614759, and 33417552462 into the governed ChatGPT Exec artifact/readback lane."
+}
