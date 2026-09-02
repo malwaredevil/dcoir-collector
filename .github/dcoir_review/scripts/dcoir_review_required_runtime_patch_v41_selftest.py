@@ -39,6 +39,7 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
+    assert v41.TRUSTED_REVIEW_AUTHORS == frozenset({"github-actions[bot]"})
 
     base_a = "1" * 40
     base_b = "2" * 40
@@ -99,22 +100,48 @@ def main() -> None:
         f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}"
     )
     old_contract_body = f"{marker}\n{context_marker} `diff`\nContext readback: legacy"
+    trusted_user = {"login": "github-actions[bot]"}
 
-    old_review = {"id": 1, "commit_id": "999", "body": old_contract_body}
+    old_review = {
+        "id": 1,
+        "commit_id": "999",
+        "body": old_contract_body,
+        "user": trusted_user,
+    }
     architecture_without_base_review = {
         "id": 2,
         "commit_id": "998",
         "body": architecture_without_base_body,
+        "user": trusted_user,
     }
-    compatible_review = {"id": 3, "commit_id": "aaa", "body": compatible_body}
+    compatible_review = {
+        "id": 3,
+        "commit_id": "aaa",
+        "body": compatible_body,
+        "user": trusted_user,
+    }
+    spoofed_human_review = {
+        "id": 4,
+        "commit_id": "bbb",
+        "body": compatible_body,
+        "user": {"login": "malwaredevil"},
+    }
 
     old_body = os.environ.get("TRIGGER_COMMENT_BODY")
     try:
-        # Ordinary follow-up: use only the compatible reviewed head and GitHub
-        # compare evidence. Old contracts and v41 reviews without base-state
-        # markers must not authorize reuse.
+        # Ordinary follow-up: use only a trusted compatible DCOIR-produced
+        # reviewed head and GitHub compare evidence. The newest human-authored
+        # review deliberately forges every DCOIR/context/architecture/base marker
+        # and still must not move the semantic review frontier.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
-        gh = FakeClient([old_review, architecture_without_base_review, compatible_review])
+        gh = FakeClient(
+            [
+                old_review,
+                architecture_without_base_review,
+                compatible_review,
+                spoofed_human_review,
+            ]
+        )
         assert review.latest_compatible_context_review(gh, 7)["commit_id"] == "aaa"
         assert review.has_prior_successful_context_review(gh, 7)
         assert gh.get_pr_diff(7) == "INCREMENTAL-DIFF"
@@ -130,6 +157,17 @@ def main() -> None:
         assert scope["compare_status"] == "ahead"
         assert scope["fallback_reason"] == ""
         assert review.has_prior_successful_context_review(gh, 7)
+
+        # A forged marker-bearing review without a trusted producer cannot create
+        # reusable state on its own; a plain command must re-anchor cumulatively.
+        gh_spoof_only = FakeClient([spoofed_human_review])
+        assert review.latest_compatible_context_review(gh_spoof_only, 7) is None
+        assert not review.has_prior_successful_context_review(gh_spoof_only, 7)
+        assert gh_spoof_only.get_pr_diff(7) == "FULL-DIFF"
+        spoof_scope = getattr(gh_spoof_only, v41.SCOPE_CACHE_ATTR)
+        assert spoof_scope["source"] == "cumulative-full-pr"
+        assert "first-pass-deep" in spoof_scope["fallback_reason"]
+        assert not review.has_prior_successful_context_review(gh_spoof_only, 7)
 
         # Only the initial semantic-scope diff is incremental. A later diff read
         # (used by v36 repair/publication anchoring) must be the cumulative PR diff.
@@ -238,6 +276,7 @@ def main() -> None:
     assert "ARCHITECTURE_CONTRACT_MARKER" in source
     assert "BASE_CONTRACT_PREFIX" in source
     assert "INITIAL_DIFF_CONSUMED_KEY" in source
+    assert "TRUSTED_REVIEW_AUTHORS" in source
     assert 'scope.get("source"' in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
