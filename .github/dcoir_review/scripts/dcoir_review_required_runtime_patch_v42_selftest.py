@@ -13,13 +13,14 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 def main() -> None:
     v42 = importlib.import_module("dcoir_review_required_runtime_patch_v42")
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.terminal_patch_module_names[0] == "dcoir_review_required_runtime_patch_v41"
-    assert entrypoint.terminal_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v42"
+    assert entrypoint.terminal_patch_module_names == (
+        "dcoir_review_required_runtime_patch_v41",
+        "dcoir_review_required_runtime_patch_v42",
+    )
 
     calls: list[tuple] = []
     debug_payloads: dict[str, object] = {}
     reporter_events: list[tuple[str, str]] = []
-
     result_object = {"summary": "same semantic result", "findings": [{"title": "one"}]}
 
     def fake_hybrid(*args):
@@ -49,8 +50,8 @@ def main() -> None:
     wrapped_append = fake_module.append_context_to_review_body
     wrapped_debug = fake_module.hardened.write_debug_json_artifact_safely
 
-    # Re-applying must replace the wrapper around the saved original rather than
-    # stack another semantic call or review-body marker.
+    # Re-applying replaces each wrapper around the saved original instead of
+    # stacking duplicate semantic calls, markers, or debug transformations.
     v42.apply_pareto_context_module(fake_module)
     assert fake_module.openrouter_review_with_hybrid_first_pass is not wrapped_hybrid
     assert fake_module.append_context_to_review_body is not wrapped_append
@@ -62,7 +63,9 @@ def main() -> None:
         minimum_confidence=0.70,
         per_file_first_pass_review=True,
     )
-    reporter = SimpleNamespace(update=lambda stage, message: reporter_events.append((stage, message)))
+    reporter = SimpleNamespace(
+        update=lambda stage, message: reporter_events.append((stage, message))
+    )
     gh = SimpleNamespace(
         _dcoir_v41_review_scope={
             "source": "incremental-reviewed-head",
@@ -103,6 +106,18 @@ def main() -> None:
     schema = {"type": "object", "properties": {"findings": {"type": "array"}}}
     risk_sentinels = [SimpleNamespace(path="src/a.py", line=2)]
     line_index = {("src/a.py", 2): 9}
+    common = (
+        fake_module,
+        pr,
+        files,
+        "diff text",
+        schema,
+        config,
+        risk_sentinels,
+        line_index,
+        "deep context",
+        "diff",
+    )
     args = (
         pr,
         files,
@@ -117,6 +132,7 @@ def main() -> None:
         "unchanged context summary",
         gh,
     )
+
     result, model, tier = fake_module.openrouter_review_with_hybrid_first_pass(*args)
     assert result is result_object
     assert model == "anthropic/claude-opus-5"
@@ -128,6 +144,7 @@ def main() -> None:
     assert ledger["semantic_ledger_contract"] == "architecture-b-semantic-ledger-v1"
     assert ledger["architecture_contract"] == "architecture-b-v1"
     assert len(ledger["context_fingerprint"]) == 64
+    assert len(ledger["runtime_context_fingerprint"]) == 64
     assert ledger["review_surface"]["scope_source"] == "incremental-reviewed-head"
     assert ledger["review_surface"]["diff_chars"] == len("diff text")
     assert ledger["telemetry"]["reviewed_file_count"] == 2
@@ -140,9 +157,12 @@ def main() -> None:
     assert ledger["reuse"]["eligible"] is False
     assert ledger["review_surface"]["files"][0]["prospective_reuse_key"]
     assert ledger["review_surface"]["files"][0]["reuse_allowed"] is False
+    assert ledger["runtime_context_observation"]["transient_provenance_present"] is False
     assert reporter_events and reporter_events[0][0] == "semantic-ledger"
 
-    body = fake_module.append_context_to_review_body("BASE", "diff", "unchanged context summary", config)
+    body = fake_module.append_context_to_review_body(
+        "BASE", "diff", "unchanged context summary", config
+    )
     assert body.count(v42.SEMANTIC_LEDGER_MARKER_PREFIX) == 1
     assert "reuse-enabled=false" in body
     assert ledger["context_fingerprint"] in body
@@ -154,23 +174,19 @@ def main() -> None:
     assert review_context["existing"] is True
     assert review_context["semantic_ledger_contract"] == v42.SEMANTIC_LEDGER_CONTRACT
     assert review_context["semantic_context_fingerprint"] == ledger["context_fingerprint"]
+    assert (
+        review_context["semantic_runtime_context_fingerprint"]
+        == ledger["runtime_context_fingerprint"]
+    )
     assert review_context["semantic_reviewed_file_count"] == 2
     assert review_context["semantic_reused_file_count"] == 0
-    assert debug_payloads["metadata/semantic-review-ledger.json"]["telemetry"]["outcome"] == "completed"
+    assert (
+        debug_payloads["metadata/semantic-review-ledger.json"]["telemetry"]["outcome"]
+        == "completed"
+    )
 
     direct_a = v42.build_semantic_review_ledger(
-        fake_module,
-        pr,
-        files,
-        "diff text",
-        schema,
-        config,
-        risk_sentinels,
-        line_index,
-        "deep context",
-        "diff",
-        "unchanged context summary",
-        gh,
+        *common, "unchanged context summary", gh
     )
     direct_b = v42.build_semantic_review_ledger(
         fake_module,
@@ -187,6 +203,39 @@ def main() -> None:
         gh,
     )
     assert direct_a["context_fingerprint"] == direct_b["context_fingerprint"]
+    assert (
+        direct_a["runtime_context_fingerprint"]
+        == direct_b["runtime_context_fingerprint"]
+    )
+
+    # v41's per-run signed publication receipt must not poison a reusable
+    # semantic identity. The exact runtime observation still records the change.
+    provenance_a = (
+        "unchanged context summary; DCOIR review provenance: workflow-run=111; "
+        "workflow-name=28 Review - DCOIR Review; pr-number=7; "
+        f"reviewed-head={'2' * 40}; signature={'a' * 64}"
+    )
+    provenance_b = (
+        "unchanged context summary; DCOIR review provenance: workflow-run=222; "
+        "workflow-name=28 Review - DCOIR Review; pr-number=7; "
+        f"reviewed-head={'2' * 40}; signature={'b' * 64}"
+    )
+    with_provenance_a = v42.build_semantic_review_ledger(
+        *common, provenance_a, gh
+    )
+    with_provenance_b = v42.build_semantic_review_ledger(
+        *common, provenance_b, gh
+    )
+    assert with_provenance_a["context_fingerprint"] == direct_a["context_fingerprint"]
+    assert with_provenance_b["context_fingerprint"] == direct_a["context_fingerprint"]
+    assert (
+        with_provenance_a["runtime_context_fingerprint"]
+        != with_provenance_b["runtime_context_fingerprint"]
+    )
+    assert (
+        with_provenance_a["runtime_context_observation"]["transient_provenance_present"]
+        is True
+    )
 
     changed_files = [dict(item) for item in files]
     changed_files[0]["sha"] = "b" * 40
@@ -224,17 +273,26 @@ def main() -> None:
     )
     assert changed["context_fingerprint"] != direct_a["context_fingerprint"]
 
-    source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42.py").read_text(encoding="utf-8")
+    source = Path(
+        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42.py"
+    ).read_text(encoding="utf-8")
     for required in (
         "architecture-b-semantic-ledger-v1",
         "context_fingerprint",
+        "runtime_context_fingerprint",
         "prospective_reuse_key",
         "semantic-result reuse is intentionally disabled",
         "dependency-context-v1",
+        "transient_provenance_present",
         "recomputed_file_count",
     ):
         assert required in source
-    for forbidden in ("openrouter.ai", "chat/completions", "git push", "merge_pull_request"):
+    for forbidden in (
+        "openrouter.ai",
+        "chat/completions",
+        "git push",
+        "merge_pull_request",
+    ):
         assert forbidden not in source
 
     print("dcoir_review_required_runtime_patch_v42_selftest passed")
