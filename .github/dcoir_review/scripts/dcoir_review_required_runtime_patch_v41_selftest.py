@@ -80,6 +80,10 @@ def main() -> None:
         assert scope["compare_status"] == "ahead"
         assert scope["fallback_reason"] == ""
 
+        # Only the initial semantic-scope diff is incremental. A later diff read
+        # (used by v36 repair/publication anchoring) must be the cumulative PR diff.
+        assert gh.get_pr_diff(7) == "FULL-DIFF"
+
         _block, summary = review.build_deep_context_block(gh, {}, [], object(), "diff")
         assert v41.ARCHITECTURE_CONTRACT_MARKER in summary
         assert "incremental reviewed-head aaa -> ccc" in summary
@@ -144,6 +148,7 @@ def main() -> None:
     assert "incremental-reviewed-head" in source
     assert "merge_base_commit" in source
     assert "ARCHITECTURE_CONTRACT_MARKER" in source
+    assert "INITIAL_DIFF_CONSUMED_KEY" in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 
