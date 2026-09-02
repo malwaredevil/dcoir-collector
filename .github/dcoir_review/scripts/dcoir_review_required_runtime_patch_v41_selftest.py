@@ -169,6 +169,13 @@ def main() -> None:
         assert "first-pass-deep" in spoof_scope["fallback_reason"]
         assert not review.has_prior_successful_context_review(gh_spoof_only, 7)
 
+        # The isolated spoof probe intentionally became the module's latest debug
+        # scope. Reactivate the authentic review client's cached scope before
+        # checking module-level debug telemetry below.
+        assert gh.list_files(7) == [
+            {"filename": "delta.py", "status": "modified", "changes": 2}
+        ]
+
         # Only the initial semantic-scope diff is incremental. A later diff read
         # (used by v36 repair/publication anchoring) must be the cumulative PR diff.
         assert gh.get_pr_diff(7) == "FULL-DIFF"
