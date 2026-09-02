@@ -541,7 +541,13 @@ def apply_pareto_context_module(module: Any) -> None:
         marker = _ledger_marker(_LAST_LEDGER)
         if marker in rendered:
             return rendered
-        return f"{rendered.rstrip()}\n\n{marker}" if rendered.strip() else marker
+        augmented = f"{rendered.rstrip()}\n\n{marker}" if rendered.strip() else marker
+        github_safe_body = getattr(
+            getattr(module, "base", None), "github_safe_body", None
+        )
+        if callable(github_safe_body):
+            return github_safe_body(augmented)
+        return augmented
 
     module.hardened.write_debug_json_artifact_safely = write_debug_json_artifact_safely
     module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
