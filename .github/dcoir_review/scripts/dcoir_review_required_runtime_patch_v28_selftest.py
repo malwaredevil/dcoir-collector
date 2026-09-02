@@ -34,9 +34,10 @@ def patched_modules():
     assert "dcoir_review_required_runtime_patch_v28" in entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v30" in entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v31" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
+    assert "dcoir_review_required_runtime_patch_v41" in entrypoint.patch_module_names
     assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v28") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v30")
     assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v30") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
+    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v41")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
     v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
