@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import copy
+import os
 from typing import Any
 
 from dcoir_review_required_runtime_patch_v41_review_state import (
     ARCHITECTURE_CONTRACT,
     ARCHITECTURE_CONTRACT_MARKER,
     BASE_CONTRACT_PREFIX,
+    PROVENANCE_PREFIX,
     latest_compatible_context_review,
 )
 from dcoir_review_required_runtime_patch_v41_scope import (
@@ -86,8 +88,16 @@ def apply_pareto_context_module(module: Any) -> None:
         scope = getattr(gh, SCOPE_CACHE_ATTR, None)
         scope_text = _scope_summary(scope) if isinstance(scope, dict) else "review scope: unavailable"
         current_base = str(pr.get("base", {}).get("sha", "") or "").strip().lower() if isinstance(pr, dict) else ""
+        current_head = str(pr.get("head", {}).get("sha", "") or "").strip().lower() if isinstance(pr, dict) else ""
         base_marker = f"{BASE_CONTRACT_PREFIX}{current_base}" if current_base else ""
-        return block, "; ".join(part for part in [str(summary or "").strip(), scope_text, ARCHITECTURE_CONTRACT_MARKER, base_marker] if part)
+        run_id = str(os.environ.get("GITHUB_RUN_ID", "") or "").strip()
+        workflow_name = str(os.environ.get("GITHUB_WORKFLOW", "") or "").strip() or "28 Review - DCOIR Review"
+        provenance_marker = (
+            f"{PROVENANCE_PREFIX}workflow-run={run_id}; workflow-name={workflow_name}; reviewed-head={current_head}"
+            if run_id and current_head
+            else ""
+        )
+        return block, "; ".join(part for part in [str(summary or "").strip(), scope_text, ARCHITECTURE_CONTRACT_MARKER, base_marker, provenance_marker] if part)
 
     def write_debug_json_artifact_safely(config: Any, relative_path: str, value: Any) -> None:
         if relative_path == "metadata/review-context.json" and isinstance(value, dict):
@@ -105,4 +115,5 @@ def apply_pareto_context_module(module: Any) -> None:
     module.DCOIR_REVIEW_ARCHITECTURE_CONTRACT = ARCHITECTURE_CONTRACT
     module.DCOIR_REVIEW_ARCHITECTURE_CONTRACT_MARKER = ARCHITECTURE_CONTRACT_MARKER
     module.DCOIR_REVIEW_BASE_CONTRACT_PREFIX = BASE_CONTRACT_PREFIX
+    module.DCOIR_REVIEW_PROVENANCE_PREFIX = PROVENANCE_PREFIX
     module.latest_compatible_context_review = lambda gh, pr_number: latest_compatible_context_review(module, gh, pr_number)

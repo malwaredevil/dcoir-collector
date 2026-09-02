@@ -8,6 +8,7 @@ VERSION = "v41"
 ARCHITECTURE_CONTRACT = "architecture-b-v1"
 ARCHITECTURE_CONTRACT_MARKER = f"DCOIR review contract: {ARCHITECTURE_CONTRACT}"
 BASE_CONTRACT_PREFIX = "DCOIR review base: "
+PROVENANCE_PREFIX = "DCOIR review provenance: "
 TRUSTED_REVIEW_AUTHORS = frozenset({"github-actions[bot]"})
 
 
@@ -34,6 +35,54 @@ def _review_base_sha(review: dict[str, Any]) -> str:
     return ""
 
 
+def _review_provenance(review: dict[str, Any]) -> dict[str, str]:
+    body = str(review.get("body", "") or "")
+    marker_index = body.rfind(PROVENANCE_PREFIX)
+    if marker_index < 0:
+        return {}
+    value = body[marker_index + len(PROVENANCE_PREFIX) :].splitlines()[0].strip()
+    provenance: dict[str, str] = {}
+    for segment in value.split(";"):
+        item = segment.strip()
+        if not item or "=" not in item:
+            continue
+        key, separator, raw_value = item.partition("=")
+        if not separator:
+            continue
+        provenance[key.strip().lower()] = raw_value.strip()
+    return provenance
+
+
+def _has_verified_run_provenance(gh: Any, review: dict[str, Any], provenance: dict[str, str]) -> bool:
+    run_id = str(provenance.get("workflow-run", "") or "").strip()
+    workflow_name = str(provenance.get("workflow-name", "") or "").strip()
+    reviewed_head = str(provenance.get("reviewed-head", "") or "").strip().lower()
+    review_head = str(review.get("commit_id", "") or "").strip().lower()
+    if not run_id or not workflow_name or not reviewed_head or not review_head:
+        return False
+    if workflow_name != "28 Review - DCOIR Review":
+        return False
+    if reviewed_head != review_head:
+        return False
+    repo = getattr(gh, "repo", "")
+    if not repo:
+        return False
+    try:
+        run = gh.request("GET", f"/repos/{repo}/actions/runs/{run_id}")
+    except Exception:
+        return False
+    if not isinstance(run, dict):
+        return False
+    if str(run.get("name", "") or "").strip() != workflow_name:
+        return False
+    if str(run.get("head_sha", "") or "").strip().lower() != review_head:
+        return False
+    status = str(run.get("status", "") or "").strip().lower()
+    if status != "completed":
+        return False
+    return True
+
+
 def latest_compatible_context_review(module: Any, gh: Any, pr_number: int) -> dict[str, Any] | None:
     """Return the newest trusted DCOIR context review compatible with v41."""
     markers = _review_markers(module)
@@ -54,6 +103,9 @@ def latest_compatible_context_review(module: Any, gh: Any, pr_number: int) -> di
         if ARCHITECTURE_CONTRACT_MARKER not in trusted_context:
             continue
         if not _review_base_sha({"body": trusted_context}):
+            continue
+        provenance = _review_provenance(review)
+        if not provenance or not _has_verified_run_provenance(gh, review, provenance):
             continue
         return review
     return None

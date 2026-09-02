@@ -40,6 +40,7 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
     assert v41.TRUSTED_REVIEW_AUTHORS == frozenset({"github-actions[bot]"})
+    assert v41.PROVENANCE_PREFIX == "DCOIR review provenance: "
 
     base_a = "1" * 40
     base_b = "2" * 40
@@ -86,6 +87,8 @@ def main() -> None:
             if path == "/repos/malwaredevil/dcoir-collector/compare/aaa...ccc":
                 assert accept == "application/vnd.github.v3.diff"
                 return "INCREMENTAL-DIFF"
+            if path == "/repos/malwaredevil/dcoir-collector/actions/runs/123456":
+                return {"id": 123456, "name": "28 Review - DCOIR Review", "head_sha": "aaa", "status": "completed"}
             raise AssertionError(f"unexpected fake GitHub request: {method} {path} accept={accept}")
 
     marker = review.base.MARKER
@@ -93,7 +96,8 @@ def main() -> None:
     compatible_body = (
         f"{marker}\n{context_marker} `diff`\n"
         f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}; "
-        f"{v41.BASE_CONTRACT_PREFIX}{base_a}"
+        f"{v41.BASE_CONTRACT_PREFIX}{base_a}; {v41.PROVENANCE_PREFIX}"
+        f"workflow-run=123456; workflow-name=28 Review - DCOIR Review; reviewed-head=aaa"
     )
     architecture_without_base_body = (
         f"{marker}\n{context_marker} `diff`\n"
