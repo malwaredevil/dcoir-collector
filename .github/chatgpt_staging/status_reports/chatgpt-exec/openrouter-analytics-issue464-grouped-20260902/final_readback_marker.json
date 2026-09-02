@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "openrouter-analytics-issue464-grouped-20260902",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-openrouter-analytics-issue464-grouped-20260902",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "33622669916",
+  "github_run_attempt": "1",
+  "github_sha": "a0874816d02af510797b17e43ce41c62e48c047d",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-02T11:04:43Z"
+}
