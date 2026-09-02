@@ -8,8 +8,8 @@ Opus/Sol semantic model stack and downstream detector/challenger/adjudicator/
 verifier/repair behavior unchanged for the first architecture benchmark.
 
 Safety contract:
-- only a prior DCOIR context review carrying the same architecture contract and
-  reviewed PR-base SHA is eligible for incremental reuse;
+- only a prior DCOIR context review whose trusted appended context carries the
+  same architecture contract and reviewed PR-base SHA is eligible for reuse;
 - the prior reviewed base SHA must still equal the current PR base SHA;
 - the prior review commit must be an ancestor of the current head according to
   GitHub's compare endpoint (status=ahead and merge-base==prior head);
@@ -52,7 +52,7 @@ def _review_markers(module: Any) -> tuple[str, ...]:
 
 def _review_base_sha(review: dict[str, Any]) -> str:
     body = str(review.get("body", "") or "")
-    marker_index = body.find(BASE_CONTRACT_PREFIX)
+    marker_index = body.rfind(BASE_CONTRACT_PREFIX)
     if marker_index < 0:
         return ""
     value_start = marker_index + len(BASE_CONTRACT_PREFIX)
@@ -73,11 +73,13 @@ def _latest_compatible_context_review(module: Any, gh: Any, pr_number: int) -> d
             continue
         if not any(marker in body for marker in markers):
             continue
-        if module.CONTEXT_REVIEW_MARKER not in body:
+        context_index = body.rfind(module.CONTEXT_REVIEW_MARKER)
+        if context_index < 0:
             continue
-        if ARCHITECTURE_CONTRACT_MARKER not in body:
+        trusted_context = body[context_index:]
+        if ARCHITECTURE_CONTRACT_MARKER not in trusted_context:
             continue
-        if not _review_base_sha(review):
+        if not _review_base_sha({"body": trusted_context}):
             continue
         return review
     return None
