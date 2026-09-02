@@ -11,6 +11,7 @@ from dcoir_review_required_runtime_patch_v41_review_state import (
     ARCHITECTURE_CONTRACT_MARKER,
     BASE_CONTRACT_PREFIX,
     PROVENANCE_PREFIX,
+    build_review_provenance_marker,
     latest_compatible_context_review,
 )
 from dcoir_review_required_runtime_patch_v41_scope import (
@@ -89,13 +90,20 @@ def apply_pareto_context_module(module: Any) -> None:
         scope_text = _scope_summary(scope) if isinstance(scope, dict) else "review scope: unavailable"
         current_base = str(pr.get("base", {}).get("sha", "") or "").strip().lower() if isinstance(pr, dict) else ""
         current_head = str(pr.get("head", {}).get("sha", "") or "").strip().lower() if isinstance(pr, dict) else ""
+        try:
+            pr_number = int(pr.get("number", 0) or os.environ.get("PR_NUMBER", "0") or 0) if isinstance(pr, dict) else int(os.environ.get("PR_NUMBER", "0") or 0)
+        except (TypeError, ValueError):
+            pr_number = 0
         base_marker = f"{BASE_CONTRACT_PREFIX}{current_base}" if current_base else ""
         run_id = str(os.environ.get("GITHUB_RUN_ID", "") or "").strip()
         workflow_name = str(os.environ.get("GITHUB_WORKFLOW", "") or "").strip() or "28 Review - DCOIR Review"
-        provenance_marker = (
-            f"{PROVENANCE_PREFIX}workflow-run={run_id}; workflow-name={workflow_name}; reviewed-head={current_head}"
-            if run_id and current_head
-            else ""
+        provenance_marker = build_review_provenance_marker(
+            str(getattr(gh, "repo", "") or ""),
+            pr_number,
+            current_base,
+            current_head,
+            run_id,
+            workflow_name,
         )
         return block, "; ".join(part for part in [str(summary or "").strip(), scope_text, ARCHITECTURE_CONTRACT_MARKER, base_marker, provenance_marker] if part)
 
