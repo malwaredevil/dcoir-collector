@@ -8,8 +8,9 @@ Opus/Sol semantic model stack and downstream detector/challenger/adjudicator/
 verifier/repair behavior unchanged for the first architecture benchmark.
 
 Safety contract:
-- only a prior DCOIR context review whose trusted appended context carries the
-  same architecture contract and reviewed PR-base SHA is eligible for reuse;
+- only a prior DCOIR context review authored by the trusted GitHub Actions
+  producer and whose trusted appended context carries the same architecture
+  contract and reviewed PR-base SHA is eligible for reuse;
 - the prior reviewed base SHA must still equal the current PR base SHA;
 - the prior review commit must be an ancestor of the current head according to
   GitHub's compare endpoint (status=ahead and merge-base==prior head);
@@ -37,6 +38,7 @@ ARCHITECTURE_CONTRACT_MARKER = f"DCOIR review contract: {ARCHITECTURE_CONTRACT}"
 BASE_CONTRACT_PREFIX = "DCOIR review base: "
 SCOPE_CACHE_ATTR = "_dcoir_v41_review_scope"
 INITIAL_DIFF_CONSUMED_KEY = "_initial_semantic_diff_consumed"
+TRUSTED_REVIEW_AUTHORS = frozenset({"github-actions[bot]"})
 
 _GET_DIFF_STORAGE = "_dcoir_v41_original_get_pr_diff"
 _LIST_FILES_STORAGE = "_dcoir_v41_original_list_files"
@@ -48,6 +50,13 @@ _LAST_SCOPE: dict[str, Any] = {}
 
 def _review_markers(module: Any) -> tuple[str, ...]:
     return (module.base.MARKER, *getattr(module.base, "LEGACY_MARKERS", ()))
+
+
+def _review_author_login(review: dict[str, Any]) -> str:
+    user = review.get("user", {})
+    if not isinstance(user, dict):
+        return ""
+    return str(user.get("login", "") or "").strip().lower()
 
 
 def _review_base_sha(review: dict[str, Any]) -> str:
@@ -63,10 +72,12 @@ def _review_base_sha(review: dict[str, Any]) -> str:
 
 
 def _latest_compatible_context_review(module: Any, gh: Any, pr_number: int) -> dict[str, Any] | None:
-    """Return the newest successful DCOIR context review compatible with v41."""
+    """Return the newest trusted DCOIR context review compatible with v41."""
     markers = _review_markers(module)
     reviews = module.list_pr_reviews(gh, pr_number)
     for review in reversed(reviews):
+        if _review_author_login(review) not in TRUSTED_REVIEW_AUTHORS:
+            continue
         body = str(review.get("body", "") or "")
         commit_id = str(review.get("commit_id", "") or "").strip()
         if not commit_id:
