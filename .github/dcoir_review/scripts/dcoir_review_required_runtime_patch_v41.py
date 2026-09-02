@@ -2,20 +2,21 @@
 
 Issue #458 / approved #464 Architecture B requires ordinary follow-up reviews to
 analyze the last successfully reviewed DCOIR head -> current PR head rather than
-replaying the cumulative PR base -> current head surface.  This runtime overlay
-implements only that state/frontier slice.  It deliberately leaves the governed
+replaying the cumulative PR base -> current head surface. This runtime overlay
+implements only that state/frontier slice. It deliberately leaves the governed
 Opus/Sol semantic model stack and downstream detector/challenger/adjudicator/
 verifier/repair behavior unchanged for the first architecture benchmark.
 
 Safety contract:
-- only a prior DCOIR context review carrying the same architecture contract
-  marker is eligible for incremental reuse;
+- only a prior DCOIR context review carrying the same architecture contract and
+  reviewed PR-base SHA is eligible for incremental reuse;
+- the prior reviewed base SHA must still equal the current PR base SHA;
 - the prior review commit must be an ancestor of the current head according to
   GitHub's compare endpoint (status=ahead and merge-base==prior head);
 - deep/first-pass reviews remain cumulative;
-- missing, stale, divergent, oversized, malformed, or failed compare evidence
-  falls back to the existing cumulative PR scope and a plain command re-anchors
-  in first-pass-deep mode; an explicitly requested diff mode remains diff;
+- missing, stale, divergent, base-moved, oversized, malformed, or failed compare
+  evidence falls back to cumulative PR scope and a plain command re-anchors in
+  first-pass-deep mode; an explicitly requested diff mode remains diff;
 - only the initial semantic-scope diff fetch may be incremental; later diff
   readbacks (for example repair/publication anchoring) remain cumulative PR diff;
 - review-scope provenance is added to context/debug evidence;
@@ -33,12 +34,12 @@ from typing import Any
 VERSION = "v41"
 ARCHITECTURE_CONTRACT = "architecture-b-v1"
 ARCHITECTURE_CONTRACT_MARKER = f"DCOIR review contract: {ARCHITECTURE_CONTRACT}"
+BASE_CONTRACT_PREFIX = "DCOIR review base: "
 SCOPE_CACHE_ATTR = "_dcoir_v41_review_scope"
 INITIAL_DIFF_CONSUMED_KEY = "_initial_semantic_diff_consumed"
 
 _GET_DIFF_STORAGE = "_dcoir_v41_original_get_pr_diff"
 _LIST_FILES_STORAGE = "_dcoir_v41_original_list_files"
-_PRIOR_STORAGE = "_dcoir_v41_original_has_prior_successful_context_review"
 _DEEP_CONTEXT_STORAGE = "_dcoir_v41_original_build_deep_context_block"
 _DEBUG_JSON_STORAGE = "_dcoir_v41_original_write_debug_json_artifact_safely"
 
@@ -47,6 +48,18 @@ _LAST_SCOPE: dict[str, Any] = {}
 
 def _review_markers(module: Any) -> tuple[str, ...]:
     return (module.base.MARKER, *getattr(module.base, "LEGACY_MARKERS", ()))
+
+
+def _review_base_sha(review: dict[str, Any]) -> str:
+    body = str(review.get("body", "") or "")
+    for raw_line in body.splitlines():
+        line = raw_line.strip()
+        if not line.startswith(BASE_CONTRACT_PREFIX):
+            continue
+        value = line[len(BASE_CONTRACT_PREFIX) :].strip().lower()
+        if len(value) == 40 and all(character in "0123456789abcdef" for character in value):
+            return value
+    return ""
 
 
 def _latest_compatible_context_review(module: Any, gh: Any, pr_number: int) -> dict[str, Any] | None:
@@ -64,6 +77,8 @@ def _latest_compatible_context_review(module: Any, gh: Any, pr_number: int) -> d
             continue
         if ARCHITECTURE_CONTRACT_MARKER not in body:
             continue
+        if not _review_base_sha(review):
+            continue
         return review
     return None
 
@@ -73,6 +88,8 @@ def _scope_record(
     source: str,
     prior_head: str,
     current_head: str,
+    prior_base: str,
+    current_base: str,
     files: list[dict[str, Any]],
     diff: str,
     review_mode: str,
@@ -83,6 +100,8 @@ def _scope_record(
         "source": source,
         "prior_reviewed_head_sha": prior_head,
         "current_head_sha": current_head,
+        "prior_reviewed_base_sha": prior_base,
+        "current_base_sha": current_base,
         "review_mode": review_mode,
         "fallback_reason": fallback_reason,
         "compare_status": compare_status,
@@ -96,8 +115,10 @@ def _cumulative_scope(
     gh: Any,
     pr_number: int,
     current_head: str,
+    current_base: str,
     review_mode: str,
     prior_head: str,
+    prior_base: str,
     reason: str,
     original_get_pr_diff: Any,
     original_list_files: Any,
@@ -108,11 +129,19 @@ def _cumulative_scope(
         source="cumulative-full-pr",
         prior_head=prior_head,
         current_head=current_head,
+        prior_base=prior_base,
+        current_base=current_base,
         files=files,
         diff=diff,
         review_mode=review_mode,
         fallback_reason=reason,
     )
+
+
+def _cache_scope(gh: Any, scope: dict[str, Any], pr_number: int) -> dict[str, Any]:
+    scope["pr_number"] = pr_number
+    setattr(gh, SCOPE_CACHE_ATTR, scope)
+    return scope
 
 
 def _resolve_review_scope(
@@ -128,42 +157,51 @@ def _resolve_review_scope(
         return cached
 
     pr = gh.get_pr(pr_number)
-    current_head = str(pr.get("head", {}).get("sha", "") or "").strip()
-    if not current_head:
-        scope = _cumulative_scope(
-            module,
+    current_head = str(pr.get("head", {}).get("sha", "") or "").strip().lower()
+    current_base = str(pr.get("base", {}).get("sha", "") or "").strip().lower()
+    if not current_head or not current_base:
+        missing = "current PR head SHA" if not current_head else "current PR base SHA"
+        return _cache_scope(
             gh,
+            _cumulative_scope(
+                module,
+                gh,
+                pr_number,
+                current_head,
+                current_base,
+                "unknown",
+                "",
+                "",
+                f"{missing} unavailable",
+                original_get_pr_diff,
+                original_list_files,
+            ),
             pr_number,
-            "",
-            "unknown",
-            "",
-            "current PR head SHA unavailable",
-            original_get_pr_diff,
-            original_list_files,
         )
-        scope["pr_number"] = pr_number
-        setattr(gh, SCOPE_CACHE_ATTR, scope)
-        return scope
 
     try:
         prior_review = _latest_compatible_context_review(module, gh, pr_number)
     except Exception as exc:
-        scope = _cumulative_scope(
-            module,
+        return _cache_scope(
             gh,
+            _cumulative_scope(
+                module,
+                gh,
+                pr_number,
+                current_head,
+                current_base,
+                "unknown",
+                "",
+                "",
+                f"compatible prior-review readback failed: {str(exc)[:240]}",
+                original_get_pr_diff,
+                original_list_files,
+            ),
             pr_number,
-            current_head,
-            "unknown",
-            "",
-            f"compatible prior-review readback failed: {str(exc)[:240]}",
-            original_get_pr_diff,
-            original_list_files,
         )
-        scope["pr_number"] = pr_number
-        setattr(gh, SCOPE_CACHE_ATTR, scope)
-        return scope
 
-    prior_head = str((prior_review or {}).get("commit_id", "") or "").strip()
+    prior_head = str((prior_review or {}).get("commit_id", "") or "").strip().lower()
+    prior_base = _review_base_sha(prior_review) if isinstance(prior_review, dict) else ""
     config_path = os.environ.get(
         "OPENROUTER_REVIEW_CONFIG",
         ".github/dcoir_review/openrouter-pr-review-pareto.yml",
@@ -174,56 +212,88 @@ def _resolve_review_scope(
     if not command:
         review_mode = "unknown"
     else:
-        review_mode = module.review_mode_for_command(body, command, config, bool(prior_head))
+        review_mode = module.review_mode_for_command(
+            body,
+            command,
+            config,
+            bool(prior_head and prior_base),
+        )
 
     if review_mode != "diff":
-        reason = f"{review_mode or 'unknown'} requires cumulative review scope"
-        scope = _cumulative_scope(
-            module,
+        return _cache_scope(
             gh,
+            _cumulative_scope(
+                module,
+                gh,
+                pr_number,
+                current_head,
+                current_base,
+                review_mode,
+                prior_head,
+                prior_base,
+                f"{review_mode or 'unknown'} requires cumulative review scope",
+                original_get_pr_diff,
+                original_list_files,
+            ),
             pr_number,
-            current_head,
-            review_mode,
-            prior_head,
-            reason,
-            original_get_pr_diff,
-            original_list_files,
         )
-        scope["pr_number"] = pr_number
-        setattr(gh, SCOPE_CACHE_ATTR, scope)
-        return scope
 
-    if not prior_head:
-        scope = _cumulative_scope(
-            module,
+    if not prior_head or not prior_base:
+        return _cache_scope(
             gh,
+            _cumulative_scope(
+                module,
+                gh,
+                pr_number,
+                current_head,
+                current_base,
+                review_mode,
+                "",
+                "",
+                f"no prior compatible {ARCHITECTURE_CONTRACT} DCOIR context review with base-state marker",
+                original_get_pr_diff,
+                original_list_files,
+            ),
             pr_number,
-            current_head,
-            review_mode,
-            "",
-            f"no prior compatible {ARCHITECTURE_CONTRACT} DCOIR context review",
-            original_get_pr_diff,
-            original_list_files,
         )
-        scope["pr_number"] = pr_number
-        setattr(gh, SCOPE_CACHE_ATTR, scope)
-        return scope
+
+    if prior_base != current_base:
+        return _cache_scope(
+            gh,
+            _cumulative_scope(
+                module,
+                gh,
+                pr_number,
+                current_head,
+                current_base,
+                review_mode,
+                prior_head,
+                prior_base,
+                f"PR base moved since prior review: {prior_base[:12]} -> {current_base[:12]}",
+                original_get_pr_diff,
+                original_list_files,
+            ),
+            pr_number,
+        )
 
     if prior_head == current_head:
-        scope = _cumulative_scope(
-            module,
+        return _cache_scope(
             gh,
+            _cumulative_scope(
+                module,
+                gh,
+                pr_number,
+                current_head,
+                current_base,
+                review_mode,
+                prior_head,
+                prior_base,
+                "prior compatible review already targets current head",
+                original_get_pr_diff,
+                original_list_files,
+            ),
             pr_number,
-            current_head,
-            review_mode,
-            prior_head,
-            "prior compatible review already targets current head",
-            original_get_pr_diff,
-            original_list_files,
         )
-        scope["pr_number"] = pr_number
-        setattr(gh, SCOPE_CACHE_ATTR, scope)
-        return scope
 
     encoded_base = urllib.parse.quote(prior_head, safe="")
     encoded_head = urllib.parse.quote(current_head, safe="")
@@ -234,7 +304,7 @@ def _resolve_review_scope(
         if not isinstance(comparison, dict):
             raise RuntimeError("GitHub compare did not return an object")
         compare_status = str(comparison.get("status", "") or "").strip().lower()
-        merge_base = str(comparison.get("merge_base_commit", {}).get("sha", "") or "").strip()
+        merge_base = str(comparison.get("merge_base_commit", {}).get("sha", "") or "").strip().lower()
         files = comparison.get("files", [])
         if compare_status != "ahead":
             raise RuntimeError(f"compare status is {compare_status or 'missing'}, not ahead")
@@ -256,6 +326,8 @@ def _resolve_review_scope(
             source="incremental-reviewed-head",
             prior_head=prior_head,
             current_head=current_head,
+            prior_base=prior_base,
+            current_base=current_base,
             files=[item for item in files if isinstance(item, dict)],
             diff=diff,
             review_mode=review_mode,
@@ -267,16 +339,16 @@ def _resolve_review_scope(
             gh,
             pr_number,
             current_head,
+            current_base,
             review_mode,
             prior_head,
+            prior_base,
             f"incremental compare rejected: {str(exc)[:300]}",
             original_get_pr_diff,
             original_list_files,
         )
 
-    scope["pr_number"] = pr_number
-    setattr(gh, SCOPE_CACHE_ATTR, scope)
-    return scope
+    return _cache_scope(gh, scope, pr_number)
 
 
 def _scope_summary(scope: dict[str, Any]) -> str:
@@ -309,11 +381,6 @@ def apply_pareto_context_module(module: Any) -> None:
     if original_list_files is None:
         original_list_files = client_cls.list_files
         setattr(module, _LIST_FILES_STORAGE, original_list_files)
-
-    original_prior = getattr(module, _PRIOR_STORAGE, None)
-    if original_prior is None:
-        original_prior = module.has_prior_successful_context_review
-        setattr(module, _PRIOR_STORAGE, original_prior)
 
     original_deep_context = getattr(module, _DEEP_CONTEXT_STORAGE, None)
     if original_deep_context is None:
@@ -363,10 +430,10 @@ def apply_pareto_context_module(module: Any) -> None:
     def has_prior_successful_context_review(gh: Any, pr_number: int) -> bool:
         scope = getattr(gh, SCOPE_CACHE_ATTR, None)
         if isinstance(scope, dict) and int(scope.get("pr_number", -1)) == pr_number:
-            # A cached prior head is reusable only when the compare contract was
-            # actually accepted. If v41 fell back to cumulative scope, a plain
-            # command must re-anchor first-pass-deep. Explicit `diff` still wins
-            # in review_mode_for_command regardless of this boolean.
+            # A cached prior head is reusable only when the compare/base contract
+            # was actually accepted. If v41 fell back to cumulative scope, a
+            # plain command re-anchors first-pass-deep. Explicit `diff` still
+            # wins in review_mode_for_command regardless of this boolean.
             return str(scope.get("source", "") or "") == "incremental-reviewed-head"
         return _latest_compatible_context_review(module, gh, pr_number) is not None
 
@@ -374,7 +441,14 @@ def apply_pareto_context_module(module: Any) -> None:
         block, summary = original_deep_context(gh, pr, files, config, review_mode)
         scope = getattr(gh, SCOPE_CACHE_ATTR, None)
         scope_text = _scope_summary(scope) if isinstance(scope, dict) else "review scope: unavailable"
-        summary_parts = [str(summary or "").strip(), scope_text, ARCHITECTURE_CONTRACT_MARKER]
+        current_base = str(pr.get("base", {}).get("sha", "") or "").strip().lower() if isinstance(pr, dict) else ""
+        base_marker = f"{BASE_CONTRACT_PREFIX}{current_base}" if current_base else ""
+        summary_parts = [
+            str(summary or "").strip(),
+            scope_text,
+            ARCHITECTURE_CONTRACT_MARKER,
+            base_marker,
+        ]
         return block, "; ".join(part for part in summary_parts if part)
 
     def write_debug_json_artifact_safely(config: Any, relative_path: str, value: Any) -> None:
@@ -387,6 +461,8 @@ def apply_pareto_context_module(module: Any) -> None:
                     "review_scope_source": str(scope.get("source", "") or ""),
                     "prior_reviewed_head_sha": str(scope.get("prior_reviewed_head_sha", "") or ""),
                     "review_scope_current_head_sha": str(scope.get("current_head_sha", "") or ""),
+                    "prior_reviewed_base_sha": str(scope.get("prior_reviewed_base_sha", "") or ""),
+                    "review_scope_current_base_sha": str(scope.get("current_base_sha", "") or ""),
                     "review_scope_compare_status": str(scope.get("compare_status", "") or ""),
                     "review_scope_fallback_reason": str(scope.get("fallback_reason", "") or ""),
                     "review_scope_file_count": len(scope.get("files", []) or []),
@@ -403,6 +479,7 @@ def apply_pareto_context_module(module: Any) -> None:
 
     module.DCOIR_REVIEW_ARCHITECTURE_CONTRACT = ARCHITECTURE_CONTRACT
     module.DCOIR_REVIEW_ARCHITECTURE_CONTRACT_MARKER = ARCHITECTURE_CONTRACT_MARKER
+    module.DCOIR_REVIEW_BASE_CONTRACT_PREFIX = BASE_CONTRACT_PREFIX
     module.latest_compatible_context_review = lambda gh, pr_number: _latest_compatible_context_review(
         module, gh, pr_number
     )
