@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260902-pr465-v41-signed-frontier-validation-007",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33649418335",
   "github_sha": "55fe37e21fc6b1992db83f46c52d37d0241060ac",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260902-pr465-v41-signed-frontier-validation-007",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260902-pr465-v41-signed-frontier-validation-007.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-02T15:34:46Z",
+  "updated_utc": "2026-09-02T15:35:07Z",
   "workflow": "chatgpt-exec"
 }
