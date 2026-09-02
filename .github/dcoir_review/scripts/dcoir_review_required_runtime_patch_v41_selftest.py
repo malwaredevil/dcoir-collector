@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""Regression checks for DCOIR Architecture-B incremental review frontier (v41)."""
+
+from __future__ import annotations
+
+import importlib
+import os
+from pathlib import Path
+
+
+def main() -> None:
+    review = importlib.import_module("openrouter_pr_review_pareto_context")
+    v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
+
+    captured_debug: dict[str, object] = {}
+    original_debug = review.hardened.write_debug_json_artifact_safely
+    original_deep_context = review.build_deep_context_block
+    review.hardened.write_debug_json_artifact_safely = (
+        lambda _config, path, value: captured_debug.__setitem__(path, value)
+    )
+    review.build_deep_context_block = lambda *_args, **_kwargs: ("BLOCK", "base context")
+    v41.apply_pareto_context_module(review)
+
+    class FakeClient(review.base.GitHubClient):
+        def __init__(self, reviews, compare_status="ahead", merge_base="aaa"):
+            super().__init__("token", "malwaredevil/dcoir-collector")
+            self.reviews = list(reviews)
+            self.compare_status = compare_status
+            self.merge_base = merge_base
+            self.calls = []
+
+        def request(self, method, path, body=None, accept="application/vnd.github+json"):
+            self.calls.append((method, path, accept))
+            if path == "/repos/malwaredevil/dcoir-collector/pulls/7":
+                if accept.endswith(".diff") or accept == "application/vnd.github.v3.diff":
+                    return "FULL-DIFF"
+                return {"head": {"sha": "ccc"}}
+            if path.startswith("/repos/malwaredevil/dcoir-collector/pulls/7/reviews?"):
+                return list(self.reviews)
+            if path.startswith("/repos/malwaredevil/dcoir-collector/pulls/7/files?"):
+                return [{"filename": "full.py", "status": "modified", "changes": 20}]
+            if path == "/repos/malwaredevil/dcoir-collector/compare/aaa...ccc?per_page=1&page=1":
+                return {
+                    "status": self.compare_status,
+                    "merge_base_commit": {"sha": self.merge_base},
+                    "files": [{"filename": "delta.py", "status": "modified", "changes": 2}],
+                }
+            if path == "/repos/malwaredevil/dcoir-collector/compare/aaa...ccc":
+                assert accept == "application/vnd.github.v3.diff"
+                return "INCREMENTAL-DIFF"
+            raise AssertionError(f"unexpected fake GitHub request: {method} {path} accept={accept}")
+
+    marker = review.base.MARKER
+    context_marker = review.CONTEXT_REVIEW_MARKER
+    compatible_body = (
+        f"{marker}\n{context_marker} `diff`\n"
+        f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}"
+    )
+    old_contract_body = f"{marker}\n{context_marker} `diff`\nContext readback: legacy"
+
+    old_review = {"id": 1, "commit_id": "999", "body": old_contract_body}
+    compatible_review = {"id": 2, "commit_id": "aaa", "body": compatible_body}
+
+    old_body = os.environ.get("TRIGGER_COMMENT_BODY")
+    try:
+        # Ordinary follow-up: use only the compatible reviewed head and GitHub
+        # compare evidence. Old-contract DCOIR reviews must not authorize reuse.
+        os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
+        gh = FakeClient([old_review, compatible_review])
+        assert review.latest_compatible_context_review(gh, 7)["commit_id"] == "aaa"
+        assert review.has_prior_successful_context_review(gh, 7)
+        assert gh.get_pr_diff(7) == "INCREMENTAL-DIFF"
+        assert gh.list_files(7) == [
+            {"filename": "delta.py", "status": "modified", "changes": 2}
+        ]
+        scope = getattr(gh, v41.SCOPE_CACHE_ATTR)
+        assert scope["source"] == "incremental-reviewed-head"
+        assert scope["prior_reviewed_head_sha"] == "aaa"
+        assert scope["current_head_sha"] == "ccc"
+        assert scope["compare_status"] == "ahead"
+        assert scope["fallback_reason"] == ""
+
+        _block, summary = review.build_deep_context_block(gh, {}, [], object(), "diff")
+        assert v41.ARCHITECTURE_CONTRACT_MARKER in summary
+        assert "incremental reviewed-head aaa -> ccc" in summary
+
+        config = type("Config", (), {"debug": True})()
+        review.hardened.write_debug_json_artifact_safely(
+            config,
+            "metadata/review-context.json",
+            {"existing": True},
+        )
+        metadata = captured_debug["metadata/review-context.json"]
+        assert metadata["existing"] is True
+        assert metadata["review_contract"] == v41.ARCHITECTURE_CONTRACT
+        assert metadata["review_scope_source"] == "incremental-reviewed-head"
+        assert metadata["prior_reviewed_head_sha"] == "aaa"
+        assert metadata["review_scope_current_head_sha"] == "ccc"
+        assert metadata["review_scope_file_count"] == 1
+
+        # A historical DCOIR review from an older architecture contract cannot
+        # make a standard request incremental; v41 re-anchors cumulatively.
+        gh_old = FakeClient([old_review])
+        assert not review.has_prior_successful_context_review(gh_old, 7)
+        assert gh_old.get_pr_diff(7) == "FULL-DIFF"
+        assert gh_old.list_files(7)[0]["filename"] == "full.py"
+        old_scope = getattr(gh_old, v41.SCOPE_CACHE_ATTR)
+        assert old_scope["source"] == "cumulative-full-pr"
+        assert "first-pass-deep" in old_scope["fallback_reason"]
+
+        # Explicit deep review remains cumulative even with a compatible prior.
+        os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review deep"
+        gh_deep = FakeClient([compatible_review])
+        assert gh_deep.get_pr_diff(7) == "FULL-DIFF"
+        deep_scope = getattr(gh_deep, v41.SCOPE_CACHE_ATTR)
+        assert deep_scope["source"] == "cumulative-full-pr"
+        assert deep_scope["review_mode"] == "deep-forced"
+
+        # A rewritten/diverged history fails closed to cumulative PR scope.
+        os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
+        gh_diverged = FakeClient([compatible_review], compare_status="diverged", merge_base="zzz")
+        assert gh_diverged.get_pr_diff(7) == "FULL-DIFF"
+        diverged_scope = getattr(gh_diverged, v41.SCOPE_CACHE_ATTR)
+        assert diverged_scope["source"] == "cumulative-full-pr"
+        assert "compare status is diverged" in diverged_scope["fallback_reason"]
+
+        # Even status=ahead is rejected if the prior reviewed head is not the
+        # exact merge base, preventing unsafe reuse across rewritten ancestry.
+        gh_wrong_base = FakeClient([compatible_review], compare_status="ahead", merge_base="bbb")
+        assert gh_wrong_base.get_pr_diff(7) == "FULL-DIFF"
+        wrong_base_scope = getattr(gh_wrong_base, v41.SCOPE_CACHE_ATTR)
+        assert "not the exact compare merge base" in wrong_base_scope["fallback_reason"]
+    finally:
+        if old_body is None:
+            os.environ.pop("TRIGGER_COMMENT_BODY", None)
+        else:
+            os.environ["TRIGGER_COMMENT_BODY"] = old_body
+        review.hardened.write_debug_json_artifact_safely = original_debug
+        review.build_deep_context_block = original_deep_context
+
+    source = Path(
+        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41.py"
+    ).read_text(encoding="utf-8")
+    assert "incremental-reviewed-head" in source
+    assert "merge_base_commit" in source
+    assert "ARCHITECTURE_CONTRACT_MARKER" in source
+    for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
+        assert forbidden not in source
+
+    print("dcoir_review_required_runtime_patch_v41_selftest passed")
+
+
+if __name__ == "__main__":
+    main()
