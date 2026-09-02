@@ -58,7 +58,7 @@ class DcoirReviewEntrypoint:
         # complete semantic-adjudication finding omits confidence, it assigns only
         # the configured normal floor to admit the candidate to v21 verification;
         # verifier support remains mandatory before repair/publication. v31 stays
-        # terminal because it does not overwrite these review surfaces.
+        # terminal for this historical semantic-patch chain.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review_required_runtime_patch_v34',
@@ -69,21 +69,38 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v39',
         'dcoir_review_required_runtime_patch_v31',
     )
+    # Architecture-B scope selection is deliberately outside the historical
+    # semantic patch chain. These overlays run after v31 so old semantic-order
+    # invariants remain meaningful while production still receives the approved
+    # reviewed-HEAD -> current-HEAD frontier and its conservative fallbacks.
+    terminal_patch_module_names: tuple[str, ...] = (
+        'dcoir_review_required_runtime_patch_v41',
+    )
 
     def import_module(self, module_name: str) -> ModuleType:
         return importlib.import_module(module_name)
+
+    def _apply_patch_modules(self, review_module: ModuleType, module_names: Iterable[str]) -> None:
+        for module_name in tuple(module_names):
+            patch_module = self.import_module(module_name)
+            apply_patch = getattr(patch_module, "apply_pareto_context_module", None)
+            if apply_patch is None:
+                raise RuntimeError(f"Runtime patch module {module_name} does not expose apply_pareto_context_module")
+            apply_patch(review_module)
 
     def apply_runtime_patches(
         self,
         review_module: ModuleType,
         patch_module_names: Iterable[str] | None = None,
     ) -> None:
-        for module_name in tuple(patch_module_names or self.patch_module_names):
-            patch_module = self.import_module(module_name)
-            apply_patch = getattr(patch_module, "apply_pareto_context_module", None)
-            if apply_patch is None:
-                raise RuntimeError(f"Runtime patch module {module_name} does not expose apply_pareto_context_module")
-            apply_patch(review_module)
+        if patch_module_names is not None:
+            # Explicit callers retain exact control of the requested historical
+            # patch subset; Architecture-B terminal overlays are a production
+            # default, not an implicit addition to custom test/probe subsets.
+            self._apply_patch_modules(review_module, patch_module_names)
+            return
+        self._apply_patch_modules(review_module, self.patch_module_names)
+        self._apply_patch_modules(review_module, self.terminal_patch_module_names)
 
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
