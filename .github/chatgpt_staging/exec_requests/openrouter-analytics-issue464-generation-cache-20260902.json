@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "openrouter-analytics-issue464-generation-cache-20260902",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-02T11:10:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464-generation-cache.ps1",
+  "approved_command_preview": "Run the operator-approved generation-level read-only OpenRouter cache analytics collector for issue #464. Query only /api/v1/analytics/meta and /api/v1/analytics/query using the repository OPENROUTER_MANAGEMENT_KEY secret; do not invoke model/inference endpoints and do not print or persist the credential. Query possible-cache metrics by generation_id/model in the exact historical DCOIR windows so the result can be intersected locally with the already-known DCOIR generation IDs."
+}
