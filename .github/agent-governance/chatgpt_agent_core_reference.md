@@ -15,6 +15,12 @@ this file has been updated and read back from GitHub or the local repo.
 If the ChatGPT webUI core instructions change, update this snapshot through an
 approved repo lane and state any remaining session reload/restart gap.
 
+## Review Request Operator Approval Override
+
+The operator explicitly updated the review-request rule on 2026-09-01. Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current or future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. Approval is per invocation: every rerun or later internal review command requires fresh approval. No approval means no internal review request.
+
+This rule supersedes every later sentence in this snapshot that says to run or rerun an internal review command automatically. Those older sentences describe sequencing only: when an internal review is the next applicable gate, propose the exact request to the operator and do not post or confirm it until that exact invocation is approved. GitHub Copilot review requests are likewise operator-controlled unless the operator manually triggers the review. The existing exact-text current-session approval rule for literal `@codex` review/action requests remains unchanged.
+
 # Agent Instructions
 
 Follow the user's request and this file's guidance for your role.

@@ -114,9 +114,13 @@ When Codi is mentioned or a PR review gate is in scope:
 - treat Codi as required before external `@codex` for PR-related code, workflow, or governed-source review unless the operator explicitly waives Codi for the current task
 - keep Codi evidence distinct from external `@codex`, GitHub Actions, and Supabase receipts
 - preserve the required Codi review-comment prefix: the raw comment body first non-blank line must start with `CODI FINDS`
-- identify whether the OpenRouter internal review command gate (`/or-review` or `/dcoir-review`) applies between Codi clearance and the external `@codex` request, and report its workflow/readback requirements, including whether the workflow/script are available on the default branch or an explicitly approved equivalent live-test lane
+- identify whether the OpenRouter internal review command gate (`/or-review`, `/dcoir-review`, or `/openrouter-review`) applies between Codi clearance and the external `@codex` request, including whether the workflow/script are available on the default branch or an explicitly approved equivalent live-test lane
+- if an internal review command is the next applicable gate, report it only as a gate that may be proposed to the operator; do not treat sequencing as permission to post the command
+- before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current/future variant, require the exact proposed command text to be shown to the operator and explicitly approved in the current session
+- treat internal review approval as per-invocation: every rerun or later internal review request requires fresh explicit approval; no approval means no internal review request
 - identify whether any proposed PR comment would invoke the literal `@codex` handle; if so, the agent must draft the exact comment text, show it to the operator, and receive explicit operator approval in the current session before posting or confirming it
-- when locating prior Codex evidence for issue, PR, closure, or parent-tracker text, prefer non-triggering wording such as `External Codex review` unless the operator explicitly approves a live invocation
+- identify whether GitHub Copilot review is being requested; if so, the request is operator-controlled and requires explicit operator approval unless the operator manually triggers it
+- when locating prior Codex, Copilot, or DCOIR Review evidence for issue, PR, closure, or parent-tracker text, prefer non-triggering wording when a trigger-capable literal handle or slash command is unnecessary
 
 ## Output Contract
 
@@ -128,7 +132,7 @@ When used, return a compact lookup result with:
 4. any ambiguity or evidence gap
 5. whether reuse is available
 6. whether GitHub work-item receipts are required
-7. whether Codi review, OpenRouter internal review, and external `@codex` exact-text operator approval are required for this task
+7. whether Codi review, DCOIR Review exact-request operator approval, GitHub Copilot operator approval/manual trigger, and external `@codex` exact-text operator approval are required for this task
 8. one best next move
 
 ## Hard Rules
@@ -140,6 +144,8 @@ When used, return a compact lookup result with:
 - do not skip Supabase gateway lookups when governed issue/PR receipts are required
 - do not make Codi optional by default
 - do not skip OpenRouter internal review gate lookup when PR review-gate sequencing is in scope, and do not treat branch-only existence of an OpenRouter `issue_comment` workflow/script as live-test availability
+- do not post or confirm any `/dcoir-review`, `/or-review`, or `/openrouter-review` command unless the operator approved the exact proposed command in the current session; this applies to every variant and each rerun independently
+- do not request GitHub Copilot review unless the operator explicitly approves or manually triggers it
 - do not treat an external `@codex` PR comment as postable until the operator approves the exact proposed comment text in the current session
 - do not treat skill wording as higher authority than Core Agent Instructions, repository `AGENTS.md`, or Supabase `ircore`
 - do not widen narrow lookup into full-task ceremony
