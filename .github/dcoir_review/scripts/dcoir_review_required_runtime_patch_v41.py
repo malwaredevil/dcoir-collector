@@ -52,13 +52,13 @@ def _review_markers(module: Any) -> tuple[str, ...]:
 
 def _review_base_sha(review: dict[str, Any]) -> str:
     body = str(review.get("body", "") or "")
-    for raw_line in body.splitlines():
-        line = raw_line.strip()
-        if not line.startswith(BASE_CONTRACT_PREFIX):
-            continue
-        value = line[len(BASE_CONTRACT_PREFIX) :].strip().lower()
-        if len(value) == 40 and all(character in "0123456789abcdef" for character in value):
-            return value
+    marker_index = body.find(BASE_CONTRACT_PREFIX)
+    if marker_index < 0:
+        return ""
+    value_start = marker_index + len(BASE_CONTRACT_PREFIX)
+    value = body[value_start : value_start + 40].strip().lower()
+    if len(value) == 40 and all(character in "0123456789abcdef" for character in value):
+        return value
     return ""
 
 
