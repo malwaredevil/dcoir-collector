@@ -15,3 +15,16 @@ from dcoir_review_required_runtime_patch_v41_scope import (
 )
 
 VERSION = "v41"
+
+__all__ = [
+    "VERSION",
+    "ARCHITECTURE_CONTRACT",
+    "ARCHITECTURE_CONTRACT_MARKER",
+    "BASE_CONTRACT_PREFIX",
+    "TRUSTED_REVIEW_AUTHORS",
+    "INITIAL_DIFF_CONSUMED_KEY",
+    "SCOPE_CACHE_ATTR",
+    "resolve_review_scope",
+    "latest_compatible_context_review",
+    "apply_pareto_context_module",
+]
