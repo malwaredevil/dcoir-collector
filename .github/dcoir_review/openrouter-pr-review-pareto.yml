@@ -145,6 +145,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_critic_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v39_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_per_file_coverage_recovery_v40_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
