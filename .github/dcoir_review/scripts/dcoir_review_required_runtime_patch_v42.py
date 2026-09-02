@@ -489,7 +489,6 @@ def apply_pareto_context_module(module: Any) -> None:
         except Exception as exc:
             ledger["telemetry"]["outcome"] = "failed"
             ledger["telemetry"]["failure_type"] = type(exc).__name__
-            _LAST_LEDGER = ledger
             setattr(gh, SEMANTIC_LEDGER_ATTR, copy.deepcopy(ledger))
             module.hardened.write_debug_json_artifact_safely(
                 config,
