@@ -160,12 +160,31 @@ def main() -> None:
     assert ledger["runtime_context_observation"]["transient_provenance_present"] is False
     assert reporter_events and reporter_events[0][0] == "semantic-ledger"
 
+    fake_module.base = SimpleNamespace(
+        github_safe_body=lambda text, limit=65000: text[:limit]
+    )
     body = fake_module.append_context_to_review_body(
         "BASE", "diff", "unchanged context summary", config
     )
     assert body.count(v42.SEMANTIC_LEDGER_MARKER_PREFIX) == 1
     assert "reuse-enabled=false" in body
     assert ledger["context_fingerprint"] in body
+
+    long_rendered = "X" * 70_000
+    safe_calls: list[int] = []
+
+    def reserve_space_for_marker(text: str, limit: int = 65000) -> str:
+        safe_calls.append(limit)
+        assert limit <= 65000 - len(v42.SEMANTIC_LEDGER_MARKER_PREFIX) - 200
+        return text[:limit]
+
+    fake_module.base = SimpleNamespace(github_safe_body=reserve_space_for_marker)
+    long_body = fake_module.append_context_to_review_body(
+        long_rendered, "diff", "unchanged context summary", config
+    )
+    assert v42.SEMANTIC_LEDGER_MARKER_PREFIX in long_body
+    assert len(long_body) <= 65000
+    assert safe_calls and safe_calls[-1] <= 65000 - len(v42.SEMANTIC_LEDGER_MARKER_PREFIX) - 200
 
     fake_module.hardened.write_debug_json_artifact_safely(
         config, "metadata/review-context.json", {"existing": True}
