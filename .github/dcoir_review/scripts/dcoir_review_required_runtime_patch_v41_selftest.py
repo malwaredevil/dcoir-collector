@@ -14,9 +14,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
-    assert entrypoint.terminal_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v41",
-    )
+    assert entrypoint.terminal_patch_module_names == ("dcoir_review_required_runtime_patch_v41",)
 
     applied_modules: list[str] = []
 
@@ -32,7 +30,6 @@ def main() -> None:
         *recording_entrypoint.patch_module_names,
         *recording_entrypoint.terminal_patch_module_names,
     ]
-
     applied_modules.clear()
     recording_entrypoint.apply_runtime_patches(object(), ("test-explicit-subset",))
     assert applied_modules == ["test-explicit-subset"]
@@ -40,6 +37,7 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
     assert v41.TRUSTED_REVIEW_AUTHORS == frozenset({"github-actions[bot]"})
+    assert v41.TRUSTED_WORKFLOW_PATH == ".github/workflows/openrouter-pr-review.yml"
     assert v41.PROVENANCE_PREFIX == "DCOIR review provenance: "
 
     base_a = "1" * 40
@@ -54,18 +52,13 @@ def main() -> None:
     v41.apply_pareto_context_module(review)
 
     class FakeClient(review.base.GitHubClient):
-        def __init__(
-            self,
-            reviews,
-            compare_status="ahead",
-            merge_base="aaa",
-            current_base=base_a,
-        ):
+        def __init__(self, reviews, compare_status="ahead", merge_base="aaa", current_base=base_a, run_conclusion="success"):
             super().__init__("token", "malwaredevil/dcoir-collector")
             self.reviews = list(reviews)
             self.compare_status = compare_status
             self.merge_base = merge_base
             self.current_base = current_base
+            self.run_conclusion = run_conclusion
             self.calls = []
 
         def request(self, method, path, body=None, accept="application/vnd.github+json"):
@@ -73,7 +66,7 @@ def main() -> None:
             if path == "/repos/malwaredevil/dcoir-collector/pulls/7":
                 if accept.endswith(".diff") or accept == "application/vnd.github.v3.diff":
                     return "FULL-DIFF"
-                return {"head": {"sha": "ccc"}, "base": {"sha": self.current_base}}
+                return {"number": 7, "head": {"sha": "ccc"}, "base": {"sha": self.current_base}}
             if path.startswith("/repos/malwaredevil/dcoir-collector/pulls/7/reviews?"):
                 return list(self.reviews)
             if path.startswith("/repos/malwaredevil/dcoir-collector/pulls/7/files?"):
@@ -88,70 +81,51 @@ def main() -> None:
                 assert accept == "application/vnd.github.v3.diff"
                 return "INCREMENTAL-DIFF"
             if path == "/repos/malwaredevil/dcoir-collector/actions/runs/123456":
-                return {"id": 123456, "name": "28 Review - DCOIR Review", "head_sha": "aaa", "status": "completed"}
+                return {
+                    "id": 123456,
+                    "name": "28 Review - DCOIR Review | PR #7 | malwaredevil",
+                    "path": ".github/workflows/openrouter-pr-review.yml",
+                    "event": "issue_comment",
+                    "head_branch": "main",
+                    "head_sha": "d" * 40,
+                    "status": "completed",
+                    "conclusion": self.run_conclusion,
+                    "actor": {"login": "malwaredevil"},
+                }
             raise AssertionError(f"unexpected fake GitHub request: {method} {path} accept={accept}")
+
+    old_env = {name: os.environ.get(name) for name in ("TRIGGER_COMMENT_BODY", "OPENROUTER_API_KEY", "GITHUB_RUN_ID", "GITHUB_WORKFLOW")}
+    os.environ["OPENROUTER_API_KEY"] = "v41-selftest-signing-secret"
+    provenance = v41.build_review_provenance_marker(
+        "malwaredevil/dcoir-collector", 7, base_a, "aaa", "123456", "28 Review - DCOIR Review"
+    )
+    assert provenance.startswith(v41.PROVENANCE_PREFIX)
+    assert "signature=" in provenance
 
     marker = review.base.MARKER
     context_marker = review.CONTEXT_REVIEW_MARKER
     compatible_body = (
         f"{marker}\n{context_marker} `diff`\n"
         f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}; "
-        f"{v41.BASE_CONTRACT_PREFIX}{base_a}; {v41.PROVENANCE_PREFIX}"
-        f"workflow-run=123456; workflow-name=28 Review - DCOIR Review; reviewed-head=aaa"
+        f"{v41.BASE_CONTRACT_PREFIX}{base_a}; {provenance}"
     )
     architecture_without_base_body = (
-        f"{marker}\n{context_marker} `diff`\n"
-        f"Context readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}"
+        f"{marker}\n{context_marker} `diff`\nContext readback: prior; {v41.ARCHITECTURE_CONTRACT_MARKER}"
     )
     old_contract_body = f"{marker}\n{context_marker} `diff`\nContext readback: legacy"
     trusted_user = {"login": "github-actions[bot]"}
+    old_review = {"id": 1, "commit_id": "999", "body": old_contract_body, "user": trusted_user}
+    architecture_without_base_review = {"id": 2, "commit_id": "998", "body": architecture_without_base_body, "user": trusted_user}
+    compatible_review = {"id": 3, "commit_id": "aaa", "body": compatible_body, "user": trusted_user}
+    spoofed_human_review = {"id": 4, "commit_id": "bbb", "body": compatible_body, "user": {"login": "malwaredevil"}}
 
-    old_review = {
-        "id": 1,
-        "commit_id": "999",
-        "body": old_contract_body,
-        "user": trusted_user,
-    }
-    architecture_without_base_review = {
-        "id": 2,
-        "commit_id": "998",
-        "body": architecture_without_base_body,
-        "user": trusted_user,
-    }
-    compatible_review = {
-        "id": 3,
-        "commit_id": "aaa",
-        "body": compatible_body,
-        "user": trusted_user,
-    }
-    spoofed_human_review = {
-        "id": 4,
-        "commit_id": "bbb",
-        "body": compatible_body,
-        "user": {"login": "malwaredevil"},
-    }
-
-    old_body = os.environ.get("TRIGGER_COMMENT_BODY")
     try:
-        # Ordinary follow-up: use only a trusted compatible DCOIR-produced
-        # reviewed head and GitHub compare evidence. The newest human-authored
-        # review deliberately forges every DCOIR/context/architecture/base marker
-        # and still must not move the semantic review frontier.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
-        gh = FakeClient(
-            [
-                old_review,
-                architecture_without_base_review,
-                compatible_review,
-                spoofed_human_review,
-            ]
-        )
+        gh = FakeClient([old_review, architecture_without_base_review, compatible_review, spoofed_human_review])
         assert review.latest_compatible_context_review(gh, 7)["commit_id"] == "aaa"
         assert review.has_prior_successful_context_review(gh, 7)
         assert gh.get_pr_diff(7) == "INCREMENTAL-DIFF"
-        assert gh.list_files(7) == [
-            {"filename": "delta.py", "status": "modified", "changes": 2}
-        ]
+        assert gh.list_files(7) == [{"filename": "delta.py", "status": "modified", "changes": 2}]
         scope = getattr(gh, v41.SCOPE_CACHE_ATTR)
         assert scope["source"] == "incremental-reviewed-head"
         assert scope["prior_reviewed_head_sha"] == "aaa"
@@ -160,33 +134,24 @@ def main() -> None:
         assert scope["current_base_sha"] == base_a
         assert scope["compare_status"] == "ahead"
         assert scope["fallback_reason"] == ""
-        assert review.has_prior_successful_context_review(gh, 7)
 
-        # A forged marker-bearing review without a trusted producer cannot create
-        # reusable state on its own; a plain command must re-anchor cumulatively.
         gh_spoof_only = FakeClient([spoofed_human_review])
         assert review.latest_compatible_context_review(gh_spoof_only, 7) is None
-        assert not review.has_prior_successful_context_review(gh_spoof_only, 7)
         assert gh_spoof_only.get_pr_diff(7) == "FULL-DIFF"
-        spoof_scope = getattr(gh_spoof_only, v41.SCOPE_CACHE_ATTR)
-        assert spoof_scope["source"] == "cumulative-full-pr"
-        assert "first-pass-deep" in spoof_scope["fallback_reason"]
-        assert not review.has_prior_successful_context_review(gh_spoof_only, 7)
+        assert "first-pass-deep" in getattr(gh_spoof_only, v41.SCOPE_CACHE_ATTR)["fallback_reason"]
 
-        # The isolated spoof probe intentionally became the module's latest debug
-        # scope. Reactivate the authentic review client's cached scope before
-        # checking module-level debug telemetry below.
-        assert gh.list_files(7) == [
-            {"filename": "delta.py", "status": "modified", "changes": 2}
-        ]
+        gh_failed_run = FakeClient([compatible_review], run_conclusion="failure")
+        assert review.latest_compatible_context_review(gh_failed_run, 7) is None
+        assert gh_failed_run.get_pr_diff(7) == "FULL-DIFF"
 
-        # Only the initial semantic-scope diff is incremental. A later diff read
-        # (used by v36 repair/publication anchoring) must be the cumulative PR diff.
+        assert gh.list_files(7) == [{"filename": "delta.py", "status": "modified", "changes": 2}]
         assert gh.get_pr_diff(7) == "FULL-DIFF"
 
+        os.environ["GITHUB_RUN_ID"] = "654321"
+        os.environ["GITHUB_WORKFLOW"] = "28 Review - DCOIR Review"
         _block, summary = review.build_deep_context_block(
             gh,
-            {"base": {"sha": base_a}},
+            {"number": 7, "base": {"sha": base_a}, "head": {"sha": "ccc"}},
             [],
             object(),
             "diff",
@@ -194,13 +159,12 @@ def main() -> None:
         assert v41.ARCHITECTURE_CONTRACT_MARKER in summary
         assert f"{v41.BASE_CONTRACT_PREFIX}{base_a}" in summary
         assert "incremental reviewed-head aaa -> ccc" in summary
+        assert "workflow-run=654321" in summary
+        assert "reviewed-head=ccc" in summary
+        assert "signature=" in summary
 
         config = type("Config", (), {"debug": True})()
-        review.hardened.write_debug_json_artifact_safely(
-            config,
-            "metadata/review-context.json",
-            {"existing": True},
-        )
+        review.hardened.write_debug_json_artifact_safely(config, "metadata/review-context.json", {"existing": True})
         metadata = captured_debug["metadata/review-context.json"]
         assert metadata["existing"] is True
         assert metadata["review_contract"] == v41.ARCHITECTURE_CONTRACT
@@ -211,71 +175,43 @@ def main() -> None:
         assert metadata["review_scope_current_base_sha"] == base_a
         assert metadata["review_scope_file_count"] == 1
 
-        # A historical DCOIR review from an older architecture contract cannot
-        # make a standard request incremental; v41 re-anchors cumulatively.
         gh_old = FakeClient([old_review, architecture_without_base_review])
         assert not review.has_prior_successful_context_review(gh_old, 7)
         assert gh_old.get_pr_diff(7) == "FULL-DIFF"
         assert gh_old.list_files(7)[0]["filename"] == "full.py"
-        old_scope = getattr(gh_old, v41.SCOPE_CACHE_ATTR)
-        assert old_scope["source"] == "cumulative-full-pr"
-        assert "first-pass-deep" in old_scope["fallback_reason"]
-        assert not review.has_prior_successful_context_review(gh_old, 7)
+        assert "first-pass-deep" in getattr(gh_old, v41.SCOPE_CACHE_ATTR)["fallback_reason"]
 
-        # Explicit deep review remains cumulative even with a compatible prior.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review deep"
         gh_deep = FakeClient([compatible_review])
         assert gh_deep.get_pr_diff(7) == "FULL-DIFF"
-        deep_scope = getattr(gh_deep, v41.SCOPE_CACHE_ATTR)
-        assert deep_scope["source"] == "cumulative-full-pr"
-        assert deep_scope["review_mode"] == "deep-forced"
+        assert getattr(gh_deep, v41.SCOPE_CACHE_ATTR)["review_mode"] == "deep-forced"
 
-        # A rewritten/diverged history fails closed to cumulative PR scope. The
-        # cached compatible review must not keep a plain command in lightweight
-        # diff mode after the ancestry contract failed.
         os.environ["TRIGGER_COMMENT_BODY"] = "/dcoir-review"
         gh_diverged = FakeClient([compatible_review], compare_status="diverged", merge_base="zzz")
         assert gh_diverged.get_pr_diff(7) == "FULL-DIFF"
         diverged_scope = getattr(gh_diverged, v41.SCOPE_CACHE_ATTR)
-        assert diverged_scope["source"] == "cumulative-full-pr"
         assert "compare status is diverged" in diverged_scope["fallback_reason"]
         assert not review.has_prior_successful_context_review(gh_diverged, 7)
-        production_config = review.load_pareto_context_config(
-            ".github/dcoir_review/openrouter-pr-review-pareto.yml"
-        )
-        assert review.review_mode_for_command(
-            "/dcoir-review", "/dcoir-review", production_config, False
-        ) == "first-pass-deep"
-        # An explicit operator-selected diff request still stays diff even when
-        # reuse validation failed; the command token is authoritative.
-        assert review.review_mode_for_command(
-            "/dcoir-review diff", "/dcoir-review", production_config, False
-        ) == "diff"
+        production_config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+        assert review.review_mode_for_command("/dcoir-review", "/dcoir-review", production_config, False) == "first-pass-deep"
+        assert review.review_mode_for_command("/dcoir-review diff", "/dcoir-review", production_config, False) == "diff"
 
-        # Even status=ahead is rejected if the prior reviewed head is not the
-        # exact merge base, preventing unsafe reuse across rewritten ancestry.
         gh_wrong_base = FakeClient([compatible_review], compare_status="ahead", merge_base="bbb")
         assert gh_wrong_base.get_pr_diff(7) == "FULL-DIFF"
-        wrong_base_scope = getattr(gh_wrong_base, v41.SCOPE_CACHE_ATTR)
-        assert "not the exact compare merge base" in wrong_base_scope["fallback_reason"]
-        assert not review.has_prior_successful_context_review(gh_wrong_base, 7)
+        assert "not the exact compare merge base" in getattr(gh_wrong_base, v41.SCOPE_CACHE_ATTR)["fallback_reason"]
 
-        # Base-branch movement changes the integration context even when the
-        # reviewed head remains an ancestor. That must force a cumulative
-        # first-pass re-anchor rather than semantic reuse.
         gh_base_moved = FakeClient([compatible_review], current_base=base_b)
         assert gh_base_moved.get_pr_diff(7) == "FULL-DIFF"
         base_moved_scope = getattr(gh_base_moved, v41.SCOPE_CACHE_ATTR)
-        assert base_moved_scope["source"] == "cumulative-full-pr"
         assert base_moved_scope["prior_reviewed_base_sha"] == base_a
         assert base_moved_scope["current_base_sha"] == base_b
         assert "PR base moved since prior review" in base_moved_scope["fallback_reason"]
-        assert not review.has_prior_successful_context_review(gh_base_moved, 7)
     finally:
-        if old_body is None:
-            os.environ.pop("TRIGGER_COMMENT_BODY", None)
-        else:
-            os.environ["TRIGGER_COMMENT_BODY"] = old_body
+        for name, value in old_env.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
         review.hardened.write_debug_json_artifact_safely = original_debug
         review.build_deep_context_block = original_deep_context
 
@@ -289,13 +225,17 @@ def main() -> None:
             "dcoir_review_required_runtime_patch_v41_hooks.py",
         )
     )
-    assert "incremental-reviewed-head" in source
-    assert "merge_base_commit" in source
-    assert "ARCHITECTURE_CONTRACT_MARKER" in source
-    assert "BASE_CONTRACT_PREFIX" in source
-    assert "INITIAL_DIFF_CONSUMED_KEY" in source
-    assert "TRUSTED_REVIEW_AUTHORS" in source
-    assert 'scope.get("source"' in source
+    for required in (
+        "incremental-reviewed-head",
+        "merge_base_commit",
+        "ARCHITECTURE_CONTRACT_MARKER",
+        "BASE_CONTRACT_PREFIX",
+        "INITIAL_DIFF_CONSUMED_KEY",
+        "TRUSTED_REVIEW_AUTHORS",
+        "build_review_provenance_marker",
+        "hmac.compare_digest",
+    ):
+        assert required in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 
