@@ -5,6 +5,5 @@ from dcoir_review_required_runtime_patch_v41_scope import (
     SCOPE_CACHE_ATTR,
     resolve_review_scope,
 )
-from dcoir_review_required_runtime_patch_v41_hooks import apply_pareto_context_module
 
 VERSION = "v41"
