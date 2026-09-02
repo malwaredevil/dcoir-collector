@@ -6,9 +6,37 @@ from __future__ import annotations
 import importlib
 import os
 from pathlib import Path
+from types import SimpleNamespace
+
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 def main() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
+    assert entrypoint.terminal_patch_module_names == (
+        "dcoir_review_required_runtime_patch_v41",
+    )
+
+    applied_modules: list[str] = []
+
+    class RecordingEntrypoint(DcoirReviewEntrypoint):
+        def import_module(self, module_name: str):
+            return SimpleNamespace(
+                apply_pareto_context_module=lambda _review, name=module_name: applied_modules.append(name)
+            )
+
+    recording_entrypoint = RecordingEntrypoint()
+    recording_entrypoint.apply_runtime_patches(object())
+    assert applied_modules == [
+        *recording_entrypoint.patch_module_names,
+        *recording_entrypoint.terminal_patch_module_names,
+    ]
+
+    applied_modules.clear()
+    recording_entrypoint.apply_runtime_patches(object(), ("test-explicit-subset",))
+    assert applied_modules == ["test-explicit-subset"]
+
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
 
