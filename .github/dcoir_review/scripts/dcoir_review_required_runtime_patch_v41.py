@@ -14,7 +14,8 @@ Safety contract:
   GitHub's compare endpoint (status=ahead and merge-base==prior head);
 - deep/first-pass reviews remain cumulative;
 - missing, stale, divergent, oversized, malformed, or failed compare evidence
-  falls back to the existing cumulative PR scope;
+  falls back to the existing cumulative PR scope and a plain command re-anchors
+  in first-pass-deep mode; an explicitly requested diff mode remains diff;
 - only the initial semantic-scope diff fetch may be incremental; later diff
   readbacks (for example repair/publication anchoring) remain cumulative PR diff;
 - review-scope provenance is added to context/debug evidence;
@@ -362,7 +363,11 @@ def apply_pareto_context_module(module: Any) -> None:
     def has_prior_successful_context_review(gh: Any, pr_number: int) -> bool:
         scope = getattr(gh, SCOPE_CACHE_ATTR, None)
         if isinstance(scope, dict) and int(scope.get("pr_number", -1)) == pr_number:
-            return bool(str(scope.get("prior_reviewed_head_sha", "") or "").strip())
+            # A cached prior head is reusable only when the compare contract was
+            # actually accepted. If v41 fell back to cumulative scope, a plain
+            # command must re-anchor first-pass-deep. Explicit `diff` still wins
+            # in review_mode_for_command regardless of this boolean.
+            return str(scope.get("source", "") or "") == "incremental-reviewed-head"
         return _latest_compatible_context_review(module, gh, pr_number) is not None
 
     def build_deep_context_block(gh: Any, pr: Any, files: Any, config: Any, review_mode: str):
