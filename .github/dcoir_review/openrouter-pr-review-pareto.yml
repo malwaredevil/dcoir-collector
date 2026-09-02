@@ -1,127 +1,92 @@
-# Governed DCOIR Review configuration for DCOIR-Collector/dcoir-collector.
-# This production config is used by .github/workflows/openrouter-pr-review.yml
-# through .github/dcoir_review/scripts/openrouter_pr_review_pareto_context.py.
-
+name: DCOIR Review
 commands:
+  - /dcoir-review
   - /or-review
   - /openrouter-review
-  - /dcoir-review
-
-# Issue #456: use a fixed frontier review model instead of a cost-optimized
-# router for the primary detector.  The prior Pareto route could legitimately
-# serve a cheaper model that cleared a coding-score threshold, which is not the
-# same contract as adversarial semantic review quality.
 model: anthropic/claude-opus-5
 model_stack:
   - anthropic/claude-opus-5
   - openai/gpt-5.6-sol-pro
-smoke_test_free_model: false
-
-# Retained for compatibility with the Pareto payload layer; it is inactive while
-# the governed primary model is fixed rather than openrouter/pareto-code.
-pareto_min_coding_score: 0.80
-
-# Auto Router remains configured only for compatibility/smoke surfaces and is
-# not in the governed production model_stack.
-auto_cost_quality_tradeoff: 2
-auto_allowed_models:
-  - anthropic/claude-sonnet*
-  - openai/gpt-5*
-  - google/gemini-2.5-pro*
-  - google/gemini-3.1-pro-preview*
-  - qwen/qwen3-coder*
-  - deepseek/deepseek-v3*
-
-# Keep native OpenRouter fallback, route, and service-tier controls unset here.
-# The governed model_stack above owns the explicit model fallback order.
-fallback_models:
-
-openrouter_route:
-openrouter_service_tier:
-openrouter_session_id_prefix: dcoir-review
-
-# Frontier models used by the governed review path support substantially larger
-# context than the old 60k reviewer budget.  Preserve enough room for a full PR
-# aggregate challenger while keeping per-file prompts independently bounded.
-max_prompt_chars: 120000
-max_files: 100
+fallback_models: []
 max_inline_comments: 12
-
-# Deep review must not silently equate "top eight files" with "the PR".  The
-# per-file detector covers every fetched changed file up to the governed 100-file
-# ceiling; the aggregate context remains separately bounded for synthesis.
+max_files: 100
+max_patch_chars: 160000
+min_confidence: 0.92
+openrouter_max_attempts: 3
+openrouter_retry_max_seconds: 8
 first_pass_deep_review: true
-deep_review_max_files: 20
-deep_review_max_file_chars: 20000
-deep_review_max_total_chars: 60000
 per_file_first_pass_review: true
-# v40 lowers the normal fan-out from six after live blind evidence showed that
-# six simultaneous frontier calls can exceed OpenRouter's current in-flight
-# credit window. If that transient 402 still occurs, the reviewer drains the
-# parallel wave, retries only the affected files at concurrency <=2, then gives
-# any still-saturated file one final serial attempt before failing coverage closed.
 per_file_review_concurrency: 4
 per_file_review_max_files: 100
 per_file_review_max_file_chars: 40000
-
-# v32 requires an independent model-family challenger before a deep result is
-# finalized.  This pass is intentionally not a fallback for model failure; it is
-# a second semantic review whose findings are unioned with the primary pass.
-adversarial_confirmation_review: true
-adversarial_confirmation_model_stack:
-  - openai/gpt-5.6-sol-pro
-review_reasoning_effort: xhigh
-
-# v35 turns the broad detector/challenger union into a small set of demonstrated
-# root causes before the expensive per-finding verifier. The adjudicator is an
-# authoritative review stage, not another union: it may suppress unsupported or
-# duplicate hypotheses and may independently recover a demonstrable detector miss.
-semantic_adjudication_review: true
-semantic_adjudication_model_stack:
-  - anthropic/claude-opus-5
-  - openai/gpt-5.6-sol-pro
-semantic_adjudication_max_findings: 8
-semantic_adjudication_candidate_digest_chars: 24000
-
+deep_review_max_files: 20
+deep_review_max_file_chars: 40000
+deep_review_max_total_chars: 200000
 fix_synthesis_enabled: true
-# v33 keeps this as the bounded repair-author/critic budget, separately from the
-# larger verifier/publication ceiling. v36 may turn one verified finding inside
-# this budget into a coordinated repair set with multiple ranged GitHub
-# suggestions; findings outside the repair budget still publish without repair
-# synthesis.
 fix_synthesis_max_findings: 8
-fix_synthesis_min_confidence: 0.80
-required_finding_reserved_budget: 9
-required_finding_min_per_family: 2
-
-request_changes_on_findings: false
-minimum_confidence: 0.70
-fail_on_unanchored_findings: true
-fail_on_summary_only_problem: true
-review_quality_retry_on_rejected_output: true
-
-risk_sentinel_quality_gate: true
-risk_sentinel_retry_on_empty: true
-risk_sentinel_max_anchors: 12
-
-post_summary_when_findings: false
-include_confidence: false
-redact_secret_literals: true
+adversarial_confirmation_review: true
+adversarial_confirmation_model: openai/gpt-5.6-sol-pro
+semantic_adjudication_review: true
+semantic_adjudication_model: anthropic/claude-opus-5
+semantic_adjudication_max_findings: 8
+provider_order: []
+provider_allow_fallbacks: true
+provider_require_parameters: true
+ignored_providers: []
+openrouter_route: ''
+openrouter_service_tier: ''
+auto_allowed_models: []
+auto_cost_quality_tradeoff: null
+session_id_prefix: dcoir-review
+progress_comment_enabled: true
+progress_comment_max_chars: 60000
 debug: false
-
-openrouter_max_attempts: 4
-openrouter_retry_max_seconds: 45
-# v40 recovery may legitimately add a second, lower-concurrency detector wave.
-# Keep the internal timeout bounded below the reusable workflow's 45-minute job
-# ceiling so terminal-failure reporting and artifact upload still have headroom.
-script_timeout_seconds: 2400
-post_progress_comment: false
-
-ignored_providers:
-
+debug_artifact_dir: /tmp/dcoir_review_debug
+debug_max_prompt_chars: 1200000
+debug_max_response_chars: 240000
+quality_retry_enabled: true
+quality_retry_max_findings: 12
+quality_retry_min_summary_chars: 40
+quality_retry_max_prompt_chars: 1200000
+quality_retry_max_response_chars: 240000
+verification_enabled: true
+verification_max_candidates: 12
+verification_model: anthropic/claude-opus-5
+verification_min_confidence: 0.95
+verification_max_prompt_chars: 240000
+verification_max_response_chars: 80000
+repair_author_model: anthropic/claude-opus-5
+repair_critic_model: openai/gpt-5.6-sol-pro
+repair_critic_min_confidence: 0.95
+repair_max_edit_ranges: 6
+repair_max_prompt_chars: 260000
+repair_max_response_chars: 100000
+static_validation_context_paths:
+  - .github/dcoir_review/evaluation/semantic_recall_corpus_v1.json
+  - .github/dcoir_review/evaluation/precision_corpus_v1.json
+review_assist_context_paths:
+  - AGENTS.md
+risk_sentinels: []
 validation_commands:
-  - python3 .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_strict_runtime_patch_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v2_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v3_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v4_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v5_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v6_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v7_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v8_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v9_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v10_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v11_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v12_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v13_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v14_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v15_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v16_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v17_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v18_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v20_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v21_selftest.py
@@ -146,6 +111,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v39_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_per_file_coverage_recovery_v40_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_provenance_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
@@ -156,15 +122,3 @@ validation_commands:
   - bash .github/dcoir_review/scripts/validate-codex-local.sh
   - pwsh -NoProfile -File .github/dcoir_review/scripts/validate-windows-powershell-51.ps1 -AllowPowerShell7 -AllowEmpty
   - python3 .github/dcoir_review/scripts/validate-codeql-security-workflow.py
-
-guidance_files:
-  - AGENTS.md
-  - README.md
-
-allowed_authors:
-  - malwaredevil
-
-ignored_authors:
-  - github-actions[bot]
-  - dependabot[bot]
-  - chatgpt-codex-connector[bot]
