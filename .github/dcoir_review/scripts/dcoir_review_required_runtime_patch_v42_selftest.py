@@ -202,10 +202,30 @@ def main() -> None:
         "unchanged context summary",
         gh,
     )
+    reordered_files = list(reversed(files))
+    reordered = v42.build_semantic_review_ledger(
+        fake_module,
+        pr,
+        reordered_files,
+        "diff text",
+        schema,
+        config,
+        risk_sentinels,
+        line_index,
+        "deep context",
+        "diff",
+        "unchanged context summary",
+        gh,
+    )
     assert direct_a["context_fingerprint"] == direct_b["context_fingerprint"]
     assert (
         direct_a["runtime_context_fingerprint"]
         == direct_b["runtime_context_fingerprint"]
+    )
+    assert direct_a["context_fingerprint"] == reordered["context_fingerprint"]
+    assert (
+        direct_a["runtime_context_fingerprint"]
+        == reordered["runtime_context_fingerprint"]
     )
 
     # v41's per-run signed publication receipt must not poison a reusable

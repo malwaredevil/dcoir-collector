@@ -195,16 +195,25 @@ def build_semantic_review_ledger(
         "expanded_paths": [],
     }
     dependency_sha256 = _digest(dependency_context)
-    file_records = [
-        _file_record(
-            item,
-            schema_sha256=schema_sha256,
-            config_sha256=config_sha256,
-            dependency_sha256=dependency_sha256,
-        )
-        for item in files
-        if isinstance(item, dict)
-    ]
+    file_records = sorted(
+        (
+            _file_record(
+                item,
+                schema_sha256=schema_sha256,
+                config_sha256=config_sha256,
+                dependency_sha256=dependency_sha256,
+            )
+            for item in files
+            if isinstance(item, dict)
+        ),
+        key=lambda record: (
+            str(record.get("path", "") or "").replace("\\", "/"),
+            str(record.get("status", "") or ""),
+            str(record.get("blob_sha", "") or ""),
+            str(record.get("content_identity", "") or ""),
+            str(record.get("previous_path", "") or ""),
+        ),
+    )
 
     risk_digest_fn = getattr(
         getattr(module, "hardened", None), "risk_sentinel_digest", None
