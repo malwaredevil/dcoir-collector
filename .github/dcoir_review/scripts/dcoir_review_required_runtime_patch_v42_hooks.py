@@ -18,6 +18,7 @@ _HYBRID_STORAGE = "_dcoir_v42_original_hybrid_first_pass"
 _APPEND_CONTEXT_STORAGE = "_dcoir_v42_original_append_context_to_review_body"
 _DEBUG_JSON_STORAGE = "_dcoir_v42_original_write_debug_json_artifact_safely"
 _LAST_LEDGER: dict[str, Any] = {}
+_LAST_REVIEW_CONTEXT: dict[str, Any] | None = None
 
 
 def semantic_review_ledger_for_client(gh: Any) -> dict[str, Any]:
@@ -46,8 +47,9 @@ def _ledger_marker(ledger: dict[str, Any]) -> str:
 def apply_pareto_context_module(module: Any) -> None:
     """Attach behavior-preserving Architecture-B semantic-ledger instrumentation."""
 
-    global _LAST_LEDGER
+    global _LAST_LEDGER, _LAST_REVIEW_CONTEXT
     _LAST_LEDGER = {}
+    _LAST_REVIEW_CONTEXT = None
 
     original_hybrid = getattr(module, _HYBRID_STORAGE, None)
     if original_hybrid is None:
@@ -71,40 +73,43 @@ def apply_pareto_context_module(module: Any) -> None:
     def write_debug_json_artifact_safely(
         config: Any, relative_path: str, value: Any
     ) -> None:
+        global _LAST_REVIEW_CONTEXT
         if (
             relative_path == "metadata/review-context.json"
             and isinstance(value, dict)
-            and _LAST_LEDGER
         ):
-            enriched = dict(value)
-            telemetry = _LAST_LEDGER.get("telemetry", {})
-            enriched.update(
-                {
-                    "semantic_ledger_contract": SEMANTIC_LEDGER_CONTRACT,
-                    "semantic_context_fingerprint": str(
-                        _LAST_LEDGER.get("context_fingerprint", "") or ""
-                    ),
-                    "semantic_runtime_context_fingerprint": str(
-                        _LAST_LEDGER.get("runtime_context_fingerprint", "") or ""
-                    ),
-                    "semantic_reviewed_file_count": int(
-                        telemetry.get("reviewed_file_count", 0) or 0
-                    ),
-                    "semantic_reused_file_count": int(
-                        telemetry.get("reused_file_count", 0) or 0
-                    ),
-                    "semantic_recomputed_file_count": int(
-                        telemetry.get("recomputed_file_count", 0) or 0
-                    ),
-                    "semantic_dependency_expanded_file_count": int(
-                        telemetry.get("dependency_expanded_file_count", 0) or 0
-                    ),
-                    "semantic_invalidation_reason": str(
-                        telemetry.get("invalidation_reason", "") or ""
-                    ),
-                }
-            )
-            value = enriched
+            if not _LAST_LEDGER:
+                _LAST_REVIEW_CONTEXT = copy.deepcopy(value)
+            else:
+                enriched = dict(value)
+                telemetry = _LAST_LEDGER.get("telemetry", {})
+                enriched.update(
+                    {
+                        "semantic_ledger_contract": SEMANTIC_LEDGER_CONTRACT,
+                        "semantic_context_fingerprint": str(
+                            _LAST_LEDGER.get("context_fingerprint", "") or ""
+                        ),
+                        "semantic_runtime_context_fingerprint": str(
+                            _LAST_LEDGER.get("runtime_context_fingerprint", "") or ""
+                        ),
+                        "semantic_reviewed_file_count": int(
+                            telemetry.get("reviewed_file_count", 0) or 0
+                        ),
+                        "semantic_reused_file_count": int(
+                            telemetry.get("reused_file_count", 0) or 0
+                        ),
+                        "semantic_recomputed_file_count": int(
+                            telemetry.get("recomputed_file_count", 0) or 0
+                        ),
+                        "semantic_dependency_expanded_file_count": int(
+                            telemetry.get("dependency_expanded_file_count", 0) or 0
+                        ),
+                        "semantic_invalidation_reason": str(
+                            telemetry.get("invalidation_reason", "") or ""
+                        ),
+                    }
+                )
+                value = enriched
         original_debug_json(config, relative_path, value)
 
     def openrouter_review_with_hybrid_first_pass(
@@ -138,6 +143,12 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         _LAST_LEDGER = ledger
         setattr(gh, SEMANTIC_LEDGER_ATTR, copy.deepcopy(ledger))
+        if _LAST_REVIEW_CONTEXT is not None:
+            module.hardened.write_debug_json_artifact_safely(
+                config,
+                "metadata/review-context.json",
+                copy.deepcopy(_LAST_REVIEW_CONTEXT),
+            )
 
         reporter_update = getattr(reporter, "update", None)
         if callable(reporter_update):

@@ -133,6 +133,11 @@ def main() -> None:
         gh,
     )
 
+    fake_module.hardened.write_debug_json_artifact_safely(
+        config, "metadata/review-context.json", {"existing": True}
+    )
+    assert "semantic_ledger_contract" not in debug_payloads["metadata/review-context.json"]
+
     result, model, tier = fake_module.openrouter_review_with_hybrid_first_pass(*args)
     assert result is result_object
     assert model == "anthropic/claude-opus-5"
@@ -186,9 +191,6 @@ def main() -> None:
     assert len(long_body) <= 65000
     assert safe_calls and safe_calls[-1] <= 65000 - len(v42.SEMANTIC_LEDGER_MARKER_PREFIX) - 200
 
-    fake_module.hardened.write_debug_json_artifact_safely(
-        config, "metadata/review-context.json", {"existing": True}
-    )
     review_context = debug_payloads["metadata/review-context.json"]
     assert review_context["existing"] is True
     assert review_context["semantic_ledger_contract"] == v42.SEMANTIC_LEDGER_CONTRACT
