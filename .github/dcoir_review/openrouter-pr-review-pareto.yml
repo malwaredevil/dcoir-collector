@@ -148,6 +148,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_provenance_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py

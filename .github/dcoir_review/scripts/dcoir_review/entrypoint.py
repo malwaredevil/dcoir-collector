@@ -72,10 +72,12 @@ class DcoirReviewEntrypoint:
     # Architecture-B overlays are deliberately outside the historical semantic
     # patch chain. These run after v31 so old semantic-order invariants remain
     # meaningful while production receives the approved incremental frontier
-    # (v41) followed by the behavior-preserving semantic-ledger foundation (v42).
+    # (v41), semantic-ledger/fingerprint foundation (v42), then fail-closed
+    # semantic-result reuse on exact compatible evidence (v43).
     terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v41',
         'dcoir_review_required_runtime_patch_v42',
+        'dcoir_review_required_runtime_patch_v43',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
