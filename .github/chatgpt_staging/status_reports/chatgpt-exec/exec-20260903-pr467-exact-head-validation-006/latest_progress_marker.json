@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "33722585100",
+  "github_sha": "62ac265fa75848ebeac824a0dca8a2fadcae1aca",
+  "phase": "request-resolved",
+  "request_id": "exec-20260903-pr467-exact-head-validation-006",
+  "request_path": ".github/chatgpt_staging/exec_requests/exec-20260903-pr467-exact-head-validation-006.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-03T06:18:25Z",
+  "workflow": "chatgpt-exec"
+}
