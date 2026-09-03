@@ -79,6 +79,13 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v42',
         'dcoir_review_required_runtime_patch_v43',
     )
+    # v44 is intentionally post-terminal: the mature v41-v43 boot-order contract
+    # remains stable while candidate-scoped escalation wraps the fully composed
+    # semantic/reuse pipeline. Capability gating keeps historical probe objects
+    # and explicit subset tests from receiving an implicit semantic overlay.
+    post_terminal_patch_module_names: tuple[str, ...] = (
+        'dcoir_review_required_runtime_patch_v44',
+    )
 
     def import_module(self, module_name: str) -> ModuleType:
         return importlib.import_module(module_name)
@@ -104,6 +111,8 @@ class DcoirReviewEntrypoint:
             return
         self._apply_patch_modules(review_module, self.patch_module_names)
         self._apply_patch_modules(review_module, self.terminal_patch_module_names)
+        if callable(getattr(review_module, "openrouter_review_with_hybrid_first_pass", None)):
+            self._apply_patch_modules(review_module, self.post_terminal_patch_module_names)
 
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
