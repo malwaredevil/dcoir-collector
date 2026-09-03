@@ -161,7 +161,12 @@ def manifest_from_zip(payload: bytes) -> dict[str, Any]:
         matches = [name for name in archive.namelist() if name.endswith(MANIFEST_PATH)]
         if len(matches) != 1:
             raise RuntimeError("trusted prior artifact does not contain exactly one reuse manifest")
-        raw = archive.read(matches[0])
+        info = archive.getinfo(matches[0])
+        if info.file_size > MAX_ARTIFACT_BYTES:
+            raise RuntimeError("trusted prior reuse manifest exceeds read limit")
+        raw = archive.read(info)
+        if len(raw) > MAX_ARTIFACT_BYTES:
+            raise RuntimeError("trusted prior reuse manifest exceeds read limit")
     value = json.loads(raw.decode("utf-8"))
     if not isinstance(value, dict):
         raise RuntimeError("trusted prior reuse manifest is not an object")
