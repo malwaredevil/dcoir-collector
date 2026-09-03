@@ -39,8 +39,9 @@ def run_challenger(
         staged,
         "\n\n[v44 challenger evidence truncated by reviewer budget]",
     )
+    artifact_scope = "candidate" if context_scope == "candidate-scoped" else "broad"
     module.hardened.write_debug_text_artifact_safely(
-        config, "prompts/08-v44-candidate-challenger.txt", prompt
+        config, f"prompts/08-v44-{artifact_scope}-challenger.txt", prompt
     )
     if reporter:
         reporter.update(
@@ -52,7 +53,7 @@ def run_challenger(
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
-        "responses/08-v44-candidate-challenger.json",
+        f"responses/08-v44-{artifact_scope}-challenger.json",
         {
             "context_scope": context_scope,
             "model_used": model,

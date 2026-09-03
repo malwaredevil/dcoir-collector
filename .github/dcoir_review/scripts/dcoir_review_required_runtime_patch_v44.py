@@ -5,9 +5,9 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
+import dcoir_review_required_runtime_patch_v44_telemetry as telemetry
 
 VERSION = "v44"
 _APPLIED_ATTR = "_dcoir_v44_applied"
@@ -94,59 +94,6 @@ def _merge_scoped_result(
     return final
 
 
-def _apply_escalation_metadata(
-    module: Any,
-    gh: Any,
-    config: Any,
-    result: dict[str, Any],
-    plan: dict[str, Any],
-    context_scope: str,
-    challenger_calls: int,
-    adjudicator_calls: int,
-    widened: bool,
-) -> dict[str, Any]:
-    metadata = {
-        "contract": scope.CONTRACT,
-        "mode": plan.get("mode", ""),
-        "reasons": list(plan.get("reasons", [])),
-        "candidate_count": int(plan.get("candidate_count", 0) or 0),
-        "escalated_candidate_count": len(plan.get("escalated_candidate_keys", [])),
-        "selected_paths": list(plan.get("selected_paths", [])),
-        "context_scope": context_scope,
-        "challenger_call_count": challenger_calls,
-        "adjudicator_call_count": adjudicator_calls,
-        "widened": widened,
-    }
-    final = dict(result)
-    final["_candidate_escalation"] = metadata
-    ledger = getattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, None)
-    if isinstance(ledger, dict):
-        ledger["escalation"] = metadata
-        telemetry = ledger.setdefault("telemetry", {})
-        telemetry["candidate_count"] = metadata["candidate_count"]
-        telemetry["escalated_candidate_count"] = metadata[
-            "escalated_candidate_count"
-        ]
-        telemetry["challenger_call_count"] = challenger_calls
-        telemetry["adjudicator_call_count"] = adjudicator_calls
-        setattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, ledger)
-        v42_hooks._LAST_LEDGER = ledger
-        module.hardened.write_debug_json_artifact_safely(
-            config, "metadata/semantic-review-ledger.json", ledger
-        )
-        context = v42_hooks._LAST_REVIEW_CONTEXT
-        if isinstance(context, dict):
-            enriched = v42_hooks._review_context_payload_with_ledger(context, ledger)
-            v42_hooks._LAST_REVIEW_CONTEXT = enriched
-            module.hardened.write_debug_json_artifact_safely(
-                config, "metadata/review-context.json", enriched
-            )
-    module.hardened.write_debug_json_artifact_safely(
-        config, "metadata/v44-candidate-escalation.json", metadata
-    )
-    return final
-
-
 def _scoped_hypotheses(
     module: Any,
     primary: dict[str, Any],
@@ -180,6 +127,27 @@ def _broad_hypotheses(
     )
 
 
+def _challenger_outside_scope(
+    module: Any,
+    challenger: dict[str, Any],
+    selected_paths: set[str],
+) -> bool:
+    for item in module.hardened.result_findings(challenger):
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path", "") or "").strip()
+        if not path or path not in selected_paths:
+            return True
+    return False
+
+
+def _widen_plan(plan: dict[str, Any], reason: str) -> dict[str, Any]:
+    widened = dict(plan)
+    widened["mode"] = "broader-context"
+    widened["reasons"] = sorted(set(plan.get("reasons", [])) | {reason})
+    return widened
+
+
 def _patch_semantic_escalation(module: Any) -> None:
     original = getattr(module, _HYBRID_STORAGE, None)
     if original is None:
@@ -203,10 +171,8 @@ def _patch_semantic_escalation(module: Any) -> None:
         context_summary,
         gh,
     ):
-        if (
-            not bool(getattr(config, "candidate_scoped_escalation_review", True))
-            or review_mode != "first-pass-deep"
-        ):
+        enabled = bool(getattr(config, "candidate_scoped_escalation_review", True))
+        if not enabled or review_mode not in {"first-pass-deep", "deep-forced"}:
             return original(
                 pr,
                 files,
@@ -221,6 +187,37 @@ def _patch_semantic_escalation(module: Any) -> None:
                 context_summary,
                 gh,
             )
+
+        if review_mode == "deep-forced":
+            result, model, tier = original(
+                pr,
+                files,
+                diff,
+                schema,
+                config,
+                reporter,
+                risk_sentinels,
+                line_index,
+                deep_context_block,
+                review_mode,
+                context_summary,
+                gh,
+            )
+            plan = scope.build_escalation_plan(
+                module, result, files, risk_sentinels, config, review_mode
+            )
+            final = telemetry.apply(
+                module,
+                gh,
+                config,
+                result,
+                plan,
+                "full-deep",
+                int(bool(getattr(config, "adversarial_confirmation_review", True))),
+                int(bool(getattr(config, "semantic_adjudication_review", True))),
+                False,
+            )
+            return final, model, tier
 
         primary_config = copy.copy(config)
         primary_config.adversarial_confirmation_review = False
@@ -261,7 +258,7 @@ def _patch_semantic_escalation(module: Any) -> None:
                 ),
             )
         if mode == "none":
-            final = _apply_escalation_metadata(
+            final = telemetry.apply(
                 module, gh, config, primary, plan, "primary-only", 0, 0, False
             )
             return final, primary_model, primary_tier
@@ -281,11 +278,8 @@ def _patch_semantic_escalation(module: Any) -> None:
             )
             if evidence is None:
                 widened = True
-                plan = dict(plan)
-                plan["mode"] = "broader-context"
-                plan["reasons"] = sorted(
-                    set(plan.get("reasons", []))
-                    | {reason or "bounded-context-unavailable"}
+                plan = _widen_plan(
+                    plan, reason or "bounded-context-unavailable"
                 )
             else:
                 context_scope = "candidate-scoped"
@@ -307,6 +301,7 @@ def _patch_semantic_escalation(module: Any) -> None:
                 for item in files
                 if str(item.get("filename", "") or "").strip()
             }
+            plan = {**plan, "selected_paths": sorted(selected_paths)}
         if evidence is None:
             raise module.hardened.ReviewQualityError(
                 "DCOIR v44 could not build escalation evidence"
@@ -315,6 +310,34 @@ def _patch_semantic_escalation(module: Any) -> None:
         challenger, challenger_model, challenger_tier = execution.run_challenger(
             module, schema, config, reporter, evidence, context_scope
         )
+        challenger_calls = 1
+        if context_scope == "candidate-scoped" and _challenger_outside_scope(
+            module, challenger, selected_paths
+        ):
+            widened = True
+            plan = _widen_plan(plan, "challenger-outside-bounded-scope")
+            evidence = execution.broad_evidence(
+                module,
+                pr,
+                files,
+                diff,
+                config,
+                risk_sentinels,
+                deep_context_block,
+                review_mode,
+                context_summary,
+            )
+            context_scope = "broader-context"
+            selected_paths = {
+                str(item.get("filename", "") or "").strip()
+                for item in files
+                if str(item.get("filename", "") or "").strip()
+            }
+            plan = {**plan, "selected_paths": sorted(selected_paths)}
+            challenger, challenger_model, challenger_tier = execution.run_challenger(
+                module, schema, config, reporter, evidence, context_scope
+            )
+            challenger_calls += 1
         if context_scope == "candidate-scoped":
             hypotheses, passthrough = _scoped_hypotheses(
                 module, primary, challenger, selected_paths
@@ -330,14 +353,14 @@ def _patch_semantic_escalation(module: Any) -> None:
             if context_scope == "candidate-scoped"
             else adjudicated
         )
-        final = _apply_escalation_metadata(
+        final = telemetry.apply(
             module,
             gh,
             config,
             final,
             plan,
             context_scope,
-            1,
+            challenger_calls,
             1,
             widened,
         )

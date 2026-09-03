@@ -155,6 +155,8 @@ def _plan(
     escalated_keys: list[list[Any]],
     uncovered_paths: list[str],
 ) -> dict[str, Any]:
+    if mode in {"broader-context", "full-deep"}:
+        escalated_keys = [list(finding_key(item)) for item in findings]
     return {
         "contract": CONTRACT,
         "mode": mode,
@@ -286,6 +288,9 @@ def build_escalation_plan(
 
         if path in selected_paths:
             candidate_reasons.add("risk-or-difficult-surface")
+
+        if sum(finding_key(other)[:2] == (path, line) for other in findings) > 1:
+            candidate_reasons.add("conflicting-candidate-hypotheses")
 
         mentioned, unresolved_dependency = _mentioned_changed_paths(item, changed_paths)
         if mentioned:

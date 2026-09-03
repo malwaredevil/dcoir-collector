@@ -83,6 +83,16 @@ semantic_adjudication_model_stack:
 semantic_adjudication_max_findings: 8
 semantic_adjudication_candidate_digest_chars: 24000
 
+# v44 keeps the full primary detector coverage, then invokes the expensive
+# challenger/adjudicator only for uncertain or high-risk candidate regions when
+# their exact-head evidence can be bounded safely. Any ambiguous dependency,
+# insufficient context, or out-of-scope challenger result widens fail-closed.
+candidate_scoped_escalation_review: true
+candidate_escalation_confidence_margin: 0.10
+candidate_escalation_max_paths: 4
+candidate_escalation_file_chars: 12000
+candidate_escalation_total_context_chars: 48000
+
 fix_synthesis_enabled: true
 # v33 keeps this as the bounded repair-author/critic budget, separately from the
 # larger verifier/publication ceiling. v36 may turn one verified finding inside
@@ -150,6 +160,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_scope_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py
