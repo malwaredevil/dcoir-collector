@@ -16,6 +16,7 @@ def main() -> None:
     assert entrypoint.terminal_patch_module_names == (
         "dcoir_review_required_runtime_patch_v41",
         "dcoir_review_required_runtime_patch_v42",
+        "dcoir_review_required_runtime_patch_v43",
     )
 
     calls: list[tuple] = []
