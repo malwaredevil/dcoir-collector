@@ -127,12 +127,12 @@ def _broad_hypotheses(
     )
 
 
-def _challenger_outside_scope(
+def _outside_scope(
     module: Any,
-    challenger: dict[str, Any],
+    result: dict[str, Any],
     selected_paths: set[str],
 ) -> bool:
-    for item in module.hardened.result_findings(challenger):
+    for item in module.hardened.result_findings(result):
         if not isinstance(item, dict):
             continue
         path = str(item.get("path", "") or "").strip()
@@ -141,10 +141,11 @@ def _challenger_outside_scope(
     return False
 
 
-def _widen_plan(plan: dict[str, Any], reason: str) -> dict[str, Any]:
+def _widen_plan(plan, reason, findings):
     widened = dict(plan)
     widened["mode"] = "broader-context"
     widened["reasons"] = sorted(set(plan.get("reasons", [])) | {reason})
+    widened["escalated_candidate_keys"] = [list(scope.finding_key(x)) for x in findings]
     return widened
 
 
@@ -286,7 +287,7 @@ def _patch_semantic_escalation(module: Any) -> None:
             if evidence is None:
                 widened = True
                 plan = _widen_plan(
-                    plan, reason or "bounded-context-unavailable"
+                    plan, reason or "bounded-context-unavailable", primary["findings"]
                 )
             else:
                 context_scope = "candidate-scoped"
@@ -318,11 +319,13 @@ def _patch_semantic_escalation(module: Any) -> None:
             module, schema, config, reporter, evidence, context_scope
         )
         challenger_calls = 1
-        if context_scope == "candidate-scoped" and _challenger_outside_scope(
+        if context_scope == "candidate-scoped" and _outside_scope(
             module, challenger, selected_paths
         ):
             widened = True
-            plan = _widen_plan(plan, "challenger-outside-bounded-scope")
+            plan = _widen_plan(
+                plan, "challenger-outside-bounded-scope", primary["findings"]
+            )
             evidence = execution.broad_evidence(
                 module,
                 pr,
@@ -356,11 +359,13 @@ def _patch_semantic_escalation(module: Any) -> None:
             module, schema, config, reporter, hypotheses, evidence, context_scope
         )
         adjudicator_calls = 1
-        if context_scope == "candidate-scoped" and _challenger_outside_scope(
+        if context_scope == "candidate-scoped" and _outside_scope(
             module, adjudicated, selected_paths
         ):
             widened = True
-            plan = _widen_plan(plan, "adjudicator-outside-bounded-scope")
+            plan = _widen_plan(
+                plan, "adjudicator-outside-bounded-scope", primary["findings"]
+            )
             evidence = execution.broad_evidence(
                 module,
                 pr,

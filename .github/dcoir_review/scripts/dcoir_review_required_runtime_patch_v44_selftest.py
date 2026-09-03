@@ -265,14 +265,15 @@ def test_outside_challenger_finding_widens_and_reruns() -> None:
 
 def test_outside_adjudicator_finding_widens_and_reruns() -> None:
     primary = finding("src/a.py", "primary")
+    passthrough = finding("src/c.py", "pass through")
     escaped = finding("src/b.py", "unscoped adjudication")
     broad = finding("src/b.py", "broadly adjudicated")
-    module, _original_calls, _debug = make_module([primary])
+    module, _original_calls, _debug = make_module([primary, passthrough])
     originals, calls = patch_execution(
         {
             "mode": "candidate-scoped",
             "reasons": ["near-publication-threshold"],
-            "candidate_count": 1,
+            "candidate_count": 2,
             "selected_paths": ["src/a.py"],
             "escalated_candidate_keys": [["src/a.py", 4, "primary"]],
         },
@@ -296,18 +297,23 @@ def test_outside_adjudicator_finding_widens_and_reruns() -> None:
     assert "adjudicator-outside-bounded-scope" in metadata["reasons"]
     assert metadata["challenger_call_count"] == 2
     assert metadata["adjudicator_call_count"] == 2
+    assert metadata["escalated_candidate_count"] == 2
     assert metadata["widened"] is True
-    assert result["findings"] == [primary, finding("src/b.py", "broadly adjudicated")]
+    assert result["findings"] == [broad]
 
 
 def test_disabled_escalation_stages_delegate_to_original() -> None:
     module, original_calls, _debug = make_module([finding("src/a.py", "primary")])
-    cfg = config()
-    cfg.adversarial_confirmation_review = False
-    result, model, tier = invoke(module, cfg=cfg)
-    assert result["summary"] == "primary"
-    assert model == "primary" and tier == "p"
-    assert original_calls == [(False, True)]
+    for field in (
+        "adversarial_confirmation_review",
+        "semantic_adjudication_review",
+    ):
+        cfg = config()
+        setattr(cfg, field, False)
+        result, model, tier = invoke(module, cfg=cfg)
+        assert result["summary"] == "primary"
+        assert model == "primary" and tier == "p"
+    assert original_calls == [(False, True), (True, False)]
 
 
 def test_explicit_deep_delegates_to_existing_broad_contract() -> None:
@@ -377,10 +383,23 @@ def test_flat_shape_recovery_stays_inside_bounded_adjudication() -> None:
     assert result["_semantic_adjudication_context_scope"] == "candidate-scoped"
     assert model == "adjudicator" and tier == ""
     assert "BROAD" not in debug["prompts/09-v44-candidate-adjudication.txt"]
+    v44.execution.run_adjudicator(
+        module,
+        {"type": "object"},
+        cfg,
+        None,
+        [flat],
+        "BROAD",
+        "broader-context",
+    )
+    assert calls == ["bounded-adjudicator", "bounded-adjudicator"]
+    assert "BROAD" in debug["prompts/09-v44-broad-adjudication.txt"]
+    assert "responses/09-v44-candidate-adjudication.json" in debug
+    assert "responses/09-v44-broad-adjudication.json" in debug
 
 
 def main() -> None:
-    assert v44._challenger_outside_scope(
+    assert v44._outside_scope(
         SimpleNamespace(
             hardened=SimpleNamespace(result_findings=lambda result: result["findings"])
         ),
@@ -390,6 +409,8 @@ def main() -> None:
     test_no_escalation()
     test_candidate_scope_preserves_passthrough_and_telemetry()
     test_outside_challenger_finding_widens_and_reruns()
+    test_outside_adjudicator_finding_widens_and_reruns()
+    test_disabled_escalation_stages_delegate_to_original()
     test_explicit_deep_delegates_to_existing_broad_contract()
     test_flat_shape_recovery_stays_inside_bounded_adjudication()
     print("dcoir_review_required_runtime_patch_v44_selftest passed")
