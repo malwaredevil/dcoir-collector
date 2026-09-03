@@ -93,6 +93,11 @@ candidate_escalation_max_paths: 4
 candidate_escalation_file_chars: 12000
 candidate_escalation_total_context_chars: 48000
 
+# v45 makes final GitHub review prose derive from the exact-head verifier
+# disposition. Detector/challenger/adjudicator summary prose and unanchored
+# hypotheses cannot bypass the publication verifier.
+verifier_authoritative_publication_review: true
+
 fix_synthesis_enabled: true
 # v33 keeps this as the bounded repair-author/critic budget, separately from the
 # larger verifier/publication ceiling. v36 may turn one verified finding inside
@@ -162,6 +167,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_scope_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v45_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py

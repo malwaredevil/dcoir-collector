@@ -218,6 +218,7 @@ def test_config_and_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names == (
         "dcoir_review_required_runtime_patch_v44",
+        "dcoir_review_required_runtime_patch_v45",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "candidate_scoped_escalation_review: true" in production
