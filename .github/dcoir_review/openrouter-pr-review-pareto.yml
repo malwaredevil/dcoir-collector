@@ -98,6 +98,18 @@ candidate_escalation_total_context_chars: 48000
 # hypotheses cannot bypass the publication verifier.
 verifier_authoritative_publication_review: true
 
+# v46 builds one exact-head semantic context package for all downstream review
+# projections. Only trusted, low-risk, small incremental scopes receive the
+# reduced prompt/context budget; initial, deep, risky, stale, cumulative, and
+# fallback scopes retain the full existing quality floor.
+canonical_semantic_context_review: true
+adaptive_semantic_budgets_review: true
+adaptive_semantic_min_prompt_chars: 48000
+adaptive_semantic_small_delta_prompt_chars: 60000
+adaptive_semantic_small_delta_max_files: 4
+adaptive_semantic_small_delta_max_diff_chars: 20000
+adaptive_semantic_small_delta_max_context_chars: 30000
+
 fix_synthesis_enabled: true
 # v33 keeps this as the bounded repair-author/critic budget, separately from the
 # larger verifier/publication ceiling. v36 may turn one verified finding inside
@@ -168,6 +180,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_scope_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v45_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v46_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_hardened_selftest.py

@@ -79,14 +79,17 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v42',
         'dcoir_review_required_runtime_patch_v43',
     )
-    # v44-v45 are intentionally post-terminal: the mature v41-v43 boot-order
+    # v44-v46 are intentionally post-terminal: the mature v41-v43 boot-order
     # contract remains stable while candidate-scoped escalation wraps the fully
     # composed semantic/reuse pipeline and verifier-authoritative publication
-    # owns the final user-facing body. Capability gating keeps historical probe
-    # objects and explicit subset tests from receiving implicit overlays.
+    # owns the final user-facing body. v46 then supplies one exact-head semantic
+    # context package and fail-safe adaptive budgets to the composed pipeline.
+    # Capability gating keeps historical probe objects and explicit subset tests
+    # from receiving implicit overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v44',
         'dcoir_review_required_runtime_patch_v45',
+        'dcoir_review_required_runtime_patch_v46',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
