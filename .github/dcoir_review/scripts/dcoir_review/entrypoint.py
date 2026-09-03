@@ -69,12 +69,13 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v39',
         'dcoir_review_required_runtime_patch_v31',
     )
-    # Architecture-B scope selection is deliberately outside the historical
-    # semantic patch chain. These overlays run after v31 so old semantic-order
-    # invariants remain meaningful while production still receives the approved
-    # reviewed-HEAD -> current-HEAD frontier and its conservative fallbacks.
+    # Architecture-B overlays are deliberately outside the historical semantic
+    # patch chain. These run after v31 so old semantic-order invariants remain
+    # meaningful while production receives the approved incremental frontier
+    # (v41) followed by the behavior-preserving semantic-ledger foundation (v42).
     terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v41',
+        'dcoir_review_required_runtime_patch_v42',
     )
 
     def import_module(self, module_name: str) -> ModuleType:

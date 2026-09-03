@@ -14,7 +14,10 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
-    assert entrypoint.terminal_patch_module_names == ("dcoir_review_required_runtime_patch_v41",)
+    assert entrypoint.terminal_patch_module_names == (
+        "dcoir_review_required_runtime_patch_v41",
+        "dcoir_review_required_runtime_patch_v42",
+    )
 
     applied_modules: list[str] = []
 
