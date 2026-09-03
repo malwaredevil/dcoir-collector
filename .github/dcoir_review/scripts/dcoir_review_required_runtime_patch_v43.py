@@ -6,6 +6,7 @@ import os
 import threading
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v41_scope as v41_scope
 import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v43_reuse as reuse
 
@@ -28,7 +29,9 @@ def _new_state(module: Any, gh: Any, pr: dict[str, Any]) -> dict[str, Any]:
         "trusted_prior_head": prior_head,
         "load_reason": load_reason,
         "decisions": {},
+        "carry_forward_decisions": {},
         "records": {},
+        "carried_forward_record_count": 0,
         "lock": threading.Lock(),
     }
 
@@ -37,6 +40,86 @@ def _record(state: dict[str, Any], path: str, decision: dict[str, Any], record: 
     with state["lock"]:
         state["decisions"][path] = decision
         state["records"][path] = record
+
+
+def _record_head(record: dict[str, Any]) -> str:
+    return str(
+        record.get("carried_forward_head", "")
+        or record.get("origin_reviewed_head", "")
+        or ""
+    ).strip().lower()
+
+
+def _scope_changed_paths(scope: dict[str, Any]) -> set[str]:
+    changed: set[str] = set()
+    files = scope.get("files", [])
+    if not isinstance(files, list):
+        return changed
+    for item in files:
+        if not isinstance(item, dict):
+            continue
+        for field in ("filename", "previous_filename"):
+            path = str(item.get(field, "") or "").strip()
+            if path:
+                changed.add(path)
+    return changed
+
+
+def _carry_forward_unchanged_records(gh: Any, pr: dict[str, Any], state: dict[str, Any]) -> int:
+    """Advance only records whose source ancestry is proven unchanged by v41."""
+    prior_head = str(state.get("trusted_prior_head", "") or "").strip().lower()
+    current_head = str(pr.get("head", {}).get("sha", "") or "").strip().lower()
+    prior_records = state.get("prior_records", {})
+    if not prior_head or not current_head or not isinstance(prior_records, dict):
+        return 0
+
+    if current_head == prior_head:
+        changed_paths: set[str] = set()
+        reason = "same-reviewed-head"
+    else:
+        scope = getattr(gh, v41_scope.SCOPE_CACHE_ATTR, None)
+        if not isinstance(scope, dict):
+            return 0
+        if str(scope.get("source", "") or "") != "incremental-reviewed-head":
+            return 0
+        if str(scope.get("fallback_reason", "") or ""):
+            return 0
+        if str(scope.get("compare_status", "") or "").strip().lower() != "ahead":
+            return 0
+        if str(scope.get("prior_reviewed_head_sha", "") or "").strip().lower() != prior_head:
+            return 0
+        if str(scope.get("current_head_sha", "") or "").strip().lower() != current_head:
+            return 0
+        changed_paths = _scope_changed_paths(scope)
+        reason = "unchanged-in-incremental-frontier"
+
+    carried = 0
+    with state["lock"]:
+        for path in sorted(prior_records):
+            if path in state["records"] or path in changed_paths:
+                continue
+            record = prior_records[path]
+            if not isinstance(record, dict):
+                continue
+            if record.get("contract") != reuse.REUSE_CONTRACT:
+                continue
+            if record.get("outcome") != "complete" or not isinstance(record.get("result"), dict):
+                continue
+            if _record_head(record) != prior_head:
+                continue
+            next_record = dict(record)
+            next_record["carried_forward_head"] = current_head
+            next_record["carry_forward_reason"] = reason
+            state["records"][path] = next_record
+            state["carry_forward_decisions"][path] = {
+                "path": path,
+                "decision": "carried-forward",
+                "reason": reason,
+                "reuse_key": str(record.get("reuse_key", "") or ""),
+            }
+            carried += 1
+        state["carried_forward_record_count"] = carried
+    return carried
 
 
 def _ledger_file_records(ledger: dict[str, Any]) -> list[dict[str, Any]]:
@@ -56,8 +139,10 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
     if not isinstance(ledger, dict):
         return
     decisions = state["decisions"]
+    carry_decisions = state["carry_forward_decisions"]
     reused = sum(1 for item in decisions.values() if item.get("decision") == "reused")
     recomputed = sum(1 for item in decisions.values() if item.get("decision") == "recomputed")
+    carried = int(state.get("carried_forward_record_count", 0) or 0)
     ledger["reuse"] = {
         "enabled": True,
         "eligible": reused > 0,
@@ -70,8 +155,10 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
     telemetry["reviewed_file_count"] = len(decisions)
     telemetry["reused_file_count"] = reused
     telemetry["recomputed_file_count"] = recomputed
+    telemetry["carried_forward_record_count"] = carried
     telemetry["reuse_invalidation_reason"] = "" if reused else state["load_reason"]
     ledger_decisions = [decisions[path] for path in sorted(decisions)]
+    ledger_decisions.extend(carry_decisions[path] for path in sorted(carry_decisions))
     for file_record in _ledger_file_records(ledger):
         path = str(file_record.get("path", "") or "")
         decision = decisions.get(path)
@@ -236,6 +323,7 @@ def apply_pareto_context_module(module: Any) -> None:
             context_summary,
             gh,
         )
+        carried = _carry_forward_unchanged_records(gh, pr, state)
         _apply_ledger_telemetry(module, gh, config, state)
         manifest_persisted = _write_manifest(module, config, pr, state)
         reused = sum(
@@ -249,7 +337,8 @@ def apply_pareto_context_module(module: Any) -> None:
         reporter.update(
             "semantic-reuse",
             (
-                f"reused={reused}; recomputed={recomputed}; prior={state['load_reason']}; "
+                f"reused={reused}; recomputed={recomputed}; carried={carried}; "
+                f"prior={state['load_reason']}; "
                 f"state={'persisted' if manifest_persisted else 'not-persisted'}"
             ),
         )
