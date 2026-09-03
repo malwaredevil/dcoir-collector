@@ -6,9 +6,11 @@ import hashlib
 import inspect
 import io
 import json
+import os
 import urllib.error
 import urllib.request
 import zipfile
+from pathlib import Path
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v41_review_state as v41_state
@@ -19,6 +21,8 @@ REUSE_CONTRACT = "architecture-b-semantic-result-reuse-v1"
 DEPENDENCY_CONTRACT = "dependency-context-v2"
 DEPENDENCY_MODE = "exact-semantic-prompt-v1"
 MANIFEST_PATH = "metadata/semantic-result-reuse-manifest.json"
+ARTIFACT_DIR_ENV = "DCOIR_REVIEW_DEBUG_ARTIFACT_DIR"
+ARTIFACT_DIR_DEFAULT = "dcoir-review-debug"
 MAX_ARTIFACT_BYTES = 5_000_000
 
 
@@ -130,6 +134,25 @@ def evaluate_reuse_candidate(
     if not isinstance(prior_record.get("result"), dict):
         return False, "prior-result-invalid"
     return True, "exact-semantic-input-match"
+
+
+def persist_manifest(module: Any, config: Any, manifest: dict[str, Any]) -> bool:
+    """Persist sanitized reuse state even when verbose debug mode is disabled."""
+    sanitizer = getattr(getattr(module, "base", None), "sanitize_debug_json_value", None)
+    if not callable(sanitizer):
+        return False
+    safe_manifest = sanitizer(manifest, config)
+    text = json.dumps(safe_manifest, indent=2, sort_keys=True, default=str) + "\n"
+    if len(text.encode("utf-8")) > MAX_ARTIFACT_BYTES:
+        return False
+    raw_root = os.environ.get(ARTIFACT_DIR_ENV, "").strip() or ARTIFACT_DIR_DEFAULT
+    root = Path(raw_root).resolve(strict=False)
+    path = (root / MANIFEST_PATH).resolve(strict=False)
+    if root not in path.parents:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return True
 
 
 def parse_run_id(review: dict[str, Any]) -> str:
