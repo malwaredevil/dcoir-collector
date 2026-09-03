@@ -137,12 +137,22 @@ def evaluate_reuse_candidate(
 
 
 def persist_manifest(module: Any, config: Any, manifest: dict[str, Any]) -> bool:
-    """Persist sanitized reuse state even when verbose debug mode is disabled."""
+    """Persist exact machine state only when the safety sanitizer is lossless."""
     sanitizer = getattr(getattr(module, "base", None), "sanitize_debug_json_value", None)
     if not callable(sanitizer):
         return False
-    safe_manifest = sanitizer(manifest, config)
-    text = json.dumps(safe_manifest, indent=2, sort_keys=True, default=str) + "\n"
+    try:
+        safe_manifest = sanitizer(manifest, config)
+    except Exception:
+        return False
+    if safe_manifest != manifest:
+        return False
+    try:
+        text = json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        if json.loads(text) != manifest:
+            return False
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
     if len(text.encode("utf-8")) > MAX_ARTIFACT_BYTES:
         return False
     raw_root = os.environ.get(ARTIFACT_DIR_ENV, "").strip() or ARTIFACT_DIR_DEFAULT
@@ -150,8 +160,11 @@ def persist_manifest(module: Any, config: Any, manifest: dict[str, Any]) -> bool
     path = (root / MANIFEST_PATH).resolve(strict=False)
     if root not in path.parents:
         return False
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    except OSError:
+        return False
     return True
 
 
@@ -196,6 +209,55 @@ def manifest_from_zip(payload: bytes) -> dict[str, Any]:
     return value
 
 
+def validate_manifest(manifest: dict[str, Any], prior_head: str, run_id: str) -> str:
+    """Return an empty string only for a complete, current-contract manifest."""
+    checks = (
+        (manifest.get("contract") == REUSE_CONTRACT, "trusted-prior-manifest-contract-mismatch"),
+        (manifest.get("runtime_version") == VERSION, "trusted-prior-manifest-runtime-mismatch"),
+        (
+            str(manifest.get("reviewed_head", "") or "").strip().lower() == prior_head,
+            "trusted-prior-manifest-head-mismatch",
+        ),
+        (
+            str(manifest.get("workflow_run_id", "") or "").strip() == run_id,
+            "trusted-prior-manifest-run-mismatch",
+        ),
+        (
+            manifest.get("dependency_contract") == DEPENDENCY_CONTRACT,
+            "trusted-prior-manifest-dependency-contract-mismatch",
+        ),
+        (
+            manifest.get("dependency_mode") == DEPENDENCY_MODE,
+            "trusted-prior-manifest-dependency-mode-mismatch",
+        ),
+        (manifest.get("outcome") == "complete", "trusted-prior-manifest-incomplete"),
+        (isinstance(manifest.get("records"), list), "trusted-prior-manifest-records-invalid"),
+    )
+    for passed, reason in checks:
+        if not passed:
+            return reason
+    seen: set[str] = set()
+    for record in manifest["records"]:
+        if not isinstance(record, dict):
+            return "trusted-prior-manifest-record-invalid"
+        path = str(record.get("path", "") or "").strip()
+        if not path or path in seen:
+            return "trusted-prior-manifest-record-path-invalid"
+        seen.add(path)
+        if record.get("contract") != REUSE_CONTRACT or record.get("outcome") != "complete":
+            return "trusted-prior-manifest-record-contract-invalid"
+        record_head = str(
+            record.get("carried_forward_head", "")
+            or record.get("origin_reviewed_head", "")
+            or ""
+        ).strip().lower()
+        if record_head != prior_head:
+            return "trusted-prior-manifest-record-head-mismatch"
+        if not isinstance(record.get("result"), dict):
+            return "trusted-prior-manifest-record-result-invalid"
+    return ""
+
+
 def trusted_prior_manifest(
     module: Any,
     gh: Any,
@@ -223,7 +285,8 @@ def trusted_prior_manifest(
         artifacts = listing.get("artifacts", []) if isinstance(listing, dict) else []
         expected = f"dcoir-review-debug-{pr_number}-{run_id}"
         candidates = [
-            item for item in artifacts
+            item
+            for item in artifacts
             if isinstance(item, dict)
             and item.get("name") == expected
             and not bool(item.get("expired"))
@@ -241,10 +304,7 @@ def trusted_prior_manifest(
         json.JSONDecodeError,
     ):
         return None, "", "trusted-prior-manifest-unreadable"
-    if manifest.get("contract") != REUSE_CONTRACT:
-        return None, "", "trusted-prior-manifest-contract-mismatch"
-    if str(manifest.get("reviewed_head", "") or "").strip().lower() != prior_head:
-        return None, "", "trusted-prior-manifest-head-mismatch"
-    if str(manifest.get("outcome", "") or "") != "complete":
-        return None, "", "trusted-prior-manifest-incomplete"
+    invalid_reason = validate_manifest(manifest, prior_head, run_id)
+    if invalid_reason:
+        return None, "", invalid_reason
     return manifest, prior_head, "trusted-prior-manifest-loaded"
