@@ -14,7 +14,6 @@ from dcoir_review_required_runtime_patch_v46_contract import (
     CONTEXT_PACKAGE_CONTRACT,
     PACKAGE_ATTR,
     RUNTIME_ATTR,
-    VERSION,
     positive_int,
 )
 
