@@ -143,10 +143,26 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
     reused = sum(1 for item in decisions.values() if item.get("decision") == "reused")
     recomputed = sum(1 for item in decisions.values() if item.get("decision") == "recomputed")
     carried = int(state.get("carried_forward_record_count", 0) or 0)
+    invalidation_reasons = sorted(
+        {
+            str(item.get("reason", "") or "")
+            for item in decisions.values()
+            if item.get("decision") == "recomputed" and item.get("reason")
+        }
+    )
+    reuse_reason = (
+        invalidation_reasons[0]
+        if invalidation_reasons
+        else (
+            "no-reusable-results"
+            if state["load_reason"] == "trusted-prior-manifest-loaded" and not reused
+            else state["load_reason"]
+        )
+    )
     ledger["reuse"] = {
         "enabled": True,
         "eligible": reused > 0,
-        "reason": "reused-eligible-results" if reused else state["load_reason"],
+        "reason": "reused-eligible-results" if reused else reuse_reason,
         "contract": reuse.REUSE_CONTRACT,
         "dependency_contract": reuse.DEPENDENCY_CONTRACT,
         "dependency_mode": reuse.DEPENDENCY_MODE,
@@ -156,7 +172,7 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
     telemetry["reused_file_count"] = reused
     telemetry["recomputed_file_count"] = recomputed
     telemetry["carried_forward_record_count"] = carried
-    telemetry["reuse_invalidation_reason"] = "" if reused else state["load_reason"]
+    telemetry["reuse_invalidation_reason"] = "" if reused else reuse_reason
     ledger_decisions = [decisions[path] for path in sorted(decisions)]
     ledger_decisions.extend(carry_decisions[path] for path in sorted(carry_decisions))
     for file_record in _ledger_file_records(ledger):

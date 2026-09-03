@@ -8,6 +8,7 @@ import io
 import json
 import os
 import urllib.error
+import urllib.parse
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -24,6 +25,11 @@ MANIFEST_PATH = "metadata/semantic-result-reuse-manifest.json"
 ARTIFACT_DIR_ENV = "DCOIR_REVIEW_DEBUG_ARTIFACT_DIR"
 ARTIFACT_DIR_DEFAULT = "dcoir-review-debug"
 MAX_ARTIFACT_BYTES = 5_000_000
+
+
+class _NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def sha_text(value: str) -> str:
@@ -185,7 +191,22 @@ def artifact_zip_bytes(gh: Any, artifact_id: int) -> bytes:
             "User-Agent": "dcoir-review",
         },
     )
-    with urllib.request.urlopen(request, timeout=60) as response:
+    opener = urllib.request.build_opener(_NoRedirectHandler)
+    try:
+        response = opener.open(request, timeout=60)
+    except urllib.error.HTTPError as exc:
+        if exc.code not in {301, 302, 303, 307, 308}:
+            raise
+        location = exc.headers.get("Location", "")
+        if not location:
+            raise
+        redirected = urllib.request.Request(
+            urllib.parse.urljoin(url, location),
+            method="GET",
+            headers={"User-Agent": "dcoir-review"},
+        )
+        response = urllib.request.urlopen(redirected, timeout=60)
+    with response:
         payload = response.read(MAX_ARTIFACT_BYTES + 1)
     if len(payload) > MAX_ARTIFACT_BYTES:
         raise RuntimeError("prior DCOIR debug artifact exceeds reuse read limit")
