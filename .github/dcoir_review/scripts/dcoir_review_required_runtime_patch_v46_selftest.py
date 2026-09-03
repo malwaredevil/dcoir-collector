@@ -297,7 +297,7 @@ def test_composed_context_reuse_and_artifacts() -> None:
 def test_incremental_budget_and_rollback() -> None:
     module, _artifacts, calls = make_review_module()
     v46.apply_pareto_context_module(module)
-    (_result, _model, _tier), gh, _reporter = invoke(
+    (_result, _model, unused_tier), gh, _reporter = invoke(
         module, diff="tiny", mode="diff", cfg=config(), gh=SimpleNamespace()
     )
     package = module.semantic_context_package_for_client(gh)
