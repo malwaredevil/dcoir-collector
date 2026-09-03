@@ -172,7 +172,14 @@ def _patch_semantic_escalation(module: Any) -> None:
         gh,
     ):
         enabled = bool(getattr(config, "candidate_scoped_escalation_review", True))
-        if not enabled or review_mode not in {"first-pass-deep", "deep-forced"}:
+        stages_enabled = bool(
+            getattr(config, "adversarial_confirmation_review", True)
+        ) and bool(getattr(config, "semantic_adjudication_review", True))
+        if (
+            not enabled
+            or review_mode not in {"first-pass-deep", "deep-forced"}
+            or not stages_enabled
+        ):
             return original(
                 pr,
                 files,
@@ -348,6 +355,39 @@ def _patch_semantic_escalation(module: Any) -> None:
         adjudicated, adjudicator_model, adjudicator_tier = execution.run_adjudicator(
             module, schema, config, reporter, hypotheses, evidence, context_scope
         )
+        adjudicator_calls = 1
+        if context_scope == "candidate-scoped" and _challenger_outside_scope(
+            module, adjudicated, selected_paths
+        ):
+            widened = True
+            plan = _widen_plan(plan, "adjudicator-outside-bounded-scope")
+            evidence = execution.broad_evidence(
+                module,
+                pr,
+                files,
+                diff,
+                config,
+                risk_sentinels,
+                deep_context_block,
+                review_mode,
+                context_summary,
+            )
+            context_scope = "broader-context"
+            selected_paths = {
+                str(item.get("filename", "") or "").strip()
+                for item in files
+                if str(item.get("filename", "") or "").strip()
+            }
+            plan = {**plan, "selected_paths": sorted(selected_paths)}
+            challenger, challenger_model, challenger_tier = execution.run_challenger(
+                module, schema, config, reporter, evidence, context_scope
+            )
+            challenger_calls += 1
+            hypotheses = _broad_hypotheses(module, primary, challenger)
+            adjudicated, adjudicator_model, adjudicator_tier = execution.run_adjudicator(
+                module, schema, config, reporter, hypotheses, evidence, context_scope
+            )
+            adjudicator_calls += 1
         final = (
             _merge_scoped_result(module, primary, passthrough, adjudicated)
             if context_scope == "candidate-scoped"
@@ -361,7 +401,7 @@ def _patch_semantic_escalation(module: Any) -> None:
             plan,
             context_scope,
             challenger_calls,
-            1,
+            adjudicator_calls,
             widened,
         )
         model_label = (

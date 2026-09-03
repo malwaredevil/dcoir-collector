@@ -108,8 +108,9 @@ def run_adjudicator(
         staged,
         "\n\n[v44 adjudication evidence truncated by reviewer budget]",
     )
+    artifact_scope = "candidate" if context_scope == "candidate-scoped" else "broad"
     module.hardened.write_debug_text_artifact_safely(
-        config, "prompts/09-v44-candidate-adjudication.txt", prompt
+        config, f"prompts/09-v44-{artifact_scope}-adjudication.txt", prompt
     )
     if reporter:
         reporter.update(
@@ -133,7 +134,7 @@ def run_adjudicator(
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
-        "responses/09-v44-candidate-adjudication.json",
+        f"responses/09-v44-{artifact_scope}-adjudication.json",
         {
             "context_scope": context_scope,
             "model_used": model,

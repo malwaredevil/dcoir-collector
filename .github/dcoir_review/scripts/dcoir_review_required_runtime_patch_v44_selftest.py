@@ -92,7 +92,9 @@ def invoke(module, cfg=None, mode="first-pass-deep", gh=None):
     )
 
 
-def patch_execution(plan, challenger_results, adjudicated_findings):
+def patch_execution(
+    plan, challenger_results, adjudicated_findings, adjudicated_results=None
+):
     originals = (
         v44.scope.build_escalation_plan,
         v44.scope.build_bounded_evidence,
@@ -102,6 +104,7 @@ def patch_execution(plan, challenger_results, adjudicated_findings):
     )
     calls = {"challenger": [], "adjudicator": []}
     queue = list(challenger_results)
+    adjudicator_queue = list(adjudicated_results or [adjudicated_findings])
     v44.scope.build_escalation_plan = lambda *_args: dict(plan)
     v44.scope.build_bounded_evidence = lambda *_args: ("BOUNDED", "")
     v44.execution.broad_evidence = lambda *_args: "BROAD"
@@ -120,10 +123,11 @@ def patch_execution(plan, challenger_results, adjudicated_findings):
         context_scope,
     ):
         calls["adjudicator"].append((hypotheses, evidence, context_scope))
+        findings = adjudicator_queue.pop(0)
         return (
             {
                 "summary": "adjudicated",
-                "findings": list(adjudicated_findings),
+                "findings": list(findings),
                 "_semantic_adjudication_model": "adjudicator",
                 "_semantic_adjudication_input_candidates": len(hypotheses),
             },
@@ -257,6 +261,53 @@ def test_outside_challenger_finding_widens_and_reruns() -> None:
         for item in metadata["candidate_decisions"]
     )
     assert "challenger-broader-context" in model
+
+
+def test_outside_adjudicator_finding_widens_and_reruns() -> None:
+    primary = finding("src/a.py", "primary")
+    escaped = finding("src/b.py", "unscoped adjudication")
+    broad = finding("src/b.py", "broadly adjudicated")
+    module, _original_calls, _debug = make_module([primary])
+    originals, calls = patch_execution(
+        {
+            "mode": "candidate-scoped",
+            "reasons": ["near-publication-threshold"],
+            "candidate_count": 1,
+            "selected_paths": ["src/a.py"],
+            "escalated_candidate_keys": [["src/a.py", 4, "primary"]],
+        },
+        [{"findings": [finding("src/a.py", "challenger")]}, {"findings": [broad]}],
+        [escaped],
+        adjudicated_results=[[escaped], [broad]],
+    )
+    try:
+        result, _model, _tier = invoke(module)
+    finally:
+        restore_execution(originals)
+    assert calls["challenger"] == [
+        ("BOUNDED", "candidate-scoped"),
+        ("BROAD", "broader-context"),
+    ]
+    assert len(calls["adjudicator"]) == 2
+    assert calls["adjudicator"][0][2] == "candidate-scoped"
+    assert calls["adjudicator"][1][1:] == ("BROAD", "broader-context")
+    metadata = result["_candidate_escalation"]
+    assert metadata["mode"] == "broader-context"
+    assert "adjudicator-outside-bounded-scope" in metadata["reasons"]
+    assert metadata["challenger_call_count"] == 2
+    assert metadata["adjudicator_call_count"] == 2
+    assert metadata["widened"] is True
+    assert result["findings"] == [primary, finding("src/b.py", "broadly adjudicated")]
+
+
+def test_disabled_escalation_stages_delegate_to_original() -> None:
+    module, original_calls, _debug = make_module([finding("src/a.py", "primary")])
+    cfg = config()
+    cfg.adversarial_confirmation_review = False
+    result, model, tier = invoke(module, cfg=cfg)
+    assert result["summary"] == "primary"
+    assert model == "primary" and tier == "p"
+    assert original_calls == [(False, True)]
 
 
 def test_explicit_deep_delegates_to_existing_broad_contract() -> None:
