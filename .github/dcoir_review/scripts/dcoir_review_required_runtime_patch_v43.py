@@ -109,7 +109,7 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
         )
 
 
-def _write_manifest(module: Any, config: Any, pr: dict[str, Any], state: dict[str, Any]) -> None:
+def _write_manifest(module: Any, config: Any, pr: dict[str, Any], state: dict[str, Any]) -> bool:
     head = str(pr.get("head", {}).get("sha", "") or "").strip().lower()
     manifest = {
         "contract": reuse.REUSE_CONTRACT,
@@ -121,7 +121,7 @@ def _write_manifest(module: Any, config: Any, pr: dict[str, Any], state: dict[st
         "dependency_mode": reuse.DEPENDENCY_MODE,
         "records": [state["records"][path] for path in sorted(state["records"])],
     }
-    module.hardened.write_debug_json_artifact_safely(config, reuse.MANIFEST_PATH, manifest)
+    return reuse.persist_manifest(module, config, manifest)
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -237,7 +237,7 @@ def apply_pareto_context_module(module: Any) -> None:
             gh,
         )
         _apply_ledger_telemetry(module, gh, config, state)
-        _write_manifest(module, config, pr, state)
+        manifest_persisted = _write_manifest(module, config, pr, state)
         reused = sum(
             1 for item in state["decisions"].values() if item.get("decision") == "reused"
         )
@@ -248,7 +248,10 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         reporter.update(
             "semantic-reuse",
-            f"reused={reused}; recomputed={recomputed}; prior={state['load_reason']}",
+            (
+                f"reused={reused}; recomputed={recomputed}; prior={state['load_reason']}; "
+                f"state={'persisted' if manifest_persisted else 'not-persisted'}"
+            ),
         )
         return result
 
