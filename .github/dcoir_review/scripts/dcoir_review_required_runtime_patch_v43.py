@@ -39,6 +39,18 @@ def _record(state: dict[str, Any], path: str, decision: dict[str, Any], record: 
         state["records"][path] = record
 
 
+def _ledger_file_records(ledger: dict[str, Any]) -> list[dict[str, Any]]:
+    review_surface = ledger.get("review_surface")
+    if isinstance(review_surface, dict):
+        files = review_surface.get("files")
+        if isinstance(files, list):
+            return [item for item in files if isinstance(item, dict)]
+    legacy = ledger.get("file_records")
+    if isinstance(legacy, list):
+        return [item for item in legacy if isinstance(item, dict)]
+    return []
+
+
 def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, Any]) -> None:
     ledger = getattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, None)
     if not isinstance(ledger, dict):
@@ -60,9 +72,7 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
     telemetry["recomputed_file_count"] = recomputed
     telemetry["reuse_invalidation_reason"] = "" if reused else state["load_reason"]
     ledger_decisions = [decisions[path] for path in sorted(decisions)]
-    for file_record in ledger.get("file_records", []):
-        if not isinstance(file_record, dict):
-            continue
+    for file_record in _ledger_file_records(ledger):
         path = str(file_record.get("path", "") or "")
         decision = decisions.get(path)
         if decision:
@@ -82,7 +92,9 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
                     "reuse_key": "",
                 }
             )
-    ledger["reuse_decisions"] = sorted(ledger_decisions, key=lambda item: str(item.get("path", "")))
+    ledger["reuse_decisions"] = sorted(
+        ledger_decisions, key=lambda item: str(item.get("path", ""))
+    )
     setattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, ledger)
     v42_hooks._LAST_LEDGER = ledger
     module.hardened.write_debug_json_artifact_safely(
@@ -142,7 +154,9 @@ def apply_pareto_context_module(module: Any) -> None:
                 "path": path,
                 "prompt_chars": int(prior.get("prompt_chars") or material["prompt_chars"]),
                 "result": prior["result"],
-                "model_used": str(prior.get("model_used", "") or getattr(config, "model", "")),
+                "model_used": str(
+                    prior.get("model_used", "") or getattr(config, "model", "")
+                ),
                 "service_tier": str(prior.get("service_tier", "") or ""),
             }
             record = {
@@ -224,9 +238,13 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         _apply_ledger_telemetry(module, gh, config, state)
         _write_manifest(module, config, pr, state)
-        reused = sum(1 for item in state["decisions"].values() if item.get("decision") == "reused")
+        reused = sum(
+            1 for item in state["decisions"].values() if item.get("decision") == "reused"
+        )
         recomputed = sum(
-            1 for item in state["decisions"].values() if item.get("decision") == "recomputed"
+            1
+            for item in state["decisions"].values()
+            if item.get("decision") == "recomputed"
         )
         reporter.update(
             "semantic-reuse",
