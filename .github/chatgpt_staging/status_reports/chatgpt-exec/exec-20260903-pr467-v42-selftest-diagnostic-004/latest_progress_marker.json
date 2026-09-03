@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33717148265",
   "github_sha": "e4397b28b404d46dfc6f9e7a9f07279d546a9e0b",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "exec-20260903-pr467-v42-selftest-diagnostic-004",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260903-pr467-v42-selftest-diagnostic-004.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-03T05:01:05Z",
+  "updated_utc": "2026-09-03T05:01:08Z",
   "workflow": "chatgpt-exec"
 }
