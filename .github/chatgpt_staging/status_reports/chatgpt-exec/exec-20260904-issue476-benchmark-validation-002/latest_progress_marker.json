@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-exec-20260904-issue476-benchmark-validation-002",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "33841797759",
   "github_sha": "05203cc75acea3cd03b15aca4e459e7960c600d5",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "exec-20260904-issue476-benchmark-validation-002",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260904-issue476-benchmark-validation-002.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-04T05:47:34Z",
+  "updated_utc": "2026-09-04T05:47:45Z",
   "workflow": "chatgpt-exec"
 }
