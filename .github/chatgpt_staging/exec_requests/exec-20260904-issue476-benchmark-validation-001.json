@@ -3,6 +3,7 @@
   "request_id": "exec-20260904-issue476-benchmark-validation-001",
   "operator_approved": true,
   "approved_at_utc": "2026-09-04T05:39:16Z",
+  "restaged_at_utc": "2026-09-04T05:40:00Z",
   "shell": "pwsh",
   "timeout_seconds": 1800,
   "artifact_retention_days": 7,
