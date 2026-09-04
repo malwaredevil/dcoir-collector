@@ -1,0 +1,172 @@
+{
+  "schema_version": "dcoir_review_architecture_b_benchmark_v1",
+  "benchmark_contract": "architecture-b-same-corpus-offline-benchmark-v1",
+  "purpose": "Deterministic same-corpus benchmark for Architecture-B quality controls and architecture-efficiency behavior without model inference.",
+  "budget_scenarios": [
+    {
+      "id": "initial-deep-full-quality-floor",
+      "review_mode": "first-pass-deep",
+      "scope_source": "cumulative-full-pr",
+      "compare_status": "",
+      "fallback_reason": "initial review requires cumulative scope",
+      "changed_file_count": 8,
+      "diff_chars": 48000,
+      "deep_context_chars": 42000,
+      "risk_sentinel_count": 0,
+      "expected_mode": "full-quality-floor",
+      "expected_reason": "initial-or-deep-review-retains-full-budget"
+    },
+    {
+      "id": "trusted-small-delta-reduced-budget",
+      "review_mode": "diff",
+      "scope_source": "incremental-reviewed-head",
+      "compare_status": "ahead",
+      "fallback_reason": "",
+      "changed_file_count": 2,
+      "diff_chars": 6000,
+      "deep_context_chars": 12000,
+      "risk_sentinel_count": 0,
+      "expected_mode": "small-incremental-delta",
+      "expected_reason": "trusted-exact-head-incremental-scope"
+    },
+    {
+      "id": "risky-small-delta-retains-full-quality-floor",
+      "review_mode": "diff",
+      "scope_source": "incremental-reviewed-head",
+      "compare_status": "ahead",
+      "fallback_reason": "",
+      "changed_file_count": 2,
+      "diff_chars": 6000,
+      "deep_context_chars": 12000,
+      "risk_sentinel_count": 1,
+      "expected_mode": "full-quality-floor",
+      "expected_reason": "risk-sentinel-retains-full-budget"
+    },
+    {
+      "id": "fallback-scope-retains-full-quality-floor",
+      "review_mode": "diff",
+      "scope_source": "cumulative-full-pr",
+      "compare_status": "",
+      "fallback_reason": "prior-head-not-ancestor",
+      "changed_file_count": 2,
+      "diff_chars": 6000,
+      "deep_context_chars": 12000,
+      "risk_sentinel_count": 0,
+      "expected_mode": "full-quality-floor",
+      "expected_reason": "non-incremental-scope-retains-full-budget"
+    },
+    {
+      "id": "oversized-context-retains-full-quality-floor",
+      "review_mode": "diff",
+      "scope_source": "incremental-reviewed-head",
+      "compare_status": "ahead",
+      "fallback_reason": "",
+      "changed_file_count": 2,
+      "diff_chars": 6000,
+      "deep_context_chars": 42000,
+      "risk_sentinel_count": 0,
+      "expected_mode": "full-quality-floor",
+      "expected_reason": "dependency-context-size-retains-full-budget"
+    }
+  ],
+  "reuse_batches": [
+    {
+      "id": "warm-small-delta-mixed-reuse",
+      "files": [
+        {"path": "src/alpha.py", "mutation": "none"},
+        {"path": "src/bravo.py", "mutation": "none"},
+        {"path": "src/charlie.py", "mutation": "source_changed"},
+        {"path": "src/delta.py", "mutation": "prior_missing"}
+      ],
+      "expected_reused": 2,
+      "expected_recomputed": 2
+    },
+    {
+      "id": "fail-closed-invalidation-batch",
+      "files": [
+        {"path": "src/config.py", "mutation": "config_changed"},
+        {"path": "src/risk.py", "mutation": "risk_changed"},
+        {"path": "src/mode.py", "mutation": "review_mode_changed"}
+      ],
+      "expected_reused": 0,
+      "expected_recomputed": 3
+    }
+  ],
+  "escalation_scenarios": [
+    {
+      "id": "confident-low-risk-primary-evidence",
+      "review_mode": "first-pass-deep",
+      "changed_paths": ["src/plain.py"],
+      "findings": [
+        {
+          "path": "src/plain.py",
+          "line": 3,
+          "title": "Bounded example",
+          "body": "Local evidence is complete.",
+          "validation": "Deterministic fixture.",
+          "severity": "medium",
+          "confidence": 0.95
+        }
+      ],
+      "expected_mode": "none"
+    },
+    {
+      "id": "near-threshold-candidate-scoped-escalation",
+      "review_mode": "first-pass-deep",
+      "changed_paths": ["src/plain.py"],
+      "findings": [
+        {
+          "path": "src/plain.py",
+          "line": 7,
+          "title": "Uncertain example",
+          "body": "Candidate needs a bounded second look.",
+          "validation": "Deterministic fixture.",
+          "severity": "medium",
+          "confidence": 0.75
+        }
+      ],
+      "expected_mode": "candidate-scoped"
+    },
+    {
+      "id": "explicit-deep-retains-full-deep",
+      "review_mode": "deep-forced",
+      "changed_paths": ["src/plain.py"],
+      "findings": [
+        {
+          "path": "src/plain.py",
+          "line": 9,
+          "title": "Explicit deep example",
+          "body": "Operator-selected deep mode.",
+          "validation": "Deterministic fixture.",
+          "severity": "medium",
+          "confidence": 0.95
+        }
+      ],
+      "expected_mode": "full-deep"
+    }
+  ],
+  "context_identity_scenario": {
+    "id": "exact-head-context-identity",
+    "review_mode": "diff",
+    "changed_paths": ["src/alpha.py", "src/bravo.py"],
+    "diff": "diff --git a/src/alpha.py b/src/alpha.py\n+benchmark\n",
+    "deep_context": "bounded dependency context",
+    "context_summary": "stable semantic context summary"
+  },
+  "calibration_scenario": {
+    "id": "verifier-disposition-accounting",
+    "candidate_count": 3,
+    "supported_count": 2,
+    "expected_suppressed": 1
+  },
+  "live_only_metrics": [
+    "actual_input_tokens",
+    "actual_output_tokens",
+    "actual_reasoning_tokens",
+    "actual_cached_tokens",
+    "actual_provider_cost",
+    "actual_wall_clock_seconds",
+    "actual_queue_delay_seconds",
+    "actual_semantic_model_call_count"
+  ]
+}
