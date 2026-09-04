@@ -92,6 +92,26 @@
       "expected_recomputed": 3
     }
   ],
+  "carry_forward_scenarios": [
+    {
+      "id": "trusted-incremental-carry-forward",
+      "scope_source": "incremental-reviewed-head",
+      "compare_status": "ahead",
+      "fallback_reason": "",
+      "prior_paths": ["src/unchanged.py", "src/changed.py", "src/also_unchanged.py"],
+      "changed_paths": ["src/changed.py"],
+      "expected_carried": 2
+    },
+    {
+      "id": "fallback-scope-no-carry-forward",
+      "scope_source": "cumulative-full-pr",
+      "compare_status": "ahead",
+      "fallback_reason": "incremental compare rejected",
+      "prior_paths": ["src/unchanged.py", "src/changed.py"],
+      "changed_paths": ["src/changed.py"],
+      "expected_carried": 0
+    }
+  ],
   "escalation_scenarios": [
     {
       "id": "confident-low-risk-primary-evidence",
@@ -145,13 +165,24 @@
       "expected_mode": "full-deep"
     }
   ],
+  "expected_semantic_stage_activation_count": 2,
   "context_identity_scenario": {
     "id": "exact-head-context-identity",
     "review_mode": "diff",
     "changed_paths": ["src/alpha.py", "src/bravo.py"],
     "diff": "diff --git a/src/alpha.py b/src/alpha.py\n+benchmark\n",
     "deep_context": "bounded dependency context",
-    "context_summary": "stable semantic context summary"
+    "context_summary": "stable semantic context summary",
+    "expected_projection_telemetry": {
+      "context_package_build_count": 1,
+      "file_context_fetch_pass_count": 1,
+      "file_context_projection_reuse_count": 1,
+      "per_file_prompt_build_count": 1,
+      "per_file_prompt_reuse_count": 1,
+      "broad_prompt_build_count": 1,
+      "broad_prompt_reuse_count": 1,
+      "fallback_projection_count": 0
+    }
   },
   "calibration_scenario": {
     "id": "verifier-disposition-accounting",
