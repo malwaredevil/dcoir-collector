@@ -179,6 +179,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_scope_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_review_context_ledger_integration_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v45_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v46_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_architecture_b_benchmark_selftest.py
