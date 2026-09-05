@@ -1,0 +1,58 @@
+name: 98 Temp - DCOIR corrected scope-binding retest
+run-name: PR486 corrected scope-binding four-request retest | ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/temp-issue485-corrected-scope-binding-retest.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  corrected-scope-binding-retest:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact corrected PR 486 evaluation head
+        uses: actions/checkout@v7
+        with:
+          ref: f71a3026aa6c4fab92fb68bbbe7584063930233a
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare output directory and verify exact head
+        shell: pwsh
+        run: |
+          $downloads = Join-Path $env:RUNNER_TEMP 'dcoir-corrected-scope-binding-retest'
+          New-Item -ItemType Directory -Force -Path $downloads | Out-Null
+          "DCOIR_DOWNLOADS_DIR=$downloads" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne 'f71a3026aa6c4fab92fb68bbbe7584063930233a') {
+            throw "Exact-head mismatch: $actual"
+          }
+
+      - name: Run approved all-candidate corrected-case retest
+        shell: pwsh
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py --candidate all --case wrong-clause-scope-binding --execute-live --timeout-seconds 300 --output "$env:DCOIR_DOWNLOADS_DIR\issue485-pr486-corrected-scope-binding-all-candidates.json"
+
+      - name: Run approved capped-Sonnet corrected-case retest
+        shell: pwsh
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval.py --candidate sonnet5-high --max-tokens 32768 --case wrong-clause-scope-binding --execute-live --timeout-seconds 300 --output "$env:DCOIR_DOWNLOADS_DIR\issue485-pr486-corrected-scope-binding-sonnet-cap32768.json"
+
+      - name: Upload corrected scope-binding retest evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue485-pr486-corrected-scope-binding-retest
+          path: ${{ runner.temp }}/dcoir-corrected-scope-binding-retest/**
+          if-no-files-found: warn
+          retention-days: 7
