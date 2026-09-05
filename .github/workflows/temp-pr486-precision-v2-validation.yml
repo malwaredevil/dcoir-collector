@@ -1,0 +1,42 @@
+name: 98 Temp - PR486 clean precision v2 validation
+run-name: PR486 clean precision v2 no-network validation
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-precision-v2-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Compile and selftest hardened precision v2 lane
+        run: |
+          python3 -m py_compile .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_selftest.py
+          python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_selftest.py
+      - name: Verify all ten v2 cases and context ablation are zero-network
+        run: |
+          env -u OPENROUTER_API_KEY python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py --candidate sonnet5-high --output /tmp/precision-v2.json
+          DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT=0 env -u OPENROUTER_API_KEY python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py --candidate sonnet5-high --case precision-governance-command-gate-approved-tested --output /tmp/ablation-v2.json
+          python3 - <<'PY'
+          import json
+          full=json.load(open('/tmp/precision-v2.json'))
+          abl=json.load(open('/tmp/ablation-v2.json'))
+          assert full['mode']=='plan' and full['planned_requests']==10 and full['network_requests_made']==0
+          assert abl['mode']=='plan' and abl['planned_requests']==1 and abl['network_requests_made']==0
+          assert 'precision-py-subprocess-argv-tested' in full['selected_case_ids']
+          assert 'precision-governance-command-gate-approved-tested' in full['selected_case_ids']
+          print('clean precision v2 plan PASS: 10 cases + ablation, zero network')
+          PY
