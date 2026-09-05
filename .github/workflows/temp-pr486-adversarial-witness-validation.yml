@@ -6,7 +6,7 @@ on:
     branches:
       - issue-485-first-pass-model-eval-harness
     paths:
-      - '.github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py'
+      - '.github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity_v2.py'
       - '.github/workflows/temp-pr486-adversarial-witness-validation.yml'
 
 permissions:
@@ -24,7 +24,7 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - name: Verify no inference credentials and run behavioral witness validation
+      - name: Verify no inference credentials and run corrected behavioral witness validation
         shell: bash
         run: |
           set -euo pipefail
@@ -32,5 +32,5 @@ jobs:
             echo 'OPENROUTER_API_KEY must not be available.' >&2
             exit 2
           fi
-          python -m py_compile .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py
-          python .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py
+          python -m py_compile .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity_v2.py
+          python .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity_v2.py
