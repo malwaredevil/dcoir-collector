@@ -1,0 +1,50 @@
+name: 98 Temp - PR486 corrected PR mutation Opus xhigh
+run-name: PR486 corrected PR mutation Opus xhigh | target c26016e79957fb543bcfdef6afd63c8e6ea48ac1
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-pr-mutation-v2-opus-xhigh.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  paid-pr-mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact validated evaluation head
+        uses: actions/checkout@v7
+        with:
+          ref: c26016e79957fb543bcfdef6afd63c8e6ea48ac1
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Prepare artifact directory
+        shell: pwsh
+        env:
+          DCOIR_DOWNLOADS_DIR: /tmp/dcoir-downloads
+        run: New-Item -ItemType Directory -Force -Path $env:DCOIR_DOWNLOADS_DIR | Out-Null
+      - name: Run corrected production-shaped 12-PR Opus xhigh control batch
+        shell: pwsh
+        env:
+          DCOIR_DOWNLOADS_DIR: /tmp/dcoir-downloads
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python3 .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval.py --candidate opus5-xhigh-control --max-tokens 32768 --execute-live --timeout-seconds 300 --output "$env:DCOIR_DOWNLOADS_DIR/issue485-pr486-pr-mutation-v2-opus-xhigh-cap32768.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload evaluation artifact
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pr486-pr-mutation-v2-opus-xhigh-cap32768
+          path: /tmp/dcoir-downloads/*.json
+          if-no-files-found: error
+          retention-days: 14
