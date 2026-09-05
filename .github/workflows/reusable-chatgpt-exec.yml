@@ -37,6 +37,9 @@ on:
       OPENAI_API_KEY:
         description: Explicit forwarded secret `OPENAI_API_KEY` from the entry workflow.
         required: false
+      OPENROUTER_MANAGEMENT_KEY:
+        description: Explicit forwarded read-only OpenRouter management secret for approved analytics and administrative queries.
+        required: false
 
 permissions:
   contents: write
@@ -51,6 +54,7 @@ jobs:
       DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
       DCOIR_OPENAI_PROJECT_ID: ${{ secrets.DCOIR_OPENAI_PROJECT_ID }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_MANAGEMENT_KEY: ${{ secrets.OPENROUTER_MANAGEMENT_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -130,7 +134,7 @@ jobs:
             -RepoRoot $env:GITHUB_WORKSPACE `
             -OutputRoot $outRoot `
             -JsonResultPath $resultJson `
-            -SecretEnvNames @('DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_GEMINI_API','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID','OPENAI_API_KEY')
+            -SecretEnvNames @('DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_GEMINI_API','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID','OPENAI_API_KEY','OPENROUTER_MANAGEMENT_KEY')
 
       - name: Write progressive report - harness finished
         if: steps.request.outputs.skip != 'true'
