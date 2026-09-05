@@ -1,0 +1,44 @@
+{
+  "schema_version": "dcoir_review_pr_mutation_cases_v1",
+  "shard": 4,
+  "cases": [
+    {
+      "id": "prmut-mixed-remoting-and-doc-drift",
+      "pr_title": "Add remote marker validation and update operator notes",
+      "pr_body": "Validate marker files on remote collectors and document the new remote check.",
+      "difficulty": "adversarial",
+      "files": [
+        {"filename":"src/Test-RemoteMarker.ps1","status":"modified","patch":"diff --git a/src/Test-RemoteMarker.ps1 b/src/Test-RemoteMarker.ps1\nnew file mode 100644\nindex 0000000..111aaaa\n--- /dev/null\n+++ b/src/Test-RemoteMarker.ps1\n@@ -0,0 +1,7 @@\n+function Test-RemoteMarker {\n+    param([string]$ComputerName, [string]$MarkerPath)\n+    Invoke-Command -ComputerName $ComputerName -ScriptBlock {\n+        Test-Path -LiteralPath $MarkerPath\n+    }\n+}\n"},
+        {"filename":"docs/operator.md","status":"modified","patch":"diff --git a/docs/operator.md b/docs/operator.md\nindex 222aaaa..333bbbb 100644\n--- a/docs/operator.md\n+++ b/docs/operator.md\n@@ -20,3 +20,6 @@ Collection checks\n+Remote marker validation uses the caller-supplied marker path on the target host.\n+Debug mode only adds diagnostics; it does not force a deep review or change review scope.\n"},
+        {"filename":".github/dcoir_review/command.py","status":"modified","patch":"diff --git a/.github/dcoir_review/command.py b/.github/dcoir_review/command.py\nindex 444aaaa..555bbbb 100644\n--- a/.github/dcoir_review/command.py\n+++ b/.github/dcoir_review/command.py\n@@ -30,4 +30,5 @@ def resolve_mode(flags):\n     if \"deep\" in flags:\n         return \"deep\"\n+    if \"debug\" in flags:\n+        return \"deep\"\n     return \"incremental\"\n"}
+      ],
+      "expected_findings": [
+        {"path":"src/Test-RemoteMarker.ps1","anchor_substrings":["Test-Path -LiteralPath $MarkerPath"],"term_groups":[["using:markerpath","using:","argumentlist"],["remote","scope","capture","markerpath"]],"defect_class":"remoting-scope"},
+        {"path":".github/dcoir_review/command.py","anchor_substrings":["if \"debug\" in flags:","return \"deep\""],"term_groups":[["debug","mode"],["deep","scope","observability","contradict"]],"defect_class":"debug-mode-scope-drift"}
+      ],
+      "ground_truth_rationale": "The remote script block fails to capture MarkerPath from the caller, and the command resolver contradicts the documentation by making debug force deep mode."
+    },
+    {
+      "id": "prmut-clean-governance-mixed",
+      "pr_title": "Clarify debug observability and stale-run handling",
+      "pr_body": "Keep debug as observability-only, cancel superseded runs, and revalidate head immediately before publication.",
+      "difficulty": "adversarial",
+      "files": [
+        {"filename":"docs/operator.md","status":"modified","patch":"diff --git a/docs/operator.md b/docs/operator.md\nindex 111aaaa..222bbbb 100644\n--- a/docs/operator.md\n+++ b/docs/operator.md\n@@ -20,2 +20,4 @@ Review modes\n+Debug adds progress and artifacts without changing deep/incremental review scope.\n+Superseded review runs must not publish against a newer PR head.\n"},
+        {"filename":".github/workflows/review.yml","status":"modified","patch":"diff --git a/.github/workflows/review.yml b/.github/workflows/review.yml\nindex 333aaaa..444bbbb 100644\n--- a/.github/workflows/review.yml\n+++ b/.github/workflows/review.yml\n@@ -1,5 +1,8 @@\n name: review\n on: issue_comment\n+concurrency:\n+  group: review-${{ github.event.issue.number }}\n+  cancel-in-progress: true\n jobs:\n"},
+        {"filename":"review/publish.py","status":"modified","patch":"diff --git a/review/publish.py b/review/publish.py\nindex 555aaaa..666bbbb 100644\n--- a/review/publish.py\n+++ b/review/publish.py\n@@ -10,5 +10,8 @@ def review_and_publish(client, pr_number):\n     head = client.get_pr(pr_number)[\"head\"][\"sha\"]\n     result = run_expensive_review(head)\n+    current = client.get_pr(pr_number)[\"head\"][\"sha\"]\n+    if current != head:\n+        return \"superseded\"\n     client.publish_review(pr_number, result)\n"}
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Workflow cancellation and an immediate pre-publication head check are consistent with the documented stale-run contract; debug wording is observability-only."
+    },
+    {
+      "id": "prmut-security-title-shell-injection",
+      "pr_title": "Include PR title in diagnostic bundle",
+      "pr_body": "Print the PR title into diagnostic output so uploaded artifacts are easier to identify.",
+      "difficulty": "hard",
+      "files": [{"filename":".github/workflows/diagnostic.yml","status":"modified","patch":"diff --git a/.github/workflows/diagnostic.yml b/.github/workflows/diagnostic.yml\nindex 111aaaa..222bbbb 100644\n--- a/.github/workflows/diagnostic.yml\n+++ b/.github/workflows/diagnostic.yml\n@@ -8,4 +8,6 @@ jobs:\n     steps:\n       - uses: actions/checkout@v4\n+      - name: Label diagnostics\n+        run: echo \"PR: ${{ github.event.pull_request.title }}\" >> diagnostics.txt\n       - run: python .github/scripts/collect-diagnostics.py\n"}],
+      "expected_findings": [{"path":".github/workflows/diagnostic.yml","anchor_substrings":["run: echo \"PR: ${{ github.event.pull_request.title }}\""],"term_groups":[["pull_request.title","expression","interpolat"],["shell","inject","env","untrusted"]],"defect_class":"workflow-expression-shell-injection"}],
+      "ground_truth_rationale": "Untrusted PR-title text is substituted directly into a run script, allowing shell metacharacters in the title to alter execution; it should cross the expression boundary via env/input data."
+    }
+  ]
+}
