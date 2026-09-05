@@ -20,7 +20,7 @@ import dcoir_review_multilang_adversarial_eval as adv
 DCOIR_ROOT = Path(__file__).resolve().parents[1]
 SHARD_GLOB = "pr_mutation_cases_*_v1.json"
 SHARD_SCHEMA = "dcoir_review_pr_mutation_cases_v1"
-REPORT_SCHEMA = "dcoir_review_pr_mutation_eval_report_v1"
+REPORT_SCHEMA = "dcoir_review_pr_mutation_eval_report_v2"
 HUNK_RE = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 VALIDATION_COMMANDS = [
     "bash .github/dcoir_review/scripts/validate-codex-local.sh",
@@ -85,6 +85,9 @@ def load_cases() -> list[dict[str, Any]]:
                 target = str(finding.get("path", ""))
                 if target not in file_map:
                     raise ValueError(f"{case_id}: expected finding path {target!r} is not changed")
+                allowed_paths = finding.get("allowed_paths", [target])
+                if not isinstance(allowed_paths, list) or not allowed_paths or any(str(item) not in file_map for item in allowed_paths):
+                    raise ValueError(f"{case_id}: allowed_paths must be non-empty changed-file paths")
                 groups = finding.get("term_groups")
                 if not isinstance(groups, list) or len(groups) < 2 or any(not isinstance(group, list) or not group for group in groups):
                     raise ValueError(f"{case_id}: expected finding term groups must contain at least two non-empty groups")
@@ -181,15 +184,16 @@ def allowed_changed_lines(case: dict[str, Any], path: str) -> set[int]:
     return set()
 
 
-def finding_matches(case: dict[str, Any], expected: dict[str, Any], finding: dict[str, Any]) -> bool:
-    if str(finding.get("path", "")) != str(expected["path"]):
-        return False
+def finding_is_changed_line(case: dict[str, Any], finding: dict[str, Any]) -> bool:
+    path = str(finding.get("path", ""))
     try:
         line = int(finding.get("line", 0))
     except (TypeError, ValueError):
         return False
-    if line not in allowed_changed_lines(case, str(expected["path"])):
-        return False
+    return line in allowed_changed_lines(case, path)
+
+
+def semantic_matches(expected: dict[str, Any], finding: dict[str, Any]) -> bool:
     text = finding_text(finding)
     for group in expected["term_groups"]:
         terms = [str(term).lower() for term in group if str(term).strip()]
@@ -198,23 +202,62 @@ def finding_matches(case: dict[str, Any], expected: dict[str, Any], finding: dic
     return True
 
 
+def finding_matches(case: dict[str, Any], expected: dict[str, Any], finding: dict[str, Any]) -> bool:
+    path = str(finding.get("path", ""))
+    allowed_paths = {str(item) for item in expected.get("allowed_paths", [expected["path"]])}
+    if path not in allowed_paths or not finding_is_changed_line(case, finding):
+        return False
+    return semantic_matches(expected, finding)
+
+
 def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str, Any]:
     expected = list(case["expected_findings"])
     if not request_result.get("ok"):
-        return {"correct": False, "disposition": "request-error", "expected_findings": len(expected), "detected_findings": 0, "extra_findings": 0}
+        return {
+            "correct": False,
+            "disposition": "request-error",
+            "expected_findings": len(expected),
+            "detected_findings": 0,
+            "supported_companion_findings": 0,
+            "extra_findings": 0,
+        }
     result = request_result.get("result") if isinstance(request_result.get("result"), dict) else {}
     findings = result.get("findings") if isinstance(result.get("findings"), list) else []
-    unmatched = set(range(len(findings)))
     matched_expected: list[dict[str, Any]] = []
     missed_expected: list[dict[str, Any]] = []
+    matched_finding_indexes: set[int] = set()
+
+    # A single focused cross-file finding may legitimately prove multiple facets of
+    # one root cause. Do not force the model to emit duplicate comments merely to
+    # satisfy benchmark bookkeeping.
     for target in expected:
-        match_index = next((idx for idx in sorted(unmatched) if isinstance(findings[idx], dict) and finding_matches(case, target, findings[idx])), None)
-        if match_index is None:
+        matching_indexes = [
+            idx for idx, finding in enumerate(findings)
+            if isinstance(finding, dict) and finding_matches(case, target, finding)
+        ]
+        if not matching_indexes:
             missed_expected.append({"path": target["path"], "defect_class": target.get("defect_class", "")})
         else:
-            unmatched.remove(match_index)
+            matched_finding_indexes.update(matching_indexes)
             matched_expected.append({"path": target["path"], "defect_class": target.get("defect_class", "")})
-    extras = [findings[idx] for idx in sorted(unmatched)]
+
+    companion_indexes: set[int] = set()
+    for idx, finding in enumerate(findings):
+        if idx in matched_finding_indexes or not isinstance(finding, dict):
+            continue
+        if not finding_is_changed_line(case, finding):
+            continue
+        # Companion findings are permitted only on defect-bearing PRs and only when
+        # their prose independently satisfies every semantic term group of a seeded
+        # root cause. This preserves validation-gap or alternate-anchor variants
+        # without giving unrelated review noise a free pass. Clean controls remain
+        # strict: any finding on a clean PR is an extra finding.
+        if expected and any(semantic_matches(target, finding) for target in expected):
+            companion_indexes.add(idx)
+
+    extra_indexes = set(range(len(findings))) - matched_finding_indexes - companion_indexes
+    extras = [findings[idx] for idx in sorted(extra_indexes)]
+    companions = [findings[idx] for idx in sorted(companion_indexes)]
     correct = not missed_expected and not extras
     if correct:
         disposition = "clean" if not expected else "all-findings-detected"
@@ -229,6 +272,7 @@ def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str
         "disposition": disposition,
         "expected_findings": len(expected),
         "detected_findings": len(matched_expected),
+        "supported_companion_findings": len(companions),
         "extra_findings": len(extras),
         "matched_expected": matched_expected,
         "missed_expected": missed_expected,
@@ -257,6 +301,7 @@ def aggregate(candidate: dict[str, Any], rows: list[dict[str, Any]]) -> dict[str
         "correct_pr_cases": sum(1 for row in rows if row["score"]["correct"]),
         "seeded_findings_total": sum(int(row["score"]["expected_findings"]) for row in rows),
         "seeded_findings_detected": sum(int(row["score"]["detected_findings"]) for row in rows),
+        "supported_companion_findings": sum(int(row["score"].get("supported_companion_findings", 0)) for row in rows),
         "extra_findings": sum(int(row["score"]["extra_findings"]) for row in rows),
         "clean_prs_total": sum(1 for row in rows if row["expected_findings"] == 0),
         "clean_prs_correct": sum(1 for row in rows if row["expected_findings"] == 0 and row["score"]["correct"]),
