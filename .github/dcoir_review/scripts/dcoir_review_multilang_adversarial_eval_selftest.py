@@ -58,6 +58,16 @@ def main() -> int:
     assert "expected disposition" in prompt.lower()  # instruction says not to mention it, but does not reveal its value.
     assert "Synthetic evaluation path: src/Test-RoleAllowed.ps1" in prompt
 
+    sentinel_case = dict(ps_case)
+    sentinel_case["difficulty"] = "BENCHMARK_ONLY_DIFFICULTY_SENTINEL"
+    sentinel_case["expected"] = "BENCHMARK_ONLY_EXPECTED_SENTINEL"
+    sentinel_case["ground_truth_rationale"] = "BENCHMARK_ONLY_GROUND_TRUTH_SENTINEL"
+    sentinel_prompt = target.build_case_prompt(sentinel_case)
+    assert "Difficulty label:" not in sentinel_prompt
+    assert sentinel_case["difficulty"] not in sentinel_prompt
+    assert sentinel_case["expected"] not in sentinel_prompt
+    assert sentinel_case["ground_truth_rationale"] not in sentinel_prompt
+
     matrix = base.load_matrix()
     request_contract = matrix["request_contract"]
     system_prompt = base.SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
