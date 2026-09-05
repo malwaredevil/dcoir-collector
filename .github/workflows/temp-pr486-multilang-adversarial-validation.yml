@@ -1,0 +1,84 @@
+name: 98 Temp - PR486 multilang adversarial validation
+run-name: PR486 multilang adversarial deterministic validation | ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/dcoir_review/evaluation/multilang_adversarial_corpus_v1.json'
+      - '.github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval.py'
+      - '.github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval_selftest.py'
+      - '.github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py'
+      - '.github/workflows/temp-pr486-multilang-adversarial-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Verify inference credentials are absent
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${OPENROUTER_API_KEY:-}" ]]; then
+            echo 'OPENROUTER_API_KEY must not be available in deterministic validation.' >&2
+            exit 2
+          fi
+
+      - name: Compile adversarial harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py
+
+      - name: Validate corpus fixtures and language syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py
+
+      - name: Run adversarial harness selftest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval_selftest.py
+
+      - name: Prove full-corpus plan mode is zero-network
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval.py \
+            --candidate sonnet5-high \
+            --output /tmp/multilang-plan.json >/tmp/multilang-plan.stdout
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = json.loads(Path('/tmp/multilang-plan.json').read_text(encoding='utf-8'))
+          assert report['mode'] == 'plan'
+          assert report['planned_requests'] == 40
+          assert report['network_requests_made'] == 0
+          assert len(report['selected_case_ids']) == 40
+          print(json.dumps({'planned_requests': 40, 'network_requests_made': 0, 'status': 'pass'}))
+          PY
+
+      - name: Re-run existing governed first-pass evaluator validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/dcoir_review/scripts/validate_dcoir_review_first_pass_candidate_eval.py
