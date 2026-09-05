@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33983486945",
   "github_sha": "b479eb53e3e9fb8d92247ea57ee5e7aa2fe1c2f3",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260905-issue485-pr486-corpus-fix-validation-002",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260905-issue485-pr486-corpus-fix-validation-002.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-05T18:16:06Z",
+  "updated_utc": "2026-09-05T18:16:08Z",
   "workflow": "chatgpt-exec"
 }
