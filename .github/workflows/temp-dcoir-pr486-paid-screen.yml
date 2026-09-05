@@ -15,8 +15,6 @@ jobs:
   paid-screen:
     runs-on: windows-latest
     timeout-minutes: 90
-    env:
-      DCOIR_DOWNLOADS_DIR: ${{ runner.temp }}/dcoir-paid-eval
     steps:
       - name: Checkout exact PR 486 harness head
         uses: actions/checkout@v7
@@ -28,7 +26,9 @@ jobs:
       - name: Prepare output directory
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path $env:DCOIR_DOWNLOADS_DIR | Out-Null
+          $downloads = Join-Path $env:RUNNER_TEMP 'dcoir-paid-eval'
+          New-Item -ItemType Directory -Force -Path $downloads | Out-Null
+          "DCOIR_DOWNLOADS_DIR=$downloads" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           $actual = (git rev-parse HEAD).Trim()
           if ($actual -ne 'fd5e4c11f0947b4a3c5c72a308512cfa44cddd3b') {
             throw "Exact-head mismatch: $actual"
