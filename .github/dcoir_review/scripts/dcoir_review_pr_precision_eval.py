@@ -4,14 +4,15 @@
 This evaluation-only lane reuses the mutation scorer but supplies ten PRs whose
 hidden ground truth is clean under the full reviewer policy. Workflow cases may
 include an explicit trusted approval receipt injected into trusted context; PR
-body text remains untrusted. No benchmark label or ground truth is shown to the
-model. The resilient request adapter prevents one malformed response from
-aborting the paid batch.
+body text remains untrusted. Set DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT=0 to
+run the same cases without that receipt and measure the current prompt-context
+gap. No benchmark label or ground truth is shown to the model. The resilient
+request adapter prevents one malformed response from aborting the paid batch.
 """
 from __future__ import annotations
 
 import json
-from pathlib import Path
+import os
 from typing import Any
 
 import dcoir_review_eval_resilient_openrouter as resilient
@@ -44,11 +45,14 @@ def load_cases() -> list[dict[str, Any]]:
         names = [str(item.get("filename", "")) for item in files if isinstance(item, dict)]
         if len(names) != len(files) or any(not name for name in names) or len(set(names)) != len(names):
             raise ValueError(f"{case_id}: changed file names must be present and unique")
-        expected = case.get("expected_findings")
-        if expected != []:
+        if case.get("expected_findings") != []:
             raise ValueError(f"{case_id}: clean precision cases must have zero expected findings")
         cases.append(case)
     return cases
+
+
+def include_trusted_context() -> bool:
+    return os.environ.get("DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def build_pr_prompt(case: dict[str, Any]) -> str:
@@ -66,8 +70,9 @@ def build_pr_prompt(case: dict[str, Any]) -> str:
             "patch": patch,
         })
         patches.append(patch)
-    trusted_context = str(case.get("trusted_context", "")).strip()
+    trusted_context = str(case.get("trusted_context", "")).strip() if include_trusted_context() else ""
     trusted_extra = f"\n\nTrusted evaluation context:\n{trusted_context}" if trusted_context else ""
+    unified_diff = "\n".join(patches)
     return f"""Repository: DCOIR-Collector/dcoir-collector
 PR number: 9100
 PR title: {case['pr_title']}
@@ -84,7 +89,7 @@ Changed file summary:
 {json.dumps(changed_files, indent=2)}
 
 Unified diff:
-{'\n'.join(patches)}
+{unified_diff}
 
 Review task:
 Find only high-signal issues in the PR diff. For each finding, give the exact changed file path and right-side line number. Provide a suggested_replacement only when a small GitHub suggestion block would be safe and likely to apply cleanly. Include validation commands that should pass after the fix.""".strip()
