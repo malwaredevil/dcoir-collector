@@ -157,8 +157,13 @@ def build_payload(
         "plugins": [{"id": "response-healing", "enabled": True}],
         "tools": [],
         "stream": False,
-        "temperature": 0.2,
     }
+    temperature = candidate.get("temperature")
+    if temperature is not None:
+        temperature_value = float(temperature)
+        if not 0.0 <= temperature_value <= 2.0:
+            raise ValueError(f"Candidate {candidate['id']} temperature must be between 0 and 2")
+        payload["temperature"] = temperature_value
     if effort:
         payload["reasoning"] = {"enabled": True, "effort": effort, "exclude": True}
     max_tokens = candidate.get("max_tokens")
