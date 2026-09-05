@@ -1,0 +1,51 @@
+name: 98 Temp - DCOIR PR486 Sonnet 5 High Cap32768 Full14
+run-name: PR486 Sonnet 5 high cap32768 full14 | ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/temp-issue485-sonnet5-high-cap32768-full14.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sonnet5-high-cap32768-full14:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR 486 harness head
+        uses: actions/checkout@v7
+        with:
+          ref: fb5d638198d1f73ce2cae4ec28d27046583c5204
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare output directory
+        shell: pwsh
+        run: |
+          $downloads = Join-Path $env:RUNNER_TEMP 'dcoir-sonnet5-high-cap32768-full14'
+          New-Item -ItemType Directory -Force -Path $downloads | Out-Null
+          "DCOIR_DOWNLOADS_DIR=$downloads" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne 'fb5d638198d1f73ce2cae4ec28d27046583c5204') {
+            throw "Exact-head mismatch: $actual"
+          }
+
+      - name: Run exact operator-approved capped Sonnet full14 candidate
+        shell: pwsh
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval.py --candidate sonnet5-high --max-tokens 32768 --execute-live --timeout-seconds 300 --output "$env:DCOIR_DOWNLOADS_DIR\issue485-pr486-sonnet5-high-cap32768-full14.json"
+
+      - name: Upload capped Sonnet full14 evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue485-pr486-sonnet5-high-cap32768-full14
+          path: ${{ runner.temp }}/dcoir-sonnet5-high-cap32768-full14/**
+          if-no-files-found: warn
+          retention-days: 7
