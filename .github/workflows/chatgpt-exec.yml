@@ -27,7 +27,7 @@
 # - Supabase `ircore` owns operational routing, validation rules, reusable lessons, and active state.
 # - Treat Airtable references as historical evidence only; active workflow routing must not depend on Airtable.
 name: 11 Operator - ChatGPT Exec
-run-name: ChatGPT Exec | ${{ github.event.inputs.request_path || github.event.head_commit.id || 'push' }} | #${{ github.run_number }}
+run-name: "ChatGPT Exec | ${{ github.event.inputs.request_path || github.event.head_commit.id || 'push' }} | #${{ github.run_number }}"
 
 on:
   workflow_dispatch:
@@ -67,3 +67,4 @@ jobs:
       DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
       DCOIR_OPENAI_PROJECT_ID: ${{ secrets.DCOIR_OPENAI_PROJECT_ID }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_MANAGEMENT_KEY: ${{ secrets.OPENROUTER_MANAGEMENT_KEY }}
