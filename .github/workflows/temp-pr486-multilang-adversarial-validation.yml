@@ -38,16 +38,21 @@ jobs:
             exit 2
           fi
 
-      - name: Compile adversarial harness
+      - name: Compile adversarial and stable evaluation harnesses
         shell: bash
         run: |
           set -euo pipefail
           python -m py_compile \
             .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval.py \
             .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval_selftest.py \
-            .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py
+            .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity.py \
+            .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
 
-      - name: Validate corpus fixtures and language syntax
+      - name: Validate adversarial corpus fixtures and language syntax
         shell: bash
         run: |
           set -euo pipefail
@@ -59,7 +64,7 @@ jobs:
           set -euo pipefail
           python .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval_selftest.py
 
-      - name: Prove full-corpus plan mode is zero-network
+      - name: Prove full adversarial-corpus plan mode is zero-network
         shell: bash
         run: |
           set -euo pipefail
@@ -77,8 +82,33 @@ jobs:
           print(json.dumps({'planned_requests': 40, 'network_requests_made': 0, 'status': 'pass'}))
           PY
 
-      - name: Re-run existing governed first-pass evaluator validation
+      - name: Re-run stable 14-case calibration harness validation
         shell: bash
         run: |
           set -euo pipefail
-          python .github/dcoir_review/scripts/validate_dcoir_review_first_pass_candidate_eval.py
+          python .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval_selftest.py
+
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+            --candidate all \
+            --output /tmp/candidate-plan.json >/tmp/candidate-plan.stdout
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval.py \
+            --candidate sonnet5-high \
+            --max-tokens 32768 \
+            --output /tmp/budget-plan.json >/tmp/budget-plan.stdout
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          candidate = json.loads(Path('/tmp/candidate-plan.json').read_text(encoding='utf-8'))
+          budget = json.loads(Path('/tmp/budget-plan.json').read_text(encoding='utf-8'))
+          assert candidate['mode'] == 'plan-no-network'
+          assert candidate['network_calls'] == 0
+          assert candidate['case_counts']['planned_total_requests'] == 42
+          assert budget['mode'] == 'plan-no-network'
+          assert budget['network_calls'] == 0
+          assert budget['case_counts']['total'] == 14
+          assert budget['max_tokens'] == 32768
+          print(json.dumps({'stable_candidate_requests': 42, 'stable_budget_cases': 14, 'network_requests_made': 0, 'status': 'pass'}))
+          PY
