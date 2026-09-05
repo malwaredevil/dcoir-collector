@@ -1,0 +1,51 @@
+name: 98 Temp - DCOIR PR486 Paid Candidate Screen
+run-name: PR486 paid candidate screen | ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/temp-dcoir-pr486-paid-screen.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  paid-screen:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      DCOIR_DOWNLOADS_DIR: ${{ runner.temp }}/dcoir-paid-eval
+    steps:
+      - name: Checkout exact PR 486 harness head
+        uses: actions/checkout@v7
+        with:
+          ref: fd5e4c11f0947b4a3c5c72a308512cfa44cddd3b
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare output directory
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:DCOIR_DOWNLOADS_DIR | Out-Null
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne 'fd5e4c11f0947b4a3c5c72a308512cfa44cddd3b') {
+            throw "Exact-head mismatch: $actual"
+          }
+
+      - name: Run operator-approved 15-request paid screen
+        shell: pwsh
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py --candidate all --execute-live --case pr448-lane-separation-binding --case pr448-numbered-lifecycle-duplicate --case rejected-proposition-sibling-branch --case membership-expression-after-or --case documented-mode-label-without-runtime-claim --timeout-seconds 300 --output "$env:DCOIR_DOWNLOADS_DIR\issue485-pr486-paid-screen.json"
+
+      - name: Upload paid-screen evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue485-pr486-paid-screen
+          path: ${{ runner.temp }}/dcoir-paid-eval/**
+          if-no-files-found: warn
+          retention-days: 7
