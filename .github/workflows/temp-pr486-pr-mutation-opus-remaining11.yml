@@ -1,0 +1,59 @@
+name: 98 Temp - PR486 resilient Opus mutation remaining11
+run-name: PR486 resilient Opus mutation remaining11 | target fee6082a28957dfe7607cf72e70c92990f1d672b
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-pr-mutation-opus-remaining11.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  paid-pr-mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fee6082a28957dfe7607cf72e70c92990f1d672b
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Prepare artifact directory
+        run: mkdir -p /tmp/dcoir-downloads
+      - name: Run resilient Opus xhigh control on remaining 11 PR cases
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DCOIR_EVAL_REQUEST_CHECKPOINT: /tmp/dcoir-downloads/issue485-pr486-pr-mutation-opus-remaining11-checkpoint.jsonl
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval_resilient.py \
+            --candidate opus5-xhigh-control \
+            --max-tokens 32768 \
+            --case prmut-ps-clean-native-exit \
+            --case prmut-py-cache-policy-version \
+            --case prmut-py-clean-cache-key \
+            --case prmut-gha-pull-request-target-exec \
+            --case prmut-gha-clean-unprivileged \
+            --case prmut-md-approval-workflow-contradiction \
+            --case prmut-json-string-false \
+            --case prmut-mixed-stale-head-and-concurrency \
+            --case prmut-mixed-remoting-and-doc-drift \
+            --case prmut-clean-governance-mixed \
+            --case prmut-security-title-shell-injection \
+            --execute-live --timeout-seconds 300 \
+            --output /tmp/dcoir-downloads/issue485-pr486-pr-mutation-opus-remaining11.json
+      - name: Upload evaluation evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pr486-pr-mutation-opus-remaining11
+          path: |
+            /tmp/dcoir-downloads/*.json
+            /tmp/dcoir-downloads/*.jsonl
+          if-no-files-found: error
+          retention-days: 14
