@@ -1,0 +1,51 @@
+name: 98 Temp - DCOIR PR486 Sonnet 5 High Remaining Nine
+run-name: PR486 Sonnet 5 high remaining-nine | ${{ github.sha }}
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/temp-issue485-sonnet5-high-remaining-nine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sonnet5-high-remaining-nine:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact PR 486 harness head
+        uses: actions/checkout@v7
+        with:
+          ref: 168b66a43620d5b68b124d889ef280e49b36df5e
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare output directory
+        shell: pwsh
+        run: |
+          $downloads = Join-Path $env:RUNNER_TEMP 'dcoir-sonnet5-high-remaining-nine'
+          New-Item -ItemType Directory -Force -Path $downloads | Out-Null
+          "DCOIR_DOWNLOADS_DIR=$downloads" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $actual = (git rev-parse HEAD).Trim()
+          if ($actual -ne '168b66a43620d5b68b124d889ef280e49b36df5e') {
+            throw "Exact-head mismatch: $actual"
+          }
+
+      - name: Run exact operator-approved nine-request Sonnet screen
+        shell: pwsh
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py --candidate sonnet5-high --execute-live --case negated-positive-marker --case quoted-marker-only --case wrong-clause-scope-binding --case wrapped-command-counted-as-standalone --case postposed-prohibition --case duplicate-heading-representation --case serialized-marker-variant --case mode-eligibility-partial-guard --case raw-token-actionability --timeout-seconds 300 --output "$env:DCOIR_DOWNLOADS_DIR\issue485-pr486-sonnet5-high-remaining-nine.json"
+
+      - name: Upload Sonnet remaining-nine evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: issue485-pr486-sonnet5-high-remaining-nine
+          path: ${{ runner.temp }}/dcoir-sonnet5-high-remaining-nine/**
+          if-no-files-found: warn
+          retention-days: 7
