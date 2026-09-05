@@ -1,0 +1,46 @@
+name: 98 Temp - PR486 resilient evaluator validation
+run-name: PR486 resilient evaluator no-network validation
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-resilient-eval-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Compile evaluation harnesses
+        run: |
+          python3 -m py_compile \
+            .github/dcoir_review/scripts/dcoir_review_eval_resilient_openrouter.py \
+            .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval_resilient.py \
+            .github/dcoir_review/scripts/dcoir_review_eval_resilient_openrouter_selftest.py
+      - name: Test malformed-response resilience
+        run: python3 .github/dcoir_review/scripts/dcoir_review_eval_resilient_openrouter_selftest.py
+      - name: Run production-shaped mutation selftest
+        run: python3 .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval_selftest.py
+      - name: Verify resilient plan mode is zero-network
+        run: |
+          env -u OPENROUTER_API_KEY python3 .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval_resilient.py --candidate sonnet5-high --case prmut-ps-native-exit-overwrite --output /tmp/pr486-resilient-plan.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/pr486-resilient-plan.json'))
+          assert data['mode'] == 'plan'
+          assert data['network_requests_made'] == 0
+          assert data['planned_requests'] == 1
+          print('zero-network resilient plan PASS')
+          PY
