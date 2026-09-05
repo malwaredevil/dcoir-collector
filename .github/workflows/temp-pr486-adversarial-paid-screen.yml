@@ -15,8 +15,6 @@ jobs:
   paid-screen:
     runs-on: ubuntu-latest
     timeout-minutes: 150
-    env:
-      DCOIR_DOWNLOADS_DIR: ${{ runner.temp }}/dcoir-downloads
     steps:
       - name: Checkout exact approved evaluation head
         uses: actions/checkout@v7
@@ -30,10 +28,13 @@ jobs:
           python-version: '3.12'
       - name: Prepare artifact directory
         shell: pwsh
+        env:
+          DCOIR_DOWNLOADS_DIR: /tmp/dcoir-downloads
         run: New-Item -ItemType Directory -Force -Path $env:DCOIR_DOWNLOADS_DIR | Out-Null
       - name: Run approved 28-request screen
         shell: pwsh
         env:
+          DCOIR_DOWNLOADS_DIR: /tmp/dcoir-downloads
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -46,6 +47,6 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: pr486-adversarial-paid-screen
-          path: ${{ runner.temp }}/dcoir-downloads/*.json
+          path: /tmp/dcoir-downloads/*.json
           if-no-files-found: warn
           retention-days: 14
