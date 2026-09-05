@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260905-issue485-pr486-exact-head-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-05T15:35:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run the staged PR #486 exact-head deterministic validation at fd5e4c11f0947b4a3c5c72a308512cfa44cddd3b with all inference credentials removed. Compile and selftest the no-publication candidate harness, verify plan mode reports zero network calls and 42 planned requests, then run all 44 governed deterministic DCOIR validation commands. No live model inference and no DCOIR review invocation.",
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue485-pr486-exact-head-validation-20260905.ps1"
+}
