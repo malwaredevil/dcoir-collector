@@ -1,0 +1,52 @@
+name: 98 Temp - PR486 PR mutation validation
+run-name: PR486 PR mutation validation | target 9302fcbcfc9a4e1dcdc5a0e991425c926d5b46ee
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-pr-mutation-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: 9302fcbcfc9a4e1dcdc5a0e991425c926d5b46ee
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Compile evaluation scripts
+        run: |
+          python3 -m py_compile .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval.py
+          python3 -m py_compile .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval_selftest.py
+      - name: Run PR mutation selftest
+        run: python3 .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval_selftest.py
+      - name: Prove 12-case zero-network plan
+        env:
+          OPENROUTER_API_KEY: ''
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_pr_mutation_eval.py --candidate sonnet5-high --max-tokens 32768 --output /tmp/pr-mutation-plan.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/pr-mutation-plan.json'))
+          assert d['mode']=='plan'
+          assert d['planned_requests']==12
+          assert d['network_requests_made']==0
+          assert len(d['selected_case_ids'])==12
+          print('PASS: 12-case PR mutation plan; zero network calls')
+          PY
+      - name: Keep existing evaluation lanes green
+        run: |
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py
+          python3 .github/dcoir_review/scripts/dcoir_review_first_pass_budget_eval_selftest.py
+          python3 .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_eval_selftest.py
+          python3 .github/dcoir_review/scripts/dcoir_review_multilang_adversarial_fixture_validity_v2.py
