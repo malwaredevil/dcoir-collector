@@ -18,8 +18,8 @@ from typing import Any
 import dcoir_review_eval_resilient_openrouter as resilient
 import dcoir_review_pr_mutation_eval as target
 
-CORPUS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_cases_v1.json"
-CORPUS_SCHEMA = "dcoir_review_pr_precision_clean_cases_v1"
+CORPUS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_cases_v2.json"
+CORPUS_SCHEMA = "dcoir_review_pr_precision_clean_cases_v2"
 
 
 def load_cases() -> list[dict[str, Any]]:
@@ -98,7 +98,7 @@ Find only high-signal issues in the PR diff. For each finding, give the exact ch
 def main() -> int:
     target.load_cases = load_cases
     target.build_pr_prompt = build_pr_prompt
-    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v1"
+    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v2"
     resilient.install(target.base)
     return target.main()
 
