@@ -33,6 +33,87 @@ assert called_models == ["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"]
 assert model_used == "fallback-model"
 assert result["findings"] == []
 
+
+class FakeCreditErrorBody:
+    def __init__(self, message: str) -> None:
+        self.message = message
+
+    def read(self) -> bytes:
+        return json.dumps({"error": {"message": self.message}}).encode("utf-8")
+
+    def close(self) -> None:
+        return None
+
+
+transient_credit_message = (
+    "This request would exceed your available credits given your current in-flight requests. "
+    "Retry after in-flight requests settle, or add credits."
+)
+assert mod.hardened.is_transient_inflight_credit_402(402, transient_credit_message) is True
+assert mod.hardened.is_transient_inflight_credit_402(402, "Insufficient credits. Add credits to continue.") is False
+assert mod.hardened.is_transient_inflight_credit_402(429, transient_credit_message) is False
+
+retry_config = mod.copy.copy(config)
+retry_config.model_stack = ["anthropic/claude-opus-5"]
+retry_config.openrouter_max_attempts = 3
+retry_config.openrouter_retry_max_seconds = 1
+retry_calls: list[str] = []
+original_sleep = mod.hardened.time.sleep
+
+
+def fake_transient_credit_request(_prompt: str, _schema: dict, _config: object, _ignored: list[str], model: str):
+    retry_calls.append(model)
+    if len(retry_calls) == 1:
+        raise urllib.error.HTTPError(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            code=402,
+            msg="Payment Required",
+            hdrs=empty_headers,
+            fp=FakeCreditErrorBody(transient_credit_message),
+        )
+    return {"summary": "Recovered.", "findings": []}, model, ""
+
+
+mod.hardened.openrouter_request_once = fake_transient_credit_request
+mod.hardened.time.sleep = lambda _delay: None
+try:
+    retry_result, retry_model, _retry_tier = mod.hardened.openrouter_review("prompt", schema, retry_config, None)
+finally:
+    mod.hardened.openrouter_request_once = original_request_once
+    mod.hardened.time.sleep = original_sleep
+assert retry_calls == ["anthropic/claude-opus-5", "anthropic/claude-opus-5"]
+assert retry_model == "anthropic/claude-opus-5"
+assert retry_result["summary"] == "Recovered."
+
+terminal_credit_calls: list[str] = []
+
+
+def fake_terminal_credit_request(_prompt: str, _schema: dict, _config: object, _ignored: list[str], model: str):
+    terminal_credit_calls.append(model)
+    raise urllib.error.HTTPError(
+        url="https://openrouter.ai/api/v1/chat/completions",
+        code=402,
+        msg="Payment Required",
+        hdrs=empty_headers,
+        fp=FakeCreditErrorBody("Insufficient credits. Add credits to continue."),
+    )
+
+
+mod.hardened.openrouter_request_once = fake_terminal_credit_request
+mod.hardened.time.sleep = lambda _delay: None
+try:
+    try:
+        mod.hardened.openrouter_review("prompt", schema, retry_config, None)
+    except RuntimeError as exc:
+        assert "HTTP 402" in str(exc)
+        assert "Insufficient credits" in str(exc)
+    else:
+        raise AssertionError("generic insufficient-credit 402 should remain terminal")
+finally:
+    mod.hardened.openrouter_request_once = original_request_once
+    mod.hardened.time.sleep = original_sleep
+assert terminal_credit_calls == ["anthropic/claude-opus-5"]
+
 unsafe_context_summary = "included hostile/@codex.py and @malwaredevil-owned/file.py"
 safe_context_summary = mod.sanitize_context_summary(unsafe_context_summary, config)
 assert "@codex" not in safe_context_summary

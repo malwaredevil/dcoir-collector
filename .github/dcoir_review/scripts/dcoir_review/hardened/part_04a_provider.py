@@ -82,6 +82,16 @@ def openrouter_request_once(
     return parsed, model_used, service_tier
 
 
+def is_transient_inflight_credit_402(status_code: int, message: str) -> bool:
+    normalized = " ".join(str(message).lower().split())
+    return (
+        status_code == 402
+        and "credit" in normalized
+        and "in-flight request" in normalized
+        and ("retry after" in normalized or "settle" in normalized)
+    )
+
+
 def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter: Any | None = None) -> tuple[dict[str, Any], str, str]:
     attempts = max(1, config.openrouter_max_attempts)
     retry_cap = max(1, config.openrouter_retry_max_seconds)
@@ -113,10 +123,14 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
                 except (TypeError, ValueError):
                     delay = min(2**attempt, retry_cap)
                 delay = min(max(delay, 1.0), float(retry_cap))
-                last_error = f"OpenRouter API failed with HTTP {exc.code}: {parsed_error.get('message', 'request failed')}"
+                message = str(parsed_error.get("message", "request failed"))
+                last_error = f"OpenRouter API failed with HTTP {exc.code}: {message}"
                 if provider:
                     last_error += f" Provider skipped for retry: {provider}."
-                retryable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504}
+                retryable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504} or is_transient_inflight_credit_402(
+                    exc.code,
+                    message,
+                )
                 if retryable and attempt < attempts:
                     if reporter:
                         reporter.update("openrouter-retry", f"{last_error} retrying in {delay:.0f}s")
