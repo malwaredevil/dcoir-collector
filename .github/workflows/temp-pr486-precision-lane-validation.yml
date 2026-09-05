@@ -1,0 +1,43 @@
+name: 98 Temp - PR486 clean precision validation
+run-name: PR486 clean precision no-network validation
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-precision-lane-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Compile precision lane
+        run: |
+          python3 -m py_compile \
+            .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_selftest.py
+      - name: Test corpus and prompt isolation
+        run: python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_selftest.py
+      - name: Verify ten-case plan makes no network requests
+        run: |
+          env -u OPENROUTER_API_KEY python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py --candidate sonnet5-high --output /tmp/pr486-precision-plan.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/pr486-precision-plan.json'))
+          assert data['mode'] == 'plan'
+          assert data['planned_requests'] == 10
+          assert data['network_requests_made'] == 0
+          assert len(data['selected_case_ids']) == 10
+          print('clean precision plan PASS: 10 cases, zero network')
+          PY
