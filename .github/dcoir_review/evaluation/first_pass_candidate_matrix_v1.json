@@ -20,7 +20,8 @@
       "Request-level provider sorting is pinned so mutable workspace defaults cannot confound candidate comparisons.",
       "Response Healing is explicitly enabled to preserve the current structured-output control environment while making it reproducible.",
       "No server tools, AutoRouter, Pareto Router, GitHub publication, branch write, or remediation capability is used by the evaluation request.",
-      "Response caching is disabled so repeated controls cannot be satisfied by a prior cached completion. Provider-native prompt caching, if any, is recorded separately from usage metadata."
+      "Response caching is disabled so repeated controls cannot be satisfied by a prior cached completion. Provider-native prompt caching, if any, is recorded separately from usage metadata.",
+      "Sampling parameters are candidate-specific: preserve production-like temperature 0.2 for Opus controls, but omit temperature for models whose OpenRouter supported-parameters contract does not accept it under require_parameters=true."
     ]
   },
   "candidates": [
@@ -28,6 +29,7 @@
       "id": "opus5-xhigh-control",
       "model": "anthropic/claude-opus-5",
       "reasoning_effort": "xhigh",
+      "temperature": 0.2,
       "max_tokens": null,
       "role": "current-model/current-effort control"
     },
@@ -35,6 +37,7 @@
       "id": "opus5-high",
       "model": "anthropic/claude-opus-5",
       "reasoning_effort": "high",
+      "temperature": 0.2,
       "max_tokens": null,
       "role": "same-model lower-reasoning candidate"
     },
@@ -42,6 +45,7 @@
       "id": "sonnet5-high",
       "model": "anthropic/claude-sonnet-5",
       "reasoning_effort": "high",
+      "temperature": null,
       "max_tokens": null,
       "role": "lower-cost routine first-pass worker candidate"
     }
