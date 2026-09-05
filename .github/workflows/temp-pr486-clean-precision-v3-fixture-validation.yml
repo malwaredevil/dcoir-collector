@@ -1,0 +1,30 @@
+name: 98 Temp - PR486 precision v3 fixture validation
+run-name: PR486 precision v3 semantic fixture validation
+
+on:
+  push:
+    branches:
+      - issue-485-first-pass-model-eval-harness
+    paths:
+      - '.github/workflows/temp-pr486-clean-precision-v3-fixture-validation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Compile and run semantic fixture guard
+        run: |
+          python3 -m py_compile .github/dcoir_review/scripts/dcoir_review_pr_precision_fixture_v3_selftest.py
+          python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_fixture_v3_selftest.py
+      - name: Re-run v3 prompt isolation selftest
+        run: python3 .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_selftest.py
