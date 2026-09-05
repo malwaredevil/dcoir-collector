@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Production-shaped clean-PR precision evaluator for DCOIR candidates.
 
-This evaluation-only lane reuses the mutation scorer but supplies ten PRs whose
-hidden ground truth is clean under the full reviewer policy. Workflow cases may
-include an explicit trusted approval receipt injected into trusted context; PR
-body text remains untrusted. Set DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT=0 to
-run the same cases without that receipt and measure the current prompt-context
-gap. No benchmark label or ground truth is shown to the model. The resilient
-request adapter prevents one malformed response from aborting the paid batch.
+This evaluation-only lane supplies ten PRs whose hidden ground truth is clean
+under the full reviewer policy. V3 is composed from the audited-good v2 cases
+plus two replacement fixtures that remove optimistic assumptions discovered
+before acceptance testing. Workflow cases may include an explicit trusted
+approval receipt injected into trusted context; PR body text remains untrusted.
+Set DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT=0 to run the same cases without
+that receipt and measure the current prompt-context gap. No benchmark label or
+ground truth is shown to the model. The resilient request adapter prevents one
+malformed response from aborting the paid batch.
 """
 from __future__ import annotations
 
@@ -18,36 +20,61 @@ from typing import Any
 import dcoir_review_eval_resilient_openrouter as resilient
 import dcoir_review_pr_mutation_eval as target
 
-CORPUS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_cases_v2.json"
-CORPUS_SCHEMA = "dcoir_review_pr_precision_clean_cases_v2"
+BASE_CORPUS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_cases_v2.json"
+BASE_CORPUS_SCHEMA = "dcoir_review_pr_precision_clean_cases_v2"
+REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v3.json"
+REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v3"
+
+
+def _validate_case(raw: Any) -> dict[str, Any]:
+    if not isinstance(raw, dict):
+        raise ValueError("Clean PR precision case must be an object")
+    case = dict(raw)
+    case_id = str(case.get("id", "")).strip()
+    if not case_id:
+        raise ValueError("Clean PR precision case id is required")
+    files = case.get("files")
+    if not isinstance(files, list) or not files:
+        raise ValueError(f"{case_id}: files must be a non-empty list")
+    names = [str(item.get("filename", "")) for item in files if isinstance(item, dict)]
+    if len(names) != len(files) or any(not name for name in names) or len(set(names)) != len(names):
+        raise ValueError(f"{case_id}: changed file names must be present and unique")
+    if case.get("expected_findings") != []:
+        raise ValueError(f"{case_id}: clean precision cases must have zero expected findings")
+    return case
 
 
 def load_cases() -> list[dict[str, Any]]:
-    data = target.base.load_json(CORPUS_PATH)
-    if data.get("schema_version") != CORPUS_SCHEMA:
-        raise ValueError("Unexpected clean PR precision corpus schema")
-    raw_cases = data.get("cases")
-    if not isinstance(raw_cases, list) or len(raw_cases) != 10:
-        raise ValueError("Clean PR precision corpus must contain exactly 10 cases")
-    cases: list[dict[str, Any]] = []
-    ids: set[str] = set()
-    for raw in raw_cases:
-        if not isinstance(raw, dict):
-            raise ValueError("Clean PR precision case must be an object")
-        case = dict(raw)
-        case_id = str(case.get("id", "")).strip()
-        if not case_id or case_id in ids:
-            raise ValueError(f"Missing or duplicate clean PR precision id: {case_id!r}")
-        ids.add(case_id)
-        files = case.get("files")
-        if not isinstance(files, list) or not files:
-            raise ValueError(f"{case_id}: files must be a non-empty list")
-        names = [str(item.get("filename", "")) for item in files if isinstance(item, dict)]
-        if len(names) != len(files) or any(not name for name in names) or len(set(names)) != len(names):
-            raise ValueError(f"{case_id}: changed file names must be present and unique")
-        if case.get("expected_findings") != []:
-            raise ValueError(f"{case_id}: clean precision cases must have zero expected findings")
-        cases.append(case)
+    base_data = target.base.load_json(BASE_CORPUS_PATH)
+    if base_data.get("schema_version") != BASE_CORPUS_SCHEMA:
+        raise ValueError("Unexpected clean PR precision base corpus schema")
+    base_raw = base_data.get("cases")
+    if not isinstance(base_raw, list) or len(base_raw) != 10:
+        raise ValueError("Clean PR precision v2 base corpus must contain exactly 10 cases")
+
+    replacement_data = target.base.load_json(REPLACEMENTS_PATH)
+    if replacement_data.get("schema_version") != REPLACEMENTS_SCHEMA:
+        raise ValueError("Unexpected clean PR precision replacement schema")
+    replace_ids = replacement_data.get("replaces_case_ids")
+    replacement_raw = replacement_data.get("cases")
+    if not isinstance(replace_ids, list) or len(replace_ids) != 2 or len(set(map(str, replace_ids))) != 2:
+        raise ValueError("Clean PR precision v3 must replace exactly two unique v2 cases")
+    if not isinstance(replacement_raw, list) or len(replacement_raw) != 2:
+        raise ValueError("Clean PR precision v3 must supply exactly two replacement cases")
+
+    replace_set = {str(item) for item in replace_ids}
+    base_cases = [_validate_case(raw) for raw in base_raw]
+    base_ids = {str(case["id"]) for case in base_cases}
+    if not replace_set.issubset(base_ids):
+        raise ValueError("Clean PR precision v3 replacement ids must exist in v2")
+    replacements = [_validate_case(raw) for raw in replacement_raw]
+
+    cases = [case for case in base_cases if str(case["id"]) not in replace_set] + replacements
+    ids = [str(case["id"]) for case in cases]
+    if len(cases) != 10 or len(set(ids)) != 10:
+        raise ValueError("Clean PR precision v3 must resolve to exactly 10 unique cases")
+    if replace_set.intersection(ids):
+        raise ValueError("Superseded v2 clean cases leaked into v3")
     return cases
 
 
@@ -98,7 +125,7 @@ Find only high-signal issues in the PR diff. For each finding, give the exact ch
 def main() -> int:
     target.load_cases = load_cases
     target.build_pr_prompt = build_pr_prompt
-    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v2"
+    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v3"
     resilient.install(target.base)
     return target.main()
 
