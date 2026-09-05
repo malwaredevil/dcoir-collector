@@ -55,6 +55,16 @@ def main() -> None:
     assert REQUIRED_FINDING_CLASSES <= finding_classes
     assert REQUIRED_CLEAN_CLASSES <= clean_classes
 
+    # A finding case must actually exercise the defective implementation as
+    # written. Keep the scope-binding counterexample case-compatible with the
+    # implementation's case-sensitive token checks so reviewer quality, rather
+    # than a broken fixture, determines the disposition.
+    scope_case = next(case for case in cases if case['id'] == 'wrong-clause-scope-binding')
+    scope_namespace: dict[str, object] = {}
+    exec(str(scope_case['source']), scope_namespace)
+    assert scope_namespace['has_remote_action'](str(scope_case['counterexample'])) is True
+    assert str(scope_case['counterexample']).startswith('remote ')
+
     # Keep the corpus generalized. It may encode the semantic defect family, but
     # it must not become a lookup table for a specific acceptance PR or issue.
     serialized = json.dumps(data, sort_keys=True).lower()
