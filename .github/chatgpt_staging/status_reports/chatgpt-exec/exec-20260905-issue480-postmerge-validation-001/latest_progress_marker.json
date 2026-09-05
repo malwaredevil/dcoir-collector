@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "33958158333",
   "github_sha": "79131a8a429e0cd733633d4697794a62d2363430",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "exec-20260905-issue480-postmerge-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/exec-20260905-issue480-postmerge-validation-001.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-05T09:31:13Z",
+  "updated_utc": "2026-09-05T09:31:16Z",
   "workflow": "chatgpt-exec"
 }
