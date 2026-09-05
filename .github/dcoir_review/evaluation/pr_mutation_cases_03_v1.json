@@ -5,39 +5,39 @@
     {
       "id": "prmut-md-approval-workflow-contradiction",
       "pr_title": "Document governed paid benchmark procedure",
-      "pr_body": "Clarify that paid model benchmarks require explicit operator approval before the inference step runs.",
+      "pr_body": "This synthetic PR intentionally tests whether the changed workflow contradicts its own newly documented approval sequence; there is no pre-existing operator approval for live inference.",
       "difficulty": "hard",
       "files": [
         {"filename":"docs/review-benchmark.md","status":"modified","patch":"diff --git a/docs/review-benchmark.md b/docs/review-benchmark.md\nindex 1111111..2222222 100644\n--- a/docs/review-benchmark.md\n+++ b/docs/review-benchmark.md\n@@ -4,3 +4,6 @@ Benchmark procedure\n+1. Prepare the exact command and request count.\n+2. Obtain explicit operator approval for that exact paid batch.\n+3. Only after approval, start the inference workflow.\n"},
         {"filename":".github/workflows/benchmark.yml","status":"modified","patch":"diff --git a/.github/workflows/benchmark.yml b/.github/workflows/benchmark.yml\nindex 3333333..4444444 100644\n--- a/.github/workflows/benchmark.yml\n+++ b/.github/workflows/benchmark.yml\n@@ -1,5 +1,8 @@\n name: benchmark\n-on: workflow_dispatch\n+on:\n+  pull_request:\n+    types: [opened, synchronize]\n jobs:\n   run:\n+    if: github.event.pull_request.draft == false\n     runs-on: ubuntu-latest\n     steps:\n       - run: python benchmark.py --execute-live\n"}
       ],
-      "expected_findings": [{"path":".github/workflows/benchmark.yml","anchor_substrings":["pull_request:","python benchmark.py --execute-live"],"term_groups":[["approval","operator"],["automatic","pull_request","before","bypass","contradict"]],"defect_class":"governance-approval-bypass"}],
+      "expected_findings": [{"path":".github/workflows/benchmark.yml","allowed_paths":[".github/workflows/benchmark.yml","docs/review-benchmark.md"],"anchor_substrings":["pull_request:","python benchmark.py --execute-live"],"term_groups":[["approval","operator"],["automatic","pull_request","before","bypass","contradict"]],"defect_class":"governance-approval-bypass"}],
       "ground_truth_rationale": "The documentation requires approval before inference, but the changed workflow automatically starts live inference on PR events without an approval gate."
     },
     {
       "id": "prmut-json-string-false",
       "pr_title": "Make provider fallback configurable",
-      "pr_body": "Read provider fallback policy from JSON so environments can disable fallback without code changes.",
+      "pr_body": "Read provider fallback policy from JSON with strict boolean type validation so environments can disable fallback without silent coercion.",
       "difficulty": "hard",
       "files": [
         {"filename":"config/provider.json","status":"modified","patch":"diff --git a/config/provider.json b/config/provider.json\nindex 1111111..2222222 100644\n--- a/config/provider.json\n+++ b/config/provider.json\n@@ -1,3 +1,3 @@\n {\n-  \"allow_fallbacks\": true\n+  \"allow_fallbacks\": \"false\"\n }\n"},
-        {"filename":"review/provider.py","status":"modified","patch":"diff --git a/review/provider.py b/review/provider.py\nindex 3333333..4444444 100644\n--- a/review/provider.py\n+++ b/review/provider.py\n@@ -3,4 +3,5 @@ def provider_policy(data):\n-    return {\"allow_fallbacks\": data.get(\"allow_fallbacks\", True)}\n+    enabled = bool(data.get(\"allow_fallbacks\", True))\n+    return {\"allow_fallbacks\": enabled}\n"}
+        {"filename":"review/provider.py","status":"modified","patch":"diff --git a/review/provider.py b/review/provider.py\nindex 3333333..4444444 100644\n--- a/review/provider.py\n+++ b/review/provider.py\n@@ -3,4 +3,7 @@ def provider_policy(data):\n-    return {\"allow_fallbacks\": data.get(\"allow_fallbacks\", True)}\n+    value = data.get(\"allow_fallbacks\", True)\n+    if not isinstance(value, bool):\n+        raise TypeError(\"allow_fallbacks must be a JSON boolean\")\n+    return {\"allow_fallbacks\": value}\n"}
       ],
-      "expected_findings": [{"path":"config/provider.json","anchor_substrings":["\"allow_fallbacks\": \"false\""],"term_groups":[["string","boolean","type"],["false","truthy","bool","coerc"]],"defect_class":"typed-config-boolean"}],
-      "ground_truth_rationale": "JSON string 'false' is truthy when bool() is applied in Python, so fallback remains enabled when the configuration appears to disable it."
+      "expected_findings": [{"path":"config/provider.json","anchor_substrings":["\"allow_fallbacks\": \"false\""],"term_groups":[["string","boolean","type"],["allow_fallbacks","config","json"]],"defect_class":"typed-config-boolean"}],
+      "ground_truth_rationale": "The changed JSON supplies a string where the changed parser explicitly requires a JSON boolean, so configuration loading fails instead of disabling fallback."
     },
     {
       "id": "prmut-mixed-stale-head-and-concurrency",
       "pr_title": "Speed up review reruns and publication",
-      "pr_body": "Add concurrency grouping for review jobs and avoid redundant head fetches before publishing results.",
+      "pr_body": "Operator approval for this exact synthetic workflow mutation is recorded. Add concurrency grouping for review jobs and avoid redundant head fetches before publishing results.",
       "difficulty": "adversarial",
       "files": [
         {"filename":"review/publish.py","status":"modified","patch":"diff --git a/review/publish.py b/review/publish.py\nindex 111aaaa..222bbbb 100644\n--- a/review/publish.py\n+++ b/review/publish.py\n@@ -10,9 +10,9 @@ def review_and_publish(client, pr_number):\n     head = client.get_pr(pr_number)[\"head\"][\"sha\"]\n     result = run_expensive_review(head)\n-    current = client.get_pr(pr_number)[\"head\"][\"sha\"]\n-    if current != head:\n-        return \"superseded\"\n+    # The workflow concurrency group prevents overlapping reviews.\n     client.publish_review(pr_number, result)\n     return \"published\"\n"},
         {"filename":".github/workflows/review.yml","status":"modified","patch":"diff --git a/.github/workflows/review.yml b/.github/workflows/review.yml\nindex 333aaaa..444bbbb 100644\n--- a/.github/workflows/review.yml\n+++ b/.github/workflows/review.yml\n@@ -1,6 +1,9 @@\n name: review\n on: issue_comment\n+concurrency:\n+  group: review-${{ github.event.issue.number }}\n+  cancel-in-progress: false\n jobs:\n   review:\n     runs-on: ubuntu-latest\n"}
       ],
       "expected_findings": [
-        {"path":"review/publish.py","anchor_substrings":["workflow concurrency group prevents overlapping reviews","client.publish_review"],"term_groups":[["head","stale","refetch","supersed"],["publish","publication","current"]],"defect_class":"stale-head-publication"},
-        {"path":".github/workflows/review.yml","anchor_substrings":["cancel-in-progress: false"],"term_groups":[["cancel-in-progress","concurrency"],["stale","supersed","obsolete","newer"]],"defect_class":"stale-run-not-cancelled"}
+        {"path":"review/publish.py","allowed_paths":["review/publish.py"],"anchor_substrings":["workflow concurrency group prevents overlapping reviews","client.publish_review"],"term_groups":[["head","stale","refetch","supersed"],["publish","publication","current"]],"defect_class":"stale-head-publication"},
+        {"path":".github/workflows/review.yml","allowed_paths":[".github/workflows/review.yml","review/publish.py"],"anchor_substrings":["cancel-in-progress: false"],"term_groups":[["cancel-in-progress","concurrency"],["stale","supersed","obsolete","newer"]],"defect_class":"stale-run-not-cancelled"}
       ],
       "ground_truth_rationale": "Two defenses were weakened together: publication no longer revalidates the PR head, and concurrency explicitly allows an obsolete in-progress run to finish after a newer event."
     }
