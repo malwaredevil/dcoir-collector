@@ -4,7 +4,7 @@ param()
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 
-$requestedSha = 'fd5e4c11f0947b4a3c5c72a308512cfa44cddd3b'
+$requestedSha = '168b66a43620d5b68b124d889ef280e49b36df5e'
 $expectedValidationCount = 44
 $repo = [string]$env:DCOIR_REPO_ROOT
 $downloads = [string]$env:DCOIR_DOWNLOADS_DIR
