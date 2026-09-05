@@ -26,6 +26,46 @@ def semantic_review_ledger_for_client(gh: Any) -> dict[str, Any]:
     return copy.deepcopy(value) if isinstance(value, dict) else {}
 
 
+def _review_context_payload_with_ledger(
+    context: dict[str, Any], ledger: dict[str, Any]
+) -> dict[str, Any]:
+    """Return review-context metadata enriched from the current semantic ledger."""
+
+    enriched = dict(context)
+    telemetry = ledger.get("telemetry", {})
+    if not isinstance(telemetry, dict):
+        telemetry = {}
+    if "reuse_invalidation_reason" in telemetry:
+        invalidation_reason = telemetry.get("reuse_invalidation_reason", "")
+    else:
+        invalidation_reason = telemetry.get("invalidation_reason", "")
+    enriched.update(
+        {
+            "semantic_ledger_contract": SEMANTIC_LEDGER_CONTRACT,
+            "semantic_context_fingerprint": str(
+                ledger.get("context_fingerprint", "") or ""
+            ),
+            "semantic_runtime_context_fingerprint": str(
+                ledger.get("runtime_context_fingerprint", "") or ""
+            ),
+            "semantic_reviewed_file_count": int(
+                telemetry.get("reviewed_file_count", 0) or 0
+            ),
+            "semantic_reused_file_count": int(
+                telemetry.get("reused_file_count", 0) or 0
+            ),
+            "semantic_recomputed_file_count": int(
+                telemetry.get("recomputed_file_count", 0) or 0
+            ),
+            "semantic_dependency_expanded_file_count": int(
+                telemetry.get("dependency_expanded_file_count", 0) or 0
+            ),
+            "semantic_invalidation_reason": str(invalidation_reason or ""),
+        }
+    )
+    return enriched
+
+
 def _ledger_marker(ledger: dict[str, Any]) -> str:
     telemetry = (
         ledger.get("telemetry", {})
@@ -81,35 +121,7 @@ def apply_pareto_context_module(module: Any) -> None:
             if not _LAST_LEDGER:
                 _LAST_REVIEW_CONTEXT = copy.deepcopy(value)
             else:
-                enriched = dict(value)
-                telemetry = _LAST_LEDGER.get("telemetry", {})
-                enriched.update(
-                    {
-                        "semantic_ledger_contract": SEMANTIC_LEDGER_CONTRACT,
-                        "semantic_context_fingerprint": str(
-                            _LAST_LEDGER.get("context_fingerprint", "") or ""
-                        ),
-                        "semantic_runtime_context_fingerprint": str(
-                            _LAST_LEDGER.get("runtime_context_fingerprint", "") or ""
-                        ),
-                        "semantic_reviewed_file_count": int(
-                            telemetry.get("reviewed_file_count", 0) or 0
-                        ),
-                        "semantic_reused_file_count": int(
-                            telemetry.get("reused_file_count", 0) or 0
-                        ),
-                        "semantic_recomputed_file_count": int(
-                            telemetry.get("recomputed_file_count", 0) or 0
-                        ),
-                        "semantic_dependency_expanded_file_count": int(
-                            telemetry.get("dependency_expanded_file_count", 0) or 0
-                        ),
-                        "semantic_invalidation_reason": str(
-                            telemetry.get("invalidation_reason", "") or ""
-                        ),
-                    }
-                )
-                value = enriched
+                value = _review_context_payload_with_ledger(value, _LAST_LEDGER)
         original_debug_json(config, relative_path, value)
 
     def openrouter_review_with_hybrid_first_pass(
