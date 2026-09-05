@@ -9,12 +9,17 @@ import dcoir_review_pr_precision_eval as precision
 
 def main() -> None:
     cases = precision.load_cases()
+    ids = {str(case["id"]) for case in cases}
     assert len(cases) == 10
     assert all(case["expected_findings"] == [] for case in cases)
-    assert len({case["id"] for case in cases}) == 10
+    assert len(ids) == 10
+    assert "precision-ps-native-exit-snapshot-tested" not in ids
+    assert "precision-governance-command-gate-approved-tested" not in ids
+    assert "precision-ps-native-exit-snapshot-verbose-tested" in ids
+    assert "precision-py-retry-budget-tested" in ids
 
     workflow_cases = [case for case in cases if any(str(item["filename"]).startswith(".github/workflows/") for item in case["files"])]
-    assert workflow_cases
+    assert len(workflow_cases) == 2
     assert all(str(case.get("trusted_context", "")).strip() for case in workflow_cases)
 
     old = os.environ.get("DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT")
@@ -44,7 +49,7 @@ def main() -> None:
         else:
             os.environ["DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT"] = old
 
-    print("dcoir_review_pr_precision_eval_selftest passed: 10 policy-clean PRs, hidden ground truth, trusted workflow approval context can be included or ablated without label leakage")
+    print("dcoir_review_pr_precision_eval_selftest passed: audited v3 has 10 policy-clean PRs, replaces two optimistic v2 fixtures, hides ground truth, and supports trusted-context ablation")
 
 
 if __name__ == "__main__":
