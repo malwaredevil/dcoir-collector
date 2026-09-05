@@ -75,8 +75,8 @@ try {
     $budgetPlan = Get-Content -LiteralPath $budgetPlanPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ([string]$budgetPlan.mode -ne 'plan-no-network') { throw "unexpected budget plan mode: $($budgetPlan.mode)" }
     if ([int]$budgetPlan.network_calls -ne 0) { throw "budget plan reported network calls: $($budgetPlan.network_calls)" }
-    if ([int]$budgetPlan.case_counts.total_per_candidate -ne 14) {
-        throw "expected 14 planned budget cases, got $($budgetPlan.case_counts.total_per_candidate)"
+    if ([int]$budgetPlan.case_counts.total -ne 14) {
+        throw "expected 14 planned budget cases, got $($budgetPlan.case_counts.total)"
     }
     if ([int]$budgetPlan.max_tokens -ne 32768) { throw "unexpected max_tokens: $($budgetPlan.max_tokens)" }
 
