@@ -60,7 +60,6 @@ def build_case_prompt(case: dict[str, Any]) -> str:
     path = str(case.get("synthetic_path", f"evaluation/{case['id']}"))
     language = str(case.get("language", "text"))
     surface = str(case.get("surface", "unknown"))
-    difficulty = str(case.get("difficulty", "unknown"))
     source = str(case.get("source", ""))
     probe = str(case.get("counterexample", ""))
     contract = str(case.get("review_contract", ""))
@@ -71,7 +70,6 @@ Do not publish anything, do not propose branch edits, and do not infer hidden co
 Synthetic evaluation path: {path}
 Surface: {surface}
 Language: {language}
-Difficulty label: {difficulty}
 
 Correctness contract:
 {contract}
