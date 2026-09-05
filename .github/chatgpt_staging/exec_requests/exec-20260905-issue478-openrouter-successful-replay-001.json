@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260905-issue478-openrouter-successful-replay-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-05T14:57:25Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run the issue #478 read-only OpenRouter analytics collector for the historical baseline, failed Architecture-B attempts, successful Architecture-B anchor, and successful optimized incremental replay using the temporarily bridged OPENROUTER_MANAGEMENT_KEY; query analytics only; make no inference/model requests and do not expose the credential.",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .github/chatgpt_staging/exec_scripts/openrouter-analytics-issue478-successful-replay.ps1"
+}
