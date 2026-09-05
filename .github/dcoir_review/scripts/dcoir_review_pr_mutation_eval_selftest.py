@@ -26,6 +26,16 @@ def finding(title: str, body: str, path: str, line: int, validation: str = "vali
     }
 
 
+def added_line(case: dict, path: str, contains: str) -> int:
+    for item in case["files"]:
+        if item["filename"] != path:
+            continue
+        for line, text in target.added_lines(item["patch"]):
+            if contains in text:
+                return line
+    raise AssertionError(f"No added line containing {contains!r} in {path}")
+
+
 def main() -> int:
     cases = target.load_cases()
     require(len(cases) == 12, "expected 12 PR mutation cases")
@@ -66,7 +76,7 @@ def main() -> int:
         "Snapshot robocopy exit code before where.exe overwrites LASTEXITCODE",
         "The second native where.exe call overwrites the robocopy exit code. Snapshot it first.",
         "src/Invoke-Mirror.ps1",
-        4,
+        added_line(defect_case, "src/Invoke-Mirror.ps1", "where.exe powershell.exe"),
         "Exercise a failing robocopy exit code.",
     )
     score = target.score_case(defect_case, {"ok": True, "result": {"findings": [good]}})
@@ -76,17 +86,17 @@ def main() -> int:
         "Add a regression for the overwritten robocopy exit code",
         "This changed test should exercise that where.exe overwrites LASTEXITCODE after robocopy unless the native exit code is snapshotted.",
         "tests/Invoke-Mirror.Tests.ps1",
-        10,
+        added_line(defect_case, "tests/Invoke-Mirror.Tests.ps1", "collects diagnostic tool location"),
     )
     companion_score = target.score_case(defect_case, {"ok": True, "result": {"findings": [good, companion]}})
     require(companion_score["correct"], f"root-cause companion finding should not become a false positive: {companion_score}")
     require(companion_score["supported_companion_findings"] == 1, "companion finding was not classified separately")
     require(companion_score["extra_findings"] == 0, "companion finding leaked into extras")
 
-    unrelated = finding("Style cleanup", "Unrelated formatting preference.", "src/Invoke-Mirror.ps1", 4, "none")
+    unrelated = finding("Style cleanup", "Unrelated formatting preference.", "src/Invoke-Mirror.ps1", added_line(defect_case, "src/Invoke-Mirror.ps1", "where.exe powershell.exe"), "none")
     require(not target.score_case(defect_case, {"ok": True, "result": {"findings": [unrelated]}})["correct"], "unrelated finding received credit")
 
-    clean_noise = finding("Style cleanup", "Unrelated formatting preference.", "src/Invoke-Mirror.ps1", 5, "none")
+    clean_noise = finding("Style cleanup", "Unrelated formatting preference.", "src/Invoke-Mirror.ps1", added_line(clean_case, "src/Invoke-Mirror.ps1", "where.exe powershell.exe"), "none")
     clean_noise_score = target.score_case(clean_case, {"ok": True, "result": {"findings": [clean_noise]}})
     require(not clean_noise_score["correct"] and clean_noise_score["extra_findings"] == 1, "clean controls must remain strict")
 
@@ -95,7 +105,7 @@ def main() -> int:
         "Concurrency does not replace the stale-head publication guard",
         "Removing the current head refetch allows stale publication, and cancel-in-progress false means a superseded concurrency run can still finish after a newer head. Restore the pre-publication current-head check and cancel obsolete runs.",
         "review/publish.py",
-        13,
+        added_line(multi, "review/publish.py", "workflow concurrency group prevents overlapping reviews"),
         "Advance the PR head while a review runs and verify the stale run neither publishes nor survives the newer run.",
     )
     multi_score = target.score_case(multi, {"ok": True, "result": {"findings": [cross_file_root]}})
@@ -108,7 +118,7 @@ def main() -> int:
         "Debug documentation contradicts the mode resolver",
         "The documentation says debug is observability-only, but the changed resolver maps debug to deep and changes review scope.",
         "docs/operator.md",
-        22,
+        added_line(doc_drift, "docs/operator.md", "Debug mode only adds diagnostics"),
     )
     second_target = doc_drift["expected_findings"][1]
     require(target.finding_matches(doc_drift, second_target, alternative_anchor), "allowed alternative anchor did not match the seeded facet")
