@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "exec-20260905-issue485-pr486-corpus-fix-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-05T18:15:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "$script = Join-Path $env:DCOIR_REPO_ROOT '.github\\chatgpt_staging\\exec_scripts\\issue485-pr486-corpus-fix-validation-20260905.ps1'; & $script",
+  "command": "$script = Join-Path $env:DCOIR_REPO_ROOT '.github\\chatgpt_staging\\exec_scripts\\issue485-pr486-corpus-fix-validation-20260905.ps1'; & $script"
+}
