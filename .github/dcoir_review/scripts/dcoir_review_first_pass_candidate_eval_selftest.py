@@ -85,6 +85,7 @@ def main() -> None:
     assert control_payload["plugins"] == [{"id": "response-healing", "enabled": True}]
     assert control_payload["tools"] == []
     assert control_payload["stream"] is False
+    assert control_payload["temperature"] == 0.2
     assert control_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
     assert control_payload["response_format"]["type"] == "json_schema"
     assert "max_tokens" not in control_payload
@@ -93,10 +94,21 @@ def main() -> None:
     high = evaluation.candidate_by_id(matrix, "opus5-high")
     high_payload = evaluation.build_payload(high, lane_case, system_prompt, schema, contract)
     assert high_payload["reasoning"]["effort"] == "high"
+    assert high_payload["temperature"] == 0.2
     sonnet = evaluation.candidate_by_id(matrix, "sonnet5-high")
     sonnet_payload = evaluation.build_payload(sonnet, lane_case, system_prompt, schema, contract)
     assert sonnet_payload["model"] == "anthropic/claude-sonnet-5"
     assert sonnet_payload["reasoning"]["effort"] == "high"
+    assert "temperature" not in sonnet_payload
+
+    invalid_temperature = dict(sonnet)
+    invalid_temperature["temperature"] = 2.1
+    try:
+        evaluation.build_payload(invalid_temperature, lane_case, system_prompt, schema, contract)
+    except ValueError as exc:
+        assert "temperature" in str(exc)
+    else:
+        raise AssertionError("Out-of-range candidate temperature must fail closed")
 
     headers = evaluation.request_headers("unit-test-key")
     assert headers["X-OpenRouter-Metadata"] == "enabled"
@@ -221,7 +233,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "3 candidates, 12 controlled cases, 2 frozen naturalistic cases, no network/publication"
+        "3 candidates, 12 controlled cases, 2 frozen naturalistic cases, candidate-specific temperature, no network/publication"
     )
 
 
