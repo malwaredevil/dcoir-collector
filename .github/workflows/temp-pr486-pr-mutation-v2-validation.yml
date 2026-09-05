@@ -1,5 +1,5 @@
 name: 98 Temp - PR486 PR mutation v2 validation
-run-name: PR486 PR mutation v2 validation | target 71bec119d52c57138c6e9d7e27d91b3e16a65a48
+run-name: PR486 PR mutation v2 validation | target c26016e79957fb543bcfdef6afd63c8e6ea48ac1
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: 71bec119d52c57138c6e9d7e27d91b3e16a65a48
+          ref: c26016e79957fb543bcfdef6afd63c8e6ea48ac1
           persist-credentials: false
           fetch-depth: 1
       - uses: actions/setup-python@v7
