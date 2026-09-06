@@ -98,10 +98,12 @@ class DcoirReviewEntrypoint:
     )
     # Execution-policy overlays run last so they guard the fully composed provider
     # and publication paths without changing Architecture-B semantic ordering or
-    # the v47 per-file routing contract. v48 stops new model work and stale
-    # publication when the live PR head/base/state no longer matches the run.
+    # the v47 per-file routing contract. v48 owns the canonical provider and
+    # publication guards; its companion covers the legacy optional prompt-review
+    # request that can otherwise execute before the canonical provider call.
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v48',
+        'dcoir_review_required_runtime_patch_v48_prompt_guard',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
