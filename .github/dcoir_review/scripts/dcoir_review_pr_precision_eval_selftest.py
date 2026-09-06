@@ -30,7 +30,15 @@ def main() -> None:
     assert "precision-ps-remoting-argumentlist-tested" in historical_v4_ids
     assert "precision-gha-title-via-env-approved-tested" in historical_v4_ids
 
-    cases = precision.load_cases()
+    historical_v5 = precision.load_v5_cases()
+    historical_v5_ids = {str(case["id"]) for case in historical_v5}
+    assert len(historical_v5) == 10
+    assert len(historical_v5_ids) == 10
+    assert "precision-ps-remoting-argumentlist-behavior-tested" in historical_v5_ids
+    assert "precision-gha-title-via-env-all-shell-surfaces-tested" in historical_v5_ids
+    assert "precision-gha-fork-structural-readonly-approved-tested" in historical_v5_ids
+
+    cases = precision.load_v6_cases()
     ids = {str(case["id"]) for case in cases}
     assert len(cases) == 10
     assert all(case["expected_findings"] == [] for case in cases)
@@ -43,6 +51,7 @@ def main() -> None:
         "precision-ps-remoting-argumentlist-tested",
         "precision-gha-title-via-env-approved-tested",
         "precision-gha-fork-exact-readonly-approved-tested",
+        "precision-gha-title-via-env-all-shell-surfaces-tested",
     ):
         assert superseded not in ids
     for current in (
@@ -50,7 +59,7 @@ def main() -> None:
         "precision-py-retry-budget-tested",
         "precision-py-cache-key-callers-invalidation-tested",
         "precision-ps-remoting-argumentlist-behavior-tested",
-        "precision-gha-title-via-env-all-shell-surfaces-tested",
+        "precision-gha-title-via-env-normalized-expression-tested",
         "precision-gha-fork-structural-readonly-approved-tested",
     ):
         assert current in ids
@@ -86,7 +95,7 @@ def main() -> None:
         else:
             os.environ["DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT"] = old
 
-    print("dcoir_review_pr_precision_eval_selftest passed: current v5 has 10 policy-clean PRs, preserves historical v3/v4, replaces all three paired-S1 benchmark defects, hides ground truth, and supports trusted-context ablation")
+    print("dcoir_review_pr_precision_eval_selftest passed: current v6 has 10 policy-clean PRs, preserves historical v3/v4/v5, replaces the Sonnet-v5 title-guard defect, hides ground truth, and supports trusted-context ablation")
 
 
 if __name__ == "__main__":

@@ -2,12 +2,11 @@
 """Production-shaped clean-PR precision evaluator for DCOIR candidates.
 
 This evaluation-only lane supplies ten PRs whose hidden ground truth is clean
-under the full reviewer policy. V3 and V4 are retained as historical
-compositions for reproducibility. V5 composes from v4 and replaces three
-additional optimistic controls exposed by paired Sonnet 5/high and Opus 5/xhigh
-manual adjudication: one remoting fixture did not execute the remote script
-block, one PR-title fixture checked only a single shell line, and one fork
-workflow fixture did not prove job-level permissions or every checkout step.
+under the full reviewer policy. V3, V4, and V5 are retained as historical
+compositions for reproducibility. V6 composes from v5 and replaces the final
+optimistic PR-title control exposed by the Sonnet 5/high v5 confirmation: the
+v5 guard matched only one exact GitHub-expression spelling and therefore could
+miss whitespace variants or expressions placed in multiline shell bodies.
 
 Workflow cases may include an explicit trusted approval receipt injected into
 trusted context; PR body text remains untrusted. Set
@@ -34,6 +33,8 @@ V4_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_re
 V4_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v4"
 V5_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v5.json"
 V5_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v5"
+V6_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v6.json"
+V6_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v6"
 
 
 def _validate_case(raw: Any) -> dict[str, Any]:
@@ -123,13 +124,28 @@ def load_v4_cases() -> list[dict[str, Any]]:
     )
 
 
-def load_cases() -> list[dict[str, Any]]:
+def load_v5_cases() -> list[dict[str, Any]]:
     return _apply_replacements(
         load_v4_cases(),
         V5_REPLACEMENTS_PATH,
         V5_REPLACEMENTS_SCHEMA,
         "v5",
         expected_replacement_count=3,
+    )
+
+
+def load_cases() -> list[dict[str, Any]]:
+    """Historical v5 compatibility loader for the retained v5 fixture selftest."""
+    return load_v5_cases()
+
+
+def load_v6_cases() -> list[dict[str, Any]]:
+    return _apply_replacements(
+        load_v5_cases(),
+        V6_REPLACEMENTS_PATH,
+        V6_REPLACEMENTS_SCHEMA,
+        "v6",
+        expected_replacement_count=1,
     )
 
 
@@ -178,9 +194,9 @@ Find only high-signal issues in the PR diff. For each finding, give the exact ch
 
 
 def main() -> int:
-    target.load_cases = load_cases
+    target.load_cases = load_v6_cases
     target.build_pr_prompt = build_pr_prompt
-    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v5"
+    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v6"
     resilient.install(target.base)
     return target.main()
 
