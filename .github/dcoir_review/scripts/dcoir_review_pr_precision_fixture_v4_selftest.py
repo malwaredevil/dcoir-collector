@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Semantic fixture guards for the historical clean-precision v3 corpus.
+"""Semantic fixture guards for the current clean-precision v4 corpus.
 
-These checks preserve the exact v3 benchmark construction for reproducibility;
-they are not the current acceptance bar. They inspect the right-side/current
-representation of each relevant changed file so deleted vulnerable lines and
-negative test literals do not contaminate the historical fixtures.
+These deterministic checks validate benchmark construction, not model output.
+They inspect the right-side/current representation of each relevant changed
+file so the current clean controls prove the policy invariants they claim.
 """
 from __future__ import annotations
 
@@ -44,7 +43,7 @@ def forbid(text: str, *needles: str) -> None:
 
 
 def main() -> None:
-    cases = {str(case["id"]): case for case in precision.load_v3_cases()}
+    cases = {str(case["id"]): case for case in precision.load_cases()}
     assert len(cases) == 10
 
     ps_exit = right_side_file(cases["precision-ps-native-exit-snapshot-verbose-tested"], "src/Invoke-Mirror.ps1")
@@ -58,16 +57,27 @@ def main() -> None:
     require(ps_remote, "param($RemoteMarker)", "Test-Path -LiteralPath $RemoteMarker", "-ArgumentList $MarkerPath")
     forbid(ps_remote, "Test-Path -LiteralPath $MarkerPath")
 
-    cache = right_side(cases["precision-py-cache-key-callers-tested"])
+    cache_case = cases["precision-py-cache-key-callers-invalidation-tested"]
+    cache = right_side(cache_case)
+    cache_test = right_side_file(cache_case, "tests/test_cache.py")
     require(
         cache,
         "def reuse_key(content: bytes, model: str, policy_version: str)",
         "len(field).to_bytes(8, 'big')",
         "reuse_key(content, model, policy_version)",
-        "reuse_key(b'x', 'm', 'v1') != reuse_key(b'x', 'm', 'v2')",
-        "reuse_key(b'a', 'bc', 'd') != reuse_key(b'a', 'b', 'cd')",
     )
-    forbid(right_side_file(cases["precision-py-cache-key-callers-tested"], "review/cache.py"), "return hashlib.sha256(content).hexdigest()")
+    require(
+        cache_test,
+        "from review.engine import lookup",
+        "reuse_key(b'x', 'm', 'v1') != reuse_key(b'x', 'm', 'v2')",
+        "reuse_key(b'x', 'm', 'v1') != reuse_key(b'x', 'n', 'v1')",
+        "reuse_key(b'a', 'bc', 'd') != reuse_key(b'a', 'b', 'cd')",
+        "lookup(cache, content, 'model-a', 'v1') == 'review-v1'",
+        "lookup(cache, content, 'model-a', 'v2') is None",
+        "lookup(cache, content, 'model-b', 'v1') is None",
+        "lookup(cache, b'y', 'model-a', 'v1') is None",
+    )
+    forbid(right_side_file(cache_case, "review/cache.py"), "return hashlib.sha256(content).hexdigest()")
 
     argv = right_side_file(cases["precision-py-subprocess-argv-tested"], "review/collector.py")
     argv_test = right_side_file(cases["precision-py-subprocess-argv-tested"], "tests/test_collector.py")
@@ -84,12 +94,20 @@ def main() -> None:
     run_lines = [line for line in gha_title.splitlines() if line.strip().startswith("run:")]
     assert run_lines and all("${{ github.event.pull_request.title }}" not in line for line in run_lines)
 
-    gha_fork_case = cases["precision-gha-fork-readonly-approved-tested"]
+    gha_fork_case = cases["precision-gha-fork-exact-readonly-approved-tested"]
     gha_fork = right_side_file(gha_fork_case, ".github/workflows/pr-diagnostics.yml")
     gha_fork_test = right_side_file(gha_fork_case, "tests/test_pr_diagnostics_workflow.py")
-    require(gha_fork, "on: pull_request", "contents: read", "actions/checkout@v4")
-    forbid(gha_fork, "pull_request_target", "secrets.", "contents: write")
-    require(gha_fork_test, "assert 'pull_request_target' not in text", "assert 'contents: read' in text", "assert 'secrets.' not in text")
+    require(gha_fork, "on: pull_request", "permissions:\n  contents: read\njobs:", "actions/checkout@v7", "persist-credentials: false")
+    forbid(gha_fork, "pull_request_target", "secrets.", ": write")
+    require(
+        gha_fork_test,
+        "assert 'pull_request_target' not in text",
+        "permissions = text.split('permissions:\\n', 1)[1].split('jobs:\\n', 1)[0]",
+        "assert permissions.strip().splitlines() == ['contents: read']",
+        "assert ': write' not in permissions",
+        "assert 'secrets.' not in text",
+        "assert 'persist-credentials: false' in text",
+    )
     assert str(gha_fork_case.get("trusted_context", "")).strip()
 
     debug = right_side(cases["precision-md-debug-observability-aligned-tested"])
@@ -107,7 +125,7 @@ def main() -> None:
     require(bash, 'cp -R -- "$source_path" "$destination_path"', "mkdir -- -source destination", 'bash "$script" -source destination', "test -f destination/-source/item.txt")
     forbid(right_side_file(cases["precision-bash-spaced-paths-quoted-tested"], ".github/scripts/copy-evidence.sh"), "cp -R $1 $2")
 
-    print("dcoir_review_pr_precision_fixture_v3_selftest passed: historical v3 fixture invariants remain reproducible; current acceptance uses v4")
+    print("dcoir_review_pr_precision_fixture_v4_selftest passed: all 10 current clean controls prove their audited right-side semantic safety invariants")
 
 
 if __name__ == "__main__":
