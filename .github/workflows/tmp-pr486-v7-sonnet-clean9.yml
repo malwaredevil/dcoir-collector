@@ -1,0 +1,60 @@
+name: Temporary PR486 v7 Sonnet clean9 paid eval
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    if: github.event.head_commit.message == 'Temporary PR486 v7 Sonnet clean9 paid eval'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Run approved nine-request batch
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          DCOIR_EVAL_REQUEST_CHECKPOINT="$RUNNER_TEMP/pr486-v7-sonnet-clean9-calls.jsonl" \
+          python .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py \
+            --candidate sonnet5-high \
+            --max-tokens 32768 \
+            --timeout-seconds 300 \
+            --execute-live \
+            --case precision-ps-native-exit-snapshot-verbose-tested \
+            --case precision-ps-remoting-argumentlist-behavior-tested \
+            --case precision-py-cache-key-callers-invalidation-tested \
+            --case precision-py-subprocess-argv-tested \
+            --case precision-gha-fork-structural-readonly-approved-tested \
+            --case precision-md-debug-observability-aligned-tested \
+            --case precision-json-typed-fallback-tested \
+            --case precision-py-retry-budget-tested \
+            --case precision-bash-spaced-paths-quoted-tested \
+            --output "$RUNNER_TEMP/pr486-v7-sonnet-clean9-report.json"
+
+      - name: Verify exact request count
+        run: |
+          test "$(wc -l < "$RUNNER_TEMP/pr486-v7-sonnet-clean9-calls.jsonl")" -eq 9
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr486-v7-sonnet-clean9-evidence
+          path: |
+            ${{ runner.temp }}/pr486-v7-sonnet-clean9-report.json
+            ${{ runner.temp }}/pr486-v7-sonnet-clean9-calls.jsonl
+          if-no-files-found: error
