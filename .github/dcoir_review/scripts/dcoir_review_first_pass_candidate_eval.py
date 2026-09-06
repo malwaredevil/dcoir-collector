@@ -365,7 +365,11 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
     controlled_clean = [item for item in generalized if item["score"]["expected"] == "clean"]
     request_errors = [item["case_id"] for item in case_results if not item["request"].get("ok")]
     ambiguous = [item["case_id"] for item in case_results if item["score"].get("ambiguous")]
-    usage_rows = [item["request"].get("usage", {}) for item in case_results if item["request"].get("ok")]
+    usage_rows = [
+        item["request"]["usage"]
+        for item in case_results
+        if isinstance(item["request"].get("usage"), dict)
+    ]
     total_latency = sum(float(item["request"].get("latency_seconds", 0.0) or 0.0) for item in case_results)
     totals = {
         "request_count": len(case_results),

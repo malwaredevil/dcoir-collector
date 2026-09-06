@@ -36,6 +36,13 @@ def _metadata(base: Any, data: dict[str, Any]) -> tuple[dict[str, Any], str, lis
     return metadata, provider, pipeline
 
 
+def _finish_reason(data: dict[str, Any]) -> str:
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+        return ""
+    return str(choices[0].get("finish_reason", "") or "").strip().lower()
+
+
 def call_openrouter(
     base: Any,
     payload: dict[str, Any],
@@ -103,6 +110,7 @@ def call_openrouter(
         return result
 
     metadata, provider, pipeline = _metadata(base, data)
+    finish_reason = _finish_reason(data)
     common = {
         "http_status": status,
         "latency_seconds": elapsed,
@@ -113,7 +121,32 @@ def call_openrouter(
         "openrouter_metadata": metadata,
         "pipeline": pipeline,
         "usage": base.usage_summary(data),
+        "finish_reason": finish_reason,
     }
+    if finish_reason == "length":
+        result = {
+            "ok": False,
+            "error_kind": "output-budget-exhausted",
+            **common,
+            "error": {
+                "type": "FinishReasonLength",
+                "message": "Completion stopped because the output-token budget was exhausted",
+            },
+        }
+        _append_checkpoint(result)
+        return result
+    if finish_reason != "stop":
+        result = {
+            "ok": False,
+            "error_kind": "non-stop-finish-reason",
+            **common,
+            "error": {
+                "type": "NonStopFinishReason",
+                "message": f"Completion did not finish with stop: {finish_reason or 'missing'}",
+            },
+        }
+        _append_checkpoint(result)
+        return result
     try:
         parsed = base.parse_content(data)
     except Exception as exc:

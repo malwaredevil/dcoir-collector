@@ -28,7 +28,12 @@ def main() -> None:
     malformed = {
         "id": "gen-malformed",
         "model": "anthropic/claude-opus-5",
-        "choices": [{"message": {"content": json.dumps({"summary": "missing findings"})}}],
+        "choices": [
+            {
+                "finish_reason": "stop",
+                "message": {"content": json.dumps({"summary": "missing findings"})},
+            }
+        ],
         "usage": {
             "prompt_tokens": 101,
             "completion_tokens": 9,
@@ -51,6 +56,7 @@ def main() -> None:
     )
     assert result["ok"] is False
     assert result["error_kind"] == "structured-output-error"
+    assert result["finish_reason"] == "stop"
     assert result["http_status"] == 200
     assert result["generation_id"] == "gen-malformed"
     assert result["selected_provider"] == "Anthropic"
@@ -60,7 +66,12 @@ def main() -> None:
 
     valid = dict(malformed)
     valid["id"] = "gen-valid"
-    valid["choices"] = [{"message": {"content": json.dumps({"summary": "clean", "findings": []})}}]
+    valid["choices"] = [
+        {
+            "finish_reason": "stop",
+            "message": {"content": json.dumps({"summary": "clean", "findings": []})},
+        }
+    ]
     ok = resilient.call_openrouter(
         base,
         payload,
@@ -70,9 +81,52 @@ def main() -> None:
     )
     assert ok["ok"] is True
     assert ok["generation_id"] == "gen-valid"
+    assert ok["finish_reason"] == "stop"
     assert ok["result"]["findings"] == []
 
-    print("dcoir_review_eval_resilient_openrouter_selftest passed: malformed structured output is preserved as a per-request error")
+    exhausted = dict(valid)
+    exhausted["id"] = "gen-length"
+    exhausted["choices"] = [
+        {
+            "finish_reason": "length",
+            "message": {"content": json.dumps({"summary": "partial", "findings": []})},
+        }
+    ]
+    length_result = resilient.call_openrouter(
+        base,
+        payload,
+        "unit-test-key",
+        timeout_seconds=3,
+        opener=lambda _request, timeout: FakeResponse(exhausted),
+    )
+    assert length_result["ok"] is False
+    assert length_result["error_kind"] == "output-budget-exhausted"
+    assert length_result["finish_reason"] == "length"
+    assert length_result["usage"]["total_tokens"] == 110
+
+    filtered = dict(valid)
+    filtered["id"] = "gen-filtered"
+    filtered["choices"] = [
+        {
+            "finish_reason": "content_filter",
+            "message": {"content": json.dumps({"summary": "clean", "findings": []})},
+        }
+    ]
+    filtered_result = resilient.call_openrouter(
+        base,
+        payload,
+        "unit-test-key",
+        timeout_seconds=3,
+        opener=lambda _request, timeout: FakeResponse(filtered),
+    )
+    assert filtered_result["ok"] is False
+    assert filtered_result["error_kind"] == "non-stop-finish-reason"
+    assert filtered_result["finish_reason"] == "content_filter"
+
+    print(
+        "dcoir_review_eval_resilient_openrouter_selftest passed: "
+        "structured-output errors and non-stop/length completions fail closed with usage preserved"
+    )
 
 
 if __name__ == "__main__":

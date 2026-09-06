@@ -224,6 +224,33 @@ def main() -> None:
     assert error_score["correct"] is False
     assert error_score["disposition"] == "request-error"
 
+    billed_failure = {
+        "case_id": lane_case["id"],
+        "corpus": lane_case["corpus"],
+        "defect_class": lane_case.get("defect_class"),
+        "source_ref": lane_case.get("source_ref"),
+        "historical_disposition": lane_case.get("dcoir_historical_disposition"),
+        "request": {
+            "ok": False,
+            "latency_seconds": 1.25,
+            "usage": {
+                "prompt_tokens": 100,
+                "completion_tokens": 40,
+                "reasoning_tokens": 12,
+                "cached_prompt_tokens": 0,
+                "cache_write_tokens": 0,
+                "total_tokens": 140,
+                "cost_usd": 0.004,
+            },
+        },
+        "score": error_score,
+    }
+    billed_aggregate = evaluation.aggregate_candidate(control, [billed_failure])
+    assert billed_aggregate["economics"]["request_count"] == 1
+    assert billed_aggregate["economics"]["successful_request_count"] == 0
+    assert billed_aggregate["economics"]["total_tokens"] == 140
+    assert billed_aggregate["economics"]["exact_cost_usd"] == 0.004
+
     source_text = Path(evaluation.__file__).read_text(encoding="utf-8")
     assert "GITHUB_TOKEN" not in source_text
     assert "api.github.com" not in source_text
@@ -233,7 +260,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "3 candidates, 12 controlled cases, 2 frozen naturalistic cases, candidate-specific temperature, no network/publication"
+        "3 candidates, 12 controlled cases, 2 frozen naturalistic cases, candidate-specific temperature, billed failures included, no network/publication"
     )
 
 
