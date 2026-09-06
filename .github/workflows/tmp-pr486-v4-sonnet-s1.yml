@@ -1,0 +1,45 @@
+name: Temporary PR486 v4 Sonnet S1 paid eval
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    if: github.event.head_commit.message == 'Temporary PR486 v4 Sonnet S1 paid eval'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Run approved five-request batch
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          DCOIR_EVAL_REQUEST_CHECKPOINT="$RUNNER_TEMP/pr486-v4-sonnet-s1-calls.jsonl" \
+          python .github/dcoir_review/scripts/dcoir_review_pr_precision_eval.py \
+            --candidate sonnet5-high \
+            --max-tokens 32768 \
+            --timeout-seconds 300 \
+            --execute-live \
+            --case precision-ps-remoting-argumentlist-tested \
+            --case precision-py-cache-key-callers-invalidation-tested \
+            --case precision-py-subprocess-argv-tested \
+            --case precision-gha-title-via-env-approved-tested \
+            --case precision-gha-fork-exact-readonly-approved-tested \
+            --output "$RUNNER_TEMP/pr486-v4-sonnet-s1-report.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr486-v4-sonnet-s1-evidence
+          path: |
+            ${{ runner.temp }}/pr486-v4-sonnet-s1-report.json
+            ${{ runner.temp }}/pr486-v4-sonnet-s1-calls.jsonl
+          if-no-files-found: error
