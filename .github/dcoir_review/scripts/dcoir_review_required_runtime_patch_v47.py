@@ -10,9 +10,9 @@ onto a shallow copy only for ``review_single_file_context``. The shared global
 configuration is left unchanged for every later semantic stage. The projected
 payload enables Response Healing explicitly, preserves strict structured output
 and ``require_parameters=true``, and omits generic sampling temperature for
-Sonnet 5. Conditional finish-reason enforcement and request telemetry live in
-the canonical hardened provider path so the mature request-wrapper chain remains
-composed rather than being bypassed.
+Sonnet 5. Generic hardened-provider controls capture request evidence and enforce
+stop/object response contracts without bypassing the mature request-wrapper
+chain.
 
 The overlay adds no publication, branch-write, commit, workflow-dispatch, or
 paid-evaluation capability. Existing operator gates continue to own live review
@@ -77,6 +77,8 @@ def project_per_file_review_config(config: Any) -> Any:
     stage_override_active = bool(models or effort is not None or max_tokens is not None or provider_sort)
     if stage_override_active:
         projected.openrouter_response_healing = True
+        projected.openrouter_capture_request_telemetry = True
+        projected.openrouter_require_object_response = True
         projected.dcoir_v47_per_file_projection = True
     if max_tokens is not None:
         projected.openrouter_require_stop_finish_reason = True
@@ -154,7 +156,7 @@ def _patch_payload_builder(module: Any) -> None:
 
 
 def _write_request_telemetry(module: Any, projected: Any, index: int, context: Any) -> dict[str, Any] | None:
-    telemetry = getattr(projected, "_dcoir_v47_last_request_telemetry", None)
+    telemetry = getattr(projected, "_openrouter_last_request_telemetry", None)
     if not isinstance(telemetry, dict):
         return None
     path = str(context.get("path", "") or "") if isinstance(context, dict) else ""
