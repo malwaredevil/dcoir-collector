@@ -119,7 +119,9 @@ def validate_python(case: dict[str, Any]) -> bool:
         if "any" not in calls or "all" in calls:
             fail(f"{cid}: quantifier witness invalid")
     elif cid == "py-lexicographic-version-gate":
-        if "10.0" >= "9.2":
+        actual = "10.0"
+        minimum = "9.2"
+        if actual >= minimum:
             fail(f"{cid}: string-order witness invalid")
     elif cid == "py-mutable-default-cross-pr-state":
         ns: dict[str, Any] = {}
