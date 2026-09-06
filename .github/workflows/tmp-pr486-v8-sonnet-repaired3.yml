@@ -47,12 +47,20 @@ jobs:
           python - <<'PY'
           import json
           import os
+          expected = [
+              'precision-ps-native-exit-snapshot-behavior-tested',
+              'precision-json-typed-fallback-semantics-preserved-tested',
+              'precision-gha-fork-single-permissions-key-approved-tested',
+          ]
           path = os.path.join(os.environ['RUNNER_TEMP'], 'pr486-v8-sonnet-repaired3-plan.json')
           with open(path, encoding='utf-8') as handle:
               report = json.load(handle)
-          assert report.get('mode') == 'plan-no-network', report.get('mode')
-          assert int(report.get('network_calls', -1)) == 0, report.get('network_calls')
-          print('v8 deterministic plan verified: plan-no-network, network_calls=0')
+          assert report.get('mode') == 'plan', report.get('mode')
+          assert int(report.get('network_requests_made', -1)) == 0, report.get('network_requests_made')
+          assert int(report.get('planned_requests', -1)) == 3, report.get('planned_requests')
+          assert report.get('selected_candidate_ids') == ['sonnet5-high'], report.get('selected_candidate_ids')
+          assert report.get('selected_case_ids') == expected, report.get('selected_case_ids')
+          print('v8 deterministic plan verified: mode=plan, network_requests_made=0, planned_requests=3')
           PY
 
       - name: Run approved three-request Sonnet batch
