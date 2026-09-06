@@ -1,0 +1,28 @@
+{
+  "schema_version": "dcoir_review_pr_precision_clean_replacements_v7",
+  "replaces_case_ids": [
+    "precision-gha-title-via-env-normalized-expression-tested"
+  ],
+  "cases": [
+    {
+      "id": "precision-gha-title-via-env-no-shell-expressions-tested",
+      "pr_title": "Safely label diagnostic artifacts with the PR title",
+      "pr_body": "Pass the PR title as environment data instead of interpolating GitHub expressions into shell source, and enforce that this workflow's run steps contain no direct GitHub expression interpolation at all.",
+      "trusted_context": "Governed test receipt: the operator explicitly approved this exact synthetic workflow mutation before review. For this workflow, dynamic GitHub values are intentionally required to cross into shell through env bindings; direct ${{ ... }} interpolation inside run shell source is prohibited regardless of accessor spelling.",
+      "files": [
+        {
+          "filename": ".github/workflows/diagnostic.yml",
+          "status": "modified",
+          "patch": "diff --git a/.github/workflows/diagnostic.yml b/.github/workflows/diagnostic.yml\nindex 111aaaa..222bbbb 100644\n--- a/.github/workflows/diagnostic.yml\n+++ b/.github/workflows/diagnostic.yml\n@@ -8,4 +8,9 @@ jobs:\n     steps:\n       - uses: actions/checkout@v4\n+      - name: Label diagnostics\n+        env:\n+          PR_TITLE: ${{ github.event.pull_request.title }}\n+        run: printf '%s\\n' \"PR: $PR_TITLE\" >> diagnostics.txt\n       - run: python .github/scripts/collect-diagnostics.py\n"
+        },
+        {
+          "filename": "tests/test_diagnostic_workflow.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_diagnostic_workflow.py b/tests/test_diagnostic_workflow.py\nindex 333aaaa..666dddd 100644\n--- a/tests/test_diagnostic_workflow.py\n+++ b/tests/test_diagnostic_workflow.py\n@@ -1,2 +1,68 @@\n+from pathlib import Path\n+import re\n+\n+ENV_BINDING = re.compile(r'^\\s*PR_TITLE:\\s*\\$\\{\\{\\s*github\\.event\\.pull_request\\.title\\s*\\}\\}\\s*$')\n+GITHUB_EXPR_OPEN = '${{'\n+RUN_KEY = re.compile(r'^(?P<indent>\\s*)(?:-\\s+)?run\\s*:\\s*(?P<body>.*)$')\n+\n+def _run_shell_blocks(text):\n+    lines = text.splitlines()\n+    blocks = []\n+    for index, line in enumerate(lines):\n+        match = RUN_KEY.match(line)\n+        if not match:\n+            continue\n+        indent = len(match.group('indent'))\n+        block = [match.group('body')]\n+        for following in lines[index + 1:]:\n+            if not following.strip():\n+                block.append(following)\n+                continue\n+            following_indent = len(following) - len(following.lstrip())\n+            if following_indent <= indent:\n+                break\n+            block.append(following)\n+        blocks.append('\\n'.join(block))\n+    return blocks\n+\n+def _assert_pr_title_shell_safe(text):\n+    env_lines = [line for line in text.splitlines() if line.lstrip().startswith('PR_TITLE:')]\n+    assert len(env_lines) == 1\n+    assert ENV_BINDING.fullmatch(env_lines[0])\n+    run_blocks = _run_shell_blocks(text)\n+    assert run_blocks\n+    assert all(GITHUB_EXPR_OPEN not in block for block in run_blocks)\n+    assert any('$PR_TITLE' in block for block in run_blocks)\n+\n+def _expect_rejected(text):\n+    try:\n+        _assert_pr_title_shell_safe(text)\n+    except AssertionError:\n+        return\n+    raise AssertionError('unsafe direct GitHub-expression interpolation unexpectedly passed the shell-boundary guard')\n+\n+def test_pr_title_crosses_shell_boundary_via_env_only():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    _assert_pr_title_shell_safe(text)\n+\n+def test_guard_rejects_whitespace_variant_in_inline_run():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    _expect_rejected(text + '\\n      - run: echo \"title=${{  github.event.pull_request.title   }}\"\\n')\n+\n+def test_guard_rejects_raw_title_in_multiline_run_body():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    _expect_rejected(text + '\\n      - run: |\\n          echo \"title=${{ github.event.pull_request.title }}\"\\n')\n+\n+def test_guard_rejects_bracket_accessor_in_inline_run():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    _expect_rejected(text + \"\\n      - run: echo \\\"title=${{ github.event.pull_request['title'] }}\\\"\\n\")\n+\n+def test_guard_rejects_full_bracket_chain_and_folded_run():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    _expect_rejected(text + \"\\n      - run : >\\n          echo \\\"title=${{ github['event']['pull_request']['title'] }}\\\"\\n\")\n+\n+def test_guard_rejects_function_wrapped_title_expression():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    _expect_rejected(text + \"\\n      - run: echo \\\"title=${{ toJSON(github.event.pull_request['title']) }}\\\"\\n\")\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Trusted approval is supplied. The workflow binds the untrusted PR title through env and uses only the shell environment variable in command source. The v7 guard stops trying to enumerate equivalent spellings of the title context path inside run steps: for this workflow it rejects every direct GitHub expression delimiter inside inline, list-form, literal-block, or folded run shell source. Negative controls cover the earlier whitespace and multiline bypasses, both mixed and full bracket/index accessor forms, and a function-wrapped title expression. The canonical env binding remains the only accepted source of PR_TITLE data for shell consumption."
+    }
+  ]
+}

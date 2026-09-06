@@ -2,11 +2,13 @@
 """Production-shaped clean-PR precision evaluator for DCOIR candidates.
 
 This evaluation-only lane supplies ten PRs whose hidden ground truth is clean
-under the full reviewer policy. V3, V4, and V5 are retained as historical
-compositions for reproducibility. V6 composes from v5 and replaces the final
-optimistic PR-title control exposed by the Sonnet 5/high v5 confirmation: the
-v5 guard matched only one exact GitHub-expression spelling and therefore could
-miss whitespace variants or expressions placed in multiline shell bodies.
+under the full reviewer policy. V3 through V6 are retained as historical
+compositions for reproducibility. V7 composes from v6 and replaces the final
+PR-title control exposed by the Sonnet 5/high v6 confirmation: v6 recognized
+normalized dot-notation title expressions but could miss equivalent bracket/
+index access inside shell source. V7 enforces the stronger structural boundary
+that this workflow's run shell source contains no direct GitHub expressions;
+dynamic GitHub values must cross through env bindings.
 
 Workflow cases may include an explicit trusted approval receipt injected into
 trusted context; PR body text remains untrusted. Set
@@ -35,6 +37,8 @@ V5_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_re
 V5_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v5"
 V6_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v6.json"
 V6_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v6"
+V7_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v7.json"
+V7_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v7"
 
 
 def _validate_case(raw: Any) -> dict[str, Any]:
@@ -149,6 +153,16 @@ def load_v6_cases() -> list[dict[str, Any]]:
     )
 
 
+def load_v7_cases() -> list[dict[str, Any]]:
+    return _apply_replacements(
+        load_v6_cases(),
+        V7_REPLACEMENTS_PATH,
+        V7_REPLACEMENTS_SCHEMA,
+        "v7",
+        expected_replacement_count=1,
+    )
+
+
 def include_trusted_context() -> bool:
     return os.environ.get("DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT", "1").strip().lower() not in {"0", "false", "no", "off"}
 
@@ -194,9 +208,9 @@ Find only high-signal issues in the PR diff. For each finding, give the exact ch
 
 
 def main() -> int:
-    target.load_cases = load_v6_cases
+    target.load_cases = load_v7_cases
     target.build_pr_prompt = build_pr_prompt
-    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v6"
+    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v7"
     resilient.install(target.base)
     return target.main()
 
