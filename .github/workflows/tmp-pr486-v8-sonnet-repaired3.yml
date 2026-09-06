@@ -1,0 +1,85 @@
+name: Temporary PR486 v8 Sonnet repaired3 eval
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    if: github.event.head_commit.message == 'Temporary PR486 v8 Sonnet repaired3 eval'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v7
+        with:
+          ref: 0bfa89bdfcccfb0b4344a74902688f0301f2fe39
+          persist-credentials: false
+
+      - name: Verify exact PR head
+        run: test "$(git rev-parse HEAD)" = "0bfa89bdfcccfb0b4344a74902688f0301f2fe39"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Deterministic v8 gate with no inference credentials
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          unset OPENROUTER_API_KEY DCOIR_OPENROUTER_API_KEY OPENROUTER_MANAGEMENT_KEY OPENAI_API_KEY DCOIR_OPENAI_API_KEY DCOIR_GEMINI_API
+          python -m py_compile \
+            .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_v8.py \
+            .github/dcoir_review/scripts/dcoir_review_pr_precision_fixture_v8_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_pr_precision_fixture_v8_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_v8.py \
+            --candidate sonnet5-high \
+            --max-tokens 32768 \
+            --case precision-ps-native-exit-snapshot-behavior-tested \
+            --case precision-json-typed-fallback-semantics-preserved-tested \
+            --case precision-gha-fork-single-permissions-key-approved-tested \
+            --output "$RUNNER_TEMP/pr486-v8-sonnet-repaired3-plan.json"
+          python - <<'PY'
+          import json
+          import os
+          path = os.path.join(os.environ['RUNNER_TEMP'], 'pr486-v8-sonnet-repaired3-plan.json')
+          with open(path, encoding='utf-8') as handle:
+              report = json.load(handle)
+          assert report.get('mode') == 'plan-no-network', report.get('mode')
+          assert int(report.get('network_calls', -1)) == 0, report.get('network_calls')
+          print('v8 deterministic plan verified: plan-no-network, network_calls=0')
+          PY
+
+      - name: Run approved three-request Sonnet batch
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          DCOIR_EVAL_REQUEST_CHECKPOINT="$RUNNER_TEMP/pr486-v8-sonnet-repaired3-calls.jsonl" \
+          python .github/dcoir_review/scripts/dcoir_review_pr_precision_eval_v8.py \
+            --candidate sonnet5-high \
+            --max-tokens 32768 \
+            --timeout-seconds 300 \
+            --execute-live \
+            --case precision-ps-native-exit-snapshot-behavior-tested \
+            --case precision-json-typed-fallback-semantics-preserved-tested \
+            --case precision-gha-fork-single-permissions-key-approved-tested \
+            --output "$RUNNER_TEMP/pr486-v8-sonnet-repaired3-report.json"
+
+      - name: Verify exact request count
+        run: test "$(wc -l < "$RUNNER_TEMP/pr486-v8-sonnet-repaired3-calls.jsonl")" -eq 3
+
+      - name: Upload bounded-batch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr486-v8-sonnet-repaired3-evidence
+          path: |
+            ${{ runner.temp }}/pr486-v8-sonnet-repaired3-plan.json
+            ${{ runner.temp }}/pr486-v8-sonnet-repaired3-report.json
+            ${{ runner.temp }}/pr486-v8-sonnet-repaired3-calls.jsonl
+          if-no-files-found: error
