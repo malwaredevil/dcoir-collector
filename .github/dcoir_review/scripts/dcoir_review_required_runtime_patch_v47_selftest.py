@@ -126,12 +126,15 @@ def main() -> None:
         config_arg._dcoir_v47_last_request_telemetry = {
             "requested_model": config_arg.model,
             "served_model": config_arg.model,
+            "served_model_differs_from_requested": False,
             "provider": "Anthropic",
             "service_tier": "",
             "finish_reason": "stop",
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "cost": 0.001},
+            "cost": 0.001,
             "request_attempt_count": 1,
             "response_healing_pipeline": [{"type": "response_healing", "name": "response-healing"}],
+            "response_healing_observed": True,
         }
         return {"summary": "clean", "findings": []}, config_arg.model, ""
 
@@ -152,28 +155,67 @@ def main() -> None:
             [],
             "deep-forced",
         )
+        observed = captured["config"]
+        assert observed.model_stack == ["anthropic/claude-sonnet-5"]
+        assert observed.review_reasoning_effort == "high"
+        assert observed.openrouter_request_max_tokens == 32768
+        assert observed.openrouter_provider_sort == "price"
+        assert result["model_used"] == "anthropic/claude-sonnet-5"
+        assert result["request_telemetry"]["finish_reason"] == "stop"
+        telemetry_artifact = captured["metadata/per-file/01-probe.py-request-telemetry.json"]
+        assert telemetry_artifact["provider"] == "Anthropic"
+        assert telemetry_artifact["usage"]["cost"] == 0.001
+        assert telemetry_artifact["cost"] == 0.001
+
+        # A failed capped request still writes the last available usage/cost and
+        # finish evidence before the existing per-file coverage path re-raises.
+        def fake_openrouter_failure(prompt, schema_arg, config_arg, reporter=None):
+            config_arg._dcoir_v47_last_request_telemetry = {
+                "requested_model": config_arg.model,
+                "served_model": config_arg.model,
+                "served_model_differs_from_requested": False,
+                "provider": "Anthropic",
+                "service_tier": "",
+                "finish_reason": "length",
+                "usage": {"prompt_tokens": 11, "completion_tokens": 9, "cost": 0.003},
+                "cost": 0.003,
+                "request_attempt_count": 1,
+                "response_healing_pipeline": [],
+                "response_healing_observed": False,
+            }
+            raise RuntimeError("OpenRouter capped completion did not finish with stop: finish_reason=length")
+
+        review.hardened.openrouter_review = fake_openrouter_failure
+        try:
+            review.review_single_file_context(
+                2,
+                {"path": "failed.py", "item": {"filename": "failed.py", "patch": "+x"}, "text": "x\n"},
+                {"number": 457, "title": "probe"},
+                "diff --git a/failed.py b/failed.py\n+x\n",
+                schema,
+                config,
+                [],
+                "deep-forced",
+            )
+        except RuntimeError as exc:
+            assert "finish_reason=length" in str(exc)
+        else:
+            raise AssertionError("failed capped request did not re-raise")
+        failure_telemetry = captured["metadata/per-file/02-failed.py-request-telemetry.json"]
+        assert failure_telemetry["finish_reason"] == "length"
+        assert failure_telemetry["cost"] == 0.003
     finally:
         review.build_per_file_review_prompt = original_prompt
         review.hardened.openrouter_review = original_openrouter_review
         review.hardened.write_debug_text_artifact_safely = original_write_text
         review.hardened.write_debug_json_artifact_safely = original_write_json
 
-    observed = captured["config"]
-    assert observed.model_stack == ["anthropic/claude-sonnet-5"]
-    assert observed.review_reasoning_effort == "high"
-    assert observed.openrouter_request_max_tokens == 32768
-    assert observed.openrouter_provider_sort == "price"
-    assert result["model_used"] == "anthropic/claude-sonnet-5"
-    assert result["request_telemetry"]["finish_reason"] == "stop"
-    telemetry_artifact = captured["metadata/per-file/01-probe.py-request-telemetry.json"]
-    assert telemetry_artifact["provider"] == "Anthropic"
-    assert telemetry_artifact["usage"]["cost"] == 0.001
     assert config.model_stack[0] == "anthropic/claude-opus-5"
     assert config.review_reasoning_effort == "xhigh"
 
     # Capped first-pass completions must fail closed before JSON is scored, even
     # when a syntactically valid structured body survives Response Healing.
-    original_urlopen = v47.urllib.request.urlopen
+    original_urlopen = review.hardened.urllib.request.urlopen
     previous_key = os.environ.get("OPENROUTER_API_KEY")
     os.environ["OPENROUTER_API_KEY"] = "selftest-key"
 
@@ -197,7 +239,7 @@ def main() -> None:
                 }
             )
 
-        v47.urllib.request.urlopen = fake_urlopen
+        review.hardened.urllib.request.urlopen = fake_urlopen
 
     try:
         valid_content = json.dumps({"summary": "clean", "findings": []})
@@ -212,8 +254,11 @@ def main() -> None:
                 assert f"finish_reason={non_stop_reason}" in str(exc)
             else:
                 raise AssertionError(f"non-stop completion {non_stop_reason!r} did not fail closed")
-            assert capped._dcoir_v47_last_request_telemetry["finish_reason"] == non_stop_reason
-            assert capped._dcoir_v47_last_request_telemetry["usage"]["cost"] == 0.002
+            telemetry = capped._dcoir_v47_last_request_telemetry
+            assert telemetry["finish_reason"] == non_stop_reason
+            assert telemetry["usage"]["cost"] == 0.002
+            assert telemetry["cost"] == 0.002
+            assert telemetry["response_healing_observed"] is True
 
         stopped = v47.project_per_file_review_config(config)
         install_response("stop", valid_content)
@@ -238,7 +283,7 @@ def main() -> None:
         else:
             raise AssertionError("non-object structured output did not fail closed")
     finally:
-        v47.urllib.request.urlopen = original_urlopen
+        review.hardened.urllib.request.urlopen = original_urlopen
         if previous_key is None:
             os.environ.pop("OPENROUTER_API_KEY", None)
         else:
@@ -247,8 +292,16 @@ def main() -> None:
     patch_source = Path(
         ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v47.py"
     ).read_text(encoding="utf-8")
+    provider_source = Path(
+        ".github/dcoir_review/scripts/dcoir_review/hardened/part_04a_provider.py"
+    ).read_text(encoding="utf-8")
+    assert "def openrouter_request_once" not in patch_source
+    assert "dcoir_v47_per_file_projection" in provider_source
+    assert "openrouter_require_stop_finish_reason" in provider_source
+    assert "_dcoir_v47_last_request_telemetry" in provider_source
     for forbidden in ("git push", "merge_pull_request", "workflow_dispatch", "create_commit("):
         assert forbidden not in patch_source
+        assert forbidden not in provider_source
 
     print("dcoir_review_required_runtime_patch_v47_selftest passed")
 
