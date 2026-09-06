@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import os
-from pathlib import Path
-import tempfile
 
 import dcoir_review_pr_precision_eval as base
 import dcoir_review_pr_precision_eval_v11 as v11
@@ -28,26 +26,30 @@ def _run_embedded_fixture_tests(case: dict) -> int:
     workflow = _materialized_file(case, ".github/workflows/pr-diagnostics.yml")
     script = _materialized_file(case, ".github/scripts/pr-diagnostic.sh")
     namespace = _fixture_namespace(case, "v12_embedded_fixture")
-    with tempfile.TemporaryDirectory(prefix="dcoir-v12-") as tmp:
-        root = Path(tmp)
-        (root / ".github/workflows").mkdir(parents=True)
-        (root / ".github/scripts").mkdir(parents=True)
-        (root / "tests").mkdir(parents=True)
-        (root / ".github/workflows/pr-diagnostics.yml").write_text(workflow, encoding="utf-8")
-        (root / ".github/scripts/pr-diagnostic.sh").write_text(script, encoding="utf-8")
-        previous = Path.cwd()
-        try:
-            os.chdir(root)
-            tests = [
-                value
-                for name, value in sorted(namespace.items(), key=lambda item: item[0])
-                if name.startswith("test_") and callable(value)
-            ]
-            assert len(tests) == 25, f"expected 25 embedded v12 tests, found {len(tests)}"
-            for test in tests:
-                test()
-        finally:
-            os.chdir(previous)
+    fixture_files = {
+        ".github/workflows/pr-diagnostics.yml": workflow,
+        ".github/scripts/pr-diagnostic.sh": script,
+    }
+
+    class MemoryPath:
+        def __init__(self, value: object) -> None:
+            self.value = str(value)
+
+        def read_text(self, *args: object, **kwargs: object) -> str:
+            del args, kwargs
+            if self.value not in fixture_files:
+                raise AssertionError(f"unexpected embedded fixture path: {self.value}")
+            return fixture_files[self.value]
+
+    namespace["Path"] = MemoryPath
+    tests = [
+        value
+        for name, value in sorted(namespace.items(), key=lambda item: item[0])
+        if name.startswith("test_") and callable(value)
+    ]
+    assert len(tests) == 25, f"expected 25 embedded v12 tests, found {len(tests)}"
+    for test in tests:
+        test()
     return len(tests)
 
 
