@@ -9,10 +9,8 @@ approval boundary. This harness has no GitHub mutation or review-publication pat
 from __future__ import annotations
 
 import argparse
-import copy
 import json
 from pathlib import Path
-import sys
 from typing import Any
 
 import dcoir_review_first_pass_candidate_eval as base
