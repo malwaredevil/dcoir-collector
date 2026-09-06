@@ -1,0 +1,63 @@
+{
+  "schema_version": "dcoir_review_first_pass_output_budget_experiment_v1",
+  "purpose": "Evaluation-only output-budget contract for the routine first-pass detector. This file does not change production DCOIR routing or model settings.",
+  "stage": "first_pass_detector",
+  "current_control": {
+    "model": "anthropic/claude-opus-5",
+    "reasoning_effort": "xhigh",
+    "production_max_tokens": null,
+    "observed_openrouter_effective_ceiling": 65536
+  },
+  "selected_candidate_for_budget_test": {
+    "candidate_id": "sonnet5-high",
+    "model": "anthropic/claude-sonnet-5",
+    "reasoning_effort": "high",
+    "max_tokens": 32768,
+    "provider_sort": "price",
+    "require_parameters": true,
+    "response_healing": true
+  },
+  "measurement_basis": {
+    "historical_bootstrap_first_pass": {
+      "successful_requests": 31,
+      "completion_tokens_median": 3307,
+      "completion_tokens_p95_approx": 12026,
+      "completion_tokens_max": 31172,
+      "visible_output_tokens_median": 677,
+      "visible_output_tokens_p95_approx": 2589,
+      "visible_output_tokens_max": 3153,
+      "note": "Historical values are from the successful Architecture-B bootstrap with Opus 5/xhigh and are used as safety context, not as a prediction of Sonnet/high reasoning usage."
+    },
+    "sonnet5_high_full14_unbounded": {
+      "requests": 14,
+      "correct_cases": 14,
+      "total_cases": 14,
+      "prompt_tokens": 47526,
+      "completion_tokens": 10591,
+      "reasoning_tokens": 3090,
+      "total_tokens": 58117,
+      "exact_cost_usd": 0.19895238,
+      "serial_wall_seconds": 126.485,
+      "completion_tokens_p95": 1757.05,
+      "completion_tokens_max": 2292,
+      "visible_output_tokens_max": 943
+    }
+  },
+  "rationale": [
+    "32768 halves the previously observed 65536 per-request output reservation ceiling while retaining substantial headroom above the historical first-pass completion p95.",
+    "The cap is intentionally conservative for the first bounded test; a lower cap must be separately justified by measured quality and truncation evidence.",
+    "Reasoning effort and max_tokens are coupled: reducing max_tokens without checking completion finish state can starve structured visible output even when reasoning itself is valid."
+  ],
+  "fail_closed_contract": {
+    "finish_reason_length": "request-error/output-budget-exhausted; never score as a clean review or successful finding disposition",
+    "invalid_json_or_missing_findings": "request-error/invalid-structured-output; never score as a clean review or successful finding disposition",
+    "other_non_stop_finish_reason": "request-error/non-stop-finish-reason",
+    "http_or_transport_failure": "request-error with the failure class preserved",
+    "publication": "none"
+  },
+  "live_acceptance": {
+    "required_quality": "all 14 frozen cases correct with zero request errors, false negatives, false positives, or ambiguous dispositions",
+    "required_budget_behavior": "all successful completions finish normally; any length/invalid structured output event blocks adoption of that cap",
+    "production_change": "separate reviewed implementation after candidate evidence; this experiment alone does not modify production"
+  }
+}

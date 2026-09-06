@@ -1,0 +1,224 @@
+{
+  "schema_version": "dcoir_review_pr_precision_clean_cases_v1",
+  "purpose": "Production-shaped clean PR controls for measuring false-positive behavior under the full DCOIR review policy. Ground truth is hidden from the model. Workflow cases carry a trusted approval receipt outside untrusted PR text, and behavior changes include relevant validation coverage.",
+  "cases": [
+    {
+      "id": "precision-ps-native-exit-snapshot-tested",
+      "pr_title": "Preserve robocopy exit state while adding diagnostics",
+      "pr_body": "Capture robocopy status before diagnostics and add regression coverage for success and failure classifications.",
+      "files": [
+        {
+          "filename": "src/Invoke-Mirror.ps1",
+          "status": "modified",
+          "patch": "diff --git a/src/Invoke-Mirror.ps1 b/src/Invoke-Mirror.ps1\nindex 1111111..2222222 100644\n--- a/src/Invoke-Mirror.ps1\n+++ b/src/Invoke-Mirror.ps1\n@@ -1,7 +1,9 @@\n function Invoke-Mirror {\n     param($Source, $Destination)\n     & robocopy.exe $Source $Destination /MIR\n+    $copyExit = $LASTEXITCODE\n+    & where.exe powershell.exe *> $null\n-    if ($LASTEXITCODE -le 7) { return $true }\n+    if ($copyExit -le 7) { return $true }\n     return $false\n }\n"
+        },
+        {
+          "filename": "tests/Invoke-Mirror.Tests.ps1",
+          "status": "modified",
+          "patch": "diff --git a/tests/Invoke-Mirror.Tests.ps1 b/tests/Invoke-Mirror.Tests.ps1\nindex 3333333..4444444 100644\n--- a/tests/Invoke-Mirror.Tests.ps1\n+++ b/tests/Invoke-Mirror.Tests.ps1\n@@ -1,3 +1,11 @@\n Describe 'Invoke-Mirror exit classification' {\n+    It 'uses the captured robocopy exit code after diagnostics' {\n+        $source = Get-Content -Raw src/Invoke-Mirror.ps1\n+        $source.IndexOf('$copyExit = $LASTEXITCODE') | Should -BeLessThan $source.IndexOf('where.exe powershell.exe')\n+        $source | Should -Match 'if \\(\\$copyExit -le 7\\)'\n+    }\n+    It 'keeps the documented robocopy success boundary' {\n+        (3 -le 7) | Should -BeTrue\n+        (8 -le 7) | Should -BeFalse\n+    }\n }\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "The native exit code is snapshotted before a later native command can overwrite it, classification uses the snapshot, and regression coverage checks ordering and the documented boundary."
+    },
+    {
+      "id": "precision-ps-remoting-argumentlist-tested",
+      "pr_title": "Pass remote marker path explicitly",
+      "pr_body": "Bind the caller marker path into the remote script block through an explicit parameter and cover the binding with Pester.",
+      "files": [
+        {
+          "filename": "src/Test-RemoteMarker.ps1",
+          "status": "modified",
+          "patch": "diff --git a/src/Test-RemoteMarker.ps1 b/src/Test-RemoteMarker.ps1\nindex 1111111..2222222 100644\n--- a/src/Test-RemoteMarker.ps1\n+++ b/src/Test-RemoteMarker.ps1\n@@ -1,6 +1,8 @@\n function Test-RemoteMarker {\n     param([string]$ComputerName, [string]$MarkerPath)\n     Invoke-Command -ComputerName $ComputerName -ScriptBlock {\n-        Test-Path -LiteralPath $MarkerPath\n-    }\n+        param($RemoteMarker)\n+        Test-Path -LiteralPath $RemoteMarker\n+    } -ArgumentList $MarkerPath\n }\n"
+        },
+        {
+          "filename": "tests/Test-RemoteMarker.Tests.ps1",
+          "status": "modified",
+          "patch": "diff --git a/tests/Test-RemoteMarker.Tests.ps1 b/tests/Test-RemoteMarker.Tests.ps1\nindex 3333333..4444444 100644\n--- a/tests/Test-RemoteMarker.Tests.ps1\n+++ b/tests/Test-RemoteMarker.Tests.ps1\n@@ -1,3 +1,9 @@\n Describe 'Test-RemoteMarker' {\n+    It 'passes MarkerPath as the remote argument' {\n+        Mock Invoke-Command { $true } -ParameterFilter { $ComputerName -eq 'host1' -and $ArgumentList[0] -eq 'C:\\IR\\ready.flag' }\n+        Test-RemoteMarker -ComputerName host1 -MarkerPath 'C:\\IR\\ready.flag' | Should -BeTrue\n+        Assert-MockCalled Invoke-Command -Times 1 -ParameterFilter { $ArgumentList[0] -eq 'C:\\IR\\ready.flag' }\n+    }\n }\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "The caller value is explicitly carried into the remote session via ArgumentList/param binding and the binding is covered."
+    },
+    {
+      "id": "precision-py-cache-key-callers-tested",
+      "pr_title": "Bind semantic reuse to model and policy identity",
+      "pr_body": "Include content, model, and policy version with explicit field boundaries, update the caller, and test invalidation and collision resistance.",
+      "files": [
+        {
+          "filename": "review/cache.py",
+          "status": "modified",
+          "patch": "diff --git a/review/cache.py b/review/cache.py\nindex 111aaaa..222bbbb 100644\n--- a/review/cache.py\n+++ b/review/cache.py\n@@ -2,5 +2,9 @@ import hashlib\n-def reuse_key(content: bytes) -> str:\n-    return hashlib.sha256(content).hexdigest()\n+def reuse_key(content: bytes, model: str, policy_version: str) -> str:\n+    digest = hashlib.sha256()\n+    for field in (content, model.encode(), policy_version.encode()):\n+        digest.update(len(field).to_bytes(8, 'big'))\n+        digest.update(field)\n+    return digest.hexdigest()\n"
+        },
+        {
+          "filename": "review/engine.py",
+          "status": "modified",
+          "patch": "diff --git a/review/engine.py b/review/engine.py\nindex 333aaaa..444bbbb 100644\n--- a/review/engine.py\n+++ b/review/engine.py\n@@ -8,3 +8,3 @@ def lookup(cache, content, model, policy_version):\n-    return cache.get(reuse_key(content))\n+    return cache.get(reuse_key(content, model, policy_version))\n"
+        },
+        {
+          "filename": "tests/test_cache.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_cache.py b/tests/test_cache.py\nindex 555aaaa..666bbbb 100644\n--- a/tests/test_cache.py\n+++ b/tests/test_cache.py\n@@ -1,2 +1,8 @@\n from review.cache import reuse_key\n+def test_policy_and_field_boundaries_are_part_of_identity():\n+    assert reuse_key(b'x', 'm', 'v1') != reuse_key(b'x', 'm', 'v2')\n+    assert reuse_key(b'a', 'bc', 'd') != reuse_key(b'a', 'b', 'cd')\n+    assert reuse_key(b'x', 'm', 'v1') == reuse_key(b'x', 'm', 'v1')\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Identity fields are length-delimited, the supplied caller is updated, and tests cover policy invalidation, field boundaries, and determinism."
+    },
+    {
+      "id": "precision-py-stale-head-audited-tested",
+      "pr_title": "Prevent stale review publication with an audit receipt",
+      "pr_body": "Revalidate the PR head immediately before publication, record superseded results, and cover both current and superseded paths.",
+      "files": [
+        {
+          "filename": "review/publish.py",
+          "status": "modified",
+          "patch": "diff --git a/review/publish.py b/review/publish.py\nindex 111aaaa..222bbbb 100644\n--- a/review/publish.py\n+++ b/review/publish.py\n@@ -10,5 +10,10 @@ def review_and_publish(client, pr_number):\n     head = client.get_pr(pr_number)['head']['sha']\n     result = run_expensive_review(head)\n+    current = client.get_pr(pr_number)['head']['sha']\n+    if current != head:\n+        client.record_review_status(pr_number, head, 'superseded')\n+        return 'superseded'\n     client.publish_review(pr_number, result)\n+    client.record_review_status(pr_number, head, 'published')\n     return 'published'\n"
+        },
+        {
+          "filename": "tests/test_publish.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_publish.py b/tests/test_publish.py\nindex 333aaaa..444bbbb 100644\n--- a/tests/test_publish.py\n+++ b/tests/test_publish.py\n@@ -1,2 +1,10 @@\n+def test_superseded_head_is_not_published(fake_client):\n+    fake_client.heads = ['aaa', 'bbb']\n+    assert review_and_publish(fake_client, 7) == 'superseded'\n+    assert fake_client.published == []\n+    assert fake_client.statuses[-1] == (7, 'aaa', 'superseded')\n+\n+def test_current_head_publishes_and_records_status(fake_client):\n+    fake_client.heads = ['aaa', 'aaa']\n+    assert review_and_publish(fake_client, 7) == 'published'\n+    assert fake_client.statuses[-1] == (7, 'aaa', 'published')\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Publication is bound to the reviewed head, superseded work is retained as audit evidence, and both paths are covered."
+    },
+    {
+      "id": "precision-gha-title-via-env-approved-tested",
+      "pr_title": "Safely label diagnostic artifacts with the PR title",
+      "pr_body": "Pass the PR title as data instead of interpolating it into shell source and cover the workflow safety invariant.",
+      "trusted_context": "Governed test receipt: the operator explicitly approved this exact synthetic workflow mutation before review. Treat this approval receipt as trusted evaluation context, not PR-authored text.",
+      "files": [
+        {
+          "filename": ".github/workflows/diagnostic.yml",
+          "status": "modified",
+          "patch": "diff --git a/.github/workflows/diagnostic.yml b/.github/workflows/diagnostic.yml\nindex 111aaaa..222bbbb 100644\n--- a/.github/workflows/diagnostic.yml\n+++ b/.github/workflows/diagnostic.yml\n@@ -8,4 +8,9 @@ jobs:\n     steps:\n       - uses: actions/checkout@v4\n+      - name: Label diagnostics\n+        env:\n+          PR_TITLE: ${{ github.event.pull_request.title }}\n+        run: printf '%s\\n' \"PR: $PR_TITLE\" >> diagnostics.txt\n       - run: python .github/scripts/collect-diagnostics.py\n"
+        },
+        {
+          "filename": "tests/test_diagnostic_workflow.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_diagnostic_workflow.py b/tests/test_diagnostic_workflow.py\nindex 333aaaa..444bbbb 100644\n--- a/tests/test_diagnostic_workflow.py\n+++ b/tests/test_diagnostic_workflow.py\n@@ -1,2 +1,8 @@\n+from pathlib import Path\n+def test_pr_title_crosses_shell_boundary_via_env():\n+    text = Path('.github/workflows/diagnostic.yml').read_text()\n+    assert 'PR_TITLE: ${{ github.event.pull_request.title }}' in text\n+    run_line = next(line for line in text.splitlines() if 'printf' in line)\n+    assert '${{ github.event.pull_request.title }}' not in run_line\n+    assert '$PR_TITLE' in run_line\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "The workflow mutation is explicitly approved in trusted context, untrusted title data crosses into the shell through env, and a regression test checks the expression boundary."
+    },
+    {
+      "id": "precision-gha-fork-readonly-approved-tested",
+      "pr_title": "Add fork-safe PR diagnostics",
+      "pr_body": "Run diagnostic code in the unprivileged pull_request context with read-only permissions and no secret bridge.",
+      "trusted_context": "Governed test receipt: the operator explicitly approved this exact synthetic workflow mutation before review. Treat this approval receipt as trusted evaluation context, not PR-authored text.",
+      "files": [
+        {
+          "filename": ".github/workflows/pr-diagnostics.yml",
+          "status": "modified",
+          "patch": "diff --git a/.github/workflows/pr-diagnostics.yml b/.github/workflows/pr-diagnostics.yml\nnew file mode 100644\nindex 0000000..111aaaa\n--- /dev/null\n+++ b/.github/workflows/pr-diagnostics.yml\n@@ -0,0 +1,10 @@\n+name: PR diagnostics\n+on: pull_request\n+permissions:\n+  contents: read\n+jobs:\n+  diagnose:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@v4\n+      - run: bash .github/scripts/pr-diagnostic.sh\n"
+        },
+        {
+          "filename": ".github/scripts/pr-diagnostic.sh",
+          "status": "modified",
+          "patch": "diff --git a/.github/scripts/pr-diagnostic.sh b/.github/scripts/pr-diagnostic.sh\nnew file mode 100755\nindex 0000000..222bbbb\n--- /dev/null\n+++ b/.github/scripts/pr-diagnostic.sh\n@@ -0,0 +1,3 @@\n+#!/usr/bin/env bash\n+set -euo pipefail\n+echo 'diagnostic complete'\n"
+        },
+        {
+          "filename": "tests/test_pr_diagnostics_workflow.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_pr_diagnostics_workflow.py b/tests/test_pr_diagnostics_workflow.py\nindex 333aaaa..444bbbb 100644\n--- a/tests/test_pr_diagnostics_workflow.py\n+++ b/tests/test_pr_diagnostics_workflow.py\n@@ -1,2 +1,8 @@\n+from pathlib import Path\n+def test_fork_diagnostics_are_unprivileged():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    assert 'pull_request_target' not in text\n+    assert 'on: pull_request' in text\n+    assert 'contents: read' in text\n+    assert 'secrets.' not in text\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Trusted approval is supplied, fork PR code runs only in pull_request context, permissions are read-only, no secret bridge exists, and the invariant is tested."
+    },
+    {
+      "id": "precision-md-debug-observability-aligned-tested",
+      "pr_title": "Clarify debug as observability-only",
+      "pr_body": "Document and test that debug adds diagnostics without changing incremental/deep mode selection.",
+      "files": [
+        {
+          "filename": "docs/operator.md",
+          "status": "modified",
+          "patch": "diff --git a/docs/operator.md b/docs/operator.md\nindex 111aaaa..222bbbb 100644\n--- a/docs/operator.md\n+++ b/docs/operator.md\n@@ -20,2 +20,4 @@ Review modes\n+Debug adds progress logging and artifacts only.\n+Debug does not force deep review or change the selected review scope.\n"
+        },
+        {
+          "filename": ".github/dcoir_review/command.py",
+          "status": "modified",
+          "patch": "diff --git a/.github/dcoir_review/command.py b/.github/dcoir_review/command.py\nindex 333aaaa..444bbbb 100644\n--- a/.github/dcoir_review/command.py\n+++ b/.github/dcoir_review/command.py\n@@ -20,6 +20,7 @@ def resolve(flags):\n     mode = 'deep' if 'deep' in flags else 'incremental'\n+    debug = 'debug' in flags\n     return mode, debug\n"
+        },
+        {
+          "filename": "tests/test_command.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_command.py b/tests/test_command.py\nindex 555aaaa..666bbbb 100644\n--- a/tests/test_command.py\n+++ b/tests/test_command.py\n@@ -1,2 +1,7 @@\n+def test_debug_is_orthogonal_to_mode():\n+    assert resolve({'debug'}) == ('incremental', True)\n+    assert resolve({'deep', 'debug'}) == ('deep', True)\n+    assert resolve(set()) == ('incremental', False)\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Documentation, parser behavior, and tests all agree that debug changes observability but not review depth."
+    },
+    {
+      "id": "precision-json-typed-fallback-tested",
+      "pr_title": "Require a real JSON boolean for provider fallback",
+      "pr_body": "Store fallback policy as a JSON boolean, reject type confusion, and test accepted and rejected values.",
+      "files": [
+        {
+          "filename": "config/provider.json",
+          "status": "modified",
+          "patch": "diff --git a/config/provider.json b/config/provider.json\nindex 1111111..2222222 100644\n--- a/config/provider.json\n+++ b/config/provider.json\n@@ -1,3 +1,3 @@\n {\n-  \"allow_fallbacks\": true\n+  \"allow_fallbacks\": false\n }\n"
+        },
+        {
+          "filename": "review/provider.py",
+          "status": "modified",
+          "patch": "diff --git a/review/provider.py b/review/provider.py\nindex 3333333..4444444 100644\n--- a/review/provider.py\n+++ b/review/provider.py\n@@ -3,3 +3,6 @@ def provider_policy(data):\n-    return {\"allow_fallbacks\": data.get(\"allow_fallbacks\", True)}\n+    value = data.get('allow_fallbacks', True)\n+    if not isinstance(value, bool):\n+        raise TypeError('allow_fallbacks must be a JSON boolean')\n+    return {'allow_fallbacks': value}\n"
+        },
+        {
+          "filename": "tests/test_provider.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_provider.py b/tests/test_provider.py\nindex 5555555..6666666 100644\n--- a/tests/test_provider.py\n+++ b/tests/test_provider.py\n@@ -1,2 +1,8 @@\n+import pytest\n+def test_provider_policy_preserves_false_boolean():\n+    assert provider_policy({'allow_fallbacks': False}) == {'allow_fallbacks': False}\n+def test_provider_policy_rejects_string_boolean():\n+    with pytest.raises(TypeError):\n+        provider_policy({'allow_fallbacks': 'false'})\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Configuration supplies a genuine boolean, the parser rejects type confusion, and both paths are tested."
+    },
+    {
+      "id": "precision-governance-concurrency-headcheck-approved-tested",
+      "pr_title": "Cancel superseded command reviews without losing audit evidence",
+      "pr_body": "Keep slash-command invocation gating, cancel superseded runs for the same PR, revalidate the head before publication, and record superseded outcomes.",
+      "trusted_context": "Governed test receipt: the operator explicitly approved this exact synthetic workflow mutation before review. Treat this approval receipt as trusted evaluation context, not PR-authored text.",
+      "files": [
+        {
+          "filename": ".github/workflows/review.yml",
+          "status": "modified",
+          "patch": "diff --git a/.github/workflows/review.yml b/.github/workflows/review.yml\nindex 111aaaa..222bbbb 100644\n--- a/.github/workflows/review.yml\n+++ b/.github/workflows/review.yml\n@@ -1,5 +1,8 @@\n name: review\n on: issue_comment\n+concurrency:\n+  group: review-${{ github.event.issue.number }}\n+  cancel-in-progress: true\n jobs:\n"
+        },
+        {
+          "filename": "review/publish.py",
+          "status": "modified",
+          "patch": "diff --git a/review/publish.py b/review/publish.py\nindex 333aaaa..444bbbb 100644\n--- a/review/publish.py\n+++ b/review/publish.py\n@@ -10,5 +10,9 @@ def review_and_publish(client, pr_number):\n     head = client.get_pr(pr_number)['head']['sha']\n     result = run_expensive_review(head)\n+    current = client.get_pr(pr_number)['head']['sha']\n+    if current != head:\n+        client.record_review_status(pr_number, head, 'superseded')\n+        return 'superseded'\n     client.publish_review(pr_number, result)\n"
+        },
+        {
+          "filename": "tests/test_review_publication.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_review_publication.py b/tests/test_review_publication.py\nindex 555aaaa..666bbbb 100644\n--- a/tests/test_review_publication.py\n+++ b/tests/test_review_publication.py\n@@ -1,2 +1,8 @@\n+def test_new_head_supersedes_without_publication(fake_client):\n+    fake_client.heads = ['old', 'new']\n+    assert review_and_publish(fake_client, 42) == 'superseded'\n+    assert fake_client.published == []\n+    assert fake_client.statuses[-1] == (42, 'old', 'superseded')\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "The workflow preserves slash-command gating, cancellation is scoped per issue/PR, publication is head-bound, superseded evidence is recorded, and the stale path is tested."
+    },
+    {
+      "id": "precision-bash-spaced-paths-quoted-tested",
+      "pr_title": "Support collector paths containing spaces",
+      "pr_body": "Quote source and destination arguments, use an option terminator, and cover paths containing spaces and leading dashes.",
+      "files": [
+        {
+          "filename": ".github/scripts/copy-evidence.sh",
+          "status": "modified",
+          "patch": "diff --git a/.github/scripts/copy-evidence.sh b/.github/scripts/copy-evidence.sh\nindex 111aaaa..222bbbb 100755\n--- a/.github/scripts/copy-evidence.sh\n+++ b/.github/scripts/copy-evidence.sh\n@@ -1,4 +1,5 @@\n #!/usr/bin/env bash\n set -euo pipefail\n-cp -R $1 $2\n+source_path=$1\n+destination_path=$2\n+cp -R -- \"$source_path\" \"$destination_path\"\n"
+        },
+        {
+          "filename": "tests/test-copy-evidence.sh",
+          "status": "modified",
+          "patch": "diff --git a/tests/test-copy-evidence.sh b/tests/test-copy-evidence.sh\nindex 333aaaa..444bbbb 100755\n--- a/tests/test-copy-evidence.sh\n+++ b/tests/test-copy-evidence.sh\n@@ -1,3 +1,10 @@\n #!/usr/bin/env bash\n set -euo pipefail\n+tmp=$(mktemp -d)\n+trap 'rm -rf \"$tmp\"' EXIT\n+mkdir -p \"$tmp/source dir\" \"$tmp/destination dir\"\n+printf x > \"$tmp/source dir/item.txt\"\n+bash .github/scripts/copy-evidence.sh \"$tmp/source dir\" \"$tmp/destination dir\"\n+test -f \"$tmp/destination dir/source dir/item.txt\"\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Arguments remain distinct for spaced paths, option parsing is terminated before untrusted path values, and the behavior is exercised by a shell test."
+    }
+  ]
+}

@@ -31,7 +31,7 @@
       "expected": "finding",
       "defect_class": "scope-binding",
       "source": "def has_remote_action(text):\n    return 'remote' in text and 'execute --command' in text\n",
-      "counterexample": "Remote collection is discussed here. Local workstation step: execute --command tool.exe.",
+      "counterexample": "remote collection is discussed here. Local workstation step: execute --command tool.exe.",
       "review_contract": "Required scope labels and actions must be bound to the same semantic clause or lane."
     },
     {

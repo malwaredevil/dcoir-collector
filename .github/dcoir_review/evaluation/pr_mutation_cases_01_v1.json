@@ -1,0 +1,75 @@
+{
+  "schema_version": "dcoir_review_pr_mutation_cases_v1",
+  "shard": 1,
+  "cases": [
+    {
+      "id": "prmut-ps-native-exit-overwrite",
+      "pr_title": "Improve mirror diagnostics",
+      "pr_body": "Add a lightweight diagnostic lookup after robocopy so failures include environment context. Existing robocopy success semantics should remain unchanged.",
+      "difficulty": "hard",
+      "files": [
+        {
+          "filename": "src/Invoke-Mirror.ps1",
+          "status": "modified",
+          "patch": "diff --git a/src/Invoke-Mirror.ps1 b/src/Invoke-Mirror.ps1\nindex 1111111..2222222 100644\n--- a/src/Invoke-Mirror.ps1\n+++ b/src/Invoke-Mirror.ps1\n@@ -1,7 +1,8 @@\n function Invoke-Mirror {\n     param($Source, $Destination)\n     & robocopy.exe $Source $Destination /MIR\n+    & where.exe powershell.exe *> $null\n     if ($LASTEXITCODE -le 7) { return $true }\n     return $false\n }\n"
+        },
+        {
+          "filename": "tests/Invoke-Mirror.Tests.ps1",
+          "status": "modified",
+          "patch": "diff --git a/tests/Invoke-Mirror.Tests.ps1 b/tests/Invoke-Mirror.Tests.ps1\nindex 3333333..4444444 100644\n--- a/tests/Invoke-Mirror.Tests.ps1\n+++ b/tests/Invoke-Mirror.Tests.ps1\n@@ -8,3 +8,4 @@ Describe 'Invoke-Mirror' {\n     It 'accepts robocopy code 3' { (Invoke-Mirror a b) | Should -BeTrue }\n+    It 'collects diagnostic tool location' { Get-Command where.exe | Should -Not -BeNullOrEmpty }\n }\n"
+        }
+      ],
+      "expected_findings": [
+        {
+          "path": "src/Invoke-Mirror.ps1",
+          "anchor_substrings": ["where.exe powershell.exe"],
+          "term_groups": [["lastexitcode", "exit code"], ["robocopy", "where.exe", "overwrit", "snapshot"]],
+          "defect_class": "native-exit-state"
+        }
+      ],
+      "ground_truth_rationale": "The added native where.exe call overwrites $LASTEXITCODE before the robocopy result is classified."
+    },
+    {
+      "id": "prmut-ps-clean-native-exit",
+      "pr_title": "Preserve robocopy result while adding diagnostics",
+      "pr_body": "Capture robocopy's result before the new diagnostic command and use the captured value for classification.",
+      "difficulty": "hard",
+      "files": [
+        {
+          "filename": "src/Invoke-Mirror.ps1",
+          "status": "modified",
+          "patch": "diff --git a/src/Invoke-Mirror.ps1 b/src/Invoke-Mirror.ps1\nindex 1111111..5555555 100644\n--- a/src/Invoke-Mirror.ps1\n+++ b/src/Invoke-Mirror.ps1\n@@ -1,7 +1,9 @@\n function Invoke-Mirror {\n     param($Source, $Destination)\n     & robocopy.exe $Source $Destination /MIR\n+    $copyExit = $LASTEXITCODE\n+    & where.exe powershell.exe *> $null\n-    if ($LASTEXITCODE -le 7) { return $true }\n+    if ($copyExit -le 7) { return $true }\n     return $false\n }\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Robocopy exit state is snapshotted before any later native command and the snapshot drives classification."
+    },
+    {
+      "id": "prmut-py-cache-policy-version",
+      "pr_title": "Reuse semantic review results across unchanged files",
+      "pr_body": "Reuse first-pass results when the file content and model are unchanged. Policy/schema changes should naturally invalidate incompatible reuse.",
+      "difficulty": "adversarial",
+      "files": [
+        {
+          "filename": "review/cache.py",
+          "status": "modified",
+          "patch": "diff --git a/review/cache.py b/review/cache.py\nindex 111aaaa..222bbbb 100644\n--- a/review/cache.py\n+++ b/review/cache.py\n@@ -2,8 +2,10 @@ import hashlib\n \n-def reuse_key(content: bytes) -> str:\n-    return hashlib.sha256(content).hexdigest()\n+def reuse_key(content: bytes, model: str, policy_version: str) -> str:\n+    digest = hashlib.sha256()\n+    digest.update(content)\n+    digest.update(model.encode())\n+    return digest.hexdigest()\n"
+        },
+        {
+          "filename": "review/config.py",
+          "status": "modified",
+          "patch": "diff --git a/review/config.py b/review/config.py\nindex 333aaaa..444bbbb 100644\n--- a/review/config.py\n+++ b/review/config.py\n@@ -1,2 +1,3 @@\n MODEL = \"anthropic/claude-sonnet-5\"\n+POLICY_VERSION = \"review-schema-v3\"\n"
+        }
+      ],
+      "expected_findings": [
+        {
+          "path": "review/cache.py",
+          "anchor_substrings": ["digest.update(model.encode())"],
+          "term_groups": [["cache", "reuse", "key"], ["policy", "schema", "version", "invalidat", "omit"]],
+          "defect_class": "reuse-key-contract"
+        }
+      ],
+      "ground_truth_rationale": "The new policy_version parameter is never incorporated into the reuse key, so policy/schema changes can reuse stale semantic results."
+    }
+  ]
+}
