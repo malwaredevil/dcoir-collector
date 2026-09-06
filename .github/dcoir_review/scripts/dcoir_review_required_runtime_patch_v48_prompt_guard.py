@@ -14,7 +14,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v48 as v48
+import dcoir_review_required_runtime_patch_v48_core as core
 
 
 APPLIED_MARKER = "_dcoir_review_v48_prompt_guard_applied"
@@ -30,12 +30,12 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
 
     if callable(original_request):
         def guarded_request(original_prompt, prompt_kind, config, hardened, base):
-            if v48._guard(module) is not None:
-                v48.assert_current_review_scope(module, "prompt-review request", config)
-                v48.authorize_provider_request(module, config)
+            if core._guard(module) is not None:
+                core.assert_current_review_scope(module, "prompt-review request", config)
+                core.authorize_provider_request(module, config)
             result = original_request(original_prompt, prompt_kind, config, hardened, base)
-            if v48._guard(module) is not None:
-                v48.assert_current_review_scope(module, "prompt-review response", config)
+            if core._guard(module) is not None:
+                core.assert_current_review_scope(module, "prompt-review response", config)
             return result
 
         prompt_module._request_prompt_review = guarded_request
@@ -49,14 +49,14 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
 
     if callable(original_review):
         def guarded_review_once(original_prompt, config, hardened, base):
-            if v48._guard(module) is not None:
-                v48.assert_current_review_scope(module, "prompt-review stage", config)
+            if core._guard(module) is not None:
+                core.assert_current_review_scope(module, "prompt-review stage", config)
             result = original_review(original_prompt, config, hardened, base)
-            if v48._guard(module) is not None:
+            if core._guard(module) is not None:
                 # v6 intentionally falls back to the original prompt on provider
                 # exceptions. If the direct-request guard was the exception, its
                 # terminal state must win before the target provider call begins.
-                v48.assert_current_review_scope(module, "prompt-review stage completion", config)
+                core.assert_current_review_scope(module, "prompt-review stage completion", config)
             return result
 
         prompt_module._review_prompt_once = guarded_review_once
