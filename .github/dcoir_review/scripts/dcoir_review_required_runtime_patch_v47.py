@@ -142,10 +142,11 @@ def _patch_payload_builder(module: Any) -> None:
                 plugins.append({"id": RESPONSE_HEALING_PLUGIN_ID, "enabled": True})
             payload["plugins"] = plugins
 
-        # Sonnet 5 reasoning requests in the calibrated contract do not send the
-        # generic sampling temperature. With require_parameters=true, retaining
-        # an unsupported sampling field can make healthy providers ineligible.
-        if _is_claude_sonnet_5(model):
+        # Only the calibrated per-file Sonnet contract omits the generic
+        # sampling temperature. Installing v47 must not change an unrelated
+        # global/premium Sonnet request when the stage-local projection is absent.
+        projected_per_file = bool(getattr(config, "dcoir_v47_per_file_projection", False))
+        if projected_per_file and _is_claude_sonnet_5(model):
             payload.pop("temperature", None)
 
         return payload
