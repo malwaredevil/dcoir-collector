@@ -2,13 +2,17 @@
 """Production-shaped clean-PR precision evaluator for DCOIR candidates.
 
 This evaluation-only lane supplies ten PRs whose hidden ground truth is clean
-under the full reviewer policy. V3 through V6 are retained as historical
+under the full reviewer policy. V3 through V9 are retained as historical
 compositions for reproducibility. V7 composes from v6 and replaces the final
 PR-title control exposed by the Sonnet 5/high v6 confirmation: v6 recognized
 normalized dot-notation title expressions but could miss equivalent bracket/
 index access inside shell source. V7 enforces the stronger structural boundary
 that this workflow's run shell source contains no direct GitHub expressions;
-dynamic GitHub values must cross through env bindings.
+dynamic GitHub values must cross through env bindings. V8 hardens three
+ambiguous clean controls exposed by v7 adjudication. V9 is implemented in the
+separate v9 wrapper and replaces only the v8 fork-workflow guard after live
+Sonnet evidence showed its literal `secrets.` check could miss semantic
+whole-context or function-wrapped secret-context expressions.
 
 Workflow cases may include an explicit trusted approval receipt injected into
 trusted context; PR body text remains untrusted. Set
