@@ -44,6 +44,57 @@ def build_openrouter_payload(prompt: str, schema: dict[str, Any], config: Any, i
     return payload
 
 
+def _response_provider(data: dict[str, Any]) -> str:
+    provider = str(data.get("provider", "") or "").strip()
+    if provider:
+        return provider
+    metadata = data.get("openrouter_metadata")
+    if not isinstance(metadata, dict):
+        return ""
+    endpoints = metadata.get("endpoints")
+    if not isinstance(endpoints, dict):
+        return ""
+    available = endpoints.get("available")
+    if not isinstance(available, list):
+        return ""
+    selected = next(
+        (item for item in available if isinstance(item, dict) and bool(item.get("selected"))),
+        None,
+    )
+    if not isinstance(selected, dict):
+        return ""
+    return str(selected.get("provider", "") or selected.get("name", "") or "").strip()
+
+
+def _response_healing_pipeline(data: dict[str, Any]) -> list[Any]:
+    metadata = data.get("openrouter_metadata")
+    if not isinstance(metadata, dict):
+        return []
+    pipeline = metadata.get("pipeline")
+    return list(pipeline) if isinstance(pipeline, list) else []
+
+
+def _record_openrouter_request_telemetry(config: Any, event: dict[str, Any]) -> None:
+    history = getattr(config, "_openrouter_request_telemetry_events", None)
+    if not isinstance(history, list):
+        history = []
+    history = [*history, dict(event)]
+    setattr(config, "_openrouter_request_telemetry_events", history)
+
+    aggregate_cost = 0.0
+    cost_observed = False
+    for item in history:
+        value = item.get("cost") if isinstance(item, dict) else None
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            aggregate_cost += float(value)
+            cost_observed = True
+
+    telemetry = dict(event)
+    telemetry["request_events"] = [dict(item) for item in history]
+    telemetry["aggregate_cost"] = aggregate_cost if cost_observed else None
+    setattr(config, "_openrouter_last_request_telemetry", telemetry)
+
+
 def openrouter_request_once(
     prompt: str,
     schema: dict[str, Any],
@@ -51,6 +102,16 @@ def openrouter_request_once(
     ignored_providers: list[str],
     model: str,
 ) -> tuple[dict[str, Any], str, str]:
+    capture_telemetry = bool(getattr(config, "openrouter_capture_request_telemetry", False))
+    require_stop = bool(getattr(config, "openrouter_require_stop_finish_reason", False))
+    require_object = bool(getattr(config, "openrouter_require_object_response", False))
+    extended_response_handling = capture_telemetry or require_stop or require_object
+    if capture_telemetry:
+        attempt_count = int(getattr(config, "_openrouter_request_attempt_count", 0) or 0) + 1
+        setattr(config, "_openrouter_request_attempt_count", attempt_count)
+    else:
+        attempt_count = 0
+
     api_key = base.env_required("OPENROUTER_API_KEY")
     payload = build_openrouter_payload(prompt, schema, config, ignored_providers, model)
     headers = {
@@ -67,9 +128,52 @@ def openrouter_request_once(
     with urllib.request.urlopen(req, timeout=180) as response:
         raw = response.read().decode("utf-8")
     data = json.loads(raw)
-    model_used = str(data.get("model", model))
-    service_tier = str(data.get("service_tier", "") or "")
-    content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+    if extended_response_handling:
+        if not isinstance(data, dict):
+            raise RuntimeError("OpenRouter returned a non-object response")
+        choices = data.get("choices")
+        choice = choices[0] if isinstance(choices, list) and choices and isinstance(choices[0], dict) else None
+        model_used = str(data.get("model", model))
+        service_tier = str(data.get("service_tier", "") or "")
+        finish_reason = str(choice.get("finish_reason", "") or "").strip() if isinstance(choice, dict) else ""
+        if capture_telemetry:
+            usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+            cost = data.get("cost") if data.get("cost") is not None else usage.get("cost")
+            pipeline = _response_healing_pipeline(data)
+            event = {
+                "requested_model": str(model),
+                "served_model": model_used,
+                "served_model_differs_from_requested": model_used != str(model),
+                "provider": _response_provider(data),
+                "service_tier": service_tier,
+                "finish_reason": finish_reason,
+                "usage": usage,
+                "cost": cost,
+                "request_attempt_count": attempt_count,
+                "response_healing_pipeline": pipeline,
+                "response_healing_observed": any(
+                    isinstance(item, dict)
+                    and (
+                        str(item.get("type", "") or "") == "response_healing"
+                        or str(item.get("name", "") or "") == "response-healing"
+                    )
+                    for item in pipeline
+                ),
+            }
+            _record_openrouter_request_telemetry(config, event)
+        if not isinstance(choice, dict):
+            raise RuntimeError("OpenRouter returned an invalid choices payload")
+        if require_stop and finish_reason != "stop":
+            reason = finish_reason or "missing"
+            raise RuntimeError(f"OpenRouter capped completion did not finish with stop: finish_reason={reason}")
+        message = choice.get("message")
+        content = message.get("content", "") if isinstance(message, dict) else ""
+    else:
+        model_used = str(data.get("model", model))
+        service_tier = str(data.get("service_tier", "") or "")
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
     if not content:
         raise RuntimeError("OpenRouter returned an empty response")
     try:
@@ -79,6 +183,8 @@ def openrouter_request_once(
         if not match:
             raise
         parsed = json.loads(match.group(1))
+    if require_object and not isinstance(parsed, dict):
+        raise RuntimeError("OpenRouter structured output did not have an object root")
     return parsed, model_used, service_tier
 
 
