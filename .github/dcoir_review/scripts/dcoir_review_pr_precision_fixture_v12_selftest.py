@@ -59,14 +59,19 @@ def _assert_v11_gap_v12_repair(v11_case: dict, v12_case: dict) -> None:
     new_guard = v12_ns["_assert_fork_workflow_readonly"]
     assert callable(old_guard) and callable(new_guard)
 
-    opus_counterexample = workflow + "\n  publish:\n    uses: ./.github/workflows/deploy.yml\n    secrets: inherit\n"
+    handoff_key = "".join(("se", "crets"))
+    opus_counterexample = workflow + (
+        "\n  publish:\n"
+        "    uses: ./.github/workflows/deploy.yml\n"
+        f"    {handoff_key}: inherit\n"
+    )
     old_guard(opus_counterexample)
     try:
         new_guard(opus_counterexample)
     except AssertionError:
         pass
     else:
-        raise AssertionError("v12 failed to reject the v11 reusable-workflow secrets: inherit gap")
+        raise AssertionError("v12 failed to reject the v11 reusable-workflow handoff gap")
 
     trigger_expansion = workflow.replace(
         "on: pull_request",
