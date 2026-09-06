@@ -96,6 +96,13 @@ class DcoirReviewEntrypoint:
     stage_local_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v47',
     )
+    # Execution-policy overlays run last so they guard the fully composed provider
+    # and publication paths without changing Architecture-B semantic ordering or
+    # the v47 per-file routing contract. v48 stops new model work and stale
+    # publication when the live PR head/base/state no longer matches the run.
+    execution_policy_patch_module_names: tuple[str, ...] = (
+        'dcoir_review_required_runtime_patch_v48',
+    )
 
     def import_module(self, module_name: str) -> ModuleType:
         return importlib.import_module(module_name)
@@ -124,6 +131,7 @@ class DcoirReviewEntrypoint:
         if callable(getattr(review_module, "openrouter_review_with_hybrid_first_pass", None)):
             self._apply_patch_modules(review_module, self.post_terminal_patch_module_names)
             self._apply_patch_modules(review_module, self.stage_local_patch_module_names)
+            self._apply_patch_modules(review_module, self.execution_policy_patch_module_names)
 
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
