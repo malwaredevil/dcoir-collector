@@ -70,6 +70,12 @@ def call_openrouter(
             data = json.loads(raw)
         except json.JSONDecodeError:
             data = {"error": {"message": raw[:1000]}}
+        if not isinstance(data, dict):
+            data = {
+                "error": {
+                    "message": f"OpenRouter HTTP error response root must be a JSON object, got {type(data).__name__}"
+                }
+            }
         metadata, provider, pipeline = _metadata(base, data)
         result = {
             "ok": False,
@@ -105,6 +111,20 @@ def call_openrouter(
             "latency_seconds": elapsed,
             "requested_model": str(payload.get("model", "") or ""),
             "error": {"type": type(exc).__name__, "message": str(exc)[:1000]},
+        }
+        _append_checkpoint(result)
+        return result
+    if not isinstance(data, dict):
+        result = {
+            "ok": False,
+            "error_kind": "response-json-error",
+            "http_status": status,
+            "latency_seconds": elapsed,
+            "requested_model": str(payload.get("model", "") or ""),
+            "error": {
+                "type": "InvalidResponseRoot",
+                "message": f"OpenRouter response root must be a JSON object, got {type(data).__name__}",
+            },
         }
         _append_checkpoint(result)
         return result

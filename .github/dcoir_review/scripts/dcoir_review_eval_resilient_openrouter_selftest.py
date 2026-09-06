@@ -123,9 +123,20 @@ def main() -> None:
     assert filtered_result["error_kind"] == "non-stop-finish-reason"
     assert filtered_result["finish_reason"] == "content_filter"
 
+    non_object_result = resilient.call_openrouter(
+        base,
+        payload,
+        "unit-test-key",
+        timeout_seconds=3,
+        opener=lambda _request, timeout: FakeResponse([]),
+    )
+    assert non_object_result["ok"] is False
+    assert non_object_result["error_kind"] == "response-json-error"
+    assert non_object_result["error"]["type"] == "InvalidResponseRoot"
+
     print(
         "dcoir_review_eval_resilient_openrouter_selftest passed: "
-        "structured-output errors and non-stop/length completions fail closed with usage preserved"
+        "structured-output/JSON-shape errors and non-stop/length completions fail closed with usage preserved"
     )
 
 
