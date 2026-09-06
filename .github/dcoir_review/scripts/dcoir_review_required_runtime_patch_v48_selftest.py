@@ -109,6 +109,29 @@ class FakeHardened:
         return str(text)
 
 
+class FakePromptModule:
+    """Model v6's deliberate direct-request exception fallback."""
+
+    def __init__(self) -> None:
+        self.direct_calls = 0
+        self.on_direct_request = None
+
+    def _request_prompt_review(self, original_prompt, prompt_kind, config, hardened, base):
+        self.direct_calls += 1
+        if callable(self.on_direct_request):
+            self.on_direct_request()
+        return {"use_original": True}, "openrouter/auto", ""
+
+    def _review_prompt_once(self, original_prompt, config, hardened, base):
+        try:
+            self._request_prompt_review(original_prompt, "model-prompt", config, hardened, base)
+        except Exception:
+            # Historical v6 behavior intentionally falls back to the original
+            # prompt on prompt-review provider failure.
+            return original_prompt
+        return original_prompt
+
+
 class FakeModule(SimpleNamespace):
     pass
 
@@ -155,12 +178,15 @@ def main() -> None:
     )
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review_required_runtime_patch_v48",
+        "dcoir_review_required_runtime_patch_v48_prompt_guard",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v48 = importlib.import_module("dcoir_review_required_runtime_patch_v48")
+    v48_prompt = importlib.import_module("dcoir_review_required_runtime_patch_v48_prompt_guard")
     assert getattr(review, v48.APPLIED_MARKER, False) is True
+    assert getattr(review, v48_prompt.APPLIED_MARKER, False) is True
 
     module, hardened, main_state = build_fake_module(v48)
     assert getattr(module, v48.APPLIED_MARKER, False) is True
@@ -281,6 +307,23 @@ def main() -> None:
         assert v48.VERIFICATION_PREFIX in str(unreadable)
         assert hardened.paid_calls == before
         assert hardened.artifacts[v48.ARTIFACT_PATH]["result"] == "verification_failed"
+
+        # Historical v6 prompt review has a direct provider call and deliberately
+        # catches provider exceptions. The companion guard must restore a detected
+        # supersession before a later target-provider request could begin.
+        client = FakeClient()
+        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        prompt_module = FakePromptModule()
+        v48_prompt.patch_prompt_review_module(module, prompt_module)
+        prompt_module.on_direct_request = lambda: setattr(client, "head", NEW_HEAD)
+        prompt_superseded = expect_raises(
+            v48.ReviewSupersededError,
+            lambda: prompt_module._review_prompt_once(
+                "original prompt", config, hardened, SimpleNamespace()
+            ),
+        )
+        assert v48.SUPERSEDED_PREFIX in str(prompt_superseded)
+        assert prompt_module.direct_calls == 1
 
         # The final GitHub review write is independently exact-head guarded.
         client = FakeClient()
