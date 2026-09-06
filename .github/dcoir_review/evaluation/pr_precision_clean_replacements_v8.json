@@ -1,0 +1,78 @@
+{
+  "schema_version": "dcoir_review_pr_precision_clean_replacements_v8",
+  "replaces_case_ids": [
+    "precision-ps-native-exit-snapshot-verbose-tested",
+    "precision-json-typed-fallback-tested",
+    "precision-gha-fork-structural-readonly-approved-tested"
+  ],
+  "cases": [
+    {
+      "id": "precision-ps-native-exit-snapshot-behavior-tested",
+      "pr_title": "Exercise robocopy exit classification through Invoke-Mirror",
+      "pr_body": "Capture the native robocopy exit state in a narrow helper, emit verbose diagnostics only after capture, classify from the captured value, and exercise Invoke-Mirror at the 0/7/8 success boundary with the native helper mocked.",
+      "files": [
+        {
+          "filename": "src/Invoke-Mirror.ps1",
+          "status": "modified",
+          "patch": "diff --git a/src/Invoke-Mirror.ps1 b/src/Invoke-Mirror.ps1\nindex 1111111..7777777 100644\n--- a/src/Invoke-Mirror.ps1\n+++ b/src/Invoke-Mirror.ps1\n@@ -1,7 +1,14 @@\n+function Invoke-RobocopyExit {\n+    param($Source, $Destination)\n+    & robocopy.exe $Source $Destination /MIR\n+    return $LASTEXITCODE\n+}\n+\n function Invoke-Mirror {\n     param($Source, $Destination)\n-    & robocopy.exe $Source $Destination /MIR\n-    if ($LASTEXITCODE -le 7) { return $true }\n+    $copyExit = Invoke-RobocopyExit -Source $Source -Destination $Destination\n+    Write-Verbose (\"robocopy exit={0}\" -f $copyExit)\n+    if ($copyExit -le 7) { return $true }\n     return $false\n }\n"
+        },
+        {
+          "filename": "tests/Invoke-Mirror.Tests.ps1",
+          "status": "modified",
+          "patch": "diff --git a/tests/Invoke-Mirror.Tests.ps1 b/tests/Invoke-Mirror.Tests.ps1\nindex 3333333..8888888 100644\n--- a/tests/Invoke-Mirror.Tests.ps1\n+++ b/tests/Invoke-Mirror.Tests.ps1\n@@ -1,3 +1,31 @@\n Describe 'Invoke-Mirror exit classification' {\n+    BeforeAll {\n+        . \"$PSScriptRoot/../src/Invoke-Mirror.ps1\"\n+    }\n+\n+    It 'returns success for robocopy exit 0' {\n+        Mock Invoke-RobocopyExit { 0 }\n+        Invoke-Mirror -Source source -Destination destination | Should -BeTrue\n+        Assert-MockCalled Invoke-RobocopyExit -Times 1\n+    }\n+\n+    It 'returns success for robocopy exit 7' {\n+        Mock Invoke-RobocopyExit { 7 }\n+        Invoke-Mirror -Source source -Destination destination | Should -BeTrue\n+        Assert-MockCalled Invoke-RobocopyExit -Times 1\n+    }\n+\n+    It 'returns failure for robocopy exit 8' {\n+        Mock Invoke-RobocopyExit { 8 }\n+        Invoke-Mirror -Source source -Destination destination | Should -BeFalse\n+        Assert-MockCalled Invoke-RobocopyExit -Times 1\n+    }\n+\n+    It 'captures LASTEXITCODE immediately in the native helper' {\n+        $source = Get-Content -Raw \"$PSScriptRoot/../src/Invoke-Mirror.ps1\"\n+        $helper = $source.Substring($source.IndexOf('function Invoke-RobocopyExit'), $source.IndexOf('function Invoke-Mirror') - $source.IndexOf('function Invoke-RobocopyExit'))\n+        $nativeIndex = $helper.IndexOf('& robocopy.exe')\n+        $captureIndex = $helper.IndexOf('return $LASTEXITCODE')\n+        $nativeIndex | Should -BeGreaterThan -1\n+        $captureIndex | Should -BeGreaterThan $nativeIndex\n+        $helper.Substring($nativeIndex, $captureIndex - $nativeIndex) | Should -Not -Match 'Write-Verbose|where\\.exe'\n+    }\n }\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Native status is isolated and returned immediately after robocopy before any diagnostic command. Invoke-Mirror consumes only that returned snapshot, and Pester exercises the actual function at success exits 0 and 7 plus failure exit 8 while mocking only the narrow native boundary. A structural helper assertion proves no diagnostic command occurs between the native invocation and LASTEXITCODE capture."
+    },
+    {
+      "id": "precision-json-typed-fallback-semantics-preserved-tested",
+      "pr_title": "Make the committed fallback policy a real JSON boolean",
+      "pr_body": "Correct the committed disabled-fallback setting from the string \"false\" to the JSON boolean false without changing its intended policy state, reject non-boolean fallback values in the parser, and test both the accepted false value and rejected string form.",
+      "files": [
+        {
+          "filename": "config/provider.json",
+          "status": "modified",
+          "patch": "diff --git a/config/provider.json b/config/provider.json\nindex 1111111..7777777 100644\n--- a/config/provider.json\n+++ b/config/provider.json\n@@ -1,3 +1,3 @@\n {\n-  \"allow_fallbacks\": \"false\"\n+  \"allow_fallbacks\": false\n }\n"
+        },
+        {
+          "filename": "review/provider.py",
+          "status": "modified",
+          "patch": "diff --git a/review/provider.py b/review/provider.py\nindex 3333333..7777777 100644\n--- a/review/provider.py\n+++ b/review/provider.py\n@@ -3,3 +3,6 @@ def provider_policy(data):\n-    return {\"allow_fallbacks\": data.get(\"allow_fallbacks\", True)}\n+    value = data.get('allow_fallbacks', True)\n+    if not isinstance(value, bool):\n+        raise TypeError('allow_fallbacks must be a JSON boolean')\n+    return {'allow_fallbacks': value}\n"
+        },
+        {
+          "filename": "tests/test_provider.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_provider.py b/tests/test_provider.py\nindex 5555555..7777777 100644\n--- a/tests/test_provider.py\n+++ b/tests/test_provider.py\n@@ -1,2 +1,9 @@\n+import pytest\n from review.provider import provider_policy\n+\n+def test_provider_policy_preserves_false_boolean():\n+    assert provider_policy({'allow_fallbacks': False}) == {'allow_fallbacks': False}\n+\n+def test_provider_policy_rejects_string_boolean():\n+    with pytest.raises(TypeError):\n+        provider_policy({'allow_fallbacks': 'false'})\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "The committed policy remains disabled while its representation is corrected from a truthy string to a genuine JSON false boolean. The parser now rejects type confusion, the visible test context includes the provider_policy import, and tests cover both preserving False and rejecting the old string representation."
+    },
+    {
+      "id": "precision-gha-fork-single-permissions-key-approved-tested",
+      "pr_title": "Add fork-safe PR diagnostics with a fail-closed permission guard",
+      "pr_body": "Run diagnostic code in the unprivileged pull_request context, permit exactly one permissions key in the entire workflow and require it to be the top-level contents: read block, expose no secrets, and require every checkout step to disable credential persistence.",
+      "trusted_context": "Governed test receipt: the operator explicitly approved this exact synthetic workflow mutation before review. Treat this approval receipt as trusted evaluation context, not PR-authored text. The repository currently uses and has successfully executed actions/checkout@v7; do not infer action-tag availability from stale model knowledge.",
+      "files": [
+        {
+          "filename": ".github/workflows/pr-diagnostics.yml",
+          "status": "modified",
+          "patch": "diff --git a/.github/workflows/pr-diagnostics.yml b/.github/workflows/pr-diagnostics.yml\nnew file mode 100644\nindex 0000000..777aaaa\n--- /dev/null\n+++ b/.github/workflows/pr-diagnostics.yml\n@@ -0,0 +1,12 @@\n+name: PR diagnostics\n+on: pull_request\n+permissions:\n+  contents: read\n+jobs:\n+  diagnose:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@v7\n+        with:\n+          persist-credentials: false\n+      - run: bash .github/scripts/pr-diagnostic.sh\n"
+        },
+        {
+          "filename": ".github/scripts/pr-diagnostic.sh",
+          "status": "modified",
+          "patch": "diff --git a/.github/scripts/pr-diagnostic.sh b/.github/scripts/pr-diagnostic.sh\nnew file mode 100755\nindex 0000000..222bbbb\n--- /dev/null\n+++ b/.github/scripts/pr-diagnostic.sh\n@@ -0,0 +1,3 @@\n+#!/usr/bin/env bash\n+set -euo pipefail\n+echo 'diagnostic complete'\n"
+        },
+        {
+          "filename": "tests/test_pr_diagnostics_workflow.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_pr_diagnostics_workflow.py b/tests/test_pr_diagnostics_workflow.py\nindex 333aaaa..777bbbb 100644\n--- a/tests/test_pr_diagnostics_workflow.py\n+++ b/tests/test_pr_diagnostics_workflow.py\n@@ -1,2 +1,62 @@\n+from pathlib import Path\n+\n+def _checkout_blocks(lines):\n+    blocks = []\n+    for index, line in enumerate(lines):\n+        if not line.strip().startswith('- uses: actions/checkout@'):\n+            continue\n+        indent = len(line) - len(line.lstrip())\n+        block = [line]\n+        for following in lines[index + 1:]:\n+            following_indent = len(following) - len(following.lstrip())\n+            if following.strip().startswith('- ') and following_indent == indent:\n+                break\n+            if following and following_indent < indent:\n+                break\n+            block.append(following)\n+        blocks.append('\\n'.join(block))\n+    return blocks\n+\n+def _assert_fork_workflow_readonly(text):\n+    lines = text.splitlines()\n+    assert 'pull_request_target' not in text\n+    assert 'secrets.' not in text\n+    assert 'write-all' not in text\n+\n+    permission_key_lines = [line for line in lines if 'permissions' in line]\n+    assert permission_key_lines == ['permissions:']\n+    permission_index = lines.index('permissions:')\n+    assert lines[permission_index + 1] == '  contents: read'\n+    assert lines[permission_index + 2] == 'jobs:'\n+\n+    checkout_blocks = _checkout_blocks(lines)\n+    assert checkout_blocks\n+    assert all('persist-credentials: false' in block for block in checkout_blocks)\n+\n+def _expect_rejected(text):\n+    try:\n+        _assert_fork_workflow_readonly(text)\n+    except AssertionError:\n+        return\n+    raise AssertionError('unsafe fork workflow unexpectedly passed the fail-closed guard')\n+\n+def test_fork_diagnostics_are_structurally_unprivileged():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    _assert_fork_workflow_readonly(text)\n+\n+def test_guard_rejects_job_level_block_write_permission():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    dirty = text.replace('    runs-on: ubuntu-latest', '    permissions:\\n      pull-requests: write\\n    runs-on: ubuntu-latest')\n+    _expect_rejected(dirty)\n+\n+def test_guard_rejects_job_level_flow_write_permission():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    dirty = text.replace('    runs-on: ubuntu-latest', '    permissions: {pull-requests: write}\\n    runs-on: ubuntu-latest')\n+    _expect_rejected(dirty)\n+\n+def test_guard_rejects_commented_job_level_write_permission():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    dirty = text.replace('    runs-on: ubuntu-latest', '    permissions:  # job override\\n      pull-requests: write  # temporary\\n    runs-on: ubuntu-latest')\n+    _expect_rejected(dirty)\n+\n+def test_guard_rejects_any_checkout_without_disabled_credentials():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    dirty = text + '\\n      - uses: actions/checkout@v7\\n'\n+    _expect_rejected(dirty)\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Trusted approval is supplied. The workflow runs only in pull_request context, exposes no secrets, and contains exactly one permissions key in the whole file: the exact top-level contents: read block. Because any second literal permissions key causes failure, nested block, flow-style, or commented job overrides are rejected without relying on a ': write' suffix. Every checkout step must disable credential persistence. Negative controls cover all three permission syntaxes plus a second unsafe checkout. Trusted context records that checkout@v7 is a currently observed working action ref in this repository."
+    }
+  ]
+}
