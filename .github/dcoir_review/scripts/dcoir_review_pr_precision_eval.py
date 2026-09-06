@@ -2,11 +2,12 @@
 """Production-shaped clean-PR precision evaluator for DCOIR candidates.
 
 This evaluation-only lane supplies ten PRs whose hidden ground truth is clean
-under the full reviewer policy. V3 is retained as a historical composition for
-reproducibility. V4 composes from v3 and replaces two additional optimistic
-controls exposed by manual adjudication of the first live clean-precision batch:
-one cache fixture lacked caller-level invalidation coverage, and one fork
-workflow fixture did not prove that its permission block was exactly read-only.
+under the full reviewer policy. V3 and V4 are retained as historical
+compositions for reproducibility. V5 composes from v4 and replaces three
+additional optimistic controls exposed by paired Sonnet 5/high and Opus 5/xhigh
+manual adjudication: one remoting fixture did not execute the remote script
+block, one PR-title fixture checked only a single shell line, and one fork
+workflow fixture did not prove job-level permissions or every checkout step.
 
 Workflow cases may include an explicit trusted approval receipt injected into
 trusted context; PR body text remains untrusted. Set
@@ -31,6 +32,8 @@ V3_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_re
 V3_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v3"
 V4_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v4.json"
 V4_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v4"
+V5_REPLACEMENTS_PATH = target.DCOIR_ROOT / "evaluation" / "pr_precision_clean_replacements_v5.json"
+V5_REPLACEMENTS_SCHEMA = "dcoir_review_pr_precision_clean_replacements_v5"
 
 
 def _validate_case(raw: Any) -> dict[str, Any]:
@@ -56,16 +59,27 @@ def _apply_replacements(
     replacement_path: Path,
     replacement_schema: str,
     version: str,
+    expected_replacement_count: int,
 ) -> list[dict[str, Any]]:
     replacement_data = target.base.load_json(replacement_path)
     if replacement_data.get("schema_version") != replacement_schema:
         raise ValueError(f"Unexpected clean PR precision {version} replacement schema")
     replace_ids = replacement_data.get("replaces_case_ids")
     replacement_raw = replacement_data.get("cases")
-    if not isinstance(replace_ids, list) or len(replace_ids) != 2 or len(set(map(str, replace_ids))) != 2:
-        raise ValueError(f"Clean PR precision {version} must replace exactly two unique prior-version cases")
-    if not isinstance(replacement_raw, list) or len(replacement_raw) != 2:
-        raise ValueError(f"Clean PR precision {version} must supply exactly two replacement cases")
+    if (
+        not isinstance(replace_ids, list)
+        or len(replace_ids) != expected_replacement_count
+        or len(set(map(str, replace_ids))) != expected_replacement_count
+    ):
+        raise ValueError(
+            f"Clean PR precision {version} must replace exactly "
+            f"{expected_replacement_count} unique prior-version cases"
+        )
+    if not isinstance(replacement_raw, list) or len(replacement_raw) != expected_replacement_count:
+        raise ValueError(
+            f"Clean PR precision {version} must supply exactly "
+            f"{expected_replacement_count} replacement cases"
+        )
 
     replace_set = {str(item) for item in replace_ids}
     case_ids = {str(case["id"]) for case in cases}
@@ -90,11 +104,33 @@ def load_v3_cases() -> list[dict[str, Any]]:
     if not isinstance(base_raw, list) or len(base_raw) != 10:
         raise ValueError("Clean PR precision v2 base corpus must contain exactly 10 cases")
     base_cases = [_validate_case(raw) for raw in base_raw]
-    return _apply_replacements(base_cases, V3_REPLACEMENTS_PATH, V3_REPLACEMENTS_SCHEMA, "v3")
+    return _apply_replacements(
+        base_cases,
+        V3_REPLACEMENTS_PATH,
+        V3_REPLACEMENTS_SCHEMA,
+        "v3",
+        expected_replacement_count=2,
+    )
+
+
+def load_v4_cases() -> list[dict[str, Any]]:
+    return _apply_replacements(
+        load_v3_cases(),
+        V4_REPLACEMENTS_PATH,
+        V4_REPLACEMENTS_SCHEMA,
+        "v4",
+        expected_replacement_count=2,
+    )
 
 
 def load_cases() -> list[dict[str, Any]]:
-    return _apply_replacements(load_v3_cases(), V4_REPLACEMENTS_PATH, V4_REPLACEMENTS_SCHEMA, "v4")
+    return _apply_replacements(
+        load_v4_cases(),
+        V5_REPLACEMENTS_PATH,
+        V5_REPLACEMENTS_SCHEMA,
+        "v5",
+        expected_replacement_count=3,
+    )
 
 
 def include_trusted_context() -> bool:
@@ -144,7 +180,7 @@ Find only high-signal issues in the PR diff. For each finding, give the exact ch
 def main() -> int:
     target.load_cases = load_cases
     target.build_pr_prompt = build_pr_prompt
-    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v4"
+    target.REPORT_SCHEMA = "dcoir_review_pr_precision_eval_report_v5"
     resilient.install(target.base)
     return target.main()
 

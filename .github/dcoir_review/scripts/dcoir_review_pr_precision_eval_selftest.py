@@ -19,19 +19,41 @@ def main() -> None:
     assert "precision-py-cache-key-callers-tested" in historical_v3_ids
     assert "precision-gha-fork-readonly-approved-tested" in historical_v3_ids
 
+    historical_v4 = precision.load_v4_cases()
+    historical_v4_ids = {str(case["id"]) for case in historical_v4}
+    assert len(historical_v4) == 10
+    assert len(historical_v4_ids) == 10
+    assert "precision-py-cache-key-callers-tested" not in historical_v4_ids
+    assert "precision-gha-fork-readonly-approved-tested" not in historical_v4_ids
+    assert "precision-py-cache-key-callers-invalidation-tested" in historical_v4_ids
+    assert "precision-gha-fork-exact-readonly-approved-tested" in historical_v4_ids
+    assert "precision-ps-remoting-argumentlist-tested" in historical_v4_ids
+    assert "precision-gha-title-via-env-approved-tested" in historical_v4_ids
+
     cases = precision.load_cases()
     ids = {str(case["id"]) for case in cases}
     assert len(cases) == 10
     assert all(case["expected_findings"] == [] for case in cases)
     assert len(ids) == 10
-    assert "precision-ps-native-exit-snapshot-tested" not in ids
-    assert "precision-governance-command-gate-approved-tested" not in ids
-    assert "precision-py-cache-key-callers-tested" not in ids
-    assert "precision-gha-fork-readonly-approved-tested" not in ids
-    assert "precision-ps-native-exit-snapshot-verbose-tested" in ids
-    assert "precision-py-retry-budget-tested" in ids
-    assert "precision-py-cache-key-callers-invalidation-tested" in ids
-    assert "precision-gha-fork-exact-readonly-approved-tested" in ids
+    for superseded in (
+        "precision-ps-native-exit-snapshot-tested",
+        "precision-governance-command-gate-approved-tested",
+        "precision-py-cache-key-callers-tested",
+        "precision-gha-fork-readonly-approved-tested",
+        "precision-ps-remoting-argumentlist-tested",
+        "precision-gha-title-via-env-approved-tested",
+        "precision-gha-fork-exact-readonly-approved-tested",
+    ):
+        assert superseded not in ids
+    for current in (
+        "precision-ps-native-exit-snapshot-verbose-tested",
+        "precision-py-retry-budget-tested",
+        "precision-py-cache-key-callers-invalidation-tested",
+        "precision-ps-remoting-argumentlist-behavior-tested",
+        "precision-gha-title-via-env-all-shell-surfaces-tested",
+        "precision-gha-fork-structural-readonly-approved-tested",
+    ):
+        assert current in ids
 
     workflow_cases = [case for case in cases if any(str(item["filename"]).startswith(".github/workflows/") for item in case["files"])]
     assert len(workflow_cases) == 2
@@ -64,7 +86,7 @@ def main() -> None:
         else:
             os.environ["DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT"] = old
 
-    print("dcoir_review_pr_precision_eval_selftest passed: current v4 has 10 policy-clean PRs, preserves historical v3, replaces both S1-exposed optimistic fixtures, hides ground truth, and supports trusted-context ablation")
+    print("dcoir_review_pr_precision_eval_selftest passed: current v5 has 10 policy-clean PRs, preserves historical v3/v4, replaces all three paired-S1 benchmark defects, hides ground truth, and supports trusted-context ablation")
 
 
 if __name__ == "__main__":
