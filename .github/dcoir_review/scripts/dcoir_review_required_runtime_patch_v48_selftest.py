@@ -28,6 +28,7 @@ class FakeClient:
         self.fail_reads = False
         self.get_pr_calls = 0
         self.review_posts = 0
+        self.on_review = None
 
     def get_pr(self, number: int):
         self.get_pr_calls += 1
@@ -44,6 +45,8 @@ class FakeClient:
     def create_review(self, number, body, event, comments, commit_id):
         assert number == PR_NUMBER
         self.review_posts += 1
+        if callable(self.on_review):
+            self.on_review()
         return {"id": self.review_posts, "commit_id": commit_id}
 
 
@@ -225,6 +228,7 @@ def main() -> None:
         context = getattr(module, v48.GUARD_ATTR)
         assert hardened.paid_calls == before + 1
         assert context["check_count"] == 2
+        assert context["request_ticket_count"] == 1
         assert context["terminal"] is None
 
         # If the head already moved, no provider request may start.
@@ -332,6 +336,7 @@ def main() -> None:
         assert posted["commit_id"] == HEAD
         assert client.review_posts == 1
 
+        # A head that is already stale before publication blocks the write.
         client = FakeClient()
         client.head = NEW_HEAD
         v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
@@ -341,6 +346,21 @@ def main() -> None:
         )
         assert v48.SUPERSEDED_PREFIX in str(stale_publication)
         assert client.review_posts == 0
+
+        # GitHub cannot atomically compare mutable PR head and create a review.
+        # If the head moves inside that narrow write window, v48 post-checks the
+        # scope immediately, marks the run superseded, and refuses to treat the
+        # already-posted old-commit review as current-head evidence.
+        client = FakeClient()
+        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        client.on_review = lambda: setattr(client, "head", NEW_HEAD)
+        publication_race = expect_raises(
+            v48.ReviewSupersededError,
+            lambda: client.create_review(PR_NUMBER, "body", "COMMENT", [], HEAD),
+        )
+        assert v48.SUPERSEDED_PREFIX in str(publication_race)
+        assert client.review_posts == 1
+        assert getattr(module, v48.GUARD_ATTR)["terminal"]["kind"] == "superseded"
 
         client = FakeClient()
         v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
@@ -379,7 +399,8 @@ def main() -> None:
         assert reporter.comment_id in comment_gh.comments
         terminal_body = comment_gh.comments[reporter.comment_id]
         assert "DCOIR Review superseded." in terminal_body
-        assert "Stale GitHub review publication: blocked." in terminal_body
+        assert "Pre-detected stale GitHub review publication: blocked." in terminal_body
+        assert "already-posted review remains anchored to the old commit" in terminal_body
         assert "New model requests after detection: blocked" in terminal_body
         assert HEAD in terminal_body
         assert NEW_HEAD in terminal_body
