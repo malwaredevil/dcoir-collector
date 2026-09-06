@@ -1,1 +1,79 @@
-placeholder
+{
+  "schema_version": "dcoir_review_first_pass_candidate_matrix_v1",
+  "purpose": "Evaluation-only candidate matrix for reducing DCOIR first-pass/deep detector cost while preserving semantic quality. This corpus never publishes a GitHub review and does not change the governed production model stack.",
+  "production_sources": {
+    "system_prompt": ".github/dcoir_review/prompts/openrouter-pr-review-system.md",
+    "review_schema": ".github/dcoir_review/schemas/openrouter-pr-review.schema.json",
+    "generalized_semantic_corpus": ".github/dcoir_review/evaluation/semantic_recall_corpus_v1.json"
+  },
+  "request_contract": {
+    "provider_sort": "price",
+    "allow_fallbacks": true,
+    "require_parameters": true,
+    "response_healing": true,
+    "router_metadata": true,
+    "response_cache": false,
+    "tools": [],
+    "stream": false,
+    "session_isolation": true,
+    "notes": [
+      "Request-level provider sorting is pinned so mutable workspace defaults cannot confound candidate comparisons.",
+      "Response Healing is explicitly enabled to preserve the current structured-output control environment while making it reproducible.",
+      "No server tools, AutoRouter, Pareto Router, GitHub publication, branch write, or remediation capability is used by the evaluation request.",
+      "Response caching is disabled so repeated controls cannot be satisfied by a prior cached completion. Provider-native prompt caching, if any, is recorded separately from usage metadata.",
+      "Sampling parameters are candidate-specific: preserve production-like temperature 0.2 for Opus controls, but omit temperature for models whose OpenRouter supported-parameters contract does not accept it under require_parameters=true."
+    ]
+  },
+  "candidates": [
+    {
+      "id": "opus5-xhigh-control",
+      "model": "anthropic/claude-opus-5",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "role": "current-model/current-effort control"
+    },
+    {
+      "id": "opus5-high",
+      "model": "anthropic/claude-opus-5",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "role": "same-model lower-reasoning candidate"
+    },
+    {
+      "id": "sonnet5-high",
+      "model": "anthropic/claude-sonnet-5",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "role": "lower-cost routine first-pass worker candidate"
+    }
+  ],
+  "naturalistic_cases": [
+    {
+      "id": "pr448-lane-separation-binding",
+      "expected": "finding",
+      "defect_class": "naturalistic-lane-separation-binding",
+      "source_ref": "malwaredevil/dcoir-collector@32dfa2ff7df56481bcf476b75e21dd9cafe3eb37:project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
+      "evidence_ref": "PR #479 DCOIR review 5121289126 / issue #484",
+      "dcoir_historical_disposition": "detected",
+      "source": "def has_execution_lane_separation(response_text):\n    for clause in _iter_clauses(response_text):\n        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):\n            continue\n        positive_separation = bool(_find_contextual_term_hits(clause, ['separate', 'different lane', 'distinct lane'], skip_negated=True, skip_quoted=True))\n        explicit_no_mix = bool(_find_contextual_term_hits(clause, ['do not mix', \"don't mix\", 'dont mix', 'must not mix', 'should not mix'], skip_negated=True, skip_quoted=True))\n        if positive_separation or explicit_no_mix:\n            return True\n    return False",
+      "counterexample": "Use a separate log folder, but run endpoint response-action commands and local PowerShell in the same shell.",
+      "review_contract": "Separation/no-mix evidence must be bound to the relationship between the endpoint and local execution lanes; unrelated uses of 'separate' must not satisfy the lane-separation invariant.",
+      "finding_match_terms": ["lane", "separat", "same shell", "bind"]
+    },
+    {
+      "id": "pr448-numbered-lifecycle-duplicate",
+      "expected": "finding",
+      "defect_class": "naturalistic-numbered-lifecycle-duplicate",
+      "source_ref": "malwaredevil/dcoir-collector@89bf8634fdc8d934a22c6919150380118f5daa18:project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
+      "evidence_ref": "PR #448 Copilot review PRR_kwDOR0OHZ88AAAABLieEvQ",
+      "dcoir_historical_disposition": "missed",
+      "source": "AMBIGUOUS_LIST_SECTION_HEADERS = {'retrieve', 'interpret', 'cleanup'}\n\ndef _final_section_header_for_line(line):\n    normalized = _normalized_header_line(line)\n    is_list_prefixed = _line_is_list_prefixed(line)\n    if normalized in FINAL_SECTION_HEADERS:\n        if is_list_prefixed and normalized in AMBIGUOUS_LIST_SECTION_HEADERS:\n            return None\n        return normalized\n    for header in FINAL_SECTION_HEADERS:\n        if is_list_prefixed and header in AMBIGUOUS_LIST_SECTION_HEADERS:\n            continue\n        if re.match(rf'^{re.escape(header)}\\s*[:\\-–—]\\s*.+$', normalized):\n            return header\n    return None\n\ndef duplicate_final_sections(response_text):\n    counts = {header: 0 for header in FINAL_SECTION_HEADERS}\n    for line in str(response_text).splitlines():\n        header = _final_section_header_for_line(line)\n        if header is not None:\n            counts[header] += 1\n    return [header for header, count in counts.items() if count > 1]",
+      "counterexample": "1. Retrieve: obtain the collection bundle.\n2. Interpret: review the analyst surfaces.\n3. Cleanup: use the emitted cleanup command.\n4. Retrieve: obtain the collection bundle again.\n5. Interpret: repeat the interpretation.\n6. Cleanup: repeat cleanup guidance.",
+      "review_contract": "Numbered procedure syntax must not make semantically duplicated Retrieve, Interpret, or Cleanup final sections invisible to duplicate-output detection.",
+      "finding_match_terms": ["duplicate", "retrieve", "interpret", "cleanup", "numbered", "list"]
+    }
+  ]
+}

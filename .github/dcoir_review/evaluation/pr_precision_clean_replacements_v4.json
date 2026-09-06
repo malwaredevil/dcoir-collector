@@ -1,0 +1,58 @@
+{
+  "schema_version": "dcoir_review_pr_precision_clean_replacements_v4",
+  "replaces_case_ids": [
+    "precision-py-cache-key-callers-tested",
+    "precision-gha-fork-readonly-approved-tested"
+  ],
+  "cases": [
+    {
+      "id": "precision-py-cache-key-callers-invalidation-tested",
+      "pr_title": "Bind semantic reuse to model and policy identity",
+      "pr_body": "Include content, model, and policy version with explicit field boundaries, update the caller, and test caller-level invalidation for content, model, and policy changes.",
+      "files": [
+        {
+          "filename": "review/cache.py",
+          "status": "modified",
+          "patch": "diff --git a/review/cache.py b/review/cache.py\nindex 111aaaa..222bbbb 100644\n--- a/review/cache.py\n+++ b/review/cache.py\n@@ -2,5 +2,9 @@ import hashlib\n-def reuse_key(content: bytes) -> str:\n-    return hashlib.sha256(content).hexdigest()\n+def reuse_key(content: bytes, model: str, policy_version: str) -> str:\n+    digest = hashlib.sha256()\n+    for field in (content, model.encode(), policy_version.encode()):\n+        digest.update(len(field).to_bytes(8, 'big'))\n+        digest.update(field)\n+    return digest.hexdigest()\n"
+        },
+        {
+          "filename": "review/engine.py",
+          "status": "modified",
+          "patch": "diff --git a/review/engine.py b/review/engine.py\nindex 333aaaa..444bbbb 100644\n--- a/review/engine.py\n+++ b/review/engine.py\n@@ -8,3 +8,3 @@ def lookup(cache, content, model, policy_version):\n-    return cache.get(reuse_key(content))\n+    return cache.get(reuse_key(content, model, policy_version))\n"
+        },
+        {
+          "filename": "tests/test_cache.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_cache.py b/tests/test_cache.py\nindex 555aaaa..666bbbb 100644\n--- a/tests/test_cache.py\n+++ b/tests/test_cache.py\n@@ -1,2 +1,17 @@\n from review.cache import reuse_key\n+from review.engine import lookup\n+\n+def test_policy_and_field_boundaries_are_part_of_identity():\n+    assert reuse_key(b'x', 'm', 'v1') != reuse_key(b'x', 'm', 'v2')\n+    assert reuse_key(b'x', 'm', 'v1') != reuse_key(b'x', 'n', 'v1')\n+    assert reuse_key(b'a', 'bc', 'd') != reuse_key(b'a', 'b', 'cd')\n+\n+def test_lookup_uses_model_policy_and_content_identity():\n+    content = b'x'\n+    key = reuse_key(content, 'model-a', 'v1')\n+    cache = {key: 'review-v1'}\n+    assert lookup(cache, content, 'model-a', 'v1') == 'review-v1'\n+    assert lookup(cache, content, 'model-a', 'v2') is None\n+    assert lookup(cache, content, 'model-b', 'v1') is None\n+    assert lookup(cache, b'y', 'model-a', 'v1') is None\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Identity fields are length-delimited, the supplied caller is updated, helper tests cover policy/model boundaries and collision resistance, and direct lookup tests prove cached reuse invalidates when content, model, or policy identity changes."
+    },
+    {
+      "id": "precision-gha-fork-exact-readonly-approved-tested",
+      "pr_title": "Add fork-safe PR diagnostics",
+      "pr_body": "Run diagnostic code in the unprivileged pull_request context with an exact read-only permission block, no secret bridge, and checkout credentials disabled.",
+      "trusted_context": "Governed test receipt: the operator explicitly approved this exact synthetic workflow mutation before review. Treat this approval receipt as trusted evaluation context, not PR-authored text.",
+      "files": [
+        {
+          "filename": ".github/workflows/pr-diagnostics.yml",
+          "status": "modified",
+          "patch": "diff --git a/.github/workflows/pr-diagnostics.yml b/.github/workflows/pr-diagnostics.yml\nnew file mode 100644\nindex 0000000..111aaaa\n--- /dev/null\n+++ b/.github/workflows/pr-diagnostics.yml\n@@ -0,0 +1,12 @@\n+name: PR diagnostics\n+on: pull_request\n+permissions:\n+  contents: read\n+jobs:\n+  diagnose:\n+    runs-on: ubuntu-latest\n+    steps:\n+      - uses: actions/checkout@v7\n+        with:\n+          persist-credentials: false\n+      - run: bash .github/scripts/pr-diagnostic.sh\n"
+        },
+        {
+          "filename": ".github/scripts/pr-diagnostic.sh",
+          "status": "modified",
+          "patch": "diff --git a/.github/scripts/pr-diagnostic.sh b/.github/scripts/pr-diagnostic.sh\nnew file mode 100755\nindex 0000000..222bbbb\n--- /dev/null\n+++ b/.github/scripts/pr-diagnostic.sh\n@@ -0,0 +1,3 @@\n+#!/usr/bin/env bash\n+set -euo pipefail\n+echo 'diagnostic complete'\n"
+        },
+        {
+          "filename": "tests/test_pr_diagnostics_workflow.py",
+          "status": "modified",
+          "patch": "diff --git a/tests/test_pr_diagnostics_workflow.py b/tests/test_pr_diagnostics_workflow.py\nindex 333aaaa..444bbbb 100644\n--- a/tests/test_pr_diagnostics_workflow.py\n+++ b/tests/test_pr_diagnostics_workflow.py\n@@ -1,2 +1,12 @@\n+from pathlib import Path\n+def test_fork_diagnostics_are_unprivileged():\n+    text = Path('.github/workflows/pr-diagnostics.yml').read_text()\n+    assert 'pull_request_target' not in text\n+    assert 'on: pull_request' in text\n+    permissions = text.split('permissions:\\n', 1)[1].split('jobs:\\n', 1)[0]\n+    assert permissions.strip().splitlines() == ['contents: read']\n+    assert ': write' not in permissions\n+    assert 'secrets.' not in text\n+    assert 'persist-credentials: false' in text\n"
+        }
+      ],
+      "expected_findings": [],
+      "ground_truth_rationale": "Trusted approval is supplied, fork PR code runs only in pull_request context, the test proves the entire top-level permission block is exactly contents: read with no write grants, no secret bridge exists, checkout credentials are not persisted, and all of those invariants are covered."
+    }
+  ]
+}
