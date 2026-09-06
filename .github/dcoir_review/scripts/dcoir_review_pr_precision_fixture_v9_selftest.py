@@ -28,9 +28,41 @@ def right_side_file(case: dict, filename: str) -> str:
     return _current_patch_text(str(matches[0].get("patch", "")))
 
 
-GITHUB_EXPRESSION_RE = re.compile(r"\$\{\{(.*?)\}\}", re.DOTALL)
 SECRET_CONTEXT_RE = re.compile(r"(?<![A-Za-z0-9_])secrets(?![A-Za-z0-9_])", re.IGNORECASE)
-ACTIVE_PERMISSIONS_KEY_RE = re.compile(r"^\s*permissions\s*:")
+
+
+def _github_expression_bodies(text: str) -> list[str]:
+    bodies: list[str] = []
+    cursor = 0
+    while True:
+        start = text.find("${{", cursor)
+        if start < 0:
+            return bodies
+        index = start + 3
+        quote: str | None = None
+        escaped = False
+        while index < len(text) - 1:
+            char = text[index]
+            if quote is not None:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == quote:
+                    quote = None
+                index += 1
+                continue
+            if char in ("'", '"'):
+                quote = char
+                index += 1
+                continue
+            if text.startswith("}}", index):
+                bodies.append(text[start + 3:index])
+                cursor = index + 2
+                break
+            index += 1
+        else:
+            raise AssertionError("unterminated GitHub expression")
 
 
 def _strip_quoted_literals(expression: str) -> str:
@@ -58,7 +90,7 @@ def _strip_quoted_literals(expression: str) -> str:
 def _references_secret_context(text: str) -> bool:
     return any(
         SECRET_CONTEXT_RE.search(_strip_quoted_literals(expression)) is not None
-        for expression in GITHUB_EXPRESSION_RE.findall(text)
+        for expression in _github_expression_bodies(text)
     )
 
 
@@ -85,7 +117,7 @@ def _assert_fork_guard(text: str) -> None:
     assert "pull_request_target" not in text
     assert not _references_secret_context(text)
     assert "write-all" not in text
-    permission_key_lines = [line for line in lines if ACTIVE_PERMISSIONS_KEY_RE.match(line)]
+    permission_key_lines = [line for line in lines if "permissions" in line]
     assert permission_key_lines == ["permissions:"]
     permission_index = lines.index("permissions:")
     assert lines[permission_index + 1] == "  contents: read"
@@ -131,19 +163,21 @@ def main() -> None:
         workflow + '\n      - run: echo "${{ secrets[\'DEPLOY_KEY\'] }}"\n',
         workflow + '\n      - run: echo "${{ secrets }}"\n',
         workflow + '\n      - run: echo "${{ toJSON(secrets) }}"\n',
+        workflow + '\n      - run: echo "${{ format(\'}}\', secrets.DEPLOY_KEY) }}"\n',
     )
     for mutation in rejected_mutations:
         _expect_rejected(mutation)
-    _assert_fork_guard(workflow + '\n      - run: echo "${{ \'secrets\' }}"\n')
+    _assert_fork_guard(workflow + '\n      - run: echo "${{ \'secrets }}\' }}"\n')
 
     for needle in (
-        "GITHUB_EXPRESSION_RE",
+        "_github_expression_bodies",
         "SECRET_CONTEXT_RE",
-        "ACTIVE_PERMISSIONS_KEY_RE",
+        "permission_key_lines = [line for line in lines if 'permissions' in line]",
         "test_guard_rejects_dot_secret_context",
         "test_guard_rejects_bracket_secret_context",
         "test_guard_rejects_whole_secret_context",
         "test_guard_rejects_function_wrapped_secret_context",
+        "test_guard_rejects_secret_context_after_quoted_closing_braces",
         "test_secret_word_inside_expression_string_is_not_a_context_reference",
     ):
         assert needle in fork_test, f"missing v9 fork invariant: {needle!r}"
@@ -180,7 +214,7 @@ def main() -> None:
         else:
             os.environ["DCOIR_PRECISION_INCLUDE_TRUSTED_CONTEXT"] = old
 
-    print("dcoir_review_pr_precision_fixture_v9_selftest passed: v8 history is preserved; the fork guard now rejects semantic secrets-context references while keeping quoted literals benign; ground truth stays hidden")
+    print("dcoir_review_pr_precision_fixture_v9_selftest passed: v8 history is preserved; the fork guard uses quote-aware expression parsing, rejects semantic secrets-context references, preserves v8 permission coverage, and keeps quoted literals benign; ground truth stays hidden")
 
 
 if __name__ == "__main__":
