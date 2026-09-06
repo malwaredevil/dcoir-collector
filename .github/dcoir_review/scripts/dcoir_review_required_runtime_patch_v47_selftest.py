@@ -40,7 +40,14 @@ class FakeResponse:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_terminal_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v47"
+    assert entrypoint.post_terminal_patch_module_names == (
+        "dcoir_review_required_runtime_patch_v44",
+        "dcoir_review_required_runtime_patch_v45",
+        "dcoir_review_required_runtime_patch_v46",
+    )
+    assert entrypoint.stage_local_patch_module_names == (
+        "dcoir_review_required_runtime_patch_v47",
+    )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
