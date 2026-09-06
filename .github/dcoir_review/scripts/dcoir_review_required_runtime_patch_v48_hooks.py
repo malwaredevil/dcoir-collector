@@ -110,11 +110,12 @@ def _patch_review_publication(module: Any) -> None:
 
     def create_review(self, number, body, event, comments, commit_id):
         context = core._guard(module)
-        if (
+        guarded = (
             isinstance(context, dict)
             and str(getattr(self, "repo", "") or "") == str(context.get("repo", "") or "")
             and int(number) == int(context.get("pr_number", 0) or 0)
-        ):
+        )
+        if guarded:
             expected_head = str(context.get("expected_head_sha", "") or "")
             if core._normalize_sha(commit_id) != expected_head:
                 raise core._mark_terminal(
@@ -130,7 +131,22 @@ def _patch_review_publication(module: Any) -> None:
                 "GitHub review publication",
                 context.get("last_config"),
             )
-        return original(self, number, body, event, comments, commit_id)
+
+        result = original(self, number, body, event, comments, commit_id)
+
+        if guarded:
+            # GitHub does not offer one atomic operation that both verifies the
+            # mutable PR head and posts a review. Re-read immediately after the
+            # write so a head/base/state change in that narrow TOCTOU window is
+            # classified as superseded rather than treating the old-commit review
+            # as current-head evidence. The review itself remains anchored to the
+            # explicit old commit id and the terminal status makes it non-current.
+            core.assert_current_review_scope(
+                module,
+                "GitHub review publication completion",
+                context.get("last_config"),
+            )
+        return result
 
     client_cls.create_review = create_review
 
@@ -166,7 +182,8 @@ def _patch_progress_reporter(module: Any) -> None:
             final_lines.extend(
                 [
                     "- Result: review superseded because the live PR review scope changed during execution.",
-                    "- Stale GitHub review publication: blocked.",
+                    "- Pre-detected stale GitHub review publication: blocked.",
+                    "- A head/base/state move detected during the review write is marked superseded immediately; any already-posted review remains anchored to the old commit and is not current-head evidence.",
                     "- New model requests after detection: blocked; already authorized/in-flight responses are discarded.",
                 ]
             )
@@ -225,7 +242,7 @@ def _patch_main_terminal_semantics(module: Any) -> None:
         except core.ReviewSupersededError:
             # Supersession is an expected terminal outcome, not an execution
             # failure. The patched reporter has already emitted the explicit
-            # terminal status and stale publication is blocked.
+            # terminal status and stale publication is not accepted as current.
             return
         finally:
             core.clear_guard_context(module)
