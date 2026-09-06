@@ -33,10 +33,11 @@ def _run_embedded_fixture_tests(case: dict) -> int:
         previous = Path.cwd()
         try:
             os.chdir(root)
-            tests = sorted(
-                value for name, value in namespace.items()
+            tests = [
+                value
+                for name, value in sorted(namespace.items(), key=lambda item: item[0])
                 if name.startswith("test_") and callable(value)
-            )
+            ]
             assert len(tests) == 23, f"expected 23 embedded v11 tests, found {len(tests)}"
             for test in tests:
                 test()
