@@ -64,6 +64,17 @@ per_file_review_concurrency: 4
 per_file_review_max_files: 100
 per_file_review_max_file_chars: 40000
 
+# v47 projects the #485 calibrated request contract only onto routine per-file
+# first-pass calls. The shared global model stack/reasoning above remains the
+# premium contract for challenger, adjudication, verification, escalation, and
+# any whole-PR quality-retry path. Response Healing and fail-closed finish-reason
+# enforcement are supplied by the v47 stage projection when these keys are set.
+per_file_review_model_stack:
+  - anthropic/claude-sonnet-5
+per_file_review_reasoning_effort: high
+per_file_review_max_tokens: 32768
+per_file_review_provider_sort: price
+
 # v32 requires an independent model-family challenger before a deep result is
 # finalized.  This pass is intentionally not a fallback for model failure; it is
 # a second semantic review whose findings are unioned with the primary pass.
@@ -182,6 +193,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_review_context_ledger_integration_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v45_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v46_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v47_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_architecture_b_benchmark_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
