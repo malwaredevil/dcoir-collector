@@ -74,6 +74,27 @@ def _response_healing_pipeline(data: dict[str, Any]) -> list[Any]:
     return list(pipeline) if isinstance(pipeline, list) else []
 
 
+def _record_v47_request_telemetry(config: Any, event: dict[str, Any]) -> None:
+    history = getattr(config, "_dcoir_v47_request_telemetry_events", None)
+    if not isinstance(history, list):
+        history = []
+    history = [*history, dict(event)]
+    setattr(config, "_dcoir_v47_request_telemetry_events", history)
+
+    aggregate_cost = 0.0
+    cost_observed = False
+    for item in history:
+        value = item.get("cost") if isinstance(item, dict) else None
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            aggregate_cost += float(value)
+            cost_observed = True
+
+    telemetry = dict(event)
+    telemetry["request_events"] = [dict(item) for item in history]
+    telemetry["aggregate_cost"] = aggregate_cost if cost_observed else None
+    setattr(config, "_dcoir_v47_last_request_telemetry", telemetry)
+
+
 def openrouter_request_once(
     prompt: str,
     schema: dict[str, Any],
@@ -109,16 +130,14 @@ def openrouter_request_once(
         if not isinstance(data, dict):
             raise RuntimeError("OpenRouter returned a non-object response")
         choices = data.get("choices")
-        if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
-            raise RuntimeError("OpenRouter returned an invalid choices payload")
-        choice = choices[0]
+        choice = choices[0] if isinstance(choices, list) and choices and isinstance(choices[0], dict) else None
         model_used = str(data.get("model", model))
         service_tier = str(data.get("service_tier", "") or "")
-        finish_reason = str(choice.get("finish_reason", "") or "").strip()
+        finish_reason = str(choice.get("finish_reason", "") or "").strip() if isinstance(choice, dict) else ""
         usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
         cost = data.get("cost") if data.get("cost") is not None else usage.get("cost")
         pipeline = _response_healing_pipeline(data)
-        telemetry = {
+        event = {
             "requested_model": str(model),
             "served_model": model_used,
             "served_model_differs_from_requested": model_used != str(model),
@@ -138,7 +157,9 @@ def openrouter_request_once(
                 for item in pipeline
             ),
         }
-        setattr(config, "_dcoir_v47_last_request_telemetry", telemetry)
+        _record_v47_request_telemetry(config, event)
+        if not isinstance(choice, dict):
+            raise RuntimeError("OpenRouter returned an invalid choices payload")
         if bool(getattr(config, "openrouter_require_stop_finish_reason", False)) and finish_reason != "stop":
             reason = finish_reason or "missing"
             raise RuntimeError(f"OpenRouter capped completion did not finish with stop: finish_reason={reason}")
