@@ -74,12 +74,12 @@ def _response_healing_pipeline(data: dict[str, Any]) -> list[Any]:
     return list(pipeline) if isinstance(pipeline, list) else []
 
 
-def _record_v47_request_telemetry(config: Any, event: dict[str, Any]) -> None:
-    history = getattr(config, "_dcoir_v47_request_telemetry_events", None)
+def _record_openrouter_request_telemetry(config: Any, event: dict[str, Any]) -> None:
+    history = getattr(config, "_openrouter_request_telemetry_events", None)
     if not isinstance(history, list):
         history = []
     history = [*history, dict(event)]
-    setattr(config, "_dcoir_v47_request_telemetry_events", history)
+    setattr(config, "_openrouter_request_telemetry_events", history)
 
     aggregate_cost = 0.0
     cost_observed = False
@@ -92,7 +92,7 @@ def _record_v47_request_telemetry(config: Any, event: dict[str, Any]) -> None:
     telemetry = dict(event)
     telemetry["request_events"] = [dict(item) for item in history]
     telemetry["aggregate_cost"] = aggregate_cost if cost_observed else None
-    setattr(config, "_dcoir_v47_last_request_telemetry", telemetry)
+    setattr(config, "_openrouter_last_request_telemetry", telemetry)
 
 
 def openrouter_request_once(
@@ -102,10 +102,13 @@ def openrouter_request_once(
     ignored_providers: list[str],
     model: str,
 ) -> tuple[dict[str, Any], str, str]:
-    projected_per_file = bool(getattr(config, "dcoir_v47_per_file_projection", False))
-    if projected_per_file:
-        attempt_count = int(getattr(config, "_dcoir_v47_request_attempt_count", 0) or 0) + 1
-        setattr(config, "_dcoir_v47_request_attempt_count", attempt_count)
+    capture_telemetry = bool(getattr(config, "openrouter_capture_request_telemetry", False))
+    require_stop = bool(getattr(config, "openrouter_require_stop_finish_reason", False))
+    require_object = bool(getattr(config, "openrouter_require_object_response", False))
+    extended_response_handling = capture_telemetry or require_stop or require_object
+    if capture_telemetry:
+        attempt_count = int(getattr(config, "_openrouter_request_attempt_count", 0) or 0) + 1
+        setattr(config, "_openrouter_request_attempt_count", attempt_count)
     else:
         attempt_count = 0
 
@@ -126,7 +129,7 @@ def openrouter_request_once(
         raw = response.read().decode("utf-8")
     data = json.loads(raw)
 
-    if projected_per_file:
+    if extended_response_handling:
         if not isinstance(data, dict):
             raise RuntimeError("OpenRouter returned a non-object response")
         choices = data.get("choices")
@@ -134,33 +137,34 @@ def openrouter_request_once(
         model_used = str(data.get("model", model))
         service_tier = str(data.get("service_tier", "") or "")
         finish_reason = str(choice.get("finish_reason", "") or "").strip() if isinstance(choice, dict) else ""
-        usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
-        cost = data.get("cost") if data.get("cost") is not None else usage.get("cost")
-        pipeline = _response_healing_pipeline(data)
-        event = {
-            "requested_model": str(model),
-            "served_model": model_used,
-            "served_model_differs_from_requested": model_used != str(model),
-            "provider": _response_provider(data),
-            "service_tier": service_tier,
-            "finish_reason": finish_reason,
-            "usage": usage,
-            "cost": cost,
-            "request_attempt_count": attempt_count,
-            "response_healing_pipeline": pipeline,
-            "response_healing_observed": any(
-                isinstance(item, dict)
-                and (
-                    str(item.get("type", "") or "") == "response_healing"
-                    or str(item.get("name", "") or "") == "response-healing"
-                )
-                for item in pipeline
-            ),
-        }
-        _record_v47_request_telemetry(config, event)
+        if capture_telemetry:
+            usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+            cost = data.get("cost") if data.get("cost") is not None else usage.get("cost")
+            pipeline = _response_healing_pipeline(data)
+            event = {
+                "requested_model": str(model),
+                "served_model": model_used,
+                "served_model_differs_from_requested": model_used != str(model),
+                "provider": _response_provider(data),
+                "service_tier": service_tier,
+                "finish_reason": finish_reason,
+                "usage": usage,
+                "cost": cost,
+                "request_attempt_count": attempt_count,
+                "response_healing_pipeline": pipeline,
+                "response_healing_observed": any(
+                    isinstance(item, dict)
+                    and (
+                        str(item.get("type", "") or "") == "response_healing"
+                        or str(item.get("name", "") or "") == "response-healing"
+                    )
+                    for item in pipeline
+                ),
+            }
+            _record_openrouter_request_telemetry(config, event)
         if not isinstance(choice, dict):
             raise RuntimeError("OpenRouter returned an invalid choices payload")
-        if bool(getattr(config, "openrouter_require_stop_finish_reason", False)) and finish_reason != "stop":
+        if require_stop and finish_reason != "stop":
             reason = finish_reason or "missing"
             raise RuntimeError(f"OpenRouter capped completion did not finish with stop: finish_reason={reason}")
         message = choice.get("message")
@@ -179,7 +183,7 @@ def openrouter_request_once(
         if not match:
             raise
         parsed = json.loads(match.group(1))
-    if projected_per_file and not isinstance(parsed, dict):
+    if require_object and not isinstance(parsed, dict):
         raise RuntimeError("OpenRouter structured output did not have an object root")
     return parsed, model_used, service_tier
 
