@@ -79,19 +79,21 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v42',
         'dcoir_review_required_runtime_patch_v43',
     )
-    # v44-v47 are intentionally post-terminal: the mature v41-v43 boot-order
-    # contract remains stable while candidate-scoped escalation wraps the fully
-    # composed semantic/reuse pipeline and verifier-authoritative publication
-    # owns the final user-facing body. v46 supplies one exact-head semantic
-    # context package and fail-safe adaptive budgets. v47 then projects the
-    # calibrated Sonnet request contract only onto routine per-file first-pass
-    # calls, leaving the premium semantic stages unchanged.
-    # Capability gating keeps historical probe objects and explicit subset tests
-    # from receiving implicit overlays.
+    # v44-v46 remain the Architecture-B post-terminal contract: candidate-scoped
+    # escalation, verifier-authoritative publication, and one canonical semantic
+    # context package with fail-safe adaptive budgets. Capability gating keeps
+    # historical probe objects and explicit subset tests from receiving implicit
+    # overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v44',
         'dcoir_review_required_runtime_patch_v45',
         'dcoir_review_required_runtime_patch_v46',
+    )
+    # Stage-local routing overlays are deliberately separate from Architecture-B
+    # semantic-order invariants. v47 projects the calibrated Sonnet request
+    # contract only onto routine per-file first-pass calls after the fully
+    # composed semantic pipeline exists; premium later stages remain unchanged.
+    stage_local_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v47',
     )
 
@@ -113,14 +115,15 @@ class DcoirReviewEntrypoint:
     ) -> None:
         if patch_module_names is not None:
             # Explicit callers retain exact control of the requested historical
-            # patch subset; Architecture-B terminal overlays are a production
-            # default, not an implicit addition to custom test/probe subsets.
+            # patch subset; production-only overlays are not implicit additions
+            # to custom test/probe subsets.
             self._apply_patch_modules(review_module, patch_module_names)
             return
         self._apply_patch_modules(review_module, self.patch_module_names)
         self._apply_patch_modules(review_module, self.terminal_patch_module_names)
         if callable(getattr(review_module, "openrouter_review_with_hybrid_first_pass", None)):
             self._apply_patch_modules(review_module, self.post_terminal_patch_module_names)
+            self._apply_patch_modules(review_module, self.stage_local_patch_module_names)
 
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
