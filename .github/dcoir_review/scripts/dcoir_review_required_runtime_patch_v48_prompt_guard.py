@@ -1,12 +1,12 @@
 """v48 companion guard for the legacy prompt-review provider seam.
 
-The main v48 overlay guards the canonical hardened provider request.  Historical
+The main v48 overlay guards the canonical hardened provider request. Historical
 v6 prompt-review support can issue a separate provider request before that
-canonical request when prompt review is enabled.  This companion keeps the same
-exact-scope invariant around that direct request and, importantly, re-raises a
-supersession after v6's deliberate prompt-review fallback catches provider
-exceptions.  That prevents the target review request from starting after a head
-move detected during prompt review.
+canonical request when prompt review is enabled. This companion keeps the same
+exact-scope invariant and request-ticket race closure around that direct request
+and, importantly, re-raises a supersession after v6's deliberate prompt-review
+fallback catches provider exceptions. That prevents the target review request
+from starting after a head move detected during prompt review.
 """
 
 from __future__ import annotations
@@ -32,6 +32,7 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
         def guarded_request(original_prompt, prompt_kind, config, hardened, base):
             if v48._guard(module) is not None:
                 v48.assert_current_review_scope(module, "prompt-review request", config)
+                v48.authorize_provider_request(module, config)
             result = original_request(original_prompt, prompt_kind, config, hardened, base)
             if v48._guard(module) is not None:
                 v48.assert_current_review_scope(module, "prompt-review response", config)
