@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34121762680",
   "github_sha": "59c924e552a1d9fe88782a9be64a0750f5bcb26e",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue457-obsolete-branch-cleanup-20260907",
   "request_path": ".github/chatgpt_staging/exec_requests/issue457-obsolete-branch-cleanup-20260907.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-07T12:25:51Z",
+  "updated_utc": "2026-09-07T12:25:54Z",
   "workflow": "chatgpt-exec"
 }
