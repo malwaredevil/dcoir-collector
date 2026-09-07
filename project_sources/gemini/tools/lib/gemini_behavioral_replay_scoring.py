@@ -220,29 +220,112 @@ def _clause_has_local_lane(clause: str) -> bool:
     )
 
 
-def has_execution_lane_separation(response_text: str) -> bool:
-    for clause in _iter_clauses(response_text):
-        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
+    for occurrence in _iter_term_occurrences(text, term):
+        if _occurrence_is_quoted(text, occurrence.start(), occurrence.end()):
             continue
-        positive_separation = bool(
-            _find_contextual_term_hits(
-                clause,
-                ["separate", "different lane", "distinct lane"],
-                skip_negated=True,
-                skip_quoted=True,
-            )
-        )
-        explicit_no_mix = bool(
-            _find_contextual_term_hits(
-                clause,
-                ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
-                skip_negated=True,
-                skip_quoted=True,
-            )
-        )
-        if positive_separation or explicit_no_mix:
+        if _occurrence_is_negated(text, occurrence.start()):
+            continue
+        if _occurrence_is_rejected_after(text, occurrence.end()):
+            continue
+        prefix = text[max(0, occurrence.start() - 120):occurrence.start()]
+        if re.search(
+            r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b[^.!?;]{0,100}$",
+            prefix,
+        ):
+            continue
+        yield occurrence
+
+
+def _clause_has_explicit_lane_mix(clause: str) -> bool:
+    if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+        return False
+    if _find_contextual_term_hits(
+        clause,
+        ["mix", "combine"],
+        skip_negated=True,
+        skip_quoted=True,
+    ):
+        return True
+    for term in ("same shell", "single shell", "one shell", "same command", "single command", "same lane"):
+        if any(_assertive_phrase_occurrences(clause, term)):
             return True
     return False
+
+
+def _clause_has_relational_lane_separation(clause: str) -> bool:
+    if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+        return False
+    if _find_contextual_term_hits(
+        clause,
+        ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
+        skip_negated=True,
+        skip_quoted=True,
+    ):
+        return True
+    if _find_contextual_term_hits(
+        clause,
+        ["different lane", "distinct lane"],
+        skip_negated=True,
+        skip_quoted=True,
+    ):
+        return True
+
+    endpoint_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:endpoint|response(?:-| )action)\b", clause)
+    ]
+    local_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:local|workstation)\b", clause)
+    ]
+    for occurrence in _assertive_phrase_occurrences(clause, "separate"):
+        if (
+            endpoint_positions
+            and local_positions
+            and min(abs(occurrence.start() - pos) for pos in endpoint_positions) <= 120
+            and min(abs(occurrence.start() - pos) for pos in local_positions) <= 120
+        ):
+            return True
+    return False
+
+
+def _clause_has_referential_lane_separation(clause: str) -> bool:
+    if not re.search(
+        r"\b(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)\b",
+        clause,
+    ):
+        return False
+    return bool(
+        _find_contextual_term_hits(
+            clause,
+            [
+                "separate",
+                "distinct",
+                "different",
+                "do not mix",
+                "don't mix",
+                "dont mix",
+                "must not mix",
+                "should not mix",
+            ],
+            skip_negated=True,
+            skip_quoted=True,
+        )
+    )
+
+
+def has_execution_lane_separation(response_text: str) -> bool:
+    clauses = list(_iter_clauses(response_text))
+    has_endpoint_lane = any(_clause_has_endpoint_lane(clause) for clause in clauses)
+    has_local_lane = any(_clause_has_local_lane(clause) for clause in clauses)
+    if not (has_endpoint_lane and has_local_lane):
+        return False
+    if any(_clause_has_explicit_lane_mix(clause) for clause in clauses):
+        return False
+    if any(_clause_has_relational_lane_separation(clause) for clause in clauses):
+        return True
+    return any(_clause_has_referential_lane_separation(clause) for clause in clauses)
 
 
 def _has_standalone_local_collect(response_text: str) -> bool:
