@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34124900724",
   "github_sha": "22e50f465cc638d36cec94d366c6ccdd59ad4076",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue457-pr493-credit-aware-exact-head-validation-rerun3-20260907",
   "request_path": ".github/chatgpt_staging/exec_requests/issue457-pr493-credit-aware-exact-head-validation-rerun3-20260907.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-07T13:00:02Z",
+  "updated_utc": "2026-09-07T13:00:06Z",
   "workflow": "chatgpt-exec"
 }
