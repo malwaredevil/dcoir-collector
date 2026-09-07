@@ -175,10 +175,11 @@ def _patch_review_body(module: Any) -> None:
             reviewed_commit,
             str(os.environ.get("GITHUB_RUN_ID", "") or ""),
         )
+        if not gate_prior.persist_gate_state(module, config, state):
+            raise module.hardened.ReviewQualityError(
+                "DCOIR v50 could not persist exact-head verified-finding gate state"
+            )
         setattr(module, _STATE_ATTR, state)
-        module.hardened.write_debug_json_artifact_safely(
-            config, gate_state.STATE_ARTIFACT_PATH, state
-        )
         final = gate_state.final_disposition(state)
         module.hardened.write_debug_json_artifact_safely(
             config, gate_state.FINAL_ARTIFACT_PATH, final
