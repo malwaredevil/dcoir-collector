@@ -92,6 +92,14 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v46',
         'dcoir_review_required_runtime_patch_v50',
     )
+    # Candidate-integrity overlays are cross-cutting semantic guards installed
+    # after the composed Architecture-B post-terminal contract but before stage-
+    # local provider routing. v51 protects ordinary candidate identity from
+    # unsupported free-text risk-kind inference while leaving deterministic
+    # sentinel coverage and verifier authority intact.
+    candidate_integrity_patch_module_names: tuple[str, ...] = (
+        'dcoir_review_required_runtime_patch_v51',
+    )
     # Stage-local routing overlays are deliberately separate from Architecture-B
     # semantic-order invariants. v47 projects the calibrated Sonnet request
     # contract only onto routine per-file first-pass calls after the fully
@@ -135,6 +143,7 @@ class DcoirReviewEntrypoint:
         self._apply_patch_modules(review_module, self.terminal_patch_module_names)
         if callable(getattr(review_module, "openrouter_review_with_hybrid_first_pass", None)):
             self._apply_patch_modules(review_module, self.post_terminal_patch_module_names)
+            self._apply_patch_modules(review_module, self.candidate_integrity_patch_module_names)
             self._apply_patch_modules(review_module, self.stage_local_patch_module_names)
             self._apply_patch_modules(review_module, self.execution_policy_patch_module_names)
 
