@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue496-pr498-verified-gate-exact-head-validation-v2-20260907",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v2-20260907.ps1",
+  "approved_command_preview": "Validate PR #498 exact head 6a789d34e1477431c99df5054ce649911907b2b7 read-only: verify the remote PR branch still resolves to the approved exact head; fetch that exact commit into a detached worktree; verify HEAD matches exactly; remove OpenRouter/OpenAI/Gemini inference credentials from the validation process; py_compile all seven changed Python source/selftest files; parse and require all 49 governed validation_commands from .github/dcoir_review/openrouter-pr-review-pareto.yml; execute all 49 sequentially and fail fast on any nonzero exit; require the detached worktree to remain clean; write an exact-head validation receipt. Do not mutate PR source, invoke paid/live model inference, invoke or publish DCOIR Review, request Copilot/Codex review, move the PR to Ready, or merge it.",
+  "shell": "pwsh",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true
+}
