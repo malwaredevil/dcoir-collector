@@ -199,13 +199,17 @@ def main() -> None:
         review.hardened.write_debug_json_artifact_safely = original["write_debug_json"]
         review.hardened.review_quality_retry_reason = original["retry_reason"]
 
-    source = Path(
+    hybrid_source = Path(
         ".github/dcoir_review/scripts/dcoir_review/pareto_context/part_05a_hybrid_review.py"
     ).read_text(encoding="utf-8")
-    assert "queued for bounded recovery" in source
-    assert "Per-file first-pass coverage incomplete after bounded recovery" in source
+    recovery_source = Path(
+        ".github/dcoir_review/scripts/dcoir_review/pareto_context/credit_aware_concurrency.py"
+    ).read_text(encoding="utf-8")
+    assert "queued for bounded recovery" in recovery_source
+    assert "Per-file first-pass coverage incomplete after bounded recovery" in hybrid_source
+    combined_source = hybrid_source + recovery_source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
-        assert forbidden not in source
+        assert forbidden not in combined_source
 
     print("dcoir_review_per_file_coverage_recovery_v40_selftest passed")
 
