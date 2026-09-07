@@ -325,7 +325,7 @@ def _is_required_selection(
             if v16._coverage_key(raw) in required_coverage:
                 return True
         except Exception:
-            pass
+            raw = None
     try:
         return v16._coverage_key(v16._postable_key(finding)) in required_coverage
     except Exception:
