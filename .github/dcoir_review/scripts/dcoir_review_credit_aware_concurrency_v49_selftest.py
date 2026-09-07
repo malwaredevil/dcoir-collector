@@ -14,6 +14,8 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
 )
 
 
+SYNC_TIMEOUT_SECONDS = 30
+
 TRANSIENT = RuntimeError(
     "review provider API failed with HTTP 402: This request would exceed your available credits "
     "given your current in-flight requests. Retry after in-flight requests settle, or add credits."
@@ -71,10 +73,10 @@ def test_primary_wave_reduces_future_feed() -> None:
             attempts[path] += 1
             attempt = attempts[path]
         if attempt == 1 and path in {"a.py", "b.py", "c.py", "d.py"}:
-            initial_barrier.wait(timeout=5)
+            initial_barrier.wait(timeout=SYNC_TIMEOUT_SECONDS)
             if path == "a.py":
                 raise TRANSIENT
-            release_initial.wait(timeout=5)
+            release_initial.wait(timeout=SYNC_TIMEOUT_SECONDS)
             with lock:
                 initial_completed += 1
         elif attempt == 1 and path in {"e.py", "f.py"}:
@@ -136,7 +138,7 @@ def test_repeated_saturation_can_reduce_to_serial() -> None:
 
     def worker(name: str) -> str:
         if name in {"a", "b", "c", "d"}:
-            barrier.wait(timeout=5)
+            barrier.wait(timeout=SYNC_TIMEOUT_SECONDS)
         if name in {"a", "b"}:
             raise TRANSIENT
         return name

@@ -70,10 +70,7 @@ class CreditAwareThreadPoolExecutor:
             inner.add_done_callback(self._on_done)
 
     def _on_done(self, inner: concurrent.futures.Future[Any]) -> None:
-        try:
-            error = inner.exception()
-        except BaseException as exc:  # pragma: no cover - defensive Future seam
-            error = exc
+        error = inner.exception()
 
         with self._lock:
             outer = self._active.pop(inner)
