@@ -197,9 +197,21 @@ def _patch_review_body(module: Any) -> None:
 
 
 def _patch_progress_reporter(module: Any) -> None:
+    owners = [
+        owner
+        for owner in (getattr(module, "base", None), getattr(module, "hardened", None), module)
+        if owner is not None
+    ]
     original = getattr(module, _REPORTER_STORAGE, None)
     if original is None:
-        original = getattr(module, "ProgressReporter", None)
+        original = next(
+            (
+                getattr(owner, "ProgressReporter", None)
+                for owner in owners
+                if isinstance(getattr(owner, "ProgressReporter", None), type)
+            ),
+            None,
+        )
         if isinstance(original, type):
             setattr(module, _REPORTER_STORAGE, original)
     if not isinstance(original, type):
@@ -255,7 +267,14 @@ def _patch_progress_reporter(module: Any) -> None:
 
     GateAwareProgressReporter.__name__ = original.__name__
     GateAwareProgressReporter.__qualname__ = original.__qualname__
-    module.ProgressReporter = GateAwareProgressReporter
+    GateAwareProgressReporter._dcoir_v50_gate_aware = True
+    patched = False
+    for owner in owners:
+        if getattr(owner, "ProgressReporter", None) is original:
+            setattr(owner, "ProgressReporter", GateAwareProgressReporter)
+            patched = True
+    if not patched:
+        raise RuntimeError("DCOIR v50 could not install ProgressReporter overlay")
 
 
 def apply_pareto_context_module(module: Any) -> None:
