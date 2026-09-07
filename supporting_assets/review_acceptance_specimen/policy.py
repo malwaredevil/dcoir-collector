@@ -11,9 +11,5 @@ def may_view_record(actor: Actor, record: ProjectRecord) -> bool:
 
 
 def may_modify_record(actor: Actor, record: ProjectRecord) -> bool:
-    """Modification is intentionally stricter than read access."""
-    return (
-        actor.tenant_id == record.tenant_id
-        and record.project_id in actor.project_ids
-        and not actor.is_admin
-    )
+    """Allow modification only to same-tenant records in an assigned project."""
+    return actor.tenant_id == record.tenant_id and record.project_id in actor.project_ids
