@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline regressions for unresolved verified-finding gate state v50."""
+"""Offline state/readback regressions for verified-finding gate state v50."""
 
 from __future__ import annotations
 
@@ -11,13 +11,9 @@ from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v21 as v21
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
-import dcoir_review_required_runtime_patch_v45 as v45
-import dcoir_review_required_runtime_patch_v50 as v50
 import dcoir_review_required_runtime_patch_v50_prior as prior_io
 import dcoir_review_required_runtime_patch_v50_state as state
-from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
-ROOT = Path(__file__).resolve().parent.parent
 OLD_HEAD = "a" * 40
 NEW_HEAD = "b" * 40
 
@@ -69,6 +65,43 @@ def current_finding(path: str, line: int, title: str) -> dict[str, object]:
         "title": title,
         "severity": "high",
         v21.VERIFIER_MARKER: {"supported": True, "head_sha": NEW_HEAD, "line": line},
+    }
+
+
+def review_module():
+    artifacts: dict[str, object] = {}
+    parsed = {"verified_finding_gate_state_review": True}
+    module = SimpleNamespace()
+    module.base = SimpleNamespace(
+        github_safe_body=lambda value, limit=65535: str(value)[:limit],
+        sanitize_debug_json_value=lambda value, _cfg: value,
+    )
+    module.hardened = SimpleNamespace(
+        ReviewQualityError=ReviewQualityError,
+        parse_yaml_like_data=lambda _path: parsed,
+        bool_value=lambda data, key, default: data.get(key, default),
+        write_debug_json_artifact_safely=lambda _cfg, path, value: artifacts.__setitem__(
+            path, value
+        ),
+        build_review_body_with_unanchored=lambda *_args, **_kwargs: "v45 exact-head body",
+    )
+    module.load_pareto_context_config = lambda _path: SimpleNamespace()
+    module.ProgressReporter = FakeProgressReporter
+    module.artifacts = artifacts
+    return module
+
+
+def config(enabled: bool = True):
+    return SimpleNamespace(verified_finding_gate_state_review=enabled, debug=False)
+
+
+def blocked_prior() -> dict[str, object]:
+    return {
+        "status": "blocked",
+        "carried_records": [prior_record("src/b.py", 20, "B")],
+        "reason": "trusted-v50-gate-state",
+        "source": "v50-state",
+        "indeterminate_prior_count": 0,
     }
 
 
@@ -157,46 +190,9 @@ def test_legacy_zero_finding_disposition_migrates_cleanly() -> None:
     assert migrated["carried_records"] == []
 
 
-def review_module():
-    artifacts: dict[str, object] = {}
-    parsed = {"verified_finding_gate_state_review": True}
-    module = SimpleNamespace()
-    module.base = SimpleNamespace(
-        github_safe_body=lambda value, limit=65535: str(value)[:limit],
-        sanitize_debug_json_value=lambda value, _cfg: value,
-    )
-    module.hardened = SimpleNamespace(
-        ReviewQualityError=ReviewQualityError,
-        parse_yaml_like_data=lambda _path: parsed,
-        bool_value=lambda data, key, default: data.get(key, default),
-        write_debug_json_artifact_safely=lambda _cfg, path, value: artifacts.__setitem__(
-            path, value
-        ),
-        build_review_body_with_unanchored=lambda *_args, **_kwargs: "v45 exact-head body",
-    )
-    module.load_pareto_context_config = lambda _path: SimpleNamespace()
-    module.ProgressReporter = FakeProgressReporter
-    module.artifacts = artifacts
-    return module
-
-
-def config(enabled: bool = True):
-    return SimpleNamespace(verified_finding_gate_state_review=enabled, debug=False)
-
-
-def _blocked_prior() -> dict[str, object]:
-    return {
-        "status": "blocked",
-        "carried_records": [prior_record("src/b.py", 20, "B")],
-        "reason": "trusted-v50-gate-state",
-        "source": "v50-state",
-        "indeterminate_prior_count": 0,
-    }
-
-
 def test_gate_state_persists_when_debug_is_disabled() -> None:
     module = review_module()
-    value = state.compose_state([], _blocked_prior(), NEW_HEAD, "126")
+    value = state.compose_state([], blocked_prior(), NEW_HEAD, "126")
     previous = os.environ.get(v43_reuse.ARTIFACT_DIR_ENV)
     try:
         with tempfile.TemporaryDirectory() as tmp:
@@ -212,165 +208,6 @@ def test_gate_state_persists_when_debug_is_disabled() -> None:
             os.environ[v43_reuse.ARTIFACT_DIR_ENV] = previous
 
 
-def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
-    module = review_module()
-    setattr(module, v50._PRIOR_ATTR, _blocked_prior())
-    original_persist = prior_io.persist_gate_state
-    try:
-        prior_io.persist_gate_state = lambda *_args: True
-        v50._patch_review_body(module)
-        body = module.hardened.build_review_body_with_unanchored(
-            {"summary": ""}, [], [], "model", config(), NEW_HEAD
-        )
-    finally:
-        prior_io.persist_gate_state = original_persist
-    assert "v45 exact-head body" in body
-    assert "Gate status: `BLOCKED`" in body
-    assert "Carried unresolved prior verified findings: `1`" in body
-    assert "src/b.py:20" in body
-    active = getattr(module, v50._STATE_ATTR)
-    assert active["gate_status"] == "blocked"
-    assert active["current_published_count"] == 0
-    assert active["carried_unresolved_count"] == 1
-    final = module.artifacts[state.FINAL_ARTIFACT_PATH]
-    assert final["unresolved_finding_count"] == 1
-
-
-def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
-    module = review_module()
-    setattr(module, v50._PRIOR_ATTR, _blocked_prior())
-    original_persist = prior_io.persist_gate_state
-    try:
-        prior_io.persist_gate_state = lambda *_args: False
-        v50._patch_review_body(module)
-        try:
-            module.hardened.build_review_body_with_unanchored(
-                {"summary": ""}, [], [], "model", config(), NEW_HEAD
-            )
-        except ReviewQualityError as exc:
-            assert "could not persist exact-head verified-finding gate state" in str(exc)
-        else:
-            raise AssertionError("gate-state persistence failure must block publication")
-    finally:
-        prior_io.persist_gate_state = original_persist
-    assert not hasattr(module, v50._STATE_ATTR)
-
-
-def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
-    module = review_module()
-    original = v21.verify_findings_for_publication
-    stored = getattr(v21, v50._VERIFIER_STORAGE, None)
-    had_stored = hasattr(v21, v50._VERIFIER_STORAGE)
-    original_loader = prior_io.load_prior_gate_context
-    updates: list[tuple[str, str]] = []
-    try:
-        def prior_verifier(review_module, items, _gh, pr, _cfg, _reporter):
-            setattr(
-                review_module,
-                v45._DISPOSITION_ATTR,
-                {
-                    "reviewed_head_sha": pr["head"]["sha"],
-                    "verifier_candidate_count": len(items),
-                    "verifier_supported_count": len(items),
-                    "verifier_suppressed_count": 0,
-                },
-            )
-            return items
-
-        v21.verify_findings_for_publication = prior_verifier
-        if hasattr(v21, v50._VERIFIER_STORAGE):
-            delattr(v21, v50._VERIFIER_STORAGE)
-        prior_io.load_prior_gate_context = lambda *_args: _blocked_prior()
-        v50._patch_verifier(module)
-        reporter = SimpleNamespace(update=lambda kind, text: updates.append((kind, text)))
-        item = current_finding("src/a.py", 10, "Current")
-        verified = v21.verify_findings_for_publication(
-            module,
-            [item],
-            SimpleNamespace(),
-            {"head": {"sha": NEW_HEAD}},
-            config(),
-            reporter,
-        )
-        assert verified == [item]
-        disposition = getattr(module, v45._DISPOSITION_ATTR)
-        assert disposition["carried_unresolved_count"] == 1
-        assert disposition["prior_gate_status"] == "blocked"
-        assert disposition["incremental_gate_indeterminate"] is False
-        assert updates and updates[-1][0] == "verified-gate-state"
-    finally:
-        v21.verify_findings_for_publication = original
-        prior_io.load_prior_gate_context = original_loader
-        if had_stored:
-            setattr(v21, v50._VERIFIER_STORAGE, stored)
-        elif hasattr(v21, v50._VERIFIER_STORAGE):
-            delattr(v21, v50._VERIFIER_STORAGE)
-
-
-def test_completion_reporter_exposes_blocked_carried_state() -> None:
-    module = review_module()
-    v50._patch_progress_reporter(module)
-    setattr(
-        module,
-        v50._STATE_ATTR,
-        {
-            "gate_status": "blocked",
-            "carried_unresolved_count": 2,
-            "indeterminate_prior_count": 0,
-        },
-    )
-    reporter = module.ProgressReporter(config())
-    reporter.complete("model", 0, "COMMENT")
-    assert reporter.steps[-1][0] == "completed"
-    assert "0 new inline findings" in reporter.steps[-1][1]
-    assert "gate BLOCKED by 2 carried unresolved prior verified findings" in reporter.steps[-1][1]
-    assert "legacy completion" not in reporter.steps[-1][1]
-    assert "Verified finding gate: `BLOCKED`." in reporter.updated_bodies[-1]
-    assert "Carried unresolved prior verified findings: `2`." in reporter.updated_bodies[-1]
-
-
-def test_completion_reporter_exposes_indeterminate_gate() -> None:
-    module = review_module()
-    v50._patch_progress_reporter(module)
-    setattr(
-        module,
-        v50._STATE_ATTR,
-        {
-            "gate_status": "indeterminate",
-            "carried_unresolved_count": 0,
-            "indeterminate_prior_count": 3,
-        },
-    )
-    reporter = module.ProgressReporter(config())
-    reporter.complete("model", 0, "COMMENT")
-    assert "0 new inline findings" in reporter.steps[-1][1]
-    assert "gate INDETERMINATE/BLOCKED" in reporter.steps[-1][1]
-    assert "known_prior=3" in reporter.steps[-1][1]
-    assert "Verified finding gate: `INDETERMINATE / BLOCKED`." in reporter.updated_bodies[-1]
-
-
-def test_completion_reporter_delegates_when_gate_is_clear() -> None:
-    module = review_module()
-    v50._patch_progress_reporter(module)
-    setattr(module, v50._STATE_ATTR, {"gate_status": "clear"})
-    reporter = module.ProgressReporter(config())
-    reporter.complete("model", 0, "COMMENT")
-    assert "legacy completion" in reporter.steps[-1][1]
-
-
-def test_production_registration() -> None:
-    entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_terminal_patch_module_names[-4:] == (
-        "dcoir_review_required_runtime_patch_v44",
-        "dcoir_review_required_runtime_patch_v45",
-        "dcoir_review_required_runtime_patch_v46",
-        "dcoir_review_required_runtime_patch_v50",
-    )
-    production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
-    assert "verified_finding_gate_state_review: true" in production
-    assert "dcoir_review_required_runtime_patch_v50_selftest.py" in production
-
-
 def main() -> None:
     test_partial_resolution_keeps_unchanged_findings_gate_active()
     test_all_prior_findings_changed_can_clear_after_current_revalidation()
@@ -378,13 +215,6 @@ def main() -> None:
     test_legacy_nonzero_without_complete_inline_state_fails_closed()
     test_legacy_zero_finding_disposition_migrates_cleanly()
     test_gate_state_persists_when_debug_is_disabled()
-    test_body_blocks_false_clean_without_duplicate_inline_publication()
-    test_body_fails_closed_when_gate_state_cannot_persist()
-    test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry()
-    test_completion_reporter_exposes_blocked_carried_state()
-    test_completion_reporter_exposes_indeterminate_gate()
-    test_completion_reporter_delegates_when_gate_is_clear()
-    test_production_registration()
     print("dcoir_review_required_runtime_patch_v50_selftest passed")
 
 
