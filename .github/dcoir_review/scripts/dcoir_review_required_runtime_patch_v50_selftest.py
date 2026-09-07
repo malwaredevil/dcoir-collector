@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+import json
+import os
+import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v21 as v21
+import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
 import dcoir_review_required_runtime_patch_v45 as v45
 import dcoir_review_required_runtime_patch_v50 as v50
 import dcoir_review_required_runtime_patch_v50_prior as prior_io
@@ -158,7 +162,8 @@ def review_module():
     parsed = {"verified_finding_gate_state_review": True}
     module = SimpleNamespace()
     module.base = SimpleNamespace(
-        github_safe_body=lambda value, limit=65535: str(value)[:limit]
+        github_safe_body=lambda value, limit=65535: str(value)[:limit],
+        sanitize_debug_json_value=lambda value, _cfg: value,
     )
     module.hardened = SimpleNamespace(
         ReviewQualityError=ReviewQualityError,
@@ -176,33 +181,79 @@ def review_module():
 
 
 def config(enabled: bool = True):
-    return SimpleNamespace(verified_finding_gate_state_review=enabled)
+    return SimpleNamespace(verified_finding_gate_state_review=enabled, debug=False)
 
 
-def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
-    module = review_module()
-    prior = {
+def _blocked_prior() -> dict[str, object]:
+    return {
         "status": "blocked",
         "carried_records": [prior_record("src/b.py", 20, "B")],
         "reason": "trusted-v50-gate-state",
         "source": "v50-state",
         "indeterminate_prior_count": 0,
     }
-    setattr(module, v50._PRIOR_ATTR, prior)
-    v50._patch_review_body(module)
-    body = module.hardened.build_review_body_with_unanchored(
-        {"summary": ""}, [], [], "model", config(), NEW_HEAD
-    )
+
+
+def test_gate_state_persists_when_debug_is_disabled() -> None:
+    module = review_module()
+    value = state.compose_state([], _blocked_prior(), NEW_HEAD, "126")
+    previous = os.environ.get(v43_reuse.ARTIFACT_DIR_ENV)
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ[v43_reuse.ARTIFACT_DIR_ENV] = tmp
+            assert prior_io.persist_gate_state(module, config(), value) is True
+            persisted = Path(tmp) / state.STATE_ARTIFACT_PATH
+            assert persisted.is_file()
+            assert json.loads(persisted.read_text(encoding="utf-8")) == value
+    finally:
+        if previous is None:
+            os.environ.pop(v43_reuse.ARTIFACT_DIR_ENV, None)
+        else:
+            os.environ[v43_reuse.ARTIFACT_DIR_ENV] = previous
+
+
+def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
+    module = review_module()
+    setattr(module, v50._PRIOR_ATTR, _blocked_prior())
+    original_persist = prior_io.persist_gate_state
+    try:
+        prior_io.persist_gate_state = lambda *_args: True
+        v50._patch_review_body(module)
+        body = module.hardened.build_review_body_with_unanchored(
+            {"summary": ""}, [], [], "model", config(), NEW_HEAD
+        )
+    finally:
+        prior_io.persist_gate_state = original_persist
     assert "v45 exact-head body" in body
     assert "Gate status: `BLOCKED`" in body
     assert "Carried unresolved prior verified findings: `1`" in body
     assert "src/b.py:20" in body
-    saved = module.artifacts[state.STATE_ARTIFACT_PATH]
-    assert saved["gate_status"] == "blocked"
-    assert saved["current_published_count"] == 0
-    assert saved["carried_unresolved_count"] == 1
+    active = getattr(module, v50._STATE_ATTR)
+    assert active["gate_status"] == "blocked"
+    assert active["current_published_count"] == 0
+    assert active["carried_unresolved_count"] == 1
     final = module.artifacts[state.FINAL_ARTIFACT_PATH]
     assert final["unresolved_finding_count"] == 1
+
+
+def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
+    module = review_module()
+    setattr(module, v50._PRIOR_ATTR, _blocked_prior())
+    original_persist = prior_io.persist_gate_state
+    try:
+        prior_io.persist_gate_state = lambda *_args: False
+        v50._patch_review_body(module)
+        try:
+            module.hardened.build_review_body_with_unanchored(
+                {"summary": ""}, [], [], "model", config(), NEW_HEAD
+            )
+        except ReviewQualityError as exc:
+            assert "could not persist exact-head verified-finding gate state" in str(exc)
+        else:
+            raise AssertionError("gate-state persistence failure must block publication")
+    finally:
+        prior_io.persist_gate_state = original_persist
+    assert not hasattr(module, v50._STATE_ATTR)
 
 
 def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
@@ -229,13 +280,7 @@ def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
         v21.verify_findings_for_publication = prior_verifier
         if hasattr(v21, v50._VERIFIER_STORAGE):
             delattr(v21, v50._VERIFIER_STORAGE)
-        prior_io.load_prior_gate_context = lambda *_args: {
-            "status": "blocked",
-            "carried_records": [prior_record("src/b.py", 20, "B")],
-            "reason": "trusted-v50-gate-state",
-            "source": "v50-state",
-            "indeterminate_prior_count": 0,
-        }
+        prior_io.load_prior_gate_context = lambda *_args: _blocked_prior()
         v50._patch_verifier(module)
         reporter = SimpleNamespace(update=lambda kind, text: updates.append((kind, text)))
         item = current_finding("src/a.py", 10, "Current")
@@ -332,7 +377,9 @@ def main() -> None:
     test_legacy_v45_migration_uses_published_inline_comments()
     test_legacy_nonzero_without_complete_inline_state_fails_closed()
     test_legacy_zero_finding_disposition_migrates_cleanly()
+    test_gate_state_persists_when_debug_is_disabled()
     test_body_blocks_false_clean_without_duplicate_inline_publication()
+    test_body_fails_closed_when_gate_state_cannot_persist()
     test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry()
     test_completion_reporter_exposes_blocked_carried_state()
     test_completion_reporter_exposes_indeterminate_gate()
