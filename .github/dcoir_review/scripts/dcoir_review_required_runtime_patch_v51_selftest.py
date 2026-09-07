@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v5 as v5
 import dcoir_review_required_runtime_patch_v51 as v51
@@ -86,6 +87,56 @@ def test_same_site_semantic_candidates_keep_distinct_identity(review) -> None:
     assert {item["title"] for item in ranked} == {first["title"], second["title"]}
 
 
+def test_required_sentinel_same_site_supplements_not_replaces(review) -> None:
+    candidate = stale_cache_candidate()
+    cfg = config(review)
+    ranked = review.rank_findings_for_required_budget([candidate], cfg)
+    candidate_id = str(ranked[0][v51.CANDIDATE_ID_FIELD])
+    sentinel = SimpleNamespace(
+        path=CACHE_PATH,
+        line=22,
+        text="subprocess.run(command, shell=True)",
+        label="Python shell execution",
+        detail="Deterministic required-risk signal",
+    )
+
+    captured: dict[str, object] = {}
+    original_writer = review.hardened.write_debug_json_artifact_safely
+    review.hardened.write_debug_json_artifact_safely = (
+        lambda _cfg, path, value: captured.__setitem__(path, value)
+    )
+    try:
+        final = review.hardened.add_risk_sentinel_fallback_findings(
+            ranked, [sentinel], cfg, []
+        )
+    finally:
+        review.hardened.write_debug_json_artifact_safely = original_writer
+
+    assert len(final) == 2, final
+    semantic = [item for item in final if item.get(v51.CANDIDATE_ID_FIELD) == candidate_id]
+    assert len(semantic) == 1, final
+    assert semantic[0]["title"] == candidate["title"]
+    assert semantic[0]["body"] == candidate["body"]
+    assert semantic[0][v51.SEMANTIC_KEY_FIELD] == ranked[0][v51.SEMANTIC_KEY_FIELD]
+
+    required_coverage = v51._sentinel_coverage([sentinel])
+    required = [
+        item
+        for item in final
+        if item.get(v51.CANDIDATE_ID_FIELD) != candidate_id
+        and v51._is_required_selection(item, required_coverage)
+    ]
+    assert len(required) == 1, final
+
+    manifest = captured[v51.FINAL_SELECTION_ARTIFACT_PATH]
+    disposition = next(
+        item for item in manifest["dispositions"] if item["candidate_id"] == candidate_id
+    )
+    assert disposition["disposition"] == "reinserted-after-selector-collision"
+    selected_ids = {item["candidate_id"] for item in manifest["selected"] if item["candidate_id"]}
+    assert candidate_id in selected_ids
+
+
 def test_explicit_risk_provenance_keeps_required_risk_behavior(review) -> None:
     path = "src/runner.py"
     line = 14
@@ -108,11 +159,25 @@ def test_explicit_risk_provenance_keeps_required_risk_behavior(review) -> None:
         "explicit-risk-sentinel-key",
         "anchored-source-line",
     }
-    ranked = review.rank_findings_for_required_budget([candidate], config(review))
+    cfg = config(review)
+    ranked = review.rank_findings_for_required_budget([candidate], cfg)
     assert len(ranked) == 1, ranked
     assert ranked[0].get(v51.CANDIDATE_ID_FIELD)
     assert not ranked[0].get(v51.SEMANTIC_KEY_FIELD)
     assert ranked[0].get("_risk_sentinel_key") == candidate["_risk_sentinel_key"]
+
+    sentinel = SimpleNamespace(
+        path=path,
+        line=line,
+        text="subprocess.run(command, shell=True)",
+        label="Python shell execution",
+        detail="Deterministic required-risk signal",
+    )
+    final = review.hardened.add_risk_sentinel_fallback_findings(
+        ranked, [sentinel], cfg, []
+    )
+    assert len(final) == 1, final
+    assert v51._is_required_selection(final[0], v51._sentinel_coverage([sentinel]))
 
 
 def test_debug_manifest_records_candidate_provenance(review) -> None:
@@ -162,6 +227,7 @@ def main() -> None:
     review = patched_review()
     test_free_text_risk_inference_cannot_rewrite_semantic_candidate(review)
     test_same_site_semantic_candidates_keep_distinct_identity(review)
+    test_required_sentinel_same_site_supplements_not_replaces(review)
     test_explicit_risk_provenance_keeps_required_risk_behavior(review)
     test_debug_manifest_records_candidate_provenance(review)
     test_production_registration_and_config(review)
