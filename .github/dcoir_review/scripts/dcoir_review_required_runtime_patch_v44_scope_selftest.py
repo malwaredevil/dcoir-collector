@@ -220,6 +220,7 @@ def test_config_and_registration() -> None:
         "dcoir_review_required_runtime_patch_v44",
         "dcoir_review_required_runtime_patch_v45",
         "dcoir_review_required_runtime_patch_v46",
+        "dcoir_review_required_runtime_patch_v50",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "candidate_scoped_escalation_review: true" in production

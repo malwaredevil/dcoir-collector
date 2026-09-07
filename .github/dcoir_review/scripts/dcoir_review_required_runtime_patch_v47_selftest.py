@@ -44,6 +44,7 @@ def main() -> None:
         "dcoir_review_required_runtime_patch_v44",
         "dcoir_review_required_runtime_patch_v45",
         "dcoir_review_required_runtime_patch_v46",
+        "dcoir_review_required_runtime_patch_v50",
     )
     assert entrypoint.stage_local_patch_module_names == (
         "dcoir_review_required_runtime_patch_v47",

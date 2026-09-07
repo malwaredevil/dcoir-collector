@@ -319,8 +319,9 @@ def test_config_and_production_registration() -> None:
     assert loaded.adaptive_semantic_small_delta_prompt_chars == 60000
 
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_terminal_patch_module_names[-1] == (
-        "dcoir_review_required_runtime_patch_v46"
+    assert entrypoint.post_terminal_patch_module_names[-2:] == (
+        "dcoir_review_required_runtime_patch_v46",
+        "dcoir_review_required_runtime_patch_v50",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "canonical_semantic_context_review: true" in production
