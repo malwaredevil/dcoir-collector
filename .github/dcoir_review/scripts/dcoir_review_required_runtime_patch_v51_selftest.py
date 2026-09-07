@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v5 as v5
+import dcoir_review_required_runtime_patch_v21 as v21
 import dcoir_review_required_runtime_patch_v51 as v51
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
@@ -180,6 +181,73 @@ def test_explicit_risk_provenance_keeps_required_risk_behavior(review) -> None:
     assert v51._is_required_selection(final[0], v51._sentinel_coverage([sentinel]))
 
 
+def test_unsupported_deterministic_hypothesis_can_still_be_suppressed(review) -> None:
+    cfg = config(review)
+    semantic = review.rank_findings_for_required_budget(
+        [stale_cache_candidate()], cfg
+    )[0]
+    deterministic = {
+        "title": "Unsupported deterministic callback hypothesis",
+        "body": "A deterministic hypothesis with no verifier support.",
+        "severity": "high",
+        "confidence": 0.99,
+        "path": CACHE_PATH,
+        "line": 22,
+        "_risk_sentinel_key": [CACHE_PATH, 22, v5.PYTHON_ENV_TOKEN],
+        "_risk_sentinel_kind": v5.PYTHON_ENV_TOKEN,
+        "validation": f"python3 -m py_compile {CACHE_PATH}",
+    }
+    deterministic = review.rank_findings_for_required_budget(
+        [deterministic], cfg
+    )[0]
+    assert deterministic.get(v51.CANDIDATE_ID_FIELD)
+
+    captured: dict[str, object] = {}
+    fake_module = SimpleNamespace(
+        hardened=SimpleNamespace(
+            write_debug_json_artifact_safely=lambda _cfg, path, value: captured.__setitem__(
+                path, value
+            )
+        )
+    )
+    original_verify = v21.verify_findings_for_publication
+    stored = getattr(v21, v51._VERIFIER_STORAGE, None)
+    had_stored = hasattr(v21, v51._VERIFIER_STORAGE)
+    try:
+        v21.verify_findings_for_publication = (
+            lambda _module, items, _gh, _pr, _cfg, _reporter: [
+                item for item in items if item.get(v51.SEMANTIC_KEY_FIELD)
+            ]
+        )
+        if hasattr(v21, v51._VERIFIER_STORAGE):
+            delattr(v21, v51._VERIFIER_STORAGE)
+        v51._patch_verifier_debug(fake_module)
+        verified = v21.verify_findings_for_publication(
+            fake_module,
+            [semantic, deterministic],
+            object(),
+            {"head": {"sha": "c" * 40}},
+            cfg,
+            None,
+        )
+    finally:
+        v21.verify_findings_for_publication = original_verify
+        if had_stored:
+            setattr(v21, v51._VERIFIER_STORAGE, stored)
+        elif hasattr(v21, v51._VERIFIER_STORAGE):
+            delattr(v21, v51._VERIFIER_STORAGE)
+
+    assert [item[v51.CANDIDATE_ID_FIELD] for item in verified] == [
+        semantic[v51.CANDIDATE_ID_FIELD]
+    ]
+    manifest = captured[v51.VERIFIER_ARTIFACT_PATH]
+    assert manifest["candidate_count"] == 2
+    assert {item["candidate_id"] for item in manifest["candidates"]} == {
+        semantic[v51.CANDIDATE_ID_FIELD],
+        deterministic[v51.CANDIDATE_ID_FIELD],
+    }
+
+
 def test_debug_manifest_records_candidate_provenance(review) -> None:
     captured: dict[str, object] = {}
     original_writer = review.hardened.write_debug_json_artifact_safely
@@ -229,6 +297,7 @@ def main() -> None:
     test_same_site_semantic_candidates_keep_distinct_identity(review)
     test_required_sentinel_same_site_supplements_not_replaces(review)
     test_explicit_risk_provenance_keeps_required_risk_behavior(review)
+    test_unsupported_deterministic_hypothesis_can_still_be_suppressed(review)
     test_debug_manifest_records_candidate_provenance(review)
     test_production_registration_and_config(review)
     print("dcoir_review_required_runtime_patch_v51_selftest passed")
