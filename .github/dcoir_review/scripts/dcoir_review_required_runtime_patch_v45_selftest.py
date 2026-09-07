@@ -205,11 +205,12 @@ def test_verifier_wrapper_and_config() -> None:
 
 def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_terminal_patch_module_names[-4:] == (
+    assert entrypoint.post_terminal_patch_module_names[-5:] == (
         "dcoir_review_required_runtime_patch_v44",
         "dcoir_review_required_runtime_patch_v45",
         "dcoir_review_required_runtime_patch_v46",
         "dcoir_review_required_runtime_patch_v50",
+        "dcoir_review_required_runtime_patch_v51",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "verifier_authoritative_publication_review: true" in production
