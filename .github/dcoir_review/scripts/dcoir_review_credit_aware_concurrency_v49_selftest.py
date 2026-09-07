@@ -241,6 +241,7 @@ def main() -> None:
     assert not is_saturation_error(PERMANENT)
     test_primary_wave_reduces_future_feed()
     test_repeated_saturation_can_reduce_to_serial()
+    test_cancelled_inner_future_cancels_outer_future()
     test_non_transient_and_disabled_behavior()
     test_source_boundaries()
     print("dcoir_review_credit_aware_concurrency_v49_selftest passed")
