@@ -251,6 +251,7 @@ def _patch_progress_reporter(module: Any) -> None:
                 ]
             self._record("completed", message)
             self._update_comment(self._body("completed", final_lines=final_lines))
+            return None
 
     GateAwareProgressReporter.__name__ = original.__name__
     GateAwareProgressReporter.__qualname__ = original.__qualname__
