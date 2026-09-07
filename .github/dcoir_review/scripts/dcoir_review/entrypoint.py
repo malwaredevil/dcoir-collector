@@ -79,15 +79,18 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v42',
         'dcoir_review_required_runtime_patch_v43',
     )
-    # v44-v46 remain the Architecture-B post-terminal contract: candidate-scoped
-    # escalation, verifier-authoritative publication, and one canonical semantic
-    # context package with fail-safe adaptive budgets. Capability gating keeps
-    # historical probe objects and explicit subset tests from receiving implicit
-    # overlays.
+    # v44-v46 remain the Architecture-B post-terminal semantic contract:
+    # candidate-scoped escalation, verifier-authoritative publication, and one
+    # canonical semantic context package with fail-safe adaptive budgets. v50
+    # then preserves unresolved verifier-supported findings across compatible
+    # incremental reviewed-head runs without re-posting unchanged inline comments.
+    # Capability gating keeps historical probe objects and explicit subset tests
+    # from receiving implicit overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v44',
         'dcoir_review_required_runtime_patch_v45',
         'dcoir_review_required_runtime_patch_v46',
+        'dcoir_review_required_runtime_patch_v50',
     )
     # Stage-local routing overlays are deliberately separate from Architecture-B
     # semantic-order invariants. v47 projects the calibrated Sonnet request
