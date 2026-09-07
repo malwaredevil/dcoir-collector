@@ -2,9 +2,7 @@
 """Deterministic regression checks for response-scoped execution-lane separation scoring."""
 from __future__ import annotations
 
-from project_sources.gemini.tools.lib.gemini_behavioral_replay_scoring import (
-    has_execution_lane_separation,
-)
+from lib.gemini_behavioral_replay_scoring import has_execution_lane_separation
 
 
 def _expect(response: str, expected: bool, label: str) -> None:
