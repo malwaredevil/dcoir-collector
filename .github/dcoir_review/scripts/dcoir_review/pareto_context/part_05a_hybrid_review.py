@@ -1,4 +1,7 @@
-from dcoir_review.pareto_context.credit_aware_concurrency import CreditAwareThreadPoolExecutor
+from dcoir_review.pareto_context.credit_aware_concurrency import (
+    run_bounded_saturation_recovery,
+    run_credit_aware_primary_wave,
+)
 
 
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
@@ -57,172 +60,60 @@ def openrouter_review_with_hybrid_first_pass(
             "line_index_entries": len(line_index),
         },
     )
-    results: list[dict[str, Any]] = []
-    failures: list[str] = []
-    transient_saturation_failures: list[tuple[int, dict[str, Any], str]] = []
-    max_workers = max(1, int(getattr(config, "per_file_review_concurrency", 4)))
-    adaptive_concurrency = bool(getattr(config, "per_file_credit_aware_concurrency", True))
-    primary_executor = CreditAwareThreadPoolExecutor(
-        max_workers=min(max_workers, len(contexts)),
-        adaptive=adaptive_concurrency,
-        is_saturation_error=_is_transient_inflight_credit_saturation_error,
-    )
-    with primary_executor as executor:
-        future_map = {
-            executor.submit(
-                review_single_file_context,
-                index,
-                context,
-                pr,
-                diff,
-                schema,
-                config,
-                risk_sentinels,
-                review_mode,
-            ): (index, context)
-            for index, context in enumerate(contexts, start=1)
-        }
-        for future in concurrent.futures.as_completed(future_map):
-            index, context = future_map[future]
-            path = str(context["path"])
-            try:
-                results.append(future.result())
-                reporter.update("per-file-result", f"{path}: completed")
-            except Exception as exc:
-                if _is_transient_inflight_credit_saturation_error(exc):
-                    transient_saturation_failures.append((index, context, str(exc)))
-                    hardened.write_debug_json_artifact_safely(
-                        config,
-                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-transient-saturation.json",
-                        {"path": path, "error": str(exc), "recovery": "queued-for-low-concurrency-retry"},
-                    )
-                    reporter.update(
-                        "per-file-result",
-                        f"{path}: transient in-flight-credit saturation; queued for bounded recovery",
-                    )
-                    continue
 
-                failures.append(f"{path}: {str(exc)[:240]}")
-                hardened.write_debug_json_artifact_safely(
-                    config,
-                    f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
-                    {"path": path, "error": str(exc)},
-                )
-                reporter.update(
-                    "per-file-result",
-                    f"{path}: failed; coverage will fail closed after remaining files complete",
-                )
-
-    primary_concurrency = primary_executor.telemetry()
-    primary_concurrency["configured_primary_concurrency"] = max_workers
-    if int(primary_concurrency["primary_concurrency_reduction_count"]) > 0:
-        reporter.update(
-            "per-file-concurrency",
-            (
-                "transient in-flight-credit saturation reduced the primary feed window "
-                f"from {primary_concurrency['initial_primary_concurrency']} "
-                f"to {primary_concurrency['final_primary_concurrency']}"
-            ),
+    def run_file(index: int, context: dict[str, Any]) -> dict[str, Any]:
+        return review_single_file_context(
+            index,
+            context,
+            pr,
+            diff,
+            schema,
+            config,
+            risk_sentinels,
+            review_mode,
         )
 
-    low_concurrency_recovered_file_count = 0
-    serial_saturation_failures: list[tuple[int, dict[str, Any], str]] = []
+    max_workers = max(1, int(getattr(config, "per_file_review_concurrency", 4)))
+    adaptive_concurrency = bool(getattr(config, "per_file_credit_aware_concurrency", True))
+    primary = run_credit_aware_primary_wave(
+        contexts,
+        run_file,
+        configured_concurrency=max_workers,
+        adaptive=adaptive_concurrency,
+        is_saturation_error=_is_transient_inflight_credit_saturation_error,
+        reporter=reporter,
+        hardened=hardened,
+        config=config,
+        safe_artifact_name=safe_artifact_name,
+    )
+    results: list[dict[str, Any]] = list(primary["results"])
+    failures: list[str] = list(primary["failures"])
+    transient_saturation_failures = list(primary["saturation_failures"])
+    primary_concurrency = dict(primary["telemetry"])
+
     recovery_workers_used = 0
+    low_concurrency_recovered_file_count = 0
+    serial_recovered_saturation_file_count = 0
     if transient_saturation_failures:
         recovery_workers_used = min(
             2,
             int(primary_concurrency["final_primary_concurrency"]) if adaptive_concurrency else 2,
             len(transient_saturation_failures),
         )
-        reporter.update(
-            "per-file-recovery",
-            (
-                f"parallel wave settled; retrying {len(transient_saturation_failures)} "
-                f"transient in-flight-credit saturation failure(s) with recovery concurrency={recovery_workers_used}"
-            ),
+        recovery = run_bounded_saturation_recovery(
+            transient_saturation_failures,
+            run_file,
+            recovery_concurrency=recovery_workers_used,
+            is_saturation_error=_is_transient_inflight_credit_saturation_error,
+            reporter=reporter,
+            hardened=hardened,
+            config=config,
+            safe_artifact_name=safe_artifact_name,
         )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=recovery_workers_used) as recovery_executor:
-            recovery_future_map = {
-                recovery_executor.submit(
-                    review_single_file_context,
-                    index,
-                    context,
-                    pr,
-                    diff,
-                    schema,
-                    config,
-                    risk_sentinels,
-                    review_mode,
-                ): (index, context, initial_error)
-                for index, context, initial_error in transient_saturation_failures
-            }
-            for future in concurrent.futures.as_completed(recovery_future_map):
-                index, context, initial_error = recovery_future_map[future]
-                path = str(context["path"])
-                try:
-                    results.append(future.result())
-                    low_concurrency_recovered_file_count += 1
-                    reporter.update("per-file-recovery", f"{path}: recovered at low concurrency")
-                except Exception as exc:
-                    if _is_transient_inflight_credit_saturation_error(exc):
-                        serial_saturation_failures.append((index, context, str(exc)))
-                        reporter.update(
-                            "per-file-recovery",
-                            f"{path}: still saturated; queued for one final serial recovery attempt",
-                        )
-                        continue
-                    failures.append(f"{path}: {str(exc)[:240]}")
-                    hardened.write_debug_json_artifact_safely(
-                        config,
-                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
-                        {
-                            "path": path,
-                            "initial_error": initial_error,
-                            "recovery_error": str(exc),
-                            "recovery": "low-concurrency-retry-failed",
-                        },
-                    )
-                    reporter.update("per-file-recovery", f"{path}: low-concurrency recovery failed")
-
-    serial_recovered_saturation_file_count = 0
-    if serial_saturation_failures:
-        reporter.update(
-            "per-file-recovery",
-            (
-                f"low-concurrency recovery wave settled; serially retrying "
-                f"{len(serial_saturation_failures)} still-saturated file(s) once"
-            ),
-        )
-        for index, context, recovery_error in serial_saturation_failures:
-            path = str(context["path"])
-            try:
-                results.append(
-                    review_single_file_context(
-                        index,
-                        context,
-                        pr,
-                        diff,
-                        schema,
-                        config,
-                        risk_sentinels,
-                        review_mode,
-                    )
-                )
-                serial_recovered_saturation_file_count += 1
-                reporter.update("per-file-recovery", f"{path}: recovered serially")
-            except Exception as exc:
-                failures.append(f"{path}: {str(exc)[:240]}")
-                hardened.write_debug_json_artifact_safely(
-                    config,
-                    f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
-                    {
-                        "path": path,
-                        "initial_error": recovery_error,
-                        "recovery_error": str(exc),
-                        "recovery": "final-serial-retry-failed",
-                    },
-                )
-                reporter.update("per-file-recovery", f"{path}: final serial recovery failed")
+        results.extend(recovery["results"])
+        failures.extend(recovery["failures"])
+        low_concurrency_recovered_file_count = int(recovery["low_concurrency_recovered_file_count"])
+        serial_recovered_saturation_file_count = int(recovery["serial_recovered_saturation_file_count"])
 
     recovered_saturation_file_count = (
         low_concurrency_recovered_file_count + serial_recovered_saturation_file_count
