@@ -15,6 +15,7 @@ _APPLIED_ATTR = "_dcoir_v50_applied"
 _CONFIG_STORAGE = "_dcoir_v50_original_load_pareto_context_config"
 _VERIFIER_STORAGE = "_dcoir_v50_original_verify_findings_for_publication"
 _BODY_STORAGE = "_dcoir_v50_original_build_review_body_with_unanchored"
+_REPORTER_STORAGE = "_dcoir_v50_original_progress_reporter"
 _PRIOR_ATTR = "_dcoir_v50_prior_gate_context"
 _STATE_ATTR = "_dcoir_v50_gate_state"
 
@@ -194,11 +195,73 @@ def _patch_review_body(module: Any) -> None:
     module.hardened.build_review_body_with_unanchored = build_review_body_with_unanchored
 
 
+def _patch_progress_reporter(module: Any) -> None:
+    original = getattr(module, _REPORTER_STORAGE, None)
+    if original is None:
+        original = getattr(module, "ProgressReporter", None)
+        if isinstance(original, type):
+            setattr(module, _REPORTER_STORAGE, original)
+    if not isinstance(original, type):
+        raise RuntimeError("DCOIR v50 could not locate ProgressReporter")
+    required = ("complete", "_record", "_body", "_update_comment")
+    if any(not callable(getattr(original, name, None)) for name in required):
+        raise RuntimeError("DCOIR v50 ProgressReporter contract is incomplete")
+
+    class GateAwareProgressReporter(original):
+        def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
+            config = getattr(self, "config", None)
+            active = getattr(module, _STATE_ATTR, None)
+            if (
+                not bool(getattr(config, "verified_finding_gate_state_review", False))
+                or not isinstance(active, dict)
+            ):
+                return super().complete(model_used, findings_count, review_event)
+            status = str(active.get("gate_status", "") or "")
+            if status not in {"blocked", "indeterminate"}:
+                return super().complete(model_used, findings_count, review_event)
+
+            plural = "finding" if findings_count == 1 else "findings"
+            if status == "blocked":
+                carried = int(active.get("carried_unresolved_count", 0) or 0)
+                carried_plural = "finding" if carried == 1 else "findings"
+                message = (
+                    f"posted GitHub review; {findings_count} new inline {plural}; "
+                    f"gate BLOCKED by {carried} carried unresolved prior verified "
+                    f"{carried_plural}; event={review_event}"
+                )
+                final_lines = [
+                    f"- Result: GitHub review posted with `{findings_count}` new inline {plural}.",
+                    "- Verified finding gate: `BLOCKED`.",
+                    f"- Carried unresolved prior verified findings: `{carried}`.",
+                    f"- Review event: `{review_event}`.",
+                ]
+            else:
+                known = int(active.get("indeterminate_prior_count", 0) or 0)
+                message = (
+                    f"posted GitHub review; {findings_count} new inline {plural}; "
+                    "gate INDETERMINATE/BLOCKED because prior verified-finding state "
+                    f"is incomplete; known_prior={known}; event={review_event}"
+                )
+                final_lines = [
+                    f"- Result: GitHub review posted with `{findings_count}` new inline {plural}.",
+                    "- Verified finding gate: `INDETERMINATE / BLOCKED`.",
+                    f"- Prior unresolved count known but not safely attributable: `{known}`.",
+                    f"- Review event: `{review_event}`.",
+                ]
+            self._record("completed", message)
+            self._update_comment(self._body("completed", final_lines=final_lines))
+
+    GateAwareProgressReporter.__name__ = original.__name__
+    GateAwareProgressReporter.__qualname__ = original.__qualname__
+    module.ProgressReporter = GateAwareProgressReporter
+
+
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
     _patch_config_loader(module)
     _patch_verifier(module)
     _patch_review_body(module)
+    _patch_progress_reporter(module)
     module.DCOIR_VERIFIED_FINDING_GATE_CONTRACT = gate_state.STATE_CONTRACT
     setattr(module, _APPLIED_ATTR, True)
