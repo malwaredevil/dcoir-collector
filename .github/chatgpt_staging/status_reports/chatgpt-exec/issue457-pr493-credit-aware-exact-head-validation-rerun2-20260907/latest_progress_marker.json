@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34121368045",
+  "github_sha": "803c3cc3ed402cee966c02c339da099e37838b58",
+  "phase": "request-resolved",
+  "request_id": "issue457-pr493-credit-aware-exact-head-validation-rerun2-20260907",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue457-pr493-credit-aware-exact-head-validation-rerun2-20260907.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-07T12:21:03Z",
+  "workflow": "chatgpt-exec"
+}
