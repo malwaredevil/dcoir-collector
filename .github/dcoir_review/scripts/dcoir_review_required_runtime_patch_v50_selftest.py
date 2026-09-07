@@ -22,6 +22,29 @@ class ReviewQualityError(RuntimeError):
     pass
 
 
+class FakeProgressReporter:
+    def __init__(self, config):
+        self.config = config
+        self.steps: list[tuple[str, str]] = []
+        self.updated_bodies: list[str] = []
+
+    def complete(self, _model_used: str, findings_count: int, review_event: str) -> None:
+        self._record(
+            "completed",
+            f"legacy completion; {findings_count} inline findings; event={review_event}",
+        )
+        self._update_comment(self._body("completed", final_lines=["legacy completion"]))
+
+    def _record(self, stage: str, message: str) -> None:
+        self.steps.append((stage, message))
+
+    def _body(self, state_name: str, final_lines: list[str] | None = None) -> str:
+        return "\n".join([state_name, *(final_lines or [])])
+
+    def _update_comment(self, body: str) -> None:
+        self.updated_bodies.append(body)
+
+
 def prior_record(path: str, line: int, tag: str) -> dict[str, object]:
     return {
         "fingerprint": state._finding_fingerprint(path, line, tag),
@@ -147,6 +170,7 @@ def review_module():
         build_review_body_with_unanchored=lambda *_args, **_kwargs: "v45 exact-head body",
     )
     module.load_pareto_context_config = lambda _path: SimpleNamespace()
+    module.ProgressReporter = FakeProgressReporter
     module.artifacts = artifacts
     return module
 
@@ -238,6 +262,57 @@ def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
             delattr(v21, v50._VERIFIER_STORAGE)
 
 
+def test_completion_reporter_exposes_blocked_carried_state() -> None:
+    module = review_module()
+    v50._patch_progress_reporter(module)
+    setattr(
+        module,
+        v50._STATE_ATTR,
+        {
+            "gate_status": "blocked",
+            "carried_unresolved_count": 2,
+            "indeterminate_prior_count": 0,
+        },
+    )
+    reporter = module.ProgressReporter(config())
+    reporter.complete("model", 0, "COMMENT")
+    assert reporter.steps[-1][0] == "completed"
+    assert "0 new inline findings" in reporter.steps[-1][1]
+    assert "gate BLOCKED by 2 carried unresolved prior verified findings" in reporter.steps[-1][1]
+    assert "legacy completion" not in reporter.steps[-1][1]
+    assert "Verified finding gate: `BLOCKED`." in reporter.updated_bodies[-1]
+    assert "Carried unresolved prior verified findings: `2`." in reporter.updated_bodies[-1]
+
+
+def test_completion_reporter_exposes_indeterminate_gate() -> None:
+    module = review_module()
+    v50._patch_progress_reporter(module)
+    setattr(
+        module,
+        v50._STATE_ATTR,
+        {
+            "gate_status": "indeterminate",
+            "carried_unresolved_count": 0,
+            "indeterminate_prior_count": 3,
+        },
+    )
+    reporter = module.ProgressReporter(config())
+    reporter.complete("model", 0, "COMMENT")
+    assert "0 new inline findings" in reporter.steps[-1][1]
+    assert "gate INDETERMINATE/BLOCKED" in reporter.steps[-1][1]
+    assert "known_prior=3" in reporter.steps[-1][1]
+    assert "Verified finding gate: `INDETERMINATE / BLOCKED`." in reporter.updated_bodies[-1]
+
+
+def test_completion_reporter_delegates_when_gate_is_clear() -> None:
+    module = review_module()
+    v50._patch_progress_reporter(module)
+    setattr(module, v50._STATE_ATTR, {"gate_status": "clear"})
+    reporter = module.ProgressReporter(config())
+    reporter.complete("model", 0, "COMMENT")
+    assert "legacy completion" in reporter.steps[-1][1]
+
+
 def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-4:] == (
@@ -259,6 +334,9 @@ def main() -> None:
     test_legacy_zero_finding_disposition_migrates_cleanly()
     test_body_blocks_false_clean_without_duplicate_inline_publication()
     test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry()
+    test_completion_reporter_exposes_blocked_carried_state()
+    test_completion_reporter_exposes_indeterminate_gate()
+    test_completion_reporter_delegates_when_gate_is_clear()
     test_production_registration()
     print("dcoir_review_required_runtime_patch_v50_selftest passed")
 
