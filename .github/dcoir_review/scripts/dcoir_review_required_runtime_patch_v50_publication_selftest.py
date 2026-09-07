@@ -163,6 +163,30 @@ def test_completion_reporter_delegates_when_gate_is_clear() -> None:
     assert "legacy completion" in reporter.steps[-1][1]
 
 
+def test_completion_reporter_patches_production_owner_aliases() -> None:
+    module = core.review_module()
+    original = module.ProgressReporter
+    delattr(module, "ProgressReporter")
+    module.base.ProgressReporter = original
+    module.hardened.ProgressReporter = original
+    v50._patch_progress_reporter(module)
+    assert module.base.ProgressReporter is module.hardened.ProgressReporter
+    assert module.base.ProgressReporter is not original
+    assert getattr(module.base.ProgressReporter, "_dcoir_v50_gate_aware", False) is True
+    setattr(
+        module,
+        v50._STATE_ATTR,
+        {
+            "gate_status": "blocked",
+            "carried_unresolved_count": 1,
+            "indeterminate_prior_count": 0,
+        },
+    )
+    reporter = module.base.ProgressReporter(core.config())
+    reporter.complete("model", 0, "COMMENT")
+    assert "gate BLOCKED by 1 carried unresolved prior verified finding" in reporter.steps[-1][1]
+
+
 def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-4:] == (
@@ -184,6 +208,7 @@ def main() -> None:
     test_completion_reporter_exposes_blocked_carried_state()
     test_completion_reporter_exposes_indeterminate_gate()
     test_completion_reporter_delegates_when_gate_is_clear()
+    test_completion_reporter_patches_production_owner_aliases()
     test_production_registration()
     print("dcoir_review_required_runtime_patch_v50_publication_selftest passed")
 
