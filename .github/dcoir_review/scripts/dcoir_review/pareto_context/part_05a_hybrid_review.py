@@ -1,3 +1,6 @@
+from dcoir_review.pareto_context.credit_aware_concurrency import CreditAwareThreadPoolExecutor
+
+
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
     """Return True only for OpenRouter's transient in-flight-credit HTTP 402."""
 
@@ -58,7 +61,13 @@ def openrouter_review_with_hybrid_first_pass(
     failures: list[str] = []
     transient_saturation_failures: list[tuple[int, dict[str, Any], str]] = []
     max_workers = max(1, int(getattr(config, "per_file_review_concurrency", 4)))
-    with concurrent.futures.ThreadPoolExecutor(max_workers=min(max_workers, len(contexts))) as executor:
+    adaptive_concurrency = bool(getattr(config, "per_file_credit_aware_concurrency", True))
+    primary_executor = CreditAwareThreadPoolExecutor(
+        max_workers=min(max_workers, len(contexts)),
+        adaptive=adaptive_concurrency,
+        is_saturation_error=_is_transient_inflight_credit_saturation_error,
+    )
+    with primary_executor as executor:
         future_map = {
             executor.submit(
                 review_single_file_context,
@@ -104,18 +113,35 @@ def openrouter_review_with_hybrid_first_pass(
                     f"{path}: failed; coverage will fail closed after remaining files complete",
                 )
 
+    primary_concurrency = primary_executor.telemetry()
+    primary_concurrency["configured_primary_concurrency"] = max_workers
+    if int(primary_concurrency["primary_concurrency_reduction_count"]) > 0:
+        reporter.update(
+            "per-file-concurrency",
+            (
+                "transient in-flight-credit saturation reduced the primary feed window "
+                f"from {primary_concurrency['initial_primary_concurrency']} "
+                f"to {primary_concurrency['final_primary_concurrency']}"
+            ),
+        )
+
     low_concurrency_recovered_file_count = 0
     serial_saturation_failures: list[tuple[int, dict[str, Any], str]] = []
+    recovery_workers_used = 0
     if transient_saturation_failures:
-        recovery_workers = min(2, len(transient_saturation_failures))
+        recovery_workers_used = min(
+            2,
+            int(primary_concurrency["final_primary_concurrency"]) if adaptive_concurrency else 2,
+            len(transient_saturation_failures),
+        )
         reporter.update(
             "per-file-recovery",
             (
                 f"parallel wave settled; retrying {len(transient_saturation_failures)} "
-                f"transient in-flight-credit saturation failure(s) with recovery concurrency={recovery_workers}"
+                f"transient in-flight-credit saturation failure(s) with recovery concurrency={recovery_workers_used}"
             ),
         )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=recovery_workers) as recovery_executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=recovery_workers_used) as recovery_executor:
             recovery_future_map = {
                 recovery_executor.submit(
                     review_single_file_context,
@@ -212,6 +238,11 @@ def openrouter_review_with_hybrid_first_pass(
         config,
         "responses/per-file/saturation-recovery.json",
         saturation_recovery,
+    )
+    hardened.write_debug_json_artifact_safely(
+        config,
+        "responses/per-file/credit-aware-concurrency.json",
+        {**primary_concurrency, "recovery_concurrency": recovery_workers_used},
     )
 
     if failures:
