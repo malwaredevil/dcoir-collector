@@ -322,10 +322,11 @@ def _is_required_selection(
     raw = _raw_key(finding.get("_risk_sentinel_key"))
     if raw is not None:
         try:
-            if v16._coverage_key(raw) in required_coverage:
-                return True
+            raw_coverage = v16._coverage_key(raw)
         except Exception:
-            raw = None
+            raw_coverage = None
+        if raw_coverage in required_coverage:
+            return True
     try:
         return v16._coverage_key(v16._postable_key(finding)) in required_coverage
     except Exception:
