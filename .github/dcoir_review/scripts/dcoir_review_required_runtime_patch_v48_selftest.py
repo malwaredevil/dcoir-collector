@@ -214,7 +214,26 @@ def main() -> None:
         )
         assert v48.SUPERSEDED_PREFIX in str(publication_race)
         assert client.review_posts == 1
-        assert getattr(module, v48.GUARD_ATTR)["terminal"]["kind"] == "superseded"
+        race_terminal = getattr(module, v48.GUARD_ATTR)["terminal"]
+        assert race_terminal["kind"] == "superseded"
+        assert race_terminal["stage"] == "GitHub review publication completion"
+
+        # Post-write supersession must say the old-head review was accepted but is
+        # not current evidence; it must not claim publication was blocked.
+        race_comment_gh = FakeCommentGitHub()
+        race_reporter = hardened.ProgressReporter(
+            race_comment_gh,
+            PR_NUMBER,
+            "/dcoir-review",
+            SimpleNamespace(post_progress_comment=False, debug=False),
+        )
+        race_reporter.fail(str(publication_race))
+        assert race_reporter.generic_failures == 0
+        race_body = race_comment_gh.comments[race_reporter.comment_id]
+        assert "DCOIR Review superseded." in race_body
+        assert "GitHub accepted the review before the post-write scope change was detected" in race_body
+        assert "review remains anchored to the captured old commit" in race_body
+        assert "GitHub review publication after supersession detection: blocked." not in race_body
 
         client = FakeClient()
         v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
@@ -240,7 +259,8 @@ def main() -> None:
         )
         assert v48.SUPERSEDED_PREFIX in str(restored)
 
-        # Superseded status is explicit even when ordinary progress comments are disabled.
+        # Pre-publication superseded status is explicit even when ordinary progress
+        # comments are disabled and must say publication is blocked.
         comment_gh = FakeCommentGitHub()
         reporter = hardened.ProgressReporter(
             comment_gh,
@@ -253,8 +273,8 @@ def main() -> None:
         assert reporter.comment_id in comment_gh.comments
         terminal_body = comment_gh.comments[reporter.comment_id]
         assert "DCOIR Review superseded." in terminal_body
-        assert "Pre-detected stale GitHub review publication: blocked." in terminal_body
-        assert "already-posted review remains anchored to the old commit" in terminal_body
+        assert "GitHub review publication after supersession detection: blocked." in terminal_body
+        assert "GitHub accepted the review before the post-write scope change was detected" not in terminal_body
         assert "New model requests after detection: blocked" in terminal_body
         assert HEAD in terminal_body
         assert NEW_HEAD in terminal_body
