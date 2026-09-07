@@ -177,15 +177,22 @@ def _patch_progress_reporter(module: Any) -> None:
 
         context = core._guard(module) or {}
         terminal = context.get("terminal") if isinstance(context.get("terminal"), dict) else {}
+        terminal_stage = str(terminal.get("stage", "") or "")
         final_lines = []
         if superseded:
-            final_lines.extend(
-                [
-                    "- Result: review superseded because the live PR review scope changed during execution.",
-                    "- Pre-detected stale GitHub review publication: blocked.",
-                    "- A head/base/state move detected during the review write is marked superseded immediately; any already-posted review remains anchored to the old commit and is not current-head evidence.",
-                    "- New model requests after detection: blocked; already authorized/in-flight responses are discarded.",
-                ]
+            final_lines.append(
+                "- Result: review superseded because the live PR review scope changed during execution."
+            )
+            if terminal_stage == "GitHub review publication completion":
+                final_lines.append(
+                    "- GitHub accepted the review before the post-write scope change was detected; the review remains anchored to the captured old commit and is not current-head evidence."
+                )
+            else:
+                final_lines.append(
+                    "- GitHub review publication after supersession detection: blocked."
+                )
+            final_lines.append(
+                "- New model requests after detection: blocked; already authorized/in-flight responses are discarded."
             )
         else:
             final_lines.extend(
