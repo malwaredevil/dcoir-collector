@@ -5,8 +5,8 @@ reclassified from free-text prose as a deterministic risk kind before verifier
 input. In the observed case, a stale authorization-cache finding mentioned the
 word "authorization", legacy normalization inferred ``python_ssrf``, and the
 required-risk normalizer replaced the finding with an unrelated environment
- token/callback template. The verifier correctly rejected that replacement, but
- the original semantic candidate had already been lost.
+token/callback template. The verifier correctly rejected that replacement, but
+the original semantic candidate had already been lost.
 
 v51 makes risk-kind provenance explicit at the ranking boundary. Candidates
 without an explicit risk-sentinel key or matching anchored source-line signal
@@ -33,10 +33,12 @@ _CONFIG_STORAGE = "_dcoir_v51_original_load_pareto_context_config"
 _RANK_STORAGE = "_dcoir_v51_original_rank_findings_for_required_budget"
 _POSTABLE_STORAGE = "_dcoir_v51_original_postable_key"
 _VERIFIER_STORAGE = "_dcoir_v51_original_verify_findings_for_publication"
+_SELECTION_STORAGE = "_dcoir_v51_original_add_risk_sentinel_fallback_findings"
 
 CANDIDATE_ID_FIELD = "_dcoir_v51_candidate_id"
 SEMANTIC_KEY_FIELD = "_dcoir_v51_semantic_candidate_key"
 SELECTION_ARTIFACT_PATH = "metadata/v51-candidate-integrity.json"
+FINAL_SELECTION_ARTIFACT_PATH = "metadata/v51-final-selection-integrity.json"
 VERIFIER_ARTIFACT_PATH = "metadata/v51-verifier-candidate-provenance.json"
 SEMANTIC_KIND_PREFIX = "semantic_candidate:"
 
@@ -299,6 +301,137 @@ def _patch_ranker(module: Any) -> None:
     module.rank_findings_for_required_budget = rank_findings_for_required_budget
 
 
+def _sentinel_coverage(risk_sentinels: list[Any]) -> set[tuple[str, int, str]]:
+    coverage: set[tuple[str, int, str]] = set()
+    for sentinel in risk_sentinels:
+        try:
+            key = v16._coverage_key(v16._sentinel_key(sentinel))
+        except Exception:
+            continue
+        if key[0] and key[2]:
+            coverage.add(key)
+    return coverage
+
+
+def _is_required_selection(
+    finding: dict[str, Any],
+    required_coverage: set[tuple[str, int, str]],
+) -> bool:
+    if not required_coverage:
+        return False
+    raw = _raw_key(finding.get("_risk_sentinel_key"))
+    if raw is not None:
+        try:
+            if v16._coverage_key(raw) in required_coverage:
+                return True
+        except Exception:
+            pass
+    try:
+        return v16._coverage_key(v16._postable_key(finding)) in required_coverage
+    except Exception:
+        return False
+
+
+def _patch_required_selection(module: Any) -> None:
+    hardened = getattr(module, "hardened", None)
+    if hardened is None:
+        return
+    original = getattr(hardened, _SELECTION_STORAGE, None)
+    if original is None:
+        original = getattr(hardened, "add_risk_sentinel_fallback_findings", None)
+        if callable(original):
+            setattr(hardened, _SELECTION_STORAGE, original)
+    if not callable(original):
+        raise RuntimeError("DCOIR v51 could not locate final required-sentinel selector")
+
+    def add_risk_sentinel_fallback_findings(
+        findings: list[dict[str, Any]],
+        risk_sentinels: list[Any],
+        config: Any,
+        unanchored_findings: list[dict[str, Any]] | None = None,
+    ) -> list[dict[str, Any]]:
+        selected = list(original(findings, risk_sentinels, config, unanchored_findings))
+        if not bool(getattr(config, "semantic_candidate_identity_review", False)):
+            return selected
+
+        limit = max(0, int(getattr(config, "max_inline_comments", 12) or 12))
+        protected = [
+            dict(item)
+            for item in findings
+            if isinstance(item, dict) and _raw_key(item.get(SEMANTIC_KEY_FIELD)) is not None
+        ]
+        selected_ids = {
+            str(item.get(CANDIDATE_ID_FIELD, "") or "")
+            for item in selected
+            if isinstance(item, dict) and str(item.get(CANDIDATE_ID_FIELD, "") or "")
+        }
+        required_coverage = _sentinel_coverage(risk_sentinels)
+        dispositions: list[dict[str, Any]] = []
+
+        for source in protected:
+            candidate_id = str(source.get(CANDIDATE_ID_FIELD, "") or "")
+            if candidate_id in selected_ids:
+                dispositions.append(
+                    {"candidate_id": candidate_id, "disposition": "retained-by-final-selector"}
+                )
+                continue
+
+            disposition = "omitted-inline-budget"
+            if len(selected) < limit:
+                selected.append(dict(source))
+                selected_ids.add(candidate_id)
+                disposition = "reinserted-after-selector-collision"
+            else:
+                victim_index = None
+                for index in range(len(selected) - 1, -1, -1):
+                    item = selected[index]
+                    if not isinstance(item, dict):
+                        continue
+                    item_id = str(item.get(CANDIDATE_ID_FIELD, "") or "")
+                    if item_id or _is_required_selection(item, required_coverage):
+                        continue
+                    victim_index = index
+                    break
+                if victim_index is not None:
+                    selected[victim_index] = dict(source)
+                    selected_ids.add(candidate_id)
+                    disposition = "reinserted-by-displacing-nonrequired-fallback"
+            dispositions.append(
+                {"candidate_id": candidate_id, "disposition": disposition}
+            )
+
+        selected = selected[:limit]
+        writer = getattr(hardened, "write_debug_json_artifact_safely", None)
+        if callable(writer):
+            writer(
+                config,
+                FINAL_SELECTION_ARTIFACT_PATH,
+                {
+                    "schema_version": "dcoir_review_v51_final_selection_integrity_v1",
+                    "version": VERSION,
+                    "inline_limit": limit,
+                    "required_sentinel_count": len(required_coverage),
+                    "protected_semantic_candidate_count": len(protected),
+                    "dispositions": dispositions,
+                    "selected": [_snapshot_candidate(item) for item in selected if isinstance(item, dict)],
+                },
+            )
+        return selected
+
+    def enforce_risk_sentinel_findings(
+        findings: list[dict[str, Any]],
+        risk_sentinels: list[Any],
+        config: Any,
+        unanchored_findings: list[dict[str, Any]] | None = None,
+    ) -> None:
+        findings[:] = add_risk_sentinel_fallback_findings(
+            findings, risk_sentinels, config, unanchored_findings
+        )
+
+    hardened.add_risk_sentinel_fallback_findings = add_risk_sentinel_fallback_findings
+    hardened.enforce_risk_sentinel_findings = enforce_risk_sentinel_findings
+
+
 def _patch_verifier_debug(module: Any) -> None:
     original = getattr(v21, _VERIFIER_STORAGE, None)
     if original is None:
@@ -340,6 +473,7 @@ def apply_pareto_context_module(module: Any) -> None:
     _patch_config_loader(module)
     _patch_postable_key()
     _patch_ranker(module)
+    _patch_required_selection(module)
     _patch_verifier_debug(module)
     module.DCOIR_SEMANTIC_CANDIDATE_IDENTITY_CONTRACT = (
         "v51: unsupported free-text risk-kind inference may not rewrite or "
