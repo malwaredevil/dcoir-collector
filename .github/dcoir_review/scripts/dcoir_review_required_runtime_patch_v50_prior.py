@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import zipfile
+from pathlib import Path
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v41_review_state as v41_state
@@ -49,6 +51,41 @@ def _debug_artifact_payload(gh: Any, pr_number: int, run_id: str) -> bytes:
 
 def _indeterminate(reason: str, prior_count: int = 0) -> dict[str, Any]:
     return state._indeterminate(reason, prior_count)
+
+
+def persist_gate_state(module: Any, config: Any, value: dict[str, Any]) -> bool:
+    """Persist the small gate contract even when verbose debug output is disabled."""
+    sanitizer = getattr(getattr(module, "base", None), "sanitize_debug_json_value", None)
+    if not callable(sanitizer):
+        return False
+    try:
+        safe_value = sanitizer(value, config)
+    except Exception:
+        return False
+    if safe_value != value:
+        return False
+    try:
+        text = json.dumps(value, indent=2, sort_keys=True) + "\n"
+        if json.loads(text) != value:
+            return False
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return False
+    if len(text.encode("utf-8")) > v43_reuse.MAX_ARTIFACT_BYTES:
+        return False
+    raw_root = (
+        os.environ.get(v43_reuse.ARTIFACT_DIR_ENV, "").strip()
+        or v43_reuse.ARTIFACT_DIR_DEFAULT
+    )
+    root = Path(raw_root).resolve(strict=False)
+    path = (root / state.STATE_ARTIFACT_PATH).resolve(strict=False)
+    if root not in path.parents:
+        return False
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    except OSError:
+        return False
+    return True
 
 
 def load_prior_gate_context(module: Any, gh: Any, pr: dict[str, Any]) -> dict[str, Any]:
