@@ -2,10 +2,10 @@
 
 The scheduler preserves complete first-attempt coverage while avoiding an
 unbounded executor queue at a concurrency level that OpenRouter has already
-signaled is too aggressive for the account's current in-flight credit window.
-It never cancels already-running work and never increases concurrency during a
-run. Only the caller-supplied transient-saturation predicate may reduce the
-active feed window.
+signaled is too aggressive for the current in-flight credit window. It never
+cancels already-running work and never increases concurrency during a run.
+Only the caller-supplied transient-saturation predicate may reduce the active
+feed window.
 """
 
 from __future__ import annotations
@@ -15,6 +15,10 @@ import threading
 from collections import deque
 from collections.abc import Callable
 from typing import Any
+
+
+Task = tuple[int, dict[str, Any]]
+SaturationFailure = tuple[int, dict[str, Any], str]
 
 
 class CreditAwareThreadPoolExecutor:
@@ -83,11 +87,10 @@ class CreditAwareThreadPoolExecutor:
 
         if inner.cancelled():
             outer.cancel()
-            return
-        if error is not None:
+        elif error is not None:
             outer.set_exception(error)
-            return
-        outer.set_result(inner.result())
+        else:
+            outer.set_result(inner.result())
 
     def shutdown(self, wait: bool = True) -> None:
         with self._lock:
@@ -104,3 +107,187 @@ class CreditAwareThreadPoolExecutor:
                 "primary_concurrency_reduction_count": self._reduction_count,
                 "primary_saturation_event_count": self._saturation_event_count,
             }
+
+
+def _path(context: dict[str, Any]) -> str:
+    return str(context.get("path", "") or "")
+
+
+def run_credit_aware_primary_wave(
+    contexts: list[dict[str, Any]],
+    worker: Callable[[int, dict[str, Any]], dict[str, Any]],
+    *,
+    configured_concurrency: int,
+    adaptive: bool,
+    is_saturation_error: Callable[[Exception], bool],
+    reporter: Any,
+    hardened: Any,
+    config: Any,
+    safe_artifact_name: Callable[[str, str], str],
+) -> dict[str, Any]:
+    """Run every first attempt while reducing future feed rate after saturation."""
+
+    executor = CreditAwareThreadPoolExecutor(
+        max_workers=min(max(1, int(configured_concurrency)), len(contexts)),
+        adaptive=adaptive,
+        is_saturation_error=is_saturation_error,
+    )
+    results: list[dict[str, Any]] = []
+    failures: list[str] = []
+    saturation_failures: list[SaturationFailure] = []
+
+    with executor:
+        future_map = {
+            executor.submit(worker, index, context): (index, context)
+            for index, context in enumerate(contexts, start=1)
+        }
+        for future in concurrent.futures.as_completed(future_map):
+            index, context = future_map[future]
+            path = _path(context)
+            try:
+                results.append(future.result())
+                reporter.update("per-file-result", f"{path}: completed")
+            except Exception as exc:
+                if is_saturation_error(exc):
+                    saturation_failures.append((index, context, str(exc)))
+                    hardened.write_debug_json_artifact_safely(
+                        config,
+                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-transient-saturation.json",
+                        {"path": path, "error": str(exc), "recovery": "queued-for-low-concurrency-retry"},
+                    )
+                    reporter.update(
+                        "per-file-result",
+                        f"{path}: transient in-flight-credit saturation; queued for bounded recovery",
+                    )
+                else:
+                    failures.append(f"{path}: {str(exc)[:240]}")
+                    hardened.write_debug_json_artifact_safely(
+                        config,
+                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
+                        {"path": path, "error": str(exc)},
+                    )
+                    reporter.update(
+                        "per-file-result",
+                        f"{path}: failed; coverage will fail closed after remaining files complete",
+                    )
+
+    telemetry = executor.telemetry()
+    telemetry["configured_primary_concurrency"] = max(1, int(configured_concurrency))
+    if int(telemetry["primary_concurrency_reduction_count"]) > 0:
+        reporter.update(
+            "per-file-concurrency",
+            (
+                "transient in-flight-credit saturation reduced the primary feed window "
+                f"from {telemetry['initial_primary_concurrency']} to {telemetry['final_primary_concurrency']}"
+            ),
+        )
+    return {
+        "results": results,
+        "failures": failures,
+        "saturation_failures": saturation_failures,
+        "telemetry": telemetry,
+    }
+
+
+def run_bounded_saturation_recovery(
+    saturation_failures: list[SaturationFailure],
+    worker: Callable[[int, dict[str, Any]], dict[str, Any]],
+    *,
+    recovery_concurrency: int,
+    is_saturation_error: Callable[[Exception], bool],
+    reporter: Any,
+    hardened: Any,
+    config: Any,
+    safe_artifact_name: Callable[[str, str], str],
+) -> dict[str, Any]:
+    """Retain v40 low-concurrency then one-final-serial recovery semantics."""
+
+    if not saturation_failures:
+        return {
+            "results": [],
+            "failures": [],
+            "low_concurrency_recovered_file_count": 0,
+            "serial_recovered_saturation_file_count": 0,
+        }
+
+    recovery_workers = max(1, min(int(recovery_concurrency), len(saturation_failures)))
+    reporter.update(
+        "per-file-recovery",
+        (
+            f"parallel wave settled; retrying {len(saturation_failures)} transient in-flight-credit "
+            f"saturation failure(s) with recovery concurrency={recovery_workers}"
+        ),
+    )
+    results: list[dict[str, Any]] = []
+    failures: list[str] = []
+    serial_saturation_failures: list[SaturationFailure] = []
+    low_recovered = 0
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=recovery_workers) as recovery_executor:
+        future_map = {
+            recovery_executor.submit(worker, index, context): (index, context, initial_error)
+            for index, context, initial_error in saturation_failures
+        }
+        for future in concurrent.futures.as_completed(future_map):
+            index, context, initial_error = future_map[future]
+            path = _path(context)
+            try:
+                results.append(future.result())
+                low_recovered += 1
+                reporter.update("per-file-recovery", f"{path}: recovered at low concurrency")
+            except Exception as exc:
+                if is_saturation_error(exc):
+                    serial_saturation_failures.append((index, context, str(exc)))
+                    reporter.update(
+                        "per-file-recovery",
+                        f"{path}: still saturated; queued for one final serial recovery attempt",
+                    )
+                else:
+                    failures.append(f"{path}: {str(exc)[:240]}")
+                    hardened.write_debug_json_artifact_safely(
+                        config,
+                        f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
+                        {
+                            "path": path,
+                            "initial_error": initial_error,
+                            "recovery_error": str(exc),
+                            "recovery": "low-concurrency-retry-failed",
+                        },
+                    )
+                    reporter.update("per-file-recovery", f"{path}: low-concurrency recovery failed")
+
+    serial_recovered = 0
+    if serial_saturation_failures:
+        reporter.update(
+            "per-file-recovery",
+            (
+                "low-concurrency recovery wave settled; serially retrying "
+                f"{len(serial_saturation_failures)} still-saturated file(s) once"
+            ),
+        )
+        for index, context, recovery_error in serial_saturation_failures:
+            path = _path(context)
+            try:
+                results.append(worker(index, context))
+                serial_recovered += 1
+                reporter.update("per-file-recovery", f"{path}: recovered serially")
+            except Exception as exc:
+                failures.append(f"{path}: {str(exc)[:240]}")
+                hardened.write_debug_json_artifact_safely(
+                    config,
+                    f"responses/per-file/{index:02d}-{safe_artifact_name(path, f'file-{index:02d}')}-error.json",
+                    {
+                        "path": path,
+                        "initial_error": recovery_error,
+                        "recovery_error": str(exc),
+                        "recovery": "final-serial-retry-failed",
+                    },
+                )
+                reporter.update("per-file-recovery", f"{path}: final serial recovery failed")
+
+    return {
+        "results": results,
+        "failures": failures,
+        "low_concurrency_recovered_file_count": low_recovered,
+        "serial_recovered_saturation_file_count": serial_recovered,
+    }
