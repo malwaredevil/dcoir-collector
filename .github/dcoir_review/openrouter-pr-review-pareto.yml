@@ -114,6 +114,12 @@ verifier_authoritative_publication_review: true
 # without duplicating inline comments; missing trusted state fails closed.
 verified_finding_gate_state_review: true
 
+# v51 prevents free-text risk-kind heuristics from rewriting an ordinary semantic
+# candidate before required-sentinel ranking/selection unless explicit sentinel or
+# anchored source-line provenance supports that risk kind. Candidate IDs and
+# selection/verifier provenance are recorded in debug artifacts.
+semantic_candidate_identity_review: true
+
 # v46 builds one exact-head semantic context package for all downstream review
 # projections. Only trusted, low-risk, small incremental scopes receive the
 # reduced prompt/context budget; initial, deep, risky, stale, cumulative, and
@@ -201,6 +207,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v46_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v50_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v50_publication_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v51_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v47_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v48_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_architecture_b_benchmark_selftest.py
