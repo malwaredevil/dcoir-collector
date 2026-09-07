@@ -98,7 +98,7 @@ def config(enabled: bool = True):
 def blocked_prior() -> dict[str, object]:
     return {
         "status": "blocked",
-        "carried_records": [prior_record("src/b.py", 20, "B")],
+        "carried_records": state.carry_records([prior_record("src/b.py", 20, "B")], set(), NEW_HEAD),
         "reason": "trusted-v50-gate-state",
         "source": "v50-state",
         "indeterminate_prior_count": 0,
