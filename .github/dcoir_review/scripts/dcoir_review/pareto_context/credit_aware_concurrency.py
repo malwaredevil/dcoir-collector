@@ -70,10 +70,15 @@ class CreditAwareThreadPoolExecutor:
             inner.add_done_callback(self._on_done)
 
     def _on_done(self, inner: concurrent.futures.Future[Any]) -> None:
-        error = inner.exception()
-
         with self._lock:
-            outer = self._active.pop(inner)
+            outer = self._active.pop(inner, None)
+            if inner.cancelled():
+                self._dispatch_locked()
+                if outer is not None:
+                    outer.cancel()
+                return
+
+            error = inner.exception()
             if isinstance(error, Exception) and self._is_saturation_error(error):
                 self._saturation_event_count += 1
                 if self._adaptive and self._current_limit > 1:
@@ -82,9 +87,9 @@ class CreditAwareThreadPoolExecutor:
                     self._reduction_count += 1
             self._dispatch_locked()
 
-        if inner.cancelled():
-            outer.cancel()
-        elif error is not None:
+        if outer is None:
+            return
+        if error is not None:
             outer.set_exception(error)
         else:
             outer.set_result(inner.result())

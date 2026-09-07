@@ -162,6 +162,22 @@ def test_repeated_saturation_can_reduce_to_serial() -> None:
     assert telemetry["minimum_primary_concurrency"] == 1
 
 
+def test_cancelled_inner_future_cancels_outer_future() -> None:
+    executor = CreditAwareThreadPoolExecutor(
+        1,
+        adaptive=True,
+        is_saturation_error=is_saturation_error,
+    )
+    with executor:
+        outer = concurrent.futures.Future()
+        inner = concurrent.futures.Future()
+        executor._active[inner] = outer
+        assert inner.cancel()
+        executor._on_done(inner)
+        assert outer.cancelled()
+    assert executor.telemetry()["final_primary_concurrency"] == 1
+
+
 def test_non_transient_and_disabled_behavior() -> None:
     executor = CreditAwareThreadPoolExecutor(
         2,
