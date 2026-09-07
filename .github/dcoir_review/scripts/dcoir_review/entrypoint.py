@@ -82,16 +82,22 @@ class DcoirReviewEntrypoint:
     # v44-v46 remain the Architecture-B post-terminal semantic contract:
     # candidate-scoped escalation, verifier-authoritative publication, and one
     # canonical semantic context package with fail-safe adaptive budgets. v50
-    # preserves unresolved verifier-supported findings across compatible
-    # incremental reviewed-head runs. v51 then protects ordinary semantic
-    # candidate identity from unsupported free-text risk-kind inference before
-    # required-sentinel ranking/selection. Capability gating keeps historical
-    # probe objects and explicit subset tests from receiving implicit overlays.
+    # then preserves unresolved verifier-supported findings across compatible
+    # incremental reviewed-head runs without re-posting unchanged inline comments.
+    # Capability gating keeps historical probe objects and explicit subset tests
+    # from receiving implicit overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v44',
         'dcoir_review_required_runtime_patch_v45',
         'dcoir_review_required_runtime_patch_v46',
         'dcoir_review_required_runtime_patch_v50',
+    )
+    # Candidate-integrity overlays are cross-cutting semantic guards installed
+    # after the composed Architecture-B post-terminal contract but before stage-
+    # local provider routing. v51 protects ordinary candidate identity from
+    # unsupported free-text risk-kind inference while leaving deterministic
+    # sentinel coverage and verifier authority intact.
+    candidate_integrity_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v51',
     )
     # Stage-local routing overlays are deliberately separate from Architecture-B
@@ -137,6 +143,7 @@ class DcoirReviewEntrypoint:
         self._apply_patch_modules(review_module, self.terminal_patch_module_names)
         if callable(getattr(review_module, "openrouter_review_with_hybrid_first_pass", None)):
             self._apply_patch_modules(review_module, self.post_terminal_patch_module_names)
+            self._apply_patch_modules(review_module, self.candidate_integrity_patch_module_names)
             self._apply_patch_modules(review_module, self.stage_local_patch_module_names)
             self._apply_patch_modules(review_module, self.execution_policy_patch_module_names)
 
