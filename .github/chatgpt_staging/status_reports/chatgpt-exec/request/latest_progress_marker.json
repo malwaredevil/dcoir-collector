@@ -1,15 +1,15 @@
 {
-  "artifact_name": "chatgpt-exec-issue484-pr501-post-dcoir-split-response-action-exact-head-validation-v1-20260908T1042Z",
-  "exit_code": "0",
+  "artifact_name": "",
+  "exit_code": "",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
-  "github_run_id": "34216820556",
-  "github_sha": "2d81c3a12b7d6ce77801f57b7e51a0dc79f21b65",
-  "phase": "final-readback-commit",
+  "github_run_id": "34221542611",
+  "github_sha": "15a8e711d088db80bcd906971118fc5d89b5f41e",
+  "phase": "request-resolved",
   "request_id": "request",
   "request_path": ".github/chatgpt_staging/exec_requests/request.json",
-  "result": "success",
+  "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T10:42:29Z",
+  "updated_utc": "2026-09-08T11:36:13Z",
   "workflow": "chatgpt-exec"
 }
