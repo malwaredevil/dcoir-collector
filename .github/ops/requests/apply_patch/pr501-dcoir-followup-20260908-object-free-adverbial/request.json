@@ -5,7 +5,7 @@
   "operation": "apply",
   "target_branch": "issue-484-lane-separation-scoring",
   "patch_path": ".github/ops/requests/apply_patch/pr501-dcoir-followup-20260908-object-free-adverbial/change.diff",
-  "expected_patch_sha256": "95c4a43e74c8110bc97e26de22c2b94922b75cc9c439f0a8abfe386578c3bfe2",
+  "expected_patch_sha256": "01acf23fd9d5e42132020d0ece7a4a56963f13e521c5f3bbc73a52c582183626",
   "targets": [
     {
       "path": "project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
