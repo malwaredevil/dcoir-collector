@@ -247,9 +247,36 @@ def _segment_has_lane_relation_scope(segment: str) -> bool:
     )
 
 
+def _shared_context_trailing_lane_relation(
+    text: str,
+    end: int,
+    leading_scope: str,
+) -> bool:
+    suffix = text[end:min(len(text), end + 140)]
+    terminator = re.search(r"[.!?;]", suffix)
+    if terminator:
+        suffix = suffix[:terminator.start()]
+    relation = re.match(
+        r"^\s+(?:as|with)\s+(?:the\s+)?(?P<target>.+?)\s*$",
+        suffix,
+    )
+    if not relation:
+        return False
+    target = relation.group("target")
+    leading_endpoint = _clause_has_endpoint_lane(leading_scope)
+    leading_local = _clause_has_local_lane(leading_scope)
+    target_endpoint = _clause_has_endpoint_lane(target)
+    target_local = _clause_has_local_lane(target)
+    return bool(
+        (leading_endpoint and target_local)
+        or (leading_local and target_endpoint)
+    )
+
+
 def _occurrence_has_direct_shared_context_negation(
     text: str,
     start: int,
+    end: int,
 ) -> bool:
     prefix = text[max(0, start - 180):start]
     direct_use = re.search(
@@ -268,10 +295,12 @@ def _occurrence_has_direct_shared_context_negation(
     if not scoped_action:
         return False
     scope = prefix[scoped_action.start():]
-    return bool(
+    if (
         (_clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope))
         or re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", scope)
-    )
+    ):
+        return True
+    return _shared_context_trailing_lane_relation(text, end, scope)
 
 
 def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
@@ -282,7 +311,9 @@ def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str
             continue
         if _occurrence_is_rejected_after(text, occurrence.end()):
             continue
-        if _occurrence_has_direct_shared_context_negation(text, occurrence.start()):
+        if _occurrence_has_direct_shared_context_negation(
+            text, occurrence.start(), occurrence.end()
+        ):
             continue
         yield occurrence
 
@@ -348,6 +379,7 @@ def _segment_has_negated_shared_context(segment: str) -> bool:
             if _occurrence_has_direct_shared_context_negation(
                 segment,
                 occurrence.start(),
+                occurrence.end(),
             ):
                 return True
     return False
@@ -407,12 +439,34 @@ def _separate_occurrence_targets_lane(
     return False
 
 
+def _occurrence_has_lane_relation_rejection(text: str, start: int) -> bool:
+    prefix = text[max(0, start - 160):start]
+    return bool(
+        re.search(
+            r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+            r"[^.!?;]{0,140}$",
+            prefix,
+        )
+    )
+
+
 def _segment_has_relational_lane_separation(segment: str) -> bool:
     if not _segment_has_lane_relation_scope(segment):
         return False
     if _find_contextual_term_hits(
         segment,
-        ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
+        [
+            "do not mix",
+            "don't mix",
+            "dont mix",
+            "must not mix",
+            "should not mix",
+            "do not combine",
+            "don't combine",
+            "dont combine",
+            "must not combine",
+            "should not combine",
+        ],
         skip_negated=True,
         skip_quoted=True,
     ):
@@ -428,6 +482,8 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
         return True
 
     for occurrence in _assertive_phrase_occurrences(segment, "separate"):
+        if _occurrence_has_lane_relation_rejection(segment, occurrence.start()):
+            continue
         if _separate_occurrence_targets_lane(segment, occurrence):
             return True
     return False

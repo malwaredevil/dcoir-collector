@@ -34,6 +34,13 @@ def main() -> int:
         "response-scope no-mix relationship",
     )
     _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Do not combine these two lanes.",
+        True,
+        "response-scope no-combine relationship",
+    )
+    _expect(
         "Use a separate log folder, but run endpoint response-action commands and local "
         "PowerShell in the same shell.",
         False,
@@ -60,10 +67,40 @@ def main() -> int:
         "rejected no-mix assertion",
     )
     _expect(
+        "It is wrong to say endpoint response-action commands are separate from local "
+        "workstation PowerShell.",
+        False,
+        "rejected separation assertion",
+    )
+    _expect(
+        "It would be misleading to say endpoint response-action commands are separate "
+        "from local workstation PowerShell.",
+        False,
+        "misleading separation assertion",
+    )
+    _expect(
         "Do not run endpoint response-action commands and local workstation PowerShell "
         "in the same shell.",
         True,
         "negated shared-shell relation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as local "
+        "workstation PowerShell.",
+        True,
+        "trailing-lane shared-shell negation",
+    )
+    _expect(
+        "Do not run local workstation PowerShell in the same shell as endpoint "
+        "response-action commands.",
+        True,
+        "trailing-endpoint shared-shell negation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell, and local "
+        "workstation PowerShell runs the collector directly.",
+        False,
+        "unbound trailing lane does not imply separation",
     )
     _expect(
         "Do not use the same shell for endpoint response-action commands and local "
