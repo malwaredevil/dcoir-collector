@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue484-pr501-review-findings-repair-v2-20260908T1538Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "34245759994",
   "github_sha": "7e015940b2b2b613762760cd2b5f1b937abd30ae",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue484-pr501-review-findings-repair-v2-20260908T1538Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-review-findings-repair-v2-20260908T1538Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T15:36:08Z",
+  "updated_utc": "2026-09-08T15:36:20Z",
   "workflow": "chatgpt-exec"
 }
