@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "branch-cleanup-test-494-post497-v2-20260908T1416Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-08T14:16:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Delete only the already-verified obsolete remote branch test-494-dcoir-production-acceptance-post497 and verify the ref is gone.",
+  "command": "$ErrorActionPreference='Stop'\n$repo=[Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\nif([string]::IsNullOrWhiteSpace($repo)){$repo=$env:GITHUB_WORKSPACE}\n$branch='test-494-dcoir-production-acceptance-post497'\n$ref=('refs/heads/'+$branch)\n$before=(git -C $repo ls-remote --heads origin $ref)\nif([string]::IsNullOrWhiteSpace(($before -join ''))){Write-Host 'BRANCH_ALREADY_ABSENT=true';exit 0}\ngit -C $repo push origin --delete $branch\nif($LASTEXITCODE -ne 0){throw 'branch deletion failed'}\n$after=(git -C $repo ls-remote --heads origin $ref)\nif(-not [string]::IsNullOrWhiteSpace(($after -join ''))){throw 'branch still exists after deletion'}\nWrite-Host 'BRANCH_DELETED=true'\n"
+}
