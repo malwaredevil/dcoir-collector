@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue484-pr501-copilot-fix-validation-20260908T1504Z",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue484-pr501-copilot-fix-validation-20260908T1504Z",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34242152290",
+  "github_run_attempt": "1",
+  "github_sha": "5164fe30aed23fcffc53235e9e709df82b15501e",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-08T15:02:50Z"
+}
