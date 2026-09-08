@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34236560149",
   "github_sha": "62c17a52c6016b457f8be2f0326493ba68b507e9",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-dcoir-misleading-nomix-fix-v5-20260908T1412Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-dcoir-misleading-nomix-fix-v5-20260908T1412Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T14:10:42Z",
+  "updated_utc": "2026-09-08T14:10:45Z",
   "workflow": "chatgpt-exec"
 }
