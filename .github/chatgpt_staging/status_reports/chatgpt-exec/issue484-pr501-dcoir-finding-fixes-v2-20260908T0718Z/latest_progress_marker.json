@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34198588810",
   "github_sha": "3fd957032911c37a81a0d0a7a690fb3da4eddebc",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-dcoir-finding-fixes-v2-20260908T0718Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-dcoir-finding-fixes-v2-20260908T0718Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T07:17:39Z",
+  "updated_utc": "2026-09-08T07:17:41Z",
   "workflow": "chatgpt-exec"
 }
