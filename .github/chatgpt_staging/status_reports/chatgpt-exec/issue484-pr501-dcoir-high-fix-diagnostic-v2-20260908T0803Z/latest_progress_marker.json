@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34202503274",
   "github_sha": "5b522372b71d354392ca4fbce07b8f2c6df82c96",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-dcoir-high-fix-diagnostic-v2-20260908T0803Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-dcoir-high-fix-diagnostic-v2-20260908T0803Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T08:04:25Z",
+  "updated_utc": "2026-09-08T08:04:29Z",
   "workflow": "chatgpt-exec"
 }
