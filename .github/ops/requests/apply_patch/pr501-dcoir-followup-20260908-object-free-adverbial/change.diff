@@ -1,10 +1,7 @@
 diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
 --- a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
 +++ b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
-@@ -543,9 +543,34 @@ def _bounded_no_mix_relation_sides(
-     return normalize_text(before), normalize_text(after)
- 
- 
+@@ -529,6 +529,38 @@
 -_NO_MIX_ELIDED_TRAILING_SCOPE_PATTERN = re.compile(
 -    r"(?:together|at\s+all|with\s+each\s+other)"
 +_NO_MIX_OBJECT_FREE_ADVERB_PATTERN = re.compile(
@@ -12,8 +9,8 @@ diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.p
 +    r"ever|again|anymore|anywhere|anytime|elsewhere|here|there|now|today|"
 +    r"tonight|henceforth|always|together)"
  )
- 
- 
++
++
 +_NO_MIX_ADVERBIAL_PREPOSITION_PATTERN = re.compile(
 +    r"^(?:at|under|during|within|throughout|for|in|outside|beyond|after|"
 +    r"before|until|by|without)\b"
@@ -36,15 +33,16 @@ diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.p
 +    if normalized == "with each other":
 +        return True
 +    tokens = normalized.split()
-+    if tokens and all(_NO_MIX_OBJECT_FREE_ADVERB_PATTERN.fullmatch(token) for token in tokens):
++    if tokens and all(
++        _NO_MIX_OBJECT_FREE_ADVERB_PATTERN.fullmatch(token)
++        for token in tokens
++    ):
 +        return True
 +    return bool(_NO_MIX_ADVERBIAL_PREPOSITION_PATTERN.match(normalized))
-+
-+
+ 
+ 
  def _no_mix_scope_targets_lane_relation(scope: str) -> bool:
-     referential_scope = re.sub(r"^(?:up\s+)?", "", scope).strip()
-     if re.fullmatch(
-@@ -564,7 +589,7 @@ def _no_mix_occurrence_targets_lane_relation(
+@@ -548,6 +580,6 @@
      before, after = _bounded_no_mix_relation_sides(text, occurrence)
      if _no_mix_scope_targets_lane_relation(after):
          return True
@@ -52,15 +50,13 @@ diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.p
 +    if not _no_mix_trailing_scope_is_object_free_modifier(after):
          return False
      return _no_mix_scope_targets_lane_relation(before)
- 
 diff --git a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
 --- a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
 +++ b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
-@@ -375,6 +375,42 @@ def main() -> int:
-         True,
+@@ -379,6 +379,41 @@
          "subject-position lane no-mix with trailing at-all modifier remains accepted",
      )
-+    _expect(
+     _expect(
 +        "Endpoint response-action syntax and local workstation PowerShell must not mix ever.",
 +        True,
 +        "subject-position lane no-mix accepts an irregular trailing adverb",
@@ -95,6 +91,7 @@ diff --git a/project_sources/gemini/tools/validate_gemini_lane_separation_scorin
 +        False,
 +        "with-object complement cannot borrow the leading lane relationship",
 +    )
-     _expect(
++    _expect(
          "Do not mix endpoint response-action syntax and local workstation PowerShell.",
          True,
+         "direct endpoint-local no-mix relationship remains accepted",
