@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: success
+- phase: harness-finished
 - request_id: issue484-pr501-postadva-exact-head-validation-20260908T0632Z
 - request_path: .github/chatgpt_staging/exec_requests/issue484-pr501-postadva-exact-head-validation-20260908T0632Z.json
 - github_run_id: 34195034537
@@ -18,9 +18,11 @@
 - github_sha: 3f2bae02cf7c5a04c9de33078390ec21e549b715
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34195034537
-- report_updated_utc: 2026-09-08T06:31:52Z
+- report_updated_utc: 2026-09-08T06:32:06Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-postadva-exact-head-validation-20260908T0632Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-postadva-exact-head-validation-20260908T0632Z/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue484-pr501-postadva-exact-head-validation-20260908T0632Z
+- exit_code: 0
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-09-08T06:31:49Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-08T06:31:52Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-08T06:32:06Z | phase=harness-finished | result=success | Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
