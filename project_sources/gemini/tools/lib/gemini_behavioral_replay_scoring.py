@@ -231,6 +231,33 @@ _SHARED_CONTEXT_TERMS = (
     "single command",
     "same lane",
 )
+_LANE_TARGET_HEAD_MODIFIERS = frozenset(
+    {
+        "a",
+        "an",
+        "the",
+        "my",
+        "your",
+        "our",
+        "their",
+        "his",
+        "her",
+        "its",
+        "this",
+        "that",
+        "these",
+        "those",
+        "any",
+        "each",
+        "every",
+        "either",
+        "neither",
+        "both",
+        "all",
+        "some",
+        "one",
+    }
+)
 
 
 def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
@@ -282,15 +309,23 @@ def _shared_context_trailing_lane_relation(
 
     target = normalize_text(relation.group("target"))
     tokens = re.findall(r"[a-z0-9-]+", target)
+    target_head_tokens = list(tokens)
+    while (
+        target_head_tokens
+        and target_head_tokens[0] in _LANE_TARGET_HEAD_MODIFIERS
+    ):
+        target_head_tokens = target_head_tokens[1:]
+
     target_starts_endpoint = bool(
-        tokens
+        target_head_tokens
         and (
-            tokens[0] in {"endpoint", "response-action"}
-            or tokens[:2] == ["response", "action"]
+            target_head_tokens[0] in {"endpoint", "response-action"}
+            or target_head_tokens[:2] == ["response", "action"]
         )
     )
     target_starts_local = bool(
-        tokens and tokens[0] in {"local", "workstation"}
+        target_head_tokens
+        and target_head_tokens[0] in {"local", "workstation"}
     )
 
     target_local = False

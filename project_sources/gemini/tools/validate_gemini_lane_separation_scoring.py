@@ -97,6 +97,36 @@ def main() -> int:
         "trailing-endpoint shared-shell negation",
     )
     _expect(
+        "Do not run endpoint response-action commands in the same shell as your local "
+        "PowerShell commands.",
+        True,
+        "possessive trailing-local shared-shell negation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as my local "
+        "PowerShell commands.",
+        True,
+        "first-person possessive trailing-local shared-shell negation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as her local "
+        "PowerShell commands.",
+        True,
+        "third-person possessive trailing-local shared-shell negation",
+    )
+    _expect(
+        "Do not run local workstation PowerShell in the same shell as an endpoint "
+        "response-action console.",
+        True,
+        "article trailing-endpoint shared-shell negation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as my local "
+        "response-action tooling and PowerShell commands.",
+        False,
+        "possessive target cannot hide endpoint contamination",
+    )
+    _expect(
         "Do not run endpoint response-action commands in the same shell, and local "
         "workstation PowerShell runs the collector directly.",
         False,
