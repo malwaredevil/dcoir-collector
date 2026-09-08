@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34205817048",
   "github_sha": "2eb8dc266b0cfa31cd6efa0321fdab68056ea4cd",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-dcoir-medium-target-modifier-fix-v1-20260908T0846Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-dcoir-medium-target-modifier-fix-v1-20260908T0846Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T08:41:14Z",
+  "updated_utc": "2026-09-08T08:41:17Z",
   "workflow": "chatgpt-exec"
 }
