@@ -257,6 +257,20 @@ def main() -> int:
     _expect(
         "Endpoint response-action execution uses execute --command. "
         "Local workstation PowerShell runs the collector. "
+        "Run them in the same shell. Keep these two lanes separate.",
+        False,
+        "pronominal shared-shell mix after lane establishment",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Do not run them in the same shell. Keep these two lanes separate.",
+        True,
+        "negated pronominal shared-shell action does not create lane mixing",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
         "Do not use the same shell for these two lanes.",
         True,
         "referential negated shared-shell relation",
