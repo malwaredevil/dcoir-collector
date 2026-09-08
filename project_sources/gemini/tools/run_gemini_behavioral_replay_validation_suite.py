@@ -399,6 +399,15 @@ def run_mode_mismatch(fixtures_root: Path) -> None:
         raise SystemExit("Deterministic response pack unexpectedly passed a live_gemini expected-mode check.")
 
 
+def run_lane_separation_scoring_selftests() -> None:
+    run(
+        [
+            sys.executable,
+            "project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py",
+        ]
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixtures-root", type=Path, default=Path("project_sources/gemini/fixtures/behavioral_replay"))
@@ -417,6 +426,7 @@ def main() -> int:
         ]
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
+    run_lane_separation_scoring_selftests()
     run_known_good(args.fixtures_root, args.output_dir)
     run(
         [

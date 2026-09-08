@@ -300,6 +300,28 @@ def main() -> int:
         True,
         "comma boundary preserves affirmative no-mix instruction",
     )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Do not run them separately, run them in the same shell. "
+        "Keep these two lanes separate.",
+        False,
+        "nearest pronominal action governs shared-context mix verdict",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Keep them in the same order in your report and never run them in the same shell. "
+        "Keep these two lanes separate.",
+        True,
+        "nearer pronominal negation governs shared-context mix verdict",
+    )
+    _expect(
+        "Although it is misleading to say these tools are interchangeable, keep endpoint "
+        "response-action commands separate from local workstation PowerShell.",
+        True,
+        "comma boundary preserves affirmative separate instruction",
+    )
     print("Gemini execution-lane separation scoring regressions passed.")
     return 0
 

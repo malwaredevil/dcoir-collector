@@ -515,15 +515,21 @@ def _clause_has_explicit_lane_mix(clause: str) -> bool:
 
 
 def _clause_has_pronominal_shared_context_mix(clause: str) -> bool:
+    action_pattern = re.compile(
+        r"\b(?P<negated>(?:(?:do not|don't|dont|must not|should not|never|avoid)\s+)?)"
+        r"(?:run|execute|place|put|use|keep)\s+(?:them|both)\b"
+    )
     for term in _SHARED_CONTEXT_TERMS:
         for occurrence in _assertive_phrase_occurrences(clause, term):
             prefix = clause[max(0, occurrence.start() - 120):occurrence.start()]
-            action = re.search(
-                r"\b(?P<negated>(?:(?:do not|don't|dont|must not|should not|never|avoid)\s+)?)"
-                r"(?:run|execute|place|put|use|keep)\s+(?:them|both)\b"
-                r"[^.!?;]{0,80}$",
-                prefix,
-            )
+            action = None
+            for candidate in action_pattern.finditer(prefix):
+                trailing = prefix[candidate.end():]
+                if len(trailing) > 80:
+                    continue
+                if any(char in ".!?;" for char in trailing):
+                    continue
+                action = candidate
             if action and not action.group("negated"):
                 return True
     return False
@@ -688,7 +694,7 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
         return True
 
     for occurrence in _assertive_phrase_occurrences(segment, "separate"):
-        if _occurrence_has_lane_relation_rejection(segment, occurrence.start()):
+        if _occurrence_has_local_lane_relation_rejection(segment, occurrence.start()):
             continue
         if _separate_occurrence_targets_lane(segment, occurrence):
             return True
