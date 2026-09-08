@@ -8,7 +8,8 @@
 # Do not use when:
 # - Do not use for unapproved commands, local workstation actions, destructive commands without an explicit request contract, or simple readable repo edits better handled by a bundle.
 # Trigger model:
-# - workflow_dispatch inputs: request_path; push branches: main paths: .github/chatgpt_staging/exec_requests/*.json
+# - workflow_dispatch inputs: request_path; push branches: main, agent-ops paths: .github/chatgpt_staging/exec_requests/*.json
+# - The persistent agent-ops control branch exists so connector-driven agents can stage explicitly approved exec requests without moving main or requiring a manual workflow_dispatch click.
 # Required inputs:
 # - request_path: Repo-relative exec request JSON under .github/chatgpt_staging/exec_requests/ default=.github/chatgpt_staging/exec_requests/request.json
 # Required secrets/config:
@@ -20,7 +21,7 @@
 # Safety notes:
 # - Request path must match .github/chatgpt_staging/exec_requests/<safe-id>.json; approved command preview and operator_approved=true must be in the request; secrets are bridged by name only.
 # Maintenance notes:
-# - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
+# - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, cleanup, or safety checks change.
 # - Keep this header aligned with current repo-root GitHub guidance and the active `ircore` operating model when authority or routing language changes.
 # Authority routing:
 # - GitHub is canonical for workflow/source truth and this header owns workflow-specific execution guidance.
@@ -40,6 +41,7 @@ on:
   push:
     branches:
       - main
+      - agent-ops
     paths:
       - ".github/chatgpt_staging/exec_requests/*.json"
 
