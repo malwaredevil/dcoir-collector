@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34212528900",
   "github_sha": "0b97e66743a2642af378709625076a0158bc7981",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue484-pr501-codi-boundary-hardening-20260908T0955Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-codi-boundary-hardening-20260908T0955Z.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T09:54:39Z",
+  "updated_utc": "2026-09-08T09:54:41Z",
   "workflow": "chatgpt-exec"
 }
