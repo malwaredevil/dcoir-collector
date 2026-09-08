@@ -91,6 +91,12 @@ def main() -> int:
         "trailing-lane shared-shell negation",
     )
     _expect(
+        "Avoid using the same shell for endpoint response-action commands and local "
+        "PowerShell.",
+        True,
+        "avoid-using shared-shell negation",
+    )
+    _expect(
         "Do not run local workstation PowerShell in the same shell as endpoint "
         "response-action commands.",
         True,
