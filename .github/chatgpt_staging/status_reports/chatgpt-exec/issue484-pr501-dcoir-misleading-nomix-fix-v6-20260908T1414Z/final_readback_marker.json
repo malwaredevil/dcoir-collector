@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue484-pr501-dcoir-misleading-nomix-fix-v6-20260908T1414Z",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue484-pr501-dcoir-misleading-nomix-fix-v6-20260908T1414Z",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34236713174",
+  "github_run_attempt": "1",
+  "github_sha": "3956c928fa805b6e25962b311642b4486c80585f",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-08T14:12:24Z"
+}
