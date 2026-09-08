@@ -3,13 +3,13 @@
   "exit_code": "",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
-  "github_run_id": "34216460091",
-  "github_sha": "830c0f6628bb2ad7018229ac911abdbdf415f376",
-  "phase": "running-harness",
+  "github_run_id": "34216820556",
+  "github_sha": "2d81c3a12b7d6ce77801f57b7e51a0dc79f21b65",
+  "phase": "request-resolved",
   "request_id": "request",
   "request_path": ".github/chatgpt_staging/exec_requests/request.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T10:38:21Z",
+  "updated_utc": "2026-09-08T10:42:13Z",
   "workflow": "chatgpt-exec"
 }
