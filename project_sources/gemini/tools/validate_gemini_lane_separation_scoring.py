@@ -115,6 +115,36 @@ def main() -> int:
         "third-person possessive trailing-local shared-shell negation",
     )
     _expect(
+        "Do not run endpoint response-action commands in the same shell as your own local "
+        "PowerShell commands.",
+        True,
+        "possessive-intensifier trailing-local shared-shell negation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as another local "
+        "PowerShell command.",
+        True,
+        "unlisted-determiner trailing-local shared-shell negation",
+    )
+    _expect(
+        "Do not run local workstation PowerShell in the same shell as a dedicated endpoint "
+        "response-action console.",
+        True,
+        "adjectival trailing-endpoint shared-shell negation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as anything except "
+        "local PowerShell commands.",
+        False,
+        "exclusion operator cannot be skipped before local lane head",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as anything other "
+        "than local PowerShell commands.",
+        False,
+        "other-than exclusion cannot be skipped before local lane head",
+    )
+    _expect(
         "Do not run local workstation PowerShell in the same shell as an endpoint "
         "response-action console.",
         True,

@@ -231,33 +231,53 @@ _SHARED_CONTEXT_TERMS = (
     "single command",
     "same lane",
 )
-_LANE_TARGET_HEAD_MODIFIERS = frozenset(
+_LANE_TARGET_HEAD_BLOCKERS = frozenset(
     {
-        "a",
-        "an",
-        "the",
-        "my",
-        "your",
-        "our",
-        "their",
-        "his",
-        "her",
-        "its",
-        "this",
-        "that",
-        "these",
-        "those",
-        "any",
-        "each",
-        "every",
-        "either",
-        "neither",
-        "both",
-        "all",
-        "some",
-        "one",
+        "and",
+        "or",
+        "but",
+        "however",
+        "whereas",
+        "yet",
+        "then",
+        "except",
+        "excepting",
+        "excluding",
+        "excluded",
+        "without",
+        "unless",
+        "until",
+        "than",
+        "instead",
+        "rather",
+        "not",
+        "no",
+        "never",
+        "nor",
+        "apart",
+        "unlike",
+        "versus",
+        "vs",
+        "against",
     }
 )
+
+
+def _lane_target_head_index(tokens: List[str]) -> int | None:
+    scan_limit = min(len(tokens), 4)
+    for index in range(scan_limit):
+        token = tokens[index]
+        if token in _LANE_TARGET_HEAD_BLOCKERS:
+            return None
+        if token in {"endpoint", "response-action", "local", "workstation"}:
+            return index
+        if (
+            token == "response"
+            and index + 1 < scan_limit
+            and tokens[index + 1] == "action"
+        ):
+            return index
+    return None
 
 
 def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
@@ -309,12 +329,8 @@ def _shared_context_trailing_lane_relation(
 
     target = normalize_text(relation.group("target"))
     tokens = re.findall(r"[a-z0-9-]+", target)
-    target_head_tokens = list(tokens)
-    while (
-        target_head_tokens
-        and target_head_tokens[0] in _LANE_TARGET_HEAD_MODIFIERS
-    ):
-        target_head_tokens = target_head_tokens[1:]
+    head_index = _lane_target_head_index(tokens)
+    target_head_tokens = tokens[head_index:] if head_index is not None else []
 
     target_starts_endpoint = bool(
         target_head_tokens
