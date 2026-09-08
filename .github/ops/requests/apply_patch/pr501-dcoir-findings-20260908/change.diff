@@ -1,0 +1,189 @@
+diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
+--- a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
++++ b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
+@@ -495,10 +495,77 @@ def _mix_occurrence_targets_lane(text: str, occurrence: re.Match[str]) -> bool:
+     )
+ 
+ 
++_REPUDIATION_NEGATION_PATTERN = re.compile(
++    r"\b(?:not|never|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)\b"
++    r"(?:\s+[a-z0-9_-]+){0,3}\s*$"
++)
++
++
++def _repudiation_frame_is_negated(prefix: str, match_start: int) -> bool:
++    polarity_prefix = prefix[max(0, match_start - 48):match_start]
++    return bool(_REPUDIATION_NEGATION_PATTERN.search(polarity_prefix))
++
++
++def _occurrence_has_local_mix_rejection(text: str, start: int) -> bool:
++    """Reject direct wrong/incorrect/false/misleading-to-mix frames locally."""
++    prefix = text[max(0, start - 160):start]
++    comma = prefix.rfind(",")
++    if comma >= 0:
++        prefix = prefix[comma + 1:]
++    match = re.search(
++        r"\b(?:wrong|incorrect|false|misleading)\s+to\s+$",
++        prefix,
++    )
++    return bool(
++        match
++        and not _repudiation_frame_is_negated(prefix, match.start())
++    )
++
++
++_NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(
++    r"[.!?;,]|\b(?:but|however|whereas|yet|while|although|though|because|when|then)\b"
++)
++
++
++def _bounded_no_mix_relation_sides(
++    text: str,
++    occurrence: re.Match[str],
++) -> tuple[str, str]:
++    before = text[max(0, occurrence.start() - 180):occurrence.start()]
++    before_boundaries = list(_NO_MIX_RELATION_BOUNDARY_PATTERN.finditer(before))
++    if before_boundaries:
++        before = before[before_boundaries[-1].end():]
++
++    after = text[occurrence.end():min(len(text), occurrence.end() + 180)]
++    after_boundary = _NO_MIX_RELATION_BOUNDARY_PATTERN.search(after)
++    if after_boundary:
++        after = after[:after_boundary.start()]
++    return normalize_text(before), normalize_text(after)
++
++
++def _no_mix_occurrence_targets_lane_relation(
++    text: str,
++    occurrence: re.Match[str],
++) -> bool:
++    before, after = _bounded_no_mix_relation_sides(text, occurrence)
++    for scope in (after, before):
++        referential_scope = re.sub(r"^(?:up\s+)?", "", scope).strip()
++        if re.fullmatch(
++            rf"{_REFERENTIAL_LANES_PATTERN}(?:\s+(?:together|with\s+each\s+other))?",
++            referential_scope,
++        ):
++            return True
++        if _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope):
++            return True
++    return False
++
++
+ def _segment_has_explicit_lane_mix(segment: str) -> bool:
+     if not _segment_has_lane_relation_scope(segment):
+         return False
+     for term in ("mix", "combine"):
+         for occurrence in _assertive_phrase_occurrences(segment, term):
++            if _occurrence_has_local_mix_rejection(segment, occurrence.start()):
++                continue
+             if _mix_occurrence_targets_lane(segment, occurrence):
+                 return True
+@@ -550,5 +617,7 @@ def _clause_has_referential_lane_mix(clause: str) -> bool:
+ def _clause_has_referential_lane_mix(clause: str) -> bool:
+     for term in ("mix", "combine"):
+         for occurrence in _assertive_phrase_occurrences(clause, term):
++            if _occurrence_has_local_mix_rejection(clause, occurrence.start()):
++                continue
+             if _mix_occurrence_targets_lane(clause, occurrence):
+                 return True
+@@ -563,6 +632,10 @@ def _segment_has_negated_shared_context(segment: str) -> bool:
+                 continue
+             if _occurrence_is_rejected_after(segment, occurrence.end()):
+                 continue
++            if _occurrence_has_local_lane_relation_rejection(
++                segment, occurrence.start()
++            ):
++                continue
+             if _occurrence_has_direct_shared_context_negation(
+                 segment,
+                 occurrence.start(),
+@@ -649,12 +722,14 @@ def _occurrence_has_local_lane_relation_rejection(text: str, start: int) -> bool:
+     comma = prefix.rfind(",")
+     if comma >= 0:
+         prefix = prefix[comma + 1:]
+-    return bool(
+-        re.search(
+-            r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+-            r"[^.!?;]{0,140}$",
+-            prefix,
+-        )
++    match = re.search(
++        r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
++        r"[^.!?;]{0,140}$",
++        prefix,
++    )
++    return bool(
++        match
++        and not _repudiation_frame_is_negated(prefix, match.start())
+     )
+ 
+ 
+@@ -686,7 +761,9 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
+             if _occurrence_has_local_lane_relation_rejection(
+                 segment, occurrence.start()
+             ):
+                 continue
++            if not _no_mix_occurrence_targets_lane_relation(segment, occurrence):
++                continue
+             return True
+     if _segment_has_negated_shared_context(segment):
+         return True
+diff --git a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
+--- a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
++++ b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
+@@ -322,5 +322,54 @@ def main() -> int:
+         True,
+         "comma boundary preserves affirmative separate instruction",
+     )
++    _expect(
++        "Endpoint response-action execution uses execute --command. "
++        "Local workstation PowerShell runs the collector. "
++        "Keep these two lanes separate. It is wrong to mix these two lanes.",
++        True,
++        "repudiated direct mix does not trigger the mix veto",
++    )
++    _expect(
++        "Endpoint response-action execution uses execute --command. "
++        "Local workstation PowerShell runs the collector. "
++        "Keep these two lanes separate. It is not wrong to mix these two lanes.",
++        False,
++        "negated repudiation still exposes an asserted lane mix",
++    )
++    _expect(
++        "It is wrong to say do not run endpoint response-action commands and local "
++        "workstation PowerShell in the same shell.",
++        False,
++        "rejected shared-shell prohibition",
++    )
++    _expect(
++        "It is not wrong to say do not run endpoint response-action commands and local "
++        "workstation PowerShell in the same shell.",
++        True,
++        "negated rejection preserves the shared-shell prohibition",
++    )
++    _expect(
++        "Do not mix the log files while endpoint response-action commands use "
++        "execute --command and local workstation PowerShell runs the collector.",
++        False,
++        "unrelated no-mix target cannot borrow later lane context",
++    )
++    _expect(
++        "Do not mix endpoint log files with archive files while endpoint response-action "
++        "commands use execute --command and local workstation PowerShell runs the collector.",
++        False,
++        "one-sided endpoint no-mix target cannot borrow later local context",
++    )
++    _expect(
++        "Do not mix endpoint response-action syntax and local workstation PowerShell.",
++        True,
++        "direct endpoint-local no-mix relationship remains accepted",
++    )
++    _expect(
++        "Endpoint response-action execution uses execute --command. "
++        "Local workstation PowerShell runs the collector. Do not mix these two lanes.",
++        True,
++        "referential no-mix relationship remains accepted",
++    )
+     print("Gemini execution-lane separation scoring regressions passed.")
+     return 0
