@@ -5,7 +5,7 @@
   "operation": "apply",
   "target_branch": "issue-484-lane-separation-scoring",
   "patch_path": ".github/ops/requests/apply_patch/pr501-dcoir-followup-20260908/change.diff",
-  "expected_patch_sha256": "40b4d778814c46c32f9cb2464548b0907ef98f4aa806ab6efbb8b3d8c19a7387",
+  "expected_patch_sha256": "6c31129dd3aecd374f07f964fcad7f1b94318dbb04421969db86ba6e7c3bb303",
   "targets": [
     {
       "path": "project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
