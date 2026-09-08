@@ -542,21 +542,31 @@ def _bounded_no_mix_relation_sides(
     return normalize_text(before), normalize_text(after)
 
 
+_NO_MIX_ELIDED_TRAILING_SCOPE_PATTERN = re.compile(
+    r"(?:together|at\s+all|with\s+each\s+other)"
+)
+
+
+def _no_mix_scope_targets_lane_relation(scope: str) -> bool:
+    referential_scope = re.sub(r"^(?:up\s+)?", "", scope).strip()
+    if re.fullmatch(
+        rf"{_REFERENTIAL_LANES_PATTERN}(?:\s+(?:together|with\s+each\s+other))?",
+        referential_scope,
+    ):
+        return True
+    return _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope)
+
+
 def _no_mix_occurrence_targets_lane_relation(
     text: str,
     occurrence: re.Match[str],
 ) -> bool:
     before, after = _bounded_no_mix_relation_sides(text, occurrence)
-    for scope in (after, before):
-        referential_scope = re.sub(r"^(?:up\s+)?", "", scope).strip()
-        if re.fullmatch(
-            rf"{_REFERENTIAL_LANES_PATTERN}(?:\s+(?:together|with\s+each\s+other))?",
-            referential_scope,
-        ):
-            return True
-        if _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope):
-            return True
-    return False
+    if _no_mix_scope_targets_lane_relation(after):
+        return True
+    if after and not _NO_MIX_ELIDED_TRAILING_SCOPE_PATTERN.fullmatch(after):
+        return False
+    return _no_mix_scope_targets_lane_relation(before)
 
 
 def _segment_has_explicit_lane_mix(segment: str) -> bool:

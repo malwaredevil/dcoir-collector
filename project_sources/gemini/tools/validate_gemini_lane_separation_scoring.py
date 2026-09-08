@@ -361,6 +361,24 @@ def main() -> int:
         "one-sided endpoint no-mix target cannot borrow later local context",
     )
     _expect(
+        "Use execute --command for endpoint response actions and run the local collector "
+        "in Windows PowerShell and do not mix log formats.",
+        False,
+        "stated trailing no-mix object governs over unrelated leading lane context",
+    )
+    _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix "
+        "together.",
+        True,
+        "subject-position lane no-mix with trailing together remains accepted",
+    )
+    _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix "
+        "at all.",
+        True,
+        "subject-position lane no-mix with trailing at-all modifier remains accepted",
+    )
+    _expect(
         "Do not mix endpoint response-action syntax and local workstation PowerShell.",
         True,
         "direct endpoint-local no-mix relationship remains accepted",
