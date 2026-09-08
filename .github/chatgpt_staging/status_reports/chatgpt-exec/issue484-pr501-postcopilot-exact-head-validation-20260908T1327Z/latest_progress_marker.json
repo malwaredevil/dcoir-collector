@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-issue484-pr501-postcopilot-exact-head-validation-20260908T1327Z",
+  "exit_code": "0",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34232117138",
+  "github_sha": "59a30049c2f0f40119494f718f66977a7ade9d6c",
+  "phase": "final-readback-commit",
+  "request_id": "issue484-pr501-postcopilot-exact-head-validation-20260908T1327Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-postcopilot-exact-head-validation-20260908T1327Z.json",
+  "result": "success",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-08T13:28:37Z",
+  "workflow": "chatgpt-exec"
+}
