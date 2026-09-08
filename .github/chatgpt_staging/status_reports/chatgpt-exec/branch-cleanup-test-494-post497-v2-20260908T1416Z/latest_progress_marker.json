@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-branch-cleanup-test-494-post497-v2-20260908T1416Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "34237120412",
   "github_sha": "18b2d38362bd2f0c9514650926330be77f73b2e9",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "branch-cleanup-test-494-post497-v2-20260908T1416Z",
   "request_path": ".github/chatgpt_staging/exec_requests/branch-cleanup-test-494-post497-v2-20260908T1416Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T14:16:02Z",
+  "updated_utc": "2026-09-08T14:16:08Z",
   "workflow": "chatgpt-exec"
 }
