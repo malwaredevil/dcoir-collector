@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: success
+- phase: harness-finished
 - request_id: request
 - request_path: .github/chatgpt_staging/exec_requests/request.json
 - github_run_id: 34221542611
@@ -18,9 +18,11 @@
 - github_sha: 15a8e711d088db80bcd906971118fc5d89b5f41e
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34221542611
-- report_updated_utc: 2026-09-08T11:36:16Z
+- report_updated_utc: 2026-09-08T11:36:23Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/request/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/request/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue502-pr503-focused-validation-20260908T1136Z
+- exit_code: 0
 
 ## Report routing
 
@@ -28,7 +30,7 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Phase history
 
@@ -44,6 +46,7 @@ Approved command harness is about to run. If this report remains in this phase, 
 - 2026-09-08T10:42:29Z | phase=final-readback-commit | result=success | Final exec status is being committed with workflow report, progress history, marker, and any tracked summary files already produced by the request/tool. Full output remains in the uploaded GitHub Actions artifact.
 - 2026-09-08T11:36:13Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-08T11:36:16Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-08T11:36:23Z | phase=harness-finished | result=success | Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
