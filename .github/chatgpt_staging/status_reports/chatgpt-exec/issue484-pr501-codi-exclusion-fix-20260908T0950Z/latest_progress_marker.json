@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34212205534",
   "github_sha": "05d036ed7616b24f2583d34c4f12ec5c3bfdf159",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-codi-exclusion-fix-20260908T0950Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-codi-exclusion-fix-20260908T0950Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T09:50:44Z",
+  "updated_utc": "2026-09-08T09:50:47Z",
   "workflow": "chatgpt-exec"
 }
