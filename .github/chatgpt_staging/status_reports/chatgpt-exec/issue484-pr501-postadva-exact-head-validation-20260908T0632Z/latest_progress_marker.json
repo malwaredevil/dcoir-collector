@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34195034537",
   "github_sha": "3f2bae02cf7c5a04c9de33078390ec21e549b715",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-postadva-exact-head-validation-20260908T0632Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-postadva-exact-head-validation-20260908T0632Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T06:31:49Z",
+  "updated_utc": "2026-09-08T06:31:52Z",
   "workflow": "chatgpt-exec"
 }
