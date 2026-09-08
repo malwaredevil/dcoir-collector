@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34242587271",
   "github_sha": "8a7a5aed4164ed1e7fae336b96f109eb9430c753",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "cleanup-accidental-noop-branches-20260908T1507Z",
   "request_path": ".github/chatgpt_staging/exec_requests/cleanup-accidental-noop-branches-20260908T1507Z.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T15:06:41Z",
+  "updated_utc": "2026-09-08T15:06:43Z",
   "workflow": "chatgpt-exec"
 }
