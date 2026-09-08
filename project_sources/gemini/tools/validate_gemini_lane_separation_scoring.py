@@ -274,6 +274,18 @@ def main() -> int:
         True,
         "split response action head at the last scan-window slot",
     )
+    _expect(
+        "It is misleading to say do not mix endpoint response-action syntax and local "
+        "workstation PowerShell.",
+        False,
+        "misleading no-mix rejection",
+    )
+    _expect(
+        "Although it is misleading to say these tools are interchangeable, do not mix "
+        "endpoint response-action syntax and local workstation PowerShell.",
+        True,
+        "comma boundary preserves affirmative no-mix instruction",
+    )
     print("Gemini execution-lane separation scoring regressions passed.")
     return 0
 

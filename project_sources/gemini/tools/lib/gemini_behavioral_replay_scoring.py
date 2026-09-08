@@ -605,27 +605,48 @@ def _occurrence_has_lane_relation_rejection(text: str, start: int) -> bool:
     )
 
 
+def _occurrence_has_local_lane_relation_rejection(text: str, start: int) -> bool:
+    """Reject repudiation frames only within the current comma-delimited discourse segment."""
+    prefix = text[max(0, start - 160):start]
+    comma = prefix.rfind(",")
+    if comma >= 0:
+        prefix = prefix[comma + 1:]
+    return bool(
+        re.search(
+            r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+            r"[^.!?;]{0,140}$",
+            prefix,
+        )
+    )
+
+
 def _segment_has_relational_lane_separation(segment: str) -> bool:
     if not _segment_has_lane_relation_scope(segment):
         return False
-    if _find_contextual_term_hits(
-        segment,
-        [
-            "do not mix",
-            "don't mix",
-            "dont mix",
-            "must not mix",
-            "should not mix",
-            "do not combine",
-            "don't combine",
-            "dont combine",
-            "must not combine",
-            "should not combine",
-        ],
-        skip_negated=True,
-        skip_quoted=True,
+    for term in (
+        "do not mix",
+        "don't mix",
+        "dont mix",
+        "must not mix",
+        "should not mix",
+        "do not combine",
+        "don't combine",
+        "dont combine",
+        "must not combine",
+        "should not combine",
     ):
-        return True
+        for occurrence in _iter_term_occurrences(segment, term):
+            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+                continue
+            if _occurrence_is_negated(segment, occurrence.start()):
+                continue
+            if _occurrence_is_rejected_after(segment, occurrence.end()):
+                continue
+            if _occurrence_has_local_lane_relation_rejection(
+                segment, occurrence.start()
+            ):
+                continue
+            return True
     if _segment_has_negated_shared_context(segment):
         return True
     if _find_contextual_term_hits(
