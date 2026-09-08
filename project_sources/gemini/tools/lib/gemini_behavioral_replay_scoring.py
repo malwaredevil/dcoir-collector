@@ -240,6 +240,13 @@ def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
             yield normalized
 
 
+def _segment_has_lane_relation_scope(segment: str) -> bool:
+    return bool(
+        (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment))
+        or re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", segment)
+    )
+
+
 def _occurrence_has_direct_shared_context_negation(
     text: str,
     start: int,
@@ -261,7 +268,10 @@ def _occurrence_has_direct_shared_context_negation(
     if not scoped_action:
         return False
     scope = prefix[scoped_action.start():]
-    return _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope)
+    return bool(
+        (_clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope))
+        or re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", scope)
+    )
 
 
 def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
@@ -299,7 +309,7 @@ def _mix_occurrence_targets_lane(text: str, occurrence: re.Match[str]) -> bool:
 
 
 def _segment_has_explicit_lane_mix(segment: str) -> bool:
-    if not (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment)):
+    if not _segment_has_lane_relation_scope(segment):
         return False
     for term in ("mix", "combine"):
         for occurrence in _assertive_phrase_occurrences(segment, term):
@@ -327,7 +337,7 @@ def _clause_has_referential_lane_mix(clause: str) -> bool:
 
 
 def _segment_has_negated_shared_context(segment: str) -> bool:
-    if not (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment)):
+    if not _segment_has_lane_relation_scope(segment):
         return False
     for term in _SHARED_CONTEXT_TERMS:
         for occurrence in _iter_term_occurrences(segment, term):
@@ -343,8 +353,62 @@ def _segment_has_negated_shared_context(segment: str) -> bool:
     return False
 
 
+def _separate_occurrence_targets_lane(
+    segment: str,
+    occurrence: re.Match[str],
+) -> bool:
+    before = segment[max(0, occurrence.start() - 140):occurrence.start()]
+    after = segment[occurrence.end():min(len(segment), occurrence.end() + 140)]
+    if re.search(
+        rf"{_REFERENTIAL_LANES_PATTERN}(?:\s+(?:are|remain|stay|kept|must be|should be))?\s*$",
+        before,
+    ):
+        return True
+    if re.match(rf"^\s+{_REFERENTIAL_LANES_PATTERN}\b", after):
+        return True
+
+    endpoint_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:endpoint|response(?:-| )action)\b", segment)
+    ]
+    local_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:local|workstation)\b", segment)
+    ]
+    if not (endpoint_positions and local_positions):
+        return False
+
+    start = occurrence.start()
+    endpoint_distance = min(abs(start - pos) for pos in endpoint_positions)
+    local_distance = min(abs(start - pos) for pos in local_positions)
+    if endpoint_distance <= 120 and local_distance <= 120:
+        between_lanes = any(
+            (endpoint < start < local) or (local < start < endpoint)
+            for endpoint in endpoint_positions
+            for local in local_positions
+        )
+        if between_lanes:
+            return True
+
+    lane_tail = re.search(
+        r"\b(?:endpoint|response(?:-| )action|local|workstation)"
+        r"(?:\s+[a-z0-9_-]+){0,4}\s*$",
+        before,
+    )
+    if lane_tail and endpoint_distance <= 120 and local_distance <= 120:
+        return True
+
+    lane_head = re.match(
+        r"^\s+(?:endpoint|response(?:-| )action|local|workstation)\b",
+        after,
+    )
+    if lane_head and endpoint_distance <= 120 and local_distance <= 120:
+        return True
+    return False
+
+
 def _segment_has_relational_lane_separation(segment: str) -> bool:
-    if not (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment)):
+    if not _segment_has_lane_relation_scope(segment):
         return False
     if _find_contextual_term_hits(
         segment,
@@ -363,21 +427,8 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
     ):
         return True
 
-    endpoint_positions = [
-        match.start()
-        for match in re.finditer(r"\b(?:endpoint|response(?:-| )action)\b", segment)
-    ]
-    local_positions = [
-        match.start()
-        for match in re.finditer(r"\b(?:local|workstation)\b", segment)
-    ]
     for occurrence in _assertive_phrase_occurrences(segment, "separate"):
-        if (
-            endpoint_positions
-            and local_positions
-            and min(abs(occurrence.start() - pos) for pos in endpoint_positions) <= 120
-            and min(abs(occurrence.start() - pos) for pos in local_positions) <= 120
-        ):
+        if _separate_occurrence_targets_lane(segment, occurrence):
             return True
     return False
 
@@ -390,24 +441,10 @@ def _clause_has_relational_lane_separation(clause: str) -> bool:
 
 
 def _clause_has_referential_lane_separation(clause: str) -> bool:
-    if not re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", clause):
-        return False
-    return bool(
-        _find_contextual_term_hits(
-            clause,
-            [
-                "separate",
-                "distinct",
-                "different",
-                "do not mix",
-                "don't mix",
-                "dont mix",
-                "must not mix",
-                "should not mix",
-            ],
-            skip_negated=True,
-            skip_quoted=True,
-        )
+    return any(
+        bool(re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", segment))
+        and _segment_has_relational_lane_separation(segment)
+        for segment in _iter_lane_relation_segments(clause)
     )
 
 

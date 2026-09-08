@@ -96,6 +96,27 @@ def main() -> int:
         False,
         "direct targeted lane mixing",
     )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Run these two lanes in the same shell, but keep the log folders separate.",
+        False,
+        "referential shared-shell mix cannot be masked by unrelated separation",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Do not use the same shell for these two lanes.",
+        True,
+        "referential negated shared-shell relation",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "These two lanes use dedicated identifiers and the log folders are separate.",
+        False,
+        "unrelated referential separation wording",
+    )
     print("Gemini execution-lane separation scoring regressions passed.")
     return 0
 
