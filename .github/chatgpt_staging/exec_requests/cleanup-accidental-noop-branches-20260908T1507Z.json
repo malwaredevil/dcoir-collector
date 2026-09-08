@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "cleanup-accidental-noop-branches-20260908T1507Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-08T15:07:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "$ErrorActionPreference = 'Stop'\n$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$branches = @('noop-do-not-create','noop-do-not-create-2','noop-do-not-create-3','noop-do-not-create-4')\nforeach ($branch in $branches) {\n  $existing = git -C $repo ls-remote --heads origin \"refs/heads/$branch\"\n  if ($existing) { git -C $repo push origin --delete $branch }\n}\nforeach ($branch in $branches) {\n  $remaining = git -C $repo ls-remote --heads origin \"refs/heads/$branch\"\n  if ($remaining) { throw \"Branch still exists after cleanup: $branch\" }\n}\nWrite-Host 'Accidental noop branches are absent from origin.'",
+  "command": "$ErrorActionPreference = 'Stop'\n$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$branches = @('noop-do-not-create','noop-do-not-create-2','noop-do-not-create-3','noop-do-not-create-4')\nforeach ($branch in $branches) {\n  $existing = git -C $repo ls-remote --heads origin \"refs/heads/$branch\"\n  if ($existing) { git -C $repo push origin --delete $branch }\n}\nforeach ($branch in $branches) {\n  $remaining = git -C $repo ls-remote --heads origin \"refs/heads/$branch\"\n  if ($remaining) { throw \"Branch still exists after cleanup: $branch\" }\n}\nWrite-Host 'Accidental noop branches are absent from origin.'"
+}
