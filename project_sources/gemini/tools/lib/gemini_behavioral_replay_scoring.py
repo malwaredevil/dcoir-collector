@@ -542,9 +542,41 @@ def _bounded_no_mix_relation_sides(
     return normalize_text(before), normalize_text(after)
 
 
-_NO_MIX_ELIDED_TRAILING_SCOPE_PATTERN = re.compile(
-    r"(?:together|at\s+all|with\s+each\s+other)"
+_NO_MIX_OBJECT_FREE_ADVERB_PATTERN = re.compile(
+    r"(?:[a-z0-9_-]+(?:ly|ward|wards|wise)|"
+    r"ever|again|anymore|anywhere|anytime|elsewhere|here|there|now|today|"
+    r"tonight|henceforth|always|together)"
 )
+
+
+_NO_MIX_ADVERBIAL_PREPOSITION_PATTERN = re.compile(
+    r"^(?:at|under|during|within|throughout|for|in|outside|beyond|after|"
+    r"before|until|by|without)\b"
+)
+
+
+def _no_mix_trailing_scope_is_object_free_modifier(scope: str) -> bool:
+    """Return True only for trailing syntax that cannot supply a mix object.
+
+    Unknown bare words remain object-like by default. This keeps a stated
+    object such as ``log formats`` authoritative while allowing subject-position
+    lane prohibitions to carry ordinary adverbs and prepositional adjuncts.
+    ``with`` is deliberately excluded from the generic preposition path because
+    it commonly introduces the object/complement of ``mix``; only the reciprocal
+    ``with each other`` form is accepted.
+    """
+    normalized = normalize_text(scope)
+    if not normalized:
+        return True
+    if normalized == "with each other":
+        return True
+    tokens = normalized.split()
+    if tokens and all(
+        _NO_MIX_OBJECT_FREE_ADVERB_PATTERN.fullmatch(token)
+        for token in tokens
+    ):
+        return True
+    return bool(_NO_MIX_ADVERBIAL_PREPOSITION_PATTERN.match(normalized))
 
 
 def _no_mix_scope_targets_lane_relation(scope: str) -> bool:
@@ -564,7 +596,7 @@ def _no_mix_occurrence_targets_lane_relation(
     before, after = _bounded_no_mix_relation_sides(text, occurrence)
     if _no_mix_scope_targets_lane_relation(after):
         return True
-    if after and not _NO_MIX_ELIDED_TRAILING_SCOPE_PATTERN.fullmatch(after):
+    if not _no_mix_trailing_scope_is_object_free_modifier(after):
         return False
     return _no_mix_scope_targets_lane_relation(before)
 

@@ -379,6 +379,41 @@ def main() -> int:
         "subject-position lane no-mix with trailing at-all modifier remains accepted",
     )
     _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix ever.",
+        True,
+        "subject-position lane no-mix accepts an irregular trailing adverb",
+    )
+    _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix "
+        "permanently.",
+        True,
+        "subject-position lane no-mix accepts a morphological trailing adverb",
+    )
+    _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix "
+        "under any circumstances.",
+        True,
+        "subject-position lane no-mix accepts a prepositional circumstance adjunct",
+    )
+    _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix "
+        "in the same session.",
+        True,
+        "subject-position lane no-mix accepts a prepositional session adjunct",
+    )
+    _expect(
+        "Use execute --command for endpoint response actions and run the local collector "
+        "in Windows PowerShell and do not mix log formats at all.",
+        False,
+        "stated trailing object remains authoritative even with a trailing adverbial",
+    )
+    _expect(
+        "Endpoint response-action syntax and local workstation PowerShell must not mix "
+        "with archive files.",
+        False,
+        "with-object complement cannot borrow the leading lane relationship",
+    )
+    _expect(
         "Do not mix endpoint response-action syntax and local workstation PowerShell.",
         True,
         "direct endpoint-local no-mix relationship remains accepted",
