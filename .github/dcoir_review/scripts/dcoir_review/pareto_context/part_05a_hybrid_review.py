@@ -220,19 +220,24 @@ def openrouter_review_with_hybrid_first_pass(
             "responses/02-quality-retry-result.json",
             {"model_used": retry_model_used, "service_tier": retry_service_tier, "result": retry_result},
         )
-        initial_summary = str(merged_result.get("summary", "") if isinstance(merged_result, dict) else "").strip()
-        retry_summary = str(retry_result.get("summary", "") if isinstance(retry_result, dict) else "").strip()
-        merged_result = hardened.merge_review_results(merged_result, retry_result)
-        merged_result["_quality_retry_attempted"] = True
-        merged_result["_quality_retry_reason"] = str(retry_reason)
-        merged_result["_quality_retry_initial_summary"] = initial_summary
-        merged_result["_quality_retry_retry_summary"] = retry_summary
+        initial_result = merged_result
+        merged_result = hardened.merge_quality_retry_results(
+            initial_result=initial_result,
+            retry_result=retry_result,
+            config=config,
+            line_index=line_index,
+            retry_reason=str(retry_reason),
+        )
         hardened.write_debug_json_artifact_safely(
             config,
             "responses/03-quality-retry-merged-result.json",
             {
                 "model_used": retry_model_used,
                 "service_tier": retry_service_tier,
+                "initial_finding_count": len(hardened.result_findings(initial_result)),
+                "initial_survivor_count": int(merged_result.get("_quality_retry_initial_survivor_count", 0)),
+                "initial_rejected_count": int(merged_result.get("_quality_retry_initial_rejected_count", 0)),
+                "retry_finding_count": len(hardened.result_findings(retry_result)),
                 "merged_finding_count": len(hardened.result_findings(merged_result)),
                 "result": merged_result,
             },
@@ -241,5 +246,4 @@ def openrouter_review_with_hybrid_first_pass(
         service_tier = retry_service_tier
 
     return merged_result, model_used, service_tier
-
 
