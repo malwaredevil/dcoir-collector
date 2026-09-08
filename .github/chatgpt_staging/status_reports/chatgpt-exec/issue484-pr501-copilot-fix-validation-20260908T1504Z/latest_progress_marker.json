@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34242152290",
   "github_sha": "5164fe30aed23fcffc53235e9e709df82b15501e",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue484-pr501-copilot-fix-validation-20260908T1504Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-copilot-fix-validation-20260908T1504Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T15:02:35Z",
+  "updated_utc": "2026-09-08T15:02:38Z",
   "workflow": "chatgpt-exec"
 }
