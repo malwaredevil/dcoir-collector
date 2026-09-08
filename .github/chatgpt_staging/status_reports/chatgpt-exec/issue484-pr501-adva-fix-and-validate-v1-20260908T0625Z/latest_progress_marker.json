@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue484-pr501-adva-fix-and-validate-v1-20260908T0625Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "34194814469",
   "github_sha": "0ef863ea036186dc593b651db3d121b1e92f2fc4",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue484-pr501-adva-fix-and-validate-v1-20260908T0625Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-adva-fix-and-validate-v1-20260908T0625Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-08T06:28:47Z",
+  "updated_utc": "2026-09-08T06:29:01Z",
   "workflow": "chatgpt-exec"
 }
