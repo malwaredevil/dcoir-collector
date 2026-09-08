@@ -1,0 +1,22 @@
+{
+  "schema": "dcoir.ops.apply_patch_request.v2",
+  "request_id": "pr501-dcoir-followup-20260908",
+  "mode": "patch-set",
+  "operation": "apply",
+  "target_branch": "issue-484-lane-separation-scoring",
+  "patch_path": ".github/ops/requests/apply_patch/pr501-dcoir-followup-20260908/change.diff",
+  "expected_patch_sha256": "40b4d778814c46c32f9cb2464548b0907ef98f4aa806ab6efbb8b3d8c19a7387",
+  "targets": [
+    {
+      "path": "project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
+      "allowed_roots": ["project_sources/gemini"],
+      "expected_target_blob_sha": "7a5745871eccced4f9915a5c247675dafd7e9a4c"
+    },
+    {
+      "path": "project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py",
+      "allowed_roots": ["project_sources/gemini"],
+      "expected_target_blob_sha": "ecb46c2653024b92edde49abce315831313a7a5a"
+    }
+  ],
+  "commit_message": "Repair PR #501 trailing no-mix relation binding"
+}
