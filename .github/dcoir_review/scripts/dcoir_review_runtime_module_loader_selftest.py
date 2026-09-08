@@ -81,11 +81,18 @@ def assert_segment_registry_is_complete() -> None:
     """Reject missing, duplicate, or unregistered runtime segment files."""
     loader_root = SCRIPTS / "dcoir_review"
     registered = [segment for segments in LAYER_SEGMENTS.values() for segment in segments]
-    actual = [
-        path.relative_to(loader_root).as_posix()
-        for path in loader_root.rglob("*.py")
-        if path.name not in {"__init__.py", "entrypoint.py", "module_loader.py"}
-    ]
+    # Files imported directly as regular Python submodules (rather than concatenated
+    # runtime segments) are not part-of-layer files and are excluded here, matching
+    # the treatment already given to __init__.py, entrypoint.py, and module_loader.py.
+    directly_imported_helper_modules = {"pareto_context/credit_aware_concurrency.py"}
+    actual = []
+    for path in loader_root.rglob("*.py"):
+        relative_path = path.relative_to(loader_root).as_posix()
+        if path.name in {"__init__.py", "entrypoint.py", "module_loader.py"}:
+            continue
+        if relative_path in directly_imported_helper_modules:
+            continue
+        actual.append(relative_path)
 
     assert len(registered) == len(set(registered)), "duplicate module-loader segment registration"
     assert set(registered) == set(actual), {
