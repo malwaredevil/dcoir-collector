@@ -80,6 +80,10 @@ def accepted_result(confidence: float = 0.94) -> dict:
     }
 
 
+def clean_result() -> dict:
+    return {"summary": "Review completed cleanly.", "findings": []}
+
+
 def run_recovery_case(first_result: dict, expected_reason: str) -> None:
     calls: list[str] = []
     original_openrouter_review = mod.openrouter_review
@@ -108,6 +112,47 @@ def run_recovery_case(first_result: dict, expected_reason: str) -> None:
     assert len(mod.normalize_findings(retry_result, config, line_index)) == 1
     assert "Review quality retry" in calls[1]
     assert expected_reason in calls[1]
+
+
+def run_clean_withdrawal_case(first_result: dict, expected_reason: str) -> dict:
+    """A clean retry must be allowed to withdraw rejected first-pass output."""
+
+    calls: list[str] = []
+    original_openrouter_review = mod.openrouter_review
+
+    def fake_openrouter_review(prompt: str, _schema: dict, _config: object, _reporter: object | None = None):
+        calls.append(prompt)
+        if len(calls) == 1:
+            return first_result, "first-model", ""
+        return clean_result(), "recovery-model", ""
+
+    mod.openrouter_review = fake_openrouter_review
+    try:
+        retry_result, retry_model, _retry_tier = mod.openrouter_review_with_quality_retry(
+            "initial prompt",
+            schema,
+            config,
+            None,
+            [],
+            line_index,
+        )
+    finally:
+        mod.openrouter_review = original_openrouter_review
+
+    assert len(calls) == 2
+    assert retry_model == "recovery-model"
+    assert "Review quality retry" in calls[1]
+    assert expected_reason in calls[1]
+    assert retry_result["summary"] == "Review completed cleanly."
+    assert retry_result["findings"] == []
+    assert retry_result["_quality_retry_attempted"] is True
+    assert retry_result["_quality_retry_merge_contract"] == "filtered-initial-v1"
+    assert retry_result["_quality_retry_initial_finding_count"] == 1
+    assert retry_result["_quality_retry_initial_survivor_count"] == 0
+    assert retry_result["_quality_retry_initial_rejected_count"] == 1
+    assert retry_result["_quality_retry_retry_finding_count"] == 0
+    assert mod.split_findings(retry_result, config, line_index) == ([], [])
+    return retry_result
 
 
 run_recovery_case(
@@ -209,6 +254,69 @@ run_recovery_case(
     "none met the configured minimum confidence",
 )
 
+# Production regressions from PR #501: a below-threshold first pass followed by
+# a clean retry must finish clean rather than resurrecting the rejected finding.
+for production_confidence in (0.00, 0.55):
+    run_clean_withdrawal_case(
+        {
+            "summary": "A possible boundary validation concern needs confirmation.",
+            "findings": [
+                {
+                    "title": "Boundary validation concern",
+                    "severity": "medium",
+                    "confidence": production_confidence,
+                    "path": "docs/review.md",
+                    "line": 2,
+                    "body": "The changed line may have incomplete boundary validation.",
+                    "suggested_replacement": "",
+                    "validation": "Re-check the changed boundary behavior.",
+                }
+            ],
+        },
+        "none met the configured minimum confidence",
+    )
+
+# A high-confidence finding anchored only to unchanged context is another
+# rejected first-pass shape; a clean retry must not revive it.
+run_clean_withdrawal_case(
+    {
+        "summary": "One actionable review-gate regression, but the anchor is on context.",
+        "findings": [
+            {
+                "title": "Review gate bypass",
+                "severity": "high",
+                "confidence": 0.95,
+                "path": "docs/review.md",
+                "line": 1,
+                "body": "The concern is anchored to unchanged context rather than the changed line.",
+                "suggested_replacement": "",
+                "validation": "Read back issue and PR review gates.",
+            }
+        ],
+    },
+    "none were anchored to changed diff lines",
+)
+
+# Self-described informational findings also fail the actionable contract and
+# therefore must not survive a clean quality retry.
+run_clean_withdrawal_case(
+    {
+        "summary": "An informational note was returned.",
+        "findings": [
+            {
+                "title": "Informational review note",
+                "severity": "medium",
+                "confidence": 0.95,
+                "path": "docs/review.md",
+                "line": 2,
+                "body": "This finding is informational only; no action is required.",
+                "suggested_replacement": "",
+                "validation": "No validation required.",
+            }
+        ],
+    },
+    "only self-described non-actionable or informational findings",
+)
 
 run_recovery_case(
     {
@@ -273,6 +381,63 @@ merge_sentinels = [
         text='cursor.execute(f"select * from alerts where {request[\'filter\']}")',
     )
 ]
+
+# A first-pass finding that already met the publication contract must survive a
+# clean retry triggered by a separate uncovered required sentinel. The sentinel
+# itself must still fail closed after the merge.
+preserve_calls: list[str] = []
+original_openrouter_review = mod.openrouter_review
+
+
+def fake_preserve_valid_review(prompt: str, _schema: dict, _config: object, _reporter: object | None = None):
+    preserve_calls.append(prompt)
+    if len(preserve_calls) == 1:
+        return {
+            "summary": "Found one command execution issue.",
+            "findings": [
+                {
+                    "title": "Shell command execution",
+                    "severity": "critical",
+                    "confidence": 0.98,
+                    "path": "tools/first.py",
+                    "line": 1,
+                    "body": "shell=True executes request-controlled command text.",
+                    "suggested_replacement": "",
+                    "validation": "python3 -m py_compile tools/first.py",
+                }
+            ],
+        }, "first-model", ""
+    return clean_result(), "recovery-model", ""
+
+
+mod.openrouter_review = fake_preserve_valid_review
+try:
+    preserved_result, preserved_model, _preserved_tier = mod.openrouter_review_with_quality_retry(
+        "initial prompt",
+        schema,
+        config,
+        None,
+        merge_sentinels,
+        merge_line_index,
+    )
+finally:
+    mod.openrouter_review = original_openrouter_review
+
+assert len(preserve_calls) == 2
+assert preserved_model == "recovery-model"
+assert preserved_result["_quality_retry_initial_survivor_count"] == 1
+assert preserved_result["_quality_retry_initial_rejected_count"] == 0
+preserved_findings, preserved_unanchored = mod.split_findings(preserved_result, config, merge_line_index)
+assert preserved_unanchored == []
+assert len(preserved_findings) == 1
+assert preserved_findings[0]["path"] == "tools/first.py"
+try:
+    mod.enforce_risk_sentinel_findings(preserved_findings, merge_sentinels, config, preserved_unanchored)
+except mod.ReviewQualityError as exc:
+    assert "high-risk changed-line signals" in str(exc)
+else:
+    raise AssertionError("required risk sentinel coverage must remain fail-closed after a clean retry")
+
 merge_calls: list[str] = []
 original_openrouter_review = mod.openrouter_review
 
@@ -363,6 +528,9 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "summary indicated a possible issue" in retry_metadata["retry_reason"]
     assert json.loads((Path(tmp) / "responses/02-quality-retry-result.json").read_text(encoding="utf-8"))["model_used"] == "recovery-model"
     merged_response = json.loads((Path(tmp) / "responses/03-quality-retry-merged-result.json").read_text(encoding="utf-8"))
+    assert merged_response["initial_survivor_count"] == 0
+    assert merged_response["initial_rejected_count"] == 0
+    assert merged_response["retry_finding_count"] == 1
     assert merged_response["merged_finding_count"] == 1
 
 retry_disabled = copy.copy(config)
