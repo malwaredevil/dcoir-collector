@@ -10,9 +10,9 @@
 # - Do not use for unreviewed patches, binary patches, creates, deletes, renames, copies, mode changes, broad repo rewrites, or default-branch writes without an explicit allow-default-branch reason.
 # - Do not use as a substitute for chatgpt-apply-in when the full target file can be staged and verified safely.
 # Trigger model:
-# - workflow_dispatch input: request_path; push branches: main paths under .github/ops/requests/apply_patch/**.
+# - workflow_dispatch input: request_path; push branches: main, agent-ops paths under .github/ops/requests/apply_patch/**.
+# - The persistent agent-ops control branch exists so connector-driven agents can stage bounded requests without moving main or requiring a manual workflow_dispatch click.
 # - Push-triggered runs resolve the request from the changed request directory and then the reusable workflow enforces that exactly one request is processed.
-# - If a connector-staged request does not produce an ops-apply-patch run/artifact, there is no background scanner; manually dispatch this workflow with request_path or run .github/ops/tools/apply_patch_request.py through an approved exec lane.
 # Required inputs:
 # - request_path: Optional repo-relative path to .github/ops/requests/apply_patch/<request_id>/request.json when manually dispatched. Leave blank to scan pending folders.
 # Required staging folder:
@@ -58,6 +58,7 @@ on:
   push:
     branches:
       - main
+      - agent-ops
     paths:
       - ".github/ops/requests/apply_patch/**"
 
