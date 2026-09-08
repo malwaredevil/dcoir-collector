@@ -71,7 +71,7 @@ NEGATION_PATTERN = re.compile(
 REJECTED_ACTION_VERBS = r"say|ask for|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
 
 REJECTED_ASSERTION_PATTERN = re.compile(
-    rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){{0,6}}$"
+    rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){0,6}$"
 )
 
 POST_MARKER_REJECTION_PATTERN = re.compile(
@@ -514,6 +514,36 @@ def _clause_has_explicit_lane_mix(clause: str) -> bool:
     )
 
 
+def _clause_has_pronominal_shared_context_mix(clause: str) -> bool:
+    for term in _SHARED_CONTEXT_TERMS:
+        for occurrence in _assertive_phrase_occurrences(clause, term):
+            prefix = clause[max(0, occurrence.start() - 120):occurrence.start()]
+            action = re.search(
+                r"\b(?P<negated>(?:(?:do not|don't|dont|must not|should not|never|avoid)\s+)?)"
+                r"(?:run|execute|place|put|use|keep)\s+(?:them|both)\b"
+                r"[^.!?;]{0,80}$",
+                prefix,
+            )
+            if action and not action.group("negated"):
+                return True
+    return False
+
+
+def _response_has_pronominal_shared_context_mix(clauses: List[str]) -> bool:
+    endpoint_established = False
+    local_established = False
+    for clause in clauses:
+        if (
+            endpoint_established
+            and local_established
+            and _clause_has_pronominal_shared_context_mix(clause)
+        ):
+            return True
+        endpoint_established = endpoint_established or _clause_has_endpoint_lane(clause)
+        local_established = local_established or _clause_has_local_lane(clause)
+    return False
+
+
 def _clause_has_referential_lane_mix(clause: str) -> bool:
     for term in ("mix", "combine"):
         for occurrence in _assertive_phrase_occurrences(clause, term):
@@ -689,6 +719,8 @@ def has_execution_lane_separation(response_text: str) -> bool:
     if any(_clause_has_explicit_lane_mix(clause) for clause in clauses):
         return False
     if any(_clause_has_referential_lane_mix(clause) for clause in clauses):
+        return False
+    if _response_has_pronominal_shared_context_mix(clauses):
         return False
     if any(_clause_has_relational_lane_separation(clause) for clause in clauses):
         return True
