@@ -259,6 +259,13 @@ _LANE_TARGET_HEAD_BLOCKERS = frozenset(
         "versus",
         "vs",
         "against",
+        "besides",
+        "beside",
+        "save",
+        "saving",
+        "aside",
+        "outside",
+        "beyond",
     }
 )
 

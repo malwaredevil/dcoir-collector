@@ -145,6 +145,18 @@ def main() -> int:
         "other-than exclusion cannot be skipped before local lane head",
     )
     _expect(
+        "Do not run endpoint response-action commands in the same shell as anything besides "
+        "local PowerShell commands.",
+        False,
+        "besides exclusion cannot be skipped before local lane head",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as anything aside "
+        "from local PowerShell commands.",
+        False,
+        "aside-from exclusion cannot be skipped before local lane head",
+    )
+    _expect(
         "Do not run local workstation PowerShell in the same shell as an endpoint "
         "response-action console.",
         True,
