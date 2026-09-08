@@ -253,20 +253,71 @@ def _shared_context_trailing_lane_relation(
     leading_scope: str,
 ) -> bool:
     suffix = text[end:min(len(text), end + 140)]
-    terminator = re.search(r"[.!?;]", suffix)
-    if terminator:
-        suffix = suffix[:terminator.start()]
+    boundary_positions = []
+    for marker in (
+        ".",
+        "!",
+        "?",
+        ";",
+        chr(44),
+        chr(13),
+        chr(10),
+        " but ",
+        " however ",
+        " whereas ",
+        " yet ",
+        " then ",
+    ):
+        position = suffix.find(marker)
+        if position >= 0:
+            boundary_positions.append(position)
+    if boundary_positions:
+        suffix = suffix[:min(boundary_positions)]
     relation = re.match(
         r"^\s+(?:as|with)\s+(?:the\s+)?(?P<target>.+?)\s*$",
         suffix,
     )
     if not relation:
         return False
-    target = relation.group("target")
+
+    target = normalize_text(relation.group("target"))
+    tokens = re.findall(r"[a-z0-9-]+", target)
+    target_starts_endpoint = bool(
+        tokens
+        and (
+            tokens[0] in {"endpoint", "response-action"}
+            or tokens[:2] == ["response", "action"]
+        )
+    )
+    target_starts_local = bool(
+        tokens and tokens[0] in {"local", "workstation"}
+    )
+
+    target_local = False
+    if target_starts_local:
+        local_positions = [
+            index
+            for index, token in enumerate(tokens)
+            if token in {"powershell", "command", "commands"}
+        ]
+        if local_positions:
+            local_index = min(local_positions)
+            prefix_tokens = tokens[:local_index + 1]
+            has_response_action_pair = any(
+                prefix_tokens[index:index + 2] == ["response", "action"]
+                for index in range(max(0, len(prefix_tokens) - 1))
+            )
+            target_local = not (
+                "endpoint" in prefix_tokens
+                or "response-action" in prefix_tokens
+                or has_response_action_pair
+            )
+
+    target_endpoint = bool(
+        target_starts_endpoint and _clause_has_endpoint_lane(target)
+    )
     leading_endpoint = _clause_has_endpoint_lane(leading_scope)
     leading_local = _clause_has_local_lane(leading_scope)
-    target_endpoint = _clause_has_endpoint_lane(target)
-    target_local = _clause_has_local_lane(target)
     return bool(
         (leading_endpoint and target_local)
         or (leading_local and target_endpoint)

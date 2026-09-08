@@ -103,6 +103,30 @@ def main() -> int:
         "unbound trailing lane does not imply separation",
     )
     _expect(
+        "Do not run endpoint response-action commands in the same shell as usual, and "
+        "local workstation PowerShell runs the collector directly.",
+        False,
+        "coordinated clause cannot satisfy trailing lane relation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as usual and "
+        "local workstation PowerShell runs the collector directly.",
+        False,
+        "non-lane immediate target cannot borrow a later lane",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as local tooling "
+        "and PowerShell commands.",
+        True,
+        "coordinated local target remains a bound lane relation",
+    )
+    _expect(
+        "Do not run endpoint response-action commands in the same shell as local "
+        "response-action tooling and PowerShell commands.",
+        False,
+        "local target cannot borrow a later endpoint marker",
+    )
+    _expect(
         "Do not use the same shell for endpoint response-action commands and local "
         "PowerShell.",
         True,
