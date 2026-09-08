@@ -220,6 +220,50 @@ def _clause_has_local_lane(clause: str) -> bool:
     )
 
 
+_REFERENTIAL_LANES_PATTERN = (
+    r"(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)"
+)
+_SHARED_CONTEXT_TERMS = (
+    "same shell",
+    "single shell",
+    "one shell",
+    "same command",
+    "single command",
+    "same lane",
+)
+
+
+def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
+    for segment in re.split(r"\b(?:but|however|whereas|yet)\b", clause):
+        normalized = normalize_text(segment)
+        if normalized:
+            yield normalized
+
+
+def _occurrence_has_direct_shared_context_negation(
+    text: str,
+    start: int,
+) -> bool:
+    prefix = text[max(0, start - 180):start]
+    direct_use = re.search(
+        r"\b(?:do not|don't|dont|must not|should not|never|avoid)\s+"
+        r"(?:use|share)\s+(?:the\s+)?$",
+        prefix,
+    )
+    if direct_use:
+        return True
+
+    scoped_action = re.search(
+        r"\b(?:do not|don't|dont|must not|should not|never|avoid)\s+"
+        r"(?:run|execute|place|put|mix|combine)\b[^.!?;]{0,150}$",
+        prefix,
+    )
+    if not scoped_action:
+        return False
+    scope = prefix[scoped_action.start():]
+    return _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope)
+
+
 def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
     for occurrence in _iter_term_occurrences(text, term):
         if _occurrence_is_quoted(text, occurrence.start(), occurrence.end()):
@@ -228,43 +272,91 @@ def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str
             continue
         if _occurrence_is_rejected_after(text, occurrence.end()):
             continue
-        prefix = text[max(0, occurrence.start() - 120):occurrence.start()]
-        if re.search(
-            r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b[^.!?;]{0,100}$",
-            prefix,
-        ):
+        if _occurrence_has_direct_shared_context_negation(text, occurrence.start()):
             continue
         yield occurrence
 
 
-def _clause_has_explicit_lane_mix(clause: str) -> bool:
-    if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+def _mix_occurrence_targets_lane(text: str, occurrence: re.Match[str]) -> bool:
+    after = text[occurrence.end():min(len(text), occurrence.end() + 100)]
+    before = text[max(0, occurrence.start() - 80):occurrence.start()]
+    direct_lane_target = re.compile(
+        r"^\s+(?:up\s+)?(?:the\s+)?"
+        r"(?:(?:commands?|syntax)\s+(?:from|for)\s+)?"
+        r"(?:endpoint|response(?:-| )action|local|workstation)\b"
+    )
+    direct_lane_reference = re.compile(
+        rf"^\s+(?:up\s+)?{_REFERENTIAL_LANES_PATTERN}\b"
+    )
+    trailing_lane_reference = re.compile(
+        rf"{_REFERENTIAL_LANES_PATTERN}\s*$"
+    )
+    return bool(
+        direct_lane_target.search(after)
+        or direct_lane_reference.search(after)
+        or trailing_lane_reference.search(before)
+    )
+
+
+def _segment_has_explicit_lane_mix(segment: str) -> bool:
+    if not (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment)):
         return False
-    if _find_contextual_term_hits(
-        clause,
-        ["mix", "combine"],
-        skip_negated=True,
-        skip_quoted=True,
-    ):
-        return True
-    for term in ("same shell", "single shell", "one shell", "same command", "single command", "same lane"):
-        if any(_assertive_phrase_occurrences(clause, term)):
+    for term in ("mix", "combine"):
+        for occurrence in _assertive_phrase_occurrences(segment, term):
+            if _mix_occurrence_targets_lane(segment, occurrence):
+                return True
+    for term in _SHARED_CONTEXT_TERMS:
+        if any(_assertive_phrase_occurrences(segment, term)):
             return True
     return False
 
 
-def _clause_has_relational_lane_separation(clause: str) -> bool:
-    if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+def _clause_has_explicit_lane_mix(clause: str) -> bool:
+    return any(
+        _segment_has_explicit_lane_mix(segment)
+        for segment in _iter_lane_relation_segments(clause)
+    )
+
+
+def _clause_has_referential_lane_mix(clause: str) -> bool:
+    for term in ("mix", "combine"):
+        for occurrence in _assertive_phrase_occurrences(clause, term):
+            if _mix_occurrence_targets_lane(clause, occurrence):
+                return True
+    return False
+
+
+def _segment_has_negated_shared_context(segment: str) -> bool:
+    if not (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment)):
+        return False
+    for term in _SHARED_CONTEXT_TERMS:
+        for occurrence in _iter_term_occurrences(segment, term):
+            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+                continue
+            if _occurrence_is_rejected_after(segment, occurrence.end()):
+                continue
+            if _occurrence_has_direct_shared_context_negation(
+                segment,
+                occurrence.start(),
+            ):
+                return True
+    return False
+
+
+def _segment_has_relational_lane_separation(segment: str) -> bool:
+    if not (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment)):
         return False
     if _find_contextual_term_hits(
-        clause,
+        segment,
         ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
         skip_negated=True,
         skip_quoted=True,
     ):
         return True
+    if _segment_has_negated_shared_context(segment):
+        return True
     if _find_contextual_term_hits(
-        clause,
+        segment,
         ["different lane", "distinct lane"],
         skip_negated=True,
         skip_quoted=True,
@@ -273,13 +365,13 @@ def _clause_has_relational_lane_separation(clause: str) -> bool:
 
     endpoint_positions = [
         match.start()
-        for match in re.finditer(r"\b(?:endpoint|response(?:-| )action)\b", clause)
+        for match in re.finditer(r"\b(?:endpoint|response(?:-| )action)\b", segment)
     ]
     local_positions = [
         match.start()
-        for match in re.finditer(r"\b(?:local|workstation)\b", clause)
+        for match in re.finditer(r"\b(?:local|workstation)\b", segment)
     ]
-    for occurrence in _assertive_phrase_occurrences(clause, "separate"):
+    for occurrence in _assertive_phrase_occurrences(segment, "separate"):
         if (
             endpoint_positions
             and local_positions
@@ -290,11 +382,15 @@ def _clause_has_relational_lane_separation(clause: str) -> bool:
     return False
 
 
+def _clause_has_relational_lane_separation(clause: str) -> bool:
+    return any(
+        _segment_has_relational_lane_separation(segment)
+        for segment in _iter_lane_relation_segments(clause)
+    )
+
+
 def _clause_has_referential_lane_separation(clause: str) -> bool:
-    if not re.search(
-        r"\b(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)\b",
-        clause,
-    ):
+    if not re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", clause):
         return False
     return bool(
         _find_contextual_term_hits(
@@ -322,6 +418,8 @@ def has_execution_lane_separation(response_text: str) -> bool:
     if not (has_endpoint_lane and has_local_lane):
         return False
     if any(_clause_has_explicit_lane_mix(clause) for clause in clauses):
+        return False
+    if any(_clause_has_referential_lane_mix(clause) for clause in clauses):
         return False
     if any(_clause_has_relational_lane_separation(clause) for clause in clauses):
         return True

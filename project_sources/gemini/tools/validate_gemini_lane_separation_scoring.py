@@ -59,6 +59,43 @@ def main() -> int:
         False,
         "rejected no-mix assertion",
     )
+    _expect(
+        "Do not run endpoint response-action commands and local workstation PowerShell "
+        "in the same shell.",
+        True,
+        "negated shared-shell relation",
+    )
+    _expect(
+        "Do not use the same shell for endpoint response-action commands and local "
+        "PowerShell.",
+        True,
+        "negated shared-shell object relation",
+    )
+    _expect(
+        "Do not delete logs, but run endpoint response-action commands and local "
+        "PowerShell in the same shell. Keep these two lanes separate.",
+        False,
+        "unrelated negation cannot hide explicit lane mixing",
+    )
+    _expect(
+        "Combine the log files, but keep endpoint response-action commands separate "
+        "from local PowerShell.",
+        True,
+        "unrelated combine wording does not imply lane mixing",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Keep these two lanes separate. Then mix these two lanes.",
+        False,
+        "referential lane-mix contradiction",
+    )
+    _expect(
+        "Use a separate log folder, but combine endpoint response-action commands "
+        "with local PowerShell.",
+        False,
+        "direct targeted lane mixing",
+    )
     print("Gemini execution-lane separation scoring regressions passed.")
     return 0
 
