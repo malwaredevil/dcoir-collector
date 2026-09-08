@@ -326,7 +326,7 @@ def _lane_target_head_index(tokens: List[str]) -> int | None:
             return index
         if (
             token == "response"
-            and index + 1 < scan_limit
+            and index + 1 < len(tokens)
             and tokens[index + 1] == "action"
         ):
             return index

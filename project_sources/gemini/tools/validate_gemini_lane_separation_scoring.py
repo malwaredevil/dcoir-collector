@@ -262,6 +262,12 @@ def main() -> int:
         False,
         "unrelated referential separation wording",
     )
+    _expect(
+        "Do not run local workstation PowerShell in the same shell as the fully "
+        "dedicated remote response action endpoint console.",
+        True,
+        "split response action head at the last scan-window slot",
+    )
     print("Gemini execution-lane separation scoring regressions passed.")
     return 0
 
