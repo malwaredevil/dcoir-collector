@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue484-pr501-codi-boundary-hardening-20260908T0955Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-08T09:55:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue484-pr501-codi-boundary-hardening-20260908T0955Z.ps1",
+  "approved_command_preview": "Run the approved repo script that exact-head guards PR #501 at bba2e3e0891660e828463622385ce408efc7e627, hardens the lane-target head scan across equivalent exclusion/preposition/subordinator boundaries, adds focused negative regressions, runs Python syntax, focused lane scoring, and the full deterministic Gemini behavioral replay suite, then commits and pushes only the two intended Python files to issue-484-lane-separation-scoring.",
+  "command": "& '.github/chatgpt_staging/exec_scripts/issue484-pr501-codi-boundary-hardening-20260908T0955Z.ps1'"
+}
