@@ -15,7 +15,7 @@ if func_idx < 0:
     raise SystemExit("relational separation function not found")
 
 if not any("def _occurrence_has_local_lane_relation_rejection" in line for line in lines):
-    helper = '''def _occurrence_has_local_lane_relation_rejection(text: str, start: int) -> bool:
+    helper = r'''def _occurrence_has_local_lane_relation_rejection(text: str, start: int) -> bool:
     """Reject repudiation frames only within the current comma-delimited discourse segment."""
     prefix = text[max(0, start - 160):start]
     comma = prefix.rfind(",")
