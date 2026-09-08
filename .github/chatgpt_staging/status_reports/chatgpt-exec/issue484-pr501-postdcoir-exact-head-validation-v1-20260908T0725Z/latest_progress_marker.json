@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-issue484-pr501-postdcoir-exact-head-validation-v1-20260908T0725Z",
+  "exit_code": "0",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34199188842",
+  "github_sha": "fbdb7d548d715d8f7fa25e9a2a1e0358aef29dc4",
+  "phase": "final-readback-commit",
+  "request_id": "issue484-pr501-postdcoir-exact-head-validation-v1-20260908T0725Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-postdcoir-exact-head-validation-v1-20260908T0725Z.json",
+  "result": "success",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-08T07:25:07Z",
+  "workflow": "chatgpt-exec"
+}

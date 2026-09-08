@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-issue484-pr501-codi-fix-and-validate-v2-20260908T0636Z",
+  "exit_code": "0",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34195365196",
+  "github_sha": "0e4e6fbdf15beeceefa037ad38776c28d01a0fae",
+  "phase": "final-readback-commit",
+  "request_id": "issue484-pr501-codi-fix-and-validate-v2-20260908T0636Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-codi-fix-and-validate-v2-20260908T0636Z.json",
+  "result": "success",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-08T06:36:45Z",
+  "workflow": "chatgpt-exec"
+}

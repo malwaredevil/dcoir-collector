@@ -121,6 +121,90 @@ def merge_review_results(
     return merged_result
 
 
+def quality_retry_initial_finding_survives(
+    finding: dict[str, Any],
+    config: Any,
+    line_index: dict[tuple[str, int], int] | None,
+) -> bool:
+    """Keep only first-pass findings that already satisfied publication quality.
+
+    A quality retry exists specifically because some part of the first-pass
+    output failed the quality contract. Rejected candidates remain preserved in
+    the initial debug response, but they must not be resurrected merely because
+    the generic result merger unions both model responses.
+    """
+
+    try:
+        confidence = float(finding.get("confidence", 0))
+        line = int(finding.get("line", 0))
+        path = str(finding.get("path", "")).strip()
+    except (AttributeError, TypeError, ValueError):
+        return False
+    if not path or line <= 0 or confidence < config.minimum_confidence:
+        return False
+    if non_actionable_finding_reason(finding):
+        return False
+    if line_index is not None and (path, line) not in line_index:
+        return False
+    return True
+
+
+def merge_quality_retry_results(
+    initial_result: dict[str, Any],
+    retry_result: dict[str, Any],
+    config: Any,
+    line_index: dict[tuple[str, int], int] | None,
+    retry_reason: str,
+) -> dict[str, Any]:
+    """Merge a quality retry without reviving first-pass rejected candidates.
+
+    The retry response remains unfiltered so a malformed, low-confidence, or
+    unanchored retry still reaches the normal downstream fail-closed checks.
+    Only the *initial* response is filtered because the quality retry is the
+    explicit opportunity to repair or withdraw candidates that failed its
+    publication contract.
+    """
+
+    initial_findings = result_findings(initial_result)
+    surviving_initial = [
+        finding
+        for finding in initial_findings
+        if quality_retry_initial_finding_survives(finding, config, line_index)
+    ]
+    filtered_initial = dict(initial_result) if isinstance(initial_result, dict) else {}
+    filtered_initial["findings"] = surviving_initial
+
+    # Keep the generic merger's behavior for valid findings and compatibility
+    # wrappers, but feed it only first-pass findings that had already earned the
+    # right to survive the recovery boundary.
+    merged_result = merge_review_results(filtered_initial, retry_result)
+    initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
+    retry_summary = str(retry_result.get("summary", "") if isinstance(retry_result, dict) else "").strip()
+    retry_findings = result_findings(retry_result)
+
+    if not surviving_initial:
+        # When every first-pass candidate was rejected, the retry is the
+        # authoritative semantic disposition. This is the production #501
+        # failure mode: a clean retry must be allowed to withdraw speculation.
+        merged_result["summary"] = retry_summary or initial_summary
+    elif not retry_findings:
+        # A clean retry may not erase a first-pass finding that had already met
+        # the publication-quality contract. Keep the finding and its summary.
+        merged_result["summary"] = initial_summary or retry_summary
+
+    merged_result["_quality_retry_attempted"] = True
+    merged_result["_quality_retry_reason"] = str(retry_reason)
+    merged_result["_quality_retry_initial_summary"] = initial_summary
+    merged_result["_quality_retry_retry_summary"] = retry_summary
+    merged_result["_quality_retry_merge_contract"] = "filtered-initial-v1"
+    merged_result["_quality_retry_initial_finding_count"] = len(initial_findings)
+    merged_result["_quality_retry_initial_survivor_count"] = len(surviving_initial)
+    merged_result["_quality_retry_initial_rejected_count"] = len(initial_findings) - len(surviving_initial)
+    merged_result["_quality_retry_retry_finding_count"] = len(retry_findings)
+    merged_result["_quality_retry_initial_raw_digest"] = raw_findings_digest(initial_result)
+    return merged_result
+
+
 def openrouter_review_with_quality_retry(
     prompt: str,
     schema: dict[str, Any],
@@ -171,17 +255,13 @@ def openrouter_review_with_quality_retry(
             "responses/02-quality-retry-result.json",
             {"model_used": model_used, "service_tier": service_tier, "result": result},
         )
-        merged_result = merge_review_results(
+        merged_result = merge_quality_retry_results(
             initial_result=initial_result,
             retry_result=result,
+            config=config,
+            line_index=line_index,
+            retry_reason=retry_reason,
         )
-        if retry_reason:
-            initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
-            retry_summary = str(result.get("summary", "") if isinstance(result, dict) else "").strip()
-            merged_result["_quality_retry_attempted"] = True
-            merged_result["_quality_retry_reason"] = str(retry_reason)
-            merged_result["_quality_retry_initial_summary"] = initial_summary
-            merged_result["_quality_retry_retry_summary"] = retry_summary
         write_debug_json_artifact_safely(
             config,
             "responses/03-quality-retry-merged-result.json",
@@ -189,6 +269,8 @@ def openrouter_review_with_quality_retry(
                 "model_used": model_used,
                 "service_tier": service_tier,
                 "initial_finding_count": len(result_findings(initial_result)),
+                "initial_survivor_count": int(merged_result.get("_quality_retry_initial_survivor_count", 0)),
+                "initial_rejected_count": int(merged_result.get("_quality_retry_initial_rejected_count", 0)),
                 "retry_finding_count": len(result_findings(result)),
                 "merged_finding_count": len(result_findings(merged_result)),
                 "result": merged_result,
@@ -196,5 +278,4 @@ def openrouter_review_with_quality_retry(
         )
         result = merged_result
     return result, model_used, service_tier
-
 

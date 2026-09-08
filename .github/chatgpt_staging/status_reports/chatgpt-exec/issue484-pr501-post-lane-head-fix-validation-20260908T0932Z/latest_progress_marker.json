@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34211546181",
+  "github_sha": "ee9e162f60eb1d95b3ec11e4effc7e9c38358457",
+  "phase": "running-harness",
+  "request_id": "issue484-pr501-post-lane-head-fix-validation-20260908T0932Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-post-lane-head-fix-validation-20260908T0932Z.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-08T09:43:29Z",
+  "workflow": "chatgpt-exec"
+}

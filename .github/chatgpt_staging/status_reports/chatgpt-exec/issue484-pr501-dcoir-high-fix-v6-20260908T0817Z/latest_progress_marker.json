@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-issue484-pr501-dcoir-high-fix-v6-20260908T0817Z",
+  "exit_code": "1",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34203301909",
+  "github_sha": "b13db7f59195badcb6066451aa2b5113debecd58",
+  "phase": "final-readback-commit",
+  "request_id": "issue484-pr501-dcoir-high-fix-v6-20260908T0817Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue484-pr501-dcoir-high-fix-v6-20260908T0817Z.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-08T08:13:28Z",
+  "workflow": "chatgpt-exec"
+}

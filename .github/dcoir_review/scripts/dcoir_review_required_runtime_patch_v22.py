@@ -260,17 +260,25 @@ def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
             "responses/02-v22-semantic-quality-retry-result.json",
             {"model_used": retry_model_used, "service_tier": retry_service_tier, "result": retry_result},
         )
-        initial_summary = str(result.get("summary", "") or "").strip()
-        retry_summary = str(retry_result.get("summary", "") or "").strip()
-        merged_result = hardened.merge_review_results(result, retry_result)
-        merged_result["_quality_retry_attempted"] = True
-        merged_result["_quality_retry_reason"] = retry_reason
-        merged_result["_quality_retry_initial_summary"] = initial_summary
-        merged_result["_quality_retry_retry_summary"] = retry_summary
+        merged_result = hardened.merge_quality_retry_results(
+            initial_result=result,
+            retry_result=retry_result,
+            config=config,
+            line_index=line_index,
+            retry_reason=retry_reason,
+        )
         hardened.write_debug_json_artifact_safely(
             config,
             "responses/03-v22-semantic-quality-retry-merged-result.json",
-            {"model_used": retry_model_used, "service_tier": retry_service_tier, "result": merged_result},
+            {
+                "model_used": retry_model_used,
+                "service_tier": retry_service_tier,
+                "initial_finding_count": len(hardened.result_findings(result)),
+                "initial_survivor_count": int(merged_result.get("_quality_retry_initial_survivor_count", 0)),
+                "initial_rejected_count": int(merged_result.get("_quality_retry_initial_rejected_count", 0)),
+                "retry_finding_count": len(hardened.result_findings(retry_result)),
+                "result": merged_result,
+            },
         )
         return merged_result, retry_model_used, retry_service_tier
 
