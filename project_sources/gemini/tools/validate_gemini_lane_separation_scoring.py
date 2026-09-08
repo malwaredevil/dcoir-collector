@@ -322,6 +322,55 @@ def main() -> int:
         True,
         "comma boundary preserves affirmative separate instruction",
     )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Keep these two lanes separate. It is wrong to mix these two lanes.",
+        True,
+        "repudiated direct mix does not trigger the mix veto",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. "
+        "Keep these two lanes separate. It is not wrong to mix these two lanes.",
+        False,
+        "negated repudiation still exposes an asserted lane mix",
+    )
+    _expect(
+        "It is wrong to say do not run endpoint response-action commands and local "
+        "workstation PowerShell in the same shell.",
+        False,
+        "rejected shared-shell prohibition",
+    )
+    _expect(
+        "It is not wrong to say do not run endpoint response-action commands and local "
+        "workstation PowerShell in the same shell.",
+        True,
+        "negated rejection preserves the shared-shell prohibition",
+    )
+    _expect(
+        "Do not mix the log files while endpoint response-action commands use "
+        "execute --command and local workstation PowerShell runs the collector.",
+        False,
+        "unrelated no-mix target cannot borrow later lane context",
+    )
+    _expect(
+        "Do not mix endpoint log files with archive files while endpoint response-action "
+        "commands use execute --command and local workstation PowerShell runs the collector.",
+        False,
+        "one-sided endpoint no-mix target cannot borrow later local context",
+    )
+    _expect(
+        "Do not mix endpoint response-action syntax and local workstation PowerShell.",
+        True,
+        "direct endpoint-local no-mix relationship remains accepted",
+    )
+    _expect(
+        "Endpoint response-action execution uses execute --command. "
+        "Local workstation PowerShell runs the collector. Do not mix these two lanes.",
+        True,
+        "referential no-mix relationship remains accepted",
+    )
     print("Gemini execution-lane separation scoring regressions passed.")
     return 0
 
