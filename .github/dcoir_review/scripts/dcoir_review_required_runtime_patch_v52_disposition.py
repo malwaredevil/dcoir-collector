@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import math
 from typing import Any
 
@@ -187,6 +188,16 @@ def broad_retry_fallback(
     return merged, model, tier
 
 
+def independent_disposition_config(config: Any) -> Any:
+    """Use the independent challenger model stack for one bounded adjudication."""
+    staged = copy.copy(config)
+    models = list(getattr(config, "adversarial_confirmation_model_stack", None) or [])
+    if not models:
+        raise RuntimeError("DCOIR v52 requires an independent confirmation model stack")
+    staged.semantic_adjudication_model_stack = models
+    return staged
+
+
 def bounded_low_confidence_disposition(
     module: Any,
     primary: dict[str, Any],
@@ -238,36 +249,19 @@ def bounded_low_confidence_disposition(
         (
             f"candidates={len(findings)}; paths={len(selected_paths)}; "
             f"floor={float(pending.get('candidate_floor', 0.0)):.2f}; "
-            "scope=candidate-scoped"
+            "scope=candidate-scoped; independent_calls=1"
         ),
     )
-    challenger, challenger_model, challenger_tier = v44_execution.run_challenger(
-        module, schema, config, reporter, evidence, "candidate-scoped"
-    )
-    if outside_paths(module, challenger, selected_paths):
-        return broad_retry_fallback(
-            module, primary, pr, files, diff, schema, config, reporter,
-            risk_sentinels, line_index, deep_context_block, review_mode,
-            context_summary, str(pending.get("reason", "")),
-            "challenger-outside-bounded-scope"
-        )
-    hypotheses = v44_scope.dedupe_exact_findings(
-        findings
-        + [
-            dict(item)
-            for item in module.hardened.result_findings(challenger)
-            if isinstance(item, dict)
-        ]
-    )
-    adjudicated, adjudicator_model, adjudicator_tier = v44_execution.run_adjudicator(
-        module, schema, config, reporter, hypotheses, evidence, "candidate-scoped"
+    staged = independent_disposition_config(config)
+    adjudicated, disposition_model, disposition_tier = v44_execution.run_adjudicator(
+        module, schema, staged, reporter, findings, evidence, "candidate-scoped"
     )
     if outside_paths(module, adjudicated, selected_paths):
         return broad_retry_fallback(
             module, primary, pr, files, diff, schema, config, reporter,
             risk_sentinels, line_index, deep_context_block, review_mode,
             context_summary, str(pending.get("reason", "")),
-            "adjudicator-outside-bounded-scope"
+            "disposition-outside-bounded-scope"
         )
     module.hardened.write_debug_json_artifact_safely(
         config,
@@ -276,22 +270,18 @@ def bounded_low_confidence_disposition(
             "version": VERSION,
             "mode": "bounded-disposition-complete",
             **pending,
-            "input_hypotheses": len(hypotheses),
+            "input_hypotheses": len(findings),
             "output_findings": len(module.hardened.result_findings(adjudicated)),
-            "challenger_model": challenger_model,
-            "adjudicator_model": adjudicator_model,
+            "independent_call_count": 1,
+            "disposition_model": disposition_model,
         },
     )
-    model_label = (
-        f"{primary_model}; low-confidence-challenger={challenger_model}; "
-        f"low-confidence-adjudicator={adjudicator_model}"
-    )
+    model_label = f"{primary_model}; low-confidence-disposition={disposition_model}"
     tier_label = ", ".join(
         item
         for item in (
             str(primary_tier or "").strip(),
-            str(challenger_tier or "").strip(),
-            str(adjudicator_tier or "").strip(),
+            str(disposition_tier or "").strip(),
         )
         if item
     )
@@ -341,8 +331,8 @@ def patch_hybrid(module: Any) -> None:
         finally:
             setattr(config, ALLOW_ATTR, False)
         pending = getattr(config, PENDING_ATTR, None)
-        # In first-pass-deep mode v44 consumes the eligible hypotheses itself.
-        # v52 only adds this post-primary disposition step to ordinary diff mode.
+        # In first-pass-deep mode v44 consumes eligible hypotheses itself. v52
+        # only adds this post-primary disposition step to ordinary diff mode.
         if review_mode != "diff" or not isinstance(pending, dict):
             return result, model, tier
         return bounded_low_confidence_disposition(
