@@ -134,6 +134,18 @@ def main() -> None:
         assert telemetry["structured_output_recovery"] == "balanced-envelope"
         assert telemetry["request_events"][-1]["structured_output_recovery"] == "balanced-envelope"
 
+        incidental_backticks = (
+            "Provider note uses inline backticks ```like this``` before the object. "
+            '{"summary":"still recoverable","findings":[]} '
+            "Trailing prose remains outside the JSON envelope."
+        )
+        install(incidental_backticks)
+        parsed, _, _ = review.hardened.openrouter_request_once(
+            "probe", schema, config, [], "anthropic/claude-opus-5"
+        )
+        assert parsed["findings"] == []
+        assert getattr(config, provider.RECOVERY_ATTR) == "balanced-envelope"
+
         # Recovery applies only to model message content. A malformed outer
         # OpenRouter API envelope stays strict, and because the canonical
         # provider emitted no event for that request, prior telemetry is not

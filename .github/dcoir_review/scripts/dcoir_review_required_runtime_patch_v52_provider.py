@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json as _stdlib_json
+import re
 import types
 from typing import Any
 
@@ -12,6 +13,7 @@ RECOVERY_ATTR = "_dcoir_v52_last_structured_output_recovery"
 _PROVIDER_STORAGE = "_dcoir_review_v52_prior_openrouter_request_once"
 _REVIEW_STORAGE = "_dcoir_review_v52_prior_openrouter_review"
 _V48_PROVIDER_STORAGE = "_dcoir_review_v48_original_openrouter_request_once"
+_FENCED_OBJECT_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", flags=re.DOTALL)
 
 
 def balanced_object_ranges(text: str) -> list[tuple[int, int]]:
@@ -79,7 +81,7 @@ class RecoveryJsonProxy:
                 raise
             # Preserve the existing fenced-object recovery in the hardened
             # provider. Its next loads() call is labelled after extraction.
-            if "```" in value:
+            if _FENCED_OBJECT_RE.search(value):
                 self._saw_fenced_failure = True
                 raise
             ranges = balanced_object_ranges(value)
