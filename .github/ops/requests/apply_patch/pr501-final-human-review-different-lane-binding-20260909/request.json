@@ -5,7 +5,7 @@
   "operation": "apply",
   "target_branch": "issue-484-lane-separation-scoring",
   "patch_path": ".github/ops/requests/apply_patch/pr501-final-human-review-different-lane-binding-20260909/change.diff",
-  "expected_patch_sha256": "6d0db58f45665ce846ac40cd142aa276b9f1cc37b6b835774b92389212694a48",
+  "expected_patch_sha256": "d63a1c18ec91f5ed0baf29f34524b4cd3dede0ac328398b1cf5d607360d76ad9",
   "targets": [
     {
       "path": "project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
