@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue515-pr516-exact-head-validation-v3-20260909T1141Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-09T11:37:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run the exact-head deterministic DCOIR validation harness against PR #516 head f8b37bdb98ce4bf7129ad95972980c14bff2624a after the operator-triggered Copilot fix cycle: verify the remote branch still points to that SHA, detach it in a temporary worktree, remove inference credentials, compile the changed Python source, execute all 51 governed validation_commands from the PR DCOIR configuration, require a clean worktree, and emit validation/readback evidence. Do not invoke live model inference or DCOIR review, publish a GitHub review, mutate PR source, mark the PR Ready, or merge it. This rerun is within the operator's current-session standing approval for slight modifications needed to complete the stated PR #516 validation goal without incremental approval prompts.",
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue515-pr516-exact-head-validation-v3-20260909T1141Z.ps1"
+}
