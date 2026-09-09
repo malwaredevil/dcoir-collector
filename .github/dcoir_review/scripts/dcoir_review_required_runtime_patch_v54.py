@@ -81,7 +81,8 @@ def _note_telemetry_error(config: Any) -> None:
     try:
         setattr(config, ERROR_COUNT_ATTR, _telemetry_error_count(config) + 1)
     except Exception:
-        pass
+        # Error accounting is advisory; never let it alter review behavior.
+        return
 
 
 def _finite_number(value: Any) -> int | float | None:
@@ -467,7 +468,8 @@ def _patch_progress_reporter(module: Any) -> None:
                 try:
                     setattr(config, SUMMARY_ATTR, summary)
                 except Exception:
-                    pass
+                    # The bounded status message remains usable without persistence.
+                    _note_telemetry_error(config)
                 message = (
                     f"schema={SCHEMA_VERSION}; telemetry_status=unavailable; "
                     f"telemetry_error_count={_telemetry_error_count(config)}"
@@ -520,8 +522,10 @@ def apply_pareto_context_module(module: Any) -> None:
     try:
         setattr(module, PATCH_ERRORS_ATTR, tuple(errors))
     except Exception:
-        pass
+        # Patch-error metadata is advisory and must not block module startup.
+        _note_telemetry_error(module)
     try:
         setattr(module, APPLIED_MARKER, True)
     except Exception:
-        pass
+        # Some proxy modules may reject attributes; review behavior still proceeds.
+        _note_telemetry_error(module)
