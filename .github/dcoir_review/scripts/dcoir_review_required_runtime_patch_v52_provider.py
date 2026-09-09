@@ -104,19 +104,109 @@ class RecoveryJsonProxy:
         return parsed
 
 
-def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
-    real_json = function.__globals__.get("json", _stdlib_json)
-    proxy = RecoveryJsonProxy(real_json)
-    namespace = dict(function.__globals__)
-    namespace["json"] = proxy
+def _make_cell(value: Any) -> Any:
+    """Create one closure cell containing value."""
+
+    def capture() -> Any:
+        return value
+
+    return capture.__closure__[0]
+
+
+def _clone_function(
+    function: types.FunctionType,
+    *,
+    namespace: dict[str, Any] | None = None,
+    closure: tuple[Any, ...] | None = None,
+) -> types.FunctionType:
+    """Clone a Python function while preserving its callable metadata."""
     clone = types.FunctionType(
         function.__code__,
-        namespace,
+        namespace if namespace is not None else function.__globals__,
         name=function.__name__,
         argdefs=function.__defaults__,
-        closure=function.__closure__,
+        closure=closure if closure is not None else function.__closure__,
     )
     clone.__kwdefaults__ = getattr(function, "__kwdefaults__", None)
+    clone.__annotations__ = dict(getattr(function, "__annotations__", {}))
+    clone.__dict__.update(getattr(function, "__dict__", {}))
+    clone.__module__ = getattr(function, "__module__", None)
+    clone.__qualname__ = getattr(function, "__qualname__", function.__name__)
+    clone.__doc__ = getattr(function, "__doc__", None)
+    return clone
+
+
+def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
+    """Clone the composed request chain down to its real JSON provider boundary.
+
+    v48 stores the fully composed pre-guard request wrapper, not the raw hardened
+    provider function. v9/v6 wrappers keep that raw provider in nested closure
+    cells, so replacing only the outer wrapper globals does not affect parsing.
+    Clone the per-call wrapper chain and replace exactly one inner provider JSON
+    namespace instead. Shared modules/functions remain untouched for concurrent
+    per-file workers.
+    """
+    if not isinstance(function, types.FunctionType):
+        raise RuntimeError("DCOIR v52 requires a Python provider request function")
+
+    visited: set[int] = set()
+
+    def clone_chain(
+        target: types.FunctionType,
+        depth: int = 0,
+    ) -> tuple[types.FunctionType, RecoveryJsonProxy | None]:
+        if depth > 12 or id(target) in visited:
+            return target, None
+        visited.add(id(target))
+
+        if "json" in target.__globals__ and "json" in target.__code__.co_names:
+            real_json = target.__globals__.get("json", _stdlib_json)
+            proxy = RecoveryJsonProxy(real_json)
+            namespace = dict(target.__globals__)
+            namespace["json"] = proxy
+            return _clone_function(target, namespace=namespace), proxy
+
+        closure = target.__closure__
+        if not closure:
+            return target, None
+
+        replacement_index: int | None = None
+        replacement_function: types.FunctionType | None = None
+        found_proxy: RecoveryJsonProxy | None = None
+        for index, cell in enumerate(closure):
+            try:
+                value = cell.cell_contents
+            except ValueError:
+                continue
+            if not isinstance(value, types.FunctionType):
+                continue
+            cloned_value, proxy = clone_chain(value, depth + 1)
+            if proxy is None:
+                continue
+            if found_proxy is not None:
+                raise RuntimeError(
+                    "DCOIR v52 found multiple nested provider JSON boundaries"
+                )
+            replacement_index = index
+            replacement_function = cloned_value
+            found_proxy = proxy
+
+        if (
+            found_proxy is None
+            or replacement_index is None
+            or replacement_function is None
+        ):
+            return target, None
+
+        cells = list(closure)
+        cells[replacement_index] = _make_cell(replacement_function)
+        return _clone_function(target, closure=tuple(cells)), found_proxy
+
+    clone, proxy = clone_chain(function)
+    if proxy is None:
+        raise RuntimeError(
+            "DCOIR v52 could not locate the canonical provider JSON boundary"
+        )
     return clone, proxy
 
 
