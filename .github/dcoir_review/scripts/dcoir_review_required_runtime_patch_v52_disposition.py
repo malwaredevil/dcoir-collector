@@ -8,6 +8,7 @@ from typing import Any
 
 import dcoir_review_required_runtime_patch_v44_execution as v44_execution
 import dcoir_review_required_runtime_patch_v44_scope as v44_scope
+import dcoir_review_required_runtime_patch_v52_retry as retry
 
 VERSION = "v52"
 ALLOW_ATTR = "_dcoir_v52_allow_low_confidence_disposition"
@@ -123,71 +124,6 @@ def outside_paths(module: Any, result: dict[str, Any], selected_paths: set[str])
     )
 
 
-def broad_retry_fallback(
-    module: Any,
-    primary: dict[str, Any],
-    pr: dict[str, Any],
-    files: list[dict[str, Any]],
-    diff: str,
-    schema: dict[str, Any],
-    config: Any,
-    reporter: Any,
-    risk_sentinels: list[Any],
-    line_index: dict[tuple[str, int], int],
-    deep_context_block: str,
-    review_mode: str,
-    context_summary: str,
-    reason: str,
-    fallback_reason: str,
-) -> tuple[dict[str, Any], str, str]:
-    reporter.update(
-        "quality-retry",
-        (
-            f"{module.hardened.sanitize_github_output(reason, config)}; "
-            f"bounded disposition unavailable ({fallback_reason}); "
-            "retrying with whole-PR repair prompt"
-        ),
-    )
-    aggregate_prompt = module.build_prompt(
-        pr,
-        files,
-        diff,
-        config,
-        risk_sentinels,
-        deep_context_block,
-        review_mode,
-        context_summary,
-    )
-    retry_sentinels = module.hardened.required_risk_sentinels(risk_sentinels) or risk_sentinels
-    retry_prompt = module.hardened.build_quality_retry_prompt(
-        aggregate_prompt, primary, retry_sentinels, config, reason
-    )
-    module.hardened.write_debug_text_artifact_safely(
-        config, "prompts/10-v52-broad-quality-retry.txt", retry_prompt
-    )
-    retry_result, model, tier = module.hardened.openrouter_review(
-        retry_prompt, schema, config, reporter
-    )
-    merged = module.hardened.merge_quality_retry_results(
-        initial_result=primary,
-        retry_result=retry_result,
-        config=config,
-        line_index=line_index,
-        retry_reason=reason,
-    )
-    module.hardened.write_debug_json_artifact_safely(
-        config,
-        "responses/10-v52-broad-quality-retry.json",
-        {
-            "fallback_reason": fallback_reason,
-            "model_used": model,
-            "service_tier": tier,
-            "result": merged,
-        },
-    )
-    return merged, model, tier
-
-
 def independent_disposition_config(config: Any) -> Any:
     """Use the independent challenger model stack for one bounded adjudication."""
     staged = copy.copy(config)
@@ -227,21 +163,22 @@ def bounded_low_confidence_disposition(
         max_paths = max(1, int(getattr(config, "candidate_escalation_max_paths", 4) or 4))
     except (TypeError, ValueError):
         max_paths = 0
+    fallback = retry.broad_retry_fallback
+    reason = str(pending.get("reason", ""))
     if not selected_paths or len(selected_paths) > max_paths:
-        return broad_retry_fallback(
+        return fallback(
             module, primary, pr, files, diff, schema, config, reporter,
             risk_sentinels, line_index, deep_context_block, review_mode,
-            context_summary, str(pending.get("reason", "")), "path-budget"
+            context_summary, reason, "path-budget"
         )
     evidence, evidence_reason = v44_scope.build_bounded_evidence(
         module, gh, pr, files, config, risk_sentinels, selected_paths
     )
     if evidence is None:
-        return broad_retry_fallback(
+        return fallback(
             module, primary, pr, files, diff, schema, config, reporter,
             risk_sentinels, line_index, deep_context_block, review_mode,
-            context_summary, str(pending.get("reason", "")),
-            evidence_reason or "bounded-evidence-unavailable"
+            context_summary, reason, evidence_reason or "bounded-evidence-unavailable"
         )
 
     reporter.update(
@@ -257,11 +194,10 @@ def bounded_low_confidence_disposition(
         module, schema, staged, reporter, findings, evidence, "candidate-scoped"
     )
     if outside_paths(module, adjudicated, selected_paths):
-        return broad_retry_fallback(
+        return fallback(
             module, primary, pr, files, diff, schema, config, reporter,
             risk_sentinels, line_index, deep_context_block, review_mode,
-            context_summary, str(pending.get("reason", "")),
-            "disposition-outside-bounded-scope"
+            context_summary, reason, "disposition-outside-bounded-scope"
         )
     module.hardened.write_debug_json_artifact_safely(
         config,
