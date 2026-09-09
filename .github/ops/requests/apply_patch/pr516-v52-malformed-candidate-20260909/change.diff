@@ -2,6 +2,7 @@ diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v5
 --- a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py
 +++ b/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py
 @@ -17,6 +17,20 @@ _LOW_CONFIDENCE_PREFIX = (
+ _LOW_CONFIDENCE_PREFIX = (
      "model returned structured findings, but none met the configured minimum confidence"
  )
 +_REQUIRED_FINDING_FIELDS = (
@@ -21,7 +22,7 @@ diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v5
  
  
  def confidence(value: Any) -> float | None:
-@@ -67,21 +81,35 @@ def eligible_low_confidence_findings(
+@@ -67,22 +81,33 @@ def eligible_low_confidence_findings(
      if minimum is None or margin is None:
          return [], 0.0
      floor = max(0.0, minimum - margin)
@@ -68,7 +69,7 @@ diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v5
 diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_selftest.py b/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_selftest.py
 --- a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_selftest.py
 +++ b/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_selftest.py
-@@ -198,6 +198,15 @@ def main() -> None:
+@@ -198,6 +198,17 @@ def main() -> None:
      summary_only = {"summary": "Found an issue in the changed validation boundary.", "findings": []}
      assert review.hardened.review_quality_retry_reason(summary_only, config, [], line_index)
  

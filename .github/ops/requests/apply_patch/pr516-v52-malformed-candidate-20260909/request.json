@@ -5,7 +5,7 @@
   "operation": "apply",
   "target_branch": "issue-515-bounded-structured-recovery",
   "patch_path": ".github/ops/requests/apply_patch/pr516-v52-malformed-candidate-20260909/change.diff",
-  "expected_patch_sha256": "5528d449013871d22d14b0c9f169bca909a4b98f2f7267d4a59ed5d378a3dc8b",
+  "expected_patch_sha256": "8e80b00536a06370612610e591051a2858047732563cdfc8291e493861879558",
   "targets": [
     {
       "path": ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py",
