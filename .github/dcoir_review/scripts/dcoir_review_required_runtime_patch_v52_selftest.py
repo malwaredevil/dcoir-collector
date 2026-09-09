@@ -185,8 +185,8 @@ def main() -> None:
         review.hardened.required_risk_sentinels = original_required
         review.hardened.non_actionable_finding_reason = original_non_actionable
 
-    # Bounded disposition uses independent challenger + adjudicator and returns
-    # their disposition; it does not lower the primary publication confidence.
+    # Bounded disposition makes exactly one independent semantic call, using the
+    # confirmation stack rather than paying for challenger + adjudicator replay.
     reporter = Reporter()
     original_evidence = disposition.v44_scope.build_bounded_evidence
     original_challenger = disposition.v44_execution.run_challenger
@@ -197,17 +197,20 @@ def main() -> None:
             lambda module, gh, pr, files, cfg, sentinels, paths: ("bounded exact-head evidence", "")
         )
 
-        def challenger(module, schema_arg, cfg, rep, evidence, scope):
-            calls.append("challenger")
-            assert scope == "candidate-scoped"
-            return {"summary": "independent", "findings": [finding("a.py", 10, 0.72)]}, "sol", ""
+        def forbidden_challenger(*args, **kwargs):
+            raise AssertionError("v52 low-confidence diff disposition must not run a challenger")
 
         def adjudicator(module, schema_arg, cfg, rep, hypotheses, evidence, scope):
-            calls.append("adjudicator")
-            assert len(hypotheses) >= 2
-            return {"summary": "clean after bounded disposition", "findings": []}, "opus", ""
+            calls.append("disposition")
+            assert scope == "candidate-scoped"
+            assert len(hypotheses) == 2
+            assert cfg is not config
+            assert list(cfg.semantic_adjudication_model_stack) == list(
+                config.adversarial_confirmation_model_stack
+            )
+            return {"summary": "clean after bounded disposition", "findings": []}, "sol", ""
 
-        disposition.v44_execution.run_challenger = challenger
+        disposition.v44_execution.run_challenger = forbidden_challenger
         disposition.v44_execution.run_adjudicator = adjudicator
         result, model_label, _ = disposition.bounded_low_confidence_disposition(
             review,
@@ -232,9 +235,13 @@ def main() -> None:
             pending,
         )
         assert result["findings"] == []
-        assert calls == ["challenger", "adjudicator"]
-        assert "low-confidence-challenger=sol" in model_label
-        assert any(stage == "structured-low-confidence-disposition" for stage, _ in reporter.events)
+        assert calls == ["disposition"]
+        assert "low-confidence-disposition=sol" in model_label
+        assert any(
+            stage == "structured-low-confidence-disposition"
+            and "independent_calls=1" in message
+            for stage, message in reporter.events
+        )
     finally:
         disposition.v44_scope.build_bounded_evidence = original_evidence
         disposition.v44_execution.run_challenger = original_challenger
@@ -243,7 +250,7 @@ def main() -> None:
     print(
         "dcoir_review_required_runtime_patch_v52_selftest passed: "
         "single-object envelope recovery is deterministic/fail-closed and "
-        "near-threshold anchored hypotheses use bounded independent disposition"
+        "near-threshold anchored hypotheses use one bounded independent disposition"
     )
 
 
