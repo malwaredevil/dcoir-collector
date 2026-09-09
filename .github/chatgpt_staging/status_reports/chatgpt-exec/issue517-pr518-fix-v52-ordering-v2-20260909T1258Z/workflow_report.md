@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: failure
+- phase: harness-finished
 - request_id: issue517-pr518-fix-v52-ordering-v2-20260909T1258Z
 - request_path: .github/chatgpt_staging/exec_requests/issue517-pr518-fix-v52-ordering-v2-20260909T1258Z.json
 - github_run_id: 34353972011
@@ -18,9 +18,11 @@
 - github_sha: 5e992a5e2e998efb32d4f08d37b594385f4bf1c7
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34353972011
-- report_updated_utc: 2026-09-09T12:56:40Z
+- report_updated_utc: 2026-09-09T12:56:52Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-fix-v52-ordering-v2-20260909T1258Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-fix-v52-ordering-v2-20260909T1258Z/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue517-pr518-fix-v52-ordering-v2-20260909T1258Z
+- exit_code: 1
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 1. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-09-09T12:56:38Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-09T12:56:40Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-09T12:56:52Z | phase=harness-finished | result=failure | Approved command harness finished with exit code 1. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
