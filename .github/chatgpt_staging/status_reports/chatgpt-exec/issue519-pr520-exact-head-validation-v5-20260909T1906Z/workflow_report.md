@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: success
+- phase: harness-finished
 - request_id: issue519-pr520-exact-head-validation-v5-20260909T1906Z
 - request_path: .github/chatgpt_staging/exec_requests/issue519-pr520-exact-head-validation-v5-20260909T1906Z.json
 - github_run_id: 34393099137
@@ -18,9 +18,11 @@
 - github_sha: b405bff2ce87e463196e2f7ed1d753d86720431b
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34393099137
-- report_updated_utc: 2026-09-09T19:07:01Z
+- report_updated_utc: 2026-09-09T19:07:43Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v5-20260909T1906Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v5-20260909T1906Z/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue519-pr520-exact-head-validation-v5-20260909T1906Z
+- exit_code: 0
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-09-09T19:06:59Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-09T19:07:01Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-09T19:07:43Z | phase=harness-finished | result=success | Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
