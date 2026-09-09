@@ -220,29 +220,643 @@ def _clause_has_local_lane(clause: str) -> bool:
     )
 
 
-def has_execution_lane_separation(response_text: str) -> bool:
-    for clause in _iter_clauses(response_text):
-        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):
+_REFERENTIAL_LANES_PATTERN = (
+    r"(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)"
+)
+_SHARED_CONTEXT_TERMS = (
+    "same shell",
+    "single shell",
+    "one shell",
+    "same command",
+    "single command",
+    "same lane",
+)
+_LANE_TARGET_HEAD_BLOCKERS = frozenset(
+    {
+        "and",
+        "or",
+        "but",
+        "however",
+        "whereas",
+        "yet",
+        "then",
+        "except",
+        "excepting",
+        "excluding",
+        "excluded",
+        "without",
+        "unless",
+        "until",
+        "than",
+        "instead",
+        "rather",
+        "not",
+        "no",
+        "never",
+        "nor",
+        "apart",
+        "unlike",
+        "versus",
+        "vs",
+        "against",
+        "besides",
+        "beside",
+        "save",
+        "saving",
+        "aside",
+        "outside",
+        "beyond",
+        "bar",
+        "barring",
+        "sans",
+        "minus",
+        "from",
+        "to",
+        "for",
+        "of",
+        "in",
+        "on",
+        "at",
+        "by",
+        "with",
+        "as",
+        "about",
+        "around",
+        "through",
+        "via",
+        "per",
+        "under",
+        "over",
+        "before",
+        "after",
+        "between",
+        "among",
+        "across",
+        "into",
+        "onto",
+        "within",
+        "near",
+        "during",
+        "since",
+        "toward",
+        "towards",
+        "upon",
+        "if",
+        "when",
+        "while",
+        "though",
+        "although",
+        "because",
+        "whether",
+        "once",
+        "where",
+        "wherever",
+        "whenever",
+    }
+)
+
+
+def _lane_target_head_index(tokens: List[str]) -> int | None:
+    scan_limit = min(len(tokens), 4)
+    for index in range(scan_limit):
+        token = tokens[index]
+        if token in _LANE_TARGET_HEAD_BLOCKERS:
+            return None
+        if token in {"endpoint", "response-action", "local", "workstation"}:
+            return index
+        if (
+            token == "response"
+            and index + 1 < len(tokens)
+            and tokens[index + 1] == "action"
+        ):
+            return index
+    return None
+
+
+def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
+    for segment in re.split(r"\b(?:but|however|whereas|yet)\b", clause):
+        normalized = normalize_text(segment)
+        if normalized:
+            yield normalized
+
+
+def _segment_has_lane_relation_scope(segment: str) -> bool:
+    return bool(
+        (_clause_has_endpoint_lane(segment) and _clause_has_local_lane(segment))
+        or re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", segment)
+    )
+
+
+def _shared_context_trailing_lane_relation(
+    text: str,
+    end: int,
+    leading_scope: str,
+) -> bool:
+    suffix = text[end:min(len(text), end + 140)]
+    boundary_positions = []
+    for marker in (
+        ".",
+        "!",
+        "?",
+        ";",
+        chr(44),
+        chr(13),
+        chr(10),
+        " but ",
+        " however ",
+        " whereas ",
+        " yet ",
+        " then ",
+    ):
+        position = suffix.find(marker)
+        if position >= 0:
+            boundary_positions.append(position)
+    if boundary_positions:
+        suffix = suffix[:min(boundary_positions)]
+    relation = re.match(
+        r"^\s+(?:as|with)\s+(?:the\s+)?(?P<target>.+?)\s*$",
+        suffix,
+    )
+    if not relation:
+        return False
+
+    target = normalize_text(relation.group("target"))
+    tokens = re.findall(r"[a-z0-9-]+", target)
+    head_index = _lane_target_head_index(tokens)
+    target_head_tokens = tokens[head_index:] if head_index is not None else []
+
+    target_starts_endpoint = bool(
+        target_head_tokens
+        and (
+            target_head_tokens[0] in {"endpoint", "response-action"}
+            or target_head_tokens[:2] == ["response", "action"]
+        )
+    )
+    target_starts_local = bool(
+        target_head_tokens
+        and target_head_tokens[0] in {"local", "workstation"}
+    )
+
+    target_local = False
+    if target_starts_local:
+        local_positions = [
+            index
+            for index, token in enumerate(tokens)
+            if token in {"powershell", "command", "commands"}
+        ]
+        if local_positions:
+            local_index = min(local_positions)
+            prefix_tokens = tokens[:local_index + 1]
+            has_response_action_pair = any(
+                prefix_tokens[index:index + 2] == ["response", "action"]
+                for index in range(max(0, len(prefix_tokens) - 1))
+            )
+            target_local = not (
+                "endpoint" in prefix_tokens
+                or "response-action" in prefix_tokens
+                or has_response_action_pair
+            )
+
+    target_endpoint = bool(
+        target_starts_endpoint and _clause_has_endpoint_lane(target)
+    )
+    leading_endpoint = _clause_has_endpoint_lane(leading_scope)
+    leading_local = _clause_has_local_lane(leading_scope)
+    return bool(
+        (leading_endpoint and target_local)
+        or (leading_local and target_endpoint)
+    )
+
+
+def _occurrence_has_direct_shared_context_negation(
+    text: str,
+    start: int,
+    end: int,
+) -> bool:
+    prefix = text[max(0, start - 180):start]
+    direct_use = re.search(
+        r"\b(?:do not|don't|dont|must not|should not|never|avoid)\s+"
+        r"(?:use|using|share)\s+(?:the\s+)?$",
+        prefix,
+    )
+    if direct_use:
+        return True
+
+    scoped_action = re.search(
+        r"\b(?:do not|don't|dont|must not|should not|never|avoid)\s+"
+        r"(?:run|execute|place|put|mix|combine)\b[^.!?;]{0,150}$",
+        prefix,
+    )
+    if not scoped_action:
+        return False
+    scope = prefix[scoped_action.start():]
+    if (
+        (_clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope))
+        or re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", scope)
+    ):
+        return True
+    return _shared_context_trailing_lane_relation(text, end, scope)
+
+
+def _assertive_phrase_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
+    for occurrence in _iter_term_occurrences(text, term):
+        if _occurrence_is_quoted(text, occurrence.start(), occurrence.end()):
             continue
-        positive_separation = bool(
-            _find_contextual_term_hits(
-                clause,
-                ["separate", "different lane", "distinct lane"],
-                skip_negated=True,
-                skip_quoted=True,
-            )
-        )
-        explicit_no_mix = bool(
-            _find_contextual_term_hits(
-                clause,
-                ["do not mix", "don't mix", "dont mix", "must not mix", "should not mix"],
-                skip_negated=True,
-                skip_quoted=True,
-            )
-        )
-        if positive_separation or explicit_no_mix:
+        if _occurrence_is_negated(text, occurrence.start()):
+            continue
+        if _occurrence_is_rejected_after(text, occurrence.end()):
+            continue
+        if _occurrence_has_direct_shared_context_negation(
+            text, occurrence.start(), occurrence.end()
+        ):
+            continue
+        yield occurrence
+
+
+def _mix_occurrence_targets_lane(text: str, occurrence: re.Match[str]) -> bool:
+    after = text[occurrence.end():min(len(text), occurrence.end() + 100)]
+    before = text[max(0, occurrence.start() - 80):occurrence.start()]
+    direct_lane_target = re.compile(
+        r"^\s+(?:up\s+)?(?:the\s+)?"
+        r"(?:(?:commands?|syntax)\s+(?:from|for)\s+)?"
+        r"(?:endpoint|response(?:-| )action|local|workstation)\b"
+    )
+    direct_lane_reference = re.compile(
+        rf"^\s+(?:up\s+)?{_REFERENTIAL_LANES_PATTERN}\b"
+    )
+    trailing_lane_reference = re.compile(
+        rf"{_REFERENTIAL_LANES_PATTERN}\s*$"
+    )
+    return bool(
+        direct_lane_target.search(after)
+        or direct_lane_reference.search(after)
+        or trailing_lane_reference.search(before)
+    )
+
+
+_REPUDIATION_NEGATION_PATTERN = re.compile(
+    r"\b(?:not|never|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)\b"
+    r"(?:\s+[a-z0-9_-]+){0,3}\s*$"
+)
+
+
+def _repudiation_frame_is_negated(prefix: str, match_start: int) -> bool:
+    polarity_prefix = prefix[max(0, match_start - 48):match_start]
+    return bool(_REPUDIATION_NEGATION_PATTERN.search(polarity_prefix))
+
+
+def _occurrence_has_local_mix_rejection(text: str, start: int) -> bool:
+    """Reject direct wrong/incorrect/false/misleading-to-mix frames locally."""
+    prefix = text[max(0, start - 160):start]
+    comma = prefix.rfind(",")
+    if comma >= 0:
+        prefix = prefix[comma + 1:]
+    match = re.search(
+        r"\b(?:wrong|incorrect|false|misleading)\s+to\s+$",
+        prefix,
+    )
+    return bool(
+        match
+        and not _repudiation_frame_is_negated(prefix, match.start())
+    )
+
+
+_NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(
+    r"[.!?;,]|\b(?:but|however|whereas|yet|while|although|though|because|when|then)\b"
+)
+
+
+def _bounded_no_mix_relation_sides(
+    text: str,
+    occurrence: re.Match[str],
+) -> tuple[str, str]:
+    before = text[max(0, occurrence.start() - 180):occurrence.start()]
+    before_boundaries = list(_NO_MIX_RELATION_BOUNDARY_PATTERN.finditer(before))
+    if before_boundaries:
+        before = before[before_boundaries[-1].end():]
+
+    after = text[occurrence.end():min(len(text), occurrence.end() + 180)]
+    after_boundary = _NO_MIX_RELATION_BOUNDARY_PATTERN.search(after)
+    if after_boundary:
+        after = after[:after_boundary.start()]
+    return normalize_text(before), normalize_text(after)
+
+
+_NO_MIX_OBJECT_FREE_ADVERB_PATTERN = re.compile(
+    r"(?:[a-z0-9_-]+(?:ly|ward|wards|wise)|"
+    r"ever|again|anymore|anywhere|anytime|elsewhere|here|there|now|today|"
+    r"tonight|henceforth|always|together)"
+)
+
+
+_NO_MIX_ADVERBIAL_PREPOSITION_PATTERN = re.compile(
+    r"^(?:at|under|during|within|throughout|for|in|outside|beyond|after|"
+    r"before|until|by|without)\b"
+)
+
+
+def _no_mix_trailing_scope_is_object_free_modifier(scope: str) -> bool:
+    """Return True only for trailing syntax that cannot supply a mix object.
+
+    Unknown bare words remain object-like by default. This keeps a stated
+    object such as ``log formats`` authoritative while allowing subject-position
+    lane prohibitions to carry ordinary adverbs and prepositional adjuncts.
+    ``with`` is deliberately excluded from the generic preposition path because
+    it commonly introduces the object/complement of ``mix``; only the reciprocal
+    ``with each other`` form is accepted.
+    """
+    normalized = normalize_text(scope)
+    if not normalized:
+        return True
+    if normalized == "with each other":
+        return True
+    tokens = normalized.split()
+    if tokens and all(
+        _NO_MIX_OBJECT_FREE_ADVERB_PATTERN.fullmatch(token)
+        for token in tokens
+    ):
+        return True
+    return bool(_NO_MIX_ADVERBIAL_PREPOSITION_PATTERN.match(normalized))
+
+
+def _no_mix_scope_targets_lane_relation(scope: str) -> bool:
+    referential_scope = re.sub(r"^(?:up\s+)?", "", scope).strip()
+    if re.fullmatch(
+        rf"{_REFERENTIAL_LANES_PATTERN}(?:\s+(?:together|with\s+each\s+other))?",
+        referential_scope,
+    ):
+        return True
+    return _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope)
+
+
+def _no_mix_occurrence_targets_lane_relation(
+    text: str,
+    occurrence: re.Match[str],
+) -> bool:
+    before, after = _bounded_no_mix_relation_sides(text, occurrence)
+    if _no_mix_scope_targets_lane_relation(after):
+        return True
+    if not _no_mix_trailing_scope_is_object_free_modifier(after):
+        return False
+    return _no_mix_scope_targets_lane_relation(before)
+
+
+def _segment_has_explicit_lane_mix(segment: str) -> bool:
+    if not _segment_has_lane_relation_scope(segment):
+        return False
+    for term in ("mix", "combine"):
+        for occurrence in _assertive_phrase_occurrences(segment, term):
+            if _occurrence_has_local_mix_rejection(segment, occurrence.start()):
+                continue
+            if _mix_occurrence_targets_lane(segment, occurrence):
+                return True
+    for term in _SHARED_CONTEXT_TERMS:
+        if any(_assertive_phrase_occurrences(segment, term)):
             return True
     return False
+
+
+def _clause_has_explicit_lane_mix(clause: str) -> bool:
+    return any(
+        _segment_has_explicit_lane_mix(segment)
+        for segment in _iter_lane_relation_segments(clause)
+    )
+
+
+def _clause_has_pronominal_shared_context_mix(clause: str) -> bool:
+    action_pattern = re.compile(
+        r"\b(?P<negated>(?:(?:do not|don't|dont|must not|should not|never|avoid)\s+)?)"
+        r"(?:run|execute|place|put|use|keep)\s+(?:them|both)\b"
+    )
+    for term in _SHARED_CONTEXT_TERMS:
+        for occurrence in _assertive_phrase_occurrences(clause, term):
+            prefix = clause[max(0, occurrence.start() - 120):occurrence.start()]
+            action = None
+            for candidate in action_pattern.finditer(prefix):
+                trailing = prefix[candidate.end():]
+                if len(trailing) > 80:
+                    continue
+                if any(char in ".!?;" for char in trailing):
+                    continue
+                action = candidate
+            if action and not action.group("negated"):
+                return True
+    return False
+
+
+def _response_has_pronominal_shared_context_mix(clauses: List[str]) -> bool:
+    endpoint_established = False
+    local_established = False
+    for clause in clauses:
+        if (
+            endpoint_established
+            and local_established
+            and _clause_has_pronominal_shared_context_mix(clause)
+        ):
+            return True
+        endpoint_established = endpoint_established or _clause_has_endpoint_lane(clause)
+        local_established = local_established or _clause_has_local_lane(clause)
+    return False
+
+
+def _clause_has_referential_lane_mix(clause: str) -> bool:
+    for term in ("mix", "combine"):
+        for occurrence in _assertive_phrase_occurrences(clause, term):
+            if _occurrence_has_local_mix_rejection(clause, occurrence.start()):
+                continue
+            if _mix_occurrence_targets_lane(clause, occurrence):
+                return True
+    return False
+
+
+def _segment_has_negated_shared_context(segment: str) -> bool:
+    if not _segment_has_lane_relation_scope(segment):
+        return False
+    for term in _SHARED_CONTEXT_TERMS:
+        for occurrence in _iter_term_occurrences(segment, term):
+            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+                continue
+            if _occurrence_is_rejected_after(segment, occurrence.end()):
+                continue
+            if _occurrence_has_local_lane_relation_rejection(
+                segment, occurrence.start()
+            ):
+                continue
+            if _occurrence_has_direct_shared_context_negation(
+                segment,
+                occurrence.start(),
+                occurrence.end(),
+            ):
+                return True
+    return False
+
+
+def _separate_occurrence_targets_lane(
+    segment: str,
+    occurrence: re.Match[str],
+) -> bool:
+    before = segment[max(0, occurrence.start() - 140):occurrence.start()]
+    after = segment[occurrence.end():min(len(segment), occurrence.end() + 140)]
+    if re.search(
+        rf"{_REFERENTIAL_LANES_PATTERN}(?:\s+(?:are|remain|stay|kept|must be|should be))?\s*$",
+        before,
+    ):
+        return True
+    if re.match(rf"^\s+{_REFERENTIAL_LANES_PATTERN}\b", after):
+        return True
+
+    endpoint_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:endpoint|response(?:-| )action)\b", segment)
+    ]
+    local_positions = [
+        match.start()
+        for match in re.finditer(r"\b(?:local|workstation)\b", segment)
+    ]
+    if not (endpoint_positions and local_positions):
+        return False
+
+    start = occurrence.start()
+    endpoint_distance = min(abs(start - pos) for pos in endpoint_positions)
+    local_distance = min(abs(start - pos) for pos in local_positions)
+    if endpoint_distance <= 120 and local_distance <= 120:
+        between_lanes = any(
+            (endpoint < start < local) or (local < start < endpoint)
+            for endpoint in endpoint_positions
+            for local in local_positions
+        )
+        if between_lanes:
+            return True
+
+    lane_tail = re.search(
+        r"\b(?:endpoint|response(?:-| )action|local|workstation)"
+        r"(?:\s+[a-z0-9_-]+){0,4}\s*$",
+        before,
+    )
+    if lane_tail and endpoint_distance <= 120 and local_distance <= 120:
+        return True
+
+    lane_head = re.match(
+        r"^\s+(?:endpoint|response(?:-| )action|local|workstation)\b",
+        after,
+    )
+    if lane_head and endpoint_distance <= 120 and local_distance <= 120:
+        return True
+    return False
+
+
+def _occurrence_has_lane_relation_rejection(text: str, start: int) -> bool:
+    prefix = text[max(0, start - 160):start]
+    return bool(
+        re.search(
+            r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+            r"[^.!?;]{0,140}$",
+            prefix,
+        )
+    )
+
+
+def _occurrence_has_local_lane_relation_rejection(text: str, start: int) -> bool:
+    """Reject repudiation frames only within the current comma-delimited discourse segment."""
+    prefix = text[max(0, start - 160):start]
+    comma = prefix.rfind(",")
+    if comma >= 0:
+        prefix = prefix[comma + 1:]
+    match = re.search(
+        r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+        r"[^.!?;]{0,140}$",
+        prefix,
+    )
+    return bool(
+        match
+        and not _repudiation_frame_is_negated(prefix, match.start())
+    )
+
+
+def _segment_has_relational_lane_separation(segment: str) -> bool:
+    if not _segment_has_lane_relation_scope(segment):
+        return False
+    for term in (
+        "do not mix",
+        "don't mix",
+        "dont mix",
+        "must not mix",
+        "should not mix",
+        "do not combine",
+        "don't combine",
+        "dont combine",
+        "must not combine",
+        "should not combine",
+    ):
+        for occurrence in _iter_term_occurrences(segment, term):
+            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+                continue
+            if _occurrence_is_negated(segment, occurrence.start()):
+                continue
+            if _occurrence_is_rejected_after(segment, occurrence.end()):
+                continue
+            if _occurrence_has_local_lane_relation_rejection(
+                segment, occurrence.start()
+            ):
+                continue
+            if not _no_mix_occurrence_targets_lane_relation(segment, occurrence):
+                continue
+            return True
+    if _segment_has_negated_shared_context(segment):
+        return True
+    for term in ("different lane", "distinct lane"):
+        for occurrence in _iter_term_occurrences(segment, term):
+            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+                continue
+            if _occurrence_is_negated(segment, occurrence.start()):
+                continue
+            if _occurrence_is_rejected_after(segment, occurrence.end()):
+                continue
+            if _occurrence_has_local_lane_relation_rejection(
+                segment, occurrence.start()
+            ):
+                continue
+            if _separate_occurrence_targets_lane(segment, occurrence):
+                return True
+
+    for occurrence in _assertive_phrase_occurrences(segment, "separate"):
+        if _occurrence_has_local_lane_relation_rejection(segment, occurrence.start()):
+            continue
+        if _separate_occurrence_targets_lane(segment, occurrence):
+            return True
+    return False
+
+
+def _clause_has_relational_lane_separation(clause: str) -> bool:
+    return any(
+        _segment_has_relational_lane_separation(segment)
+        for segment in _iter_lane_relation_segments(clause)
+    )
+
+
+def _clause_has_referential_lane_separation(clause: str) -> bool:
+    return any(
+        bool(re.search(rf"\b{_REFERENTIAL_LANES_PATTERN}\b", segment))
+        and _segment_has_relational_lane_separation(segment)
+        for segment in _iter_lane_relation_segments(clause)
+    )
+
+
+def has_execution_lane_separation(response_text: str) -> bool:
+    clauses = list(_iter_clauses(response_text))
+    has_endpoint_lane = any(_clause_has_endpoint_lane(clause) for clause in clauses)
+    has_local_lane = any(_clause_has_local_lane(clause) for clause in clauses)
+    if not (has_endpoint_lane and has_local_lane):
+        return False
+    if any(_clause_has_explicit_lane_mix(clause) for clause in clauses):
+        return False
+    if any(_clause_has_referential_lane_mix(clause) for clause in clauses):
+        return False
+    if _response_has_pronominal_shared_context_mix(clauses):
+        return False
+    if any(_clause_has_relational_lane_separation(clause) for clause in clauses):
+        return True
+    return any(_clause_has_referential_lane_separation(clause) for clause in clauses)
 
 
 def _has_standalone_local_collect(response_text: str) -> bool:
