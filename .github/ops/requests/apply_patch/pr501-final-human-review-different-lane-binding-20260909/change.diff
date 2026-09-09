@@ -1,0 +1,56 @@
+diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
+--- a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
++++ b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
+@@ -807,7 +807,14 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
+-    if _find_contextual_term_hits(
+-        segment,
+-        ["different lane", "distinct lane"],
+-        skip_negated=True,
+-        skip_quoted=True,
+-    ):
+-        return True
++    for term in ("different lane", "distinct lane"):
++        for occurrence in _iter_term_occurrences(segment, term):
++            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
++                continue
++            if _occurrence_is_negated(segment, occurrence.start()):
++                continue
++            if _occurrence_is_rejected_after(segment, occurrence.end()):
++                continue
++            if _occurrence_has_local_lane_relation_rejection(
++                segment, occurrence.start()
++            ):
++                continue
++            if _separate_occurrence_targets_lane(segment, occurrence):
++                return True
+ 
+     for occurrence in _assertive_phrase_occurrences(segment, "separate"):
+         if _occurrence_has_local_lane_relation_rejection(segment, occurrence.start()):
+diff --git a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
+--- a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
++++ b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
+@@ -49,6 +49,27 @@ def main() -> int:
+         False,
+         "unrelated separation wording",
+     )
++    _expect(
++        "Keep endpoint response-action commands in a different lane from local "
++        "workstation PowerShell.",
++        True,
++        "different-lane evidence binds directly to the endpoint-local relation",
++    )
++    _expect(
++        "Use a different lane for log uploads while endpoint response-action commands "
++        "use execute --command and local workstation PowerShell runs the collector.",
++        False,
++        "unrelated different-lane wording cannot satisfy execution-lane separation",
++    )
++    _expect(
++        "Use a distinct lane for log uploads while endpoint response-action commands "
++        "use execute --command and local workstation PowerShell runs the collector.",
++        False,
++        "unrelated distinct-lane wording cannot satisfy execution-lane separation",
++    )
+     _expect(
+         "Endpoint response-action execution uses execute --command. "
+         "Local workstation PowerShell runs the collector. "

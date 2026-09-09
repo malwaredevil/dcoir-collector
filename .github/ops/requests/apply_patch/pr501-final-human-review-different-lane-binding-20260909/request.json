@@ -1,0 +1,26 @@
+{
+  "schema": "dcoir.ops.apply_patch_request.v2",
+  "request_id": "pr501-final-human-review-different-lane-binding-20260909",
+  "mode": "patch-set",
+  "operation": "apply",
+  "target_branch": "issue-484-lane-separation-scoring",
+  "patch_path": ".github/ops/requests/apply_patch/pr501-final-human-review-different-lane-binding-20260909/change.diff",
+  "expected_patch_sha256": "e421d421bdb4dd16bf2caf6d1c95cbddcd6d7dde73f1d9d6714b31e04cb3e6c1",
+  "targets": [
+    {
+      "path": "project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
+      "allowed_roots": [
+        "project_sources/gemini"
+      ],
+      "expected_target_blob_sha": "c2276d119ff3ad97d8ff887706cf0c424534bc2e"
+    },
+    {
+      "path": "project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py",
+      "allowed_roots": [
+        "project_sources/gemini"
+      ],
+      "expected_target_blob_sha": "ba86404dc7dc44fde812bbfceb0cef6e9c42ec85"
+    }
+  ],
+  "commit_message": "Bind different-lane evidence to endpoint/local relation on PR #501"
+}
