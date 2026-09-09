@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue517-pr518-fix-v52-ordering-20260909T1253Z",
+  "operator_approved": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-fix-v52-ordering-20260909T1253Z.ps1",
+  "approved_command_preview": "On PR #518 branch head dd8b638c6b528c0a1eeb2a3da396b67ee6254b4a, update only the stale v52 selftest execution-policy tuple to include terminal v53, run py_compile plus the v52 and v53 deterministic selftests, commit only that selftest file, and push with force-with-lease pinned to the expected old head. No model inference, workflow YAML change, review publication, Ready transition, or merge.",
+  "shell": "powershell_5",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true
+}
