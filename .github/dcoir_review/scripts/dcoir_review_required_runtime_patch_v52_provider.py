@@ -120,10 +120,17 @@ def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
     return clone, proxy
 
 
-def annotate_request_telemetry(config: Any, mode: str) -> None:
+def annotate_request_telemetry(
+    config: Any,
+    mode: str,
+    prior_event_count: int = 0,
+) -> None:
+    """Annotate only telemetry emitted by the request being classified."""
     setattr(config, RECOVERY_ATTR, mode)
     history = getattr(config, "_openrouter_request_telemetry_events", None)
-    if not isinstance(history, list) or not history:
+    if not isinstance(history, list) or len(history) <= prior_event_count:
+        # The outer API-envelope parse can fail before the canonical provider
+        # records a telemetry event. Never relabel an earlier request's event.
         return
     updated = [dict(item) if isinstance(item, dict) else item for item in history]
     if isinstance(updated[-1], dict):
@@ -156,14 +163,16 @@ def patch_provider(module: Any) -> None:
         if v48_core._guard(module) is not None:
             v48_core.assert_current_review_scope(module, f"model request ({model})", config)
             v48_core.authorize_provider_request(module, config)
+        history = getattr(config, "_openrouter_request_telemetry_events", None)
+        event_count_before = len(history) if isinstance(history, list) else 0
         clone, proxy = clone_with_json_proxy(core_request)
         try:
             result = clone(prompt, schema, config, ignored_providers, model)
         except Exception:
-            annotate_request_telemetry(config, "failed")
+            annotate_request_telemetry(config, "failed", event_count_before)
             raise
         mode = proxy.structured_mode or "direct"
-        annotate_request_telemetry(config, mode)
+        annotate_request_telemetry(config, mode, event_count_before)
         if v48_core._guard(module) is not None:
             v48_core.assert_current_review_scope(module, f"model response ({model})", config)
         return result
