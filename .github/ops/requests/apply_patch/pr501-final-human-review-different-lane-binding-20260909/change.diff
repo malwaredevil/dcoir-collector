@@ -1,7 +1,10 @@
 diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
 --- a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
 +++ b/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py
-@@ -807,7 +807,14 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
+@@ -804,13 +804,20 @@
+             return True
+     if _segment_has_negated_shared_context(segment):
+         return True
 -    if _find_contextual_term_hits(
 -        segment,
 -        ["different lane", "distinct lane"],
@@ -29,7 +32,11 @@ diff --git a/project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.p
 diff --git a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
 --- a/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
 +++ b/project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py
-@@ -49,6 +49,27 @@ def main() -> int:
+@@ -49,10 +49,28 @@
+     _expect(
+         "Keep package staging separate from evidence retrieval. "
+         "Endpoint response-action execution uses execute --command. "
+         "Local workstation PowerShell runs the collector.",
          False,
          "unrelated separation wording",
      )
