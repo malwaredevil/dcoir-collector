@@ -18,6 +18,20 @@ _HYBRID_STORAGE = "_dcoir_review_v52_prior_hybrid_first_pass"
 _LOW_CONFIDENCE_PREFIX = (
     "model returned structured findings, but none met the configured minimum confidence"
 )
+_REQUIRED_FINDING_FIELDS = (
+    "title",
+    "severity",
+    "confidence",
+    "path",
+    "line",
+    "body",
+    "suggested_replacement",
+    "validation",
+)
+_STRING_FINDING_FIELDS = (
+    "title", "severity", "path", "body", "suggested_replacement", "validation"
+)
+_SEVERITIES = {"critical", "high", "medium", "low"}
 
 
 def confidence(value: Any) -> float | None:
@@ -66,22 +80,33 @@ def eligible_low_confidence_findings(
     if minimum is None or margin is None:
         return [], 0.0
     floor = max(0.0, minimum - margin)
-    findings = module.hardened.result_findings(result)
-    if not findings:
+    raw_findings = result.get("findings") if isinstance(result, dict) else None
+    if not isinstance(raw_findings, list) or not raw_findings:
         return [], floor
     eligible: list[dict[str, Any]] = []
-    for raw in findings:
-        if not isinstance(raw, dict):
+    for raw in raw_findings:
+        if (
+            not isinstance(raw, dict)
+            or any(field not in raw for field in _REQUIRED_FINDING_FIELDS)
+            or any(not isinstance(raw.get(field), str) for field in _STRING_FINDING_FIELDS)
+            or str(raw.get("severity", "")).lower() not in _SEVERITIES
+        ):
+            return [], floor
+        raw_confidence = raw.get("confidence")
+        raw_line = raw.get("line")
+        if (
+            isinstance(raw_confidence, bool)
+            or not isinstance(raw_confidence, (int, float))
+            or isinstance(raw_line, bool)
+            or not isinstance(raw_line, int)
+        ):
             return [], floor
         item = dict(raw)
         if module.hardened.non_actionable_finding_reason(item):
             return [], floor
-        item_confidence = confidence(item.get("confidence"))
-        try:
-            path = str(item.get("path", "") or "").strip()
-            line = int(item.get("line", 0) or 0)
-        except (TypeError, ValueError):
-            return [], floor
+        item_confidence = confidence(raw_confidence)
+        path = str(item.get("path", "") or "").strip()
+        line = raw_line
         if (
             item_confidence is None
             or item_confidence < floor

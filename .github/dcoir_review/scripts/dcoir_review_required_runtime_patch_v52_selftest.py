@@ -197,6 +197,17 @@ def main() -> None:
     summary_only = {"summary": "Found an issue in the changed validation boundary.", "findings": []}
     assert review.hardened.review_quality_retry_reason(summary_only, config, [], line_index)
 
+    malformed_mixed = {
+        "summary": "near",
+        "findings": [finding("a.py", 10, 0.68), "malformed-provider-item"],
+    }
+    assert review.hardened.review_quality_retry_reason(malformed_mixed, config, [], line_index)
+    missing_required = finding("a.py", 10, 0.68)
+    missing_required.pop("validation")
+    assert review.hardened.review_quality_retry_reason(
+        {"summary": "near", "findings": [missing_required]}, config, [], line_index
+    )
+
     for gate_name in (
         "candidate_scoped_escalation_review",
         "adversarial_confirmation_review",
