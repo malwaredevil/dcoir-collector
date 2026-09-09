@@ -5,10 +5,26 @@ from __future__ import annotations
 
 import copy
 import importlib
+import json
+import os
 from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+
+class FakeResponse:
+    def __init__(self, value) -> None:
+        self._raw = json.dumps(value).encode("utf-8")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def read(self):
+        return self._raw
 
 
 class FakeProgressReporter:
@@ -158,6 +174,81 @@ def main() -> None:
     )
     assert production_config.debug is False
     assert isinstance(getattr(production_config, v54.SINK_ATTR, None), v54.RunTelemetrySink)
+
+    # Capture-only telemetry must be observational. It must not select v47's
+    # stricter stop/object response-enforcement branch for ordinary premium
+    # stages. The same response therefore parses the same with capture off/on,
+    # and an empty choices list retains the historical empty-response failure.
+    original_urlopen = review.hardened.urllib.request.urlopen
+    previous_key = os.environ.get("OPENROUTER_API_KEY")
+    os.environ["OPENROUTER_API_KEY"] = "v54-selftest-key"
+
+    def install_response(value) -> None:
+        review.hardened.urllib.request.urlopen = lambda _req, timeout=180: FakeResponse(value)
+
+    try:
+        valid_payload = {
+            "model": "anthropic/claude-opus-5",
+            "provider": "Anthropic",
+            "service_tier": "",
+            "choices": [
+                {
+                    "finish_reason": "length",
+                    "message": {"content": json.dumps({"summary": "clean", "findings": []})},
+                }
+            ],
+            "usage": {
+                "prompt_tokens": 12,
+                "completion_tokens": 4,
+                "total_tokens": 16,
+                "prompt_tokens_details": {"cached_tokens": 3},
+                "completion_tokens_details": {"reasoning_tokens": 2},
+                "cost": 0.004,
+            },
+        }
+        uncaptured = copy.copy(production_config)
+        uncaptured.openrouter_capture_request_telemetry = False
+        install_response(valid_payload)
+        plain_result = review.hardened.openrouter_request_once(
+            "probe", review_schema(), uncaptured, [], "anthropic/claude-opus-5"
+        )
+
+        captured = copy.copy(production_config)
+        captured.openrouter_capture_request_telemetry = True
+        install_response(valid_payload)
+        captured_result = review.hardened.openrouter_request_once(
+            "probe", review_schema(), captured, [], "anthropic/claude-opus-5"
+        )
+        assert captured_result == plain_result
+        assert captured._openrouter_last_request_telemetry["finish_reason"] == "length"
+        assert captured._openrouter_last_request_telemetry["usage"]["prompt_tokens"] == 12
+        assert captured._openrouter_last_request_telemetry["cost"] == 0.004
+
+        empty_choices = {
+            "model": "anthropic/claude-opus-5",
+            "provider": "Anthropic",
+            "choices": [],
+            "usage": {"prompt_tokens": 2, "completion_tokens": 0, "cost": 0.001},
+        }
+        for capture in (False, True):
+            compatibility = copy.copy(production_config)
+            compatibility.openrouter_capture_request_telemetry = capture
+            install_response(empty_choices)
+            try:
+                review.hardened.openrouter_request_once(
+                    "probe", review_schema(), compatibility, [], "anthropic/claude-opus-5"
+                )
+            except RuntimeError as exc:
+                assert "empty response" in str(exc).lower()
+                assert "invalid choices" not in str(exc).lower()
+            else:
+                raise AssertionError("empty choices did not retain historical empty-response failure")
+    finally:
+        review.hardened.urllib.request.urlopen = original_urlopen
+        if previous_key is None:
+            os.environ.pop("OPENROUTER_API_KEY", None)
+        else:
+            os.environ["OPENROUTER_API_KEY"] = previous_key
 
     fake = FakeModule()
     v54.apply_pareto_context_module(fake)
