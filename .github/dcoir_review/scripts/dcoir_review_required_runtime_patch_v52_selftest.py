@@ -41,6 +41,7 @@ def finding(path: str, line: int, confidence: float, title: str = "Potential val
         "confidence": confidence,
         "title": title,
         "body": "The changed behavior may skip a required validation boundary.",
+        "suggested_replacement": "",
         "validation": "Exercise the changed line with positive and negative controls.",
     }
 
