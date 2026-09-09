@@ -30,6 +30,18 @@ def confidence(value: Any) -> float | None:
     return parsed if math.isfinite(parsed) and 0.0 <= parsed <= 1.0 else None
 
 
+def bounded_disposition_enabled(config: Any) -> bool:
+    """Respect the existing Architecture-B escalation/adjudication feature gates."""
+    return all(
+        bool(getattr(config, name, True))
+        for name in (
+            "candidate_scoped_escalation_review",
+            "adversarial_confirmation_review",
+            "semantic_adjudication_review",
+        )
+    )
+
+
 def eligible_low_confidence_findings(
     module: Any,
     result: dict[str, Any],
@@ -38,7 +50,11 @@ def eligible_low_confidence_findings(
     line_index: dict[tuple[str, int], int] | None,
 ) -> tuple[list[dict[str, Any]], float]:
     """Return only anchored/actionable near-threshold findings safe to bound."""
-    if not bool(getattr(config, ALLOW_ATTR, False)) or line_index is None:
+    if (
+        not bool(getattr(config, ALLOW_ATTR, False))
+        or line_index is None
+        or not bounded_disposition_enabled(config)
+    ):
         return [], 0.0
     try:
         if module.hardened.required_risk_sentinels(risk_sentinels):
@@ -124,12 +140,15 @@ def outside_paths(module: Any, result: dict[str, Any], selected_paths: set[str])
     )
 
 
-def independent_disposition_config(config: Any) -> Any:
-    """Use the independent challenger model stack for one bounded adjudication."""
-    staged = copy.copy(config)
-    models = list(getattr(config, "adversarial_confirmation_model_stack", None) or [])
+def independent_disposition_config(config: Any) -> Any | None:
+    """Clone config with the configured independent-confirmation model stack."""
+    raw_models = getattr(config, "adversarial_confirmation_model_stack", None)
+    if not isinstance(raw_models, (list, tuple)):
+        return None
+    models = [str(item).strip() for item in raw_models if str(item).strip()]
     if not models:
-        raise RuntimeError("DCOIR v52 requires an independent confirmation model stack")
+        return None
+    staged = copy.copy(config)
     staged.semantic_adjudication_model_stack = models
     return staged
 
@@ -171,6 +190,13 @@ def bounded_low_confidence_disposition(
             risk_sentinels, line_index, deep_context_block, review_mode,
             context_summary, reason, "path-budget"
         )
+    staged = independent_disposition_config(config)
+    if staged is None:
+        return fallback(
+            module, primary, pr, files, diff, schema, config, reporter,
+            risk_sentinels, line_index, deep_context_block, review_mode,
+            context_summary, reason, "independent-model-stack-unavailable"
+        )
     evidence, evidence_reason = v44_scope.build_bounded_evidence(
         module, gh, pr, files, config, risk_sentinels, selected_paths
     )
@@ -189,7 +215,6 @@ def bounded_low_confidence_disposition(
             "scope=candidate-scoped; independent_calls=1"
         ),
     )
-    staged = independent_disposition_config(config)
     adjudicated, disposition_model, disposition_tier = v44_execution.run_adjudicator(
         module, schema, staged, reporter, findings, evidence, "candidate-scoped"
     )
