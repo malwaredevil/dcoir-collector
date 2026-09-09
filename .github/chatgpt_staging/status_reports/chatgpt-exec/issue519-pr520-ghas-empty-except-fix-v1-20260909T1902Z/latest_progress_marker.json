@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue519-pr520-ghas-empty-except-fix-v1-20260909T1902Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "34392615169",
   "github_sha": "53037b0bd9388025a43be70198e401d73cf91cb6",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue519-pr520-ghas-empty-except-fix-v1-20260909T1902Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue519-pr520-ghas-empty-except-fix-v1-20260909T1902Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-09T19:02:17Z",
+  "updated_utc": "2026-09-09T19:02:30Z",
   "workflow": "chatgpt-exec"
 }
