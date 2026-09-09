@@ -50,6 +50,11 @@ def balanced_object_ranges(text: str) -> list[tuple[int, int]]:
     return ranges
 
 
+def object_is_direct_array_element(text: str, start: int, end: int) -> bool:
+    """Reject recovery that would unwrap a one-object JSON array."""
+    return text[:start].rstrip().endswith("[") and text[end:].lstrip().startswith("]")
+
+
 class RecoveryJsonProxy:
     """Keep the API envelope strict; recover one model-content object only."""
 
@@ -81,6 +86,10 @@ class RecoveryJsonProxy:
             if len(ranges) != 1:
                 raise original_error
             start, end = ranges[0]
+            if object_is_direct_array_element(value, start, end):
+                # A one-object array is a different JSON root shape, not
+                # incidental prose. Do not silently rewrite it into an object.
+                raise original_error
             try:
                 parsed = self._json.loads(value[start:end], *args, **kwargs)
             except self._json.JSONDecodeError:
@@ -173,10 +182,15 @@ def patch_provider(module: Any) -> None:
         setattr(config, RECOVERY_ATTR, "")
         result = current_review(prompt, schema, config, reporter)
         mode = str(getattr(config, RECOVERY_ATTR, "") or "")
-        if reporter and mode not in {"", "direct"}:
+        if reporter and mode == "balanced-envelope":
             reporter.update(
                 "structured-output-recovery",
-                f"mode={mode}; deterministic envelope recovery avoided semantic replay",
+                "mode=balanced-envelope; deterministic recovery avoided provider/model retry",
+            )
+        elif reporter and mode == "fenced-object":
+            reporter.update(
+                "structured-output-recovery",
+                "mode=fenced-object; existing fenced-object recovery used",
             )
         return result
 
