@@ -135,6 +135,7 @@ def main() -> None:
         for bad in (
             'prefix {"summary":"a","findings":[]} middle {"summary":"b","findings":[]} suffix',
             'prefix {"summary":"truncated","findings":[]',
+            'prefix [{"summary":"array-root","findings":[]}] suffix',
         ):
             install(bad)
             try:
@@ -144,7 +145,7 @@ def main() -> None:
             except json.JSONDecodeError:
                 pass
             else:
-                raise AssertionError("ambiguous or malformed structured output did not fail closed")
+                raise AssertionError("ambiguous, malformed, or structural output did not fail closed")
             assert getattr(config, provider.RECOVERY_ATTR) == "failed"
     finally:
         review.hardened.urllib.request.urlopen = original_urlopen
@@ -172,6 +173,20 @@ def main() -> None:
     assert review.hardened.review_quality_retry_reason(too_low, config, [], line_index)
     unanchored = {"summary": "near", "findings": [finding("a.py", 11, 0.68)]}
     assert review.hardened.review_quality_retry_reason(unanchored, config, [], line_index)
+    summary_only = {"summary": "Found an issue in the changed validation boundary.", "findings": []}
+    assert review.hardened.review_quality_retry_reason(summary_only, config, [], line_index)
+
+    for gate_name in (
+        "candidate_scoped_escalation_review",
+        "adversarial_confirmation_review",
+        "semantic_adjudication_review",
+    ):
+        previous = getattr(config, gate_name, True)
+        setattr(config, gate_name, False)
+        try:
+            assert review.hardened.review_quality_retry_reason(near, config, [], line_index)
+        finally:
+            setattr(config, gate_name, previous)
 
     original_required = review.hardened.required_risk_sentinels
     original_non_actionable = review.hardened.non_actionable_finding_reason
