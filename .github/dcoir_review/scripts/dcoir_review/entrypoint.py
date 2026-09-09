@@ -111,12 +111,15 @@ class DcoirReviewEntrypoint:
     # and publication paths without changing Architecture-B semantic ordering or
     # the v47 per-file routing contract. v48 owns exact-scope provider/publication
     # guards; its companion covers the legacy optional prompt-review request. v52
-    # then preserves those guards while specializing deterministic structured-
-    # output recovery and bounded near-threshold disposition.
+    # preserves those guards while specializing deterministic structured-output
+    # recovery and bounded near-threshold disposition. v53 then restores the
+    # configured repair-synthesis confidence floor before v36 can spend repair-
+    # author/critic calls, while leaving verified finding publication unchanged.
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v48',
         'dcoir_review_required_runtime_patch_v48_prompt_guard',
         'dcoir_review_required_runtime_patch_v52',
+        'dcoir_review_required_runtime_patch_v53',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
