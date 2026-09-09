@@ -43,7 +43,7 @@ METRICS_SCHEMA_VERSION = "dcoir_review_repair_v53_metrics_v1"
 
 
 def repair_confidence_floor(config: Any) -> float:
-    """Return the configured repair floor, failing closed to the legacy 0.80."""
+    """Return the configured repair floor, defaulting to the historical 0.80."""
 
     raw = getattr(config, "fix_synthesis_min_confidence", 0.80)
     if isinstance(raw, bool):
@@ -141,6 +141,51 @@ def _repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
     return counters
 
 
+def _write_metrics(
+    module: Any,
+    config: Any,
+    *,
+    head_sha: str,
+    verified_findings: int,
+    floor: float,
+    confidence_qualified: int,
+    confidence_deferred: int,
+    repair_budget: int,
+    attempts: int,
+    budget_deferred: int,
+    repair_sets: int = 0,
+    native_blocks: int = 0,
+    guidance_blocks: int = 0,
+    declined: int = 0,
+    precritic_declined: int = 0,
+    critic_rejected: int = 0,
+    postcritic_declined: int = 0,
+) -> None:
+    module.hardened.write_debug_json_artifact_safely(
+        config,
+        "metadata/repair-v53-metrics.json",
+        {
+            "schema_version": METRICS_SCHEMA_VERSION,
+            "head_sha": head_sha,
+            "verified_findings": verified_findings,
+            "repair_synthesis_enabled": bool(getattr(config, "fix_synthesis_enabled", True)),
+            "repair_confidence_floor": floor,
+            "repair_confidence_qualified": confidence_qualified,
+            "repair_confidence_deferred": confidence_deferred,
+            "repair_budget": repair_budget,
+            "repair_attempts": attempts,
+            "repair_budget_deferred": budget_deferred,
+            "repair_sets": repair_sets,
+            "native_suggestion_blocks": native_blocks,
+            "guidance_edit_blocks": guidance_blocks,
+            "declined": declined,
+            "precritic_declined": precritic_declined,
+            "critic_rejected": critic_rejected,
+            "postcritic_declined": postcritic_declined,
+        },
+    )
+
+
 def synthesize_verified_repair_sets(
     module: Any,
     findings: list[dict[str, Any]],
@@ -168,17 +213,37 @@ def synthesize_verified_repair_sets(
     repair_budget = v33.repair_synthesis_budget(config)
     floor = repair_confidence_floor(config)
     enabled = bool(getattr(config, "fix_synthesis_enabled", True))
-
     confidence_values = [finding_confidence(raw) for raw in verified]
-    eligible_total = sum(1 for value in confidence_values if value is not None and value >= floor)
-    confidence_deferred_total = len(verified) - eligible_total
-    repair_attempt_target = min(eligible_total, repair_budget) if enabled else 0
-    budget_deferred_total = eligible_total - repair_attempt_target
+    confidence_qualified = sum(1 for value in confidence_values if value is not None and value >= floor)
+
+    if not enabled:
+        repaired = [v33._deferred_verified_finding(raw, ordinal) for ordinal, raw in enumerate(verified, start=1)]
+        reporter.update(
+            "repair-v53",
+            f"verified={len(verified)}; repair synthesis disabled; repair_attempts=0; budget_deferred={len(verified)}",
+        )
+        _write_metrics(
+            module,
+            config,
+            head_sha=head_sha,
+            verified_findings=len(repaired),
+            floor=floor,
+            confidence_qualified=confidence_qualified,
+            confidence_deferred=0,
+            repair_budget=repair_budget,
+            attempts=0,
+            budget_deferred=len(repaired),
+        )
+        return repaired
+
+    confidence_deferred_total = len(verified) - confidence_qualified
+    repair_attempt_target = min(confidence_qualified, repair_budget)
+    budget_deferred_total = confidence_qualified - repair_attempt_target
 
     reporter.update(
         "repair-v53",
         (
-            f"verified={len(verified)}; repair_floor={floor:.2f}; eligible={eligible_total}; "
+            f"verified={len(verified)}; repair_floor={floor:.2f}; confidence_qualified={confidence_qualified}; "
             f"confidence_deferred={confidence_deferred_total}; repair_budget={repair_budget}; "
             f"repair_attempts={repair_attempt_target}; budget_deferred={budget_deferred_total}"
         ),
@@ -203,10 +268,6 @@ def synthesize_verified_repair_sets(
     postcritic_declined = 0
 
     for ordinal, (raw, confidence) in enumerate(zip(verified, confidence_values), start=1):
-        if not enabled:
-            repaired.append(v33._deferred_verified_finding(raw, ordinal))
-            continue
-
         if confidence is None or confidence < floor:
             repaired.append(_confidence_deferred_verified_finding(raw, ordinal, floor, confidence))
             continue
@@ -257,27 +318,24 @@ def synthesize_verified_repair_sets(
             f"budget_deferred={budget_deferred_total}"
         ),
     )
-    module.hardened.write_debug_json_artifact_safely(
+    _write_metrics(
+        module,
         config,
-        "metadata/repair-v53-metrics.json",
-        {
-            "schema_version": METRICS_SCHEMA_VERSION,
-            "head_sha": head_sha,
-            "verified_findings": len(repaired),
-            "repair_confidence_floor": floor,
-            "repair_eligible_findings": eligible_total,
-            "repair_confidence_deferred": confidence_deferred_total,
-            "repair_budget": repair_budget,
-            "repair_attempts": attempts,
-            "repair_budget_deferred": budget_deferred_total,
-            "repair_sets": repair_sets,
-            "native_suggestion_blocks": native_blocks,
-            "guidance_edit_blocks": guidance_blocks,
-            "declined": declined,
-            "precritic_declined": precritic_declined,
-            "critic_rejected": critic_rejected,
-            "postcritic_declined": postcritic_declined,
-        },
+        head_sha=head_sha,
+        verified_findings=len(repaired),
+        floor=floor,
+        confidence_qualified=confidence_qualified,
+        confidence_deferred=confidence_deferred_total,
+        repair_budget=repair_budget,
+        attempts=attempts,
+        budget_deferred=budget_deferred_total,
+        repair_sets=repair_sets,
+        native_blocks=native_blocks,
+        guidance_blocks=guidance_blocks,
+        declined=declined,
+        precritic_declined=precritic_declined,
+        critic_rejected=critic_rejected,
+        postcritic_declined=postcritic_declined,
     )
     return repaired
 
