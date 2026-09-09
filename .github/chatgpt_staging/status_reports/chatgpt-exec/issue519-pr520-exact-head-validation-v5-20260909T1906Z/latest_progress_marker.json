@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34393099137",
   "github_sha": "b405bff2ce87e463196e2f7ed1d753d86720431b",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue519-pr520-exact-head-validation-v5-20260909T1906Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue519-pr520-exact-head-validation-v5-20260909T1906Z.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-09T19:07:43Z",
+  "updated_utc": "2026-09-09T19:07:46Z",
   "workflow": "chatgpt-exec"
 }
