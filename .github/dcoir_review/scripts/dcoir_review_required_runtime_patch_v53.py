@@ -347,7 +347,5 @@ def apply_pareto_context_module(module: Any) -> None:
     # v25's public synthesis wrapper resolves this symbol dynamically. v30's
     # suppression wrapper therefore remains outside this replacement, while v36
     # continues to own every repair attempt's author/critic/exact-head mechanics.
-    v25.synthesize_verified_repairs = lambda mod, findings, gh, pr, schema, config, reporter: synthesize_verified_repair_sets(
-        mod, findings, gh, pr, schema, config, reporter
-    )
+    v25.synthesize_verified_repairs = synthesize_verified_repair_sets
     setattr(module, APPLIED_MARKER, True)
