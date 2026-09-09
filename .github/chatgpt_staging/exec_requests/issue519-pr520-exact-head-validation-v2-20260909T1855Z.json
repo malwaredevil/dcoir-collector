@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue519-pr520-exact-head-validation-v2-20260909T1855Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-09T18:45:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v2-20260909T1855Z.ps1",
+  "approved_command_preview": "& .\\.github\\chatgpt_staging\\exec_scripts\\issue519-pr520-exact-head-validation-v2-20260909T1855Z.ps1",
+  "command": "& .\\.github\\chatgpt_staging\\exec_scripts\\issue519-pr520-exact-head-validation-v2-20260909T1855Z.ps1"
+}
