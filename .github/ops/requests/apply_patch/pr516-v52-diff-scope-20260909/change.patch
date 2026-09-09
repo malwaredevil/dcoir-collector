@@ -1,0 +1,23 @@
+diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py b/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py
+--- a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py
++++ b/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py
+@@ -284,7 +284,7 @@ def patch_hybrid(module: Any) -> None:
+         gh,
+     ):
+         setattr(config, PENDING_ATTR, None)
+-        setattr(config, ALLOW_ATTR, review_mode in {"diff", "first-pass-deep"})
++        setattr(config, ALLOW_ATTR, review_mode == "diff")
+         try:
+             result, model, tier = original(
+                 pr,
+@@ -307,8 +307,8 @@ def patch_hybrid(module: Any) -> None:
+         finally:
+             setattr(config, ALLOW_ATTR, False)
+         pending = getattr(config, PENDING_ATTR, None)
+-        # In first-pass-deep mode v44 consumes eligible hypotheses itself. v52
+-        # only adds this post-primary disposition step to ordinary diff mode.
++        # v52's near-threshold disposition is intentionally ordinary-diff only;
++        # first-pass/deep modes retain the existing v44 escalation contract.
+         if review_mode != "diff" or not isinstance(pending, dict):
+             return result, model, tier
+         return bounded_low_confidence_disposition(

@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.ops.apply_patch_request.v1",
+  "request_id": "pr516-v52-diff-scope-20260909",
+  "mode": "apply",
+  "target_branch": "issue-515-bounded-structured-recovery",
+  "target_path": ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_disposition.py",
+  "allowed_roots": [".github/dcoir_review/scripts"],
+  "patch_path": ".github/ops/requests/apply_patch/pr516-v52-diff-scope-20260909/change.patch",
+  "expected_patch_sha256": "2a6ab5bfef7f37b979cdd5e1ce0446ed1f93084c81d571d950eab26e077c34ca",
+  "expected_target_blob_sha": "7761bc64aa9b660dd41a0900f7c88fffe6abdf10",
+  "commit_message": "Tighten v52 bounded disposition to ordinary diff"
+}
