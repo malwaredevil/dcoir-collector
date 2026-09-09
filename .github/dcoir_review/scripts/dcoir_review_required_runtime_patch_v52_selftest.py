@@ -11,8 +11,9 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 class FakeResponse:
-    def __init__(self, payload: dict) -> None:
-        self._raw = json.dumps(payload).encode("utf-8")
+    def __init__(self, payload) -> None:
+        raw = payload if isinstance(payload, str) else json.dumps(payload)
+        self._raw = raw.encode("utf-8")
 
     def __enter__(self):
         return self
@@ -132,6 +133,26 @@ def main() -> None:
         assert telemetry["structured_output_recovery"] == "balanced-envelope"
         assert telemetry["request_events"][-1]["structured_output_recovery"] == "balanced-envelope"
 
+        # Recovery applies only to model message content. A malformed outer
+        # OpenRouter API envelope stays strict, and because the canonical
+        # provider emitted no event for that request, prior telemetry is not
+        # relabelled as a failure.
+        prior_events = [dict(item) for item in config._openrouter_request_telemetry_events]
+        outer_object = json.dumps(provider_response(direct))
+        review.hardened.urllib.request.urlopen = (
+            lambda request, timeout=180: FakeResponse(f"prefix {outer_object} suffix")
+        )
+        try:
+            review.hardened.openrouter_request_once(
+                "probe", schema, config, [], "anthropic/claude-opus-5"
+            )
+        except json.JSONDecodeError:
+            pass
+        else:
+            raise AssertionError("malformed OpenRouter API envelope was recovered instead of rejected")
+        assert getattr(config, provider.RECOVERY_ATTR) == "failed"
+        assert config._openrouter_request_telemetry_events == prior_events
+
         for bad in (
             'prefix {"summary":"a","findings":[]} middle {"summary":"b","findings":[]} suffix',
             'prefix {"summary":"truncated","findings":[]',
@@ -187,6 +208,13 @@ def main() -> None:
             assert review.hardened.review_quality_retry_reason(near, config, [], line_index)
         finally:
             setattr(config, gate_name, previous)
+
+    original_stack = list(config.adversarial_confirmation_model_stack)
+    config.adversarial_confirmation_model_stack = []
+    try:
+        assert disposition.independent_disposition_config(config) is None
+    finally:
+        config.adversarial_confirmation_model_stack = original_stack
 
     original_required = review.hardened.required_risk_sentinels
     original_non_actionable = review.hardened.non_actionable_finding_reason
