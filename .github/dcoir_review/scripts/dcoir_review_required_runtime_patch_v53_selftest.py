@@ -158,7 +158,7 @@ def main() -> None:
         assert third["outcome"] == v33.DEFERRED_OUTCOME
         assert calls == [(2, 0.80, "", "also untrusted")], calls
         assert gh.diff_calls == 1
-        assert metrics[-1][1]["repair_eligible_findings"] == 2
+        assert metrics[-1][1]["repair_confidence_qualified"] == 2
         assert metrics[-1][1]["repair_confidence_deferred"] == 1
         assert metrics[-1][1]["repair_attempts"] == 1
         assert metrics[-1][1]["repair_budget_deferred"] == 1
@@ -205,6 +205,10 @@ def main() -> None:
         assert all(marker(v25, item)["outcome"] == v33.DEFERRED_OUTCOME for item in result)
         assert calls == []
         assert gh.diff_calls == 0
+        assert metrics[-1][1]["repair_synthesis_enabled"] is False
+        assert metrics[-1][1]["repair_confidence_deferred"] == 0
+        assert metrics[-1][1]["repair_attempts"] == 0
+        assert metrics[-1][1]["repair_budget_deferred"] == 2
 
         # With synthesis enabled and a zero floor, ordinary finite confidence
         # retains the historical all-eligible behavior within the count budget.
