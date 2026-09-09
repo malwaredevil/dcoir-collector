@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue519-targeted-validation-v2-20260909T1822Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-09T18:22:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$script = Join-Path $repo '.github\\chatgpt_staging\\exec_scripts\\issue519-targeted-validation-v2-20260909T1822Z.ps1'\n& $script",
+  "command": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\n$script = Join-Path $repo '.github\\chatgpt_staging\\exec_scripts\\issue519-targeted-validation-v2-20260909T1822Z.ps1'\n& $script"
+}
