@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue517-pr518-fix-regressions-v3-20260909T1306Z",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue517-pr518-fix-regressions-v3-20260909T1306Z",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34354433065",
+  "github_run_attempt": "1",
+  "github_sha": "29ab0559b478702d15102f8a8839bbda3374a8b4",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-09T13:01:31Z"
+}
