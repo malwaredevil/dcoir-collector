@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34391730939",
   "github_sha": "d63d55544ebff955f399b7c864dce5d48ab796c0",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue519-pr520-failsoft-hardening-v1-20260909T1852Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue519-pr520-failsoft-hardening-v1-20260909T1852Z.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-09T18:53:29Z",
+  "updated_utc": "2026-09-09T18:53:32Z",
   "workflow": "chatgpt-exec"
 }
