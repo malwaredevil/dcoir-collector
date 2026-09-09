@@ -121,6 +121,14 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v52',
         'dcoir_review_required_runtime_patch_v53',
     )
+    # Telemetry overlays are deliberately outside execution-policy ordering
+    # invariants. v54 observes the fully composed request path after v48/v52/v53,
+    # aggregates returned OpenRouter usage/provider/recovery metadata across
+    # shallow stage configs, and emits a bounded terminal status summary without
+    # changing routing, retries, verification, repair, or publication behavior.
+    telemetry_patch_module_names: tuple[str, ...] = (
+        'dcoir_review_required_runtime_patch_v54',
+    )
 
     def import_module(self, module_name: str) -> ModuleType:
         return importlib.import_module(module_name)
@@ -151,6 +159,7 @@ class DcoirReviewEntrypoint:
             self._apply_patch_modules(review_module, self.candidate_integrity_patch_module_names)
             self._apply_patch_modules(review_module, self.stage_local_patch_module_names)
             self._apply_patch_modules(review_module, self.execution_policy_patch_module_names)
+            self._apply_patch_modules(review_module, self.telemetry_patch_module_names)
 
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
