@@ -54,6 +54,24 @@ def main() -> int:
         "unrelated separation wording",
     )
     _expect(
+        "Keep endpoint response-action commands in a different lane from local "
+        "workstation PowerShell.",
+        True,
+        "different-lane evidence binds directly to the endpoint-local relation",
+    )
+    _expect(
+        "Use a different lane for log uploads while endpoint response-action commands "
+        "use execute --command and local workstation PowerShell runs the collector.",
+        False,
+        "unrelated different-lane wording cannot satisfy execution-lane separation",
+    )
+    _expect(
+        "Use a distinct lane for log uploads while endpoint response-action commands "
+        "use execute --command and local workstation PowerShell runs the collector.",
+        False,
+        "unrelated distinct-lane wording cannot satisfy execution-lane separation",
+    )
+    _expect(
         "Endpoint response-action execution uses execute --command. "
         "Local workstation PowerShell runs the collector. "
         '"Keep these two lanes separate."',
