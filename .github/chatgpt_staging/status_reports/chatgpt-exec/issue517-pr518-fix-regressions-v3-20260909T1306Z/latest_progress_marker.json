@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34354433065",
+  "github_sha": "29ab0559b478702d15102f8a8839bbda3374a8b4",
+  "phase": "request-resolved",
+  "request_id": "issue517-pr518-fix-regressions-v3-20260909T1306Z",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue517-pr518-fix-regressions-v3-20260909T1306Z.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-09T13:01:12Z",
+  "workflow": "chatgpt-exec"
+}
