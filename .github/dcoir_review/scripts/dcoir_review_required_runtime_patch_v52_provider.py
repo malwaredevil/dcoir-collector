@@ -51,24 +51,29 @@ def balanced_object_ranges(text: str) -> list[tuple[int, int]]:
 
 
 class RecoveryJsonProxy:
-    """Delegate stdlib json while conservatively recovering one object envelope."""
+    """Keep the API envelope strict; recover one model-content object only."""
 
     def __init__(self, real_json: Any) -> None:
         self._json = real_json
         self.structured_mode = ""
         self._saw_fenced_failure = False
+        self._loads_count = 0
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._json, name)
 
     def loads(self, value: Any, *args: Any, **kwargs: Any) -> Any:
+        self._loads_count += 1
         try:
             parsed = self._json.loads(value, *args, **kwargs)
         except self._json.JSONDecodeError as original_error:
-            if not isinstance(value, str):
+            if not isinstance(value, str) or self._loads_count == 1:
+                # The first loads() in the provider parses OpenRouter's own HTTP
+                # JSON envelope and must remain strict. Recovery applies only to
+                # the model message content parsed by later loads() calls.
                 raise
             # Preserve the existing fenced-object recovery in the hardened
-            # provider. Its second loads() call is labelled after extraction.
+            # provider. Its next loads() call is labelled after extraction.
             if "```" in value:
                 self._saw_fenced_failure = True
                 raise
