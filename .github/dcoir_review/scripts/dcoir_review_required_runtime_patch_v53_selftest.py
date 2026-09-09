@@ -89,7 +89,7 @@ def main() -> None:
     def fake_build(mod, ordinal, item, gh, head_sha, pr_diff, right_line_index, cfg, file_cache):
         assert head_sha == "deadbeef"
         assert pr_diff == DIFF
-        assert right_line_index[(PATH, 1)] == 1
+        assert right_line_index[(PATH, 1)] == 2
         calls.append(
             (
                 ordinal,
