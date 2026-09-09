@@ -30,6 +30,8 @@ VERSION = "v54"
 APPLIED_MARKER = "_dcoir_review_v54_applied"
 SINK_ATTR = "_dcoir_v54_run_telemetry_sink"
 SUMMARY_ATTR = "_dcoir_v54_run_telemetry_summary"
+ERROR_COUNT_ATTR = "_dcoir_v54_telemetry_error_count"
+PATCH_ERRORS_ATTR = "_dcoir_v54_patch_errors"
 LOAD_STORAGE = "_dcoir_review_v54_original_load_pareto_context_config"
 REVIEW_STORAGE = "_dcoir_review_v54_original_openrouter_review"
 REPORTER_STORAGE = "_dcoir_review_v54_original_progress_reporter"
@@ -64,6 +66,22 @@ def _ensure_sink(config: Any) -> RunTelemetrySink:
     sink = RunTelemetrySink()
     setattr(config, SINK_ATTR, sink)
     return sink
+
+
+def _telemetry_error_count(config: Any) -> int:
+    try:
+        value = int(getattr(config, ERROR_COUNT_ATTR, 0) or 0)
+    except Exception:
+        return 0
+    return max(0, value)
+
+
+def _note_telemetry_error(config: Any) -> None:
+    """Best-effort error accounting that must itself never affect review behavior."""
+    try:
+        setattr(config, ERROR_COUNT_ATTR, _telemetry_error_count(config) + 1)
+    except Exception:
+        pass
 
 
 def _finite_number(value: Any) -> int | float | None:
@@ -248,6 +266,8 @@ def summarize_sink(config: Any) -> dict[str, Any]:
     total_attempts = sum(int(item.get("request_attempts", 0) or 0) for item in calls)
     return {
         "schema_version": SCHEMA_VERSION,
+        "telemetry_status": "ok" if _telemetry_error_count(config) == 0 else "partial",
+        "telemetry_error_count": _telemetry_error_count(config),
         "review_calls": len(calls),
         "request_attempts": total_attempts,
         "provider_response_events": len(events),
@@ -312,6 +332,8 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
     text = "; ".join(
         [
             f"schema={SCHEMA_VERSION}",
+            f"telemetry_status={str(summary.get('telemetry_status', 'ok') or 'ok')}",
+            f"telemetry_error_count={int(summary.get('telemetry_error_count', 0) or 0)}",
             f"calls={int(summary.get('review_calls', 0) or 0)}",
             f"attempts={int(summary.get('request_attempts', 0) or 0)}",
             f"responses={int(summary.get('provider_response_events', 0) or 0)}",
@@ -342,7 +364,10 @@ def _patch_config_loader(module: Any) -> None:
 
     def load_pareto_context_config(path: str):
         config = original(path)
-        _ensure_sink(config)
+        try:
+            _ensure_sink(config)
+        except Exception:
+            _note_telemetry_error(config)
         return config
 
     module.load_pareto_context_config = load_pareto_context_config
@@ -359,24 +384,42 @@ def _patch_openrouter_review(module: Any) -> None:
         raise RuntimeError("DCOIR v54 could not locate hardened openrouter_review")
 
     def openrouter_review(prompt, schema, config, reporter=None):
-        sink = _ensure_sink(config)
-        stage = classify_stage(prompt, schema, config)
-        staged = copy.copy(config)
-        setattr(staged, SINK_ATTR, sink)
-        staged.openrouter_capture_request_telemetry = True
-        staged._openrouter_request_telemetry_events = []
-        staged._openrouter_request_attempt_count = 0
-        staged._openrouter_last_request_telemetry = {}
+        try:
+            sink = _ensure_sink(config)
+            stage = classify_stage(prompt, schema, config)
+            staged = copy.copy(config)
+            setattr(staged, SINK_ATTR, sink)
+            staged.openrouter_capture_request_telemetry = True
+            staged._openrouter_request_telemetry_events = []
+            staged._openrouter_request_attempt_count = 0
+            staged._openrouter_last_request_telemetry = {}
+        except Exception:
+            _note_telemetry_error(config)
+            return original(prompt, schema, config, reporter)
+
         try:
             result = original(prompt, schema, staged, reporter)
         except Exception:
-            _drain_call(staged, sink, stage, "failed")
+            try:
+                _drain_call(staged, sink, stage, "failed")
+            except Exception:
+                _note_telemetry_error(config)
+            try:
+                if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
+                    _copy_stage_local_telemetry(staged, config)
+            except Exception:
+                _note_telemetry_error(config)
+            raise
+
+        try:
+            _drain_call(staged, sink, stage, "success")
+        except Exception:
+            _note_telemetry_error(config)
+        try:
             if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
                 _copy_stage_local_telemetry(staged, config)
-            raise
-        _drain_call(staged, sink, stage, "success")
-        if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
-            _copy_stage_local_telemetry(staged, config)
+        except Exception:
+            _note_telemetry_error(config)
         return result
 
     hardened.openrouter_review = openrouter_review
@@ -410,22 +453,49 @@ def _patch_progress_reporter(module: Any) -> None:
             config = getattr(self, "config", None)
             if config is None:
                 return
-            summary = summarize_sink(config)
-            setattr(config, SUMMARY_ATTR, summary)
-            message = compact_summary(summary)
+            try:
+                summary = summarize_sink(config)
+                setattr(config, SUMMARY_ATTR, summary)
+                message = compact_summary(summary)
+            except Exception:
+                _note_telemetry_error(config)
+                summary = {
+                    "schema_version": SCHEMA_VERSION,
+                    "telemetry_status": "unavailable",
+                    "telemetry_error_count": _telemetry_error_count(config),
+                }
+                try:
+                    setattr(config, SUMMARY_ATTR, summary)
+                except Exception:
+                    pass
+                message = (
+                    f"schema={SCHEMA_VERSION}; telemetry_status=unavailable; "
+                    f"telemetry_error_count={_telemetry_error_count(config)}"
+                )
             try:
                 self.update("openrouter-telemetry", message)
+                return
             except Exception:
+                _note_telemetry_error(config)
+            try:
                 emit = getattr(getattr(module, "base", None), "emit_status", None)
                 if callable(emit):
                     emit("openrouter-telemetry", message)
+            except Exception:
+                _note_telemetry_error(config)
 
         def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
-            self._emit_run_telemetry()
+            try:
+                self._emit_run_telemetry()
+            except Exception:
+                _note_telemetry_error(getattr(self, "config", None))
             super().complete(model_used, findings_count, review_event)
 
         def fail(self, message: str) -> None:
-            self._emit_run_telemetry()
+            try:
+                self._emit_run_telemetry()
+            except Exception:
+                _note_telemetry_error(getattr(self, "config", None))
             super().fail(message)
 
     TelemetryProgressReporter.__name__ = getattr(original, "__name__", "ProgressReporter")
@@ -437,7 +507,21 @@ def _patch_progress_reporter(module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_config_loader(module)
-    _patch_openrouter_review(module)
-    _patch_progress_reporter(module)
-    setattr(module, APPLIED_MARKER, True)
+    errors: list[str] = []
+    for name, patcher in (
+        ("config-loader", _patch_config_loader),
+        ("openrouter-review", _patch_openrouter_review),
+        ("progress-reporter", _patch_progress_reporter),
+    ):
+        try:
+            patcher(module)
+        except Exception:
+            errors.append(name)
+    try:
+        setattr(module, PATCH_ERRORS_ATTR, tuple(errors))
+    except Exception:
+        pass
+    try:
+        setattr(module, APPLIED_MARKER, True)
+    except Exception:
+        pass

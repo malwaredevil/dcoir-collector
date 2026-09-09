@@ -373,6 +373,70 @@ def main() -> None:
     assert len(telemetry_updates[0]) <= 1800
     assert getattr(config, v54.SUMMARY_ATTR)["review_calls"] == 14
 
+
+    # Telemetry faults are side-channel failures only: they must never replace a
+    # successful review result or mask the provider's original exception.
+    original_drain = v54._drain_call
+    def broken_drain(*_args, **_kwargs):
+        raise RuntimeError("synthetic telemetry drain failure")
+    v54._drain_call = broken_drain
+    try:
+        before_errors = v54._telemetry_error_count(config)
+        preserved = fake.hardened.openrouter_review("ordinary", review_schema(), config)
+        assert preserved[0]["findings"] == []
+        assert v54._telemetry_error_count(config) == before_errors + 1
+        try:
+            fake.hardened.openrouter_review("fail-call", review_schema(), config)
+        except RuntimeError as exc:
+            assert "synthetic transport failure" in str(exc)
+        else:
+            raise AssertionError("telemetry failure masked provider failure semantics")
+        assert v54._telemetry_error_count(config) == before_errors + 2
+    finally:
+        v54._drain_call = original_drain
+
+    # Terminal telemetry summarization is also fail-soft. The original reporter
+    # complete/fail methods must run, and a bounded unavailable marker is emitted.
+    original_summarize = v54.summarize_sink
+    def broken_summary(_config):
+        raise RuntimeError("synthetic telemetry summary failure")
+    v54.summarize_sink = broken_summary
+    try:
+        complete_reporter = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
+        complete_reporter.complete("model-a", 0, "COMMENT")
+        assert complete_reporter.completed is True
+        assert any(
+            stage == "openrouter-telemetry" and "telemetry_status=unavailable" in message
+            for stage, message in complete_reporter.updates
+        )
+        fail_reporter = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
+        fail_reporter.fail("synthetic original failure")
+        assert fail_reporter.failed is True
+    finally:
+        v54.summarize_sink = original_summarize
+
+    # Loader-side telemetry initialization and patch wiring are best-effort too.
+    original_ensure = v54._ensure_sink
+    def broken_ensure(_config):
+        raise RuntimeError("synthetic telemetry sink failure")
+    v54._ensure_sink = broken_ensure
+    try:
+        fallback_config = fake.load_pareto_context_config("unused")
+        assert fallback_config.model == "model-a"
+        assert v54._telemetry_error_count(fallback_config) >= 1
+    finally:
+        v54._ensure_sink = original_ensure
+
+    broken_module = SimpleNamespace(
+        hardened=SimpleNamespace(),
+        load_pareto_context_config=lambda _path: SimpleNamespace(model="sentinel"),
+    )
+    v54.apply_pareto_context_module(broken_module)
+    assert getattr(broken_module, v54.APPLIED_MARKER, False) is True
+    assert set(getattr(broken_module, v54.PATCH_ERRORS_ATTR, ())) == {
+        "openrouter-review", "progress-reporter"
+    }
+
     print("dcoir_review_required_runtime_patch_v54_selftest: PASS")
 
 
