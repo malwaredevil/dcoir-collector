@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue515-pr516-exact-head-validation-v2-20260909T1057Z",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue515-pr516-exact-head-validation-v2-20260909T1057Z",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34342993267",
+  "github_run_attempt": "1",
+  "github_sha": "6a8fb45427dc36d43888c35b8fd2c96b37ef41d7",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-09T10:58:48Z"
+}
