@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34353972011",
   "github_sha": "5e992a5e2e998efb32d4f08d37b594385f4bf1c7",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue517-pr518-fix-v52-ordering-v2-20260909T1258Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue517-pr518-fix-v52-ordering-v2-20260909T1258Z.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-09T12:56:52Z",
+  "updated_utc": "2026-09-09T12:56:54Z",
   "workflow": "chatgpt-exec"
 }
