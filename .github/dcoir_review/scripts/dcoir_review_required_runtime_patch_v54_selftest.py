@@ -178,7 +178,7 @@ def main() -> None:
     # Capture-only telemetry must be observational. It must not select v47's
     # stricter stop/object response-enforcement branch for ordinary premium
     # stages. The same response therefore parses the same with capture off/on,
-    # and an empty choices list retains the historical empty-response failure.
+    # and an empty choices list retains the historical IndexError in both modes.
     original_urlopen = review.hardened.urllib.request.urlopen
     previous_key = os.environ.get("OPENROUTER_API_KEY")
     os.environ["OPENROUTER_API_KEY"] = "v54-selftest-key"
@@ -230,6 +230,7 @@ def main() -> None:
             "choices": [],
             "usage": {"prompt_tokens": 2, "completion_tokens": 0, "cost": 0.001},
         }
+        failures: list[type[BaseException]] = []
         for capture in (False, True):
             compatibility = copy.copy(production_config)
             compatibility.openrouter_capture_request_telemetry = capture
@@ -238,11 +239,11 @@ def main() -> None:
                 review.hardened.openrouter_request_once(
                     "probe", review_schema(), compatibility, [], "anthropic/claude-opus-5"
                 )
-            except RuntimeError as exc:
-                assert "empty response" in str(exc).lower()
-                assert "invalid choices" not in str(exc).lower()
+            except Exception as exc:  # noqa: BLE001 - compare exact historical failure class.
+                failures.append(type(exc))
             else:
-                raise AssertionError("empty choices did not retain historical empty-response failure")
+                raise AssertionError("empty choices unexpectedly returned successfully")
+        assert failures == [IndexError, IndexError]
     finally:
         review.hardened.urllib.request.urlopen = original_urlopen
         if previous_key is None:
