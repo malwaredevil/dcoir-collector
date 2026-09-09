@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue519-targeted-validation-v2-20260909T1822Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "34388496214",
   "github_sha": "a0f136d844778ae53c381b2577358cafff12a57f",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue519-targeted-validation-v2-20260909T1822Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue519-targeted-validation-v2-20260909T1822Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-09T18:21:51Z",
+  "updated_utc": "2026-09-09T18:22:09Z",
   "workflow": "chatgpt-exec"
 }
