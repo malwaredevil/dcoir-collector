@@ -39,6 +39,7 @@ import dcoir_review_required_runtime_patch_v51 as v51
 VERSION = "v55"
 APPLIED_MARKER = "_dcoir_review_v55_applied"
 RUN_STORAGE = "_dcoir_review_v55_original_run_adjudicator"
+DEDUPE_STORAGE = "_dcoir_review_v55_original_scope_dedupe_exact_findings"
 RECOVERY_MARKER = "_semantic_adjudication_shape_recovery"
 RECOVERY_REASON = "schema-incompatible-valid-json-object"
 _V37_SHAPE_ERROR_PREFIX = (
@@ -294,6 +295,19 @@ def run_adjudicator(
     return capped, model, tier
 
 
+def _patch_scope_dedupe() -> None:
+    """Make v44 pre-adjudication dedupe honor v51 semantic identity in production."""
+
+    original = getattr(scope, DEDUPE_STORAGE, None)
+    if original is None:
+        original = getattr(scope, "dedupe_exact_findings", None)
+        if callable(original):
+            setattr(scope, DEDUPE_STORAGE, original)
+    if not callable(original):
+        raise RuntimeError("DCOIR v55 could not locate v44 scope dedupe helper")
+    scope.dedupe_exact_findings = _dedupe_upstream_hypotheses
+
+
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
@@ -305,4 +319,5 @@ def apply_pareto_context_module(module: Any) -> None:
     if not callable(original):
         raise RuntimeError("DCOIR v55 could not locate v44 adjudicator execution helper")
     execution.run_adjudicator = run_adjudicator
+    _patch_scope_dedupe()
     setattr(module, APPLIED_MARKER, True)
