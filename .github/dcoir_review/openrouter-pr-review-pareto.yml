@@ -214,6 +214,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v53_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v54_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_adjudicator_shape_recovery_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_architecture_b_benchmark_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py
