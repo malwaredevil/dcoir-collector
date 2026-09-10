@@ -10,9 +10,10 @@ v55 preserves the versioned v44 helper unchanged and replaces only its
 ``run_adjudicator`` seam after v54 telemetry is installed. Recovery is deliberately
 narrow: only an unrelated valid-JSON object with none of the flat-finding fields
 may fall back to already-structured hypotheses from the same escalation. Those
-hypotheses must satisfy the existing strict semantic finding contract, pass the
-active production ranking boundary, and are hard-capped to v33's current verifier
-capacity. The rejected adjudicator object is never interpreted or persisted.
+hypotheses must satisfy the existing publication-candidate semantic contract,
+pass the active production ranking boundary, and are hard-capped to v33's current
+verifier capacity. The rejected adjudicator object is never interpreted or
+persisted.
 
 Every recovered hypothesis still flows through the existing exact-head v21/v33
 verifier and all downstream publication/repair gates. No additional model call,
@@ -23,6 +24,7 @@ automatic remediation is introduced.
 from __future__ import annotations
 
 import copy
+import math
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v33 as v33
@@ -42,6 +44,7 @@ _V37_SHAPE_ERROR_PREFIX = (
     "DCOIR v37 adjudicator returned neither a findings envelope nor a complete flat single finding"
 )
 _V54_STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
+_VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 
 
 def _recoverable_shape_failure(raw: Any, exc: Exception) -> bool:
@@ -62,15 +65,36 @@ def _recoverable_shape_failure(raw: Any, exc: Exception) -> bool:
     return str(exc).startswith(_V37_SHAPE_ERROR_PREFIX)
 
 
-def _complete_upstream_hypothesis(module: Any, item: Any) -> bool:
-    """Require the existing strict semantic finding contract without coercion."""
+def _complete_upstream_hypothesis(_module: Any, item: Any) -> bool:
+    """Accept only complete publication candidates without coercing semantic data.
 
-    if not isinstance(item, dict) or "confidence" not in item:
+    v51 may deliberately remove detector-authored ``suggested_replacement`` while
+    preserving the semantic candidate. That field is not part of v37's publication
+    identity and is regenerated only after verification, so its absence must not
+    erase otherwise complete upstream evidence during this fallback.
+    """
+
+    if not isinstance(item, dict):
         return False
-    try:
-        v39._validate_other_finding_fields(item, module.hardened)
-        v39._validate_provided_confidence(item.get("confidence"), module.hardened)
-    except module.hardened.ReviewQualityError:
+    if not all(field in item for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
+        return False
+    for field in ("title", "severity", "path", "body", "validation"):
+        if not isinstance(item.get(field), str) or not str(item.get(field) or "").strip():
+            return False
+    if str(item.get("severity", "") or "").strip().lower() not in _VALID_SEVERITIES:
+        return False
+
+    line = item.get("line")
+    if isinstance(line, bool) or not isinstance(line, int) or line <= 0:
+        return False
+    confidence = item.get("confidence")
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+        return False
+    if not math.isfinite(float(confidence)) or not 0.0 <= float(confidence) <= 1.0:
+        return False
+
+    suggested = item.get("suggested_replacement")
+    if suggested is not None and not isinstance(suggested, str):
         return False
     return True
 
