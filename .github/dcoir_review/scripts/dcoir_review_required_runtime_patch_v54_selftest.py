@@ -367,6 +367,40 @@ def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
         namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
         == "primary-semantic"
     )
+    namespace = {"v54": v54}
+    exec(
+        compile(
+            """
+def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
+    confirmation_prompt = prompt
+    return v54.classify_stage(prompt, schema, config)
+""",
+            "dcoir_review_required_runtime_patch_v32.py",
+            "exec",
+        ),
+        namespace,
+    )
+    assert (
+        namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
+        == "independent-challenger"
+    )
+    namespace = {"v54": v54}
+    exec(
+        compile(
+            """
+def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
+    prompt = wrapper_prompt
+    return v54.classify_stage(prompt, schema, config)
+""",
+            "dcoir_review_required_runtime_patch_v35.py",
+            "exec",
+        ),
+        namespace,
+    )
+    assert (
+        namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
+        == "semantic-adjudicator"
+    )
 
     # One retrying call records only returned provider metadata and explicitly
     # accounts for the attempt lacking response telemetry.

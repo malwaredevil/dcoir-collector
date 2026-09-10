@@ -207,6 +207,18 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "broad-quality-retry"
             if (
+                filename == "dcoir_review_required_runtime_patch_v32.py"
+                and function == "openrouter_review_with_hybrid_first_pass"
+                and locals_map.get("confirmation_prompt") is prompt
+            ):
+                return "independent-challenger"
+            if (
+                filename == "dcoir_review_required_runtime_patch_v35.py"
+                and function == "openrouter_review_with_hybrid_first_pass"
+                and locals_map.get("prompt") is prompt
+            ):
+                return "semantic-adjudicator"
+            if (
                 filename in (
                     "dcoir_review_required_runtime_patch_v32.py",
                     "dcoir_review_required_runtime_patch_v44_execution.py",
