@@ -351,6 +351,22 @@ def {synthetic_function}(prompt, schema, config):
             namespace,
         )
         assert namespace[synthetic_function]("probe", review_schema(), config) == "broad-quality-retry"
+    namespace: dict[str, object] = {"v54": v54}
+    exec(
+        compile(
+            """
+def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
+    return v54.classify_stage(prompt, schema, config)
+""",
+            "dcoir_review_required_runtime_patch_v44_execution.py",
+            "exec",
+        ),
+        namespace,
+    )
+    assert (
+        namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
+        == "primary-semantic"
+    )
 
     # One retrying call records only returned provider metadata and explicitly
     # accounts for the attempt lacking response telemetry.

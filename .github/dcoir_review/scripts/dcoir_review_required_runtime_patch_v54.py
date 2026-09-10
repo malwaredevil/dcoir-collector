@@ -211,7 +211,7 @@ def _callsite_stage_label(prompt: Any) -> str:
                     "dcoir_review_required_runtime_patch_v32.py",
                     "dcoir_review_required_runtime_patch_v44_execution.py",
                 )
-                and function in ("openrouter_review_with_hybrid_first_pass", "run_challenger")
+                and function == "run_challenger"
             ):
                 return "independent-challenger"
             if (
@@ -219,7 +219,7 @@ def _callsite_stage_label(prompt: Any) -> str:
                     "dcoir_review_required_runtime_patch_v35.py",
                     "dcoir_review_required_runtime_patch_v44_execution.py",
                 )
-                and function in ("openrouter_review_with_hybrid_first_pass", "run_adjudicator")
+                and function == "run_adjudicator"
             ):
                 return "semantic-adjudicator"
             current = current.f_back
