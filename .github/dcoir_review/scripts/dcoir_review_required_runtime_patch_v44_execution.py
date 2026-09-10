@@ -38,7 +38,26 @@ def _recoverable_adjudicator_shape_failure(raw: Any, exc: Exception) -> bool:
         return False
     if v37._is_complete_flat_finding(raw):
         return False
+    if any(field in raw for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
+        # Preserve v37's historical fail-closed contract for partial flat
+        # findings. Issue #524 recovers only an unrelated schema-incompatible
+        # object such as a summary/alternate-envelope shape, never a damaged
+        # candidate that would require inventing missing semantic fields.
+        return False
     return str(exc).startswith(_V37_SHAPE_ERROR_PREFIX)
+
+
+def _complete_upstream_hypothesis(module: Any, item: Any) -> bool:
+    """Require the existing strict adjudication finding contract without repair."""
+
+    if not isinstance(item, dict) or "confidence" not in item:
+        return False
+    try:
+        v39._validate_other_finding_fields(item, module.hardened)
+        v39._validate_provided_confidence(item.get("confidence"), module.hardened)
+    except module.hardened.ReviewQualityError:
+        return False
+    return True
 
 
 def _recover_upstream_hypotheses(
@@ -49,16 +68,17 @@ def _recover_upstream_hypotheses(
     """Bound same-escalation structured hypotheses for independent verification.
 
     The rejected adjudicator object is never interpreted or persisted here. Only
-    already-structured upstream findings that are complete enough for the normal
-    v37 publication shape are eligible. The active production ranker remains the
-    selection authority so required-risk reservation and v51 candidate identity
-    protections stay in force, then v33's verifier ceiling provides the hard cap.
+    already-structured upstream findings that satisfy the existing strict
+    adjudication finding shape are eligible. The active production ranker remains
+    the selection authority so required-risk reservation and v51 candidate
+    identity protections stay in force, then v33's verifier ceiling provides the
+    hard cap.
     """
 
     usable = [
         dict(item)
         for item in hypotheses
-        if isinstance(item, dict) and v37._is_complete_flat_finding(item)
+        if _complete_upstream_hypothesis(module, item)
     ]
     if not usable:
         return None
