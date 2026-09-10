@@ -129,6 +129,14 @@ class DcoirReviewEntrypoint:
     telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v54',
     )
+    # v55 is installed after v54 so its replacement adjudicator seam inherits
+    # the already-active observational telemetry wrapper. It recovers only the
+    # bounded valid-JSON/schema-shape failure proven by #524, retaining upstream
+    # structured hypotheses for the existing exact-head verifier without another
+    # semantic model call. Historical v44 helper source remains unchanged.
+    post_telemetry_patch_module_names: tuple[str, ...] = (
+        'dcoir_review_required_runtime_patch_v55',
+    )
 
     def import_module(self, module_name: str) -> ModuleType:
         return importlib.import_module(module_name)
@@ -160,6 +168,7 @@ class DcoirReviewEntrypoint:
             self._apply_patch_modules(review_module, self.stage_local_patch_module_names)
             self._apply_patch_modules(review_module, self.execution_policy_patch_module_names)
             self._apply_patch_modules(review_module, self.telemetry_patch_module_names)
+            self._apply_patch_modules(review_module, self.post_telemetry_patch_module_names)
 
     def _emit_telemetry_patch_unavailable(self, review_module: ModuleType) -> None:
         try:
