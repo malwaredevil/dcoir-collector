@@ -131,11 +131,12 @@ class DcoirReviewEntrypoint:
     )
     # v55 is installed after v54 so its replacement adjudicator seam inherits
     # the already-active observational telemetry wrapper. It recovers only the
-    # bounded valid-JSON/schema-shape failure proven by #524, retaining upstream
-    # structured hypotheses for the existing exact-head verifier without another
-    # semantic model call. Historical v44 helper source remains unchanged.
+    # bounded valid-JSON/schema-shape failure proven by #524. v56 then reduces
+    # repeated repair-critic calls by batching only compatible cross-family
+    # critic candidates with identity-bound fail-closed dispositions.
     post_telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v55',
+        'dcoir_review_required_runtime_patch_v56',
     )
 
     def import_module(self, module_name: str) -> ModuleType:

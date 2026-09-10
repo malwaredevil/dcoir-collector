@@ -137,9 +137,8 @@ def main() -> None:
     assert canonical_body in deterministic_comments[0]["body"]
     assert "MODEL-TAMPERED SENTINEL" not in deterministic_comments[0]["body"]
 
-    # Exercise the actual active production synthesis wrapper chain without
-    # network access. This catches later overlays that might accidentally rewrite
-    # or bypass v36 after its helpers have individually passed.
+    # Exercise the v36 synthesis contract without network access. Later terminal
+    # overlays have their own regressions and must not redefine this historical test.
     pipeline_finding = {
         "title": "Two-line coordinated defect",
         "severity": "high",
@@ -176,6 +175,7 @@ def main() -> None:
     original_openrouter = review.hardened.openrouter_review
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
+    original_public_synth = v25.synthesize_verified_repairs
     model_calls = []
 
     def _fake_verify(mod, findings, gh, pr, cfg, reporter):
@@ -219,6 +219,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     v30.v21.verify_findings_for_publication = _fake_verify
+    v25.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -233,6 +234,7 @@ def main() -> None:
             pipeline_reporter,
         )
     finally:
+        v25.synthesize_verified_repairs = original_public_synth
         v30.v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_openrouter
         review.fetch_pr_file_text = original_fetch

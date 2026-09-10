@@ -141,6 +141,10 @@ fix_synthesis_enabled: true
 # or consume the eligible repair-count budget.
 fix_synthesis_max_findings: 8
 fix_synthesis_min_confidence: 0.80
+# v56 keeps batching operator-reversible and separately caps each compatible
+# independent critic request without changing the existing repair budget.
+repair_critic_batching_enabled: true
+repair_critic_batch_max_findings: 8
 required_finding_reserved_budget: 9
 required_finding_min_per_family: 2
 
@@ -215,6 +219,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v53_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v54_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v55_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_followup_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_architecture_b_benchmark_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py

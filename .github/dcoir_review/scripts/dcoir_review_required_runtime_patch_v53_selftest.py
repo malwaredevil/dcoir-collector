@@ -80,6 +80,7 @@ def main() -> None:
     original_verify = v21.verify_findings_for_publication
     original_build = v36._build_repair_set_for_finding
     original_debug = review.hardened.write_debug_json_artifact_safely
+    original_public_synth = v25.synthesize_verified_repairs
     calls: list[tuple[int, float, str, str]] = []
     metrics: list[tuple[str, dict]] = []
 
@@ -120,6 +121,7 @@ def main() -> None:
             metrics.append((path, dict(payload)))
 
     v21.verify_findings_for_publication = fake_verify
+    v25.synthesize_verified_repairs = v53.synthesize_verified_repair_sets
     v36._build_repair_set_for_finding = fake_build
     review.hardened.write_debug_json_artifact_safely = fake_debug
     try:
@@ -235,6 +237,7 @@ def main() -> None:
         assert [call[1] for call in calls] == [0.0, 0.5]
         assert gh.diff_calls == 1
     finally:
+        v25.synthesize_verified_repairs = original_public_synth
         v21.verify_findings_for_publication = original_verify
         v36._build_repair_set_for_finding = original_build
         review.hardened.write_debug_json_artifact_safely = original_debug
