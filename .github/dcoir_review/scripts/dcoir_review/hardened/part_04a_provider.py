@@ -95,6 +95,87 @@ def _record_openrouter_request_telemetry(config: Any, event: dict[str, Any]) -> 
     setattr(config, "_openrouter_last_request_telemetry", telemetry)
 
 
+def _note_openrouter_telemetry_error(config: Any) -> None:
+    try:
+        current = int(getattr(config, "_openrouter_request_telemetry_error_count", 0) or 0)
+    except Exception:
+        current = 0
+    try:
+        setattr(config, "_openrouter_request_telemetry_error_count", max(0, current) + 1)
+    except Exception:
+        return
+
+
+def _record_openrouter_attempt_telemetry(config: Any, event: dict[str, Any]) -> None:
+    """Best-effort whitelisted attempt routing evidence; never changes retry behavior."""
+    if not bool(getattr(config, "openrouter_capture_request_telemetry", False)):
+        return
+    try:
+        try:
+            request_attempt_count = int(getattr(config, "_openrouter_request_attempt_count", 0) or 0)
+        except (TypeError, ValueError):
+            request_attempt_count = 0
+        outcome = str(event.get("outcome", "") or "").strip()
+        if outcome not in {"success", "retry", "fallback", "terminal_failure"}:
+            outcome = "unclassified"
+        item = {
+            "request_attempt_count": max(0, request_attempt_count),
+            "requested_model": str(event.get("requested_model", "") or "")[:160],
+            "model_index": int(event.get("model_index", 0) or 0),
+            "model_count": int(event.get("model_count", 0) or 0),
+            "attempt_in_model": int(event.get("attempt_in_model", 0) or 0),
+            "attempt_limit": int(event.get("attempt_limit", 0) or 0),
+            "outcome": outcome,
+            "failure_class": str(event.get("failure_class", "") or "")[:80],
+            "provider": str(event.get("provider", "") or "")[:120],
+        }
+        http_status = event.get("http_status")
+        if isinstance(http_status, int) and not isinstance(http_status, bool):
+            item["http_status"] = http_status
+        history = getattr(config, "_openrouter_request_attempt_telemetry_events", None)
+        if not isinstance(history, list):
+            history = []
+        setattr(config, "_openrouter_request_attempt_telemetry_events", [*history, item])
+    except Exception:
+        _note_openrouter_telemetry_error(config)
+
+
+def _capture_openrouter_response_telemetry(
+    config: Any,
+    data: dict[str, Any],
+    model: str,
+    model_used: str,
+    service_tier: str,
+    finish_reason: str,
+    attempt_count: int,
+) -> None:
+    """Record returned execution metadata without changing response enforcement."""
+    usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
+    cost = data.get("cost") if data.get("cost") is not None else usage.get("cost")
+    pipeline = _response_healing_pipeline(data)
+    event = {
+        "requested_model": str(model),
+        "served_model": model_used,
+        "served_model_differs_from_requested": model_used != str(model),
+        "provider": _response_provider(data),
+        "service_tier": service_tier,
+        "finish_reason": finish_reason,
+        "usage": usage,
+        "cost": cost,
+        "request_attempt_count": attempt_count,
+        "response_healing_pipeline": pipeline,
+        "response_healing_observed": any(
+            isinstance(item, dict)
+            and (
+                str(item.get("type", "") or "") == "response_healing"
+                or str(item.get("name", "") or "") == "response-healing"
+            )
+            for item in pipeline
+        ),
+    }
+    _record_openrouter_request_telemetry(config, event)
+
+
 def openrouter_request_once(
     prompt: str,
     schema: dict[str, Any],
@@ -105,7 +186,10 @@ def openrouter_request_once(
     capture_telemetry = bool(getattr(config, "openrouter_capture_request_telemetry", False))
     require_stop = bool(getattr(config, "openrouter_require_stop_finish_reason", False))
     require_object = bool(getattr(config, "openrouter_require_object_response", False))
-    extended_response_handling = capture_telemetry or require_stop or require_object
+    # Telemetry capture must remain observational. Only explicit response-safety
+    # controls select the stricter response-enforcement branch; otherwise a
+    # capture-only call retains the historical parsing/error contract.
+    extended_response_handling = require_stop or require_object
     if capture_telemetry:
         attempt_count = int(getattr(config, "_openrouter_request_attempt_count", 0) or 0) + 1
         setattr(config, "_openrouter_request_attempt_count", attempt_count)
@@ -138,30 +222,15 @@ def openrouter_request_once(
         service_tier = str(data.get("service_tier", "") or "")
         finish_reason = str(choice.get("finish_reason", "") or "").strip() if isinstance(choice, dict) else ""
         if capture_telemetry:
-            usage = data.get("usage") if isinstance(data.get("usage"), dict) else {}
-            cost = data.get("cost") if data.get("cost") is not None else usage.get("cost")
-            pipeline = _response_healing_pipeline(data)
-            event = {
-                "requested_model": str(model),
-                "served_model": model_used,
-                "served_model_differs_from_requested": model_used != str(model),
-                "provider": _response_provider(data),
-                "service_tier": service_tier,
-                "finish_reason": finish_reason,
-                "usage": usage,
-                "cost": cost,
-                "request_attempt_count": attempt_count,
-                "response_healing_pipeline": pipeline,
-                "response_healing_observed": any(
-                    isinstance(item, dict)
-                    and (
-                        str(item.get("type", "") or "") == "response_healing"
-                        or str(item.get("name", "") or "") == "response-healing"
-                    )
-                    for item in pipeline
-                ),
-            }
-            _record_openrouter_request_telemetry(config, event)
+            _capture_openrouter_response_telemetry(
+                config,
+                data,
+                model,
+                model_used,
+                service_tier,
+                finish_reason,
+                attempt_count,
+            )
         if not isinstance(choice, dict):
             raise RuntimeError("OpenRouter returned an invalid choices payload")
         if require_stop and finish_reason != "stop":
@@ -170,8 +239,24 @@ def openrouter_request_once(
         message = choice.get("message")
         content = message.get("content", "") if isinstance(message, dict) else ""
     else:
+        # Keep the historical response-access path exactly intact for ordinary
+        # calls. Capture metadata opportunistically only after the same object
+        # assumptions that this path has always made.
         model_used = str(data.get("model", model))
         service_tier = str(data.get("service_tier", "") or "")
+        choices = data.get("choices")
+        choice = choices[0] if isinstance(choices, list) and choices and isinstance(choices[0], dict) else None
+        finish_reason = str(choice.get("finish_reason", "") or "").strip() if isinstance(choice, dict) else ""
+        if capture_telemetry:
+            _capture_openrouter_response_telemetry(
+                config,
+                data,
+                model,
+                model_used,
+                service_tier,
+                finish_reason,
+                attempt_count,
+            )
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     if not content:
@@ -213,6 +298,17 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
                 if reporter:
                     reporter.update("openrouter-attempt", f"model={model}; attempt={attempt}/{attempts}")
                 result, model_used, service_tier = openrouter_request_once(prompt, schema, config, ignored_providers, model)
+                _record_openrouter_attempt_telemetry(
+                    config,
+                    {
+                        "requested_model": model,
+                        "model_index": model_index,
+                        "model_count": len(config.model_stack),
+                        "attempt_in_model": attempt,
+                        "attempt_limit": attempts,
+                        "outcome": "success",
+                    },
+                )
                 if reporter:
                     tier_note = f"; service_tier={service_tier}" if service_tier else ""
                     reporter.update("openrouter-result", f"served model={model_used}{tier_note}")
@@ -237,6 +333,25 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
                     exc.code,
                     message,
                 )
+                attempt_outcome = (
+                    "retry"
+                    if retryable and attempt < attempts
+                    else ("fallback" if model_index < len(config.model_stack) else "terminal_failure")
+                )
+                _record_openrouter_attempt_telemetry(
+                    config,
+                    {
+                        "requested_model": model,
+                        "model_index": model_index,
+                        "model_count": len(config.model_stack),
+                        "attempt_in_model": attempt,
+                        "attempt_limit": attempts,
+                        "outcome": attempt_outcome,
+                        "failure_class": "http_error",
+                        "http_status": exc.code,
+                        "provider": provider,
+                    },
+                )
                 if retryable and attempt < attempts:
                     if reporter:
                         reporter.update("openrouter-retry", f"{last_error} retrying in {delay:.0f}s")
@@ -245,7 +360,25 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
                 break
             except RuntimeError as exc:
                 last_error = str(exc)
-                if "empty response" in last_error.lower() and attempt < attempts:
+                empty_response = "empty response" in last_error.lower()
+                attempt_outcome = (
+                    "retry"
+                    if empty_response and attempt < attempts
+                    else ("fallback" if model_index < len(config.model_stack) else "terminal_failure")
+                )
+                _record_openrouter_attempt_telemetry(
+                    config,
+                    {
+                        "requested_model": model,
+                        "model_index": model_index,
+                        "model_count": len(config.model_stack),
+                        "attempt_in_model": attempt,
+                        "attempt_limit": attempts,
+                        "outcome": attempt_outcome,
+                        "failure_class": "empty_response" if empty_response else "runtime_error",
+                    },
+                )
+                if empty_response and attempt < attempts:
                     delay = min(2**attempt, retry_cap)
                     if reporter:
                         reporter.update("openrouter-retry", f"{last_error}; retrying in {delay:.0f}s")
@@ -254,6 +387,23 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
                 break
             except json.JSONDecodeError:
                 last_error = "OpenRouter returned invalid JSON"
+                attempt_outcome = (
+                    "retry"
+                    if attempt < attempts
+                    else ("fallback" if model_index < len(config.model_stack) else "terminal_failure")
+                )
+                _record_openrouter_attempt_telemetry(
+                    config,
+                    {
+                        "requested_model": model,
+                        "model_index": model_index,
+                        "model_count": len(config.model_stack),
+                        "attempt_in_model": attempt,
+                        "attempt_limit": attempts,
+                        "outcome": attempt_outcome,
+                        "failure_class": "invalid_json",
+                    },
+                )
                 if attempt < attempts:
                     delay = min(2**attempt, retry_cap)
                     if reporter:
@@ -265,5 +415,3 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
             reporter.update("openrouter-fallback", f"model {model} failed; trying next configured model")
 
     raise RuntimeError(last_error)
-
-
