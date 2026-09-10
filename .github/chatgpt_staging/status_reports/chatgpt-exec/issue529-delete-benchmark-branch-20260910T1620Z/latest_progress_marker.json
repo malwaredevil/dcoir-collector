@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue529-delete-benchmark-branch-20260910T1620Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34501518766",
   "github_sha": "1de1ceb381e7db964075231bb9507becd371c6dc",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue529-delete-benchmark-branch-20260910T1620Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue529-delete-benchmark-branch-20260910T1620Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-10T16:21:20Z",
+  "updated_utc": "2026-09-10T16:21:26Z",
   "workflow": "chatgpt-exec"
 }
