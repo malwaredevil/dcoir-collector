@@ -242,3 +242,4 @@ allowed_authors:
 ignored_authors:
   - github-actions[bot]
   - dependabot[bot]
+  - chatgpt-codex-connector[bot]
