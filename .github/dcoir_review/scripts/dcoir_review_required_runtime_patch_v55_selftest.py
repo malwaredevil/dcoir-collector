@@ -13,6 +13,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v37 as v37
 import dcoir_review_required_runtime_patch_v44_execution as execution
+import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v51 as v51
 import dcoir_review_required_runtime_patch_v55 as v55
 
@@ -268,6 +269,10 @@ def main() -> None:
     review = production_review()
     prod_cfg = production_config(review)
     assert prod_cfg.semantic_candidate_identity_review is True
+    # Production v55 must patch v44's earlier scope dedupe, not merely the
+    # recovery helper, so same-site semantic candidates survive before the
+    # adjudicator/recovery seam is reached.
+    assert scope.dedupe_exact_findings is v55._dedupe_upstream_hypotheses
     first = finding(101, "same-site-semantic-candidate")
     second = finding(101, "same-site-semantic-candidate")
     for item in (first, second):
@@ -287,7 +292,7 @@ def main() -> None:
         101,
         f"{v51.SEMANTIC_KIND_PREFIX}same-site-fallback",
     ]
-    deduped = v55._dedupe_upstream_hypotheses([first, dict(first), second])
+    deduped = scope.dedupe_exact_findings([first, dict(first), second])
     assert len(deduped) == 2
     recovered_identity = v55._recover_upstream_hypotheses(
         review, [first, dict(first), second], prod_cfg
