@@ -10,7 +10,7 @@
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
 - result: running
-- phase: request-resolved
+- phase: running-harness
 - request_id: issue524-pr525-exact-head-validation-v3-20260910T1032Z
 - request_path: .github/chatgpt_staging/exec_requests/issue524-pr525-exact-head-validation-v3-20260910T1032Z.json
 - github_run_id: 34466442760
@@ -18,7 +18,7 @@
 - github_sha: ca2cf31fd17b8bfbb4f82d4ece95c09af9a6be48
 - github_ref: refs/heads/main
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34466442760
-- report_updated_utc: 2026-09-10T10:31:01Z
+- report_updated_utc: 2026-09-10T10:31:03Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue524-pr525-exact-head-validation-v3-20260910T1032Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue524-pr525-exact-head-validation-v3-20260910T1032Z/latest_progress_marker.json
 
@@ -28,11 +28,12 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Exec request path resolved. The workflow is preparing to run the approved command harness.
+Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 
 ## Phase history
 
 - 2026-09-10T10:31:01Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
+- 2026-09-10T10:31:03Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 
 ## Next ChatGPT action
 
