@@ -693,7 +693,7 @@ def apply_pareto_context_module(module: Any) -> None:
         # Patch-error metadata is advisory and must not block module startup.
         _note_telemetry_error(module)
     try:
-        setattr(module, APPLIED_MARKER, True)
+        setattr(module, APPLIED_MARKER, not errors)
     except Exception:
         # Some proxy modules may reject attributes; review behavior still proceeds.
         _note_telemetry_error(module)

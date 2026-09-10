@@ -437,7 +437,7 @@ def main() -> None:
         load_pareto_context_config=lambda _path: SimpleNamespace(model="sentinel"),
     )
     v54.apply_pareto_context_module(broken_module)
-    assert getattr(broken_module, v54.APPLIED_MARKER, False) is True
+    assert getattr(broken_module, v54.APPLIED_MARKER, False) is False
     assert set(getattr(broken_module, v54.PATCH_ERRORS_ATTR, ())) == {
         "openrouter-review", "progress-reporter"
     }
