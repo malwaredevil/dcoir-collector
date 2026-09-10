@@ -19,6 +19,6 @@ def mark_cleaned(job: IncidentJob) -> IncidentJob:
 
 def finalize_if_ready(job: IncidentJob) -> IncidentJob:
     """Finalize only after both upload persistence and cleanup have succeeded."""
-    if job.upload_complete or job.cleanup_complete:
+    if job.upload_complete and job.cleanup_complete:
         return job.completed()
     return job
