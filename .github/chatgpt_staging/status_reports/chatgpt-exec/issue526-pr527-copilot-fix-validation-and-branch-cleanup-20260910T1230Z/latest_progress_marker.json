@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z",
+  "exit_code": "0",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34477678872",
   "github_sha": "93b3350e9ab5f1d801c2440ae2fed0bb83358e8d",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-10T12:36:53Z",
+  "updated_utc": "2026-09-10T12:37:37Z",
   "workflow": "chatgpt-exec"
 }

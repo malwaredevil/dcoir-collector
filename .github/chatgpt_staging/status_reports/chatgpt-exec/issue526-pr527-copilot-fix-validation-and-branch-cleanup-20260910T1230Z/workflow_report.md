@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: success
+- phase: harness-finished
 - request_id: issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z
 - request_path: .github/chatgpt_staging/exec_requests/issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z.json
 - github_run_id: 34477678872
@@ -18,9 +18,11 @@
 - github_sha: 93b3350e9ab5f1d801c2440ae2fed0bb83358e8d
 - github_ref: refs/heads/agent-ops
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34477678872
-- report_updated_utc: 2026-09-10T12:36:53Z
+- report_updated_utc: 2026-09-10T12:37:37Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z
+- exit_code: 0
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-09-10T12:36:49Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-10T12:36:53Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-10T12:37:37Z | phase=harness-finished | result=success | Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
