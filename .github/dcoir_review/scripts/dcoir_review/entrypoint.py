@@ -161,10 +161,40 @@ class DcoirReviewEntrypoint:
             self._apply_patch_modules(review_module, self.execution_policy_patch_module_names)
             self._apply_patch_modules(review_module, self.telemetry_patch_module_names)
 
+    def _emit_telemetry_patch_unavailable(self, review_module: ModuleType) -> None:
+        try:
+            errors = getattr(review_module, "_dcoir_v54_patch_errors", ())
+        except Exception:
+            return
+        if not isinstance(errors, (tuple, list)) or not errors:
+            return
+        safe_errors = []
+        for value in errors:
+            cleaned = "".join(
+                char for char in str(value) if char.isalnum() or char in {"-", "_", "."}
+            )[:48]
+            if cleaned:
+                safe_errors.append(cleaned)
+        detail = ",".join(safe_errors) or "unknown"
+        message = (
+            "schema=dcoir_openrouter_run_telemetry_v1; telemetry_status=unavailable; "
+            f"patch_errors={detail}"
+        )[:600]
+        try:
+            base = getattr(review_module, "base", None)
+            emit = getattr(base, "emit_status", None)
+            if callable(emit):
+                emit("openrouter-telemetry", message)
+        except Exception:
+            return
+
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
-        self.apply_runtime_patches(review_module)
-        review_module.main()
+        try:
+            self.apply_runtime_patches(review_module)
+            review_module.main()
+        finally:
+            self._emit_telemetry_patch_unavailable(review_module)
 
 
 def main() -> None:

@@ -50,11 +50,26 @@ class RunTelemetrySink:
         self._lock = threading.Lock()
         self._calls: list[dict[str, Any]] = []
         self._events: list[dict[str, Any]] = []
+        self._error_count = 0
 
     def add_call(self, call: dict[str, Any], events: list[dict[str, Any]]) -> None:
         with self._lock:
             self._calls.append(dict(call))
             self._events.extend(dict(item) for item in events)
+
+    def add_errors(self, count: int = 1) -> None:
+        try:
+            parsed = int(count)
+        except (TypeError, ValueError):
+            parsed = 1
+        if parsed <= 0:
+            return
+        with self._lock:
+            self._error_count += parsed
+
+    def error_count(self) -> int:
+        with self._lock:
+            return max(0, int(self._error_count))
 
     def snapshot(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         with self._lock:
@@ -75,6 +90,15 @@ def _ensure_sink(config: Any) -> RunTelemetrySink:
 
 def _telemetry_error_count(config: Any) -> int:
     try:
+        sink = getattr(config, SINK_ATTR, None)
+    except Exception:
+        sink = None
+    if isinstance(sink, RunTelemetrySink):
+        try:
+            return sink.error_count()
+        except Exception:
+            return 0
+    try:
         value = int(getattr(config, ERROR_COUNT_ATTR, 0) or 0)
     except Exception:
         return 0
@@ -82,7 +106,17 @@ def _telemetry_error_count(config: Any) -> int:
 
 
 def _note_telemetry_error(config: Any) -> None:
-    """Best-effort error accounting that must itself never affect review behavior."""
+    """Best-effort shared error accounting that must never affect review behavior."""
+    try:
+        sink = getattr(config, SINK_ATTR, None)
+    except Exception:
+        sink = None
+    if isinstance(sink, RunTelemetrySink):
+        try:
+            sink.add_errors(1)
+            return
+        except Exception:
+            return
     try:
         setattr(config, ERROR_COUNT_ATTR, _telemetry_error_count(config) + 1)
     except Exception:
@@ -228,7 +262,7 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
     return "unclassified"
 
 
-def normalize_event(raw: Any, stage: str, call_outcome: str) -> dict[str, Any]:
+def normalize_event(raw: Any, stage: str, attempt_outcome: str = "attempt_outcome_missing") -> dict[str, Any]:
     """Whitelist returned execution metadata; never copy arbitrary response data."""
     item = raw if isinstance(raw, dict) else {}
     usage = item.get("usage") if isinstance(item.get("usage"), dict) else {}
@@ -237,7 +271,7 @@ def normalize_event(raw: Any, stage: str, call_outcome: str) -> dict[str, Any]:
         cost = _usage_metric(usage, "cost")
     return {
         "stage": stage,
-        "call_outcome": call_outcome,
+        "attempt_outcome": attempt_outcome,
         "requested_model": str(item.get("requested_model", "") or "")[:160],
         "served_model": str(item.get("served_model", "") or "")[:160],
         "served_model_differs_from_requested": bool(
@@ -261,43 +295,96 @@ def normalize_event(raw: Any, stage: str, call_outcome: str) -> dict[str, Any]:
     }
 
 
+def normalize_attempt(raw: Any) -> dict[str, Any]:
+    item = raw if isinstance(raw, dict) else {}
+    try:
+        attempt = int(item.get("request_attempt_count", 0) or 0)
+    except (TypeError, ValueError):
+        attempt = 0
+    outcome = str(item.get("outcome", "") or "").strip()
+    if outcome not in {"success", "retry", "fallback", "terminal_failure"}:
+        outcome = "unclassified"
+    normalized = {
+        "attempt": max(0, attempt),
+        "outcome": outcome,
+        "requested_model": str(item.get("requested_model", "") or "")[:160],
+        "provider": str(item.get("provider", "") or "")[:120],
+        "failure_class": str(item.get("failure_class", "") or "")[:80],
+    }
+    for key in ("model_index", "model_count", "attempt_in_model", "attempt_limit"):
+        try:
+            normalized[key] = max(0, int(item.get(key, 0) or 0))
+        except (TypeError, ValueError):
+            normalized[key] = 0
+    http_status = item.get("http_status")
+    if isinstance(http_status, int) and not isinstance(http_status, bool):
+        normalized["http_status"] = http_status
+    return normalized
+
+
 def _drain_call(config: Any, sink: RunTelemetrySink, stage: str, outcome: str) -> None:
     history = getattr(config, "_openrouter_request_telemetry_events", None)
     raw_events = history if isinstance(history, list) else []
-    events = [normalize_event(item, stage, outcome) for item in raw_events]
+    events = [normalize_event(item, stage) for item in raw_events]
+    attempt_history = getattr(config, "_openrouter_request_attempt_telemetry_events", None)
+    raw_attempts = attempt_history if isinstance(attempt_history, list) else []
+    detailed_attempts = [normalize_attempt(item) for item in raw_attempts]
+    try:
+        provider_errors = int(getattr(config, "_openrouter_request_telemetry_error_count", 0) or 0)
+    except (TypeError, ValueError):
+        provider_errors = 0
+    if provider_errors > 0:
+        sink.add_errors(provider_errors)
     try:
         attempts = int(getattr(config, "_openrouter_request_attempt_count", 0) or 0)
     except (TypeError, ValueError):
         attempts = 0
     attempts = max(0, attempts)
-    attempt_map: dict[int, dict[str, Any]] = {}
+
+    response_map: dict[int, dict[str, Any]] = {}
     for event in events:
         raw_attempt = _finite_number(event.get("request_attempt_count"))
         if isinstance(raw_attempt, int) and 1 <= raw_attempt <= attempts:
-            attempt_map.setdefault(raw_attempt, event)
+            response_map.setdefault(raw_attempt, event)
+
+    detailed_map: dict[int, dict[str, Any]] = {}
+    for attempt in detailed_attempts:
+        attempt_number = attempt.get("attempt")
+        if isinstance(attempt_number, int) and 1 <= attempt_number <= attempts:
+            detailed_map[attempt_number] = attempt
+
     attempt_records: list[dict[str, Any]] = []
     for attempt_number in range(1, attempts + 1):
-        event = attempt_map.get(attempt_number)
-        if isinstance(event, dict):
-            attempt_records.append(
-                {
-                    "attempt": attempt_number,
-                    "outcome": "response_telemetry_observed",
-                    "requested_model": str(event.get("requested_model", "") or ""),
-                    "served_model": str(event.get("served_model", "") or ""),
-                    "provider": str(event.get("provider", "") or ""),
-                    "service_tier": str(event.get("service_tier", "") or ""),
-                    "finish_reason": str(event.get("finish_reason", "") or ""),
-                }
-            )
+        response = response_map.get(attempt_number)
+        detailed = detailed_map.get(attempt_number)
+        if isinstance(detailed, dict):
+            record = dict(detailed)
         else:
-            attempt_records.append(
-                {
-                    "attempt": attempt_number,
-                    "outcome": "response_telemetry_missing",
-                }
-            )
-    observed_attempts = len(attempt_map)
+            record = {
+                "attempt": attempt_number,
+                "outcome": "attempt_outcome_missing",
+                "requested_model": "",
+                "provider": "",
+                "failure_class": "",
+                "model_index": 0,
+                "model_count": 0,
+                "attempt_in_model": 0,
+                "attempt_limit": 0,
+            }
+        if isinstance(response, dict):
+            response["attempt_outcome"] = str(record.get("outcome", "attempt_outcome_missing"))
+            for key in ("requested_model", "served_model", "provider", "service_tier", "finish_reason"):
+                value = str(response.get(key, "") or "")
+                if value:
+                    record[key] = value
+        attempt_records.append(record)
+
+    for event in events:
+        raw_attempt = _finite_number(event.get("request_attempt_count"))
+        if not isinstance(raw_attempt, int) or raw_attempt not in response_map:
+            event["attempt_outcome"] = "attempt_outcome_missing"
+
+    observed_attempts = len(response_map)
     sink.add_call(
         {
             "stage": stage,
@@ -323,6 +410,15 @@ def _sum_metric(events: list[dict[str, Any]], key: str) -> dict[str, Any]:
     }
 
 
+def _category_counts(events: list[dict[str, Any]], key: str) -> Counter[str]:
+    return Counter(str(item.get(key, "") or "").strip() or "unknown" for item in events)
+
+
+def _category_coverage(events: list[dict[str, Any]], key: str) -> dict[str, int]:
+    observed = sum(1 for item in events if str(item.get(key, "") or "").strip())
+    return {"observed_events": observed, "missing_events": len(events) - observed}
+
+
 def summarize_sink(config: Any) -> dict[str, Any]:
     sink = _ensure_sink(config)
     calls, events = sink.snapshot()
@@ -331,6 +427,8 @@ def summarize_sink(config: Any) -> dict[str, Any]:
     stage_responses: Counter[str] = Counter()
     stage_missing: Counter[str] = Counter()
     stage_attempt_outcomes: dict[str, Counter[str]] = {}
+    stage_attempt_models: dict[str, Counter[str]] = {}
+    attempt_requested_models: Counter[str] = Counter()
     stage_events: dict[str, list[dict[str, Any]]] = {}
     for item in calls:
         stage = str(item.get("stage", "unclassified"))
@@ -340,34 +438,21 @@ def summarize_sink(config: Any) -> dict[str, Any]:
         attempts = item.get("attempt_records")
         counter = stage_attempt_outcomes.setdefault(stage, Counter())
         if isinstance(attempts, list):
+            model_counter = stage_attempt_models.setdefault(stage, Counter())
             for attempt in attempts:
                 if isinstance(attempt, dict):
                     counter[str(attempt.get("outcome", "unclassified"))] += 1
+                    requested_model = str(attempt.get("requested_model", "") or "").strip() or "unknown"
+                    model_counter[requested_model] += 1
+                    attempt_requested_models[requested_model] += 1
     for event in events:
         stage = str(event.get("stage", "unclassified"))
         stage_events.setdefault(stage, []).append(event)
-    providers = Counter(
-        str(item.get("provider", "")) for item in events if str(item.get("provider", ""))
-    )
-    service_tiers = Counter(
-        str(item.get("service_tier", "") or "").strip() or "unknown"
-        for item in events
-    )
-    requested_models = Counter(
-        str(item.get("requested_model", ""))
-        for item in events
-        if str(item.get("requested_model", ""))
-    )
-    served_models = Counter(
-        str(item.get("served_model", ""))
-        for item in events
-        if str(item.get("served_model", ""))
-    )
-    finish_reasons = Counter(
-        str(item.get("finish_reason", ""))
-        for item in events
-        if str(item.get("finish_reason", ""))
-    )
+    providers = _category_counts(events, "provider")
+    service_tiers = _category_counts(events, "service_tier")
+    requested_models = _category_counts(events, "requested_model")
+    served_models = _category_counts(events, "served_model")
+    finish_reasons = _category_counts(events, "finish_reason")
     recoveries = Counter(
         str(item.get("structured_output_recovery", ""))
         for item in events
@@ -394,6 +479,7 @@ def summarize_sink(config: Any) -> dict[str, Any]:
                 "provider_response_events": stage_responses[stage],
                 "attempts_without_response_telemetry": stage_missing[stage],
                 "attempt_outcomes": dict(sorted(stage_attempt_outcomes.get(stage, Counter()).items())),
+                "attempt_requested_models": dict(sorted(stage_attempt_models.get(stage, Counter()).items())),
                 "metrics": {
                     key: _sum_metric(stage_events.get(stage, []), key)
                     for key in (
@@ -406,50 +492,15 @@ def summarize_sink(config: Any) -> dict[str, Any]:
                         "cost",
                     )
                 },
-                "providers": dict(
-                    sorted(
-                        Counter(
-                            str(item.get("provider", ""))
-                            for item in stage_events.get(stage, [])
-                            if str(item.get("provider", ""))
-                        ).items()
-                    )
-                ),
-                "requested_models": dict(
-                    sorted(
-                        Counter(
-                            str(item.get("requested_model", ""))
-                            for item in stage_events.get(stage, [])
-                            if str(item.get("requested_model", ""))
-                        ).items()
-                    )
-                ),
-                "served_models": dict(
-                    sorted(
-                        Counter(
-                            str(item.get("served_model", ""))
-                            for item in stage_events.get(stage, [])
-                            if str(item.get("served_model", ""))
-                        ).items()
-                    )
-                ),
-                "finish_reasons": dict(
-                    sorted(
-                        Counter(
-                            str(item.get("finish_reason", ""))
-                            for item in stage_events.get(stage, [])
-                            if str(item.get("finish_reason", ""))
-                        ).items()
-                    )
-                ),
-                "service_tiers": dict(
-                    sorted(
-                        Counter(
-                            str(item.get("service_tier", "") or "").strip() or "unknown"
-                            for item in stage_events.get(stage, [])
-                        ).items()
-                    )
-                ),
+                "providers": dict(sorted(_category_counts(stage_events.get(stage, []), "provider").items())),
+                "requested_models": dict(sorted(_category_counts(stage_events.get(stage, []), "requested_model").items())),
+                "served_models": dict(sorted(_category_counts(stage_events.get(stage, []), "served_model").items())),
+                "finish_reasons": dict(sorted(_category_counts(stage_events.get(stage, []), "finish_reason").items())),
+                "service_tiers": dict(sorted(_category_counts(stage_events.get(stage, []), "service_tier").items())),
+                "metadata_coverage": {
+                    key: _category_coverage(stage_events.get(stage, []), key)
+                    for key in ("provider", "service_tier", "requested_model", "served_model", "finish_reason")
+                },
                 "structured_output_recovery": dict(
                     sorted(
                         Counter(
@@ -479,6 +530,11 @@ def summarize_sink(config: Any) -> dict[str, Any]:
         "requested_models": dict(sorted(requested_models.items())),
         "served_models": dict(sorted(served_models.items())),
         "finish_reasons": dict(sorted(finish_reasons.items())),
+        "attempt_requested_models": dict(sorted(attempt_requested_models.items())),
+        "metadata_coverage": {
+            key: _category_coverage(events, key)
+            for key in ("provider", "service_tier", "requested_model", "served_model", "finish_reason")
+        },
         "structured_output_recovery": dict(sorted(recoveries.items())),
         "response_healing_events": sum(
             1 for item in events if item.get("response_healing_observed") is True
@@ -499,6 +555,14 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
     )
     served_models = summary.get("served_models") if isinstance(summary.get("served_models"), dict) else {}
     finish_reasons = summary.get("finish_reasons") if isinstance(summary.get("finish_reasons"), dict) else {}
+    attempt_requested_models = (
+        summary.get("attempt_requested_models")
+        if isinstance(summary.get("attempt_requested_models"), dict)
+        else {}
+    )
+    metadata_coverage = (
+        summary.get("metadata_coverage") if isinstance(summary.get("metadata_coverage"), dict) else {}
+    )
     recoveries = (
         summary.get("structured_output_recovery")
         if isinstance(summary.get("structured_output_recovery"), dict)
@@ -527,6 +591,12 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
     served_model_text = category(served_models)
     finish_reason_text = category(finish_reasons)
     recovery_text = category(recoveries)
+    attempt_model_text = category(attempt_requested_models)
+    metadata_missing_text = ",".join(
+        f"{name}:{int(data.get('missing_events', 0) or 0)}"
+        for name, data in sorted(metadata_coverage.items())
+        if isinstance(data, dict)
+    ) or "none"
     attempt_outcome_text = (
         ",".join(
             f"{stage}:{'|'.join(f'{name}:{count}' for name, count in sorted(attempt_outcomes.items())) or 'none'}"
@@ -560,6 +630,8 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
             f"model_mismatch_events={int(summary.get('served_model_mismatch_events', 0) or 0)}",
             f"stages(calls/attempts)={stage_text}",
             f"attempt_outcomes={attempt_outcome_text}",
+            f"attempt_models={attempt_model_text}",
+            f"metadata_missing={metadata_missing_text}",
             f"providers={provider_text}",
             f"service_tiers={service_tier_text}",
             f"requested_models={requested_model_text}",
@@ -609,6 +681,8 @@ def _patch_openrouter_review(module: Any) -> None:
             setattr(staged, SINK_ATTR, sink)
             staged.openrouter_capture_request_telemetry = True
             staged._openrouter_request_telemetry_events = []
+            staged._openrouter_request_attempt_telemetry_events = []
+            staged._openrouter_request_telemetry_error_count = 0
             staged._openrouter_request_attempt_count = 0
             staged._openrouter_last_request_telemetry = {}
         except Exception:
@@ -649,6 +723,8 @@ def _copy_stage_local_telemetry(source: Any, target: Any) -> None:
     """Preserve v47's documented per-file telemetry readback contract."""
     for name in (
         "_openrouter_request_telemetry_events",
+        "_openrouter_request_attempt_telemetry_events",
+        "_openrouter_request_telemetry_error_count",
         "_openrouter_request_attempt_count",
         "_openrouter_last_request_telemetry",
     ):

@@ -60,6 +60,28 @@ class FakeHardened:
         if "fail-call" in text:
             config._openrouter_request_attempt_count = 2
             config._openrouter_request_telemetry_events = []
+            config._openrouter_request_attempt_telemetry_events = [
+                {
+                    "request_attempt_count": 1,
+                    "requested_model": "model-a",
+                    "model_index": 1,
+                    "model_count": 2,
+                    "attempt_in_model": 1,
+                    "attempt_limit": 2,
+                    "outcome": "retry",
+                    "failure_class": "empty_response",
+                },
+                {
+                    "request_attempt_count": 2,
+                    "requested_model": "model-a",
+                    "model_index": 1,
+                    "model_count": 2,
+                    "attempt_in_model": 2,
+                    "attempt_limit": 2,
+                    "outcome": "terminal_failure",
+                    "failure_class": "runtime_error",
+                },
+            ]
             raise RuntimeError("synthetic transport failure")
 
         config._openrouter_request_attempt_count = 2 if "retry-call" in text else 1
@@ -90,6 +112,40 @@ class FakeHardened:
             "raw_response": "SECRET_RESPONSE_MUST_NOT_SURVIVE",
             "authorization": "Bearer SECRET_TOKEN_MUST_NOT_SURVIVE",
         }
+        if "retry-call" in text:
+            config._openrouter_request_attempt_telemetry_events = [
+                {
+                    "request_attempt_count": 1,
+                    "requested_model": "model-a",
+                    "model_index": 1,
+                    "model_count": 2,
+                    "attempt_in_model": 1,
+                    "attempt_limit": 2,
+                    "outcome": "retry",
+                    "failure_class": "empty_response",
+                },
+                {
+                    "request_attempt_count": 2,
+                    "requested_model": "model-a",
+                    "model_index": 1,
+                    "model_count": 2,
+                    "attempt_in_model": 2,
+                    "attempt_limit": 2,
+                    "outcome": "success",
+                },
+            ]
+        else:
+            config._openrouter_request_attempt_telemetry_events = [
+                {
+                    "request_attempt_count": 1,
+                    "requested_model": "model-a",
+                    "model_index": 1,
+                    "model_count": 2,
+                    "attempt_in_model": 1,
+                    "attempt_limit": 1,
+                    "outcome": "success",
+                }
+            ]
         config._openrouter_request_telemetry_events = [raw]
         config._openrouter_last_request_telemetry = {
             **raw,
@@ -311,9 +367,11 @@ def {synthetic_function}(prompt, schema, config):
     assert summary["attempts_without_response_telemetry"] == 1
     assert summary["stages"]["primary-semantic"]["attempts_without_response_telemetry"] == 1
     assert summary["stages"]["primary-semantic"]["attempt_outcomes"] == {
-        "response_telemetry_missing": 1,
-        "response_telemetry_observed": 1,
+        "retry": 1,
+        "success": 1,
     }
+    assert summary["stages"]["primary-semantic"]["attempt_requested_models"] == {"model-a": 2}
+    assert summary["attempt_requested_models"] == {"model-a": 2}
     assert summary["metrics"]["prompt_tokens"]["observed_total"] == 100
     assert summary["metrics"]["completion_tokens"]["observed_total"] == 20
     assert summary["metrics"]["total_tokens"]["observed_total"] == 120
@@ -346,8 +404,9 @@ def {synthetic_function}(prompt, schema, config):
     assert summary["provider_response_events"] == 1
     assert summary["attempts_without_response_telemetry"] == 3
     assert summary["stages"]["primary-semantic"]["attempt_outcomes"] == {
-        "response_telemetry_missing": 3,
-        "response_telemetry_observed": 1,
+        "retry": 2,
+        "success": 1,
+        "terminal_failure": 1,
     }
     assert summary["metrics"]["cost"]["observed_events"] == 1
 
@@ -382,6 +441,43 @@ def {synthetic_function}(prompt, schema, config):
     assert missing["cache_write_tokens"] is None
     assert missing["cost"] is None
 
+    # Missing categorical response metadata is explicit, not silently filtered.
+    missing_config = fake.load_pareto_context_config("unused")
+    missing_sink = getattr(missing_config, v54.SINK_ATTR)
+    missing_event = v54.normalize_event(
+        {"usage": {}}, "primary-semantic", "success"
+    )
+    missing_sink.add_call(
+        {
+            "stage": "primary-semantic",
+            "outcome": "success",
+            "request_attempts": 1,
+            "response_events": 1,
+            "attempts_without_response_telemetry": 0,
+            "attempt_records": [
+                {"attempt": 1, "outcome": "success", "requested_model": "model-a"}
+            ],
+        },
+        [missing_event],
+    )
+    missing_summary = v54.summarize_sink(missing_config)
+    assert missing_summary["providers"] == {"unknown": 1}
+    assert missing_summary["requested_models"] == {"unknown": 1}
+    assert missing_summary["served_models"] == {"unknown": 1}
+    assert missing_summary["finish_reasons"] == {"unknown": 1}
+    assert missing_summary["service_tiers"] == {"unknown": 1}
+    assert missing_summary["metadata_coverage"]["provider"] == {
+        "observed_events": 0, "missing_events": 1
+    }
+    assert "metadata_missing=" in v54.compact_summary(missing_summary)
+
+    # Errors raised on shallow stage projections must surface on the root config.
+    error_config = fake.load_pareto_context_config("unused")
+    shallow_error_config = copy.copy(error_config)
+    v54._note_telemetry_error(shallow_error_config)
+    assert v54._telemetry_error_count(error_config) == 1
+    assert v54.summarize_sink(error_config)["telemetry_status"] == "partial"
+
     # The existing terminal progress surface is the durable production output;
     # it remains active with debug=false and does not depend on debug artifacts.
     reporter = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
@@ -394,6 +490,8 @@ def {synthetic_function}(prompt, schema, config):
     assert "total_tokens=" in telemetry_updates[0]
     assert "cost=" in telemetry_updates[0]
     assert "attempt_outcomes=" in telemetry_updates[0]
+    assert "attempt_models=" in telemetry_updates[0]
+    assert "metadata_missing=" in telemetry_updates[0]
     assert "requested_models=" in telemetry_updates[0]
     assert "served_models=" in telemetry_updates[0]
     assert "finish_reasons=" in telemetry_updates[0]
@@ -455,8 +553,12 @@ def {synthetic_function}(prompt, schema, config):
     finally:
         v54._ensure_sink = original_ensure
 
+    unavailable_updates: list[tuple[str, str]] = []
     broken_module = SimpleNamespace(
         hardened=SimpleNamespace(),
+        base=SimpleNamespace(
+            emit_status=lambda stage, message: unavailable_updates.append((stage, message))
+        ),
         load_pareto_context_config=lambda _path: SimpleNamespace(model="sentinel"),
     )
     original_loader = broken_module.load_pareto_context_config
@@ -467,6 +569,36 @@ def {synthetic_function}(prompt, schema, config):
     }
     assert broken_module.load_pareto_context_config is original_loader
     assert not hasattr(broken_module, v54.LOAD_STORAGE)
+    entrypoint._emit_telemetry_patch_unavailable(broken_module)
+    assert len(unavailable_updates) == 1
+    assert unavailable_updates[0][0] == "openrouter-telemetry"
+    assert "telemetry_status=unavailable" in unavailable_updates[0][1]
+    assert "openrouter-review" in unavailable_updates[0][1]
+    assert "progress-reporter" in unavailable_updates[0][1]
+
+    # Provider-side attempt telemetry itself is bounded and prompt-free.
+    provider_probe = copy.copy(production_config)
+    provider_probe.openrouter_capture_request_telemetry = True
+    provider_probe._openrouter_request_attempt_count = 1
+    review.hardened._record_openrouter_attempt_telemetry(
+        provider_probe,
+        {
+            "requested_model": "model-a",
+            "model_index": 1,
+            "model_count": 2,
+            "attempt_in_model": 1,
+            "attempt_limit": 4,
+            "outcome": "fallback",
+            "failure_class": "http_error",
+            "http_status": 503,
+            "provider": "Provider A",
+            "prompt": "SECRET_PROMPT_MUST_NOT_SURVIVE",
+        },
+    )
+    provider_attempt = provider_probe._openrouter_request_attempt_telemetry_events[0]
+    assert provider_attempt["outcome"] == "fallback"
+    assert provider_attempt["http_status"] == 503
+    assert "prompt" not in provider_attempt
 
     print("dcoir_review_required_runtime_patch_v54_selftest: PASS")
 
