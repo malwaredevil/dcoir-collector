@@ -33,6 +33,7 @@ import dcoir_review_required_runtime_patch_v37 as v37
 import dcoir_review_required_runtime_patch_v39 as v39
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
+import dcoir_review_required_runtime_patch_v51 as v51
 
 
 VERSION = "v55"
@@ -90,13 +91,52 @@ def _complete_upstream_hypothesis(_module: Any, item: Any) -> bool:
     confidence = item.get("confidence")
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
         return False
-    if not math.isfinite(float(confidence)) or not 0.0 <= float(confidence) <= 1.0:
+    try:
+        parsed_confidence = float(confidence)
+    except (OverflowError, TypeError, ValueError):
+        return False
+    if not math.isfinite(parsed_confidence) or not 0.0 <= parsed_confidence <= 1.0:
         return False
 
     suggested = item.get("suggested_replacement")
     if suggested is not None and not isinstance(suggested, str):
         return False
     return True
+
+
+def _recovery_identity_key(item: dict[str, Any]) -> tuple[Any, ...]:
+    """Return a stable identity-aware key without collapsing v51 semantics."""
+
+    candidate_id = str(item.get(v51.CANDIDATE_ID_FIELD, "") or "").strip()
+    if candidate_id:
+        return ("candidate-id", candidate_id)
+
+    semantic_key = v51._raw_key(item.get(v51.SEMANTIC_KEY_FIELD))
+    if semantic_key is not None and semantic_key[2].startswith(v51.SEMANTIC_KIND_PREFIX):
+        return ("semantic-key",) + semantic_key
+
+    # Unprepared hypotheses still need deterministic duplicate removal before the
+    # active ranker. v51's derived candidate identity includes path, line, title,
+    # body, and validation, so same-site/same-title but semantically distinct
+    # hypotheses remain separate while exact semantic duplicates collapse.
+    return ("derived-candidate-id", v51._candidate_id(item))
+
+
+def _dedupe_upstream_hypotheses(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Deduplicate exact semantic identities while preserving v51 distinctions."""
+
+    result: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for raw in findings:
+        if not isinstance(raw, dict):
+            continue
+        item = dict(raw)
+        key = _recovery_identity_key(item)
+        if key in seen:
+            continue
+        seen.add(key)
+        result.append(item)
+    return result
 
 
 def _recover_upstream_hypotheses(
@@ -114,7 +154,7 @@ def _recover_upstream_hypotheses(
     if not usable:
         return None
 
-    deduped = scope.dedupe_exact_findings(usable)
+    deduped = _dedupe_upstream_hypotheses(usable)
     ranked = module.rank_findings_for_required_budget(deduped, config)
     verifier_capacity = v33.verifier_candidate_limit(config)
     selected = [dict(item) for item in ranked if isinstance(item, dict)][:verifier_capacity]
