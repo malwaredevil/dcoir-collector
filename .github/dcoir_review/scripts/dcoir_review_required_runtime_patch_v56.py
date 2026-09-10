@@ -151,7 +151,7 @@ def synthesize_verified_repair_sets(
                 module, chunk, file_cache, right_line_index, config
             )
             critic_calls += calls
-            critic_batches += 1
+            critic_batches += calls
             for ordinal, item in results:
                 repaired_by_ordinal[ordinal] = item
 
