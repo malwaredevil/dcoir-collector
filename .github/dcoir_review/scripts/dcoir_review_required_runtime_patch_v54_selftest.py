@@ -261,27 +261,20 @@ def main() -> None:
     per_file = copy.copy(config)
     per_file.dcoir_v47_per_file_projection = True
     assert v54.classify_stage("anything", review_schema(), per_file) == "per-file-first-pass"
-    assert (
-        v54.classify_stage("Independent adversarial confirmation pass:\nprobe", review_schema(), config)
-        == "independent-challenger"
-    )
-    assert (
-        v54.classify_stage("Final semantic adjudication pass.\nprobe", review_schema(), config)
-        == "semantic-adjudicator"
-    )
+    stage_tagged = copy.copy(config)
+    stage_tagged._dcoir_v54_stage_label = "independent-challenger"
+    assert v54.classify_stage("probe", review_schema(), stage_tagged) == "independent-challenger"
+    stage_tagged._dcoir_v54_stage_label = "semantic-adjudicator"
+    assert v54.classify_stage("probe", review_schema(), stage_tagged) == "semantic-adjudicator"
     bounded = copy.copy(config)
+    bounded._dcoir_v54_stage_label = "semantic-adjudicator"
     bounded._dcoir_v52_pending_low_confidence_disposition = {"candidate_count": 1}
-    assert (
-        v54.classify_stage("Final semantic adjudication pass.\nprobe", review_schema(), bounded)
-        == "bounded-low-confidence-disposition"
-    )
+    assert v54.classify_stage("probe", review_schema(), bounded) == "bounded-low-confidence-disposition"
     assert v54.classify_stage("probe", verifier_schema(), config) == "verifier"
     assert v54.classify_stage("probe", repair_author_schema(), config) == "repair-author"
     assert v54.classify_stage("probe", critic_schema(), config) == "repair-critic"
-    assert (
-        v54.classify_stage("Review quality retry:\nprobe", review_schema(), config)
-        == "broad-quality-retry"
-    )
+    stage_tagged._dcoir_v54_stage_label = "broad-quality-retry"
+    assert v54.classify_stage("probe", review_schema(), stage_tagged) == "broad-quality-retry"
     assert v54.classify_stage("ordinary", review_schema(), config) == "primary-semantic"
     assert v54.classify_stage("unknown", {"properties": {}}, config) == "unclassified"
 
@@ -298,6 +291,11 @@ def main() -> None:
     assert summary["request_attempts"] == 2
     assert summary["provider_response_events"] == 1
     assert summary["attempts_without_response_telemetry"] == 1
+    assert summary["stages"]["primary-semantic"]["attempts_without_response_telemetry"] == 1
+    assert summary["stages"]["primary-semantic"]["attempt_outcomes"] == {
+        "response_telemetry_missing": 1,
+        "response_telemetry_observed": 1,
+    }
     assert summary["metrics"]["prompt_tokens"]["observed_total"] == 100
     assert summary["metrics"]["completion_tokens"]["observed_total"] == 20
     assert summary["metrics"]["total_tokens"]["observed_total"] == 120
@@ -306,6 +304,8 @@ def main() -> None:
     assert summary["metrics"]["cache_write_tokens"]["observed_total"] == 5
     assert abs(float(summary["metrics"]["cost"]["observed_total"]) - 0.0125) < 1e-9
     assert summary["providers"] == {"Provider A": 1}
+    assert summary["service_tiers"] == {"unknown": 1}
+    assert summary["stages"]["primary-semantic"]["service_tiers"] == {"unknown": 1}
     assert summary["structured_output_recovery"] == {"balanced-envelope": 1}
     assert summary["response_healing_events"] == 1
     serialized = repr(summary)
@@ -327,6 +327,10 @@ def main() -> None:
     assert summary["request_attempts"] == 4
     assert summary["provider_response_events"] == 1
     assert summary["attempts_without_response_telemetry"] == 3
+    assert summary["stages"]["primary-semantic"]["attempt_outcomes"] == {
+        "response_telemetry_missing": 3,
+        "response_telemetry_observed": 1,
+    }
     assert summary["metrics"]["cost"]["observed_events"] == 1
 
     # Shallow stage configs share one lock-protected sink under concurrent
@@ -369,6 +373,7 @@ def main() -> None:
     assert len(telemetry_updates) == 1
     assert "schema=dcoir_openrouter_run_telemetry_v1" in telemetry_updates[0]
     assert "cached_tokens=" in telemetry_updates[0]
+    assert "total_tokens=" in telemetry_updates[0]
     assert "cost=" in telemetry_updates[0]
     assert len(telemetry_updates[0]) <= 1800
     assert getattr(config, v54.SUMMARY_ATTR)["review_calls"] == 14

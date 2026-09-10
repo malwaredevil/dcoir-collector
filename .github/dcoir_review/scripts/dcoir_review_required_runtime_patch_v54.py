@@ -15,11 +15,15 @@ v54 is deliberately behavior-neutral:
 
 This overlay does not alter model selection, provider preferences, reasoning,
 retry policy, concurrency, verifier authority, repair safety, or publication.
+
+Scoped exemption: issue #519 keeps this maintained source above the 15,000-byte
+connector-safe policy threshold because it centralizes one runtime patch surface.
 """
 
 from __future__ import annotations
 
 import copy
+import inspect
 import math
 import threading
 from collections import Counter
@@ -32,6 +36,7 @@ SINK_ATTR = "_dcoir_v54_run_telemetry_sink"
 SUMMARY_ATTR = "_dcoir_v54_run_telemetry_summary"
 ERROR_COUNT_ATTR = "_dcoir_v54_telemetry_error_count"
 PATCH_ERRORS_ATTR = "_dcoir_v54_patch_errors"
+STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
 LOAD_STORAGE = "_dcoir_review_v54_original_load_pareto_context_config"
 REVIEW_STORAGE = "_dcoir_review_v54_original_openrouter_review"
 REPORTER_STORAGE = "_dcoir_review_v54_original_progress_reporter"
@@ -131,10 +136,71 @@ def _schema_properties(schema: Any) -> dict[str, Any]:
     return properties if isinstance(properties, dict) else {}
 
 
+def _explicit_stage_label(config: Any) -> str:
+    value = getattr(config, STAGE_LABEL_ATTR, "")
+    return str(value or "").strip()
+
+
+def _callsite_stage_label(prompt: Any) -> str:
+    frame = inspect.currentframe()
+    current = frame.f_back if frame is not None else None
+    try:
+        while current is not None:
+            filename = current.f_code.co_filename.rsplit("/", 1)[-1]
+            function = current.f_code.co_name
+            locals_map = current.f_locals
+            if (
+                filename == "part_05a_hybrid_review.py"
+                and function == "openrouter_review_with_hybrid_first_pass"
+                and locals_map.get("retry_prompt") is prompt
+            ):
+                return "broad-quality-retry"
+            if (
+                filename == "dcoir_review_required_runtime_patch_v52_retry.py"
+                and function == "broad_retry_fallback"
+            ):
+                return "broad-quality-retry"
+            if (
+                filename in (
+                    "dcoir_review_required_runtime_patch_v32.py",
+                    "dcoir_review_required_runtime_patch_v44_execution.py",
+                )
+                and function in ("openrouter_review_with_hybrid_first_pass", "run_challenger")
+            ):
+                return "independent-challenger"
+            if (
+                filename in (
+                    "dcoir_review_required_runtime_patch_v35.py",
+                    "dcoir_review_required_runtime_patch_v44_execution.py",
+                )
+                and function in ("openrouter_review_with_hybrid_first_pass", "run_adjudicator")
+            ):
+                return "semantic-adjudicator"
+            current = current.f_back
+    finally:
+        del frame
+    return ""
+
+
 def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
     """Classify a model call without retaining the prompt itself."""
+    explicit = _explicit_stage_label(config)
+    if explicit:
+        if explicit == "semantic-adjudicator":
+            pending = getattr(config, "_dcoir_v52_pending_low_confidence_disposition", None)
+            if isinstance(pending, dict) and pending:
+                return "bounded-low-confidence-disposition"
+        return explicit
     if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
         return "per-file-first-pass"
+
+    callsite = _callsite_stage_label(prompt)
+    if callsite:
+        if callsite == "semantic-adjudicator":
+            pending = getattr(config, "_dcoir_v52_pending_low_confidence_disposition", None)
+            if isinstance(pending, dict) and pending:
+                return "bounded-low-confidence-disposition"
+        return callsite
 
     properties = _schema_properties(schema)
     action = properties.get("action") if isinstance(properties.get("action"), dict) else {}
@@ -145,21 +211,6 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
         return "verifier"
     if "accepted" in properties and "reason" in properties:
         return "repair-critic"
-
-    text = str(prompt or "").lower()
-    if "review quality retry:" in text:
-        return "broad-quality-retry"
-    if "independent adversarial confirmation pass:" in text:
-        return "independent-challenger"
-    if "final semantic adjudication pass." in text:
-        pending = getattr(config, "_dcoir_v52_pending_low_confidence_disposition", None)
-        if isinstance(pending, dict) and pending:
-            return "bounded-low-confidence-disposition"
-        return "semantic-adjudicator"
-    if "repair-set critic" in text or "independent repair critic" in text:
-        return "repair-critic"
-    if "repair-set author" in text or "no_safe_repair" in text:
-        return "repair-author"
     if "summary" in properties and "findings" in properties:
         return "primary-semantic"
     return "unclassified"
@@ -207,6 +258,33 @@ def _drain_call(config: Any, sink: RunTelemetrySink, stage: str, outcome: str) -
     except (TypeError, ValueError):
         attempts = 0
     attempts = max(0, attempts)
+    attempt_map: dict[int, dict[str, Any]] = {}
+    for event in events:
+        raw_attempt = _finite_number(event.get("request_attempt_count"))
+        if isinstance(raw_attempt, int) and 1 <= raw_attempt <= attempts:
+            attempt_map.setdefault(raw_attempt, event)
+    attempt_records: list[dict[str, Any]] = []
+    for attempt_number in range(1, attempts + 1):
+        event = attempt_map.get(attempt_number)
+        if isinstance(event, dict):
+            attempt_records.append(
+                {
+                    "attempt": attempt_number,
+                    "outcome": "response_telemetry_observed",
+                    "requested_model": str(event.get("requested_model", "") or ""),
+                    "served_model": str(event.get("served_model", "") or ""),
+                    "provider": str(event.get("provider", "") or ""),
+                    "service_tier": str(event.get("service_tier", "") or ""),
+                    "finish_reason": str(event.get("finish_reason", "") or ""),
+                }
+            )
+        else:
+            attempt_records.append(
+                {
+                    "attempt": attempt_number,
+                    "outcome": "response_telemetry_missing",
+                }
+            )
     sink.add_call(
         {
             "stage": stage,
@@ -214,6 +292,7 @@ def _drain_call(config: Any, sink: RunTelemetrySink, stage: str, outcome: str) -
             "request_attempts": attempts,
             "response_events": len(events),
             "attempts_without_response_telemetry": max(0, attempts - len(events)),
+            "attempt_records": attempt_records,
         },
         events,
     )
@@ -237,12 +316,29 @@ def summarize_sink(config: Any) -> dict[str, Any]:
     stage_calls = Counter(str(item.get("stage", "unclassified")) for item in calls)
     stage_attempts: Counter[str] = Counter()
     stage_responses: Counter[str] = Counter()
+    stage_missing: Counter[str] = Counter()
+    stage_attempt_outcomes: dict[str, Counter[str]] = {}
+    stage_events: dict[str, list[dict[str, Any]]] = {}
     for item in calls:
         stage = str(item.get("stage", "unclassified"))
         stage_attempts[stage] += int(item.get("request_attempts", 0) or 0)
         stage_responses[stage] += int(item.get("response_events", 0) or 0)
+        stage_missing[stage] += int(item.get("attempts_without_response_telemetry", 0) or 0)
+        attempts = item.get("attempt_records")
+        counter = stage_attempt_outcomes.setdefault(stage, Counter())
+        if isinstance(attempts, list):
+            for attempt in attempts:
+                if isinstance(attempt, dict):
+                    counter[str(attempt.get("outcome", "unclassified"))] += 1
+    for event in events:
+        stage = str(event.get("stage", "unclassified"))
+        stage_events.setdefault(stage, []).append(event)
     providers = Counter(
         str(item.get("provider", "")) for item in events if str(item.get("provider", ""))
+    )
+    service_tiers = Counter(
+        str(item.get("service_tier", "") or "").strip() or "unknown"
+        for item in events
     )
     requested_models = Counter(
         str(item.get("requested_model", ""))
@@ -282,6 +378,73 @@ def summarize_sink(config: Any) -> dict[str, Any]:
                 "calls": stage_calls[stage],
                 "request_attempts": stage_attempts[stage],
                 "provider_response_events": stage_responses[stage],
+                "attempts_without_response_telemetry": stage_missing[stage],
+                "attempt_outcomes": dict(sorted(stage_attempt_outcomes.get(stage, Counter()).items())),
+                "metrics": {
+                    key: _sum_metric(stage_events.get(stage, []), key)
+                    for key in (
+                        "prompt_tokens",
+                        "completion_tokens",
+                        "total_tokens",
+                        "reasoning_tokens",
+                        "cached_tokens",
+                        "cache_write_tokens",
+                        "cost",
+                    )
+                },
+                "providers": dict(
+                    sorted(
+                        Counter(
+                            str(item.get("provider", ""))
+                            for item in stage_events.get(stage, [])
+                            if str(item.get("provider", ""))
+                        ).items()
+                    )
+                ),
+                "requested_models": dict(
+                    sorted(
+                        Counter(
+                            str(item.get("requested_model", ""))
+                            for item in stage_events.get(stage, [])
+                            if str(item.get("requested_model", ""))
+                        ).items()
+                    )
+                ),
+                "served_models": dict(
+                    sorted(
+                        Counter(
+                            str(item.get("served_model", ""))
+                            for item in stage_events.get(stage, [])
+                            if str(item.get("served_model", ""))
+                        ).items()
+                    )
+                ),
+                "finish_reasons": dict(
+                    sorted(
+                        Counter(
+                            str(item.get("finish_reason", ""))
+                            for item in stage_events.get(stage, [])
+                            if str(item.get("finish_reason", ""))
+                        ).items()
+                    )
+                ),
+                "service_tiers": dict(
+                    sorted(
+                        Counter(
+                            str(item.get("service_tier", "") or "").strip() or "unknown"
+                            for item in stage_events.get(stage, [])
+                        ).items()
+                    )
+                ),
+                "structured_output_recovery": dict(
+                    sorted(
+                        Counter(
+                            str(item.get("structured_output_recovery", ""))
+                            for item in stage_events.get(stage, [])
+                            if str(item.get("structured_output_recovery", ""))
+                        ).items()
+                    )
+                ),
             }
             for stage in sorted(stage_calls)
         },
@@ -298,6 +461,7 @@ def summarize_sink(config: Any) -> dict[str, Any]:
             )
         },
         "providers": dict(sorted(providers.items())),
+        "service_tiers": dict(sorted(service_tiers.items())),
         "requested_models": dict(sorted(requested_models.items())),
         "served_models": dict(sorted(served_models.items())),
         "finish_reasons": dict(sorted(finish_reasons.items())),
@@ -330,6 +494,8 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
     ) or "none"
     providers = summary.get("providers") if isinstance(summary.get("providers"), dict) else {}
     provider_text = ",".join(f"{name}:{count}" for name, count in sorted(providers.items())) or "unknown"
+    service_tiers = summary.get("service_tiers") if isinstance(summary.get("service_tiers"), dict) else {}
+    service_tier_text = ",".join(f"{name}:{count}" for name, count in sorted(service_tiers.items())) or "unknown"
     text = "; ".join(
         [
             f"schema={SCHEMA_VERSION}",
@@ -341,6 +507,7 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
             f"attempts_without_response_telemetry={int(summary.get('attempts_without_response_telemetry', 0) or 0)}",
             metric("prompt_tokens"),
             metric("completion_tokens"),
+            metric("total_tokens"),
             metric("reasoning_tokens"),
             metric("cached_tokens"),
             metric("cache_write_tokens"),
@@ -349,6 +516,7 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
             f"model_mismatch_events={int(summary.get('served_model_mismatch_events', 0) or 0)}",
             f"stages(calls/attempts)={stage_text}",
             f"providers={provider_text}",
+            f"service_tiers={service_tier_text}",
         ]
     )
     return text[:limit]
