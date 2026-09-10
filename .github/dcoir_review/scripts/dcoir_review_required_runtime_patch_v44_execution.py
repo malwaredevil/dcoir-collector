@@ -6,10 +6,18 @@ import copy
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v32 as v32
+import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v37 as v37
 import dcoir_review_required_runtime_patch_v39 as v39
 import dcoir_review_required_runtime_patch_v44_scope as scope
+
+
+ADJUDICATOR_SHAPE_RECOVERY_MARKER = "_semantic_adjudication_shape_recovery"
+ADJUDICATOR_SHAPE_RECOVERY_VERSION = "issue-524-v1"
+_V37_SHAPE_ERROR_PREFIX = (
+    "DCOIR v37 adjudicator returned neither a findings envelope nor a complete flat single finding"
+)
 
 
 def prompt_with_budget(text: str, config: Any, marker: str) -> str:
@@ -17,6 +25,73 @@ def prompt_with_budget(text: str, config: Any, marker: str) -> str:
     if len(text) <= maximum:
         return text
     return text[: max(0, maximum - len(marker))] + marker
+
+
+def _recoverable_adjudicator_shape_failure(raw: Any, exc: Exception) -> bool:
+    """Return true only for the exact valid-object v37 compatibility gap."""
+
+    if not isinstance(raw, dict):
+        return False
+    if "findings" in raw:
+        # Canonical-envelope validation remains owned by v35/v37. A malformed
+        # findings value must stay fail-closed rather than entering this fallback.
+        return False
+    if v37._is_complete_flat_finding(raw):
+        return False
+    return str(exc).startswith(_V37_SHAPE_ERROR_PREFIX)
+
+
+def _recover_upstream_hypotheses(
+    module: Any,
+    hypotheses: list[dict[str, Any]],
+    config: Any,
+) -> dict[str, Any] | None:
+    """Bound same-escalation structured hypotheses for independent verification.
+
+    The rejected adjudicator object is never interpreted or persisted here. Only
+    already-structured upstream findings that are complete enough for the normal
+    v37 publication shape are eligible. The active production ranker remains the
+    selection authority so required-risk reservation and v51 candidate identity
+    protections stay in force, then v33's verifier ceiling provides the hard cap.
+    """
+
+    usable = [
+        dict(item)
+        for item in hypotheses
+        if isinstance(item, dict) and v37._is_complete_flat_finding(item)
+    ]
+    if not usable:
+        return None
+
+    deduped = scope.dedupe_exact_findings(usable)
+    ranked = module.rank_findings_for_required_budget(deduped, config)
+    verifier_capacity = v33.verifier_candidate_limit(config)
+    selected = [
+        dict(item)
+        for item in ranked
+        if isinstance(item, dict)
+    ][:verifier_capacity]
+    if not selected:
+        return None
+
+    marker = {
+        "version": ADJUDICATOR_SHAPE_RECOVERY_VERSION,
+        "reason": "schema-incompatible-valid-json-object",
+        "upstream_hypotheses": len(hypotheses),
+        "usable_hypotheses": len(usable),
+        "deduped_hypotheses": len(deduped),
+        "selected_hypotheses": len(selected),
+        "verifier_capacity": verifier_capacity,
+        "extra_model_calls": 0,
+    }
+    return {
+        "summary": (
+            "Semantic adjudicator output was unusable; bounded upstream hypotheses "
+            "were retained for independent verification."
+        ),
+        "findings": selected,
+        ADJUDICATOR_SHAPE_RECOVERY_MARKER: marker,
+    }
 
 
 def run_challenger(
@@ -120,8 +195,34 @@ def run_adjudicator(
     raw, model, tier = module.hardened.openrouter_review(
         prompt, schema, staged, reporter
     )
-    normalized = v37._normalize_adjudicator_result(module, raw)
-    capped = v35._cap_adjudicated_findings(module, normalized, max_findings)
+
+    recovered_shape = False
+    try:
+        normalized = v37._normalize_adjudicator_result(module, raw)
+    except module.hardened.ReviewQualityError as exc:
+        if not _recoverable_adjudicator_shape_failure(raw, exc):
+            raise
+        recovered = _recover_upstream_hypotheses(module, hypotheses, config)
+        if recovered is None:
+            raise
+        normalized = recovered
+        recovered_shape = True
+        marker = normalized[ADJUDICATOR_SHAPE_RECOVERY_MARKER]
+        if reporter:
+            reporter.update(
+                "semantic-adjudicator-shape-recovery",
+                (
+                    f"reason={marker['reason']}; upstream={marker['upstream_hypotheses']}; "
+                    f"usable={marker['usable_hypotheses']}; selected={marker['selected_hypotheses']}; "
+                    f"verifier_capacity={marker['verifier_capacity']}; extra_model_calls=0"
+                ),
+            )
+
+    # Normal v37 output retains the historical v35 adjudication cap. The shape-
+    # recovery path is already deterministically ranked and bounded to v33's
+    # active verifier capacity, so do not apply the smaller semantic-adjudicator
+    # output cap a second time and silently discard required-risk reservations.
+    capped = normalized if recovered_shape else v35._cap_adjudicated_findings(module, normalized, max_findings)
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model
     capped["_semantic_adjudication_input_candidates"] = len(hypotheses)
@@ -142,6 +243,7 @@ def run_adjudicator(
             "input_candidate_count": len(hypotheses),
             "confidence_normalized_count": normalized_count,
             "confidence_admission_floor": floor,
+            "shape_recovery": capped.get(ADJUDICATOR_SHAPE_RECOVERY_MARKER),
             "result": capped,
         },
     )
