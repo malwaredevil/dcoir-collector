@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue526-pr527-round2-exact-head-validation-v2-20260910T1320Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-10T13:20:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue526-pr527-round2-exact-head-validation-20260910T1318Z.ps1",
+  "approved_command_preview": "Retry exact-head deterministic validation of PR #527 at 58c9188b105bbff8071d4f3aadc1b2ad08ae5f18 after correcting only a PowerShell interpolation parse error in the staging harness. Remove inference/GitHub credential environment variables before tests, compile all changed Python files, require exactly 56 governed validation commands, execute all 56, require a clean detached worktree, and emit an exact-head receipt. Do not run DCOIR Review, publish a review, mutate the PR source branch, mark Ready, or merge.",
+  "command": "& '.github/chatgpt_staging/exec_scripts/issue526-pr527-round2-exact-head-validation-20260910T1318Z.ps1'"
+}
