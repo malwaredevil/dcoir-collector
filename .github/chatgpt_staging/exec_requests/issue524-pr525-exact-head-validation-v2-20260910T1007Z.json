@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue524-pr525-exact-head-validation-v2-20260910T1007Z",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-10T10:07:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run the approved no-inference exact-head validation harness for PR #525 at 15955a2d79d3895e0041206c76101b1aaf7caf95: verify the remote branch head, compile the 3 changed Python files, run all 54 governed deterministic validation commands with OpenRouter/OpenAI/Gemini inference credentials removed, require a clean detached worktree, and emit a receipt. Do not invoke DCOIR Review, publish a GitHub review, mutate PR source, transition Ready, or merge.",
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue524-pr525-exact-head-validation-v2-20260910T1007Z.ps1"
+}
