@@ -201,12 +201,21 @@ def main() -> None:
         for stage, message in reporter.events
     )
 
-    # Incomplete upstream hypotheses are never repaired by inventing fields.
+    # Incomplete or schema-invalid upstream hypotheses are never repaired by
+    # inventing/coercing semantic fields.
     incomplete = finding(5, "incomplete")
     incomplete.pop("validation")
     calls = expect_runtime_error(
         {"summary": "wrong shape", "issues": []},
         [incomplete],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
+    nonnumeric = finding(6, "nonnumeric")
+    nonnumeric["confidence"] = "0.95"
+    calls = expect_runtime_error(
+        {"summary": "wrong shape", "issues": []},
+        [nonnumeric],
         "neither a findings envelope nor a complete flat single finding",
     )
     assert calls == 1
@@ -219,16 +228,27 @@ def main() -> None:
     )
     assert calls == 1
 
+    # A partial flat finding remains malformed under v37 and must not be converted
+    # into an upstream-hypothesis fallback merely because it is a valid JSON object.
+    partial_flat = finding(7, "partial-flat")
+    partial_flat.pop("validation")
+    calls = expect_runtime_error(
+        partial_flat,
+        [finding(8, "usable-upstream")],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
+
     # Non-object and malformed canonical envelopes retain existing failure paths.
     calls = expect_runtime_error(
         ["not", "an", "object"],
-        [finding(6, "upstream")],
+        [finding(9, "upstream")],
         "non-object result",
     )
     assert calls == 1
     calls = expect_runtime_error(
         {"summary": "bad envelope", "findings": "not-a-list"},
-        [finding(7, "upstream")],
+        [finding(10, "upstream")],
         "non-list findings",
     )
     assert calls == 1
