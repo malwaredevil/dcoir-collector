@@ -272,12 +272,21 @@ def main() -> None:
     second = finding(101, "same-site-semantic-candidate")
     for item in (first, second):
         item.pop(v51.CANDIDATE_ID_FIELD, None)
-        item.pop(v51.SEMANTIC_KEY_FIELD, None)
         item.pop("suggested_replacement", None)
     first["body"] = "Primary semantic defect at the shared changed line remains independently actionable."
     first["validation"] = "Run the first same-site semantic invariant regression."
+    first[v51.SEMANTIC_KEY_FIELD] = [
+        "probe.py",
+        101,
+        f"{v51.SEMANTIC_KIND_PREFIX}same-site-primary",
+    ]
     second["body"] = "A distinct fallback semantic defect at the same changed line has different impact."
     second["validation"] = "Run the second same-site semantic invariant regression."
+    second[v51.SEMANTIC_KEY_FIELD] = [
+        "probe.py",
+        101,
+        f"{v51.SEMANTIC_KIND_PREFIX}same-site-fallback",
+    ]
     deduped = v55._dedupe_upstream_hypotheses([first, dict(first), second])
     assert len(deduped) == 2
     recovered_identity = v55._recover_upstream_hypotheses(
