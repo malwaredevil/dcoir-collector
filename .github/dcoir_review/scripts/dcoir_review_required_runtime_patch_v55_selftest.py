@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 
+import importlib
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -11,7 +13,11 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v37 as v37
 import dcoir_review_required_runtime_patch_v44_execution as execution
+import dcoir_review_required_runtime_patch_v51 as v51
 import dcoir_review_required_runtime_patch_v55 as v55
+
+
+ROOT = Path(__file__).resolve().parent.parent
 
 
 class Reporter:
@@ -85,6 +91,7 @@ def config() -> SimpleNamespace:
         semantic_adjudication_model_stack=["adjudicator-model"],
         semantic_adjudication_max_findings=8,
         semantic_adjudication_candidate_digest_chars=24000,
+        semantic_candidate_identity_review=True,
         max_prompt_chars=120000,
         minimum_confidence=0.70,
         max_inline_comments=12,
@@ -145,6 +152,18 @@ def expect_runtime_error(raw: Any, hypotheses: list[dict[str, Any]], text: str) 
     else:
         raise AssertionError(f"expected fail-closed error containing: {text}")
     return hardened.calls
+
+
+def production_review():
+    review = importlib.import_module("openrouter_pr_review_pareto_context")
+    DcoirReviewEntrypoint().apply_runtime_patches(review)
+    return review
+
+
+def production_config(review):
+    return review.load_pareto_context_config(
+        str(ROOT / "openrouter-pr-review-pareto.yml")
+    )
 
 
 def main() -> None:
@@ -214,6 +233,7 @@ def main() -> None:
     assert marker["reason"] == v55.RECOVERY_REASON
     assert marker["upstream_hypotheses"] == 14
     assert marker["usable_hypotheses"] == 14
+    assert marker["deduped_hypotheses"] == 14
     assert marker["selected_hypotheses"] == 12
     assert marker["verifier_capacity"] == 12
     assert marker["extra_model_calls"] == 0
@@ -242,6 +262,53 @@ def main() -> None:
     assert len(v51_recovered["findings"]) == 1
     assert "suggested_replacement" not in v51_recovered["findings"][0]
     assert v51_recovered["findings"][0]["_dcoir_v51_candidate_id"] == "candidate-100"
+
+    # Exact semantic duplicates collapse, but distinct same-site/same-title
+    # hypotheses must survive into the active production v51-aware ranker.
+    review = production_review()
+    prod_cfg = production_config(review)
+    assert prod_cfg.semantic_candidate_identity_review is True
+    first = finding(101, "same-site-semantic-candidate")
+    second = finding(101, "same-site-semantic-candidate")
+    for item in (first, second):
+        item.pop(v51.CANDIDATE_ID_FIELD, None)
+        item.pop(v51.SEMANTIC_KEY_FIELD, None)
+        item.pop("suggested_replacement", None)
+    first["body"] = "Primary semantic defect at the shared changed line remains independently actionable."
+    first["validation"] = "Run the first same-site semantic invariant regression."
+    second["body"] = "A distinct fallback semantic defect at the same changed line has different impact."
+    second["validation"] = "Run the second same-site semantic invariant regression."
+    deduped = v55._dedupe_upstream_hypotheses([first, dict(first), second])
+    assert len(deduped) == 2
+    recovered_identity = v55._recover_upstream_hypotheses(
+        review, [first, dict(first), second], prod_cfg
+    )
+    assert recovered_identity is not None
+    identity_findings = recovered_identity["findings"]
+    assert len(identity_findings) == 2
+    assert all(v55._complete_upstream_hypothesis(review, item) for item in identity_findings)
+    candidate_ids = [str(item.get(v51.CANDIDATE_ID_FIELD, "")) for item in identity_findings]
+    semantic_keys = [tuple(item.get(v51.SEMANTIC_KEY_FIELD, [])) for item in identity_findings]
+    assert len(set(candidate_ids)) == 2
+    assert len(set(semantic_keys)) == 2
+    identity_marker = recovered_identity[v55.RECOVERY_MARKER]
+    assert identity_marker["upstream_hypotheses"] == 3
+    assert identity_marker["usable_hypotheses"] == 3
+    assert identity_marker["deduped_hypotheses"] == 2
+    assert identity_marker["selected_hypotheses"] == 2
+    assert identity_marker["selected_hypotheses"] <= identity_marker["verifier_capacity"]
+
+    # Oversized JSON integers can overflow float conversion. They are rejected as
+    # unusable upstream evidence rather than escaping the fallback candidate filter.
+    oversized = finding(102, "oversized-confidence")
+    oversized["confidence"] = 10**400
+    assert v55._complete_upstream_hypothesis(review, oversized) is False
+    calls = expect_runtime_error(
+        rejected,
+        [oversized],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
 
     # Incomplete or schema-invalid semantic fields are never repaired/coerced.
     incomplete = finding(5, "incomplete")
