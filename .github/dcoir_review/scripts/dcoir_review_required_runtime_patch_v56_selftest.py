@@ -99,6 +99,8 @@ def main() -> None:
     config.fix_synthesis_min_confidence = 0.80
     config.fix_synthesis_max_findings = 8
     config.fix_synthesis_enabled = True
+    assert config.repair_critic_batching_enabled is True
+    assert config.repair_critic_batch_max_findings == batch.MAX_BATCH_ITEMS
     assert v56._batch_limit(config) == batch.MAX_BATCH_ITEMS
 
     original_verify = v21.verify_findings_for_publication
@@ -175,9 +177,14 @@ def main() -> None:
         assert sum(1 for call in calls if call[0] == "single-critic") == 0
         markers = [item[v25.REPAIR_MARKER] for item in result]
         assert all(marker["outcome"] == v36.REPAIR_SET_OUTCOME for marker in markers)
+        assert all(marker["version"] == v36.VERSION for marker in markers)
+        assert all(marker["critic_batch_version"] == v56.VERSION for marker in markers)
         assert all(marker["critic_accepted"] is True for marker in markers)
         assert all(marker["critic_batch_size"] == 3 for marker in markers)
         assert len({marker["critic_item_id"] for marker in markers}) == 3
+        comments = review.build_review_comments_for_finding(result[0], "test-model", config)
+        assert comments
+        assert "Coordinated repair set" in comments[0]["body"]
         batch_metrics = [payload for path, payload in debug if path == "metadata/repair-v56-batching.json"][-1]
         assert batch_metrics["critic_candidates"] == 3
         assert batch_metrics["critic_calls"] == 1
@@ -210,7 +217,7 @@ def main() -> None:
         assert all(item[v25.REPAIR_MARKER]["critic_accepted"] is True for item in result)
 
         # The identity parser isolates malformed, missing, duplicate, and unknown
-        # results. A bad sibling can never accept/reject another repair by position.
+        # results. Batch-schema violations fail closed before v36 acceptance logic.
         template = {
             "ordinal": 1,
             "finding": _finding("a.py"),
@@ -239,6 +246,15 @@ def main() -> None:
         )
         assert parsed[p2["critic_item_id"]][0] is True
         assert parsed[p1["critic_item_id"]][0] is False
+        assert "required schema" in parsed[p1["critic_item_id"]][2]
+        for invalid_item in (
+            {"critic_item_id": p1["critic_item_id"], "accepted": "true", "confidence": 0.99, "reason": "bad"},
+            {"critic_item_id": p1["critic_item_id"], "accepted": True, "confidence": 0.99},
+            {"critic_item_id": p1["critic_item_id"], "accepted": True, "confidence": 0.99, "reason": "bad", "extra": 1},
+        ):
+            parsed = batch.parse_batch({"results": [invalid_item]}, [p1], review.hardened)
+            assert parsed[p1["critic_item_id"]][0] is False
+            assert "required schema" in parsed[p1["critic_item_id"]][2]
         parsed = batch.parse_batch(
             {
                 "results": [
@@ -253,6 +269,41 @@ def main() -> None:
         assert "duplicate" in parsed[p1["critic_item_id"]][2]
         assert parsed[p2["critic_item_id"]][0] is False
         assert "no valid identity-bound" in parsed[p2["critic_item_id"]][2]
+        parsed = batch.parse_batch(
+            {
+                "results": [
+                    {"critic_item_id": p1["critic_item_id"], "accepted": True, "confidence": 0.99, "reason": "ok"}
+                ],
+                "unexpected": True,
+            },
+            [p1],
+            review.hardened,
+        )
+        assert parsed[p1["critic_item_id"]][0] is False
+
+        # Multi-item batches are measured before the historical prompt truncator.
+        # A configured prompt limit therefore splits the group into historical
+        # single-item critics instead of silently dropping one candidate's context.
+        original_prompt_limit = config.max_prompt_chars
+        try:
+            config.max_prompt_chars = 1000
+            full_prompt = batch.batch_prompt(
+                review, [p1, p2], {"a.py": "value = 1\n", "b.py": "value = 1\n"}, config
+            )
+            assert len(full_prompt) > config.max_prompt_chars
+            calls.clear()
+            split_results, split_calls = batch.run_group(
+                review,
+                [p1, p2],
+                {"a.py": "value = 1\n", "b.py": "value = 1\n"},
+                review.base.build_diff_line_index(_diff(["a.py", "b.py"])),
+                config,
+            )
+            assert len(split_results) == 2
+            assert split_calls == 2
+            assert [call[0] for call in calls] == ["single-critic", "single-critic"], calls
+        finally:
+            config.max_prompt_chars = original_prompt_limit
 
         # A single repair remains on the historical single-item critic schema.
         author_models.clear()
@@ -268,9 +319,11 @@ def main() -> None:
         )
         assert [call[0] for call in calls] == ["author", "single-critic"], calls
         assert result[0][v25.REPAIR_MARKER]["critic_batch_size"] == 1
+        assert result[0][v25.REPAIR_MARKER]["version"] == v36.VERSION
 
-        # Explicit disable delegates to the exact v53 implementation rather than
-        # partially entering v56, preserving a deterministic rollback path.
+        # The governed config exposes an operator rollback switch. Explicit disable
+        # delegates to the exact v53 implementation rather than partially entering
+        # v56, preserving the historical synthesis path.
         sentinel: list[bool] = []
 
         def fake_v53(*args, **kwargs):
@@ -281,17 +334,16 @@ def main() -> None:
         config.repair_critic_batching_enabled = False
         assert v56.synthesize_verified_repair_sets(review, [], None, {}, {}, config, Reporter()) == [{"delegated": True}]
         assert sentinel == [True]
+        config.repair_critic_batching_enabled = True
     finally:
         v53.synthesize_verified_repair_sets = original_v53
-        if hasattr(config, "repair_critic_batching_enabled"):
-            delattr(config, "repair_critic_batching_enabled")
         v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_review
         review.fetch_pr_file_text = original_fetch
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     print(
-        "dcoir_review_required_runtime_patch_v56_selftest passed: compatible repair critics batch by stable identity while cross-family and fail-closed gates remain intact"
+        "dcoir_review_required_runtime_patch_v56_selftest passed: config rollback, strict identity schema, pre-truncation splitting, publication compatibility, and cross-family fail-closed gates remain intact"
     )
 
 

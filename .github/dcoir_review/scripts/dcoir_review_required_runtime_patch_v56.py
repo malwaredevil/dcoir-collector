@@ -19,6 +19,7 @@ import dcoir_review_required_runtime_patch_v56_repair as repair
 
 VERSION = "v56"
 APPLIED_MARKER = "_dcoir_review_v56_applied"
+CONFIG_LOADER_MARKER = "_dcoir_review_v56_config_loader"
 
 
 def _batch_limit(config: Any) -> int:
@@ -27,6 +28,32 @@ def _batch_limit(config: Any) -> int:
         return max(1, min(batch.MAX_BATCH_ITEMS, int(raw)))
     except (TypeError, ValueError):
         return batch.MAX_BATCH_ITEMS
+
+
+def _install_config_loader(module: Any) -> None:
+    """Expose v56 rollback and batch-size controls through the governed config."""
+
+    original = module.load_pareto_context_config
+    if getattr(original, CONFIG_LOADER_MARKER, False):
+        return
+
+    def load_pareto_context_config(path: str) -> Any:
+        config = original(path)
+        data = module.hardened.parse_yaml_like_data(path)
+        config.repair_critic_batching_enabled = module.hardened.bool_value(
+            data, "repair_critic_batching_enabled", True
+        )
+        raw_limit = data.get("repair_critic_batch_max_findings", batch.MAX_BATCH_ITEMS)
+        try:
+            config.repair_critic_batch_max_findings = int(raw_limit)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "Config key 'repair_critic_batch_max_findings' must be an integer"
+            ) from exc
+        return config
+
+    setattr(load_pareto_context_config, CONFIG_LOADER_MARKER, True)
+    module.load_pareto_context_config = load_pareto_context_config
 
 
 def synthesize_verified_repair_sets(
@@ -199,5 +226,6 @@ def synthesize_verified_repair_sets(
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
+    _install_config_loader(module)
     v25.synthesize_verified_repairs = synthesize_verified_repair_sets
     setattr(module, APPLIED_MARKER, True)

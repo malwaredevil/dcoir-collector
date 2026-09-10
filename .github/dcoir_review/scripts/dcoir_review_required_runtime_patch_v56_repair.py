@@ -136,7 +136,7 @@ def finalize_candidate(
     config: Any,
     batch_size: int,
 ) -> dict[str, Any]:
-    """Apply the unchanged post-critic recheck and publication marker contract."""
+    """Apply the unchanged post-critic recheck and v36 publication contract."""
 
     finding = pending["finding"]
     author = pending["author"]
@@ -188,7 +188,8 @@ def finalize_candidate(
     if author["validation"]:
         item["validation"] = author["validation"]
     item[v25.REPAIR_MARKER] = {
-        "version": VERSION,
+        "version": v36.VERSION,
+        "critic_batch_version": VERSION,
         "outcome": v36.REPAIR_SET_OUTCOME,
         "repair_set_id": f"R{pending['ordinal']:02d}",
         "path": path,

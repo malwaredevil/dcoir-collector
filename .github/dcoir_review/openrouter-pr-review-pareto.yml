@@ -141,6 +141,10 @@ fix_synthesis_enabled: true
 # or consume the eligible repair-count budget.
 fix_synthesis_max_findings: 8
 fix_synthesis_min_confidence: 0.80
+# v56 keeps batching operator-reversible and separately caps each compatible
+# independent critic request without changing the existing repair budget.
+repair_critic_batching_enabled: true
+repair_critic_batch_max_findings: 8
 required_finding_reserved_budget: 9
 required_finding_min_per_family: 2
 
@@ -238,4 +242,3 @@ allowed_authors:
 ignored_authors:
   - github-actions[bot]
   - dependabot[bot]
-  - chatgpt-codex-connector[bot]

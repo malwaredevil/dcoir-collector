@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v25 as v25
@@ -39,8 +40,17 @@ BATCH_CRITIC_SCHEMA: dict[str, Any] = {
 }
 
 
+def _effective_batch_prompt_limit(config: Any) -> int:
+    raw = getattr(config, "max_prompt_chars", MAX_BATCH_PROMPT_CHARS)
+    try:
+        configured = int(raw or MAX_BATCH_PROMPT_CHARS)
+    except (TypeError, ValueError):
+        configured = MAX_BATCH_PROMPT_CHARS
+    return max(1, min(MAX_BATCH_PROMPT_CHARS, configured))
+
+
 def batch_prompt(module: Any, pending: list[dict[str, Any]], file_cache: dict[str, str], config: Any) -> str:
-    """Build a batch without reducing any item's historical critic context cap."""
+    """Build a redacted full batch so the caller can split before truncation."""
 
     sections: list[str] = []
     for item in pending:
@@ -80,28 +90,71 @@ critic_item_id values. One candidate's disposition must not affect another.
 
 {chr(10).join(sections)}
 """.strip()
-    return v25._sanitize_prompt(module, prompt, config)
+    return module.base.sanitize_text(prompt, config)
+
+
+def _valid_batch_result_item(item: Any) -> bool:
+    if not isinstance(item, dict):
+        return False
+    if set(item) != {"critic_item_id", "accepted", "confidence", "reason"}:
+        return False
+    item_id = item.get("critic_item_id")
+    accepted = item.get("accepted")
+    confidence = item.get("confidence")
+    reason = item.get("reason")
+    if not isinstance(item_id, str) or not (1 <= len(item_id) <= 80):
+        return False
+    if not isinstance(accepted, bool):
+        return False
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+        return False
+    try:
+        numeric_confidence = float(confidence)
+    except (OverflowError, TypeError, ValueError):
+        return False
+    if not math.isfinite(numeric_confidence) or not 0.0 <= numeric_confidence <= 1.0:
+        return False
+    if not isinstance(reason, str) or len(reason) > 2200:
+        return False
+    return True
 
 
 def parse_batch(raw: Any, pending: list[dict[str, Any]], hardened: Any) -> dict[str, tuple[bool, float, str]]:
-    """Map by identity; ambiguity fails closed only for the affected repair."""
+    """Map by identity; malformed schema fails closed without cross-item leakage."""
 
     expected = {item["critic_item_id"] for item in pending}
     missing = (False, 0.0, "independent repair-set critic returned no valid identity-bound disposition")
-    if not isinstance(raw, dict) or not isinstance(raw.get("results"), list):
+    if (
+        not isinstance(raw, dict)
+        or set(raw) != {"results"}
+        or not isinstance(raw.get("results"), list)
+        or len(raw["results"]) > MAX_BATCH_ITEMS
+    ):
         return {item_id: missing for item_id in expected}
 
     parsed: dict[str, tuple[bool, float, str]] = {}
+    seen: set[str] = set()
     duplicates: set[str] = set()
     for item in raw["results"]:
         if not isinstance(item, dict):
             continue
-        item_id = str(item.get("critic_item_id", "") or "").strip()
+        raw_item_id = item.get("critic_item_id")
+        if not isinstance(raw_item_id, str):
+            continue
+        item_id = raw_item_id.strip()
         if item_id not in expected:
             continue
-        if item_id in parsed or item_id in duplicates:
+        if item_id in seen:
             duplicates.add(item_id)
             parsed.pop(item_id, None)
+            continue
+        seen.add(item_id)
+        if not _valid_batch_result_item(item) or item_id != raw_item_id:
+            parsed[item_id] = (
+                False,
+                0.0,
+                "independent repair-set critic result failed closed: batch result violated the required schema",
+            )
             continue
         try:
             parsed[item_id] = v36._parse_critic(item, hardened)
@@ -125,7 +178,7 @@ def run_group(
     right_line_index: dict[tuple[str, int], int],
     config: Any,
 ) -> tuple[list[tuple[int, dict[str, Any]]], int]:
-    """Run one compatible critic group, splitting only when its prompt is too large."""
+    """Run one compatible critic group, splitting before any batch truncation."""
 
     if not group:
         return [], 0
@@ -152,7 +205,7 @@ def run_group(
         return [(item["ordinal"], final)], 1
 
     prompt = batch_prompt(module, group, file_cache, config)
-    if len(prompt) > MAX_BATCH_PROMPT_CHARS:
+    if len(prompt) > _effective_batch_prompt_limit(config):
         midpoint = len(group) // 2
         left, left_calls = run_group(module, group[:midpoint], file_cache, right_line_index, config)
         right, right_calls = run_group(module, group[midpoint:], file_cache, right_line_index, config)
