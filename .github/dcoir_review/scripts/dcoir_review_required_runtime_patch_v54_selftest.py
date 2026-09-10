@@ -436,11 +436,14 @@ def main() -> None:
         hardened=SimpleNamespace(),
         load_pareto_context_config=lambda _path: SimpleNamespace(model="sentinel"),
     )
+    original_loader = broken_module.load_pareto_context_config
     v54.apply_pareto_context_module(broken_module)
     assert getattr(broken_module, v54.APPLIED_MARKER, False) is False
     assert set(getattr(broken_module, v54.PATCH_ERRORS_ATTR, ())) == {
         "openrouter-review", "progress-reporter"
     }
+    assert broken_module.load_pareto_context_config is original_loader
+    assert not hasattr(broken_module, v54.LOAD_STORAGE)
 
     print("dcoir_review_required_runtime_patch_v54_selftest: PASS")
 

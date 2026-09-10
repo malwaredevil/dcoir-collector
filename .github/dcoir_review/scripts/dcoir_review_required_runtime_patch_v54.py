@@ -674,9 +674,56 @@ def _patch_progress_reporter(module: Any) -> None:
         module.ProgressReporter = TelemetryProgressReporter
 
 
+def _capture_attr(target: Any, name: str) -> tuple[bool, Any]:
+    if target is None:
+        return (False, None)
+    if hasattr(target, name):
+        return (True, getattr(target, name))
+    return (False, None)
+
+
+def _restore_attr(target: Any, name: str, state: tuple[bool, Any]) -> None:
+    if target is None:
+        return
+    exists, value = state
+    if exists:
+        setattr(target, name, value)
+        return
+    if hasattr(target, name):
+        delattr(target, name)
+
+
+def _restore_patch_state(module: Any, hardened: Any, snapshot: dict[str, tuple[bool, Any]]) -> None:
+    for target, name, key in (
+        (module, "load_pareto_context_config", "module.load_pareto_context_config"),
+        (module, LOAD_STORAGE, "module.load-storage"),
+        (module, "openrouter_review", "module.openrouter_review"),
+        (module, "ProgressReporter", "module.ProgressReporter"),
+        (hardened, REVIEW_STORAGE, "hardened.review-storage"),
+        (hardened, REPORTER_STORAGE, "hardened.reporter-storage"),
+        (hardened, "openrouter_review", "hardened.openrouter_review"),
+        (hardened, "ProgressReporter", "hardened.ProgressReporter"),
+    ):
+        try:
+            _restore_attr(target, name, snapshot[key])
+        except Exception:
+            _note_telemetry_error(module)
+
+
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
+    hardened = getattr(module, "hardened", None)
+    snapshot = {
+        "module.load_pareto_context_config": _capture_attr(module, "load_pareto_context_config"),
+        "module.load-storage": _capture_attr(module, LOAD_STORAGE),
+        "module.openrouter_review": _capture_attr(module, "openrouter_review"),
+        "module.ProgressReporter": _capture_attr(module, "ProgressReporter"),
+        "hardened.review-storage": _capture_attr(hardened, REVIEW_STORAGE),
+        "hardened.reporter-storage": _capture_attr(hardened, REPORTER_STORAGE),
+        "hardened.openrouter_review": _capture_attr(hardened, "openrouter_review"),
+        "hardened.ProgressReporter": _capture_attr(hardened, "ProgressReporter"),
+    }
     errors: list[str] = []
     for name, patcher in (
         ("config-loader", _patch_config_loader),
@@ -687,6 +734,8 @@ def apply_pareto_context_module(module: Any) -> None:
             patcher(module)
         except Exception:
             errors.append(name)
+    if errors:
+        _restore_patch_state(module, hardened, snapshot)
     try:
         setattr(module, PATCH_ERRORS_ATTR, tuple(errors))
     except Exception:
