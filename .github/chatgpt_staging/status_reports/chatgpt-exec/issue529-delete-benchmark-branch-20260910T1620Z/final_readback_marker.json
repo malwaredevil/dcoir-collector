@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue529-delete-benchmark-branch-20260910T1620Z",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue529-delete-benchmark-branch-20260910T1620Z",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34501518766",
+  "github_run_attempt": "1",
+  "github_sha": "1de1ceb381e7db964075231bb9507becd371c6dc",
+  "github_ref": "refs/heads/agent-ops",
+  "created_utc": "2026-09-10T16:21:29Z"
+}

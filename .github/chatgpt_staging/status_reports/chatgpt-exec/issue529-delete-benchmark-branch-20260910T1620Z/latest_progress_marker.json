@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34501518766",
   "github_sha": "1de1ceb381e7db964075231bb9507becd371c6dc",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue529-delete-benchmark-branch-20260910T1620Z",
   "request_path": ".github/chatgpt_staging/exec_requests/issue529-delete-benchmark-branch-20260910T1620Z.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-10T16:21:26Z",
+  "updated_utc": "2026-09-10T16:21:29Z",
   "workflow": "chatgpt-exec"
 }
