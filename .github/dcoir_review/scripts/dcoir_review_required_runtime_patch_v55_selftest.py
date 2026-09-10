@@ -172,9 +172,8 @@ def main() -> None:
     assert entrypoint.telemetry_patch_module_names == (
         "dcoir_review_required_runtime_patch_v54",
     )
-    assert entrypoint.post_telemetry_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v55",
-    )
+    assert entrypoint.post_telemetry_patch_module_names[0] == "dcoir_review_required_runtime_patch_v55"
+    assert entrypoint.post_telemetry_patch_module_names.index("dcoir_review_required_runtime_patch_v55") < entrypoint.post_telemetry_patch_module_names.index("dcoir_review_required_runtime_patch_v56")
 
     # v55 owns a new terminal seam rather than mutating the versioned v44 helper.
     original = getattr(execution, v55.RUN_STORAGE, None) or execution.run_adjudicator

@@ -103,7 +103,7 @@ def main() -> None:
     for phrase in ("EVERY edit MUST contain all six fields", "purpose", "confidence", "independent cross-family critic"):
         assert phrase in prompt
 
-    # Exercise the active production synthesis chain with the same near-schema
+    # Exercise the v38-hardened v36 synthesis contract with the same near-schema
     # author shape seen live: no purpose and no confidence. The independent
     # critic, exact-head validation, and native suggestion rendering must still
     # execute successfully. The synthetic source remains valid Python both before
@@ -134,6 +134,7 @@ def main() -> None:
     original_openrouter = review.hardened.openrouter_review
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
+    original_public_synth = v25.synthesize_verified_repairs
     model_calls = []
 
     def _fake_verify(mod, findings, gh, pr, cfg, reporter):
@@ -154,6 +155,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     v21.verify_findings_for_publication = _fake_verify
+    v25.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "def f():\n    old_call()\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -168,6 +170,7 @@ def main() -> None:
             reporter,
         )
     finally:
+        v25.synthesize_verified_repairs = original_public_synth
         v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_openrouter
         review.fetch_pr_file_text = original_fetch
