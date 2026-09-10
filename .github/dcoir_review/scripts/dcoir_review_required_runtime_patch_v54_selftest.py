@@ -277,6 +277,24 @@ def main() -> None:
     assert v54.classify_stage("probe", review_schema(), stage_tagged) == "broad-quality-retry"
     assert v54.classify_stage("ordinary", review_schema(), config) == "primary-semantic"
     assert v54.classify_stage("unknown", {"properties": {}}, config) == "unclassified"
+    for synthetic_filename, synthetic_function in (
+        ("part_05_debug_and_merge.py", "openrouter_review_with_quality_retry"),
+        ("dcoir_review_required_runtime_patch_v22.py", "openrouter_review_with_hybrid_first_pass"),
+    ):
+        namespace: dict[str, object] = {"v54": v54}
+        exec(
+            compile(
+                f"""
+def {synthetic_function}(prompt, schema, config):
+    retry_prompt = prompt
+    return v54.classify_stage(prompt, schema, config)
+""",
+                synthetic_filename,
+                "exec",
+            ),
+            namespace,
+        )
+        assert namespace[synthetic_function]("probe", review_schema(), config) == "broad-quality-retry"
 
     # One retrying call records only returned provider metadata and explicitly
     # accounts for the attempt lacking response telemetry.
@@ -375,6 +393,11 @@ def main() -> None:
     assert "cached_tokens=" in telemetry_updates[0]
     assert "total_tokens=" in telemetry_updates[0]
     assert "cost=" in telemetry_updates[0]
+    assert "attempt_outcomes=" in telemetry_updates[0]
+    assert "requested_models=" in telemetry_updates[0]
+    assert "served_models=" in telemetry_updates[0]
+    assert "finish_reasons=" in telemetry_updates[0]
+    assert "structured_output_recovery=" in telemetry_updates[0]
     assert len(telemetry_updates[0]) <= 1800
     assert getattr(config, v54.SUMMARY_ATTR)["review_calls"] == 14
 

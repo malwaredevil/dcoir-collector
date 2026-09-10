@@ -156,6 +156,18 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "broad-quality-retry"
             if (
+                filename == "part_05_debug_and_merge.py"
+                and function == "openrouter_review_with_quality_retry"
+                and locals_map.get("retry_prompt") is prompt
+            ):
+                return "broad-quality-retry"
+            if (
+                filename == "dcoir_review_required_runtime_patch_v22.py"
+                and function == "openrouter_review_with_hybrid_first_pass"
+                and locals_map.get("retry_prompt") is prompt
+            ):
+                return "broad-quality-retry"
+            if (
                 filename == "dcoir_review_required_runtime_patch_v52_retry.py"
                 and function == "broad_retry_fallback"
             ):
@@ -479,6 +491,19 @@ def summarize_sink(config: Any) -> dict[str, Any]:
 
 def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
     metrics = summary.get("metrics") if isinstance(summary.get("metrics"), dict) else {}
+    stages = summary.get("stages") if isinstance(summary.get("stages"), dict) else {}
+    providers = summary.get("providers") if isinstance(summary.get("providers"), dict) else {}
+    service_tiers = summary.get("service_tiers") if isinstance(summary.get("service_tiers"), dict) else {}
+    requested_models = (
+        summary.get("requested_models") if isinstance(summary.get("requested_models"), dict) else {}
+    )
+    served_models = summary.get("served_models") if isinstance(summary.get("served_models"), dict) else {}
+    finish_reasons = summary.get("finish_reasons") if isinstance(summary.get("finish_reasons"), dict) else {}
+    recoveries = (
+        summary.get("structured_output_recovery")
+        if isinstance(summary.get("structured_output_recovery"), dict)
+        else {}
+    )
 
     def metric(name: str) -> str:
         data = metrics.get(name) if isinstance(metrics.get(name), dict) else {}
@@ -488,16 +513,33 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
         shown = "unknown" if value is None else str(value)
         return f"{name}={shown} (observed={observed}, missing={missing})"
 
-    stages = summary.get("stages") if isinstance(summary.get("stages"), dict) else {}
+    def category(data: dict[str, Any]) -> str:
+        return ",".join(f"{name}:{count}" for name, count in sorted(data.items())) or "unknown"
+
     stage_text = ",".join(
         f"{name}:{int(data.get('calls', 0) or 0)}/{int(data.get('request_attempts', 0) or 0)}"
         for name, data in sorted(stages.items())
         if isinstance(data, dict)
     ) or "none"
-    providers = summary.get("providers") if isinstance(summary.get("providers"), dict) else {}
-    provider_text = ",".join(f"{name}:{count}" for name, count in sorted(providers.items())) or "unknown"
-    service_tiers = summary.get("service_tiers") if isinstance(summary.get("service_tiers"), dict) else {}
-    service_tier_text = ",".join(f"{name}:{count}" for name, count in sorted(service_tiers.items())) or "unknown"
+    provider_text = category(providers)
+    service_tier_text = category(service_tiers)
+    requested_model_text = category(requested_models)
+    served_model_text = category(served_models)
+    finish_reason_text = category(finish_reasons)
+    recovery_text = category(recoveries)
+    attempt_outcome_text = (
+        ",".join(
+            f"{stage}:{'|'.join(f'{name}:{count}' for name, count in sorted(attempt_outcomes.items())) or 'none'}"
+            for stage, data in sorted(stages.items())
+            if isinstance(data, dict)
+            for attempt_outcomes in [
+                data.get("attempt_outcomes")
+                if isinstance(data.get("attempt_outcomes"), dict)
+                else {}
+            ]
+        )
+        or "none"
+    )
     text = "; ".join(
         [
             f"schema={SCHEMA_VERSION}",
@@ -517,8 +559,13 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
             f"response_healing_events={int(summary.get('response_healing_events', 0) or 0)}",
             f"model_mismatch_events={int(summary.get('served_model_mismatch_events', 0) or 0)}",
             f"stages(calls/attempts)={stage_text}",
+            f"attempt_outcomes={attempt_outcome_text}",
             f"providers={provider_text}",
             f"service_tiers={service_tier_text}",
+            f"requested_models={requested_model_text}",
+            f"served_models={served_model_text}",
+            f"finish_reasons={finish_reason_text}",
+            f"structured_output_recovery={recovery_text}",
         ]
     )
     return text[:limit]
