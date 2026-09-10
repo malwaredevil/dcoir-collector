@@ -117,7 +117,7 @@ try {
             Write-Host ("[{0:D2}/56] {1}" -f $index, $command)
             cmd.exe /d /s /c $command
             if ($LASTEXITCODE -ne 0) {
-                throw "Governed validation command $index failed with exit code $LASTEXITCODE: $command"
+                throw "Governed validation command $index failed with exit code ${LASTEXITCODE}: $command"
             }
         }
 
