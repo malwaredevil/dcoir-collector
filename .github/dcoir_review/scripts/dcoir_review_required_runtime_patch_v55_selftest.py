@@ -230,8 +230,20 @@ def main() -> None:
         for stage, message in reporter.events
     )
 
-    # Incomplete or schema-invalid upstream hypotheses are never repaired by
-    # inventing/coercing semantic fields.
+    # v51 may remove untrusted detector replacement text while preserving the
+    # semantic candidate. That must not make the candidate ineligible for v55.
+    v51_candidate = finding(100, "v51-preserved-semantic-candidate")
+    v51_candidate.pop("suggested_replacement")
+    (v51_recovered, _model, _tier), _module, hardened, rank_calls, _reporter = run(
+        rejected, [v51_candidate]
+    )
+    assert hardened.calls == 1
+    assert len(rank_calls) == 1
+    assert len(v51_recovered["findings"]) == 1
+    assert "suggested_replacement" not in v51_recovered["findings"][0]
+    assert v51_recovered["findings"][0]["_dcoir_v51_candidate_id"] == "candidate-100"
+
+    # Incomplete or schema-invalid semantic fields are never repaired/coerced.
     incomplete = finding(5, "incomplete")
     incomplete.pop("validation")
     calls = expect_runtime_error(
