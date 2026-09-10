@@ -285,13 +285,14 @@ def _drain_call(config: Any, sink: RunTelemetrySink, stage: str, outcome: str) -
                     "outcome": "response_telemetry_missing",
                 }
             )
+    observed_attempts = len(attempt_map)
     sink.add_call(
         {
             "stage": stage,
             "outcome": outcome,
             "request_attempts": attempts,
-            "response_events": len(events),
-            "attempts_without_response_telemetry": max(0, attempts - len(events)),
+            "response_events": observed_attempts,
+            "attempts_without_response_telemetry": max(0, attempts - observed_attempts),
             "attempt_records": attempt_records,
         },
         events,
@@ -361,13 +362,14 @@ def summarize_sink(config: Any) -> dict[str, Any]:
         if str(item.get("structured_output_recovery", ""))
     )
     total_attempts = sum(int(item.get("request_attempts", 0) or 0) for item in calls)
+    total_responses = sum(int(item.get("response_events", 0) or 0) for item in calls)
     return {
         "schema_version": SCHEMA_VERSION,
         "telemetry_status": "ok" if _telemetry_error_count(config) == 0 else "partial",
         "telemetry_error_count": _telemetry_error_count(config),
         "review_calls": len(calls),
         "request_attempts": total_attempts,
-        "provider_response_events": len(events),
+        "provider_response_events": total_responses,
         "attempts_without_response_telemetry": sum(
             int(item.get("attempts_without_response_telemetry", 0) or 0)
             for item in calls
