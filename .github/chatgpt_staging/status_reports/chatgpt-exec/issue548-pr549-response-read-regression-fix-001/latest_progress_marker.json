@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "34598818406",
+  "github_sha": "a9dbf06f0052845606d964d3b80feafec820823b",
+  "phase": "request-resolved",
+  "request_id": "issue548-pr549-response-read-regression-fix-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue548-pr549-response-read-regression-fix-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-11T12:25:30Z",
+  "workflow": "chatgpt-exec"
+}
