@@ -53,6 +53,35 @@ def run_http_error_cases(review, retry_loop, transport_failure_class: str) -> No
     assert events[0]["failure_class"] == transport_failure_class
     assert events[0]["http_status"] == 503
 
+    # The hard runtime watchdog must still escape if it fires while closing an
+    # interrupted HTTPError. It must not be swallowed as best-effort cleanup or
+    # leave transport telemetry for a provider retry that never occurred.
+    config = fresh_config(review, ["model-a"], attempts=2)
+    watchdog_body = FakeResponse(
+        read_error=http.client.IncompleteRead(b"watchdog-partial", 80)
+    )
+
+    def raise_watchdog_during_close() -> None:
+        raise review.hardened.ReviewTimeoutError("script timeout during close")
+
+    watchdog_body.close = raise_watchdog_during_close
+    watchdog_error = urllib.error.HTTPError(
+        "https://openrouter.ai/api/v1/chat/completions",
+        503,
+        "service unavailable",
+        {"Retry-After": "1"},
+        watchdog_body,
+    )
+    calls, remaining = install_sequence(review, [watchdog_error])
+    try:
+        retry_loop("probe", schema, config, Reporter())
+    except review.hardened.ReviewTimeoutError:
+        pass
+    else:
+        raise AssertionError("runtime watchdog during HTTPError close was swallowed")
+    assert len(calls) == 1 and not remaining
+    assert attempt_events(config) == []
+
     # Interrupted 402 bodies cannot distinguish depleted credits from the
     # retryable in-flight-credit case. Retry the transport failure within the
     # existing attempt budget, preserving status and Retry-After handling.
