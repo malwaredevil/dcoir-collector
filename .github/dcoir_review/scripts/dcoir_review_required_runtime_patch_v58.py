@@ -126,13 +126,18 @@ def _replay_http_error(exc: urllib.error.HTTPError, body: bytes) -> urllib.error
     return urllib.error.HTTPError(url, exc.code, reason, headers, io.BytesIO(body))
 
 
-def _safe_close_http_error(exc: urllib.error.HTTPError) -> None:
-    """Best-effort close of the original network-backed HTTPError response."""
+def _safe_close_http_error(
+    exc: urllib.error.HTTPError,
+    *,
+    review_timeout_error: type[BaseException] | None = None,
+) -> None:
+    """Close the original response without swallowing the runtime watchdog."""
 
     try:
         exc.close()
-    except Exception:
-        pass
+    except Exception as close_exc:
+        if review_timeout_error is not None and isinstance(close_exc, review_timeout_error):
+            raise
 
 
 def _transport_runtime_error(exc: Exception) -> RuntimeError:
@@ -178,10 +183,12 @@ def _patch_request_boundary(module: Any) -> None:
                 ):
                     raise
                 status = exc.code if isinstance(exc.code, int) and not isinstance(exc.code, bool) else None
-                _set_transport_marker(config, http_status=status)
                 replay = _replay_http_error(exc, b"")
                 replay._dcoir_transport_body_interrupted = True
-                _safe_close_http_error(exc)
+                _safe_close_http_error(
+                    exc, review_timeout_error=review_timeout_error
+                )
+                _set_transport_marker(config, http_status=status)
                 raise replay from read_exc
             raise _replay_http_error(exc, body) from exc
         except Exception as exc:
