@@ -16,6 +16,26 @@ from dcoir_review.module_loader import LAYER_SEGMENTS, RuntimeSegmentLoader
 
 MAX_SEGMENT_SOURCE_BYTES = 15_000
 
+# One pre-existing provider segment is already tracked as architecture debt in
+# #550. Keep the exception explicit and size-frozen while the consolidated
+# provider architecture replaces it; all other runtime segments stay subject
+# to the normal connector-safe limit.
+LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
+    "hardened/part_04a_provider.py": 19_159,
+}
+
+# Every maintained Python module under scripts/dcoir_review has one explicit
+# ownership mode: concatenated runtime segment, ordinary direct-import module,
+# or package marker (__init__.py). This keeps orphan detection fail-closed
+# without forcing ordinary helper/selftest modules into LAYER_SEGMENTS.
+DIRECT_IMPORT_MODULES = (
+    "entrypoint.py",
+    "module_loader.py",
+    "pareto_context/credit_aware_concurrency.py",
+    "selftests/provider_transport/fixtures.py",
+    "selftests/provider_transport/http_errors.py",
+)
+
 EXPECTED_ADJACENCY = {
     "base": (
         ("base/part_01_core_config_github.py", "base/part_01a_progress_diff.py"),
@@ -77,47 +97,80 @@ def normalized_source_size(path: Path) -> int:
     return len(path.read_bytes().replace(b"\r\n", b"\n"))
 
 
+def assert_segment_source_sizes(paths: tuple[Path, ...], layer: str) -> None:
+    """Enforce the normal size cap plus narrowly frozen legacy debt."""
+    loader_root = SCRIPTS / "dcoir_review"
+    for path in paths:
+        relative_path = path.relative_to(loader_root).as_posix()
+        source_bytes = normalized_source_size(path)
+        legacy_cap = LEGACY_OVERSIZE_SEGMENT_MAX_BYTES.get(relative_path)
+        if legacy_cap is None:
+            assert source_bytes <= MAX_SEGMENT_SOURCE_BYTES, (
+                layer,
+                relative_path,
+                source_bytes,
+                MAX_SEGMENT_SOURCE_BYTES,
+            )
+            continue
+        assert source_bytes > MAX_SEGMENT_SOURCE_BYTES, {
+            "stale_legacy_oversize_waiver": relative_path,
+            "source_bytes": source_bytes,
+        }
+        assert source_bytes <= legacy_cap, {
+            "legacy_oversize_segment_grew": relative_path,
+            "source_bytes": source_bytes,
+            "legacy_cap": legacy_cap,
+        }
+
+
 def assert_segment_registry_is_complete() -> None:
-    """Reject missing, duplicate, or unregistered runtime segment files."""
+    """Reject missing, duplicate, or unowned maintained Python modules."""
     loader_root = SCRIPTS / "dcoir_review"
     registered = [segment for segments in LAYER_SEGMENTS.values() for segment in segments]
-    # Files imported directly as regular Python submodules (rather than concatenated
-    # runtime segments) are not part-of-layer files and are excluded here, matching
-    # the treatment already given to __init__.py, entrypoint.py, and module_loader.py.
-    directly_imported_helper_modules = {"pareto_context/credit_aware_concurrency.py"}
+    direct_imports = list(DIRECT_IMPORT_MODULES)
     actual = []
     for path in loader_root.rglob("*.py"):
         relative_path = path.relative_to(loader_root).as_posix()
-        if path.name in {"__init__.py", "entrypoint.py", "module_loader.py"}:
-            continue
-        if relative_path in directly_imported_helper_modules:
+        if path.name == "__init__.py":
             continue
         actual.append(relative_path)
 
     assert len(registered) == len(set(registered)), "duplicate module-loader segment registration"
-    assert set(registered) == set(actual), {
-        "missing": sorted(set(registered) - set(actual)),
-        "orphaned": sorted(set(actual) - set(registered)),
+    assert len(direct_imports) == len(set(direct_imports)), "duplicate direct-import module ownership"
+    overlap = set(registered) & set(direct_imports)
+    assert not overlap, {"ambiguous_ownership": sorted(overlap)}
+
+    legacy_oversize = set(LEGACY_OVERSIZE_SEGMENT_MAX_BYTES)
+    assert legacy_oversize <= set(registered), {
+        "legacy_oversize_waiver_not_registered": sorted(legacy_oversize - set(registered)),
+    }
+    assert not (legacy_oversize & set(direct_imports)), {
+        "legacy_oversize_waiver_direct_import_overlap": sorted(legacy_oversize & set(direct_imports)),
+    }
+
+    declared = set(registered) | set(direct_imports)
+    assert declared == set(actual), {
+        "missing": sorted(declared - set(actual)),
+        "orphaned": sorted(set(actual) - declared),
     }
 
 
 def main() -> None:
     assert_segment_registry_is_complete()
 
-    for layer, pairs in EXPECTED_ADJACENCY.items():
-        segments = LAYER_SEGMENTS[layer]
+    for layer in LAYER_SEGMENTS:
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer
-        assert all(normalized_source_size(path) <= MAX_SEGMENT_SOURCE_BYTES for path in paths), layer
+        assert_segment_source_sizes(paths, layer)
+
+    for layer, pairs in EXPECTED_ADJACENCY.items():
+        segments = LAYER_SEGMENTS[layer]
         for first, second in pairs:
             index = segments.index(first)
             assert segments[index + 1] == second, (layer, first, second)
 
     for layer, pairs in PATCH_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]
-        paths = RuntimeSegmentLoader(layer).segment_paths()
-        assert all(path.is_file() for path in paths), layer
-        assert all(normalized_source_size(path) <= MAX_SEGMENT_SOURCE_BYTES for path in paths), layer
         directory = Path(segments[0]).parent.as_posix()
         for first_name, second_name in pairs:
             first = f"{directory}/{first_name}"
@@ -127,9 +180,6 @@ def main() -> None:
 
     for layer, pairs in SELFTEST_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]
-        paths = RuntimeSegmentLoader(layer).segment_paths()
-        assert all(path.is_file() for path in paths), layer
-        assert all(normalized_source_size(path) <= MAX_SEGMENT_SOURCE_BYTES for path in paths), layer
         directory = Path(segments[0]).parent.as_posix()
         for first_name, second_name in pairs:
             first = f"{directory}/{first_name}"
