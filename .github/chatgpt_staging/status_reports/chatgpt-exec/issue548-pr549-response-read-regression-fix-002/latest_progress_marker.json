@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34599002365",
   "github_sha": "284247604f7e864899d066ed5cc93ce95b14501a",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue548-pr549-response-read-regression-fix-002",
   "request_path": ".github/chatgpt_staging/exec_requests/issue548-pr549-response-read-regression-fix-002.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-11T12:27:43Z",
+  "updated_utc": "2026-09-11T12:27:47Z",
   "workflow": "chatgpt-exec"
 }
