@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue548-pr549-response-read-regression-fix-002",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-11T12:18:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 2400,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-response-read-regression-fix-002.ps1",
+  "approved_command_preview": "Retry the operator-authorized PR #549 regression correction after the first harness failed before mutation because of PowerShell exact-string newline matching. Use a Python patch helper inside the approved Windows exec lane to change only dcoir_review_provider_transport_retry_selftest.py so the #548 IncompleteRead regression is raised from FakeResponse.read() after urlopen returns a response. Verify the remote source branch is still exactly 6d068c50306a4ac7701203351cd7a271fbc6a9d9, make no production-code or workflow changes, commit only the test correction, remove provider/GitHub credential environment variables, compile all changed Python files, run reviewed-PR-range git diff --check and all 58 governed DCOIR validation commands, require a clean committed worktree, push only the validated commit to fix/issue-548-provider-transport-retry, and emit durable readback. This corrected retry is covered by the operator's explicit autonomy grant for ChatGPT Exec and incremental modifications needed to finish #549/#545 before EPIC #550. Do not invoke DCOIR Review, call live model providers, change Ready state, merge, or begin the #550 architecture refactor.",
+  "command": "& '.github/chatgpt_staging/exec_scripts/issue548-pr549-response-read-regression-fix-002.ps1'"
+}
