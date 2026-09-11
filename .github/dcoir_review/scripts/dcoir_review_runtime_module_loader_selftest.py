@@ -16,6 +16,18 @@ from dcoir_review.module_loader import LAYER_SEGMENTS, RuntimeSegmentLoader
 
 MAX_SEGMENT_SOURCE_BYTES = 15_000
 
+# Every maintained Python module under scripts/dcoir_review has one explicit
+# ownership mode: concatenated runtime segment, ordinary direct-import module,
+# or package marker (__init__.py). This keeps orphan detection fail-closed
+# without forcing ordinary helper/selftest modules into LAYER_SEGMENTS.
+DIRECT_IMPORT_MODULES = (
+    "entrypoint.py",
+    "module_loader.py",
+    "pareto_context/credit_aware_concurrency.py",
+    "selftests/provider_transport/fixtures.py",
+    "selftests/provider_transport/http_errors.py",
+)
+
 EXPECTED_ADJACENCY = {
     "base": (
         ("base/part_01_core_config_github.py", "base/part_01a_progress_diff.py"),
@@ -78,26 +90,26 @@ def normalized_source_size(path: Path) -> int:
 
 
 def assert_segment_registry_is_complete() -> None:
-    """Reject missing, duplicate, or unregistered runtime segment files."""
+    """Reject missing, duplicate, or unowned maintained Python modules."""
     loader_root = SCRIPTS / "dcoir_review"
     registered = [segment for segments in LAYER_SEGMENTS.values() for segment in segments]
-    # Files imported directly as regular Python submodules (rather than concatenated
-    # runtime segments) are not part-of-layer files and are excluded here, matching
-    # the treatment already given to __init__.py, entrypoint.py, and module_loader.py.
-    directly_imported_helper_modules = {"pareto_context/credit_aware_concurrency.py"}
+    direct_imports = list(DIRECT_IMPORT_MODULES)
     actual = []
     for path in loader_root.rglob("*.py"):
         relative_path = path.relative_to(loader_root).as_posix()
-        if path.name in {"__init__.py", "entrypoint.py", "module_loader.py"}:
-            continue
-        if relative_path in directly_imported_helper_modules:
+        if path.name == "__init__.py":
             continue
         actual.append(relative_path)
 
     assert len(registered) == len(set(registered)), "duplicate module-loader segment registration"
-    assert set(registered) == set(actual), {
-        "missing": sorted(set(registered) - set(actual)),
-        "orphaned": sorted(set(actual) - set(registered)),
+    assert len(direct_imports) == len(set(direct_imports)), "duplicate direct-import module ownership"
+    overlap = set(registered) & set(direct_imports)
+    assert not overlap, {"ambiguous_ownership": sorted(overlap)}
+
+    declared = set(registered) | set(direct_imports)
+    assert declared == set(actual), {
+        "missing": sorted(declared - set(actual)),
+        "orphaned": sorted(set(actual) - declared),
     }
 
 
