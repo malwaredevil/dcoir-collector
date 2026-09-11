@@ -1,0 +1,26 @@
+﻿# PR #547 exact-head validation summary
+
+- request_id: issue546-pr547-exact-head-validation-002
+- result: pass
+- target_branch: fix/issue-546-adjudication-low-confidence
+- reviewed_base_sha: 686f860a061e23082e429f4b31c776592fae25be
+- reviewed_base_merge_base_with_target: 686f860a061e23082e429f4b31c776592fae25be
+- requested_head_sha: c63189a64a17fb4b101dc79d61dc9938daf6fe30
+- remote_branch_head_sha: c63189a64a17fb4b101dc79d61dc9938daf6fe30
+- actual_worktree_head_sha: c63189a64a17fb4b101dc79d61dc9938daf6fe30
+- changed_python_files_expected: 8
+- changed_python_files_compiled: 8
+- governed_validation_commands_expected: 57
+- governed_validation_commands_passed: 57
+- provider_and_github_secret_env_removed_before_validation: true
+- initial_detached_worktree_clean: true
+- pr_range_git_diff_check_passed: true
+- final_detached_worktree_clean: true
+- worktree_mode: detached temporary git worktree
+- current_main_tip_equality_required: false
+- rationale: ChatGPT Exec progress-report commits intentionally advance main before the approved harness runs; the immutable reviewed base is verified by commit ancestry and used for the PR-range diff check instead.
+- live_dcoir_review_invocation: false
+- pr_source_branch_mutation_by_harness: false
+- ready_transition: false
+- merge_performed: false
+- failure: 
