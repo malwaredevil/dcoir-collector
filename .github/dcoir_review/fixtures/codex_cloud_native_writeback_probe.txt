@@ -1,5 +1,0 @@
-# Issue #466 Codex Cloud native GitHub write-back probe
-# Temporary fixture. Remove before merging the issue #466 implementation PR.
-probe_id=issue-466-native-writeback-v1
-probe_state=AFTER_NATIVE_CODEX_WRITEBACK
-expected_state=AFTER_NATIVE_CODEX_WRITEBACK

@@ -19,7 +19,7 @@ When reviewing `.github/workflows/` changes, prioritize:
 - stale repository identity, branch, path, or workflow-name references
 - validation claims without workflow run, job, step, or artifact readback
 
-When a PR task touches GitHub metadata, templates, CODEOWNERS, workflows, or repository governance files, use `codex-pr-context` first when available and report any validation gaps explicitly.
+When a Codex Cloud PR task touches GitHub metadata, templates, CODEOWNERS, workflows, or repository governance files, use the task's current PR context plus GitHub source-truth readback to confirm the intended branch/head and report validation gaps explicitly. Do not depend on a legacy `codex-pr-context` environment helper.
 
 ## Security and compatibility workflows
 

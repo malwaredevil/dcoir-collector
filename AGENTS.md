@@ -13,7 +13,7 @@ This file is the repository/workspace adapter. It keeps local bootstrapping and 
 * Supabase `ircore` wins for routing, scenarios, aliases, preferences, lessons, validation rules, workflow catalog, tool catalog, error patterns, active state, GitHub work-item operational receipts, and research receipts.
 * `AGENTS.md` wins for workspace-local bootstrapping mechanics only when it does not contradict core instructions.
 * Active continuity supports resumption only and never overrides core instructions, this file, GitHub, or Supabase.
-* Codex cloud helper commands installed by the Codex environment are operational mechanics only. They do not expand task scope, bypass branch protection, bypass repository governance, or replace validation/readback rules.
+* Codex Cloud tasks use the native GitHub integration and operator-mediated task publish controls for repository write-back. Task-local commits and diffs are not GitHub source truth until the intended branch is published and read back from GitHub. Do not restore persisted PATs, custom Git credential helpers, wrapped `gh`, or legacy repository-specific `codex-*` push helpers unless a separately governed change demonstrates they are required.
 * Before posting or confirming any PR comment that invokes the literal `@codex` handle and asks Codex to review, act, fix, patch, implement, update, or otherwise perform PR-related work, draft the exact comment text, show it to the operator, and receive explicit operator approval in the current session. No approval means no post. When citing prior Codex evidence in issue, PR, closure, or parent-tracker text, use non-triggering wording such as `External Codex review` unless the operator explicitly approves a live invocation.
 * GitHub Copilot review requests are operator-controlled. Do not request a Copilot review unless the operator explicitly approves the request or manually triggers that review.
 * Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current or future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation: every rerun or later internal review request requires fresh explicit operator approval. If another rule says an internal review is the next gate, interpret that as the next gate to propose to the operator, not permission to post it automatically. See `.github/agent-governance/review_request_operator_approval.md`.
@@ -209,117 +209,49 @@ approval.
 
 
 
-## Codex cloud PR automation adapter
+## Codex cloud PR task adapter
 
-The Codex cloud environment for this repository may install helper commands that support authenticated GitHub operations through the operator-approved Codex environment secret.
+The validated Codex Cloud configuration and publish contract for this repository is documented in `.github/agent-governance/codex_cloud_environment.md`.
 
-This section describes how Codex should respond after an approved PR comment invokes `@codex`. It does not authorize this agent to post, confirm, or repeat an external `@codex` PR comment. Posting or confirming any such comment still requires operator approval of the exact proposed text in the current session.
+This section defines the enforced workspace rules without duplicating the environment implementation.
 
-Expected helper commands:
-
-* `codex-pr-finish`
-* `codex-pr-push`
-* `codex-pr-context`
-* `codex-review-checks`
-* `codex-run-windows-ps51`
-* `codex-wait-pr-checks`
-* `codex-env-check`
-* `codex-push-smoke`
-
-When an operator-approved top-level GitHub PR comment invokes `@codex` for PR review, use Review+Fix mode unless the operator explicitly says review-only.
-
-Review+Fix mode means:
-
-1. Run `codex-pr-context` first to capture PR metadata, changed files, review comments, reviews, patch context, and CI status when available.
-2. Identify only confirmed P0/P1 issues.
-3. Prefer direct branch edits for each confirmed P0/P1 issue when a safe minimal fix is clear.
-4. Run relevant validation after edits.
-5. Push branch edits with `codex-pr-finish`.
-6. Leave review comments only for confirmed P0/P1 issues that cannot be safely fixed in the branch.
-7. Do not report P2/P3 issues, style-only issues, broad refactors, speculative issues, or nice-to-have improvements.
-
-When an operator-approved top-level GitHub PR comment invokes `@codex` and asks for code changes, review-comment fixes, requested changes, patches, or PR updates, complete the requested work and push back to the PR branch using the helper command.
-
-When addressing inline PR review conversations, follow the canonical review conversation resolution rule in this file.
-
-Before changing files for a PR task, run `codex-pr-context` when available to capture PR metadata, comments, reviews, changed-file names, and patch context.
-
-Before finishing a PR task, run `codex-review-checks` when relevant to the changed file types and report any remaining validation gaps.
-
-Required finish command for normal PR change tasks:
-
-```bash
-codex-pr-finish -m "Address PR review comments"
-```
-
-Use `codex-pr-finish` instead of raw `git push`.
-
-`codex-pr-finish` is expected to:
-
-1. Detect the current branch.
-2. Stage all changes.
-3. Commit changes when needed.
-4. Normalize `origin` to `https://github.com/malwaredevil/dcoir-collector.git`.
-5. Push `HEAD` to the active PR branch.
-
-If the current branch cannot be detected, use the PR branch name from live PR context and run:
-
-```bash
-codex-pr-finish -b <pr-branch-name> -m "Address PR review comments"
-```
-
-Do not guess a branch name. Use the branch shown in the PR context or live GitHub readback.
-
-If `codex-pr-finish` fails:
-
-1. Stop retrying.
-2. Do not repeatedly run raw `git push`.
-3. Preserve the exact failed command output.
-4. Classify the failure as branch detection, authentication, authorization, branch protection, missing helper, missing token, workflow protection, or another Git error.
-5. Provide the patch or diff needed for manual application when a push cannot be completed.
-
-Do not print tokens, credential helper passwords, secrets, or full credential-helper output. Redact any accidental secret output immediately in the task report.
+* The validated baseline is the `universal` image, Automatic setup, container caching enabled, Agent internet access Off, no custom environment variables, no custom secrets, and no custom setup or maintenance scripts.
+* Do not restore persisted GitHub PATs, custom Git credential helpers, a wrapped or replaced `gh`, or legacy repository-specific `codex-*` helper commands merely to recreate the retired environment.
+* GitHub remains source truth for PR branch, head SHA, files, commits, and checks.
+* A Codex Cloud checkout may use a task-local branch such as `work` and may have no configured Git remote. Do not add or rewrite a remote merely to make the cloud task resemble a conventional local checkout.
+* Before editing for an approved PR task, confirm the expected PR branch and exact head SHA. Stop as stale if either differs.
+* Use `bash .github/dcoir_review/scripts/validate-codex-local.sh` with explicit changed-file paths when practical for repository-native local validation.
+* Missing optional local tools do not justify an environment change unless a demonstrated repository requirement needs them.
+* Use the existing `windows-powershell-51.yml` GitHub Actions workflow for exact Windows PowerShell 5.1 evidence. Linux PowerShell is not equivalent.
+* A task-side diff or commit is provisional. Do not report it as GitHub-persisted state before publish.
+* For a task attached to an existing PR, the supported native publish step proven by issue #466 is the task UI's `Update branch` action.
+* Do not use `Create new PR` for an existing-PR task unless the operator explicitly directs a separate PR.
+* `Copy git apply` and `Copy patch` are fallback/export paths and do not count as native GitHub write-back.
+* After `Update branch`, read back the live PR head, resulting GitHub commit and parent, exact changed-file diff, changed source, and relevant validation before claiming write-back success.
+* The task-side commit SHA may differ from the final GitHub-published SHA. Use the GitHub SHA after publish as the governing commit identity.
+* If native publish is unavailable or fails, stop and preserve the evidence. Do not weaken the environment or recreate retired authentication/helper machinery as an automatic fallback.
+* Do not create or modify workflow files unless the operator explicitly approves workflow changes in the current task.
+* This section does not authorize posting or confirming a PR comment that invokes the literal `@codex` handle. Exact proposed text still requires explicit operator approval in the current session.
 
 ## PowerShell and Windows validation rules
 
-The Codex cloud environment runs Ubuntu. In this environment:
+Codex Cloud runs in a Linux environment. Do not claim exact Windows PowerShell 5.1 compatibility from Linux `pwsh`, `powershell`, or parser behavior.
 
-* `pwsh` is PowerShell 7 on Linux.
-* `powershell` may be a compatibility wrapper to `pwsh`.
-* Linux PowerShell 7 is useful for syntax checks and cross-platform checks.
-* Linux PowerShell 7 is not Windows PowerShell 5.1.
+For exact Windows PowerShell 5.1 validation, use the repository's existing `windows-powershell-51.yml` GitHub Actions workflow and read back the exact run/head evidence when the claim depends on it.
 
-Do not claim Windows PowerShell 5.1 validation from a Linux `pwsh` or `powershell` run.
+Do not add PowerShell to the Codex Cloud environment merely to impersonate Windows PowerShell 5.1.
 
-For exact Windows PowerShell 5.1 validation, use the Windows GitHub Actions workflow when available:
+## Codex cloud validation
 
-```bash
-codex-run-windows-ps51 windows-powershell-51.yml
-```
+Use `bash .github/dcoir_review/scripts/validate-codex-local.sh` for repository-native Codex validation. Pass explicit changed-file paths for bounded tasks when practical.
 
-If the workflow does not exist, say exact Windows PowerShell 5.1 validation could not be performed from the Codex Ubuntu environment.
+Use `.github/dcoir_review/scripts/validate-windows-powershell-51.ps1` only where its local parser role is applicable, and rely on `windows-powershell-51.yml` for exact Windows PowerShell 5.1 workflow evidence.
 
-Do not create or edit workflow files unless the operator explicitly approves workflow changes in the current task.
-
-## Codex cloud validation helpers
-
-Use `codex-env-check` to verify the Codex environment when environment behavior is part of the task.
-
-Use `codex-pr-context` at the start of PR fix tasks when PR context, review comments, changed files, or branch detection matter.
-
-Use `codex-review-checks` before finishing PR fix tasks when the changed file types make local checks useful. Treat failures as evidence to triage. Fix or report only failures that are in scope for the requested change and rise to P0/P1 severity. For changed PowerShell files, `codex-review-checks` runs PSScriptAnalyzer and conditionally runs Pester when `*.Tests.ps1` files exist. The preferred repo-local Pester path is `.github/pester`, configurable through `CODEX_PESTER_PATH`.
-
-Use `codex-wait-pr-checks` only when the PR has checks running and the task requires waiting for GitHub Actions readback.
-
-Pester test files may live anywhere in the repository when named `*.Tests.ps1`, but Codex-focused Pester tests should be placed under `.github/pester` unless a closer source-adjacent test location is more appropriate. Pester validation in the Codex Ubuntu environment is PowerShell 7 validation only and does not prove Windows PowerShell 5.1 behavior.
-
-Use `bash .github/dcoir_review/scripts/validate-codex-local.sh` for GitHub Desktop or local pre-push review when the Codex cloud helper commands are unavailable; pass explicit file paths for targeted checks, or use no arguments to validate changed files relative to `CODEX_BASE_REF` or `origin/main` plus staged and unstaged local changes. Use `.github/dcoir_review/scripts/validate-windows-powershell-51.ps1` for local PowerShell parser checks and rely on `windows-powershell-51.yml` for exact Windows PowerShell 5.1 workflow readback. Use `python3 .github/dcoir_review/scripts/validate-codeql-security-workflow.py` after CodeQL workflow changes to check the expected repo-local security workflow shape.
-
-Use `codex-push-smoke` only when the operator explicitly asks to validate push capability. Do not run push smoke tests during routine PR work because the smoke test creates and deletes a temporary branch.
+Use `python3 .github/dcoir_review/scripts/validate-codeql-security-workflow.py` after approved CodeQL workflow changes to validate the expected repository-local workflow shape.
 
 ## Review guidelines
 
-When reviewing pull requests, report only confirmed P0/P1 issues. Default to Review+Fix mode unless the operator explicitly says review-only.
+When external Codex review is explicitly enabled and operator-approved, report only confirmed P0/P1 issues. Treat review and fix as separate actions unless the operator explicitly approves a bounded combined task.
 
 P0/P1 issues include:
 
@@ -343,17 +275,7 @@ Validation output is evidence, not a review finding. Report validation failures 
 
 For each remaining review finding, include `Suggested Fix` and `Suggested Change`. Use a GitHub `suggestion` block only when the exact replacement applies to the commented PR diff lines. For multi-file fixes, generated files, broader patches, or changes needing validation, edit the branch directly or provide a normal diff-style explanation instead of a `suggestion` block.
 
-For fix requests in PR comments, use the Codex cloud helper commands installed by the environment. Finish changes with:
-
-```bash
-codex-pr-finish -m "Address PR review comments"
-```
-
-If the branch cannot be detected, use the PR branch from live context:
-
-```bash
-codex-pr-finish -b <pr-branch-name> -m "Address PR review comments"
-```
+For operator-approved Codex Cloud fix requests, provide exact scope, files, ordered instructions, and validation expectations. Treat task-side changes as provisional until the operator publishes them through the task UI's `Update branch` action and GitHub source truth confirms the resulting branch head and diff. Do not require legacy repository-specific `codex-*` helpers or raw authenticated `git push` for the Codex Cloud lane.
 
 ## Review conversation resolution
 
@@ -380,8 +302,8 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 * Before posting or confirming any external `@codex` PR review or action comment, show the exact proposed comment text to the operator and receive explicit approval in the current session. No approval means no post.
 * Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, show the exact proposed command text to the operator and receive explicit approval in the current session. This applies to standard, `deep`, `diff`, `debug`, and all other variants. Approval is per invocation; every rerun requires fresh approval. No approval means no internal review request.
 * Do not request GitHub Copilot review unless the operator explicitly approves the request or manually triggers the review.
-* For `@codex` PR change tasks, use `codex-pr-finish` as the final push path after changes and validation.
-* Do not use raw `git push` for `@codex` PR change tasks unless `codex-pr-finish` is unavailable or fails and the operator explicitly directs a raw push attempt.
+* For operator-approved Codex Cloud PR change tasks, treat the task-side result as provisional and use the task UI's `Update branch` action for native publication to the existing PR branch.
+* Do not add raw Git push credentials or restore legacy cloud helper commands as a fallback. If native publication fails, stop, preserve the evidence, and use patch-export/manual paths only when the operator explicitly directs them.
 * Use a direct GitHub connector update to agent instruction or repository adapter text only when the operator explicitly approves that direct lane for the current task, explains that a branch/PR path would create a session or governance risk, and limits the direct update to the approved instruction surface.
 * For an approved direct agent-instruction update, use a tracking issue with exact text, complete Prog planning and Adva adversarial review before mutation unless waived, read live file/SHA, update only approved text, read back after update, record Supabase work-item readbacks, and state any restart/reload gap.
 * Do not treat removed skill-mirror or parity artifacts as active dependencies.
@@ -420,13 +342,13 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 * Every repeated `@codex` review request in the same PR thread must use varied wording instead of reusing one exact sentence, regardless of whether the PR is still draft or ready to move from draft to ready.
 * Before moving a governed draft PR to ready, complete Prog/Adva and Codi internal review gates unless explicitly waived for the task. When an internal review command (`/dcoir-review`, `/or-review`, or `/openrouter-review`) applies, treat it as a gate that requires exact current-session operator approval before every invocation and every rerun; do not post it automatically. Only after the latest operator-approved internal review run is clean may the agent draft the exact top-level PR comment that explicitly invokes `@codex` for a P0/P1-focused external review, show it to the operator, receive approval in the current session, post only after approval, read the formal `@codex` response live, and disposition valid findings.
 * Apply the canonical review conversation resolution rule whenever actionable external Codex, Codi, Adva, or Prog review conversations are addressed or reasonably dismissed.
-* If the operator approves an external `@codex` fix request, include exact scope, files, ordered instructions, and a direct instruction to finish with `codex-pr-finish -m "Address PR review comments"` when a push back to the PR branch is expected.
+* If the operator approves an external Codex fix/action request, include exact scope, files, ordered instructions, validation expectations, and the expected native publish behavior. Do not embed a requirement to recreate or use retired Codex Cloud push helpers.
 
 ## Validation and readback
 
 * When editing code or workflows, run the closest available validation and report any gaps.
 * When editing documentation, scan for stale path references and mismatched authority claims before finishing.
-* For `@codex` PR change tasks, report whether `codex-pr-finish` succeeded and include the pushed branch and commit hash when available.
+* For Codex Cloud PR change tasks, report task-side commit/diff state separately from GitHub-published state. Claim branch write-back only after the task result is published and the live GitHub PR head, resulting commit, and changed source are read back.
 * Read back changed source from GitHub after repo-backed mutation.
 * Read back changed Supabase rows after Supabase mutation.
 * Read back active continuity after continuity updates.
@@ -435,23 +357,27 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 * Treat broken path references, stale startup guidance, workflow assumptions about removed files, stale-lane drift, answer-first verification gaps, incomplete manual-action guidance, contradictory bootstrap-path guidance, skipped Prog/Adva gates, skipped Codi gates, skipped GitHub work-item receipts, unapproved DCOIR Review requests, unapproved GitHub Copilot review requests, and skipped Codex push-result reporting as real operator-governance defects.
 * Do not claim complete, verified, ready, closeable, or successful without authority readback evidence. If evidence is partial, say what was checked, what was not checked, and the exact remaining gap.
 
-## Required final report format for `@codex` PR change tasks
+## Required final report format for Codex Cloud PR change tasks
 
-End every `@codex` PR change task with:
+End every operator-approved Codex Cloud PR change task with:
 
-```text
+```text id="j5tlb0"
 Summary:
 - <short bullet list of changes>
 
 Validation:
 - <commands run and results>
-- Windows PowerShell 5.1 validation: <passed, failed, not run, or not available>
+- Windows PowerShell 5.1 validation: <passed, failed, not run, or not applicable>
 
-Push:
-- <branch pushed>
-- <commit hash if available>
-- <codex-pr-finish result or exact failure>
-- <workflow URL if available>
+Task result:
+- <task-side commit hash if available>
+- <exact changed files>
+- <whether the task result is still provisional>
+
+GitHub publish:
+- Update branch result: <published, not yet published, failed, or not applicable>
+- GitHub PR branch/head after source-truth readback: <branch and SHA, or pending>
+- <workflow/check URL or run id if available>
 
 Remaining P0/P1 Issues:
 - <remaining confirmed P0/P1 issues that could not be safely fixed, or none>
