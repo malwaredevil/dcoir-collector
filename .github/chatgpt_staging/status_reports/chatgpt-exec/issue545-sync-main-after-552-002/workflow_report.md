@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: failure
+- phase: harness-finished
 - request_id: issue545-sync-main-after-552-002
 - request_path: .github/chatgpt_staging/exec_requests/issue545-sync-main-after-552-002.json
 - github_run_id: 34636581516
@@ -18,9 +18,11 @@
 - github_sha: c054c717a1a0af99a71d772f14f3246b12155db6
 - github_ref: refs/heads/agent-ops
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34636581516
-- report_updated_utc: 2026-09-11T19:01:58Z
+- report_updated_utc: 2026-09-11T19:02:07Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue545-sync-main-after-552-002/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue545-sync-main-after-552-002/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue545-sync-main-after-552-002
+- exit_code: 1
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 1. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-09-11T19:01:55Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-11T19:01:58Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-11T19:02:07Z | phase=harness-finished | result=failure | Approved command harness finished with exit code 1. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
