@@ -91,6 +91,10 @@ def _merge_scoped_result(
     )
     final["_semantic_adjudication_output_findings"] = len(final["findings"])
     final["_semantic_adjudication_context_scope"] = "candidate-scoped"
+    if v35.FINAL_ADJUDICATION_COMPLETION_ATTR in adjudicated:
+        final[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = adjudicated[
+            v35.FINAL_ADJUDICATION_COMPLETION_ATTR
+        ]
     return final
 
 

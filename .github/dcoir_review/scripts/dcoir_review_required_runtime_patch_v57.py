@@ -7,6 +7,7 @@ import inspect
 import math
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v54 as v54
 
 
@@ -47,6 +48,7 @@ _RESULT_ALLOWED_KEYS = {
     "_semantic_adjudication_shape_recovery",
     "_semantic_adjudication_confidence_normalization",
     "_semantic_adjudication_confidence_normalized_count",
+    v35.FINAL_ADJUDICATION_COMPLETION_ATTR,
     "_candidate_escalation",
     "_semantic_context_package_id",
     "_adaptive_semantic_budget_mode",
@@ -157,6 +159,8 @@ def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_fin
         return False
 
     if "_semantic_adjudication_context_scope" in result:
+        return False
+    if result.get(v35.FINAL_ADJUDICATION_COMPLETION_ATTR) is not v35.FINAL_ADJUDICATION_COMPLETION_TOKEN:
         return False
     return True
 

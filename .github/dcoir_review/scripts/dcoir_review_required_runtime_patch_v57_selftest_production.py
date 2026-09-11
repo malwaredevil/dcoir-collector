@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib
 from typing import Any, Callable
 
+import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v57 as v57
 
 
@@ -100,3 +101,21 @@ def run_production_regressions(
         pass
     else:
         raise AssertionError("production path weakened #430 earlier-stage fail-closed behavior")
+
+    spoofed_metadata = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        v57.CLEAN_SUMMARY,
+    )
+    spoofed_metadata[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
+    try:
+        review.split_findings_with_review_body_fallback(
+            spoofed_metadata,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("production path accepted spoofed semantic adjudication provenance")

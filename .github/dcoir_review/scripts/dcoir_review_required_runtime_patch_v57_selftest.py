@@ -8,6 +8,7 @@ from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v54 as v54
+import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v57 as v57
 from dcoir_review_required_runtime_patch_v57_selftest_prompt import (
     run_prompt_regressions,
@@ -107,6 +108,7 @@ def adjudicated_result(
         "_semantic_adjudication_model": "anthropic/claude-opus-5",
         "_semantic_adjudication_input_candidates": max(1, len(findings)),
         "_semantic_adjudication_output_findings": len(findings),
+        v35.FINAL_ADJUDICATION_COMPLETION_ATTR: v35.FINAL_ADJUDICATION_COMPLETION_TOKEN,
     }
     if context_scope is not None:
         result["_semantic_adjudication_context_scope"] = context_scope
@@ -313,6 +315,14 @@ def main() -> None:
     expect_legacy_failure(
         module,
         top_level_extra_property,
+        config,
+    )
+
+    spoofed_metadata = adjudicated_result([finding("probe.py", 10, 0.55)])
+    spoofed_metadata[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
+    expect_legacy_failure(
+        module,
+        spoofed_metadata,
         config,
     )
 

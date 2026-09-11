@@ -35,6 +35,8 @@ APPLIED_MARKER = "_dcoir_review_v35_applied"
 CONFIG_STORAGE = "_dcoir_review_v35_original_load_pareto_context_config"
 HYBRID_STORAGE = "_dcoir_review_v35_original_hybrid_first_pass"
 VERIFIER_PROMPT_STORAGE = "_dcoir_review_v35_original_verifier_prompt"
+FINAL_ADJUDICATION_COMPLETION_ATTR = "_semantic_adjudication_completion_token"
+FINAL_ADJUDICATION_COMPLETION_TOKEN = object()
 DEFAULT_ADJUDICATION_MODELS = ("anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro")
 DEFAULT_ADJUDICATION_MAX_FINDINGS = 8
 DEFAULT_CANDIDATE_DIGEST_CHARS = 24000
@@ -340,6 +342,7 @@ def _patch_semantic_adjudication(module: Any) -> None:
         adjudicated["_semantic_adjudication_output_findings"] = len(
             module.hardened.result_findings(adjudicated)
         )
+        adjudicated[FINAL_ADJUDICATION_COMPLETION_ATTR] = FINAL_ADJUDICATION_COMPLETION_TOKEN
         module.hardened.write_debug_json_artifact_safely(
             config,
             "responses/06-semantic-adjudication-result.json",
