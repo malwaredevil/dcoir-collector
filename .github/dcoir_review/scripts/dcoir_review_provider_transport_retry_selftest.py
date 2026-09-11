@@ -101,15 +101,19 @@ def attempt_events(config) -> list[dict]:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
+    post_telemetry = entrypoint.post_telemetry_patch_module_names
+    assert "dcoir_review_required_runtime_patch_v58" in post_telemetry
+    assert post_telemetry[-3:] == (
+        "dcoir_review_required_runtime_patch_v55",
+        "dcoir_review_required_runtime_patch_v56",
+        "dcoir_review_required_runtime_patch_v57",
+    )
+
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v54 = importlib.import_module("dcoir_review_required_runtime_patch_v54")
     v58 = importlib.import_module("dcoir_review_required_runtime_patch_v58")
     assert getattr(review, v58.APPLIED_MARKER, False) is True
-    assert (
-        entrypoint.post_telemetry_patch_module_names[-1]
-        == "dcoir_review_required_runtime_patch_v58"
-    )
 
     original_urlopen = review.hardened.urllib.request.urlopen
     original_sleep = review.hardened.time.sleep
@@ -227,6 +231,34 @@ def main() -> None:
         assert all(
             item["failure_class"] == v58.TRANSPORT_FAILURE_CLASS for item in events
         )
+
+        # A direct request-boundary probe must not leave transport telemetry that
+        # can contaminate a later provider attempt on the same config.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        calls, remaining = install_sequence(
+            review,
+            [http.client.IncompleteRead(b"direct-partial", 30)],
+        )
+        try:
+            review.hardened.openrouter_request_once(
+                "probe", schema, config, [], "model-a"
+            )
+        except RuntimeError as exc:
+            assert "retryable transport failure" in str(exc)
+        else:
+            raise AssertionError("direct transport probe unexpectedly succeeded")
+        assert len(calls) == 1 and not remaining
+        calls, remaining = install_sequence(
+            review,
+            [provider_response("after-direct-probe", "model-a")],
+        )
+        result, model, _tier = retry_loop("probe", schema, config, Reporter())
+        assert result["summary"] == "after-direct-probe" and model == "model-a"
+        assert len(calls) == 1 and not remaining
+        events = attempt_events(config)
+        assert [item["outcome"] for item in events] == ["success"]
+        assert events[0].get("failure_class", "") == ""
+        assert events[0].get("exception_type", "") == ""
 
         # HTTP status errors remain owned by the historical HTTPError path and
         # must not be mislabeled as transport failures by v58.
