@@ -34,6 +34,7 @@ DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
 PROMPT_MARKER = "DCOIR downstream publication confidence floor:"
 CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+_STRING_FINDING_FIELDS = ("title", "severity", "path", "body", "suggested_replacement", "validation")
 
 
 def _confidence(value: Any) -> float | None:
@@ -64,8 +65,10 @@ def _complete_subthreshold_candidate(
         return None
     if not all(field in item for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
         return None
+    if any(not isinstance(item.get(field), str) for field in _STRING_FINDING_FIELDS):
+        return None
     for field in ("title", "severity", "path", "body", "validation"):
-        if not isinstance(item.get(field), str) or not str(item.get(field) or "").strip():
+        if not str(item.get(field) or "").strip():
             return None
     if str(item.get("severity", "") or "").strip().lower() not in _VALID_SEVERITIES:
         return None
