@@ -4,6 +4,7 @@ Set-StrictMode -Version Latest
 $requestId = 'issue546-pr547-exact-head-validation-001'
 $targetHead = 'c63189a64a17fb4b101dc79d61dc9938daf6fe30'
 $targetBranch = 'fix/issue-546-adjudication-low-confidence'
+$targetBase = '686f860a061e23082e429f4b31c776592fae25be'
 $expectedCommandCount = 57
 $repoRoot = (Get-Location).Path
 $worktree = Join-Path $env:RUNNER_TEMP $requestId
@@ -14,6 +15,11 @@ $failureMessage = ''
 $remoteHead = ''
 $actualHead = ''
 $successfulCommandCount = 0
+$compiledPythonCount = 0
+$credentialsRemoved = $false
+$initialWorktreeClean = $false
+$finalWorktreeClean = $false
+$prDiffCheckPassed = $false
 
 $credentialNames = @(
     'DCOIR_GEMINI_API',
@@ -61,16 +67,21 @@ function Write-ValidationSummary {
         "- request_id: $requestId",
         "- result: $result",
         "- target_branch: $targetBranch",
+        "- target_base_sha: $targetBase",
         "- requested_head_sha: $targetHead",
         "- remote_branch_head_sha: $remoteHead",
         "- actual_worktree_head_sha: $actualHead",
-        "- changed_python_files_compiled: $($changedPythonFiles.Count)",
+        "- changed_python_files_expected: $($changedPythonFiles.Count)",
+        "- changed_python_files_compiled: $compiledPythonCount",
         "- governed_validation_commands_expected: $expectedCommandCount",
         "- governed_validation_commands_passed: $successfulCommandCount",
-        "- worktree_mode: detached temporary git worktree",
-        '- provider_and_github_secret_env_removed_before_validation: true',
+        "- provider_and_github_secret_env_removed_before_validation: $($credentialsRemoved.ToString().ToLowerInvariant())",
+        "- initial_detached_worktree_clean: $($initialWorktreeClean.ToString().ToLowerInvariant())",
+        "- pr_range_git_diff_check_passed: $($prDiffCheckPassed.ToString().ToLowerInvariant())",
+        "- final_detached_worktree_clean: $($finalWorktreeClean.ToString().ToLowerInvariant())",
+        '- worktree_mode: detached temporary git worktree',
         '- live_dcoir_review_invocation: false',
-        '- pr_source_branch_mutation: false',
+        '- pr_source_branch_mutation_by_harness: false',
         '- ready_transition: false',
         '- merge_performed: false',
         "- failure: $safeFailure"
@@ -93,6 +104,14 @@ try {
         throw "Remote branch drifted: expected $targetHead but observed $remoteHead"
     }
 
+    Invoke-CheckedNative -Label 'Fetch current main reference' -Action {
+        git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+    }
+    $currentMain = (git rev-parse 'refs/remotes/origin/main').Trim()
+    if ($currentMain -ne $targetBase) {
+        throw "Main drifted from the reviewed PR base: expected $targetBase but observed $currentMain"
+    }
+
     Invoke-CheckedNative -Label 'Create detached exact-head worktree' -Action {
         git worktree add --detach $worktree $targetHead
     }
@@ -104,6 +123,12 @@ try {
             throw "Worktree head mismatch: expected $targetHead but observed $actualHead"
         }
 
+        $initialStatus = @(git status --porcelain)
+        if ($initialStatus.Count -ne 0) {
+            throw "Detached exact-head worktree was not clean before validation: $($initialStatus -join '; ')"
+        }
+        $initialWorktreeClean = $true
+
         $env:PYTHONDONTWRITEBYTECODE = '1'
         foreach ($name in $credentialNames) {
             Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue
@@ -113,6 +138,7 @@ try {
                 throw "Credential environment variable remained available in validation worktree: $name"
             }
         }
+        $credentialsRemoved = $true
         Write-Host 'Provider and GitHub credential environment variables removed before validation.'
 
         $pythonExe = $null
@@ -125,9 +151,13 @@ try {
         }
         Write-Host "Python executable selected: $pythonExe"
 
-        Invoke-CheckedNative -Label 'git diff --check' -Action {
+        Invoke-CheckedNative -Label 'git diff --check (working tree)' -Action {
             git diff --check
         }
+        Invoke-CheckedNative -Label 'git diff --check (PR range)' -Action {
+            git diff --check "$targetBase...$targetHead"
+        }
+        $prDiffCheckPassed = $true
 
         foreach ($path in $changedPythonFiles) {
             if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
@@ -136,6 +166,7 @@ try {
             Invoke-CheckedNative -Label "py_compile $path" -Action {
                 & $pythonExe -m py_compile $path
             }
+            $compiledPythonCount++
         }
 
         $configPath = '.github/dcoir_review/openrouter-pr-review-pareto.yml'
@@ -187,20 +218,24 @@ try {
             $status | ForEach-Object { Write-Host $_ }
             throw 'Exact-head validation mutated the detached worktree.'
         }
+        $finalWorktreeClean = $true
 
         $result = 'pass'
         Write-Host 'VALIDATION_RECEIPT_BEGIN'
+        Write-Host "target_base_sha=$targetBase"
         Write-Host "requested_head_sha=$targetHead"
         Write-Host "remote_branch_head_sha=$remoteHead"
         Write-Host "actual_head_sha=$actualHead"
-        Write-Host "changed_python_files_compiled=$($changedPythonFiles.Count)"
+        Write-Host "changed_python_files_compiled=$compiledPythonCount"
         Write-Host "governed_validation_commands=$($commands.Count)"
         Write-Host "governed_validation_commands_passed=$successfulCommandCount"
         Write-Host 'governed_validation_result=pass'
-        Write-Host 'worktree_clean=true'
+        Write-Host 'initial_worktree_clean=true'
+        Write-Host 'pr_range_git_diff_check_passed=true'
+        Write-Host 'final_worktree_clean=true'
         Write-Host 'provider_and_github_secret_env_removed=true'
         Write-Host 'live_dcoir_review_invocation=false'
-        Write-Host 'pr_source_mutation=false'
+        Write-Host 'pr_source_mutation_by_harness=false'
         Write-Host 'ready_transition=false'
         Write-Host 'merge_performed=false'
         Write-Host 'VALIDATION_RECEIPT_END'
