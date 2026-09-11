@@ -181,7 +181,7 @@ def main() -> None:
     )
     assert post_telemetry.index("dcoir_review_required_runtime_patch_v55") < post_telemetry.index("dcoir_review_required_runtime_patch_v56")
 
-    # v55 owns a new terminal seam rather than mutating the versioned v44 helper.
+    # v55 preserves the v44 helper.
     original = getattr(execution, v55.RUN_STORAGE, None) or execution.run_adjudicator
     fake_apply_module = SimpleNamespace()
     v55.apply_pareto_context_module(fake_apply_module)
@@ -355,8 +355,7 @@ def main() -> None:
     )
     assert calls == 1
 
-    # A partial flat finding remains malformed under v37 and never becomes an
-    # upstream-hypothesis fallback merely because it is valid JSON.
+    # Valid JSON alone cannot make a partial finding eligible for fallback.
     partial_flat = finding(7, "partial-flat")
     partial_flat.pop("validation")
     calls = expect_runtime_error(
