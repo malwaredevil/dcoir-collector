@@ -37,7 +37,11 @@ _RETRYABLE_HTTP_EXCEPTIONS = (
 _TRANSPORT_STATE = threading.local()
 
 
-def _is_retryable_transport_exception(exc: Exception) -> bool:
+def _is_retryable_transport_exception(
+    exc: Exception,
+    *,
+    review_timeout_error: type[BaseException] | None = None,
+) -> bool:
     """Return whether *exc* is an explicitly retryable transport failure.
 
     HTTP status failures stay owned by the existing ``HTTPError`` branch. Broad
@@ -47,6 +51,8 @@ def _is_retryable_transport_exception(exc: Exception) -> bool:
     failures are also intentionally excluded.
     """
 
+    if review_timeout_error is not None and isinstance(exc, review_timeout_error):
+        return False
     if isinstance(exc, urllib.error.HTTPError):
         return False
     if isinstance(exc, ssl.SSLCertVerificationError):
@@ -57,6 +63,8 @@ def _is_retryable_transport_exception(exc: Exception) -> bool:
         return True
     if isinstance(exc, urllib.error.URLError):
         reason = getattr(exc, "reason", None)
+        if review_timeout_error is not None and isinstance(reason, review_timeout_error):
+            return False
         if isinstance(reason, ssl.SSLCertVerificationError):
             return False
         return isinstance(
@@ -132,6 +140,12 @@ def _patch_request_boundary(module: Any) -> None:
     if not callable(original):
         raise RuntimeError("DCOIR v58 could not locate hardened openrouter_request_once")
 
+    review_timeout_error = getattr(hardened, "ReviewTimeoutError", None)
+    if not isinstance(review_timeout_error, type) or not issubclass(
+        review_timeout_error, BaseException
+    ):
+        review_timeout_error = None
+
     def openrouter_request_once(prompt, schema, config, ignored_providers, model):
         try:
             return original(prompt, schema, config, ignored_providers, model)
@@ -147,7 +161,9 @@ def _patch_request_boundary(module: Any) -> None:
             try:
                 body = exc.read()
             except Exception as read_exc:
-                if not _is_retryable_transport_exception(read_exc):
+                if not _is_retryable_transport_exception(
+                    read_exc, review_timeout_error=review_timeout_error
+                ):
                     raise
                 status = exc.code if isinstance(exc.code, int) and not isinstance(exc.code, bool) else None
                 _set_transport_marker(config, http_status=status)
@@ -156,7 +172,9 @@ def _patch_request_boundary(module: Any) -> None:
                 raise replay from read_exc
             raise _replay_http_error(exc, body) from exc
         except Exception as exc:
-            if not _is_retryable_transport_exception(exc):
+            if not _is_retryable_transport_exception(
+                exc, review_timeout_error=review_timeout_error
+            ):
                 raise
             _set_transport_marker(config)
             # The historical retry loop already retries bounded empty-response

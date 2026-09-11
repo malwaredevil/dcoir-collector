@@ -182,6 +182,23 @@ def main() -> None:
 
         run_http_error_cases(review, retry_loop, v58.TRANSPORT_FAILURE_CLASS)
 
+        # The script-level watchdog raises ReviewTimeoutError, which subclasses
+        # TimeoutError but must still escape immediately so cleanup/failure
+        # handling stays owned by the runtime timeout path.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        calls, remaining = install_sequence(
+            review,
+            [FakeResponse(read_error=review.hardened.ReviewTimeoutError("script timeout"))],
+        )
+        try:
+            retry_loop("probe", schema, config, Reporter())
+        except review.hardened.ReviewTimeoutError:
+            pass
+        else:
+            raise AssertionError("runtime watchdog timeout was converted into a retry")
+        assert len(calls) == 1 and not remaining
+        assert attempt_events(config) == []
+
         # Generic HTTPException subclasses that describe local/client-state
         # failures are not transient response-read interruptions and must escape
         # without consuming the provider retry budget.
