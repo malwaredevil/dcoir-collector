@@ -260,6 +260,14 @@ def main() -> None:
         config,
     )
 
+    populated_replacement = finding("probe.py", 10, 0.55)
+    populated_replacement["suggested_replacement"] = "replacement text must come from repair synthesis"
+    expect_legacy_failure(
+        module,
+        adjudicated_result([populated_replacement], "Unexpected detector replacement text."),
+        config,
+    )
+
     informational = finding("probe.py", 10, 0.55)
     informational["_non_actionable_reason"] = "informational-only"
     expect_legacy_failure(
