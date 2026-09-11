@@ -5,12 +5,13 @@ challenger, and semantic adjudicator, then failed only because every remaining
 adjudicated hypothesis was below the configured publication confidence floor.
 
 v57 preserves the historical fail-closed contract for earlier-stage weak output,
-malformed findings, high-confidence unanchored findings, summary-only concerns,
-required deterministic risk sentinels, verifier failures, and exact-head/publication
+malformed findings, unanchored findings, summary-only concerns, required
+deterministic risk sentinels, verifier failures, and exact-head/publication
 failures. It recognizes only a completed semantic-adjudication result whose
-remaining findings are complete, actionable-shaped, finite-confidence candidates
-and are all strictly below the active publication floor. That terminal state is
-recorded as an explicit clean disposition instead of raising ReviewQualityError.
+remaining findings are complete, changed-line-anchored, actionable-shaped,
+finite-confidence candidates and are all strictly below the active publication
+floor. That terminal state is recorded as an explicit clean disposition instead
+of raising ReviewQualityError.
 
 The overlay also injects the active publication floor into semantic-adjudicator
 prompts so the model is discouraged from returning hypotheses that downstream
@@ -55,8 +56,9 @@ def _complete_subthreshold_candidate(
     module: Any,
     item: Any,
     floor: float,
+    line_index: dict[tuple[str, int], int],
 ) -> tuple[dict[str, Any], float] | None:
-    """Return a complete candidate only when it is strictly below the floor."""
+    """Return a complete, changed-line-anchored candidate below the floor."""
 
     if not isinstance(item, dict):
         return None
@@ -70,6 +72,9 @@ def _complete_subthreshold_candidate(
 
     raw_line = item.get("line")
     if isinstance(raw_line, bool) or not isinstance(raw_line, int) or raw_line <= 0:
+        return None
+    path = str(item.get("path", "") or "").strip()
+    if (path, raw_line) not in line_index:
         return None
 
     confidence = _confidence(item.get("confidence"))
@@ -114,11 +119,12 @@ def _terminal_disposition(
     module: Any,
     result: Any,
     config: Any,
+    line_index: dict[tuple[str, int], int],
     risk_sentinels: list[Any] | None,
 ) -> dict[str, Any] | None:
     """Classify only the post-adjudication all-sub-threshold terminal shape."""
 
-    if not isinstance(result, dict):
+    if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
 
     raw_findings = result.get("findings")
@@ -138,7 +144,7 @@ def _terminal_disposition(
     candidates: list[dict[str, Any]] = []
     confidences: list[float] = []
     for raw in raw_findings:
-        qualified = _complete_subthreshold_candidate(module, raw, floor)
+        qualified = _complete_subthreshold_candidate(module, raw, floor, line_index)
         if qualified is None:
             return None
         item, confidence = qualified
@@ -250,7 +256,7 @@ def _patch_terminal_split(module: Any) -> None:
         diff="",
         risk_sentinels=None,
     ):
-        disposition = _terminal_disposition(module, result, config, risk_sentinels)
+        disposition = _terminal_disposition(module, result, config, line_index, risk_sentinels)
         if disposition is not None:
             _record_terminal_disposition(module, result, disposition, config)
             return [], []
