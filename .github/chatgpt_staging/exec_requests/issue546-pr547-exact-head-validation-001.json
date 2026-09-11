@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue546-pr547-exact-head-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-11T09:52:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 2400,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue546-pr547-exact-head-validation-001.ps1",
+  "approved_command_preview": "Operator-approved exact-head validation for PR #547 at c63189a64a17fb4b101dc79d61dc9938daf6fe30, including bounded incremental harness adaptations needed to complete the same validation goal without additional approval. Verify the remote PR head and reviewed main base, validate in a detached temporary worktree, remove provider and GitHub secret environment variables before tests, run working-tree and PR-range git diff --check, compile all eight changed Python files, require and execute all 57 governed validation_commands from .github/dcoir_review/openrouter-pr-review-pareto.yml, require the detached worktree to remain clean, and emit a durable validation summary. Do not invoke DCOIR Review, call live model providers, mutate the PR source branch, mark Ready, or merge.",
+  "command": "& '.github/chatgpt_staging/exec_scripts/issue546-pr547-exact-head-validation-001.ps1'"
+}
