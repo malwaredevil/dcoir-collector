@@ -47,6 +47,9 @@ _RESULT_ALLOWED_KEYS = {
     "_semantic_adjudication_shape_recovery",
     "_semantic_adjudication_confidence_normalization",
     "_semantic_adjudication_confidence_normalized_count",
+    "_candidate_escalation",
+    "_semantic_context_package_id",
+    "_adaptive_semantic_budget_mode",
 }
 
 

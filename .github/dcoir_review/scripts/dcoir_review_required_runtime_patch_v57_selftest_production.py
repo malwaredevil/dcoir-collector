@@ -31,6 +31,9 @@ def run_production_regressions(
         ],
         v57.CLEAN_SUMMARY,
     )
+    production_live_shape["_candidate_escalation"] = {"mode": "full-deep"}
+    production_live_shape["_semantic_context_package_id"] = "package-123"
+    production_live_shape["_adaptive_semantic_budget_mode"] = "full-deep"
     assert review.split_findings_with_review_body_fallback(
         production_live_shape,
         prod_config,
