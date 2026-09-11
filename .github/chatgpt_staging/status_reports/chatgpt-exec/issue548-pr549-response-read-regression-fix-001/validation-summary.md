@@ -1,0 +1,25 @@
+﻿# PR #549 response.read regression repair + exact-head validation summary
+
+- request_id: issue548-pr549-response-read-regression-fix-001
+- result: failure
+- target_branch: fix/issue-548-provider-transport-retry
+- expected_remote_head_before: 6d068c50306a4ac7701203351cd7a271fbc6a9d9
+- observed_remote_head_before: 6d068c50306a4ac7701203351cd7a271fbc6a9d9
+- reviewed_base_sha: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- reviewed_base_merge_base_with_new_head: 
+- locally_committed_validated_head_sha: 
+- remote_branch_head_after_push: 
+- changed_python_files_expected: 4
+- changed_python_files_compiled: 0
+- governed_validation_commands_expected: 58
+- governed_validation_commands_passed: 0
+- provider_and_github_secret_env_removed_before_validation: false
+- pr_range_git_diff_check_passed: false
+- final_worktree_clean: false
+- source_branch_push_performed: false
+- source_change_scope: test-only correction so the #548 regression raises IncompleteRead from FakeResponse.read after urlopen returns a response; production v58 code unchanged
+- live_dcoir_review_invocation: false
+- live_model_provider_calls: false
+- ready_transition: false
+- merge_performed: false
+- failure: FakeResponse replacement expected exactly once; observed 0 occurrences

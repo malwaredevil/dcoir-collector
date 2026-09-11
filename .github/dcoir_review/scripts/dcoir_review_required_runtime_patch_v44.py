@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v44_telemetry as telemetry
@@ -91,6 +92,10 @@ def _merge_scoped_result(
     )
     final["_semantic_adjudication_output_findings"] = len(final["findings"])
     final["_semantic_adjudication_context_scope"] = "candidate-scoped"
+    if v35.FINAL_ADJUDICATION_COMPLETION_ATTR in adjudicated:
+        final[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = adjudicated[
+            v35.FINAL_ADJUDICATION_COMPLETION_ATTR
+        ]
     return final
 
 

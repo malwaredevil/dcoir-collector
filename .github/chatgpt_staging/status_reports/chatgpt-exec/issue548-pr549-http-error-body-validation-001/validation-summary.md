@@ -1,0 +1,23 @@
+﻿# PR #549 HTTPError-body transport repair exact-head validation
+
+- request_id: issue548-pr549-http-error-body-validation-001
+- result: pass
+- target_branch: fix/issue-548-provider-transport-retry
+- expected_head_sha: c214b75be00bce4c464a5eef447a8f6f1e2fbe3e
+- observed_remote_head_sha: c214b75be00bce4c464a5eef447a8f6f1e2fbe3e
+- reviewed_base_sha: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- reviewed_base_merge_base_with_head: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- changed_python_files_expected: 4
+- changed_python_files_compiled: 4
+- governed_validation_commands_expected: 58
+- governed_validation_commands_passed: 58
+- provider_and_github_secret_env_removed_before_validation: true
+- pr_range_git_diff_check_passed: true
+- final_worktree_clean: true
+- source_branch_mutation: false
+- source_change_scope: validate current-head v58 HTTPError-body interrupted-read repair and regressions; no mutation
+- live_dcoir_review_invocation: false
+- live_model_provider_calls: false
+- ready_transition: false
+- merge_performed: false
+- failure: 

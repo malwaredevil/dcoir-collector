@@ -332,6 +332,13 @@ def openrouter_review(prompt: str, schema: dict[str, Any], config: Any, reporter
                 retryable = exc.code in {408, 409, 425, 429, 500, 502, 503, 504} or is_transient_inflight_credit_402(
                     exc.code,
                     message,
+                ) or (
+                    # A narrowly classified transport interruption leaves 402's
+                    # in-flight/depleted-credit distinction unknown. Allow the
+                    # existing bounded retry budget without parsing partial bytes.
+                    # Readable 402 bodies still require the historical message.
+                    exc.code == 402
+                    and getattr(exc, "_dcoir_transport_body_interrupted", False) is True
                 )
                 attempt_outcome = (
                     "retry"

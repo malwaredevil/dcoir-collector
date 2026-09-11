@@ -1,0 +1,153 @@
+# ChatGPT workflow report
+
+## Result
+
+- workflow: chatgpt-report-retention-cleanup
+- report_scope: retention-cleanup
+- report_family: retention-cleanup-summary
+- assistant_polling_target: false
+- identifier_type: cleanup_run_id
+- do_not_use_for_live_polling: true
+- result: success
+- mode: delete
+- success_retention_days: 1
+- failure_retention_days: 7
+- cleanup_retention_days: 2
+- request_retention_days: 1
+- bundle_retention_days: 2
+- keep_latest_per_workflow: true
+- workflow_filter: 
+- candidate_count: 19
+- retained_count: 102
+- github_run_id: 34535289284
+- github_sha: b9a2e3cd546a3136896e315397f665b9b85641e7
+- report_created_utc: 2026-09-10T22:01:31Z
+
+## Paths selected for cleanup
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/branch-cleanup-test-494-post497-v2-20260908T1416Z/workflow_report.md` | kind=success | age_days=2.3 | reason=age 2.3d >= 2d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/cleanup-accidental-noop-branches-20260908T1507Z/workflow_report.md` | kind=success | age_days=2.3 | reason=age 2.3d >= 2d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260903-pr467-exact-head-validation-003/workflow_report.md` | kind=failure | age_days=7.7 | reason=age 7.7d >= 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260903-pr469-exact-head-validation-001/workflow_report.md` | kind=failure | age_days=7.5 | reason=age 7.5d >= 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260903-pr469-exact-head-validation-002/workflow_report.md` | kind=failure | age_days=7.5 | reason=age 7.5d >= 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260903-pr469-exact-head-validation-003/workflow_report.md` | kind=failure | age_days=7.5 | reason=age 7.5d >= 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue515-pr516-exact-head-validation-v2-20260909T1057Z/workflow_report.md` | kind=success | age_days=1.5 | reason=age 1.5d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue515-pr516-exact-head-validation-v3-20260909T1141Z/workflow_report.md` | kind=success | age_days=1.4 | reason=age 1.4d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-exact-head-validation-v2-20260909T1303Z/workflow_report.md` | kind=success | age_days=1.4 | reason=age 1.4d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-exact-head-validation-v3-20260909T1310Z/workflow_report.md` | kind=success | age_days=1.4 | reason=age 1.4d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-fix-regressions-v3-20260909T1306Z/workflow_report.md` | kind=success | age_days=1.4 | reason=age 1.4d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v1-20260909T1825Z/workflow_report.md` | kind=success | age_days=1.2 | reason=age 1.2d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v3-20260909T1858Z/workflow_report.md` | kind=success | age_days=1.1 | reason=age 1.1d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v4-20260909T1903Z/workflow_report.md` | kind=success | age_days=1.1 | reason=age 1.1d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v5-20260909T1906Z/workflow_report.md` | kind=success | age_days=1.1 | reason=age 1.1d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-failsoft-hardening-v1-20260909T1852Z/workflow_report.md` | kind=success | age_days=1.1 | reason=age 1.1d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-ghas-empty-except-fix-v1-20260909T1902Z/workflow_report.md` | kind=success | age_days=1.1 | reason=age 1.1d >= 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-targeted-validation-v2-20260909T1822Z/workflow_report.md` | kind=success | age_days=1.2 | reason=age 1.2d >= 1d
+- `.github/chatgpt_staging/status_reports/retention-cleanup/retention-cleanup-34165199841/workflow_report.md` | kind=success | age_days=3.0 | reason=age 3.0d >= 2d
+
+## Paths retained or skipped
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/branch-cleanup-test-494-post497-20260908T1415Z/workflow_report.md` | kind=failure | age_days=2.3 | reason=age 2.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/cleanup-unused-branches-20260907T1732Z/workflow_report.md` | kind=failure | age_days=3.2 | reason=age 3.2d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/exec-20260905-issue485-pr486-corpus-fix-validation-001/workflow_report.md` | kind=failure | age_days=5.2 | reason=age 5.2d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue457-pr493-credit-aware-exact-head-validation-20260907/workflow_report.md` | kind=failure | age_days=3.4 | reason=age 3.4d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-high-fix-diagnostic-v2-20260908T0803Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-high-fix-v3-20260908T0806Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-high-fix-v4-20260908T0808Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-high-fix-v5-20260908T0814Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-high-fix-v6-20260908T0817Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-high-fix-v7-20260908T0820Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-medium-target-modifier-fix-v1-20260908T0846Z/workflow_report.md` | kind=failure | age_days=2.6 | reason=age 2.6d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-misleading-nomix-fix-20260908T1404Z/workflow_report.md` | kind=failure | age_days=2.3 | reason=age 2.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-misleading-nomix-fix-v2-20260908T1407Z/workflow_report.md` | kind=failure | age_days=2.3 | reason=age 2.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-misleading-nomix-fix-v4-20260908T1410Z/workflow_report.md` | kind=failure | age_days=2.3 | reason=age 2.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-dcoir-misleading-nomix-fix-v5-20260908T1412Z/workflow_report.md` | kind=failure | age_days=2.3 | reason=age 2.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue484-pr501-review-findings-repair-20260908T1530Z/workflow_report.md` | kind=failure | age_days=2.3 | reason=age 2.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue496-pr498-verified-gate-exact-head-validation-v2-20260907/workflow_report.md` | kind=failure | age_days=3.3 | reason=age 3.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue496-pr498-verified-gate-exact-head-validation-v3-20260907/workflow_report.md` | kind=failure | age_days=3.3 | reason=age 3.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue496-pr498-verified-gate-exact-head-validation-v4-20260907/workflow_report.md` | kind=failure | age_days=3.3 | reason=age 3.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue496-pr498-verified-gate-exact-head-validation-v5-20260907/workflow_report.md` | kind=failure | age_days=3.3 | reason=age 3.3d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue496-pr498-verified-gate-exact-head-validation-v6-20260907/workflow_report.md` | kind=failure | age_days=3.2 | reason=age 3.2d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue515-pr516-exact-head-validation-v1-20260909T1048Z/workflow_report.md` | kind=failure | age_days=1.5 | reason=age 1.5d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-exact-head-validation-v1-20260909T1248Z/workflow_report.md` | kind=failure | age_days=1.4 | reason=age 1.4d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-fix-v52-ordering-20260909T1253Z/workflow_report.md` | kind=failure | age_days=1.4 | reason=age 1.4d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-fix-v52-ordering-v2-20260909T1258Z/workflow_report.md` | kind=failure | age_days=1.4 | reason=age 1.4d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue517-pr518-v53-composition-diagnostic-20260909T1302Z/workflow_report.md` | kind=failure | age_days=1.4 | reason=age 1.4d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-copilot-final-fixes-v1-20260910T0600Z/workflow_report.md` | kind=success | age_days=0.7 | reason=age 0.7d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v2-20260909T1855Z/workflow_report.md` | kind=failure | age_days=1.1 | reason=age 1.1d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v6-20260910T0610Z/workflow_report.md` | kind=success | age_days=0.7 | reason=age 0.7d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v7-20260910T0613Z/workflow_report.md` | kind=success | age_days=0.7 | reason=age 0.7d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-pr520-exact-head-validation-v8-20260910T0710Z/workflow_report.md` | kind=success | age_days=0.6 | reason=age 0.6d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue519-targeted-validation-v1-20260909T1809Z/workflow_report.md` | kind=failure | age_days=1.2 | reason=age 1.2d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue524-pr525-exact-head-validation-v1-20260910T0918Z/workflow_report.md` | kind=success | age_days=0.5 | reason=age 0.5d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue524-pr525-exact-head-validation-v2-20260910T1007Z/workflow_report.md` | kind=success | age_days=0.5 | reason=age 0.5d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue524-pr525-exact-head-validation-v3-20260910T1032Z/workflow_report.md` | kind=success | age_days=0.5 | reason=age 0.5d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue526-pr527-copilot-fix-validation-and-branch-cleanup-20260910T1230Z/workflow_report.md` | kind=success | age_days=0.4 | reason=age 0.4d < 2d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue526-pr527-round2-exact-head-validation-20260910T1318Z/workflow_report.md` | kind=failure | age_days=0.4 | reason=age 0.4d < 7d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue526-pr527-round2-exact-head-validation-v2-20260910T1320Z/workflow_report.md` | kind=success | age_days=0.4 | reason=age 0.4d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue526-v56-repair-critic-batching-apply-20260910T1155Z/workflow_report.md` | kind=unknown | age_days=0.4 | reason=age 0.4d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue529-delete-benchmark-branch-20260910T1620Z/workflow_report.md` | kind=success | age_days=0.2 | reason=age 0.2d < 1d
+- `.github/chatgpt_staging/status_reports/chatgpt-exec/issue533-delete-benchmark-branch-20260910T1729Z/workflow_report.md` | kind=success | age_days=0.2 | reason=age 0.2d < 1d
+- `.github/chatgpt_staging/status_reports/repo-workflows/ChatGPT-Exec-28e18b9a88c1b7d688b4a44e2cebd297d5d45f1b/26898641870/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/ChatGPT-Exec-2cc59fbd5b585801175d4170ec7574d3aeed431b/26897926567/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/ChatGPT-Exec-bf0763394df48db74fa3e2872e562e00d5a5eb83/26899437653/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Collector-Documentation-Quality/26997648751/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Collector-Runtime-Bundle-default-version/26968617568/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependabot-Auto-Merge-malwaredevil/26997648628/workflow_report.md` | kind=cleanup | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependabot-auto-merge/26878217958/workflow_report.md` | kind=cleanup | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review/26878217985/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-199/26881657577/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-200/26890449634/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-201/26894531331/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-202/26905621495/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-205/26933425228/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-206/26934880043/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-207/26943198706/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-221/26951433215/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-222/26965078218/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Dependency-Review-228/26997648611/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Full-Validation-FullRegression/26968628691/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Full-Validation-Tier2BoundedCollect/27004618005/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Gemini-Agent-Bundle-default-version-skip_validation-false/26968608438/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Gemini-Production-Like-Harness-event-default/26944338731/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-codex-204-knowledge-index-boundary/26933420799/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-194-bundled-workflow-modularization/26881656322/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-194-direct-delivery-zip-artifact/26890478883/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-194-post-merge-validate-on-pr/26894519874/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-204-redo-knowledge-index-removal/26943197078/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-209-override-manifest/26951363209/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-209-single-definition-refactor-clean/26965076675/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue-210-runtime-error-handling/26997647224/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-issue197-intake-normalization/26905622810/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-main/26968541093/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Main-Push-Validation-revert-pr-205-restore-pre-codex-fix/26934879055/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Publish-Knowledge-to-Wiki/26839826167/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Publish-Knowledge-to-Wiki-main/26944338164/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Pull-Request-Validation-PR/26997648621/workflow_report.md` | kind=cleanup | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Report-Retention-Cleanup-dry_run-false/26983351778/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Test-Framework-Validation/26880366232/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Validate-Gemini-Behavioral-Replay-pull_request/26881657448/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Validate-Gemini-Behavioral-Replay-push/26880366256/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Workflow-Audit-pull_request/26967098685/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Workflow-Audit-push/26968541119/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Workflow-Reporting-Validation-pull_request/26881657432/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Workflow-Reporting-Validation-push/26881574394/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/Workflow-maintenance-audit/26878217939/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/chatgpt-github-artifact-readback/26597897521/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/chatgpt-workflow-reporting-validation/26878217912/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/collector-documentation-quality/26878217941/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/manual-collector-runtime-package-build/26877665423/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/manual-full-validation/26836396823/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/manual-gemini-bundle-build/26877763489/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/manual-gemini-model-comparison/26574890838/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/manual-test-framework-validate/26869677123/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/run-gemini-behavioral-replay-manual/26720756206/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/scheduled-health-check/26743095072/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/validate-gemini-behavioral-replay/26878217962/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/validate-gemini-production-like-harness/26878217914/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/validate-on-pr/26878217933/workflow_report.md` | kind=cleanup | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/repo-workflows/validate-on-push/26872108138/workflow_report.md` | kind=success | age_days=59.7 | reason=latest report for workflow
+- `.github/chatgpt_staging/status_reports/retention-cleanup/retention-cleanup-34283791069/workflow_report.md` | kind=success | age_days=2.0 | reason=age 2.0d < 2d
+- `.github/chatgpt_staging/status_reports/retention-cleanup/retention-cleanup-34410046984/workflow_report.md` | kind=success | age_days=1.0 | reason=age 1.0d < 2d
+
+## Next ChatGPT action
+
+Read this cleanup report, verify scoped deletion/readback when cleanup was not a dry run, then record governed work-item evidence if material. Do not use retention-cleanup reports for live workflow polling.

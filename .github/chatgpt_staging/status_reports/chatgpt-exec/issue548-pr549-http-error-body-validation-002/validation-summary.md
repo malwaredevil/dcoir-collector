@@ -1,0 +1,23 @@
+﻿# PR #549 HTTPError-body status-policy exact-head validation
+
+- request_id: issue548-pr549-http-error-body-validation-002
+- result: pass
+- target_branch: fix/issue-548-provider-transport-retry
+- expected_head_sha: 535a9ed0dcc439342afdd313e6c792d3f4dbf382
+- observed_remote_head_sha: 535a9ed0dcc439342afdd313e6c792d3f4dbf382
+- reviewed_base_sha: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- reviewed_base_merge_base_with_head: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- changed_python_files_expected: 4
+- changed_python_files_compiled: 4
+- governed_validation_commands_expected: 58
+- governed_validation_commands_passed: 58
+- provider_and_github_secret_env_removed_before_validation: true
+- pr_range_git_diff_check_passed: true
+- final_worktree_clean: true
+- source_branch_mutation: false
+- source_change_scope: validate current-head v58 HTTPError-body repair using historical HTTP-status retry policy; no mutation
+- live_dcoir_review_invocation: false
+- live_model_provider_calls: false
+- ready_transition: false
+- merge_performed: false
+- failure: 

@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue548-pr549-http-error-body-validation-001",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue548-pr549-http-error-body-validation-001",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34601427207",
+  "github_run_attempt": "1",
+  "github_sha": "0cf8fe27f84553574a9c59cb0764bca7c8fb9486",
+  "github_ref": "refs/heads/agent-ops",
+  "created_utc": "2026-09-11T12:56:03Z"
+}
