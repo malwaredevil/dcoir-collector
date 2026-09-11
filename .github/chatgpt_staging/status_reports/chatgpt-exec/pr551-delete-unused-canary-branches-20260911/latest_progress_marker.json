@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34625086853",
   "github_sha": "3f2531526e8820d4995d7d2deb332c457cd6fa5e",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "pr551-delete-unused-canary-branches-20260911",
   "request_path": ".github/chatgpt_staging/exec_requests/pr551-delete-unused-canary-branches-20260911.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-11T16:59:49Z",
+  "updated_utc": "2026-09-11T16:59:51Z",
   "workflow": "chatgpt-exec"
 }
