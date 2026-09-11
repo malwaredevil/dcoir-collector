@@ -70,6 +70,10 @@ def _complete_subthreshold_candidate(
     for field in ("title", "severity", "path", "body", "validation"):
         if not str(item.get(field) or "").strip():
             return None
+    # Detector/adjudicator responses are required to leave repair text empty;
+    # a non-empty replacement is a malformed semantic result, not a weak finding.
+    if str(item.get("suggested_replacement", "") or ""):
+        return None
     if str(item.get("severity", "") or "").strip().lower() not in _VALID_SEVERITIES:
         return None
 
