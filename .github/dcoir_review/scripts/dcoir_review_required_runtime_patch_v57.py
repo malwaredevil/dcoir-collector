@@ -7,7 +7,7 @@ adjudicated hypothesis was below the configured publication confidence floor.
 v57 preserves the historical fail-closed contract for earlier-stage weak output,
 malformed findings, unanchored findings, summary-only concerns, required
 deterministic risk sentinels, verifier failures, and exact-head/publication
-failures. It recognizes only a completed semantic-adjudication result whose
+failures. It recognizes only a completed broad semantic-adjudication result whose
 remaining findings are complete, changed-line-anchored, actionable-shaped,
 finite-confidence candidates and are all strictly below the active publication
 floor. That terminal state is recorded as an explicit clean disposition instead
@@ -102,17 +102,29 @@ def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
 
 
 def _completed_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
-    """Require internally recorded completion evidence for this exact result set."""
+    """Require internally recorded broad-adjudication evidence for this result."""
 
     if result.get("_semantic_adjudication_attempted") is not True:
         return False
     model = result.get("_semantic_adjudication_model")
     if not isinstance(model, str) or not model.strip():
         return False
+    input_count = result.get("_semantic_adjudication_input_candidates")
+    if isinstance(input_count, bool) or not isinstance(input_count, int) or input_count <= 0:
+        return False
     output_count = result.get("_semantic_adjudication_output_findings")
     if isinstance(output_count, bool) or not isinstance(output_count, int):
         return False
-    return output_count == len(raw_findings)
+    if output_count != len(raw_findings):
+        return False
+
+    # v44/v55 candidate-scoped adjudication feeds the ordinary diff-mode
+    # near-threshold contract in v52. Do not change that independently reviewed
+    # behavior here; v57 is the broad/full-review terminal repair proven by #546.
+    context_scope = result.get("_semantic_adjudication_context_scope")
+    if context_scope not in (None, "", "broad"):
+        return False
+    return True
 
 
 def _terminal_disposition(
@@ -122,7 +134,7 @@ def _terminal_disposition(
     line_index: dict[tuple[str, int], int],
     risk_sentinels: list[Any] | None,
 ) -> dict[str, Any] | None:
-    """Classify only the post-adjudication all-sub-threshold terminal shape."""
+    """Classify only the broad post-adjudication all-sub-threshold terminal shape."""
 
     if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
@@ -158,6 +170,7 @@ def _terminal_disposition(
         "lowest_confidence": min(confidences),
         "highest_confidence": max(confidences),
         "adjudication_model": str(result.get("_semantic_adjudication_model", "") or ""),
+        "adjudication_scope": str(result.get("_semantic_adjudication_context_scope", "") or "broad-full-review"),
         "candidates": [
             {
                 "path": str(item.get("path", "") or ""),
