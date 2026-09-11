@@ -26,6 +26,7 @@ unchanged.
 from __future__ import annotations
 
 import copy
+import inspect
 import math
 from typing import Any
 
@@ -38,8 +39,11 @@ APPLIED_MARKER = "_dcoir_review_v57_applied"
 SPLIT_STORAGE = "_dcoir_review_v57_original_split_findings_with_review_body_fallback"
 REVIEW_STORAGE = "_dcoir_review_v57_original_openrouter_review"
 DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
+PROMPT_INJECTION_ATTR = "_dcoir_v57_publication_floor_injected"
 PROMPT_MARKER = "DCOIR downstream publication confidence floor:"
 FINAL_ADJUDICATION_PROMPT_MARKER = "Candidate hypotheses from the earlier detector/challenger stages:"
+PROMPT_TRUNCATION_MARKER = "\n\n[semantic adjudication PR evidence truncated by reviewer budget]"
+PROMPT_ARTIFACT_PATH = "prompts/06-semantic-adjudication-prompt.txt"
 CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 _STRING_FINDING_FIELDS = ("title", "severity", "path", "body", "suggested_replacement", "validation")
@@ -71,7 +75,8 @@ def _complete_subthreshold_candidate(
 
     if not isinstance(item, dict):
         return None
-    if not all(field in item for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
+    required_fields = (*v37._REQUIRED_FLAT_FINDING_FIELDS, "suggested_replacement")
+    if not all(field in item for field in required_fields):
         return None
     if any(not isinstance(item.get(field), str) for field in _STRING_FINDING_FIELDS):
         return None
@@ -258,12 +263,9 @@ def _record_terminal_disposition(module: Any, result: dict[str, Any], dispositio
 def _inject_publication_floor(prompt: Any, config: Any) -> Any:
     if not isinstance(prompt, str):
         return prompt
-    stripped = prompt.lstrip()
-    if (
-        not stripped.startswith("Final semantic adjudication pass.")
-        or FINAL_ADJUDICATION_PROMPT_MARKER not in prompt
-        or PROMPT_MARKER in prompt
-    ):
+    if bool(getattr(config, PROMPT_INJECTION_ATTR, False)):
+        return prompt
+    if not _is_final_v35_semantic_adjudication_call(prompt):
         return prompt
 
     floor = _publication_floor(config)
@@ -275,9 +277,42 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
         f"{floor:.2f}. If no defect meets this floor, return an empty findings list and a clean summary."
     )
     needle = "Publication-quality rules:"
+    injected = prompt
     if needle in prompt:
-        return prompt.replace(needle, f"{needle}\n{instruction}", 1)
-    return f"{instruction}\n\n{prompt}"
+        injected = prompt.replace(needle, f"{needle}\n{instruction}", 1)
+    else:
+        injected = f"{instruction}\n\n{prompt}"
+    return _apply_prompt_budget(injected, config)
+
+
+def _is_final_v35_semantic_adjudication_call(prompt: Any) -> bool:
+    frame = inspect.currentframe()
+    current = frame.f_back if frame is not None else None
+    try:
+        while current is not None:
+            filename = current.f_code.co_filename.rsplit("/", 1)[-1]
+            function = current.f_code.co_name
+            locals_map = current.f_locals
+            if (
+                filename == "dcoir_review_required_runtime_patch_v35.py"
+                and function == "openrouter_review_with_hybrid_first_pass"
+                and locals_map.get("prompt") is prompt
+            ):
+                return True
+            current = current.f_back
+    finally:
+        del frame
+    return False
+
+
+def _apply_prompt_budget(prompt: str, config: Any) -> str:
+    max_prompt_chars = int(getattr(config, "max_prompt_chars", 120000))
+    if len(prompt) <= max_prompt_chars:
+        return prompt
+    return (
+        prompt[: max(0, max_prompt_chars - len(PROMPT_TRUNCATION_MARKER))]
+        + PROMPT_TRUNCATION_MARKER
+    )
 
 
 def _patch_openrouter_review(module: Any) -> None:
@@ -302,11 +337,20 @@ def _patch_openrouter_review(module: Any) -> None:
         try:
             staged = copy.copy(config)
             setattr(staged, v54.STAGE_LABEL_ATTR, "semantic-adjudicator")
+            setattr(staged, PROMPT_INJECTION_ATTR, True)
         except Exception:
             # Prompt-floor injection is advisory. If stage preservation cannot be
             # established safely, retain original behavior and telemetry rather
             # than mutating the call in a way v54 would misclassify.
             return original(prompt, schema, config, reporter)
+        try:
+            module.hardened.write_debug_text_artifact_safely(
+                config,
+                PROMPT_ARTIFACT_PATH,
+                injected,
+            )
+        except Exception:
+            pass
         return original(injected, schema, staged, reporter)
 
     hardened.openrouter_review = openrouter_review

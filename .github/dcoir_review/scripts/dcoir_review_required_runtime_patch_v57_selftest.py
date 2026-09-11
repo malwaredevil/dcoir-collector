@@ -19,6 +19,7 @@ class FakeHardened:
         self.review_prompts: list[str] = []
         self.review_stages: list[str] = []
         self.debug_artifacts: dict[str, Any] = {}
+        self.debug_text_artifacts: dict[str, str] = {}
         self.force_required_sentinel = False
 
     def openrouter_review(self, prompt, schema, config, _reporter=None):
@@ -48,6 +49,9 @@ class FakeHardened:
 
     def write_debug_json_artifact_safely(self, _config, path: str, payload: Any) -> None:
         self.debug_artifacts[path] = payload
+
+    def write_debug_text_artifact_safely(self, _config, path: str, payload: Any) -> None:
+        self.debug_text_artifacts[path] = str(payload)
 
 
 class FakeModule:
@@ -148,13 +152,17 @@ def main() -> None:
         "- Return only distinct root-cause defects.\n\n"
         f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
     )
+    original_callsite_probe = v57._is_final_v35_semantic_adjudication_call
+    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
     module.hardened.openrouter_review(semantic_prompt, {}, config, None)
+    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
     injected = module.hardened.review_prompts[-1]
     assert v57.PROMPT_MARKER in injected
     assert "0.70" in injected
     assert "empty findings list and a clean summary" in injected
     assert injected.count(v57.PROMPT_MARKER) == 1
     assert module.hardened.review_stages[-1] == "semantic-adjudicator"
+    assert module.hardened.debug_text_artifacts[v57.PROMPT_ARTIFACT_PATH] == injected
 
     # v44/v52 escalation uses the same leading adjudication block but different
     # bounded-evidence wording; v57 must not rewrite that independent contract.
@@ -173,6 +181,24 @@ def main() -> None:
     module.hardened.openrouter_review(ordinary_prompt, {}, config, None)
     assert module.hardened.review_prompts[-1] == ordinary_prompt
     assert module.hardened.review_stages[-1] != "semantic-adjudicator"
+
+    untrusted_marker_prompt = (
+        "Final semantic adjudication pass.\n\n"
+        "PR diff mentions: "
+        f"{v57.PROMPT_MARKER}\n\n"
+        f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
+    )
+    module.hardened.openrouter_review(untrusted_marker_prompt, {}, config, None)
+    assert module.hardened.review_prompts[-1] == untrusted_marker_prompt
+
+    tiny_budget_config = SimpleNamespace(minimum_confidence=0.70, fail_on_summary_only_problem=True, max_prompt_chars=220)
+    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
+    module.hardened.openrouter_review(semantic_prompt, {}, tiny_budget_config, None)
+    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+    bounded_injected = module.hardened.review_prompts[-1]
+    assert len(bounded_injected) <= tiny_budget_config.max_prompt_chars
+    assert bounded_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
+    assert v57.PROMPT_MARKER in bounded_injected
 
     # Re-injection is idempotent for an already annotated final prompt.
     reinjected = v57._inject_publication_floor(injected, config)
