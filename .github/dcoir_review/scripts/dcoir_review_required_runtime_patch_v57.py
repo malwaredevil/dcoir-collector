@@ -30,7 +30,6 @@ import inspect
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v37 as v37
 import dcoir_review_required_runtime_patch_v54 as v54
 
 
@@ -46,6 +45,16 @@ PROMPT_TRUNCATION_MARKER = "\n\n[semantic adjudication PR evidence truncated by 
 PROMPT_ARTIFACT_PATH = "prompts/06-semantic-adjudication-prompt.txt"
 CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+_REQUIRED_FINDING_FIELDS = (
+    "title",
+    "severity",
+    "confidence",
+    "path",
+    "line",
+    "body",
+    "suggested_replacement",
+    "validation",
+)
 _STRING_FINDING_FIELDS = ("title", "severity", "path", "body", "suggested_replacement", "validation")
 
 
@@ -75,8 +84,7 @@ def _complete_subthreshold_candidate(
 
     if not isinstance(item, dict):
         return None
-    required_fields = (*v37._REQUIRED_FLAT_FINDING_FIELDS, "suggested_replacement")
-    if not all(field in item for field in required_fields):
+    if set(item.keys()) != set(_REQUIRED_FINDING_FIELDS):
         return None
     if any(not isinstance(item.get(field), str) for field in _STRING_FINDING_FIELDS):
         return None
@@ -87,7 +95,7 @@ def _complete_subthreshold_candidate(
     # a non-empty replacement is a malformed semantic result, not a weak finding.
     if str(item.get("suggested_replacement", "") or ""):
         return None
-    if str(item.get("severity", "") or "").strip().lower() not in _VALID_SEVERITIES:
+    if item.get("severity") not in _VALID_SEVERITIES:
         return None
 
     raw_line = item.get("line")

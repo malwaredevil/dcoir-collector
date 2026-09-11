@@ -389,6 +389,14 @@ def main() -> None:
         config,
     )
 
+    extra_field = finding("probe.py", 10, 0.55)
+    extra_field["unexpected"] = True
+    expect_legacy_failure(
+        module,
+        adjudicated_result([extra_field]),
+        config,
+    )
+
     populated_replacement = finding("probe.py", 10, 0.55)
     populated_replacement["suggested_replacement"] = "replacement text must come from repair synthesis"
     expect_legacy_failure(
@@ -402,6 +410,22 @@ def main() -> None:
     expect_legacy_failure(
         module,
         adjudicated_result([informational]),
+        config,
+    )
+
+    mixed_case_severity = finding("probe.py", 10, 0.55)
+    mixed_case_severity["severity"] = "Medium"
+    expect_legacy_failure(
+        module,
+        adjudicated_result([mixed_case_severity]),
+        config,
+    )
+
+    padded_severity = finding("probe.py", 10, 0.55)
+    padded_severity["severity"] = " medium "
+    expect_legacy_failure(
+        module,
+        adjudicated_result([padded_severity]),
         config,
     )
 
