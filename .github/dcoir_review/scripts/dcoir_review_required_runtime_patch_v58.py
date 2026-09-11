@@ -55,31 +55,28 @@ def _transport_exception_name(exc: Exception) -> str:
 
 def _request_attempt_count(config: Any) -> int:
     try:
-        return max(0, int(getattr(config, "_openrouter_request_attempt_count", 0) or 0))
+        return max(
+            0,
+            int(getattr(config, "_openrouter_request_attempt_count", 0) or 0),
+        )
     except (OverflowError, TypeError, ValueError):
         return 0
 
 
-def _set_transport_marker(config: Any, exception_name: str) -> None:
-    _TRANSPORT_STATE.marker = (
-        id(config),
-        _request_attempt_count(config),
-        exception_name[:80],
-    )
+def _set_transport_marker(config: Any) -> None:
+    _TRANSPORT_STATE.marker = (id(config), _request_attempt_count(config))
 
 
-def _take_transport_marker(config: Any) -> str:
+def _take_transport_marker(config: Any) -> bool:
     marker = getattr(_TRANSPORT_STATE, "marker", None)
     try:
         delattr(_TRANSPORT_STATE, "marker")
     except AttributeError:
         pass
-    if not isinstance(marker, tuple) or len(marker) != 3:
-        return ""
-    config_id, attempt_count, exception_name = marker
-    if config_id != id(config) or attempt_count != _request_attempt_count(config):
-        return ""
-    return str(exception_name or "")[:80]
+    if not isinstance(marker, tuple) or len(marker) != 2:
+        return False
+    config_id, attempt_count = marker
+    return config_id == id(config) and attempt_count == _request_attempt_count(config)
 
 
 def _patch_request_boundary(module: Any) -> None:
@@ -99,7 +96,7 @@ def _patch_request_boundary(module: Any) -> None:
             exception_name = _transport_exception_name(exc)
             if not exception_name:
                 raise
-            _set_transport_marker(config, exception_name)
+            _set_transport_marker(config)
             # The historical retry loop already retries bounded empty-response
             # RuntimeError failures. Reuse that lane instead of duplicating the
             # model/attempt/backoff policy here. Never inspect or recover
@@ -125,28 +122,11 @@ def _patch_attempt_telemetry(module: Any) -> None:
         raise RuntimeError("DCOIR v58 could not locate provider attempt telemetry recorder")
 
     def record_openrouter_attempt_telemetry(config, event):
-        exception_name = _take_transport_marker(config)
+        transport_failure = _take_transport_marker(config)
         revised = dict(event) if isinstance(event, dict) else {}
-        if exception_name and revised.get("failure_class") == "empty_response":
+        if transport_failure and revised.get("failure_class") == "empty_response":
             revised["failure_class"] = TRANSPORT_FAILURE_CLASS
         original(config, revised)
-        if not exception_name or revised.get("failure_class") != TRANSPORT_FAILURE_CLASS:
-            return
-
-        # The historical recorder intentionally whitelists fields. Append only
-        # the bounded exception class to the event it just wrote; never record
-        # exception text or partial response data.
-        try:
-            history = getattr(config, "_openrouter_request_attempt_telemetry_events", None)
-            if not isinstance(history, list) or not history or not isinstance(history[-1], dict):
-                return
-            updated = [dict(item) if isinstance(item, dict) else item for item in history]
-            updated[-1]["exception_type"] = exception_name
-            setattr(config, "_openrouter_request_attempt_telemetry_events", updated)
-        except Exception:
-            note_error = getattr(hardened, "_note_openrouter_telemetry_error", None)
-            if callable(note_error):
-                note_error(config)
 
     hardened._record_openrouter_attempt_telemetry = record_openrouter_attempt_telemetry
 
