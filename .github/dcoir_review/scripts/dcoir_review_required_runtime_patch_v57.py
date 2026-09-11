@@ -230,8 +230,13 @@ def _record_terminal_disposition(module: Any, result: dict[str, Any], dispositio
             "metadata/v57-terminal-low-confidence-disposition.json",
             disposition,
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        emit = getattr(module.base, "emit_status", None)
+        if callable(emit):
+            emit(
+                "terminal-low-confidence-disposition",
+                f"version={VERSION}; artifact_write_failed={exc.__class__.__name__}",
+            )
 
     try:
         emit = getattr(module.base, "emit_status", None)
@@ -245,8 +250,8 @@ def _record_terminal_disposition(module: Any, result: dict[str, Any], dispositio
                     f"{float(disposition['highest_confidence']):.2f}; result=clean"
                 ),
             )
-    except Exception:
-        pass
+    except Exception as exc:
+        print(f"[dcoir {VERSION}] terminal-low-confidence-disposition emit failed: {exc.__class__.__name__}")
 
 
 def _inject_publication_floor(prompt: Any, config: Any) -> Any:
