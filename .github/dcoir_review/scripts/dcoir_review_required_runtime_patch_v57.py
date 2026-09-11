@@ -12,9 +12,10 @@ exact-head/publication failures, and v44/v52 candidate-escalation adjudication.
 It recognizes only a completed final v35 semantic-adjudication result whose
 remaining findings are complete, changed-line-anchored, actionable-shaped,
 finite-confidence candidates and are all strictly below the active publication
-floor, whose original summary does not itself indicate a problem, and whose
-adjudication result was not overflow-trimmed. That terminal state is recorded as
-an explicit clean disposition instead of raising ReviewQualityError.
+floor, whose original summary is a non-empty string that does not itself indicate
+a problem, and whose adjudication result was not overflow-trimmed. That terminal
+state is recorded as an explicit clean disposition instead of raising
+ReviewQualityError.
 
 The overlay also injects the active publication floor only into the final v35
 semantic-adjudicator prompt while preserving v54's semantic-adjudicator telemetry
@@ -118,11 +119,13 @@ def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
 def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> bool:
     """Honor the existing summary-only problem gate before clearing findings."""
 
+    raw_summary = result.get("summary")
+    if not isinstance(raw_summary, str) or not raw_summary.strip():
+        return False
     if not bool(getattr(config, "fail_on_summary_only_problem", True)):
         return True
-    summary = str(result.get("summary", "") or "").strip()
     try:
-        return not bool(module.hardened.summary_suggests_problem(summary))
+        return not bool(module.hardened.summary_suggests_problem(raw_summary.strip()))
     except Exception:
         # If the active summary classifier is unavailable or fails, preserve the
         # historical fail-closed behavior rather than replacing the summary.
