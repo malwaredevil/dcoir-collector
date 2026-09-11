@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+import dcoir_review_required_runtime_patch_v54 as v54
 import dcoir_review_required_runtime_patch_v57 as v57
 
 
@@ -16,11 +17,13 @@ class FakeHardened:
 
     def __init__(self) -> None:
         self.review_prompts: list[str] = []
+        self.review_stages: list[str] = []
         self.debug_artifacts: dict[str, Any] = {}
         self.force_required_sentinel = False
 
-    def openrouter_review(self, prompt, _schema, _config, _reporter=None):
+    def openrouter_review(self, prompt, schema, config, _reporter=None):
         self.review_prompts.append(str(prompt))
+        self.review_stages.append(v54.classify_stage(prompt, schema, config))
         return {"summary": "clean", "findings": []}, "fake-model", "default"
 
     def required_risk_sentinels(self, values):
@@ -29,6 +32,19 @@ class FakeHardened:
     @staticmethod
     def non_actionable_finding_reason(item) -> str:
         return str(item.get("_non_actionable_reason", "") or "") if isinstance(item, dict) else "invalid"
+
+    @staticmethod
+    def summary_suggests_problem(summary: str) -> bool:
+        lowered = str(summary or "").lower()
+        return any(
+            phrase in lowered
+            for phrase in (
+                "issue remains",
+                "problem remains",
+                "correctness issue",
+                "regression remains",
+            )
+        )
 
     def write_debug_json_artifact_safely(self, _config, path: str, payload: Any) -> None:
         self.debug_artifacts[path] = payload
@@ -71,7 +87,7 @@ def finding(path: str, line: int, confidence: float, title: str = "Candidate") -
 
 def adjudicated_result(
     findings: list[dict[str, Any]],
-    summary: str = "Adjudicated hypotheses remain.",
+    summary: str = v57.CLEAN_SUMMARY,
     *,
     context_scope: str | None = None,
 ) -> dict[str, Any]:
@@ -113,7 +129,7 @@ def main() -> None:
         "dcoir_review_required_runtime_patch_v57",
     )
 
-    config = SimpleNamespace(minimum_confidence=0.70)
+    config = SimpleNamespace(minimum_confidence=0.70, fail_on_summary_only_problem=True)
     module = FakeModule()
     v57.apply_pareto_context_module(module)
     assert getattr(module, v57.APPLIED_MARKER, False) is True
@@ -123,7 +139,9 @@ def main() -> None:
     assert getattr(module.hardened, v57.REVIEW_STORAGE) is stored_review
     assert getattr(module, v57.SPLIT_STORAGE) is stored_split
 
-    # Only the final v35 adjudicator gets the active publication floor.
+    # Only the final v35 adjudicator gets the active publication floor. Because
+    # injection replaces the prompt object, v57 must preserve v54's stage label
+    # explicitly rather than allowing it to fall back to primary-semantic.
     semantic_prompt = (
         "Final semantic adjudication pass.\n\n"
         "Publication-quality rules:\n"
@@ -136,6 +154,7 @@ def main() -> None:
     assert "0.70" in injected
     assert "empty findings list and a clean summary" in injected
     assert injected.count(v57.PROMPT_MARKER) == 1
+    assert module.hardened.review_stages[-1] == "semantic-adjudicator"
 
     # v44/v52 escalation uses the same leading adjudication block but different
     # bounded-evidence wording; v57 must not rewrite that independent contract.
@@ -148,17 +167,20 @@ def main() -> None:
     )
     module.hardened.openrouter_review(escalation_prompt, {}, config, None)
     assert module.hardened.review_prompts[-1] == escalation_prompt
+    assert module.hardened.review_stages[-1] != "semantic-adjudicator"
 
     ordinary_prompt = "Routine per-file review prompt."
     module.hardened.openrouter_review(ordinary_prompt, {}, config, None)
     assert module.hardened.review_prompts[-1] == ordinary_prompt
+    assert module.hardened.review_stages[-1] != "semantic-adjudicator"
 
     # Re-injection is idempotent for an already annotated final prompt.
     reinjected = v57._inject_publication_floor(injected, config)
     assert reinjected == injected
 
-    # Exact live run 34566845633 terminal shape: final v35 semantic adjudication
+    # Exact live run 34566845633 confidence shape: final v35 semantic adjudication
     # completed and retained only 0.60/0.50/0.45 hypotheses below the 0.70 floor.
+    # The clean terminal path additionally requires a non-problem summary.
     live_shape = adjudicated_result(
         [
             finding(".github/AGENTS.md", 22, 0.60, "Lane-neutral duty may be narrowed"),
@@ -170,7 +192,7 @@ def main() -> None:
                 "Readback gate may lack a named actor",
             ),
         ],
-        "Three possible concerns remain after semantic adjudication.",
+        v57.CLEAN_SUMMARY,
     )
     findings, unanchored = module.split_findings_with_review_body_fallback(
         live_shape,
@@ -218,7 +240,7 @@ def main() -> None:
     # An attempted marker without model/count evidence is not enough to bypass
     # the historical terminal quality gate.
     incomplete_marker = {
-        "summary": "Incomplete semantic metadata.",
+        "summary": v57.CLEAN_SUMMARY,
         "findings": [finding("probe.py", 10, 0.55)],
         "_semantic_adjudication_attempted": True,
     }
@@ -228,11 +250,47 @@ def main() -> None:
     count_mismatch["_semantic_adjudication_output_findings"] = 2
     expect_legacy_failure(module, count_mismatch, config)
 
+    # v35 sets this marker when the provider returned more adjudicated entries
+    # than the configured cap. Even if the retained entries are otherwise valid
+    # and below threshold, the discarded pre-cap response may have been malformed
+    # and must never be reinterpreted as a clean result.
+    overflow_trimmed = adjudicated_result([finding("probe.py", 10, 0.55)])
+    overflow_trimmed["_semantic_adjudication_overflow_trimmed"] = 1
+    expect_legacy_failure(module, overflow_trimmed, config)
+
+    # The preexisting summary-only problem gate remains authoritative. A final
+    # adjudicator that still says a correctness issue remains cannot be cleared
+    # merely because its structured candidates are below the publication floor.
+    problem_summary = adjudicated_result(
+        [finding("probe.py", 10, 0.55)],
+        "A correctness issue remains after semantic adjudication.",
+    )
+    expect_legacy_failure(module, problem_summary, config)
+
+    # Honor the existing configuration switch as well: when the repository has
+    # explicitly disabled the summary-only problem gate, v57 may use the same
+    # bounded low-confidence disposition.
+    summary_gate_disabled = SimpleNamespace(
+        minimum_confidence=0.70,
+        fail_on_summary_only_problem=False,
+    )
+    disabled_result = adjudicated_result(
+        [finding("probe.py", 10, 0.55)],
+        "A correctness issue remains after semantic adjudication.",
+    )
+    assert module.split_findings_with_review_body_fallback(
+        disabled_result,
+        summary_gate_disabled,
+        {("probe.py", 10): 1},
+        "+probe",
+        [],
+    ) == ([], [])
+
     # Any v44/v55 scoped adjudication remains on its existing v52/v55 path.
     for scope in ("candidate-scoped", "broad"):
         scoped = adjudicated_result(
             [finding("probe.py", 10, 0.55)],
-            f"{scope} escalation result.",
+            v57.CLEAN_SUMMARY,
             context_scope=scope,
         )
         expect_legacy_failure(module, scoped, config)
@@ -241,18 +299,17 @@ def main() -> None:
     # anchor is not an added changed line.
     unanchored = adjudicated_result(
         [finding("probe.py", 99, 0.55)],
-        "Low-confidence candidate anchored outside the changed diff.",
+        v57.CLEAN_SUMMARY,
     )
     expect_legacy_failure(module, unanchored, config)
 
     # Any at/above-floor candidate, malformed candidate, informational candidate,
     # or required deterministic sentinel preserves the existing fail-closed path.
-    at_floor = adjudicated_result([finding("probe.py", 10, 0.70)], "Candidate at the publication floor.")
+    at_floor = adjudicated_result([finding("probe.py", 10, 0.70)])
     expect_legacy_failure(module, at_floor, config)
 
     mixed = adjudicated_result(
         [finding("probe.py", 10, 0.55), finding("probe.py", 11, 0.90)],
-        "Mixed confidence candidates.",
     )
     expect_legacy_failure(module, mixed, config)
 
@@ -260,7 +317,7 @@ def main() -> None:
     malformed["confidence"] = 10**400
     expect_legacy_failure(
         module,
-        adjudicated_result([malformed], "Malformed confidence."),
+        adjudicated_result([malformed]),
         config,
     )
 
@@ -268,7 +325,7 @@ def main() -> None:
     malformed_replacement["suggested_replacement"] = {"unexpected": "object"}
     expect_legacy_failure(
         module,
-        adjudicated_result([malformed_replacement], "Malformed replacement field."),
+        adjudicated_result([malformed_replacement]),
         config,
     )
 
@@ -276,7 +333,7 @@ def main() -> None:
     populated_replacement["suggested_replacement"] = "replacement text must come from repair synthesis"
     expect_legacy_failure(
         module,
-        adjudicated_result([populated_replacement], "Unexpected detector replacement text."),
+        adjudicated_result([populated_replacement]),
         config,
     )
 
@@ -284,7 +341,7 @@ def main() -> None:
     informational["_non_actionable_reason"] = "informational-only"
     expect_legacy_failure(
         module,
-        adjudicated_result([informational], "Informational candidate."),
+        adjudicated_result([informational]),
         config,
     )
 
@@ -292,10 +349,7 @@ def main() -> None:
     try:
         expect_legacy_failure(
             module,
-            adjudicated_result(
-                [finding("probe.py", 10, 0.55)],
-                "Required sentinel remains.",
-            ),
+            adjudicated_result([finding("probe.py", 10, 0.55)]),
             config,
             sentinels=[object()],
         )
@@ -319,7 +373,7 @@ def main() -> None:
             finding("AGENTS.md", 248, 0.50),
             finding(".github/agent-governance/codex_cloud_environment.md", 77, 0.45),
         ],
-        "Adjudicator retained only uncertain hypotheses.",
+        v57.CLEAN_SUMMARY,
     )
     assert review.split_findings_with_review_body_fallback(
         production_live_shape,
@@ -334,6 +388,41 @@ def main() -> None:
     ) == ([], [])
     assert production_live_shape["summary"] == v57.CLEAN_SUMMARY
     assert production_live_shape[v57.DISPOSITION_MARKER]["candidate_count"] == 3
+
+    production_problem_summary = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        "A correctness issue remains after semantic adjudication.",
+    )
+    try:
+        review.split_findings_with_review_body_fallback(
+            production_problem_summary,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("production path bypassed the summary-only problem fail-closed gate")
+
+    production_overflow = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        v57.CLEAN_SUMMARY,
+    )
+    production_overflow["_semantic_adjudication_overflow_trimmed"] = 1
+    try:
+        review.split_findings_with_review_body_fallback(
+            production_overflow,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("production path converted overflow-trimmed adjudication to clean")
 
     production_early = {
         "summary": "Possible weak first-pass concern.",
@@ -356,8 +445,9 @@ def main() -> None:
     print(
         "dcoir_review_required_runtime_patch_v57_selftest passed: "
         "only final v35 adjudication may cleanly withdraw fully valid changed-line "
-        "sub-threshold candidates while earlier/escalation/malformed/unanchored/"
-        "sentinel cases remain fail-closed"
+        "sub-threshold candidates with a non-problem summary and no overflow; "
+        "earlier/escalation/malformed/unanchored/sentinel/summary/overflow cases "
+        "remain fail-closed and final-adjudicator telemetry stays classified"
     )
 
 
