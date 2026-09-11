@@ -5,10 +5,10 @@ from __future__ import annotations
 
 import http.client
 import importlib
+import io
 import json
 import os
 import urllib.error
-from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
@@ -59,7 +59,9 @@ def review_schema() -> dict:
 
 
 def fresh_config(review, models: list[str], attempts: int = 2):
-    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    config = review.load_pareto_context_config(
+        ".github/dcoir_review/openrouter-pr-review-pareto.yml"
+    )
     config.model_stack = list(models)
     config.fallback_models = []
     config.ignored_providers = []
@@ -84,7 +86,7 @@ def install_sequence(review, sequence):
         if not remaining:
             raise AssertionError("unexpected extra provider request")
         item = remaining.pop(0)
-        if isinstance(item, BaseException):
+        if isinstance(item, Exception):
             raise item
         return FakeResponse(item)
 
@@ -104,7 +106,10 @@ def main() -> None:
     v54 = importlib.import_module("dcoir_review_required_runtime_patch_v54")
     v58 = importlib.import_module("dcoir_review_required_runtime_patch_v58")
     assert getattr(review, v58.APPLIED_MARKER, False) is True
-    assert entrypoint.post_telemetry_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v58"
+    assert (
+        entrypoint.post_telemetry_patch_module_names[-1]
+        == "dcoir_review_required_runtime_patch_v58"
+    )
 
     original_urlopen = review.hardened.urllib.request.urlopen
     original_sleep = review.hardened.time.sleep
@@ -125,7 +130,9 @@ def main() -> None:
         # on attempt 1, then the same model succeeds. Partial bytes intentionally
         # contain a valid-looking JSON object; they must never be parsed.
         config = fresh_config(review, ["model-a"], attempts=2)
-        partial = json.dumps(provider_response("must-not-be-used", "model-a")).encode("utf-8")
+        partial = json.dumps(
+            provider_response("must-not-be-used", "model-a")
+        ).encode("utf-8")
         calls, remaining = install_sequence(
             review,
             [
@@ -147,7 +154,10 @@ def main() -> None:
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
-            [ConnectionResetError("connection reset by peer"), provider_response("reset-retry-success", "model-a")],
+            [
+                ConnectionResetError("connection reset by peer"),
+                provider_response("reset-retry-success", "model-a"),
+            ],
         )
         result, model, _tier = retry_loop("probe", schema, config, Reporter())
         assert result["summary"] == "reset-retry-success" and model == "model-a"
@@ -156,6 +166,23 @@ def main() -> None:
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
         assert events[0]["exception_type"] == "ConnectionResetError"
         assert events[0]["outcome"] == "retry"
+
+        # URLError is retryable only when its wrapped reason is itself one of the
+        # explicitly accepted transient transport failures.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        calls, remaining = install_sequence(
+            review,
+            [
+                urllib.error.URLError(ConnectionResetError("wrapped reset")),
+                provider_response("urlerror-retry-success", "model-a"),
+            ],
+        )
+        result, model, _tier = retry_loop("probe", schema, config, Reporter())
+        assert result["summary"] == "urlerror-retry-success" and model == "model-a"
+        assert len(calls) == 2 and not remaining
+        events = attempt_events(config)
+        assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
+        assert events[0]["exception_type"] == "URLError[ConnectionResetError]"
 
         # Exhaust the current model's transport attempts, then preserve the
         # configured model-stack fallback order.
@@ -183,7 +210,10 @@ def main() -> None:
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
-            [http.client.IncompleteRead(b"one", 9), ConnectionAbortedError("aborted")],
+            [
+                http.client.IncompleteRead(b"one", 9),
+                ConnectionAbortedError("aborted"),
+            ],
         )
         try:
             retry_loop("probe", schema, config, Reporter())
@@ -194,7 +224,9 @@ def main() -> None:
         assert len(calls) == 2 and not remaining
         events = attempt_events(config)
         assert [item["outcome"] for item in events] == ["retry", "terminal_failure"]
-        assert all(item["failure_class"] == v58.TRANSPORT_FAILURE_CLASS for item in events)
+        assert all(
+            item["failure_class"] == v58.TRANSPORT_FAILURE_CLASS for item in events
+        )
 
         # HTTP status errors remain owned by the historical HTTPError path and
         # must not be mislabeled as transport failures by v58.
@@ -204,7 +236,7 @@ def main() -> None:
             400,
             "bad request",
             {},
-            None,
+            io.BytesIO(b'{"error":{"message":"bad request"}}'),
         )
         calls, remaining = install_sequence(review, [http_error])
         try:
@@ -223,9 +255,14 @@ def main() -> None:
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
-            [http.client.IncompleteRead(b"prod-partial", 99), provider_response("production-success", "model-a")],
+            [
+                http.client.IncompleteRead(b"prod-partial", 99),
+                provider_response("production-success", "model-a"),
+            ],
         )
-        result, model, _tier = review.hardened.openrouter_review("probe", schema, config, Reporter())
+        result, model, _tier = review.hardened.openrouter_review(
+            "probe", schema, config, Reporter()
+        )
         assert result["summary"] == "production-success" and model == "model-a"
         assert len(calls) == 2 and not remaining
     finally:
