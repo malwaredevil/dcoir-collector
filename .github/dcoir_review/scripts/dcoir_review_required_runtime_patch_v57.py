@@ -1,21 +1,22 @@
-"""DCOIR Review v57 post-adjudication low-confidence terminal disposition.
+"""DCOIR Review v57 final-adjudication low-confidence terminal disposition.
 
 Live run 34566845633 completed the deep detector, quality retry, independent
-challenger, and semantic adjudicator, then failed only because every remaining
-adjudicated hypothesis was below the configured publication confidence floor.
+challenger, and final v35 semantic adjudicator, then failed only because every
+remaining adjudicated hypothesis was below the configured publication confidence
+floor.
 
 v57 preserves the historical fail-closed contract for earlier-stage weak output,
 malformed findings, unanchored findings, summary-only concerns, required
-deterministic risk sentinels, verifier failures, and exact-head/publication
-failures. It recognizes only a completed broad semantic-adjudication result whose
-remaining findings are complete, changed-line-anchored, actionable-shaped,
-finite-confidence candidates and are all strictly below the active publication
-floor. That terminal state is recorded as an explicit clean disposition instead
-of raising ReviewQualityError.
+deterministic risk sentinels, verifier failures, exact-head/publication failures,
+and v44/v52 candidate-escalation adjudication. It recognizes only a completed
+final v35 semantic-adjudication result whose remaining findings are complete,
+changed-line-anchored, actionable-shaped, finite-confidence candidates and are
+all strictly below the active publication floor. That terminal state is recorded
+as an explicit clean disposition instead of raising ReviewQualityError.
 
-The overlay also injects the active publication floor into semantic-adjudicator
-prompts so the model is discouraged from returning hypotheses that downstream
-publication can never accept.
+The overlay also injects the active publication floor only into the final v35
+semantic-adjudicator prompt so other semantic escalation contracts remain
+unchanged.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ SPLIT_STORAGE = "_dcoir_review_v57_original_split_findings_with_review_body_fall
 REVIEW_STORAGE = "_dcoir_review_v57_original_openrouter_review"
 DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
 PROMPT_MARKER = "DCOIR downstream publication confidence floor:"
+FINAL_ADJUDICATION_PROMPT_MARKER = "Candidate hypotheses from the earlier detector/challenger stages:"
 CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 _STRING_FINDING_FIELDS = ("title", "severity", "path", "body", "suggested_replacement", "validation")
@@ -108,8 +110,8 @@ def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
     return bool(required)
 
 
-def _completed_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
-    """Require internally recorded broad-adjudication evidence for this result."""
+def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
+    """Require internally recorded final-v35-adjudication evidence for this result."""
 
     if result.get("_semantic_adjudication_attempted") is not True:
         return False
@@ -125,11 +127,10 @@ def _completed_adjudication_matches_result(result: dict[str, Any], raw_findings:
     if output_count != len(raw_findings):
         return False
 
-    # v44/v55 candidate-scoped adjudication feeds the ordinary diff-mode
-    # near-threshold contract in v52. Do not change that independently reviewed
-    # behavior here; v57 is the broad/full-review terminal repair proven by #546.
-    context_scope = result.get("_semantic_adjudication_context_scope")
-    if context_scope not in (None, "", "broad"):
+    # v44/v55 explicitly stamp their escalation scope. The live #546 failure
+    # came from v35, which does not set this marker. Keep those later contracts
+    # byte-for-byte on their existing v52/v55 disposition path.
+    if "_semantic_adjudication_context_scope" in result:
         return False
     return True
 
@@ -141,7 +142,7 @@ def _terminal_disposition(
     line_index: dict[tuple[str, int], int],
     risk_sentinels: list[Any] | None,
 ) -> dict[str, Any] | None:
-    """Classify only the broad post-adjudication all-sub-threshold terminal shape."""
+    """Classify only the final-v35 all-sub-threshold terminal shape."""
 
     if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
@@ -149,7 +150,7 @@ def _terminal_disposition(
     raw_findings = result.get("findings")
     if not isinstance(raw_findings, list) or not raw_findings:
         return None
-    if not _completed_adjudication_matches_result(result, raw_findings):
+    if not _completed_final_adjudication_matches_result(result, raw_findings):
         return None
 
     sentinels = list(risk_sentinels or [])
@@ -177,7 +178,7 @@ def _terminal_disposition(
         "lowest_confidence": min(confidences),
         "highest_confidence": max(confidences),
         "adjudication_model": str(result.get("_semantic_adjudication_model", "") or ""),
-        "adjudication_scope": str(result.get("_semantic_adjudication_context_scope", "") or "broad-full-review"),
+        "adjudication_scope": "final-v35",
         "candidates": [
             {
                 "path": str(item.get("path", "") or ""),
@@ -227,7 +228,11 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
     if not isinstance(prompt, str):
         return prompt
     stripped = prompt.lstrip()
-    if not stripped.startswith("Final semantic adjudication pass.") or PROMPT_MARKER in prompt:
+    if (
+        not stripped.startswith("Final semantic adjudication pass.")
+        or FINAL_ADJUDICATION_PROMPT_MARKER not in prompt
+        or PROMPT_MARKER in prompt
+    ):
         return prompt
 
     floor = _publication_floor(config)
