@@ -5,13 +5,13 @@ Issue #548 proved that a chunked HTTP response can fail inside ``response.read()
 with ``http.client.IncompleteRead``. That exception bypassed the existing
 provider retry loop even though the request had remaining attempts. This
 post-composition overlay maps only narrowly classified transient transport
-failures onto the existing bounded empty-response retry lane, while preserving
-the original HTTP-status, JSON/schema, routing, and fail-closed behavior.
+failures onto the existing bounded retry machinery, while preserving the
+original HTTP-status, JSON/schema, routing, and fail-closed behavior.
 
-The same protection also covers interrupted reads of ``HTTPError`` response
-bodies. Retryable HTTP statuses keep their status in attempt telemetry while the
-interrupted body is treated as transport failure; non-retryable statuses remain
-owned by the historical HTTP-status path.
+The same protection covers interrupted reads of ``HTTPError`` response bodies.
+Those failures are replayed through the historical HTTP-status path so that
+status-specific retry/backoff/fallback policy remains authoritative, while
+telemetry still records the attempt as a transport failure with its HTTP status.
 """
 
 from __future__ import annotations
@@ -32,7 +32,6 @@ _RETRYABLE_HTTP_EXCEPTIONS = (
     http.client.IncompleteRead,
     http.client.RemoteDisconnected,
 )
-_RETRYABLE_HTTP_STATUS_CODES = frozenset({408, 409, 425, 429, 500, 502, 503, 504})
 _TRANSPORT_STATE = threading.local()
 
 
@@ -101,7 +100,7 @@ def _take_transport_marker(config: Any) -> tuple[bool, int | None]:
 
 
 def _replay_http_error(exc: urllib.error.HTTPError, body: bytes) -> urllib.error.HTTPError:
-    """Return a readable HTTPError preserving the historical status surface."""
+    """Return a readable HTTPError preserving status, reason, and headers."""
 
     url = getattr(exc, "url", None)
     if not url:
@@ -114,11 +113,10 @@ def _replay_http_error(exc: urllib.error.HTTPError, body: bytes) -> urllib.error
     return urllib.error.HTTPError(url, exc.code, reason, headers, io.BytesIO(body))
 
 
-def _transport_runtime_error(exc: Exception, *, http_status: int | None = None) -> RuntimeError:
-    status_note = f"; http_status={http_status}" if http_status is not None else ""
+def _transport_runtime_error(exc: Exception) -> RuntimeError:
     return RuntimeError(
         "OpenRouter returned an empty response after retryable transport failure "
-        f"({type(exc).__name__}{status_note})"
+        f"({type(exc).__name__})"
     )
 
 
@@ -136,22 +134,21 @@ def _patch_request_boundary(module: Any) -> None:
         try:
             return original(prompt, schema, config, ignored_providers, model)
         except urllib.error.HTTPError as exc:
-            # The historical openrouter_review loop owns HTTP status policy and
-            # parses the response body after catching HTTPError. Buffer a readable
-            # body here so a transport interruption during that later exc.read()
-            # cannot escape the loop. If the body read itself is interrupted, only
-            # statuses already retryable without body-derived semantics enter the
-            # bounded transport retry lane. Other statuses remain HTTP errors with
-            # an empty untrusted body and preserve their original status metadata.
+            # The historical openrouter_review loop owns HTTP-status retry,
+            # Retry-After, provider-skip, fallback, and terminal policy. Buffer
+            # the error body here because that loop reads it after catching the
+            # HTTPError. If the body read itself is interrupted, discard partial
+            # bytes, mark the attempt as transport-failed, and replay the same
+            # HTTPError with an empty readable body. The historical status path
+            # then decides whether to retry or fall back; v58 does not duplicate
+            # or widen the status policy.
             try:
                 body = exc.read()
             except Exception as read_exc:
                 if not _is_retryable_transport_exception(read_exc):
                     raise
                 status = exc.code if isinstance(exc.code, int) and not isinstance(exc.code, bool) else None
-                if status in _RETRYABLE_HTTP_STATUS_CODES:
-                    _set_transport_marker(config, http_status=status)
-                    raise _transport_runtime_error(read_exc, http_status=status) from read_exc
+                _set_transport_marker(config, http_status=status)
                 raise _replay_http_error(exc, b"") from read_exc
             raise _replay_http_error(exc, body) from exc
         except Exception as exc:
@@ -183,7 +180,7 @@ def _patch_attempt_telemetry(module: Any) -> None:
     def record_openrouter_attempt_telemetry(config, event):
         transport_failure, http_status = _take_transport_marker(config)
         revised = dict(event) if isinstance(event, dict) else {}
-        if transport_failure and revised.get("failure_class") == "empty_response":
+        if transport_failure and revised.get("failure_class") in {"empty_response", "http_error"}:
             revised["failure_class"] = TRANSPORT_FAILURE_CLASS
             if http_status is not None:
                 revised["http_status"] = http_status
