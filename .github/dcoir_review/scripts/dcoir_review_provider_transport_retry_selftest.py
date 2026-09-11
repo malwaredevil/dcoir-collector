@@ -277,8 +277,9 @@ def main() -> None:
         assert events[0].get("failure_class", "") == ""
 
         # A retryable HTTP status whose error-body read is itself interrupted must
-        # stay inside the same bounded retry loop. The interrupted body is not
-        # parsed, while status metadata remains attached to transport telemetry.
+        # stay inside the historical status-specific bounded retry loop. The
+        # interrupted body is not parsed, while status metadata remains attached
+        # to transport telemetry.
         config = fresh_config(review, ["model-a"], attempts=2)
         interrupted_503 = urllib.error.HTTPError(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -305,7 +306,8 @@ def main() -> None:
         assert events[0]["http_status"] == 503
 
         # A non-retryable status does not become retryable merely because its body
-        # read was interrupted. It remains on the historical HTTP status path.
+        # read was interrupted. Retry disposition still comes from the historical
+        # HTTP status policy, while telemetry records that the body transport failed.
         config = fresh_config(review, ["model-a"], attempts=2)
         interrupted_400 = urllib.error.HTTPError(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -326,7 +328,7 @@ def main() -> None:
         assert len(calls) == 1 and not remaining
         events = attempt_events(config)
         assert len(events) == 1
-        assert events[0]["failure_class"] == "http_error"
+        assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
         assert events[0]["http_status"] == 400
         assert events[0]["outcome"] == "terminal_failure"
 
