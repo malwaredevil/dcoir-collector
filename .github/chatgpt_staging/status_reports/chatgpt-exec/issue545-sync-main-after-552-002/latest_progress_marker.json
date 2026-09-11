@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "34636581516",
+  "github_sha": "c054c717a1a0af99a71d772f14f3246b12155db6",
+  "phase": "request-resolved",
+  "request_id": "issue545-sync-main-after-552-002",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue545-sync-main-after-552-002.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-11T19:01:55Z",
+  "workflow": "chatgpt-exec"
+}
