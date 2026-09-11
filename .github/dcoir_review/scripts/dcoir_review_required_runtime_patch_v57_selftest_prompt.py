@@ -9,11 +9,11 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v57 as v57
 
 
-def _run_with_forced_final_callsite(module: Any, prompt: str, config: Any) -> None:
+def _run_with_forced_final_callsite(module: Any, prompt: str, config: Any):
     original_callsite_probe = v57._is_final_v35_semantic_adjudication_call
     v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
     try:
-        module.hardened.openrouter_review(prompt, {}, config, None)
+        return module.hardened.openrouter_review(prompt, {}, config, None)
     finally:
         v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
 
@@ -88,6 +88,21 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     malformed_budget_injected = module.hardened.review_prompts[-1]
     assert v57.PROMPT_MARKER in malformed_budget_injected
     assert not malformed_budget_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
+
+    original_writer = module.hardened.write_debug_text_artifact_safely
+
+    def failing_writer(_config, _path: str, _payload: Any) -> None:
+        raise RuntimeError("debug artifact unavailable")
+
+    module.hardened.write_debug_text_artifact_safely = failing_writer
+    try:
+        assert _run_with_forced_final_callsite(module, semantic_prompt, config) == (
+            {"summary": "clean", "findings": []},
+            "fake-model",
+            "default",
+        )
+    finally:
+        module.hardened.write_debug_text_artifact_safely = original_writer
 
     reinjected = v57._inject_publication_floor(injected, config)
     assert reinjected == injected

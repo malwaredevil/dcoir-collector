@@ -355,7 +355,7 @@ def _patch_openrouter_review(module: Any) -> None:
             except Exception:
                 # Intentionally ignore secondary debug-artifact write failures.
                 # This path is best-effort diagnostics and must not alter review flow.
-                return None
+                pass
         return original(injected, schema, staged, reporter)
 
     hardened.openrouter_review = openrouter_review
