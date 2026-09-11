@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue548-pr549-exact-head-validation-003",
+  "operator_approved": true,
+  "shell": "powershell_5",
+  "timeout_seconds": 2400,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Re-run the previously approved PR #549 exact-head deterministic validation harness on current Copilot-fixed head 0e6ca436a8cc8f57b33480f12cb052fc6e485ebf. Reuse validation script 002 with only the request id and exact target head substituted in a temporary runner copy. Verify remote branch drift and reviewed-base ancestry, use a detached clean worktree, remove provider/GitHub credentials before tests, compile all 7 changed Python files, run all 58 governed validation commands, run PR-range git diff --check, require the worktree to remain clean, and emit durable evidence. Do not invoke DCOIR Review, make live model-provider calls, mutate the PR source branch, change Draft/Ready state, or merge.",
+  "command": "$source = Get-Content -LiteralPath '.github/chatgpt_staging/exec_scripts/issue548-pr549-exact-head-validation-002.ps1' -Raw -Encoding UTF8; $source = $source.Replace('issue548-pr549-exact-head-validation-002','issue548-pr549-exact-head-validation-003').Replace('253632c963d432b075f496b3d15e5e4fa25e9d14','0e6ca436a8cc8f57b33480f12cb052fc6e485ebf'); $tempScript = Join-Path $env:RUNNER_TEMP 'issue548-pr549-exact-head-validation-003.ps1'; Set-Content -LiteralPath $tempScript -Value $source -Encoding UTF8; & $tempScript"
+}
