@@ -176,13 +176,23 @@ def run_http_error_cases(review, retry_loop, transport_failure_class: str) -> No
     assert events[0]["outcome"] == "terminal_failure"
 
     # Readable HTTP status errors remain owned by the historical HTTPError path.
+    # Even when the body read succeeds, the original network-backed HTTPError
+    # must be closed before the detached replay is raised to the historical
+    # status handler.
     config = fresh_config(review, ["model-a"], attempts=2)
+    readable_body = FakeResponse(payload={"error": {"message": "bad request"}})
+    readable_body.closed = False
+
+    def mark_readable_body_closed() -> None:
+        readable_body.closed = True
+
+    readable_body.close = mark_readable_body_closed
     http_error = urllib.error.HTTPError(
         "https://openrouter.ai/api/v1/chat/completions",
         400,
         "bad request",
         {},
-        io.BytesIO(b'{"error":{"message":"bad request"}}'),
+        readable_body,
     )
     calls, remaining = install_sequence(review, [http_error])
     try:
@@ -192,6 +202,7 @@ def run_http_error_cases(review, retry_loop, transport_failure_class: str) -> No
     else:
         raise AssertionError("non-retryable HTTP status unexpectedly succeeded")
     assert len(calls) == 1 and not remaining
+    assert readable_body.closed is True
     events = attempt_events(config)
     assert len(events) == 1 and events[0]["failure_class"] == "http_error"
     assert events[0]["http_status"] == 400

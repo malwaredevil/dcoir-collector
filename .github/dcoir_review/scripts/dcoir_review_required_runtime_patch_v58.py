@@ -190,7 +190,9 @@ def _patch_request_boundary(module: Any) -> None:
                 )
                 _set_transport_marker(config, http_status=status)
                 raise replay from read_exc
-            raise _replay_http_error(exc, body) from exc
+            replay = _replay_http_error(exc, body)
+            _safe_close_http_error(exc, review_timeout_error=review_timeout_error)
+            raise replay from exc
         except Exception as exc:
             if not _is_retryable_transport_exception(
                 exc, review_timeout_error=review_timeout_error
