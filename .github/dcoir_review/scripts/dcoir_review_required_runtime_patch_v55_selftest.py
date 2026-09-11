@@ -1,124 +1,152 @@
 #!/usr/bin/env python3
-"""Regression tests for DCOIR Review runtime patch v55."""
+"""Deterministic regression checks for DCOIR Review v55 shape recovery."""
 
 from __future__ import annotations
 
-import copy
 import importlib
 import json
-import tempfile
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
-
-ROOT = Path(__file__).resolve().parents[1]
 import dcoir_review_required_runtime_patch_v33 as v33
-import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v37 as v37
-import dcoir_review_required_runtime_patch_v44 as v44
+import dcoir_review_required_runtime_patch_v44_execution as execution
+import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v51 as v51
 import dcoir_review_required_runtime_patch_v55 as v55
-import dcoir_review_execution as execution
 
 
-def finding(line: int, title: str, *, confidence: float = 0.95) -> dict:
-    return {
-        "path": "sample.py",
-        "line": line,
-        "severity": "moderate",
-        "confidence": confidence,
+ROOT = Path(__file__).resolve().parent.parent
+
+
+class Reporter:
+    def __init__(self) -> None:
+        self.events: list[tuple[str, str]] = []
+
+    def update(self, stage: str, message: str) -> None:
+        self.events.append((stage, message))
+
+
+class Hardened:
+    ReviewQualityError = RuntimeError
+
+    def __init__(self, raw: Any) -> None:
+        self.raw = raw
+        self.calls = 0
+        self.stage_labels: list[str] = []
+        self.artifacts: dict[str, Any] = {}
+
+    def openrouter_review(self, _prompt, _schema, config, _reporter=None):
+        self.calls += 1
+        self.stage_labels.append(str(getattr(config, v55._V54_STAGE_LABEL_ATTR, "") or ""))
+        return self.raw, "adjudicator-model", "default"
+
+    @staticmethod
+    def result_findings(result: Any) -> list[dict[str, Any]]:
+        if not isinstance(result, dict):
+            return []
+        findings = result.get("findings")
+        return list(findings) if isinstance(findings, list) else []
+
+    @staticmethod
+    def write_debug_text_artifact_safely(*_args, **_kwargs) -> None:
+        return None
+
+    def write_debug_json_artifact_safely(self, _config, path: str, payload: Any) -> None:
+        self.artifacts[path] = payload
+
+
+def finding(
+    line: int,
+    title: str,
+    *,
+    severity: str = "medium",
+    confidence: float = 0.90,
+    risk: bool = False,
+) -> dict[str, Any]:
+    item: dict[str, Any] = {
         "title": title,
-        "body": f"{title} body",
-        "suggested_replacement": "replacement",
+        "severity": severity,
+        "confidence": confidence,
+        "path": "probe.py",
+        "line": line,
+        "body": f"Concrete defect {title} is demonstrated by the changed predicate.",
+        "suggested_replacement": "",
+        "validation": "Run the deterministic v55 shape-recovery regression.",
+        "_dcoir_v51_candidate_id": f"candidate-{line}",
+        "_dcoir_v51_semantic_candidate_key": [
+            "probe.py",
+            line,
+            f"semantic_candidate:candidate-{line}",
+        ],
     }
+    if risk:
+        item["_risk_sentinel_key"] = ["probe.py", line, "python_ssrf"]
+    return item
 
 
 def config() -> SimpleNamespace:
     return SimpleNamespace(
-        verifier_max_candidates=12,
-        verifier_min_candidates=1,
-        verifier_deep_min_candidates=2,
-        verifier_deep_max_candidates=12,
-        verifier_high_risk_max_candidates=12,
-        minimum_confidence=0.7,
-        review_mode="standard",
-        context_mode="diff",
-        quality_max_retries=1,
-        semantic_adjudicator_max_findings=12,
-        semantic_adjudicator_max_chars=12000,
-        semantic_adjudicator_summary_max_chars=800,
-        _review_state={"risk_sentinels": []},
+        semantic_adjudication_model_stack=["adjudicator-model"],
+        semantic_adjudication_max_findings=8,
+        semantic_adjudication_candidate_digest_chars=24000,
+        semantic_candidate_identity_review=True,
+        max_prompt_chars=120000,
+        minimum_confidence=0.70,
+        max_inline_comments=12,
     )
 
 
-def fake_line_index(*lines: int) -> dict:
-    return {"sample.py": set(lines)}
+def module_for(raw: Any):
+    hardened = Hardened(raw)
+    rank_calls: list[list[dict[str, Any]]] = []
+
+    def ranker(findings: list[dict[str, Any]], cfg: Any) -> list[dict[str, Any]]:
+        # Recovery must use the active production ranker with config rather than
+        # slicing raw upstream hypotheses by ordinal.
+        assert not isinstance(cfg, int)
+        rank_calls.append([dict(item) for item in findings])
+        required = [item for item in findings if item.get("_risk_sentinel_key")]
+        ordinary = [item for item in findings if not item.get("_risk_sentinel_key")]
+        return required + ordinary
+
+    module = SimpleNamespace(
+        hardened=hardened,
+        base=SimpleNamespace(sanitize_text=lambda text, _config: str(text)),
+        rank_findings_for_required_budget=ranker,
+    )
+    return module, hardened, rank_calls
 
 
-def run(payload: object, incoming: list[dict], *, line_index=None, cfg=None):
-    hardened = SimpleNamespace()
-    hardened.calls = 0
-    hardened.non_actionable_finding_reason = lambda _item: ""
-    hardened.required_risk_sentinels = lambda _items: []
-
-    def fake_openrouter_review(_prompt, _schema, _config, _reporter=None):
-        hardened.calls += 1
-        return payload, "adjudicator-model", "default"
-
-    hardened.openrouter_review = fake_openrouter_review
-    hardened.ReviewQualityError = RuntimeError
-    hardened.semantic_finding_identity = v51.semantic_finding_identity
-    hardened.ranked_finding_identity = v51.ranked_finding_identity
-    hardened.summary_suggests_problem = lambda summary: "problem" in str(summary).lower()
-
-    rank_calls: list[list[dict]] = []
-
-    def fake_rank(values, _config, _line_index, _risk_sentinels=None, _diff=""):
-        copied = [dict(item) for item in values]
-        rank_calls.append(copied)
-        return copied
-
-    hardened.rank_and_filter_findings = fake_rank
-    module = SimpleNamespace(hardened=hardened)
-    reporter = SimpleNamespace(events=[], update=lambda stage, message: reporter.events.append((stage, message)))
+def run(raw: Any, hypotheses: list[dict[str, Any]]):
+    module, hardened, rank_calls = module_for(raw)
+    reporter = Reporter()
     result = v55.run_adjudicator(
         module,
-        cfg or config(),
+        {"type": "object"},
+        config(),
         reporter,
-        incoming,
-        line_index or fake_line_index(1, 2, 3, 4, 5),
-        "diff",
+        hypotheses,
+        "exact-head evidence",
+        "broader-context",
     )
     return result, module, hardened, rank_calls, reporter
 
 
-def fail_closed(payload: object, incoming: list[dict], text: str, *, line_index=None, cfg=None):
-    hardened = SimpleNamespace()
-    hardened.calls = 0
-    hardened.non_actionable_finding_reason = lambda _item: ""
-    hardened.required_risk_sentinels = lambda _items: []
-
-    def fake_openrouter_review(_prompt, _schema, _config, _reporter=None):
-        hardened.calls += 1
-        return payload, "adjudicator-model", "default"
-
-    hardened.openrouter_review = fake_openrouter_review
-    hardened.ReviewQualityError = RuntimeError
-    hardened.semantic_finding_identity = v51.semantic_finding_identity
-    hardened.ranked_finding_identity = v51.ranked_finding_identity
-    hardened.summary_suggests_problem = lambda summary: "problem" in str(summary).lower()
-    hardened.rank_and_filter_findings = lambda values, _config, _line_index, _risk_sentinels=None, _diff="": [dict(item) for item in values]
-    module = SimpleNamespace(hardened=hardened)
-    reporter = SimpleNamespace(events=[], update=lambda stage, message: reporter.events.append((stage, message)))
+def expect_runtime_error(raw: Any, hypotheses: list[dict[str, Any]], text: str) -> int:
+    module, hardened, _rank_calls = module_for(raw)
+    reporter = Reporter()
     try:
         v55.run_adjudicator(
             module,
-            cfg or config(),
+            {"type": "object"},
+            config(),
             reporter,
-            incoming,
-            line_index or fake_line_index(1, 2, 3, 4, 5),
-            "diff",
+            hypotheses,
+            "exact-head evidence",
+            "broader-context",
         )
     except RuntimeError as exc:
         assert text in str(exc)
@@ -171,126 +199,188 @@ def main() -> None:
     (canonical_result, _model, _tier), _module, hardened, rank_calls, reporter = run(
         canonical, [finding(1, "upstream")]
     )
-    assert canonical_result == canonical
     assert hardened.calls == 1
+    assert hardened.stage_labels == ["semantic-adjudicator"]
     assert rank_calls == []
-    assert reporter.events == []
+    assert v55.RECOVERY_MARKER not in canonical_result
+    assert canonical_result["findings"][0]["title"] == "canonical"
+    assert not any(stage == "semantic-adjudicator-shape-recovery" for stage, _ in reporter.events)
 
-    # A valid bare finding-array envelope is recovered once and re-ranked.
-    bare = [finding(1, "bare one"), finding(2, "bare two")]
-    (recovered, _model, _tier), _module, hardened, rank_calls, reporter = run(
-        bare, [finding(1, "upstream")]
+    # v37's complete flat-single-finding compatibility remains unchanged.
+    flat = finding(2, "flat-compatible")
+    (flat_result, _model, _tier), _module, hardened, rank_calls, _reporter = run(
+        flat, [finding(3, "upstream")]
     )
-    assert recovered["summary"].startswith("Recovered semantic adjudication output")
-    assert [item["title"] for item in recovered["findings"]] == ["bare one", "bare two"]
-    assert recovered["_semantic_shape_recovery"] == "bare_finding_array"
+    assert hardened.calls == 1
+    assert hardened.stage_labels == ["semantic-adjudicator"]
+    assert rank_calls == []
+    assert flat_result[v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
+    assert v55.RECOVERY_MARKER not in flat_result
+
+    # A valid JSON object that is neither supported v37 shape recovers only from
+    # complete upstream hypotheses. The rejected object's content is not copied.
+    upstream = [finding(index, f"candidate-{index}") for index in range(1, 14)]
+    upstream.append(finding(99, "required-risk-tail", severity="low", risk=True))
+    rejected = {
+        "summary": "schema incompatible",
+        "issues": ["NEVER_PERSIST_REJECTED_CONTENT"],
+        "private": "NEVER_PERSIST_PRIVATE_CONTENT",
+    }
+    (recovered, model, tier), _module, hardened, rank_calls, reporter = run(
+        rejected, upstream
+    )
+    assert hardened.calls == 1
+    assert hardened.stage_labels == ["semantic-adjudicator"]
+    assert model == "adjudicator-model"
+    assert tier == "default"
+    assert len(rank_calls) == 1
+    assert len(recovered["findings"]) == 12
+    marker = recovered[v55.RECOVERY_MARKER]
+    assert marker["reason"] == v55.RECOVERY_REASON
+    assert marker["upstream_hypotheses"] == 14
+    assert marker["usable_hypotheses"] == 14
+    assert marker["deduped_hypotheses"] == 14
+    assert marker["selected_hypotheses"] == 12
+    assert marker["verifier_capacity"] == 12
+    assert marker["extra_model_calls"] == 0
+    assert recovered["findings"][0]["title"] == "required-risk-tail"
+    assert recovered["findings"][0]["_risk_sentinel_key"][-1] == "python_ssrf"
+    assert recovered["findings"][0]["_dcoir_v51_candidate_id"] == "candidate-99"
+    serialized = json.dumps(recovered, sort_keys=True)
+    assert "NEVER_PERSIST_REJECTED_CONTENT" not in serialized
+    assert "NEVER_PERSIST_PRIVATE_CONTENT" not in serialized
+    assert any(
+        stage == "semantic-adjudicator-shape-recovery"
+        and "extra_model_calls=0" in message
+        and "verifier_capacity=12" in message
+        for stage, message in reporter.events
+    )
+
+    # v51 may remove untrusted detector replacement text while preserving the
+    # semantic candidate. That must not make the candidate ineligible for v55.
+    v51_candidate = finding(100, "v51-preserved-semantic-candidate")
+    v51_candidate.pop("suggested_replacement")
+    (v51_recovered, _model, _tier), _module, hardened, rank_calls, _reporter = run(
+        rejected, [v51_candidate]
+    )
     assert hardened.calls == 1
     assert len(rank_calls) == 1
-    assert reporter.events and reporter.events[-1][0] == "quality-recovery"
+    assert len(v51_recovered["findings"]) == 1
+    assert "suggested_replacement" not in v51_recovered["findings"][0]
+    assert v51_recovered["findings"][0]["_dcoir_v51_candidate_id"] == "candidate-100"
 
-    # A single finding object is recovered only when it is structurally valid.
-    single = finding(3, "single")
-    (single_result, _model, _tier), _module, hardened, rank_calls, _reporter = run(
-        single, [finding(3, "upstream")]
-    )
-    assert [item["title"] for item in single_result["findings"]] == ["single"]
-    assert single_result["_semantic_shape_recovery"] == "single_finding_object"
-    assert hardened.calls == 1
-    assert len(rank_calls) == 1
-
-    # Mixed lists and malformed objects remain fail-closed.
-    assert fail_closed([finding(1, "ok"), {"title": "bad"}], [finding(1, "upstream")], "non-canonical") == 1
-    assert fail_closed({"title": "bad"}, [finding(1, "upstream")], "non-canonical") == 1
-
-    # Recovery output still obeys anchoring and candidate-set constraints.
-    assert fail_closed(
-        [finding(99, "unanchored")],
-        [finding(99, "upstream")],
-        "outside the PR diff",
-        line_index=fake_line_index(1, 2, 3),
-    ) == 1
-
-    assert fail_closed(
-        [finding(2, "invented")],
-        [finding(1, "upstream")],
-        "outside the candidate set",
-    ) == 1
-
-    # Duplicate semantic identities collapse deterministically before the rank seam.
-    duplicate_payload = [finding(1, "same"), finding(1, "same")]
-    (deduped, _model, _tier), _module, _hardened, rank_calls, _reporter = run(
-        duplicate_payload,
-        [finding(1, "same")],
-    )
-    assert len(deduped["findings"]) == 1
-    assert len(rank_calls) == 1 and len(rank_calls[0]) == 1
-
-    # The configured recovery limit remains fail-closed.
-    too_many_cfg = config()
-    too_many_cfg.semantic_adjudicator_max_findings = 1
-    assert fail_closed(
-        [finding(1, "one"), finding(2, "two")],
-        [finding(1, "one"), finding(2, "two")],
-        "exceeded",
-        cfg=too_many_cfg,
-    ) == 1
-
-    # Oversized recovery output is deterministically bounded by the active candidate set.
-    tiny_chars = config()
-    tiny_chars.semantic_adjudicator_max_chars = 1
-    assert fail_closed(
-        [finding(1, "one")],
-        [finding(1, "one")],
-        "exceeded",
-        cfg=tiny_chars,
-    ) == 1
-
-    # Production composition exercises v55 with the full runtime chain active.
+    # Exact semantic duplicates collapse, but distinct same-site/same-title
+    # hypotheses must survive into the active production v51-aware ranker.
     review = production_review()
-    assert getattr(review, v55.APPLIED_MARKER, False) is True
-    production_cfg = production_config(review)
-    assert production_cfg.semantic_adjudicator_max_findings >= 1
+    prod_cfg = production_config(review)
+    assert prod_cfg.semantic_candidate_identity_review is True
+    # Production v55 must patch v44's earlier scope dedupe, not merely the
+    # recovery helper, so same-site semantic candidates survive before the
+    # adjudicator/recovery seam is reached.
+    assert scope.dedupe_exact_findings is v55._dedupe_upstream_hypotheses
+    first = finding(101, "same-site-semantic-candidate")
+    second = finding(101, "same-site-semantic-candidate")
+    for item in (first, second):
+        item.pop(v51.CANDIDATE_ID_FIELD, None)
+        item.pop("suggested_replacement", None)
+    first["body"] = "Primary semantic defect at the shared changed line remains independently actionable."
+    first["validation"] = "Run the first same-site semantic invariant regression."
+    first[v51.SEMANTIC_KEY_FIELD] = [
+        "probe.py",
+        101,
+        f"{v51.SEMANTIC_KIND_PREFIX}same-site-primary",
+    ]
+    second["body"] = "A distinct fallback semantic defect at the same changed line has different impact."
+    second["validation"] = "Run the second same-site semantic invariant regression."
+    second[v51.SEMANTIC_KEY_FIELD] = [
+        "probe.py",
+        101,
+        f"{v51.SEMANTIC_KIND_PREFIX}same-site-fallback",
+    ]
+    deduped = scope.dedupe_exact_findings([first, dict(first), second])
+    assert len(deduped) == 2
+    recovered_identity = v55._recover_upstream_hypotheses(
+        review, [first, dict(first), second], prod_cfg
+    )
+    assert recovered_identity is not None
+    identity_findings = recovered_identity["findings"]
+    assert len(identity_findings) == 2
+    assert all(v55._complete_upstream_hypothesis(review, item) for item in identity_findings)
+    candidate_ids = [str(item.get(v51.CANDIDATE_ID_FIELD, "")) for item in identity_findings]
+    semantic_keys = [tuple(item.get(v51.SEMANTIC_KEY_FIELD, [])) for item in identity_findings]
+    assert len(set(candidate_ids)) == 2
+    assert len(set(semantic_keys)) == 2
+    identity_marker = recovered_identity[v55.RECOVERY_MARKER]
+    assert identity_marker["upstream_hypotheses"] == 3
+    assert identity_marker["usable_hypotheses"] == 3
+    assert identity_marker["deduped_hypotheses"] == 2
+    assert identity_marker["selected_hypotheses"] == 2
+    assert identity_marker["selected_hypotheses"] <= identity_marker["verifier_capacity"]
 
-    # Production openrouter seam recovers a bare list while preserving telemetry wrapper shape.
-    original_openrouter = review.hardened.openrouter_review
-    original_rank = review.hardened.rank_and_filter_findings
-    original_sentinels = review.hardened.required_risk_sentinels
-    original_non_actionable = review.hardened.non_actionable_finding_reason
-    original_summary_problem = review.hardened.summary_suggests_problem
-    try:
-        calls = 0
+    # Oversized JSON integers can overflow float conversion. They are rejected as
+    # unusable upstream evidence rather than escaping the fallback candidate filter.
+    oversized = finding(102, "oversized-confidence")
+    oversized["confidence"] = 10**400
+    assert v55._complete_upstream_hypothesis(review, oversized) is False
+    calls = expect_runtime_error(
+        rejected,
+        [oversized],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
 
-        def fake_openrouter(*_args, **_kwargs):
-            nonlocal calls
-            calls += 1
-            return [finding(1, "production bare")], "fake-model", "default"
+    # Incomplete or schema-invalid semantic fields are never repaired/coerced.
+    incomplete = finding(5, "incomplete")
+    incomplete.pop("validation")
+    calls = expect_runtime_error(
+        {"summary": "wrong shape", "issues": []},
+        [incomplete],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
+    nonnumeric = finding(6, "nonnumeric")
+    nonnumeric["confidence"] = "0.95"
+    calls = expect_runtime_error(
+        {"summary": "wrong shape", "issues": []},
+        [nonnumeric],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
 
-        review.hardened.openrouter_review = fake_openrouter
-        review.hardened.rank_and_filter_findings = lambda values, *_args, **_kwargs: [dict(item) for item in values]
-        review.hardened.required_risk_sentinels = lambda _items: []
-        review.hardened.non_actionable_finding_reason = lambda _item: ""
-        review.hardened.summary_suggests_problem = lambda _summary: False
-        reporter = SimpleNamespace(events=[], update=lambda stage, message: reporter.events.append((stage, message)))
-        result, model, tier = execution.run_adjudicator(
-            review,
-            production_cfg,
-            reporter,
-            [finding(1, "production bare")],
-            fake_line_index(1),
-            "diff",
-        )
-        assert calls == 1
-        assert model == "fake-model" and tier == "default"
-        assert result["_semantic_shape_recovery"] == "bare_finding_array"
-        assert result["findings"][0]["title"] == "production bare"
-    finally:
-        review.hardened.openrouter_review = original_openrouter
-        review.hardened.rank_and_filter_findings = original_rank
-        review.hardened.required_risk_sentinels = original_sentinels
-        review.hardened.non_actionable_finding_reason = original_non_actionable
-        review.hardened.summary_suggests_problem = original_summary_problem
+    # No usable upstream evidence leaves the original v37 failure fail-closed.
+    calls = expect_runtime_error(
+        {"summary": "wrong shape", "issues": []},
+        [],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
 
-    print("dcoir_review_required_runtime_patch_v55_selftest passed")
+    # A partial flat finding remains malformed under v37 and never becomes an
+    # upstream-hypothesis fallback merely because it is valid JSON.
+    partial_flat = finding(7, "partial-flat")
+    partial_flat.pop("validation")
+    calls = expect_runtime_error(
+        partial_flat,
+        [finding(8, "usable-upstream")],
+        "neither a findings envelope nor a complete flat single finding",
+    )
+    assert calls == 1
+
+    # Non-object and malformed canonical envelopes retain existing failure paths.
+    calls = expect_runtime_error(
+        ["not", "an", "object"],
+        [finding(9, "upstream")],
+        "non-object result",
+    )
+    assert calls == 1
+    calls = expect_runtime_error(
+        {"summary": "bad envelope", "findings": "not-a-list"},
+        [finding(10, "upstream")],
+        "non-list findings",
+    )
+    assert calls == 1
+
+    print("DCOIR Review v55 adjudicator shape-recovery selftest passed")
 
 
 if __name__ == "__main__":
