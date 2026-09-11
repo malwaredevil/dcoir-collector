@@ -150,7 +150,9 @@ def main() -> None:
         )
 
         # A direct request-boundary probe must not leave transport telemetry that
-        # can contaminate a later provider attempt on the same config.
+        # can contaminate a later provider attempt on the same config. The marker
+        # must retain the config object itself so Python object-id reuse cannot
+        # make stale transport state match an unrelated later config.
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
@@ -169,6 +171,9 @@ def main() -> None:
         else:
             raise AssertionError("direct transport probe unexpectedly succeeded")
         assert len(calls) == 1 and not remaining
+        marker = getattr(v58._TRANSPORT_STATE, "marker", None)
+        assert isinstance(marker, tuple) and len(marker) == 3
+        assert marker[0] is config
         calls, remaining = install_sequence(
             review,
             [provider_response("after-direct-probe", "model-a")],
