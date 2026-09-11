@@ -86,8 +86,11 @@ def _request_attempt_count(config: Any) -> int:
 
 
 def _set_transport_marker(config: Any, *, http_status: int | None = None) -> None:
+    # Keep an identity-bearing reference until telemetry consumes the marker.
+    # This prevents stale state from matching a later object after Python reuses
+    # an object id.
     _TRANSPORT_STATE.marker = (
-        id(config),
+        config,
         _request_attempt_count(config),
         http_status if isinstance(http_status, int) and not isinstance(http_status, bool) else None,
     )
@@ -101,8 +104,8 @@ def _take_transport_marker(config: Any) -> tuple[bool, int | None]:
         pass
     if not isinstance(marker, tuple) or len(marker) != 3:
         return False, None
-    config_id, attempt_count, http_status = marker
-    if config_id != id(config) or attempt_count != _request_attempt_count(config):
+    marker_config, attempt_count, http_status = marker
+    if marker_config is not config or attempt_count != _request_attempt_count(config):
         return False, None
     if not isinstance(http_status, int) or isinstance(http_status, bool):
         http_status = None
@@ -121,6 +124,15 @@ def _replay_http_error(exc: urllib.error.HTTPError, body: bytes) -> urllib.error
     reason = getattr(exc, "reason", None) or str(exc)
     headers = getattr(exc, "headers", None)
     return urllib.error.HTTPError(url, exc.code, reason, headers, io.BytesIO(body))
+
+
+def _safe_close_http_error(exc: urllib.error.HTTPError) -> None:
+    """Best-effort close of the original network-backed HTTPError response."""
+
+    try:
+        exc.close()
+    except Exception:
+        pass
 
 
 def _transport_runtime_error(exc: Exception) -> RuntimeError:
@@ -169,6 +181,7 @@ def _patch_request_boundary(module: Any) -> None:
                 _set_transport_marker(config, http_status=status)
                 replay = _replay_http_error(exc, b"")
                 replay._dcoir_transport_body_interrupted = True
+                _safe_close_http_error(exc)
                 raise replay from read_exc
             raise _replay_http_error(exc, body) from exc
         except Exception as exc:
