@@ -277,7 +277,6 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
         f"{floor:.2f}. If no defect meets this floor, return an empty findings list and a clean summary."
     )
     needle = "Publication-quality rules:"
-    injected = prompt
     if needle in prompt:
         injected = prompt.replace(needle, f"{needle}\n{instruction}", 1)
     else:
