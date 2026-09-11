@@ -18,16 +18,24 @@ def run_http_error_cases(review, retry_loop, transport_failure_class: str) -> No
     # A retryable HTTP status whose error-body read is itself interrupted must
     # stay inside the historical status-specific bounded retry loop. The
     # interrupted body is not parsed, while status metadata remains attached
-    # to transport telemetry.
+    # to transport telemetry. The original network-backed HTTPError must be
+    # closed before its detached replay enters another attempt.
     config = fresh_config(review, ["model-a"], attempts=2)
+    interrupted_body = FakeResponse(
+        read_error=http.client.IncompleteRead(b"partial-error-body", 80)
+    )
+    interrupted_body.closed = False
+
+    def mark_interrupted_body_closed() -> None:
+        interrupted_body.closed = True
+
+    interrupted_body.close = mark_interrupted_body_closed
     interrupted_503 = urllib.error.HTTPError(
         "https://openrouter.ai/api/v1/chat/completions",
         503,
         "service unavailable",
         {"Retry-After": "1"},
-        FakeResponse(
-            read_error=http.client.IncompleteRead(b"partial-error-body", 80)
-        ),
+        interrupted_body,
     )
     calls, remaining = install_sequence(
         review,
@@ -39,6 +47,7 @@ def run_http_error_cases(review, retry_loop, transport_failure_class: str) -> No
     result, model, _tier = retry_loop("probe", schema, config, Reporter())
     assert result["summary"] == "http-body-retry-success" and model == "model-a"
     assert len(calls) == 2 and not remaining
+    assert interrupted_body.closed is True
     events = attempt_events(config)
     assert [item["outcome"] for item in events] == ["retry", "success"]
     assert events[0]["failure_class"] == transport_failure_class
