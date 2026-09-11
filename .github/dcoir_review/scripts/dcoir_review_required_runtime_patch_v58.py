@@ -12,6 +12,8 @@ The same protection covers interrupted reads of ``HTTPError`` response bodies.
 Those failures are replayed through the historical HTTP-status path so that
 status-specific retry/backoff/fallback policy remains authoritative, while
 telemetry still records the attempt as a transport failure with its HTTP status.
+An explicit body-interruption signal lets the status policy retry an ambiguous
+402 without inspecting partial bytes to distinguish in-flight from depleted credits.
 """
 
 from __future__ import annotations
@@ -140,8 +142,8 @@ def _patch_request_boundary(module: Any) -> None:
             # HTTPError. If the body read itself is interrupted, discard partial
             # bytes, mark the attempt as transport-failed, and replay the same
             # HTTPError with an empty readable body. The historical status path
-            # then decides whether to retry or fall back; v58 does not duplicate
-            # or widen the status policy.
+            # then decides whether to retry or fall back. Preserve an explicit
+            # interruption signal for statuses whose retry decision needs a body.
             try:
                 body = exc.read()
             except Exception as read_exc:
@@ -149,7 +151,9 @@ def _patch_request_boundary(module: Any) -> None:
                     raise
                 status = exc.code if isinstance(exc.code, int) and not isinstance(exc.code, bool) else None
                 _set_transport_marker(config, http_status=status)
-                raise _replay_http_error(exc, b"") from read_exc
+                replay = _replay_http_error(exc, b"")
+                replay._dcoir_transport_body_interrupted = True
+                raise replay from read_exc
             raise _replay_http_error(exc, body) from exc
         except Exception as exc:
             if not _is_retryable_transport_exception(exc):

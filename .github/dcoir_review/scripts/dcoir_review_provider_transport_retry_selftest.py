@@ -38,6 +38,9 @@ class FakeResponse:
             raise self._read_error
         return self._raw
 
+    def close(self) -> None:
+        pass
+
 
 class Reporter:
     def __init__(self) -> None:
@@ -111,6 +114,18 @@ def install_sequence(review, sequence):
 def attempt_events(config) -> list[dict]:
     values = getattr(config, "_openrouter_request_attempt_telemetry_events", [])
     return [dict(item) for item in values if isinstance(item, dict)]
+
+
+def interrupted_credit_error() -> urllib.error.HTTPError:
+    # Even a parseable partial body must be discarded, not used to classify 402.
+    partial = b'{"error":{"message":"Insufficient credits. Add credits to continue."}}'
+    return urllib.error.HTTPError(
+        "https://openrouter.ai/api/v1/chat/completions",
+        402,
+        "payment required",
+        {"Retry-After": "1"},
+        FakeResponse(read_error=http.client.IncompleteRead(partial, len(partial) + 10)),
+    )
 
 
 def main() -> None:
@@ -305,6 +320,72 @@ def main() -> None:
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
         assert events[0]["http_status"] == 503
 
+        # Interrupted 402 bodies cannot distinguish depleted credits from the
+        # retryable in-flight-credit case. Retry the transport failure within the
+        # existing attempt budget, preserving status and Retry-After handling.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        calls, remaining = install_sequence(
+            review,
+            [interrupted_credit_error(), provider_response("credit-retry-success", "model-a")],
+        )
+        delays = []
+        review.hardened.time.sleep = delays.append
+        result, model, _tier = retry_loop("probe", schema, config, Reporter())
+        review.hardened.time.sleep = lambda _seconds: None
+        assert result["summary"] == "credit-retry-success" and model == "model-a"
+        assert len(calls) == 2 and not remaining
+        assert delays == [1.0]
+        events = attempt_events(config)
+        assert [item["outcome"] for item in events] == ["retry", "success"]
+        assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
+        assert events[0]["http_status"] == 402
+
+        # Repeated interruptions exhaust each model's budget and fail closed
+        # after the last model, without a new retry counter or unlimited loop.
+        config = fresh_config(review, ["model-a", "model-b"], attempts=2)
+        calls, remaining = install_sequence(
+            review, [interrupted_credit_error() for _ in range(4)]
+        )
+        try:
+            retry_loop("probe", schema, config, Reporter())
+        except RuntimeError as exc:
+            assert "HTTP 402" in str(exc)
+        else:
+            raise AssertionError("interrupted 402 exhaustion did not fail closed")
+        assert len(calls) == 4 and not remaining
+        events = attempt_events(config)
+        assert [item["outcome"] for item in events] == [
+            "retry", "fallback", "retry", "terminal_failure"
+        ]
+        assert [json.loads(call.data)["model"] for call in calls] == [
+            "model-a", "model-a", "model-b", "model-b"
+        ]
+        assert all(item["failure_class"] == v58.TRANSPORT_FAILURE_CLASS for item in events)
+        assert all(item["http_status"] == 402 for item in events)
+
+        # A complete 402 remains governed by its message. A previous interrupted
+        # attempt must not make a later depleted-credit response retryable.
+        for interrupted_first in (False, True):
+            config = fresh_config(review, ["model-a"], attempts=3)
+            depleted = urllib.error.HTTPError(
+                "https://openrouter.ai/api/v1/chat/completions", 402,
+                "payment required", {},
+                io.BytesIO(b'{"error":{"message":"Insufficient credits. Add credits to continue."}}'),
+            )
+            sequence = [interrupted_credit_error(), depleted] if interrupted_first else [depleted]
+            calls, remaining = install_sequence(review, sequence)
+            try:
+                retry_loop("probe", schema, config, Reporter())
+            except RuntimeError as exc:
+                assert "HTTP 402" in str(exc)
+            else:
+                raise AssertionError("depleted credits did not fail closed")
+            assert len(calls) == len(sequence) and not remaining
+            events = attempt_events(config)
+            assert events[-1]["outcome"] == "terminal_failure"
+            assert events[-1]["failure_class"] == "http_error"
+            assert events[-1]["http_status"] == 402
+
         # A non-retryable status does not become retryable merely because its body
         # read was interrupted. Retry disposition still comes from the historical
         # HTTP status policy, while telemetry records that the body transport failed.
@@ -383,6 +464,17 @@ def main() -> None:
             "probe", schema, config, Reporter()
         )
         assert result["summary"] == "production-success" and model == "model-a"
+        assert len(calls) == 2 and not remaining
+
+        config = fresh_config(review, ["model-a"], attempts=2)
+        calls, remaining = install_sequence(
+            review,
+            [interrupted_credit_error(), provider_response("production-credit-success", "model-a")],
+        )
+        result, model, _tier = review.hardened.openrouter_review(
+            "probe", schema, config, Reporter()
+        )
+        assert result["summary"] == "production-credit-success" and model == "model-a"
         assert len(calls) == 2 and not remaining
     finally:
         review.hardened.urllib.request.urlopen = original_urlopen
