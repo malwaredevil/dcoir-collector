@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-"""Deterministic regressions for DCOIR Review v57 terminal disposition."""
+"""Deterministic regressions for DCOIR Review v57."""
 
 from __future__ import annotations
 
-import importlib
 from types import SimpleNamespace
 from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v54 as v54
 import dcoir_review_required_runtime_patch_v57 as v57
+from dcoir_review_required_runtime_patch_v57_selftest_prompt import (
+    run_prompt_regressions,
+)
+from dcoir_review_required_runtime_patch_v57_selftest_production import (
+    run_production_regressions,
+)
 
 
 class FakeHardened:
@@ -83,9 +88,9 @@ def finding(path: str, line: int, confidence: float, title: str = "Candidate") -
         "confidence": confidence,
         "path": path,
         "line": line,
-        "body": "The changed contract may permit a concrete incorrect behavior.",
+        "body": "Concrete incorrect behavior is possible.",
         "suggested_replacement": "",
-        "validation": "Exercise the changed contract with a deterministic regression.",
+        "validation": "Run deterministic regression.",
     }
 
 
@@ -121,7 +126,7 @@ def expect_legacy_failure(module: FakeModule, result: dict[str, Any], config: An
     except RuntimeError as exc:
         assert "legacy fail-closed path" in str(exc)
     else:
-        raise AssertionError("v57 bypassed a negative-control fail-closed case")
+        raise AssertionError("v57 bypassed fail-closed")
     assert module.original_split_calls == before + 1
 
 
@@ -143,98 +148,17 @@ def main() -> None:
     assert getattr(module.hardened, v57.REVIEW_STORAGE) is stored_review
     assert getattr(module, v57.SPLIT_STORAGE) is stored_split
 
-    # Only the final v35 adjudicator gets the active publication floor. Because
-    # injection replaces the prompt object, v57 must preserve v54's stage label
-    # explicitly rather than allowing it to fall back to primary-semantic.
-    semantic_prompt = (
-        "Final semantic adjudication pass.\n\n"
-        "Publication-quality rules:\n"
-        "- Return only distinct root-cause defects.\n\n"
-        f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
-    )
-    original_callsite_probe = v57._is_final_v35_semantic_adjudication_call
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, config, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
-    injected = module.hardened.review_prompts[-1]
-    assert v57.PROMPT_MARKER in injected
-    assert "0.70" in injected
-    assert "empty findings list and a clean summary" in injected
-    assert injected.count(v57.PROMPT_MARKER) == 1
-    assert module.hardened.review_stages[-1] == "semantic-adjudicator"
-    assert module.hardened.debug_text_artifacts[v57.PROMPT_ARTIFACT_PATH] == injected
+    run_prompt_regressions(module, config)
 
-    # v44/v52 escalation uses the same leading adjudication block but different
-    # bounded-evidence wording; v57 must not rewrite that independent contract.
-    escalation_prompt = (
-        "Final semantic adjudication pass.\n\n"
-        "Publication-quality rules:\n"
-        "- Return only distinct root-cause defects.\n\n"
-        "Candidate hypotheses from the bounded primary/challenger evidence:\n[]\n\n"
-        "Escalation context scope: candidate-scoped."
-    )
-    module.hardened.openrouter_review(escalation_prompt, {}, config, None)
-    assert module.hardened.review_prompts[-1] == escalation_prompt
-    assert module.hardened.review_stages[-1] != "semantic-adjudicator"
-
-    ordinary_prompt = "Routine per-file review prompt."
-    module.hardened.openrouter_review(ordinary_prompt, {}, config, None)
-    assert module.hardened.review_prompts[-1] == ordinary_prompt
-    assert module.hardened.review_stages[-1] != "semantic-adjudicator"
-
-    untrusted_marker_prompt = (
-        "Final semantic adjudication pass.\n\n"
-        "PR diff mentions: "
-        f"{v57.PROMPT_MARKER}\n\n"
-        f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
-    )
-    module.hardened.openrouter_review(untrusted_marker_prompt, {}, config, None)
-    assert module.hardened.review_prompts[-1] == untrusted_marker_prompt
-
-    tiny_budget_config = SimpleNamespace(minimum_confidence=0.70, fail_on_summary_only_problem=True, max_prompt_chars=220)
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, tiny_budget_config, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
-    bounded_injected = module.hardened.review_prompts[-1]
-    assert len(bounded_injected) <= tiny_budget_config.max_prompt_chars
-    assert bounded_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
-    assert v57.PROMPT_MARKER in bounded_injected
-
-    tiny_marker_budget = SimpleNamespace(minimum_confidence=0.70, fail_on_summary_only_problem=True, max_prompt_chars=8)
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, tiny_marker_budget, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
-    smallest_bounded = module.hardened.review_prompts[-1]
-    assert len(smallest_bounded) == tiny_marker_budget.max_prompt_chars
-
-    malformed_budget_config = SimpleNamespace(
-        minimum_confidence=0.70,
-        fail_on_summary_only_problem=True,
-        max_prompt_chars="invalid",
-    )
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, malformed_budget_config, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
-    malformed_budget_injected = module.hardened.review_prompts[-1]
-    assert v57.PROMPT_MARKER in malformed_budget_injected
-    assert not malformed_budget_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
-
-    # Re-injection is idempotent for an already annotated final prompt.
-    reinjected = v57._inject_publication_floor(injected, config)
-    assert reinjected == injected
-
-    # Exact live run 34566845633 confidence shape: final v35 semantic adjudication
-    # completed and retained only 0.60/0.50/0.45 hypotheses below the 0.70 floor.
-    # The clean terminal path additionally requires a non-problem summary.
     live_shape = adjudicated_result(
         [
             finding(".github/AGENTS.md", 22, 0.60, "Lane-neutral duty may be narrowed"),
-            finding("AGENTS.md", 248, 0.50, "Validation guidance may be narrowed"),
+            finding("AGENTS.md", 248, 0.50, "Validation guidance may narrow"),
             finding(
                 ".github/agent-governance/codex_cloud_environment.md",
                 77,
                 0.45,
-                "Readback gate may lack a named actor",
+                "Readback gate may lack actor",
             ),
         ],
         v57.CLEAN_SUMMARY,
@@ -273,8 +197,6 @@ def main() -> None:
         for stage, message in module.status_events
     )
 
-    # #430's earlier-stage contract stays fail-closed: the same weak findings
-    # without completed semantic adjudication do not get a clean disposition.
     early = {
         "summary": "Possible weak first-pass concern.",
         "findings": [finding("probe.py", 10, 0.55)],
@@ -282,8 +204,6 @@ def main() -> None:
     }
     expect_legacy_failure(module, early, config)
 
-    # An attempted marker without model/count evidence is not enough to bypass
-    # the historical terminal quality gate.
     incomplete_marker = {
         "summary": v57.CLEAN_SUMMARY,
         "findings": [finding("probe.py", 10, 0.55)],
@@ -295,17 +215,10 @@ def main() -> None:
     count_mismatch["_semantic_adjudication_output_findings"] = 2
     expect_legacy_failure(module, count_mismatch, config)
 
-    # v35 sets this marker when the provider returned more adjudicated entries
-    # than the configured cap. Even if the retained entries are otherwise valid
-    # and below threshold, the discarded pre-cap response may have been malformed
-    # and must never be reinterpreted as a clean result.
     overflow_trimmed = adjudicated_result([finding("probe.py", 10, 0.55)])
     overflow_trimmed["_semantic_adjudication_overflow_trimmed"] = 1
     expect_legacy_failure(module, overflow_trimmed, config)
 
-    # The preexisting summary-only problem gate remains authoritative. A final
-    # adjudicator that still says a correctness issue remains cannot be cleared
-    # merely because its structured candidates are below the publication floor.
     problem_summary = adjudicated_result(
         [finding("probe.py", 10, 0.55)],
         "A correctness issue remains after semantic adjudication.",
@@ -322,10 +235,6 @@ def main() -> None:
     )
     expect_legacy_failure(module, empty_summary, config)
 
-    # Honor the existing configuration switch as well: when the repository has
-    # explicitly disabled the summary-only problem gate, v57 may use the same
-    # bounded low-confidence disposition, but malformed/empty summaries are still
-    # rejected before that policy switch is consulted.
     summary_gate_disabled = SimpleNamespace(
         minimum_confidence=0.70,
         fail_on_summary_only_problem=False,
@@ -346,7 +255,6 @@ def main() -> None:
     disabled_malformed_summary["summary"] = []
     expect_legacy_failure(module, disabled_malformed_summary, summary_gate_disabled)
 
-    # Any v44/v55 scoped adjudication remains on its existing v52/v55 path.
     for scope in ("candidate-scoped", "broad"):
         scoped = adjudicated_result(
             [finding("probe.py", 10, 0.55)],
@@ -355,16 +263,12 @@ def main() -> None:
         )
         expect_legacy_failure(module, scoped, config)
 
-    # Even fully adjudicated low-confidence output remains fail-closed when its
-    # anchor is not an added changed line.
     unanchored = adjudicated_result(
         [finding("probe.py", 99, 0.55)],
         v57.CLEAN_SUMMARY,
     )
     expect_legacy_failure(module, unanchored, config)
 
-    # Any at/above-floor candidate, malformed candidate, informational candidate,
-    # or required deterministic sentinel preserves the existing fail-closed path.
     at_floor = adjudicated_result([finding("probe.py", 10, 0.70)])
     expect_legacy_failure(module, at_floor, config)
 
@@ -397,8 +301,23 @@ def main() -> None:
         config,
     )
 
+    overlength_title = finding("probe.py", 10, 0.55, "T" * 121)
+    expect_legacy_failure(
+        module,
+        adjudicated_result([overlength_title]),
+        config,
+    )
+
+    top_level_extra_property = adjudicated_result([finding("probe.py", 10, 0.55)])
+    top_level_extra_property["unexpected"] = True
+    expect_legacy_failure(
+        module,
+        top_level_extra_property,
+        config,
+    )
+
     populated_replacement = finding("probe.py", 10, 0.55)
-    populated_replacement["suggested_replacement"] = "replacement text must come from repair synthesis"
+    populated_replacement["suggested_replacement"] = "replacement text"
     expect_legacy_failure(
         module,
         adjudicated_result([populated_replacement]),
@@ -440,99 +359,9 @@ def main() -> None:
     finally:
         module.hardened.force_required_sentinel = False
 
-    # Exercise the actual composed production normalizer without any provider
-    # call. This is the missing interaction regression from the live failure.
-    review = importlib.import_module("openrouter_pr_review_pareto_context")
-    entrypoint.apply_runtime_patches(review)
-    assert getattr(review, v57.APPLIED_MARKER, False) is True
-    prod_config = review.load_pareto_context_config(
-        ".github/dcoir_review/openrouter-pr-review-pareto.yml"
-    )
-    assert round(float(prod_config.minimum_confidence), 2) == 0.70
-    assert review.hardened.summary_suggests_problem(v57.CLEAN_SUMMARY) is False
+    run_production_regressions(entrypoint, adjudicated_result, finding)
 
-    production_live_shape = adjudicated_result(
-        [
-            finding(".github/AGENTS.md", 22, 0.60),
-            finding("AGENTS.md", 248, 0.50),
-            finding(".github/agent-governance/codex_cloud_environment.md", 77, 0.45),
-        ],
-        v57.CLEAN_SUMMARY,
-    )
-    assert review.split_findings_with_review_body_fallback(
-        production_live_shape,
-        prod_config,
-        {
-            (".github/AGENTS.md", 22): 1,
-            ("AGENTS.md", 248): 2,
-            (".github/agent-governance/codex_cloud_environment.md", 77): 3,
-        },
-        "+governance",
-        [],
-    ) == ([], [])
-    assert production_live_shape["summary"] == v57.CLEAN_SUMMARY
-    assert production_live_shape[v57.DISPOSITION_MARKER]["candidate_count"] == 3
-
-    production_problem_summary = adjudicated_result(
-        [finding("AGENTS.md", 248, 0.55)],
-        "A correctness issue remains after semantic adjudication.",
-    )
-    try:
-        review.split_findings_with_review_body_fallback(
-            production_problem_summary,
-            prod_config,
-            {("AGENTS.md", 248): 1},
-            "+governance",
-            [],
-        )
-    except review.hardened.ReviewQualityError:
-        pass
-    else:
-        raise AssertionError("production path bypassed the summary-only problem fail-closed gate")
-
-    production_overflow = adjudicated_result(
-        [finding("AGENTS.md", 248, 0.55)],
-        v57.CLEAN_SUMMARY,
-    )
-    production_overflow["_semantic_adjudication_overflow_trimmed"] = 1
-    try:
-        review.split_findings_with_review_body_fallback(
-            production_overflow,
-            prod_config,
-            {("AGENTS.md", 248): 1},
-            "+governance",
-            [],
-        )
-    except review.hardened.ReviewQualityError:
-        pass
-    else:
-        raise AssertionError("production path converted overflow-trimmed adjudication to clean")
-
-    production_early = {
-        "summary": "Possible weak first-pass concern.",
-        "findings": [finding("AGENTS.md", 248, 0.55)],
-        "_quality_retry_attempted": True,
-    }
-    try:
-        review.split_findings_with_review_body_fallback(
-            production_early,
-            prod_config,
-            {("AGENTS.md", 248): 1},
-            "+governance",
-            [],
-        )
-    except review.hardened.ReviewQualityError:
-        pass
-    else:
-        raise AssertionError("production path weakened #430 earlier-stage fail-closed behavior")
-
-    print(
-        "dcoir_review_required_runtime_patch_v57_selftest passed: "
-        "only final v35 adjudication may cleanly withdraw fully valid changed-line "
-        "sub-threshold candidates with a valid non-problem summary and no overflow; "
-        "earlier/escalation/malformed/unanchored/sentinel/summary/overflow cases "
-        "remain fail-closed and final-adjudicator telemetry stays classified"
-    )
+    print("dcoir_review_required_runtime_patch_v57_selftest passed")
 
 
 if __name__ == "__main__":

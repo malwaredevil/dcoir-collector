@@ -1,27 +1,4 @@
-"""DCOIR Review v57 final-adjudication low-confidence terminal disposition.
-
-Live run 34566845633 completed the deep detector, quality retry, independent
-challenger, and final v35 semantic adjudicator, then failed only because every
-remaining adjudicated hypothesis was below the configured publication confidence
-floor.
-
-v57 preserves the historical fail-closed contract for earlier-stage weak output,
-malformed findings, unanchored findings, summary-only concerns, adjudication
-overflow, required deterministic risk sentinels, verifier failures,
-exact-head/publication failures, and v44/v52 candidate-escalation adjudication.
-It recognizes only a completed final v35 semantic-adjudication result whose
-remaining findings are complete, changed-line-anchored, actionable-shaped,
-finite-confidence candidates and are all strictly below the active publication
-floor, whose original summary is a non-empty string that does not itself indicate
-a problem, and whose adjudication result was not overflow-trimmed. That terminal
-state is recorded as an explicit clean disposition instead of raising
-ReviewQualityError.
-
-The overlay also injects the active publication floor only into the final v35
-semantic-adjudicator prompt while preserving v54's semantic-adjudicator telemetry
-classification so other semantic escalation contracts and run accounting remain
-unchanged.
-"""
+"""DCOIR Review v57 terminal clean-disposition and prompt-floor overlay."""
 
 from __future__ import annotations
 
@@ -45,6 +22,7 @@ PROMPT_TRUNCATION_MARKER = "\n\n[semantic adjudication PR evidence truncated by 
 PROMPT_ARTIFACT_PATH = "prompts/06-semantic-adjudication-prompt.txt"
 CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+_MAX_TITLE_LENGTH = 120
 _REQUIRED_FINDING_FIELDS = (
     "title",
     "severity",
@@ -56,6 +34,20 @@ _REQUIRED_FINDING_FIELDS = (
     "validation",
 )
 _STRING_FINDING_FIELDS = ("title", "severity", "path", "body", "suggested_replacement", "validation")
+_RESULT_ALLOWED_KEYS = {
+    "summary",
+    "findings",
+    "_semantic_adjudication_attempted",
+    "_semantic_adjudication_model",
+    "_semantic_adjudication_input_candidates",
+    "_semantic_adjudication_output_findings",
+    "_semantic_adjudication_context_scope",
+    "_semantic_adjudication_overflow_trimmed",
+    "_semantic_adjudication_result_shape",
+    "_semantic_adjudication_shape_recovery",
+    "_semantic_adjudication_confidence_normalization",
+    "_semantic_adjudication_confidence_normalized_count",
+}
 
 
 def _confidence(value: Any) -> float | None:
@@ -91,9 +83,9 @@ def _complete_subthreshold_candidate(
     for field in ("title", "severity", "path", "body", "validation"):
         if not str(item.get(field) or "").strip():
             return None
-    # Detector/adjudicator responses are required to leave repair text empty;
-    # a non-empty replacement is a malformed semantic result, not a weak finding.
     if str(item.get("suggested_replacement", "") or ""):
+        return None
+    if len(str(item.get("title", "") or "")) > _MAX_TITLE_LENGTH:
         return None
     if item.get("severity") not in _VALID_SEVERITIES:
         return None
@@ -113,8 +105,6 @@ def _complete_subthreshold_candidate(
         if module.hardened.non_actionable_finding_reason(item):
             return None
     except Exception:
-        # If the active quality classifier cannot be consulted, keep the
-        # historical fail-closed path rather than silently withdrawing output.
         return None
 
     return dict(item), confidence
@@ -124,13 +114,12 @@ def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
     try:
         required = module.hardened.required_risk_sentinels(risk_sentinels)
     except Exception:
-        # Sentinel-classification uncertainty must never enable the clean path.
         return True
     return bool(required)
 
 
 def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> bool:
-    """Honor the existing summary-only problem gate before clearing findings."""
+    """Honor existing summary-only problem gating before clearing findings."""
 
     raw_summary = result.get("summary")
     if not isinstance(raw_summary, str) or not raw_summary.strip():
@@ -140,13 +129,11 @@ def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> b
     try:
         return not bool(module.hardened.summary_suggests_problem(raw_summary.strip()))
     except Exception:
-        # If the active summary classifier is unavailable or fails, preserve the
-        # historical fail-closed behavior rather than replacing the summary.
         return False
 
 
 def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
-    """Require internally recorded final-v35-adjudication evidence for this result."""
+    """Require internally recorded final-v35-adjudication evidence."""
 
     if result.get("_semantic_adjudication_attempted") is not True:
         return False
@@ -157,9 +144,6 @@ def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_fin
     if isinstance(input_count, bool) or not isinstance(input_count, int) or input_count <= 0:
         return False
 
-    # v35 stamps this marker only when it had to trim an over-limit adjudicator
-    # response. That pre-cap response is not safe to reinterpret as clean because
-    # discarded entries can include malformed/non-object output.
     if "_semantic_adjudication_overflow_trimmed" in result:
         return False
 
@@ -169,9 +153,6 @@ def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_fin
     if output_count != len(raw_findings):
         return False
 
-    # v44/v55 explicitly stamp their escalation scope. The live #546 failure
-    # came from v35, which does not set this marker. Keep those later contracts
-    # byte-for-byte on their existing v52/v55 disposition path.
     if "_semantic_adjudication_context_scope" in result:
         return False
     return True
@@ -187,6 +168,8 @@ def _terminal_disposition(
     """Classify only the final-v35 all-sub-threshold terminal shape."""
 
     if not isinstance(result, dict) or not isinstance(line_index, dict):
+        return None
+    if not set(result.keys()).issubset(_RESULT_ALLOWED_KEYS):
         return None
 
     raw_findings = result.get("findings")
@@ -229,7 +212,7 @@ def _terminal_disposition(
                 "line": int(item.get("line", 0) or 0),
                 "severity": str(item.get("severity", "") or ""),
                 "confidence": confidence,
-                "title": str(item.get("title", "") or "")[:120],
+                "title": str(item.get("title", "") or "")[:_MAX_TITLE_LENGTH],
             }
             for item, confidence in zip(candidates, confidences)
         ],
@@ -248,8 +231,6 @@ def _record_terminal_disposition(module: Any, result: dict[str, Any], dispositio
             disposition,
         )
     except Exception:
-        # Debug evidence is best-effort and must not turn a valid semantic
-        # disposition back into a workflow failure.
         pass
 
     try:
@@ -344,18 +325,11 @@ def _patch_openrouter_review(module: Any) -> None:
         if injected is prompt:
             return original(prompt, schema, config, reporter)
 
-        # v54 normally recognizes the final v35 semantic-adjudicator call from
-        # prompt object identity. Injection necessarily creates a new str, so
-        # preserve the stage explicitly on a shallow config projection before
-        # forwarding through the already-installed v54 telemetry wrapper.
         try:
             staged = copy.copy(config)
             setattr(staged, v54.STAGE_LABEL_ATTR, "semantic-adjudicator")
             setattr(staged, PROMPT_INJECTION_ATTR, True)
         except Exception:
-            # Prompt-floor injection is advisory. If stage preservation cannot be
-            # established safely, retain original behavior and telemetry rather
-            # than mutating the call in a way v54 would misclassify.
             return original(prompt, schema, config, reporter)
         try:
             module.hardened.write_debug_text_artifact_safely(
@@ -364,7 +338,6 @@ def _patch_openrouter_review(module: Any) -> None:
                 injected,
             )
         except Exception as exc:
-            # Debug artifact emission is best-effort only; never block adjudication.
             try:
                 module.hardened.write_debug_text_artifact_safely(
                     config,
@@ -372,8 +345,6 @@ def _patch_openrouter_review(module: Any) -> None:
                     repr(exc),
                 )
             except Exception:
-                # If even diagnostic emission fails, continue silently to preserve
-                # existing runtime behavior.
                 pass
         return original(injected, schema, staged, reporter)
 
