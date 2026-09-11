@@ -267,9 +267,20 @@ def main() -> None:
     )
     expect_legacy_failure(module, problem_summary, config)
 
+    malformed_summary = adjudicated_result([finding("probe.py", 10, 0.55)])
+    malformed_summary["summary"] = {"unexpected": "object"}
+    expect_legacy_failure(module, malformed_summary, config)
+
+    empty_summary = adjudicated_result(
+        [finding("probe.py", 10, 0.55)],
+        "   ",
+    )
+    expect_legacy_failure(module, empty_summary, config)
+
     # Honor the existing configuration switch as well: when the repository has
     # explicitly disabled the summary-only problem gate, v57 may use the same
-    # bounded low-confidence disposition.
+    # bounded low-confidence disposition, but malformed/empty summaries are still
+    # rejected before that policy switch is consulted.
     summary_gate_disabled = SimpleNamespace(
         minimum_confidence=0.70,
         fail_on_summary_only_problem=False,
@@ -285,6 +296,10 @@ def main() -> None:
         "+probe",
         [],
     ) == ([], [])
+
+    disabled_malformed_summary = adjudicated_result([finding("probe.py", 10, 0.55)])
+    disabled_malformed_summary["summary"] = []
+    expect_legacy_failure(module, disabled_malformed_summary, summary_gate_disabled)
 
     # Any v44/v55 scoped adjudication remains on its existing v52/v55 path.
     for scope in ("candidate-scoped", "broad"):
@@ -445,7 +460,7 @@ def main() -> None:
     print(
         "dcoir_review_required_runtime_patch_v57_selftest passed: "
         "only final v35 adjudication may cleanly withdraw fully valid changed-line "
-        "sub-threshold candidates with a non-problem summary and no overflow; "
+        "sub-threshold candidates with a valid non-problem summary and no overflow; "
         "earlier/escalation/malformed/unanchored/sentinel/summary/overflow cases "
         "remain fail-closed and final-adjudicator telemetry stays classified"
     )
