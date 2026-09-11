@@ -123,12 +123,12 @@ def main() -> None:
     assert getattr(module.hardened, v57.REVIEW_STORAGE) is stored_review
     assert getattr(module, v57.SPLIT_STORAGE) is stored_split
 
-    # Semantic adjudicators receive the active publication floor, while other
-    # model stages keep their prompt unchanged.
+    # Only the final v35 adjudicator gets the active publication floor.
     semantic_prompt = (
         "Final semantic adjudication pass.\n\n"
         "Publication-quality rules:\n"
-        "- Return only distinct root-cause defects."
+        "- Return only distinct root-cause defects.\n\n"
+        f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
     )
     module.hardened.openrouter_review(semantic_prompt, {}, config, None)
     injected = module.hardened.review_prompts[-1]
@@ -137,15 +137,27 @@ def main() -> None:
     assert "empty findings list and a clean summary" in injected
     assert injected.count(v57.PROMPT_MARKER) == 1
 
+    # v44/v52 escalation uses the same leading adjudication block but different
+    # bounded-evidence wording; v57 must not rewrite that independent contract.
+    escalation_prompt = (
+        "Final semantic adjudication pass.\n\n"
+        "Publication-quality rules:\n"
+        "- Return only distinct root-cause defects.\n\n"
+        "Candidate hypotheses from the bounded primary/challenger evidence:\n[]\n\n"
+        "Escalation context scope: candidate-scoped."
+    )
+    module.hardened.openrouter_review(escalation_prompt, {}, config, None)
+    assert module.hardened.review_prompts[-1] == escalation_prompt
+
     ordinary_prompt = "Routine per-file review prompt."
     module.hardened.openrouter_review(ordinary_prompt, {}, config, None)
     assert module.hardened.review_prompts[-1] == ordinary_prompt
 
-    # Re-injection is idempotent for an already annotated semantic prompt.
+    # Re-injection is idempotent for an already annotated final prompt.
     reinjected = v57._inject_publication_floor(injected, config)
     assert reinjected == injected
 
-    # Exact live run 34566845633 terminal shape: broad semantic adjudication
+    # Exact live run 34566845633 terminal shape: final v35 semantic adjudication
     # completed and retained only 0.60/0.50/0.45 hypotheses below the 0.70 floor.
     live_shape = adjudicated_result(
         [
@@ -182,7 +194,7 @@ def main() -> None:
     assert marker["lowest_confidence"] == 0.45
     assert marker["highest_confidence"] == 0.60
     assert marker["adjudication_model"] == "anthropic/claude-opus-5"
-    assert marker["adjudication_scope"] == "broad-full-review"
+    assert marker["adjudication_scope"] == "final-v35"
     artifact = module.hardened.debug_artifacts[
         "metadata/v57-terminal-low-confidence-disposition.json"
     ]
@@ -216,14 +228,14 @@ def main() -> None:
     count_mismatch["_semantic_adjudication_output_findings"] = 2
     expect_legacy_failure(module, count_mismatch, config)
 
-    # Candidate-scoped diff-mode adjudication remains owned by v52 rather than
-    # silently inheriting this broad/full-review terminal policy.
-    candidate_scoped = adjudicated_result(
-        [finding("probe.py", 10, 0.55)],
-        "Candidate-scoped near-threshold result.",
-        context_scope="candidate-scoped",
-    )
-    expect_legacy_failure(module, candidate_scoped, config)
+    # Any v44/v55 scoped adjudication remains on its existing v52/v55 path.
+    for scope in ("candidate-scoped", "broad"):
+        scoped = adjudicated_result(
+            [finding("probe.py", 10, 0.55)],
+            f"{scope} escalation result.",
+            context_scope=scope,
+        )
+        expect_legacy_failure(module, scoped, config)
 
     # Even fully adjudicated low-confidence output remains fail-closed when its
     # anchor is not an added changed line.
@@ -343,8 +355,8 @@ def main() -> None:
 
     print(
         "dcoir_review_required_runtime_patch_v57_selftest passed: "
-        "broad semantic adjudication may cleanly withdraw only fully valid changed-line "
-        "sub-threshold candidates while earlier/candidate-scoped/malformed/unanchored/"
+        "only final v35 adjudication may cleanly withdraw fully valid changed-line "
+        "sub-threshold candidates while earlier/escalation/malformed/unanchored/"
         "sentinel cases remain fail-closed"
     )
 
