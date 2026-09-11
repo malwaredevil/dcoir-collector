@@ -69,14 +69,23 @@ def finding(path: str, line: int, confidence: float, title: str = "Candidate") -
     }
 
 
-def adjudicated_result(findings: list[dict[str, Any]], summary: str = "Adjudicated hypotheses remain.") -> dict[str, Any]:
-    return {
+def adjudicated_result(
+    findings: list[dict[str, Any]],
+    summary: str = "Adjudicated hypotheses remain.",
+    *,
+    context_scope: str | None = None,
+) -> dict[str, Any]:
+    result = {
         "summary": summary,
         "findings": findings,
         "_semantic_adjudication_attempted": True,
         "_semantic_adjudication_model": "anthropic/claude-opus-5",
+        "_semantic_adjudication_input_candidates": max(1, len(findings)),
         "_semantic_adjudication_output_findings": len(findings),
     }
+    if context_scope is not None:
+        result["_semantic_adjudication_context_scope"] = context_scope
+    return result
 
 
 def expect_legacy_failure(module: FakeModule, result: dict[str, Any], config: Any, sentinels=None) -> None:
@@ -136,8 +145,8 @@ def main() -> None:
     reinjected = v57._inject_publication_floor(injected, config)
     assert reinjected == injected
 
-    # Exact live run 34566845633 terminal shape: semantic adjudication completed
-    # and retained only 0.60/0.50/0.45 hypotheses below the 0.70 publication floor.
+    # Exact live run 34566845633 terminal shape: broad semantic adjudication
+    # completed and retained only 0.60/0.50/0.45 hypotheses below the 0.70 floor.
     live_shape = adjudicated_result(
         [
             finding(".github/AGENTS.md", 22, 0.60, "Lane-neutral duty may be narrowed"),
@@ -173,6 +182,7 @@ def main() -> None:
     assert marker["lowest_confidence"] == 0.45
     assert marker["highest_confidence"] == 0.60
     assert marker["adjudication_model"] == "anthropic/claude-opus-5"
+    assert marker["adjudication_scope"] == "broad-full-review"
     artifact = module.hardened.debug_artifacts[
         "metadata/v57-terminal-low-confidence-disposition.json"
     ]
@@ -205,6 +215,15 @@ def main() -> None:
     count_mismatch = adjudicated_result([finding("probe.py", 10, 0.55)])
     count_mismatch["_semantic_adjudication_output_findings"] = 2
     expect_legacy_failure(module, count_mismatch, config)
+
+    # Candidate-scoped diff-mode adjudication remains owned by v52 rather than
+    # silently inheriting this broad/full-review terminal policy.
+    candidate_scoped = adjudicated_result(
+        [finding("probe.py", 10, 0.55)],
+        "Candidate-scoped near-threshold result.",
+        context_scope="candidate-scoped",
+    )
+    expect_legacy_failure(module, candidate_scoped, config)
 
     # Even fully adjudicated low-confidence output remains fail-closed when its
     # anchor is not an added changed line.
@@ -308,8 +327,9 @@ def main() -> None:
 
     print(
         "dcoir_review_required_runtime_patch_v57_selftest passed: "
-        "completed semantic adjudication may cleanly withdraw only fully valid "
-        "changed-line sub-threshold candidates while earlier/malformed/unanchored/sentinel cases remain fail-closed"
+        "broad semantic adjudication may cleanly withdraw only fully valid changed-line "
+        "sub-threshold candidates while earlier/candidate-scoped/malformed/unanchored/"
+        "sentinel cases remain fail-closed"
     )
 
 
