@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "34633068784",
+  "github_sha": "a848267a56fbc6626753c4c3b69511c70f80a84d",
+  "phase": "request-resolved",
+  "request_id": "issue550-pr552-module-ownership-validation-003",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr552-module-ownership-validation-003.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-11T18:24:35Z",
+  "workflow": "chatgpt-exec"
+}
