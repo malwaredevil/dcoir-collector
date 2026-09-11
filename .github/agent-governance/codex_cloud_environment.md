@@ -78,6 +78,16 @@ For a task that belongs to an existing PR:
 
 If `Update branch` is unavailable or fails, stop and preserve the failure evidence. Do not work around the failure by restoring a persisted PAT, custom credential helper, wrapped `gh`, raw authenticated push path, or legacy repository-specific `codex-*` helper commands unless a separately governed change demonstrates that such a mechanism is required and the operator explicitly approves it.
 
+## Current exact-head validation readback
+
+As read back for draft PR #545 on 2026-09-11, the current published branch/head is `codex/issue-466-native-writeback` at `8ba1a8f6c250e7d14597b35cf3334e72e1e50cc3`.
+
+- Dependency Review run `34621363499`: success.
+- Workflow Audit run `34621363600`: success.
+- Pull Request Validation run `34621363501`: skipped while PR #545 remained Draft.
+
+When the published PR head changes again, replace or explicitly re-associate this readback to the new head before claiming current validation evidence.
+
 ## Revalidation triggers
 
 Revalidate this contract when any of these materially changes:
