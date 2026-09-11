@@ -252,6 +252,14 @@ def main() -> None:
         config,
     )
 
+    malformed_replacement = finding("probe.py", 10, 0.55)
+    malformed_replacement["suggested_replacement"] = {"unexpected": "object"}
+    expect_legacy_failure(
+        module,
+        adjudicated_result([malformed_replacement], "Malformed replacement field."),
+        config,
+    )
+
     informational = finding("probe.py", 10, 0.55)
     informational["_non_actionable_reason"] = "informational-only"
     expect_legacy_failure(
