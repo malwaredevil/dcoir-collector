@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue550-pr552-module-ownership-validation-001",
+  "result": "failure",
+  "exit_code": "1",
+  "artifact_name": "chatgpt-exec-issue550-pr552-module-ownership-validation-001",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34632447910",
+  "github_run_attempt": "1",
+  "github_sha": "797599740cb070b65f9dfea7d8fd8c7f976af15c",
+  "github_ref": "refs/heads/agent-ops",
+  "created_utc": "2026-09-11T18:18:04Z"
+}
