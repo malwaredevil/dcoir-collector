@@ -10,7 +10,7 @@
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
 - result: running
-- phase: request-resolved
+- phase: running-harness
 - request_id: issue550-pr552-module-ownership-validation-003
 - request_path: .github/chatgpt_staging/exec_requests/issue550-pr552-module-ownership-validation-003.json
 - github_run_id: 34633068784
@@ -18,7 +18,7 @@
 - github_sha: a848267a56fbc6626753c4c3b69511c70f80a84d
 - github_ref: refs/heads/agent-ops
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34633068784
-- report_updated_utc: 2026-09-11T18:24:35Z
+- report_updated_utc: 2026-09-11T18:24:38Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue550-pr552-module-ownership-validation-003/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue550-pr552-module-ownership-validation-003/latest_progress_marker.json
 
@@ -28,11 +28,12 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Exec request path resolved. The workflow is preparing to run the approved command harness.
+Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 
 ## Phase history
 
 - 2026-09-11T18:24:35Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
+- 2026-09-11T18:24:38Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
 
 ## Next ChatGPT action
 
