@@ -100,10 +100,12 @@ def adjudicated_result(
     summary: str = v57.CLEAN_SUMMARY,
     *,
     context_scope: str | None = None,
+    provider_result_keys: tuple[str, ...] = ("summary", "findings"),
 ) -> dict[str, Any]:
     result = {
         "summary": summary,
         "findings": findings,
+        v35.PROVIDER_RESULT_KEYS_ATTR: provider_result_keys,
         "_semantic_adjudication_attempted": True,
         "_semantic_adjudication_model": "anthropic/claude-opus-5",
         "_semantic_adjudication_input_candidates": max(1, len(findings)),
@@ -323,6 +325,17 @@ def main() -> None:
     expect_legacy_failure(
         module,
         spoofed_metadata,
+        config,
+    )
+
+    spoofed_envelope_marker = adjudicated_result(
+        [finding("probe.py", 10, 0.55)],
+        provider_result_keys=("summary", "findings", "_semantic_adjudication_result_shape"),
+    )
+    spoofed_envelope_marker["_semantic_adjudication_result_shape"] = "flat-single-finding"
+    expect_legacy_failure(
+        module,
+        spoofed_envelope_marker,
         config,
     )
 

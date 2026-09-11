@@ -52,6 +52,7 @@ _RESULT_ALLOWED_KEYS = {
     "_candidate_escalation",
     "_semantic_context_package_id",
     "_adaptive_semantic_budget_mode",
+    v35.PROVIDER_RESULT_KEYS_ATTR,
 }
 
 
@@ -165,6 +166,14 @@ def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_fin
     return True
 
 
+def _provider_envelope_matches_schema(result: dict[str, Any]) -> bool:
+    raw_provider_keys = result.get(v35.PROVIDER_RESULT_KEYS_ATTR)
+    if not isinstance(raw_provider_keys, (list, tuple)):
+        return False
+    provider_keys = {str(key) for key in raw_provider_keys}
+    return provider_keys == {"summary", "findings"}
+
+
 def _terminal_disposition(
     module: Any,
     result: Any,
@@ -177,6 +186,8 @@ def _terminal_disposition(
     if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
     if not set(result.keys()).issubset(_RESULT_ALLOWED_KEYS):
+        return None
+    if not _provider_envelope_matches_schema(result):
         return None
 
     raw_findings = result.get("findings")

@@ -119,3 +119,22 @@ def run_production_regressions(
         pass
     else:
         raise AssertionError("production path accepted spoofed semantic adjudication provenance")
+
+    spoofed_provider_marker = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        v57.CLEAN_SUMMARY,
+        provider_result_keys=("summary", "findings", "_semantic_adjudication_result_shape"),
+    )
+    spoofed_provider_marker["_semantic_adjudication_result_shape"] = "flat-single-finding"
+    try:
+        review.split_findings_with_review_body_fallback(
+            spoofed_provider_marker,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("production path accepted provider-spoofed envelope metadata")
