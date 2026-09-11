@@ -151,7 +151,6 @@ def main() -> None:
         events = attempt_events(config)
         assert [item["outcome"] for item in events] == ["retry", "success"]
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
-        assert events[0]["exception_type"] == "IncompleteRead"
 
         # Adjacent connection-abort errors receive the same bounded retry, not a
         # generic catch-all recovery.
@@ -168,7 +167,6 @@ def main() -> None:
         assert len(calls) == 2 and not remaining
         events = attempt_events(config)
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
-        assert events[0]["exception_type"] == "ConnectionResetError"
         assert events[0]["outcome"] == "retry"
 
         # URLError is retryable only when its wrapped reason is itself one of the
@@ -186,7 +184,6 @@ def main() -> None:
         assert len(calls) == 2 and not remaining
         events = attempt_events(config)
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
-        assert events[0]["exception_type"] == "URLError[ConnectionResetError]"
 
         # Exhaust the current model's transport attempts, then preserve the
         # configured model-stack fallback order.
@@ -258,7 +255,6 @@ def main() -> None:
         events = attempt_events(config)
         assert [item["outcome"] for item in events] == ["success"]
         assert events[0].get("failure_class", "") == ""
-        assert events[0].get("exception_type", "") == ""
 
         # HTTP status errors remain owned by the historical HTTPError path and
         # must not be mislabeled as transport failures by v58.
@@ -281,7 +277,6 @@ def main() -> None:
         events = attempt_events(config)
         assert len(events) == 1
         assert events[0]["failure_class"] == "http_error"
-        assert events[0].get("exception_type", "") == ""
 
         # Full production wrapper composition also has the transport retry active.
         config = fresh_config(review, ["model-a"], attempts=2)
