@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue545-sync-main-after-552-001",
+  "exit_code": "1",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34636399597",
   "github_sha": "4393d1b3f3cc340cc3c6a7464d79ff97698f2256",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue545-sync-main-after-552-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue545-sync-main-after-552-001.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-11T19:00:12Z",
+  "updated_utc": "2026-09-11T19:00:19Z",
   "workflow": "chatgpt-exec"
 }
