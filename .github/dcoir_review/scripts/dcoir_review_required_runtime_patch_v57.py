@@ -1,0 +1,252 @@
+"""DCOIR Review v57 post-adjudication low-confidence terminal disposition.
+
+Live run 34566845633 completed the deep detector, quality retry, independent
+challenger, and semantic adjudicator, then failed only because every remaining
+adjudicated hypothesis was below the configured publication confidence floor.
+
+v57 preserves the historical fail-closed contract for earlier-stage weak output,
+malformed findings, high-confidence unanchored findings, summary-only concerns,
+required deterministic risk sentinels, verifier failures, and exact-head/publication
+failures. It recognizes only a completed semantic-adjudication result whose
+remaining findings are complete, actionable-shaped, finite-confidence candidates
+and are all strictly below the active publication floor. That terminal state is
+recorded as an explicit clean disposition instead of raising ReviewQualityError.
+
+The overlay also injects the active publication floor into semantic-adjudicator
+prompts so the model is discouraged from returning hypotheses that downstream
+publication can never accept.
+"""
+
+from __future__ import annotations
+
+import math
+from typing import Any
+
+import dcoir_review_required_runtime_patch_v37 as v37
+
+
+VERSION = "v57"
+APPLIED_MARKER = "_dcoir_review_v57_applied"
+SPLIT_STORAGE = "_dcoir_review_v57_original_split_findings_with_review_body_fallback"
+REVIEW_STORAGE = "_dcoir_review_v57_original_openrouter_review"
+DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
+PROMPT_MARKER = "DCOIR downstream publication confidence floor:"
+CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
+_VALID_SEVERITIES = {"critical", "high", "medium", "low"}
+
+
+def _confidence(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    try:
+        parsed = float(value)
+    except (OverflowError, TypeError, ValueError):
+        return None
+    if not math.isfinite(parsed) or not 0.0 <= parsed <= 1.0:
+        return None
+    return parsed
+
+
+def _publication_floor(config: Any) -> float | None:
+    return _confidence(getattr(config, "minimum_confidence", None))
+
+
+def _complete_subthreshold_candidate(
+    module: Any,
+    item: Any,
+    floor: float,
+) -> tuple[dict[str, Any], float] | None:
+    """Return a complete candidate only when it is strictly below the floor."""
+
+    if not isinstance(item, dict):
+        return None
+    if not all(field in item for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
+        return None
+    for field in ("title", "severity", "path", "body", "validation"):
+        if not isinstance(item.get(field), str) or not str(item.get(field) or "").strip():
+            return None
+    if str(item.get("severity", "") or "").strip().lower() not in _VALID_SEVERITIES:
+        return None
+
+    raw_line = item.get("line")
+    if isinstance(raw_line, bool) or not isinstance(raw_line, int) or raw_line <= 0:
+        return None
+
+    confidence = _confidence(item.get("confidence"))
+    if confidence is None or confidence >= floor:
+        return None
+
+    try:
+        if module.hardened.non_actionable_finding_reason(item):
+            return None
+    except Exception:
+        # If the active quality classifier cannot be consulted, keep the
+        # historical fail-closed path rather than silently withdrawing output.
+        return None
+
+    return dict(item), confidence
+
+
+def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
+    try:
+        required = module.hardened.required_risk_sentinels(risk_sentinels)
+    except Exception:
+        # Sentinel-classification uncertainty must never enable the clean path.
+        return True
+    return bool(required)
+
+
+def _terminal_disposition(
+    module: Any,
+    result: Any,
+    config: Any,
+    risk_sentinels: list[Any] | None,
+) -> dict[str, Any] | None:
+    """Classify only the post-adjudication all-sub-threshold terminal shape."""
+
+    if not isinstance(result, dict):
+        return None
+    if result.get("_semantic_adjudication_attempted") is not True:
+        return None
+
+    raw_findings = result.get("findings")
+    if not isinstance(raw_findings, list) or not raw_findings:
+        return None
+
+    sentinels = list(risk_sentinels or [])
+    if _required_sentinels_present(module, sentinels):
+        return None
+
+    floor = _publication_floor(config)
+    if floor is None:
+        return None
+
+    candidates: list[dict[str, Any]] = []
+    confidences: list[float] = []
+    for raw in raw_findings:
+        qualified = _complete_subthreshold_candidate(module, raw, floor)
+        if qualified is None:
+            return None
+        item, confidence = qualified
+        candidates.append(item)
+        confidences.append(confidence)
+
+    return {
+        "version": VERSION,
+        "candidate_count": len(candidates),
+        "minimum_confidence": floor,
+        "lowest_confidence": min(confidences),
+        "highest_confidence": max(confidences),
+        "candidates": [
+            {
+                "path": str(item.get("path", "") or ""),
+                "line": int(item.get("line", 0) or 0),
+                "severity": str(item.get("severity", "") or ""),
+                "confidence": confidence,
+                "title": str(item.get("title", "") or "")[:120],
+            }
+            for item, confidence in zip(candidates, confidences)
+        ],
+    }
+
+
+def _record_terminal_disposition(module: Any, result: dict[str, Any], disposition: dict[str, Any], config: Any) -> None:
+    result[DISPOSITION_MARKER] = disposition
+    result["findings"] = []
+    result["summary"] = CLEAN_SUMMARY
+
+    try:
+        module.hardened.write_debug_json_artifact_safely(
+            config,
+            "metadata/v57-terminal-low-confidence-disposition.json",
+            disposition,
+        )
+    except Exception:
+        # Debug evidence is best-effort and must not turn a valid semantic
+        # disposition back into a workflow failure.
+        pass
+
+    try:
+        emit = getattr(module.base, "emit_status", None)
+        if callable(emit):
+            emit(
+                "terminal-low-confidence-disposition",
+                (
+                    f"version={VERSION}; candidates={disposition['candidate_count']}; "
+                    f"publication_floor={float(disposition['minimum_confidence']):.2f}; "
+                    f"confidence_range={float(disposition['lowest_confidence']):.2f}-"
+                    f"{float(disposition['highest_confidence']):.2f}; result=clean"
+                ),
+            )
+    except Exception:
+        pass
+
+
+def _inject_publication_floor(prompt: Any, config: Any) -> Any:
+    if not isinstance(prompt, str):
+        return prompt
+    stripped = prompt.lstrip()
+    if not stripped.startswith("Final semantic adjudication pass.") or PROMPT_MARKER in prompt:
+        return prompt
+
+    floor = _publication_floor(config)
+    if floor is None:
+        return prompt
+
+    instruction = (
+        f"- {PROMPT_MARKER} {floor:.2f}. Return a finding only when its confidence is at least "
+        f"{floor:.2f}. If no defect meets this floor, return an empty findings list and a clean summary."
+    )
+    needle = "Publication-quality rules:"
+    if needle in prompt:
+        return prompt.replace(needle, f"{needle}\n{instruction}", 1)
+    return f"{instruction}\n\n{prompt}"
+
+
+def _patch_openrouter_review(module: Any) -> None:
+    hardened = module.hardened
+    original = getattr(hardened, REVIEW_STORAGE, None)
+    if original is None:
+        original = getattr(hardened, "openrouter_review", None)
+        if callable(original):
+            setattr(hardened, REVIEW_STORAGE, original)
+    if not callable(original):
+        raise RuntimeError("DCOIR v57 could not locate hardened openrouter_review")
+
+    def openrouter_review(prompt, schema, config, reporter=None):
+        return original(_inject_publication_floor(prompt, config), schema, config, reporter)
+
+    hardened.openrouter_review = openrouter_review
+
+
+def _patch_terminal_split(module: Any) -> None:
+    original = getattr(module, SPLIT_STORAGE, None)
+    if original is None:
+        original = getattr(module, "split_findings_with_review_body_fallback", None)
+        if callable(original):
+            setattr(module, SPLIT_STORAGE, original)
+    if not callable(original):
+        raise RuntimeError("DCOIR v57 could not locate split_findings_with_review_body_fallback")
+
+    def split_findings_with_review_body_fallback(
+        result,
+        config,
+        line_index,
+        diff="",
+        risk_sentinels=None,
+    ):
+        disposition = _terminal_disposition(module, result, config, risk_sentinels)
+        if disposition is not None:
+            _record_terminal_disposition(module, result, disposition, config)
+            return [], []
+        return original(result, config, line_index, diff, risk_sentinels)
+
+    module.split_findings_with_review_body_fallback = split_findings_with_review_body_fallback
+
+
+def apply_pareto_context_module(module: Any) -> None:
+    if getattr(module, APPLIED_MARKER, False):
+        return
+    _patch_openrouter_review(module)
+    _patch_terminal_split(module)
+    setattr(module, APPLIED_MARKER, True)
