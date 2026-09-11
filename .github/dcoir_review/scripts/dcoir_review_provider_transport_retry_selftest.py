@@ -276,7 +276,61 @@ def main() -> None:
         assert [item["outcome"] for item in events] == ["success"]
         assert events[0].get("failure_class", "") == ""
 
-        # HTTP status errors remain owned by the historical HTTPError path.
+        # A retryable HTTP status whose error-body read is itself interrupted must
+        # stay inside the same bounded retry loop. The interrupted body is not
+        # parsed, while status metadata remains attached to transport telemetry.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        interrupted_503 = urllib.error.HTTPError(
+            "https://openrouter.ai/api/v1/chat/completions",
+            503,
+            "service unavailable",
+            {"Retry-After": "1"},
+            FakeResponse(
+                read_error=http.client.IncompleteRead(b"partial-error-body", 80)
+            ),
+        )
+        calls, remaining = install_sequence(
+            review,
+            [
+                interrupted_503,
+                provider_response("http-body-retry-success", "model-a"),
+            ],
+        )
+        result, model, _tier = retry_loop("probe", schema, config, Reporter())
+        assert result["summary"] == "http-body-retry-success" and model == "model-a"
+        assert len(calls) == 2 and not remaining
+        events = attempt_events(config)
+        assert [item["outcome"] for item in events] == ["retry", "success"]
+        assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
+        assert events[0]["http_status"] == 503
+
+        # A non-retryable status does not become retryable merely because its body
+        # read was interrupted. It remains on the historical HTTP status path.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        interrupted_400 = urllib.error.HTTPError(
+            "https://openrouter.ai/api/v1/chat/completions",
+            400,
+            "bad request",
+            {},
+            FakeResponse(
+                read_error=http.client.IncompleteRead(b"partial-bad-request", 80)
+            ),
+        )
+        calls, remaining = install_sequence(review, [interrupted_400])
+        try:
+            retry_loop("probe", schema, config, Reporter())
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError("interrupted non-retryable HTTP status unexpectedly retried")
+        assert len(calls) == 1 and not remaining
+        events = attempt_events(config)
+        assert len(events) == 1
+        assert events[0]["failure_class"] == "http_error"
+        assert events[0]["http_status"] == 400
+        assert events[0]["outcome"] == "terminal_failure"
+
+        # Readable HTTP status errors remain owned by the historical HTTPError path.
         config = fresh_config(review, ["model-a"], attempts=2)
         http_error = urllib.error.HTTPError(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -295,6 +349,7 @@ def main() -> None:
         assert len(calls) == 1 and not remaining
         events = attempt_events(config)
         assert len(events) == 1 and events[0]["failure_class"] == "http_error"
+        assert events[0]["http_status"] == 400
 
         # Generic HTTPException subclasses that describe local/client-state
         # failures are not transient response-read interruptions and must escape
