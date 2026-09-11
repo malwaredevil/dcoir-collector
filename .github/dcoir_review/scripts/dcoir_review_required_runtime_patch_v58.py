@@ -2,8 +2,8 @@
 """DCOIR Review v58: bounded retry for interrupted provider transport reads.
 
 Issue #548 proved that a chunked HTTP response can fail inside ``response.read()``
-with ``http.client.IncompleteRead``.  That exception bypassed the existing
-provider retry loop even though the request had remaining attempts.  This
+with ``http.client.IncompleteRead``. That exception bypassed the existing
+provider retry loop even though the request had remaining attempts. This
 post-composition overlay maps only narrowly classified transient transport
 failures onto the existing bounded empty-response retry lane, while preserving
 the original HTTP-status, JSON/schema, routing, and fail-closed behavior.
@@ -28,9 +28,9 @@ _TRANSPORT_STATE = threading.local()
 def _transport_exception_name(exc: Exception) -> str:
     """Return a bounded retryable transport class name, or an empty string.
 
-    HTTP status failures stay owned by the existing ``HTTPError`` branch.  TLS
+    HTTP status failures stay owned by the existing ``HTTPError`` branch. TLS
     certificate verification failures are intentionally not converted into
-    transient retries.  For ``URLError`` only an explicitly retryable wrapped
+    transient retries. For ``URLError`` only an explicitly retryable wrapped
     reason is accepted.
     """
 
@@ -53,17 +53,33 @@ def _transport_exception_name(exc: Exception) -> str:
     return ""
 
 
-def _set_transport_marker(exception_name: str) -> None:
-    _TRANSPORT_STATE.exception_name = exception_name[:80]
-
-
-def _take_transport_marker() -> str:
-    value = str(getattr(_TRANSPORT_STATE, "exception_name", "") or "")[:80]
+def _request_attempt_count(config: Any) -> int:
     try:
-        delattr(_TRANSPORT_STATE, "exception_name")
+        return max(0, int(getattr(config, "_openrouter_request_attempt_count", 0) or 0))
+    except (OverflowError, TypeError, ValueError):
+        return 0
+
+
+def _set_transport_marker(config: Any, exception_name: str) -> None:
+    _TRANSPORT_STATE.marker = (
+        id(config),
+        _request_attempt_count(config),
+        exception_name[:80],
+    )
+
+
+def _take_transport_marker(config: Any) -> str:
+    marker = getattr(_TRANSPORT_STATE, "marker", None)
+    try:
+        delattr(_TRANSPORT_STATE, "marker")
     except AttributeError:
         pass
-    return value
+    if not isinstance(marker, tuple) or len(marker) != 3:
+        return ""
+    config_id, attempt_count, exception_name = marker
+    if config_id != id(config) or attempt_count != _request_attempt_count(config):
+        return ""
+    return str(exception_name or "")[:80]
 
 
 def _patch_request_boundary(module: Any) -> None:
@@ -83,7 +99,7 @@ def _patch_request_boundary(module: Any) -> None:
             exception_name = _transport_exception_name(exc)
             if not exception_name:
                 raise
-            _set_transport_marker(exception_name)
+            _set_transport_marker(config, exception_name)
             # The historical retry loop already retries bounded empty-response
             # RuntimeError failures. Reuse that lane instead of duplicating the
             # model/attempt/backoff policy here. Never inspect or recover
@@ -109,7 +125,7 @@ def _patch_attempt_telemetry(module: Any) -> None:
         raise RuntimeError("DCOIR v58 could not locate provider attempt telemetry recorder")
 
     def record_openrouter_attempt_telemetry(config, event):
-        exception_name = _take_transport_marker()
+        exception_name = _take_transport_marker(config)
         revised = dict(event) if isinstance(event, dict) else {}
         if exception_name and revised.get("failure_class") == "empty_response":
             revised["failure_class"] = TRANSPORT_FAILURE_CLASS
