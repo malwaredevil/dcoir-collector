@@ -96,6 +96,20 @@ def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
     return bool(required)
 
 
+def _completed_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
+    """Require internally recorded completion evidence for this exact result set."""
+
+    if result.get("_semantic_adjudication_attempted") is not True:
+        return False
+    model = result.get("_semantic_adjudication_model")
+    if not isinstance(model, str) or not model.strip():
+        return False
+    output_count = result.get("_semantic_adjudication_output_findings")
+    if isinstance(output_count, bool) or not isinstance(output_count, int):
+        return False
+    return output_count == len(raw_findings)
+
+
 def _terminal_disposition(
     module: Any,
     result: Any,
@@ -106,11 +120,11 @@ def _terminal_disposition(
 
     if not isinstance(result, dict):
         return None
-    if result.get("_semantic_adjudication_attempted") is not True:
-        return None
 
     raw_findings = result.get("findings")
     if not isinstance(raw_findings, list) or not raw_findings:
+        return None
+    if not _completed_adjudication_matches_result(result, raw_findings):
         return None
 
     sentinels = list(risk_sentinels or [])
@@ -137,6 +151,7 @@ def _terminal_disposition(
         "minimum_confidence": floor,
         "lowest_confidence": min(confidences),
         "highest_confidence": max(confidences),
+        "adjudication_model": str(result.get("_semantic_adjudication_model", "") or ""),
         "candidates": [
             {
                 "path": str(item.get("path", "") or ""),
