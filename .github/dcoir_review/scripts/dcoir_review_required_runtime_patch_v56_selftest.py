@@ -81,7 +81,12 @@ def _author(path: str) -> dict:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_telemetry_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v56"
+    post_telemetry = entrypoint.post_telemetry_patch_module_names
+    assert "dcoir_review_required_runtime_patch_v56" in post_telemetry
+    assert "dcoir_review_required_runtime_patch_v57" in post_telemetry
+    assert post_telemetry.index("dcoir_review_required_runtime_patch_v56") < post_telemetry.index(
+        "dcoir_review_required_runtime_patch_v57"
+    )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)

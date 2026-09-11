@@ -133,10 +133,14 @@ class DcoirReviewEntrypoint:
     # the already-active observational telemetry wrapper. It recovers only the
     # bounded valid-JSON/schema-shape failure proven by #524. v56 then reduces
     # repeated repair-critic calls by batching only compatible cross-family
-    # critic candidates with identity-bound fail-closed dispositions.
+    # critic candidates with identity-bound fail-closed dispositions. v57 is the
+    # final post-composition guard for #546: after semantic adjudication has
+    # completed, it may withdraw only fully valid candidates that are all below
+    # the active publication floor and adds that floor to adjudicator prompts.
     post_telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v55',
         'dcoir_review_required_runtime_patch_v56',
+        'dcoir_review_required_runtime_patch_v57',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
