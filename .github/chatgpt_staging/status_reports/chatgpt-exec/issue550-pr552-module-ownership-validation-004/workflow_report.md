@@ -9,8 +9,8 @@
 - identifier_type: request_id
 - poll_until_result: success_or_failure
 - do_not_use_repo_workflows_for_live_polling: true
-- result: running
-- phase: running-harness
+- result: success
+- phase: harness-finished
 - request_id: issue550-pr552-module-ownership-validation-004
 - request_path: .github/chatgpt_staging/exec_requests/issue550-pr552-module-ownership-validation-004.json
 - github_run_id: 34633226243
@@ -18,9 +18,11 @@
 - github_sha: 9aec9e154d500f5ab5d2783822c7fcb7bfbbd5a9
 - github_ref: refs/heads/agent-ops
 - workflow_run_url: https://github.com/malwaredevil/dcoir-collector/actions/runs/34633226243
-- report_updated_utc: 2026-09-11T18:26:15Z
+- report_updated_utc: 2026-09-11T18:26:26Z
 - progress_history_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue550-pr552-module-ownership-validation-004/progress_history.jsonl
 - latest_progress_marker_path: .github/chatgpt_staging/status_reports/chatgpt-exec/issue550-pr552-module-ownership-validation-004/latest_progress_marker.json
+- artifact_name: chatgpt-exec-issue550-pr552-module-ownership-validation-004
+- exit_code: 0
 
 ## Report routing
 
@@ -28,12 +30,13 @@ This is the live heartbeat report for an active ChatGPT-staged job. Poll this ex
 
 ## Current status
 
-Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Phase history
 
 - 2026-09-11T18:26:12Z | phase=request-resolved | result=running | Exec request path resolved. The workflow is preparing to run the approved command harness.
 - 2026-09-11T18:26:15Z | phase=running-harness | result=running | Approved command harness is about to run. If this report remains in this phase, inspect the GitHub run URL for harness/runtime progress.
+- 2026-09-11T18:26:26Z | phase=harness-finished | result=success | Approved command harness finished with exit code 0. Final native exec status commit is next.
 
 ## Next ChatGPT action
 
