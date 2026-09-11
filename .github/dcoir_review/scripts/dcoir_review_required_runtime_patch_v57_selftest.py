@@ -69,6 +69,16 @@ def finding(path: str, line: int, confidence: float, title: str = "Candidate") -
     }
 
 
+def adjudicated_result(findings: list[dict[str, Any]], summary: str = "Adjudicated hypotheses remain.") -> dict[str, Any]:
+    return {
+        "summary": summary,
+        "findings": findings,
+        "_semantic_adjudication_attempted": True,
+        "_semantic_adjudication_model": "anthropic/claude-opus-5",
+        "_semantic_adjudication_output_findings": len(findings),
+    }
+
+
 def expect_legacy_failure(module: FakeModule, result: dict[str, Any], config: Any, sentinels=None) -> None:
     before = module.original_split_calls
     try:
@@ -128,9 +138,8 @@ def main() -> None:
 
     # Exact live run 34566845633 terminal shape: semantic adjudication completed
     # and retained only 0.60/0.50/0.45 hypotheses below the 0.70 publication floor.
-    live_shape = {
-        "summary": "Three possible concerns remain after semantic adjudication.",
-        "findings": [
+    live_shape = adjudicated_result(
+        [
             finding(".github/AGENTS.md", 22, 0.60, "Lane-neutral duty may be narrowed"),
             finding("AGENTS.md", 248, 0.50, "Validation guidance may be narrowed"),
             finding(
@@ -140,8 +149,8 @@ def main() -> None:
                 "Readback gate may lack a named actor",
             ),
         ],
-        "_semantic_adjudication_attempted": True,
-    }
+        "Three possible concerns remain after semantic adjudication.",
+    )
     findings, unanchored = module.split_findings_with_review_body_fallback(
         live_shape,
         config,
@@ -163,6 +172,7 @@ def main() -> None:
     assert marker["minimum_confidence"] == 0.70
     assert marker["lowest_confidence"] == 0.45
     assert marker["highest_confidence"] == 0.60
+    assert marker["adjudication_model"] == "anthropic/claude-opus-5"
     artifact = module.hardened.debug_artifacts[
         "metadata/v57-terminal-low-confidence-disposition.json"
     ]
@@ -183,31 +193,35 @@ def main() -> None:
     }
     expect_legacy_failure(module, early, config)
 
+    # An attempted marker without model/count evidence is not enough to bypass
+    # the historical terminal quality gate.
+    incomplete_marker = {
+        "summary": "Incomplete semantic metadata.",
+        "findings": [finding("probe.py", 10, 0.55)],
+        "_semantic_adjudication_attempted": True,
+    }
+    expect_legacy_failure(module, incomplete_marker, config)
+
+    count_mismatch = adjudicated_result([finding("probe.py", 10, 0.55)])
+    count_mismatch["_semantic_adjudication_output_findings"] = 2
+    expect_legacy_failure(module, count_mismatch, config)
+
     # Any at/above-floor candidate, malformed candidate, informational candidate,
     # or required deterministic sentinel preserves the existing fail-closed path.
-    at_floor = {
-        "summary": "Candidate at the publication floor.",
-        "findings": [finding("probe.py", 10, 0.70)],
-        "_semantic_adjudication_attempted": True,
-    }
+    at_floor = adjudicated_result([finding("probe.py", 10, 0.70)], "Candidate at the publication floor.")
     expect_legacy_failure(module, at_floor, config)
 
-    mixed = {
-        "summary": "Mixed confidence candidates.",
-        "findings": [finding("probe.py", 10, 0.55), finding("probe.py", 11, 0.90)],
-        "_semantic_adjudication_attempted": True,
-    }
+    mixed = adjudicated_result(
+        [finding("probe.py", 10, 0.55), finding("probe.py", 11, 0.90)],
+        "Mixed confidence candidates.",
+    )
     expect_legacy_failure(module, mixed, config)
 
     malformed = finding("probe.py", 10, 0.55)
     malformed["confidence"] = 10**400
     expect_legacy_failure(
         module,
-        {
-            "summary": "Malformed confidence.",
-            "findings": [malformed],
-            "_semantic_adjudication_attempted": True,
-        },
+        adjudicated_result([malformed], "Malformed confidence."),
         config,
     )
 
@@ -215,11 +229,7 @@ def main() -> None:
     informational["_non_actionable_reason"] = "informational-only"
     expect_legacy_failure(
         module,
-        {
-            "summary": "Informational candidate.",
-            "findings": [informational],
-            "_semantic_adjudication_attempted": True,
-        },
+        adjudicated_result([informational], "Informational candidate."),
         config,
     )
 
@@ -227,11 +237,10 @@ def main() -> None:
     try:
         expect_legacy_failure(
             module,
-            {
-                "summary": "Required sentinel remains.",
-                "findings": [finding("probe.py", 10, 0.55)],
-                "_semantic_adjudication_attempted": True,
-            },
+            adjudicated_result(
+                [finding("probe.py", 10, 0.55)],
+                "Required sentinel remains.",
+            ),
             config,
             sentinels=[object()],
         )
@@ -249,15 +258,14 @@ def main() -> None:
     assert round(float(prod_config.minimum_confidence), 2) == 0.70
     assert review.hardened.summary_suggests_problem(v57.CLEAN_SUMMARY) is False
 
-    production_live_shape = {
-        "summary": "Adjudicator retained only uncertain hypotheses.",
-        "findings": [
+    production_live_shape = adjudicated_result(
+        [
             finding(".github/AGENTS.md", 22, 0.60),
             finding("AGENTS.md", 248, 0.50),
             finding(".github/agent-governance/codex_cloud_environment.md", 77, 0.45),
         ],
-        "_semantic_adjudication_attempted": True,
-    }
+        "Adjudicator retained only uncertain hypotheses.",
+    )
     assert review.split_findings_with_review_body_fallback(
         production_live_shape,
         prod_config,
