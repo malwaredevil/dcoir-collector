@@ -361,7 +361,7 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 
 End every operator-approved Codex Cloud PR change task with:
 
-```text id="j5tlb0"
+```text
 Summary:
 - <short bullet list of changes>
 
