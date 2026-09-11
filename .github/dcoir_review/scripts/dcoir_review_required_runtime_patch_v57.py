@@ -290,7 +290,7 @@ def _is_final_v35_semantic_adjudication_call(prompt: Any) -> bool:
     current = frame.f_back if frame is not None else None
     try:
         while current is not None:
-            filename = current.f_code.co_filename.rsplit("/", 1)[-1]
+            filename = str(current.f_code.co_filename or "").replace("\\", "/").rsplit("/", 1)[-1]
             function = current.f_code.co_name
             locals_map = current.f_locals
             if (
