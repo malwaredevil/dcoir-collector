@@ -110,12 +110,12 @@ def _complete_subthreshold_candidate(
     return dict(item), confidence
 
 
-def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
+def _required_sentinels_absent(module: Any, risk_sentinels: list[Any]) -> bool:
     try:
         required = module.hardened.required_risk_sentinels(risk_sentinels)
     except Exception:
-        return True
-    return bool(required)
+        return False
+    return not bool(required)
 
 
 def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> bool:
@@ -181,7 +181,7 @@ def _terminal_disposition(
         return None
 
     sentinels = list(risk_sentinels or [])
-    if _required_sentinels_present(module, sentinels):
+    if not _required_sentinels_absent(module, sentinels):
         return None
 
     floor = _publication_floor(config)
