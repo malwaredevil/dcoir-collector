@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue548-pr549-v55-ordering-repair-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-11T11:31:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 2400,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-v55-ordering-repair-validation-001.ps1",
+  "approved_command_preview": "Under the operator's explicit approval for exact-head validation and minor incremental validation modifications needed to achieve the goal, repair only the stale v55 ordering assertion exposed by run 34594025113. Require source branch fix/issue-548-provider-transport-retry to begin exactly at fd8dc731070c1543848e5c95263f33765b556ea6. Restore the complete v55 selftest from reviewed base d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4, replace only its obsolete assumption that v55 is the first post-telemetry patch with assertions that v58 is first and the historical v55-v57 tail order remains intact, commit locally, then validate that exact committed tree before publishing it. Remove provider and GitHub credential environment variables before tests; run PR-range git diff --check; compile the four changed Python files; require and execute all 58 governed validation_commands; require a clean worktree; only after all validation passes push the exact validated commit to the PR source branch and verify remote head equality. Do not invoke DCOIR Review, make live model-provider calls, change Draft/Ready state, or merge.",
+  "command": "& '.github/chatgpt_staging/exec_scripts/issue548-pr549-v55-ordering-repair-validation-001.ps1'"
+}
