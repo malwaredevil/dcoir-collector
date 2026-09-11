@@ -355,8 +355,18 @@ def _patch_openrouter_review(module: Any) -> None:
                 PROMPT_ARTIFACT_PATH,
                 injected,
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            # Debug artifact emission is best-effort only; never block adjudication.
+            try:
+                module.hardened.write_debug_text_artifact_safely(
+                    config,
+                    "dcoir_review_v57_prompt_floor_injection_error.txt",
+                    repr(exc),
+                )
+            except Exception:
+                # If even diagnostic emission fails, continue silently to preserve
+                # existing runtime behavior.
+                pass
         return original(injected, schema, staged, reporter)
 
     hardened.openrouter_review = openrouter_review
