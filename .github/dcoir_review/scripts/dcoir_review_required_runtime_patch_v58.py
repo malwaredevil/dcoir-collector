@@ -25,7 +25,7 @@ TRANSPORT_FAILURE_CLASS = "transport_error"
 _TRANSPORT_STATE = threading.local()
 
 
-def _transport_exception_name(exc: BaseException) -> str:
+def _transport_exception_name(exc: Exception) -> str:
     """Return a bounded retryable transport class name, or an empty string.
 
     HTTP status failures stay owned by the existing ``HTTPError`` branch.  TLS
@@ -79,14 +79,14 @@ def _patch_request_boundary(module: Any) -> None:
     def openrouter_request_once(prompt, schema, config, ignored_providers, model):
         try:
             return original(prompt, schema, config, ignored_providers, model)
-        except BaseException as exc:
+        except Exception as exc:
             exception_name = _transport_exception_name(exc)
             if not exception_name:
                 raise
             _set_transport_marker(exception_name)
             # The historical retry loop already retries bounded empty-response
-            # RuntimeError failures.  Reuse that lane instead of duplicating the
-            # model/attempt/backoff policy here.  Never inspect or recover
+            # RuntimeError failures. Reuse that lane instead of duplicating the
+            # model/attempt/backoff policy here. Never inspect or recover
             # IncompleteRead.partial bytes: a partial provider envelope is not
             # trustworthy model output.
             raise RuntimeError(
@@ -117,7 +117,7 @@ def _patch_attempt_telemetry(module: Any) -> None:
         if not exception_name or revised.get("failure_class") != TRANSPORT_FAILURE_CLASS:
             return
 
-        # The historical recorder intentionally whitelists fields.  Append only
+        # The historical recorder intentionally whitelists fields. Append only
         # the bounded exception class to the event it just wrote; never record
         # exception text or partial response data.
         try:
