@@ -206,6 +206,14 @@ def main() -> None:
     count_mismatch["_semantic_adjudication_output_findings"] = 2
     expect_legacy_failure(module, count_mismatch, config)
 
+    # Even fully adjudicated low-confidence output remains fail-closed when its
+    # anchor is not an added changed line.
+    unanchored = adjudicated_result(
+        [finding("probe.py", 99, 0.55)],
+        "Low-confidence candidate anchored outside the changed diff.",
+    )
+    expect_legacy_failure(module, unanchored, config)
+
     # Any at/above-floor candidate, malformed candidate, informational candidate,
     # or required deterministic sentinel preserves the existing fail-closed path.
     at_floor = adjudicated_result([finding("probe.py", 10, 0.70)], "Candidate at the publication floor.")
@@ -301,7 +309,7 @@ def main() -> None:
     print(
         "dcoir_review_required_runtime_patch_v57_selftest passed: "
         "completed semantic adjudication may cleanly withdraw only fully valid "
-        "sub-threshold candidates while earlier/malformed/sentinel cases remain fail-closed"
+        "changed-line sub-threshold candidates while earlier/malformed/unanchored/sentinel cases remain fail-closed"
     )
 
 
