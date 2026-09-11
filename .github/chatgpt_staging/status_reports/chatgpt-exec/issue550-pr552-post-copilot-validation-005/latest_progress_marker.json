@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34635258813",
   "github_sha": "8bb27f47c20533fb07e3091c43c780e6dd0607e0",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr552-post-copilot-validation-005",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr552-post-copilot-validation-005.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-11T18:47:51Z",
+  "updated_utc": "2026-09-11T18:47:53Z",
   "workflow": "chatgpt-exec"
 }
