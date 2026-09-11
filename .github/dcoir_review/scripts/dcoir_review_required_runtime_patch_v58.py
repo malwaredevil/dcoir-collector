@@ -22,35 +22,41 @@ APPLIED_MARKER = "_dcoir_v58_transport_retry_applied"
 REQUEST_STORAGE = "_dcoir_v58_original_openrouter_request_once"
 TELEMETRY_STORAGE = "_dcoir_v58_original_record_openrouter_attempt_telemetry"
 TRANSPORT_FAILURE_CLASS = "transport_error"
+_RETRYABLE_HTTP_EXCEPTIONS = (
+    http.client.IncompleteRead,
+    http.client.RemoteDisconnected,
+)
 _TRANSPORT_STATE = threading.local()
 
 
-def _transport_exception_name(exc: Exception) -> str:
-    """Return a bounded retryable transport class name, or an empty string.
+def _is_retryable_transport_exception(exc: Exception) -> bool:
+    """Return whether *exc* is an explicitly retryable transport failure.
 
-    HTTP status failures stay owned by the existing ``HTTPError`` branch. TLS
-    certificate verification failures are intentionally not converted into
-    transient retries. For ``URLError`` only an explicitly retryable wrapped
-    reason is accepted.
+    HTTP status failures stay owned by the existing ``HTTPError`` branch. Broad
+    ``http.client.HTTPException`` subclasses are intentionally not accepted:
+    invalid URL, client-state, unsupported-protocol, and similar local failures
+    are not transient response-read interruptions. TLS certificate verification
+    failures are also intentionally excluded.
     """
 
     if isinstance(exc, urllib.error.HTTPError):
-        return ""
+        return False
     if isinstance(exc, ssl.SSLCertVerificationError):
-        return ""
-    if isinstance(exc, http.client.HTTPException):
-        return type(exc).__name__[:80]
+        return False
+    if isinstance(exc, _RETRYABLE_HTTP_EXCEPTIONS):
+        return True
     if isinstance(exc, (TimeoutError, ConnectionError, ssl.SSLEOFError)):
-        return type(exc).__name__[:80]
+        return True
     if isinstance(exc, urllib.error.URLError):
         reason = getattr(exc, "reason", None)
         if isinstance(reason, ssl.SSLCertVerificationError):
-            return ""
-        if isinstance(reason, http.client.HTTPException):
-            return f"URLError[{type(reason).__name__}]"[:80]
-        if isinstance(reason, (TimeoutError, ConnectionError, ssl.SSLEOFError)):
-            return f"URLError[{type(reason).__name__}]"[:80]
-    return ""
+            return False
+        return isinstance(
+            reason,
+            _RETRYABLE_HTTP_EXCEPTIONS
+            + (TimeoutError, ConnectionError, ssl.SSLEOFError),
+        )
+    return False
 
 
 def _request_attempt_count(config: Any) -> int:
@@ -93,8 +99,7 @@ def _patch_request_boundary(module: Any) -> None:
         try:
             return original(prompt, schema, config, ignored_providers, model)
         except Exception as exc:
-            exception_name = _transport_exception_name(exc)
-            if not exception_name:
+            if not _is_retryable_transport_exception(exc):
                 raise
             _set_transport_marker(config)
             # The historical retry loop already retries bounded empty-response
@@ -103,7 +108,8 @@ def _patch_request_boundary(module: Any) -> None:
             # IncompleteRead.partial bytes: a partial provider envelope is not
             # trustworthy model output.
             raise RuntimeError(
-                f"OpenRouter returned an empty response after retryable transport failure ({exception_name})"
+                "OpenRouter returned an empty response after retryable transport failure "
+                f"({type(exc).__name__})"
             ) from exc
 
     hardened.openrouter_request_once = openrouter_request_once
