@@ -307,8 +307,12 @@ def _is_final_v35_semantic_adjudication_call(prompt: Any) -> bool:
 
 def _apply_prompt_budget(prompt: str, config: Any) -> str:
     max_prompt_chars = int(getattr(config, "max_prompt_chars", 120000))
+    if max_prompt_chars <= 0:
+        return ""
     if len(prompt) <= max_prompt_chars:
         return prompt
+    if max_prompt_chars <= len(PROMPT_TRUNCATION_MARKER):
+        return PROMPT_TRUNCATION_MARKER[:max_prompt_chars]
     return (
         prompt[: max(0, max_prompt_chars - len(PROMPT_TRUNCATION_MARKER))]
         + PROMPT_TRUNCATION_MARKER

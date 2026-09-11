@@ -200,6 +200,13 @@ def main() -> None:
     assert bounded_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
     assert v57.PROMPT_MARKER in bounded_injected
 
+    tiny_marker_budget = SimpleNamespace(minimum_confidence=0.70, fail_on_summary_only_problem=True, max_prompt_chars=8)
+    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
+    module.hardened.openrouter_review(semantic_prompt, {}, tiny_marker_budget, None)
+    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+    smallest_bounded = module.hardened.review_prompts[-1]
+    assert len(smallest_bounded) == tiny_marker_budget.max_prompt_chars
+
     # Re-injection is idempotent for an already annotated final prompt.
     reinjected = v57._inject_publication_floor(injected, config)
     assert reinjected == injected
