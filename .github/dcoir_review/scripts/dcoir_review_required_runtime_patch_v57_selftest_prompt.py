@@ -9,6 +9,15 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v57 as v57
 
 
+def _run_with_forced_final_callsite(module: Any, prompt: str, config: Any) -> None:
+    original_callsite_probe = v57._is_final_v35_semantic_adjudication_call
+    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
+    try:
+        module.hardened.openrouter_review(prompt, {}, config, None)
+    finally:
+        v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+
+
 def run_prompt_regressions(module: Any, config: Any) -> None:
     semantic_prompt = (
         "Final semantic adjudication pass.\n\n"
@@ -16,10 +25,7 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         "- Return only distinct root-cause defects.\n\n"
         f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
     )
-    original_callsite_probe = v57._is_final_v35_semantic_adjudication_call
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, config, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+    _run_with_forced_final_callsite(module, semantic_prompt, config)
     injected = module.hardened.review_prompts[-1]
     assert v57.PROMPT_MARKER in injected
     assert "0.70" in injected
@@ -58,9 +64,7 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         fail_on_summary_only_problem=True,
         max_prompt_chars=220,
     )
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, tiny_budget_config, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+    _run_with_forced_final_callsite(module, semantic_prompt, tiny_budget_config)
     bounded_injected = module.hardened.review_prompts[-1]
     assert len(bounded_injected) <= tiny_budget_config.max_prompt_chars
     assert bounded_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
@@ -71,9 +75,7 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         fail_on_summary_only_problem=True,
         max_prompt_chars=8,
     )
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, tiny_marker_budget, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+    _run_with_forced_final_callsite(module, semantic_prompt, tiny_marker_budget)
     smallest_bounded = module.hardened.review_prompts[-1]
     assert len(smallest_bounded) == tiny_marker_budget.max_prompt_chars
 
@@ -82,9 +84,7 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         fail_on_summary_only_problem=True,
         max_prompt_chars="invalid",
     )
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
-    module.hardened.openrouter_review(semantic_prompt, {}, malformed_budget_config, None)
-    v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+    _run_with_forced_final_callsite(module, semantic_prompt, malformed_budget_config)
     malformed_budget_injected = module.hardened.review_prompts[-1]
     assert v57.PROMPT_MARKER in malformed_budget_injected
     assert not malformed_budget_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
