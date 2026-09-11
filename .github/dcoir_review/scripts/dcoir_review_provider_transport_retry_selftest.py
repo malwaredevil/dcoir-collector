@@ -14,8 +14,18 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 class FakeResponse:
-    def __init__(self, payload: dict) -> None:
-        self._raw = json.dumps(payload).encode("utf-8")
+    def __init__(
+        self,
+        payload: dict | None = None,
+        *,
+        read_error: Exception | None = None,
+    ) -> None:
+        if payload is None and read_error is None:
+            raise ValueError("fake response requires payload or read_error")
+        self._raw = (
+            json.dumps(payload).encode("utf-8") if payload is not None else b""
+        )
+        self._read_error = read_error
 
     def __enter__(self):
         return self
@@ -24,6 +34,8 @@ class FakeResponse:
         return False
 
     def read(self) -> bytes:
+        if self._read_error is not None:
+            raise self._read_error
         return self._raw
 
 
@@ -86,6 +98,8 @@ def install_sequence(review, sequence):
         if not remaining:
             raise AssertionError("unexpected extra provider request")
         item = remaining.pop(0)
+        if isinstance(item, FakeResponse):
+            return item
         if isinstance(item, Exception):
             raise item
         return FakeResponse(item)
@@ -130,9 +144,10 @@ def main() -> None:
     assert callable(retry_loop)
 
     try:
-        # Exact production failure shape: an incomplete chunked response on the
-        # first attempt followed by a clean same-model response. The partial bytes
-        # contain valid-looking JSON and must never be parsed as model output.
+        # Exact production failure shape: urlopen returns a response object and
+        # response.read() raises IncompleteRead on the first attempt, followed by a
+        # clean same-model response. The partial bytes contain valid-looking JSON
+        # and must never be parsed as model output.
         config = fresh_config(review, ["model-a"], attempts=2)
         partial = json.dumps(
             provider_response("must-not-be-used", "model-a")
@@ -140,7 +155,11 @@ def main() -> None:
         calls, remaining = install_sequence(
             review,
             [
-                http.client.IncompleteRead(partial, len(partial) + 10),
+                FakeResponse(
+                    read_error=http.client.IncompleteRead(
+                        partial, len(partial) + 10
+                    )
+                ),
                 provider_response("retry-success", "model-a"),
             ],
         )
@@ -231,7 +250,11 @@ def main() -> None:
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
-            [http.client.IncompleteRead(b"direct-partial", 30)],
+            [
+                FakeResponse(
+                    read_error=http.client.IncompleteRead(b"direct-partial", 30)
+                )
+            ],
         )
         try:
             review.hardened.openrouter_request_once(
@@ -293,7 +316,9 @@ def main() -> None:
         calls, remaining = install_sequence(
             review,
             [
-                http.client.IncompleteRead(b"prod-partial", 99),
+                FakeResponse(
+                    read_error=http.client.IncompleteRead(b"prod-partial", 99)
+                ),
                 provider_response("production-success", "model-a"),
             ],
         )
