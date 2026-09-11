@@ -130,9 +130,9 @@ def main() -> None:
     assert callable(retry_loop)
 
     try:
-        # Exact production failure shape: a chunked response read is incomplete
-        # on attempt 1, then the same model succeeds. Partial bytes intentionally
-        # contain a valid-looking JSON object; they must never be parsed.
+        # Exact production failure shape: an incomplete chunked response on the
+        # first attempt followed by a clean same-model response. The partial bytes
+        # contain valid-looking JSON and must never be parsed as model output.
         config = fresh_config(review, ["model-a"], attempts=2)
         partial = json.dumps(
             provider_response("must-not-be-used", "model-a")
@@ -145,15 +145,13 @@ def main() -> None:
             ],
         )
         result, model, _tier = retry_loop("probe", schema, config, Reporter())
-        assert result["summary"] == "retry-success"
-        assert model == "model-a"
+        assert result["summary"] == "retry-success" and model == "model-a"
         assert len(calls) == 2 and not remaining
         events = attempt_events(config)
         assert [item["outcome"] for item in events] == ["retry", "success"]
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
 
-        # Adjacent connection-abort errors receive the same bounded retry, not a
-        # generic catch-all recovery.
+        # Adjacent connection-abort failures receive the same bounded retry.
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
@@ -169,8 +167,8 @@ def main() -> None:
         assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
         assert events[0]["outcome"] == "retry"
 
-        # URLError is retryable only when its wrapped reason is itself one of the
-        # explicitly accepted transient transport failures.
+        # URLError is retryable only when its wrapped reason is independently
+        # classified as a transient transport failure.
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
@@ -182,11 +180,10 @@ def main() -> None:
         result, model, _tier = retry_loop("probe", schema, config, Reporter())
         assert result["summary"] == "urlerror-retry-success" and model == "model-a"
         assert len(calls) == 2 and not remaining
-        events = attempt_events(config)
-        assert events[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
+        assert attempt_events(config)[0]["failure_class"] == v58.TRANSPORT_FAILURE_CLASS
 
-        # Exhaust the current model's transport attempts, then preserve the
-        # configured model-stack fallback order.
+        # Exhaust the current model's retry budget, then preserve configured
+        # model-stack fallback order.
         config = fresh_config(review, ["model-a", "model-b"], attempts=2)
         calls, remaining = install_sequence(
             review,
@@ -201,10 +198,10 @@ def main() -> None:
         assert len(calls) == 3 and not remaining
         events = attempt_events(config)
         assert [item["outcome"] for item in events] == ["retry", "fallback", "success"]
-        assert [item.get("failure_class", "") for item in events[:2]] == [
-            v58.TRANSPORT_FAILURE_CLASS,
-            v58.TRANSPORT_FAILURE_CLASS,
-        ]
+        assert all(
+            item.get("failure_class", "") == v58.TRANSPORT_FAILURE_CLASS
+            for item in events[:2]
+        )
 
         # If every bounded transport attempt fails and no model remains, the
         # review stays fail-closed.
@@ -256,8 +253,7 @@ def main() -> None:
         assert [item["outcome"] for item in events] == ["success"]
         assert events[0].get("failure_class", "") == ""
 
-        # HTTP status errors remain owned by the historical HTTPError path and
-        # must not be mislabeled as transport failures by v58.
+        # HTTP status errors remain owned by the historical HTTPError path.
         config = fresh_config(review, ["model-a"], attempts=2)
         http_error = urllib.error.HTTPError(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -275,10 +271,24 @@ def main() -> None:
             raise AssertionError("non-retryable HTTP status unexpectedly succeeded")
         assert len(calls) == 1 and not remaining
         events = attempt_events(config)
-        assert len(events) == 1
-        assert events[0]["failure_class"] == "http_error"
+        assert len(events) == 1 and events[0]["failure_class"] == "http_error"
 
-        # Full production wrapper composition also has the transport retry active.
+        # Generic HTTPException subclasses that describe local/client-state
+        # failures are not transient response-read interruptions and must escape
+        # without consuming the provider retry budget.
+        config = fresh_config(review, ["model-a"], attempts=2)
+        invalid_url = http.client.InvalidURL("invalid provider URL")
+        calls, remaining = install_sequence(review, [invalid_url])
+        try:
+            retry_loop("probe", schema, config, Reporter())
+        except http.client.InvalidURL:
+            pass
+        else:
+            raise AssertionError("non-transient HTTPException was converted into a retry")
+        assert len(calls) == 1 and not remaining
+        assert attempt_events(config) == []
+
+        # Full production wrapper composition also has transport retry active.
         config = fresh_config(review, ["model-a"], attempts=2)
         calls, remaining = install_sequence(
             review,
