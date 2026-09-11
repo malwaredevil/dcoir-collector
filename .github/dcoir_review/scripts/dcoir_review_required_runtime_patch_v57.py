@@ -6,25 +6,30 @@ remaining adjudicated hypothesis was below the configured publication confidence
 floor.
 
 v57 preserves the historical fail-closed contract for earlier-stage weak output,
-malformed findings, unanchored findings, summary-only concerns, required
-deterministic risk sentinels, verifier failures, exact-head/publication failures,
-and v44/v52 candidate-escalation adjudication. It recognizes only a completed
-final v35 semantic-adjudication result whose remaining findings are complete,
-changed-line-anchored, actionable-shaped, finite-confidence candidates and are
-all strictly below the active publication floor. That terminal state is recorded
-as an explicit clean disposition instead of raising ReviewQualityError.
+malformed findings, unanchored findings, summary-only concerns, adjudication
+overflow, required deterministic risk sentinels, verifier failures,
+exact-head/publication failures, and v44/v52 candidate-escalation adjudication.
+It recognizes only a completed final v35 semantic-adjudication result whose
+remaining findings are complete, changed-line-anchored, actionable-shaped,
+finite-confidence candidates and are all strictly below the active publication
+floor, whose original summary does not itself indicate a problem, and whose
+adjudication result was not overflow-trimmed. That terminal state is recorded as
+an explicit clean disposition instead of raising ReviewQualityError.
 
 The overlay also injects the active publication floor only into the final v35
-semantic-adjudicator prompt so other semantic escalation contracts remain
+semantic-adjudicator prompt while preserving v54's semantic-adjudicator telemetry
+classification so other semantic escalation contracts and run accounting remain
 unchanged.
 """
 
 from __future__ import annotations
 
+import copy
 import math
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v37 as v37
+import dcoir_review_required_runtime_patch_v54 as v54
 
 
 VERSION = "v57"
@@ -110,6 +115,20 @@ def _required_sentinels_present(module: Any, risk_sentinels: list[Any]) -> bool:
     return bool(required)
 
 
+def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> bool:
+    """Honor the existing summary-only problem gate before clearing findings."""
+
+    if not bool(getattr(config, "fail_on_summary_only_problem", True)):
+        return True
+    summary = str(result.get("summary", "") or "").strip()
+    try:
+        return not bool(module.hardened.summary_suggests_problem(summary))
+    except Exception:
+        # If the active summary classifier is unavailable or fails, preserve the
+        # historical fail-closed behavior rather than replacing the summary.
+        return False
+
+
 def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
     """Require internally recorded final-v35-adjudication evidence for this result."""
 
@@ -121,6 +140,13 @@ def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_fin
     input_count = result.get("_semantic_adjudication_input_candidates")
     if isinstance(input_count, bool) or not isinstance(input_count, int) or input_count <= 0:
         return False
+
+    # v35 stamps this marker only when it had to trim an over-limit adjudicator
+    # response. That pre-cap response is not safe to reinterpret as clean because
+    # discarded entries can include malformed/non-object output.
+    if "_semantic_adjudication_overflow_trimmed" in result:
+        return False
+
     output_count = result.get("_semantic_adjudication_output_findings")
     if isinstance(output_count, bool) or not isinstance(output_count, int):
         return False
@@ -151,6 +177,8 @@ def _terminal_disposition(
     if not isinstance(raw_findings, list) or not raw_findings:
         return None
     if not _completed_final_adjudication_matches_result(result, raw_findings):
+        return None
+    if not _summary_allows_clean(module, result, config):
         return None
 
     sentinels = list(risk_sentinels or [])
@@ -260,7 +288,23 @@ def _patch_openrouter_review(module: Any) -> None:
         raise RuntimeError("DCOIR v57 could not locate hardened openrouter_review")
 
     def openrouter_review(prompt, schema, config, reporter=None):
-        return original(_inject_publication_floor(prompt, config), schema, config, reporter)
+        injected = _inject_publication_floor(prompt, config)
+        if injected is prompt:
+            return original(prompt, schema, config, reporter)
+
+        # v54 normally recognizes the final v35 semantic-adjudicator call from
+        # prompt object identity. Injection necessarily creates a new str, so
+        # preserve the stage explicitly on a shallow config projection before
+        # forwarding through the already-installed v54 telemetry wrapper.
+        try:
+            staged = copy.copy(config)
+            setattr(staged, v54.STAGE_LABEL_ATTR, "semantic-adjudicator")
+        except Exception:
+            # Prompt-floor injection is advisory. If stage preservation cannot be
+            # established safely, retain original behavior and telemetry rather
+            # than mutating the call in a way v54 would misclassify.
+            return original(prompt, schema, config, reporter)
+        return original(injected, schema, staged, reporter)
 
     hardened.openrouter_review = openrouter_review
 
