@@ -1,0 +1,26 @@
+﻿# PR #549 exact-head validation summary
+
+- request_id: issue548-pr549-exact-head-validation-002
+- result: pass
+- target_branch: fix/issue-548-provider-transport-retry
+- reviewed_base_sha: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- reviewed_base_merge_base_with_target: d7b44e227176cdbbd90ff06d6f684d1b9f95b0d4
+- requested_head_sha: 253632c963d432b075f496b3d15e5e4fa25e9d14
+- remote_branch_head_sha: 253632c963d432b075f496b3d15e5e4fa25e9d14
+- actual_worktree_head_sha: 253632c963d432b075f496b3d15e5e4fa25e9d14
+- changed_python_files_expected: 7
+- changed_python_files_compiled: 7
+- governed_validation_commands_expected: 58
+- governed_validation_commands_passed: 58
+- provider_and_github_secret_env_removed_before_validation: true
+- initial_detached_worktree_clean: true
+- pr_range_git_diff_check_passed: true
+- final_detached_worktree_clean: true
+- worktree_mode: detached temporary git worktree
+- current_main_tip_equality_required: false
+- live_dcoir_review_invocation: false
+- live_model_provider_calls: false
+- pr_source_branch_mutation_by_harness: false
+- ready_transition: false
+- merge_performed: false
+- failure: 
