@@ -158,20 +158,19 @@ def assert_segment_registry_is_complete() -> None:
 def main() -> None:
     assert_segment_registry_is_complete()
 
-    for layer, pairs in EXPECTED_ADJACENCY.items():
-        segments = LAYER_SEGMENTS[layer]
+    for layer in LAYER_SEGMENTS:
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer
         assert_segment_source_sizes(paths, layer)
+
+    for layer, pairs in EXPECTED_ADJACENCY.items():
+        segments = LAYER_SEGMENTS[layer]
         for first, second in pairs:
             index = segments.index(first)
             assert segments[index + 1] == second, (layer, first, second)
 
     for layer, pairs in PATCH_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]
-        paths = RuntimeSegmentLoader(layer).segment_paths()
-        assert all(path.is_file() for path in paths), layer
-        assert_segment_source_sizes(paths, layer)
         directory = Path(segments[0]).parent.as_posix()
         for first_name, second_name in pairs:
             first = f"{directory}/{first_name}"
@@ -181,9 +180,6 @@ def main() -> None:
 
     for layer, pairs in SELFTEST_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]
-        paths = RuntimeSegmentLoader(layer).segment_paths()
-        assert all(path.is_file() for path in paths), layer
-        assert_segment_source_sizes(paths, layer)
         directory = Path(segments[0]).parent.as_posix()
         for first_name, second_name in pairs:
             first = f"{directory}/{first_name}"
