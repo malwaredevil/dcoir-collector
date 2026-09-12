@@ -310,4 +310,3 @@ def _fallback_display(finding: dict[str, Any], path: str, line: int) -> tuple[st
         str(finding.get("body", "") or "").strip(),
     )
 
-
