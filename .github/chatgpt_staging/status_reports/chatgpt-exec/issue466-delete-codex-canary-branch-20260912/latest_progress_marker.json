@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34693977574",
   "github_sha": "c38922f40b6bd8d5b72454e3d3cb8c12e58d0f3c",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue466-delete-codex-canary-branch-20260912",
   "request_path": ".github/chatgpt_staging/exec_requests/issue466-delete-codex-canary-branch-20260912.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-12T12:33:16Z",
+  "updated_utc": "2026-09-12T12:33:20Z",
   "workflow": "chatgpt-exec"
 }
