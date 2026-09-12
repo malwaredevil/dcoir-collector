@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib
+import re
 import sys
 from pathlib import Path
 
@@ -12,9 +13,14 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.module_loader import LAYER_SEGMENTS, RuntimeSegmentLoader
 
 MAX_SEGMENT_SOURCE_BYTES = 15_000
+MAX_NUMBERED_PRODUCTION_PATCH_VERSION = 58
+NUMBERED_PRODUCTION_PATCH_RE = re.compile(
+    r"^dcoir_review_required_runtime_patch_v(?P<version>\d+)(?:$|_)"
+)
 
 # One pre-existing provider segment is already tracked as architecture debt in
 # #550. Keep the exception explicit and size-frozen while the consolidated
@@ -91,10 +97,52 @@ EXPECTED_EXPORTS = {
     ),
 }
 
+PRODUCTION_PATCH_GROUPS = (
+    "patch_module_names",
+    "terminal_patch_module_names",
+    "post_terminal_patch_module_names",
+    "candidate_integrity_patch_module_names",
+    "stage_local_patch_module_names",
+    "execution_policy_patch_module_names",
+    "telemetry_patch_module_names",
+    "post_telemetry_patch_module_names",
+)
+
 
 def normalized_source_size(path: Path) -> int:
     """Measure source bytes independent of Git checkout line-ending conversion."""
     return len(path.read_bytes().replace(b"\r\n", b"\n"))
+
+
+def production_patch_module_names() -> tuple[str, ...]:
+    """Return the complete currently registered production patch sequence."""
+    entrypoint = DcoirReviewEntrypoint()
+    names: list[str] = []
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        names.extend(getattr(entrypoint, group_name))
+    return tuple(names)
+
+
+def assert_numbered_patch_freeze_before_cutover() -> None:
+    """Enforce the #550 no-v59 production freeze until the chain is retired."""
+    numbered: dict[str, int] = {}
+    for module_name in production_patch_module_names():
+        match = NUMBERED_PRODUCTION_PATCH_RE.match(module_name)
+        if match is not None:
+            numbered[module_name] = int(match.group("version"))
+
+    assert numbered, "expected historical numbered production patches before #550 cutover"
+    observed_max = max(numbered.values())
+    assert observed_max == MAX_NUMBERED_PRODUCTION_PATCH_VERSION, {
+        "numbered_patch_freeze_violation": sorted(
+            name
+            for name, version in numbered.items()
+            if version > MAX_NUMBERED_PRODUCTION_PATCH_VERSION
+        ),
+        "expected_max_version": MAX_NUMBERED_PRODUCTION_PATCH_VERSION,
+        "observed_max_version": observed_max,
+    }
+    assert "dcoir_review_required_runtime_patch_v58" in numbered
 
 
 def assert_segment_source_sizes(paths: tuple[Path, ...], layer: str) -> None:
@@ -156,6 +204,7 @@ def assert_segment_registry_is_complete() -> None:
 
 
 def main() -> None:
+    assert_numbered_patch_freeze_before_cutover()
     assert_segment_registry_is_complete()
 
     for layer in LAYER_SEGMENTS:
