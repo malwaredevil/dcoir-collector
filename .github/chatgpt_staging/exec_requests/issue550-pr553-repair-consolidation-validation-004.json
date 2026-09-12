@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-repair-consolidation-validation-004",
+  "operator_approved": true,
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Same-goal exact-head validation retry for PR #553 repair consolidation. Validate source head f7ca5be780d52682a9e9a6740e302c19b52ba8b5 using the already-staged -001 validation body with GitHub-runner path fallbacks and a .NET SHA-256 helper compatible with Windows PowerShell 5.1. No DCOIR Review self-review, provider/API calls, PR mutation, Draft-to-Ready transition, external reviewer trigger, or merge.",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .github/chatgpt_staging/exec_scripts/issue550-pr553-repair-consolidation-validation-004.ps1"
+}
