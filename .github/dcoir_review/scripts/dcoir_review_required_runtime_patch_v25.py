@@ -19,11 +19,11 @@ This module never writes to the pull-request branch.
 from __future__ import annotations
 
 import ast
-import copy
 import json
 from pathlib import Path
 from typing import Any
 
+from dcoir_review import repair
 import dcoir_review_required_runtime_patch_v21 as v21
 
 
@@ -265,13 +265,8 @@ Full head-file context:
 
 
 def _independent_config(config: Any) -> Any:
-    """Use a distinct router call for the critic without mutating shared config."""
-    critic_config = copy.copy(config)
-    if hasattr(critic_config, "model"):
-        critic_config.model = "openrouter/auto"
-    if hasattr(critic_config, "model_stack"):
-        critic_config.model_stack = ["openrouter/auto"]
-    return critic_config
+    """Build the repair critic config through the canonical repair owner."""
+    return repair.build_repair_critic_config(config)
 
 
 def _parse_author(result: Any, hardened: Any) -> dict[str, Any]:
