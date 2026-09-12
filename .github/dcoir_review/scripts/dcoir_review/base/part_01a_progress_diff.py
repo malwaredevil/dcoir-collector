@@ -23,7 +23,12 @@ class ProgressReporter:
         self._update_comment(self._body("queued"), create_if_missing=True, force=True)
 
     def set_reviewed_commit(self, reviewed_commit: str) -> None:
-        self.reviewed_commit = str(reviewed_commit or "").strip()
+        captured = str(reviewed_commit or "").strip()
+        if captured == self.reviewed_commit:
+            return
+        self.reviewed_commit = captured
+        if self.comment_id or self._status_comment.comment_id:
+            self._update_comment(self._body("running"), create_if_missing=True, force=True)
 
     def set_formal_review(self, review: Any) -> None:
         if not isinstance(review, dict):
