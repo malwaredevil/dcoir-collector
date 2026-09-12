@@ -62,7 +62,7 @@ REPAIR_CRITIC_SCHEMA: dict[str, Any] = {
 # Stable helper exports intentionally remain module globals because later
 # historical overlays still replace a bounded subset during staged retirement.
 _path_line = support._path_line
-_file_line = support._file_line
+_unused_file_line = support._file_line
 _strip_legacy_model_finding_provenance = support._strip_legacy_model_finding_provenance
 
 def _verifier_evidence(finding: dict[str, Any]) -> str:
