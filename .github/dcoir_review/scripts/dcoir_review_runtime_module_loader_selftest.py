@@ -40,6 +40,8 @@ DIRECT_IMPORT_MODULES = (
     "module_loader.py",
     "repair.py",
     "repair_pipeline.py",
+    "repair_reliability.py",
+    "repair_render.py",
     "repair_support.py",
     "status.py",
     "pareto_context/credit_aware_concurrency.py",

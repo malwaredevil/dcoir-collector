@@ -26,7 +26,7 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v20 as v20
 import dcoir_review_required_runtime_patch_v21 as v21
 from dcoir_review import repair_pipeline as repair
-import dcoir_review_required_runtime_patch_v28 as v28
+from dcoir_review import repair_reliability as reliability
 
 
 VERSION = "v30"
@@ -252,17 +252,17 @@ def apply_pareto_context_module(module: Any) -> None:
     _patch_author_schema()
 
     original_prompt = repair._repair_author_prompt
-    original_author_result = v28._author_result
-    original_declined_item = v28._declined_item
+    original_author_result = reliability._author_result
+    original_declined_item = reliability._declined_item
     original_synthesize = module.synthesize_fixes_for_findings
 
     repair._repair_author_prompt = lambda mod, finding, path, line, current_line, file_text, config: _author_prompt(
         original_prompt, mod, finding, path, line, current_line, file_text, config
     )
-    v28._author_result = lambda result, finding, path, line, hardened: _author_result(
+    reliability._author_result = lambda result, finding, path, line, hardened: _author_result(
         original_author_result, result, finding, path, line, hardened
     )
-    v28._declined_item = lambda finding, path, line, reason, *, author=None, author_model="", author_tier="", outcome="no-safe-single-line-fix": _declined_item(
+    reliability._declined_item = lambda finding, path, line, reason, *, author=None, author_model="", author_tier="", outcome="no-safe-single-line-fix": _declined_item(
         original_declined_item,
         finding,
         path,

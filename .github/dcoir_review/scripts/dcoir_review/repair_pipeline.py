@@ -88,106 +88,11 @@ def _build_repair_for_finding(
     file_text: str,
     config: Any,
 ) -> dict[str, Any]:
-    hardened = module.hardened
-    path, line = _path_line(finding)
-    original = _file_line(file_text, line)
-    if not path or not original:
-        raise hardened.ReviewQualityError("DCOIR repair stage received an unreadable anchored finding")
+    # Lazy import avoids a module cycle while keeping this compatibility hook
+    # available for later staged overlays such as v33.
+    from dcoir_review import repair_reliability
 
-    author_prompt = _repair_author_prompt(module, finding, path, line, original, file_text, config)
-    author_raw, author_model, author_tier = hardened.openrouter_review(
-        author_prompt, REPAIR_AUTHOR_SCHEMA, config, reporter=None
-    )
-    author = _parse_author(author_raw, hardened)
-
-    # Reject malformed replacement text before spending a critic call on it.
-    precheck_reason = ""
-    if author["action"] == "replace_line":
-        precheck_reason = _replacement_validation_reason(
-            module, path, line, original, author["replacement"], file_text
-        )
-        if precheck_reason:
-            author["action"] = "no_safe_single_line_fix"
-            author["replacement"] = ""
-
-    critic_prompt = _repair_critic_prompt(module, finding, author, path, line, original, file_text, config)
-    critic_raw, critic_model, critic_tier = hardened.openrouter_review(
-        critic_prompt, REPAIR_CRITIC_SCHEMA, _independent_config(config), reporter=None
-    )
-    accepted, critic_confidence, critic_reason = _parse_critic(critic_raw, hardened)
-
-    item = dict(finding)
-    fallback_title, fallback_body = _fallback_display(item, path, line)
-    if accepted:
-        item["title"] = author["display_title"][:160]
-        item["body"] = author["display_body"][:1800]
-    else:
-        item["title"] = fallback_title[:160]
-        item["body"] = fallback_body[:1800]
-
-    item["suggested_replacement"] = ""
-    outcome = "no-safe-single-line-fix"
-    final_reason = critic_reason or precheck_reason or author["rationale"]
-    if accepted and author["action"] == "replace_line":
-        final_check = _replacement_validation_reason(
-            module, path, line, original, author["replacement"], file_text
-        )
-        if not final_check:
-            item["suggested_replacement"] = author["replacement"]
-            outcome = "native-suggestion"
-        else:
-            final_reason = final_check
-
-    if not item["suggested_replacement"]:
-        item["fix_guidance"] = {
-            "language": Path(path).suffix.lstrip(".") or "text",
-            "notes": (
-                "DCOIR Review verified the finding but did not expose a one-click GitHub suggestion because "
-                + (final_reason or "the repair stage could not prove a safe exact one-line replacement")
-                + "."
-            )[:1400],
-        }
-    else:
-        item.pop("fix_guidance", None)
-
-    validation = author["validation"]
-    if validation:
-        item["validation"] = validation
-
-    item[REPAIR_MARKER] = {
-        "version": VERSION,
-        "outcome": outcome,
-        "path": path,
-        "line": line,
-        "author_model": author_model,
-        "author_service_tier": author_tier,
-        "author_confidence": author["confidence"],
-        "critic_model": critic_model,
-        "critic_service_tier": critic_tier,
-        "critic_confidence": critic_confidence,
-        "critic_accepted": accepted,
-        "reason": final_reason,
-    }
-
-    hardened.write_debug_json_artifact_safely(
-        config,
-        f"responses/repair/{ordinal:02d}.json",
-        {
-            "path": path,
-            "line": line,
-            "author": author,
-            "author_model": author_model,
-            "critic": {
-                "accepted": accepted,
-                "confidence": critic_confidence,
-                "reason": critic_reason,
-                "model": critic_model,
-            },
-            "precheck_reason": precheck_reason,
-            "outcome": outcome,
-        },
-    )
-    return item
+    return repair_reliability.build_repair_for_finding(module, ordinal, finding, file_text, config)
 
 
 def synthesize_verified_repairs(
@@ -270,44 +175,9 @@ def synthesize_verified_repairs(
 
 
 def _render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
-    base = module.base
-    marker = finding.get(REPAIR_MARKER) if isinstance(finding.get(REPAIR_MARKER), dict) else {}
-    title = base.markdown_emphasis_safe_text(
-        base.sanitize_github_output(str(finding.get("title", "Finding") or "Finding").strip(), config)
-    )
-    severity = base.markdown_emphasis_safe_text(str(finding.get("severity", "medium") or "medium").upper())
-    body = base.strip_model_validation_section(
-        base.sanitize_github_output(str(finding.get("body", "") or "").strip(), config)
-    )
-    parts = [f"**{severity}: {title}**", "", body]
+    from dcoir_review import repair_render
 
-    suggestion = str(finding.get("suggested_replacement", "") or "")
-    if marker.get("outcome") == "native-suggestion" and suggestion:
-        path, line = _path_line(finding)
-        # Final rendering does not have file text, so it repeats the immutable
-        # shape checks. The stronger full-file check happened immediately after
-        # the critic against the exact reviewed head.
-        if (
-            path
-            and line > 0
-            and not any(token in suggestion for token in ("\n", "\r", "```", "~~~"))
-            and len(suggestion) <= 1000
-            and base.is_safe_suggestion(suggestion)
-        ):
-            safe = base.sanitize_github_output(suggestion, config, neutralize_mentions=False)
-            parts.extend(["", "**Suggested change:**", "", "```suggestion", safe, "```"])
-
-    guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
-    notes = base.fix_guidance_value_text(guidance.get("notes", ""), config) if guidance else ""
-    if notes:
-        parts.extend(["", "**Repair status:**", "", notes])
-
-    validation = base.sanitize_github_output(base.validation_text_for_finding(finding), config)
-    if validation:
-        parts.extend(["", "**Validation expected after fix:**"])
-        base.append_language_fence(parts, "bash", validation)
-    parts.extend(["", f"<sub>{base.REVIEW_DISPLAY_NAME} · verified repair pipeline</sub>"])
-    return base.github_safe_body("\n".join(parts), limit=12000)
+    return repair_render.render_repair(module, finding, config)
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -322,7 +192,21 @@ def apply_pareto_context_module(module: Any) -> None:
         config: Any,
         reporter: Any,
     ) -> list[dict[str, Any]]:
-        return synthesize_verified_repairs(module, findings, gh, pr, schema, config, reporter)
+        try:
+            return synthesize_verified_repairs(module, findings, gh, pr, schema, config, reporter)
+        except Exception as exc:
+            # Preserve the terminal reliability diagnostic formerly installed by
+            # historical v28 without wrapping this permanent owner at runtime.
+            module.hardened.write_debug_json_artifact_safely(
+                config,
+                "metadata/repair-v28-terminal-failure.json",
+                {
+                    "schema_version": "dcoir_review_repair_v28_failure_v1",
+                    "error_type": type(exc).__name__,
+                    "error": str(exc)[:1200],
+                },
+            )
+            raise
 
     module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
 

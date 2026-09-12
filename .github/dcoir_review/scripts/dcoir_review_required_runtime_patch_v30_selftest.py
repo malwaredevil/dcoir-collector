@@ -39,21 +39,21 @@ def main() -> None:
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v28 = importlib.import_module("dcoir_review_required_runtime_patch_v28")
+    reliability = importlib.import_module("dcoir_review.repair_reliability")
     v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
 
     # Applying only the v30 overlay again in a reused interpreter must be a no-op
     # rather than stacking prompt/parser/synthesis/renderer wrappers.
     prompt_before = repair._repair_author_prompt
-    author_result_before = v28._author_result
-    declined_before = v28._declined_item
+    author_result_before = reliability._author_result
+    declined_before = reliability._declined_item
     synthesis_before = review.synthesize_fixes_for_findings
     renderer_before = review.base.build_inline_comment
     v30.apply_pareto_context_module(review)
     v30.apply_pareto_context_module(review)
     assert repair._repair_author_prompt is prompt_before
-    assert v28._author_result is author_result_before
-    assert v28._declined_item is declined_before
+    assert reliability._author_result is author_result_before
+    assert reliability._declined_item is declined_before
     assert review.synthesize_fixes_for_findings is synthesis_before
     assert review.base.build_inline_comment is renderer_before
 
@@ -109,12 +109,12 @@ def main() -> None:
         "rationale": "The exact syntax is a boolean membership expression, not a bare literal operand.",
         "validation": "python3 -m py_compile probe.py",
     }
-    absent_author = v28._author_result(absent_raw, finding, "probe.py", 1, Hardened)
+    absent_author = reliability._author_result(absent_raw, finding, "probe.py", 1, Hardened)
     assert absent_author["defect_present"] is False
     assert absent_author["action"] == "no_safe_single_line_fix"
     assert absent_author["replacement"] == ""
 
-    suppressed = v28._declined_item(
+    suppressed = reliability._declined_item(
         finding,
         "probe.py",
         1,
@@ -140,8 +140,8 @@ def main() -> None:
         "rationale": "A declaration and an adjacent call site must both change.",
         "validation": "python3 -m py_compile probe.py",
     }
-    real_author = v28._author_result(real_raw, finding, "probe.py", 1, Hardened)
-    real_item = v28._declined_item(
+    real_author = reliability._author_result(real_raw, finding, "probe.py", 1, Hardened)
+    real_item = reliability._declined_item(
         finding,
         "probe.py",
         1,
@@ -158,8 +158,8 @@ def main() -> None:
 
     low_confidence_raw = dict(absent_raw)
     low_confidence_raw["confidence"] = 0.80
-    low_author = v28._author_result(low_confidence_raw, finding, "probe.py", 1, Hardened)
-    low_item = v28._declined_item(
+    low_author = reliability._author_result(low_confidence_raw, finding, "probe.py", 1, Hardened)
+    low_item = reliability._declined_item(
         finding,
         "probe.py",
         1,

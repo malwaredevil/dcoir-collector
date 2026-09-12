@@ -1,8 +1,7 @@
-"""DCOIR Review v28 staged repair-pipeline reliability overlay.
+"""Stable operational reliability for the DCOIR verified-repair pipeline.
 
-The canonical repair pipeline established the desired verify -> repair-author -> repair-critic ->
-deterministic-validation architecture. v28 makes that pipeline operationally
-robust and observable:
+The canonical repair pipeline uses this owner for the verify -> repair-author -> repair-critic ->
+deterministic-validation execution path. It preserves the proven reliability contract:
 
 - persist the repair-author result before any later stage can fail;
 - use verifier-approved finding wording when the repair author omits display
@@ -13,7 +12,8 @@ robust and observable:
 - persist bounded diagnostics on every fail-closed repair path;
 - keep native suggestion eligibility exactly as strict as repair.
 
-No branch writes are introduced.
+No branch writes are introduced. The historical v28 marker and debug paths are retained
+for compatibility while the production patch module itself is retired.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from typing import Any
 from dcoir_review import repair_pipeline as repair
 
 
+# Compatibility provenance value retained for existing review/debug consumers.
 VERSION = "v28"
 
 
@@ -357,87 +358,3 @@ def build_repair_for_finding(
     }
     _persist_final(module, config, ordinal, item)
     return item
-
-
-def _render_v28(module: Any, finding: dict[str, Any], config: Any) -> str:
-    base = module.base
-    marker = finding.get(repair.REPAIR_MARKER) if isinstance(finding.get(repair.REPAIR_MARKER), dict) else {}
-    title = base.markdown_emphasis_safe_text(
-        base.sanitize_github_output(str(finding.get("title", "Finding") or "Finding").strip(), config)
-    )
-    severity = base.markdown_emphasis_safe_text(str(finding.get("severity", "medium") or "medium").upper())
-    body = base.strip_model_validation_section(
-        base.sanitize_github_output(str(finding.get("body", "") or "").strip(), config)
-    )
-    parts = [f"**{severity}: {title}**", "", body]
-
-    suggestion = str(finding.get("suggested_replacement", "") or "")
-    if marker.get("outcome") == "native-suggestion" and suggestion:
-        path, line = repair._path_line(finding)
-        if (
-            path
-            and line > 0
-            and not any(token in suggestion for token in ("\n", "\r", "```", "~~~"))
-            and len(suggestion) <= 1000
-            and base.is_safe_suggestion(suggestion)
-        ):
-            safe = base.sanitize_github_output(suggestion, config, neutralize_mentions=False)
-            parts.extend(["", "**Suggested change:**", "", "```suggestion", safe, "```"])
-
-    guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
-    notes = base.fix_guidance_value_text(guidance.get("notes", ""), config) if guidance else ""
-    if notes:
-        parts.extend(["", "**Repair status:**", "", notes])
-
-    validation = base.sanitize_github_output(base.validation_text_for_finding(finding), config)
-    if validation:
-        parts.extend(["", "**Validation expected after fix:**"])
-        base.append_language_fence(parts, "bash", validation)
-    pipeline_version = str(marker.get("version", VERSION) or VERSION)
-    parts.extend(["", f"<sub>{base.REVIEW_DISPLAY_NAME} · verified repair pipeline {pipeline_version}</sub>"])
-    return base.github_safe_body("\n".join(parts), limit=12000)
-
-
-def apply_pareto_context_module(module: Any) -> None:
-    # repair.synthesize_verified_repairs resolves this helper dynamically, so
-    # replacing it upgrades the active production repair path without another
-    # verifier wrapper or any branch-writing capability.
-    repair._build_repair_for_finding = build_repair_for_finding
-    repair._render_repair = _render_v28
-
-    # Keep a bounded terminal diagnostic for failures outside the per-finding
-    # author/critic stages. Per-finding failures are handled inside v28 above.
-    storage = "_dcoir_required_v28_original_synthesize_verified_repairs"
-    original = getattr(repair, storage, None)
-    if original is None:
-        original = getattr(repair, "synthesize_verified_repairs", None)
-        if callable(original):
-            setattr(repair, storage, original)
-    if not callable(original):
-        return
-
-    def synthesize_verified_repairs(
-        mod: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        schema: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        try:
-            return original(mod, findings, gh, pr, schema, config, reporter)
-        except Exception as exc:
-            _debug(
-                mod,
-                config,
-                "metadata/repair-v28-terminal-failure.json",
-                {
-                    "schema_version": "dcoir_review_repair_v28_failure_v1",
-                    "error_type": type(exc).__name__,
-                    "error": str(exc)[:1200],
-                },
-            )
-            raise
-
-    repair.synthesize_verified_repairs = synthesize_verified_repairs

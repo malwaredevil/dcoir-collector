@@ -13,10 +13,10 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v29" not in names
-    assert "dcoir_review_required_runtime_patch_v28" in names
+    assert "dcoir_review_required_runtime_patch_v28" not in names
     assert "dcoir_review_required_runtime_patch_v30" in names
     assert "dcoir_review_required_runtime_patch_v31" in names
-    assert names.index("dcoir_review_required_runtime_patch_v28") < names.index(
+    assert names.index("dcoir_review.repair_pipeline") < names.index(
         "dcoir_review_required_runtime_patch_v30"
     )
     assert names.index("dcoir_review_required_runtime_patch_v30") < names.index(
