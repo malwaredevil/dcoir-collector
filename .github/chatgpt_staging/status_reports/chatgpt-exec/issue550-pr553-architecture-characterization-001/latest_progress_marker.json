@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "34692389893",
+  "github_sha": "ad31572447175b8b42465013e6e2039c33e85763",
+  "phase": "request-resolved",
+  "request_id": "issue550-pr553-architecture-characterization-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-architecture-characterization-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-12T11:58:06Z",
+  "workflow": "chatgpt-exec"
+}
