@@ -100,10 +100,32 @@ def test_valid_anchor_is_immutable_even_when_adjacent_prose_scores_higher(review
     assert anchored.get("_reanchored_from_line") is None, anchored
 
 
+def test_unpostable_anchor_can_still_be_rescued(review) -> None:
+    diff = probe_diff()
+    line_index = review.hardened.build_added_line_index(diff)
+    changed_lines_by_path = {PATH: list(review.hardened.iter_added_diff_lines(diff))}
+    finding = {
+        "title": "Inverted upper-bound comparison in is_recent",
+        "body": "The age_minutes upper-bound comparison violates the documented inclusive range.",
+        "path": PATH,
+        "line": 99,
+        "confidence": 0.99,
+    }
+    anchored = review.reanchor_finding_to_changed_line(
+        finding,
+        line_index,
+        changed_lines_by_path,
+        [],
+    )
+    assert anchored["line"] == 12, anchored
+    assert anchored.get("_reanchored_from_line") == 99, anchored
+
+
 def main() -> None:
     review = production_review()
     test_exact_postable_anchor_survives_review_body_fallback(review)
     test_valid_anchor_is_immutable_even_when_adjacent_prose_scores_higher(review)
+    test_unpostable_anchor_can_still_be_rescued(review)
     print("DCOIR Review anchor-normalization selftest passed")
 
 
