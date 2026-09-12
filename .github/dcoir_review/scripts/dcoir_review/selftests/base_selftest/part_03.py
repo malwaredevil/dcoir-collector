@@ -27,43 +27,51 @@ failure_message = "\n".join(
         f"curl --proxy-user='proxy:{curl_proxy_unclosed_quoted_password} https://example.test/",
     ]
 )
+
+# The #550 status surface is first-class for both normal and debug runs. A
+# terminal failure must publish one sanitized status comment even when the
+# legacy progress flag is false.
 failure_reporter.fail(failure_message)
-assert fake_gh.comments == []
+assert len(fake_gh.comments) == 1
+failure_body = fake_gh.comments[-1]
 
 debug_failure_config = replace(config, debug=True, post_progress_comment=True)
 debug_fake_gh = FakeGitHub()
 debug_failure_reporter = mod.ProgressReporter(debug_fake_gh, 281, "/or-review", debug_failure_config)
 debug_failure_reporter.fail(failure_message)
-failure_body = debug_fake_gh.comments[-1]
-for leaked in [
-    bearer_secret,
-    "cookie-secret",
-    url_password,
-    signed_url_secret,
-    "fallback curl secret",
-    "proxy fallback secret",
-    "fallback }} curl secret",
-    "unclosed curl secret",
-    "backtick curl secret",
-    "multiline backtick curl secret",
-    "multiline backtick tail secret",
-    curl_unclosed_quoted_password,
-    curl_proxy_unclosed_quoted_password,
-    curl_multiline_double_quote_password,
-    curl_multiline_single_quote_password,
-    curl_multiline_ansi_quote_password,
-    curl_multiline_locale_quote_password,
-    "ansi curl secret",
-    "locale curl secret",
-    r"escaped\ curl\ secret",
-    "concat curl secret",
-    "PRIVATE KEY",
-    "private-key-secret-material",
-    "@codex",
-]:
-    assert leaked not in failure_body, failure_body
-assert "@<!-- -->codex" in failure_body
-assert "[redacted-secret]" in failure_body
+assert len(debug_fake_gh.comments) == 1
+debug_failure_body = debug_fake_gh.comments[-1]
+
+for rendered_failure_body in (failure_body, debug_failure_body):
+    for leaked in [
+        bearer_secret,
+        "cookie-secret",
+        url_password,
+        signed_url_secret,
+        "fallback curl secret",
+        "proxy fallback secret",
+        "fallback }} curl secret",
+        "unclosed curl secret",
+        "backtick curl secret",
+        "multiline backtick curl secret",
+        "multiline backtick tail secret",
+        curl_unclosed_quoted_password,
+        curl_proxy_unclosed_quoted_password,
+        curl_multiline_double_quote_password,
+        curl_multiline_single_quote_password,
+        curl_multiline_ansi_quote_password,
+        curl_multiline_locale_quote_password,
+        "ansi curl secret",
+        "locale curl secret",
+        r"escaped\ curl\ secret",
+        "concat curl secret",
+        "PRIVATE KEY",
+        "private-key-secret-material",
+        "@codex",
+    ]:
+        assert leaked not in rendered_failure_body, rendered_failure_body
+    assert "@<!-- -->codex" in rendered_failure_body
+    assert "[redacted-secret]" in rendered_failure_body
 
 previous_run_id = os.environ.get("GITHUB_RUN_ID")
 previous_repo = os.environ.get("GITHUB_REPOSITORY")
