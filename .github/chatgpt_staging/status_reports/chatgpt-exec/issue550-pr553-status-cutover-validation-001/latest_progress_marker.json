@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue550-pr553-status-cutover-validation-001",
+  "exit_code": "0",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34695700055",
   "github_sha": "ec4f456a3ca333cd781b6f9d40716f8fc48d4534",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue550-pr553-status-cutover-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-status-cutover-validation-001.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-12T13:11:04Z",
+  "updated_utc": "2026-09-12T13:11:21Z",
   "workflow": "chatgpt-exec"
 }
