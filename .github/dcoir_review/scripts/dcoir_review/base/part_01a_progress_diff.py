@@ -1,3 +1,6 @@
+from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
+
+
 class ProgressReporter:
     def __init__(self, gh: GitHubClient, issue_number: int, command: str, config: Config) -> None:
         self.gh = gh
@@ -6,24 +9,51 @@ class ProgressReporter:
         self.config = config
         self.comment_id = 0
         self.steps: list[tuple[str, str]] = []
+        self.reviewed_commit = ""
+        self.formal_review_id = 0
+        self.formal_review_url = ""
+        self.started_at = time.time()
+        self.completed_at = 0.0
+        self._last_published_stage = ""
+        self._status_comment = MutableReviewStatusComment(gh, issue_number)
 
     def start(self) -> None:
-        self._record("started", "accepted operator review command and initialized progress reporting")
-        if not self.config.post_progress_comment:
+        self._record("queued", "accepted operator review command and queued review execution")
+        self._last_published_stage = "queued"
+        self._update_comment(self._body("queued"), create_if_missing=True, force=True)
+
+    def set_reviewed_commit(self, reviewed_commit: str) -> None:
+        self.reviewed_commit = str(reviewed_commit or "").strip()
+
+    def set_formal_review(self, review: Any) -> None:
+        if not isinstance(review, dict):
             return
         try:
-            comment = self.gh.create_issue_comment(self.issue_number, self._body("running"))
-            self.comment_id = int(comment.get("id", 0))
-        except Exception as exc:
-            print(f"WARN: unable to create progress comment: {exc}", file=sys.stderr, flush=True)
+            self.formal_review_id = int(review.get("id", 0) or 0)
+        except (TypeError, ValueError):
+            self.formal_review_id = 0
+        self.formal_review_url = str(review.get("html_url", "") or "").strip()
+        if not self.formal_review_url and self.formal_review_id:
+            repo = str(getattr(self.gh, "repo", "") or "").strip()
+            if repo:
+                self.formal_review_url = (
+                    f"https://github.com/{repo}/pull/{self.issue_number}"
+                    f"#pullrequestreview-{self.formal_review_id}"
+                )
 
     def update(self, stage: str, message: str) -> None:
         self._record(stage, message)
+        normalized_stage = sanitize_public_identity(str(stage or "").strip())
+        if normalized_stage == self._last_published_stage:
+            return
+        self._last_published_stage = normalized_stage
         self._update_comment(self._body("running"))
 
     def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
         plural = "finding" if findings_count == 1 else "findings"
+        self.completed_at = time.time()
         self._record("completed", f"posted GitHub review; {findings_count} inline {plural}; event={review_event}")
+        self._last_published_stage = "completed"
         self._update_comment(
             self._body(
                 "completed",
@@ -31,12 +61,16 @@ class ProgressReporter:
                     f"- Result: GitHub review posted with `{findings_count}` inline {plural}.",
                     f"- Review event: `{review_event}`.",
                 ],
-            )
+            ),
+            create_if_missing=True,
+            force=True,
         )
 
     def fail(self, message: str) -> None:
         safe_message = sanitize_github_output(message, self.config)
+        self.completed_at = time.time()
         self._record("failed", safe_message[:500])
+        self._last_published_stage = "failed"
         self._update_comment(
             self._body(
                 "failed",
@@ -58,34 +92,47 @@ class ProgressReporter:
         emit_status(stage, safe_message)
 
     def _body(self, state: str, final_lines: list[str] | None = None) -> str:
+        normalized = str(state or "").strip().lower()
+        state_label = {
+            "queued": "Queued",
+            "running": "Running",
+            "completed": "Completed",
+            "failed": "Failed",
+        }.get(normalized, "Failed")
+        now = self.completed_at or time.time()
+        elapsed = max(0, int(now - self.started_at))
+        started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.started_at))
+        commit = sanitize_github_output(self.reviewed_commit or "pending", self.config)
+        command = sanitize_github_output(self.command, self.config)
         lines = [
-            MARKER,
-            f"{REVIEW_DISPLAY_NAME} {state}.",
+            STATUS_MARKER,
+            f"## {REVIEW_DISPLAY_NAME} — {state_label}",
             "",
-            f"- Command: `{self.command}`.",
-            f"- Debug progress: `{str(getattr(self.config, 'debug', False)).lower()}`.",
+            f"- Exact reviewed commit: `{commit}`.",
+            f"- Trigger: `{command}`.",
+            f"- Started: `{started}`.",
+            f"- Elapsed: `{elapsed}s`.",
             *workflow_run_status_lines(self.config),
-            "- Branch changes: none; this workflow only posts review output.",
-            "- Gate role: internal review-assist signal before any separately approved external review request.",
         ]
+        if self.formal_review_url:
+            safe_url = sanitize_github_output(self.formal_review_url, self.config)
+            review_label = str(self.formal_review_id or "review")
+            lines.append(f"- Formal GitHub review: [`{review_label}`]({safe_url}) — authoritative review artifact.")
+        else:
+            lines.append("- Formal GitHub review: pending; the status comment is progress-only.")
         if final_lines:
             lines.extend(["", *final_lines])
-        lines.extend(["", "Progress:"])
-        for stage, message in self.steps[-12:]:
-            lines.append(f"- `{sanitize_public_identity(stage)}`: {message}")
+        if self.steps:
+            lines.extend(["", "<details>", "<summary>Recent progress</summary>", ""])
+            for stage, message in self.steps[-8:]:
+                lines.append(f"- `{sanitize_public_identity(stage)}`: {message}")
+            lines.extend(["", "</details>"])
         return github_safe_body("\n".join(lines), limit=12000)
 
-    def _update_comment(self, body: str, create_if_missing: bool = False, force: bool = False) -> None:
-        if not force and not self.config.post_progress_comment:
-            return
-        try:
-            if self.comment_id:
-                self.gh.update_issue_comment(self.comment_id, body)
-            elif create_if_missing:
-                comment = self.gh.create_issue_comment(self.issue_number, body)
-                self.comment_id = int(comment.get("id", 0))
-        except Exception as exc:
-            print(f"WARN: unable to update progress comment: {exc}", file=sys.stderr, flush=True)
+    def _update_comment(self, body: str, create_if_missing: bool = True, force: bool = False) -> None:
+        self._status_comment.comment_id = int(self.comment_id or self._status_comment.comment_id or 0)
+        self._status_comment.publish(body, create_if_missing=create_if_missing, force=force)
+        self.comment_id = int(self._status_comment.comment_id or 0)
 
 
 def build_diff_line_index(diff: str) -> dict[tuple[str, int], int]:
@@ -139,5 +186,3 @@ def load_guidance(config: Config) -> str:
         if text:
             parts.append(f"## {path}\n\n{text}")
     return "\n\n".join(parts)
-
-
