@@ -89,11 +89,7 @@ def _build_repair_for_finding(
     file_text: str,
     config: Any,
 ) -> dict[str, Any]:
-    # Lazy import avoids a module cycle while keeping this compatibility hook
-    # available for later staged overlays such as v33.
-    from dcoir_review import repair_reliability
-
-    return repair_reliability.build_repair_for_finding(module, ordinal, finding, file_text, config)
+    return support.build_repair_for_finding(module, ordinal, finding, file_text, config)
 
 
 def synthesize_verified_repairs(
