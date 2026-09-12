@@ -19,7 +19,7 @@ v53 restores the existing policy boundary without changing finding publication:
 * every attempted repair continues through the unchanged v36 author, exact-head
   structural checks, independent critic, and final exact-head revalidation.
 
-Detector-authored replacement text remains untrusted and is stripped by v25.
+Detector-authored replacement text remains untrusted and is stripped by repair.
 This overlay performs no branch mutation and changes no provider/model routing.
 """
 
@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v36 as v36
@@ -80,8 +80,8 @@ def _confidence_deferred_verified_finding(
 ) -> dict[str, Any]:
     """Keep a verified finding visible while withholding repair synthesis."""
 
-    finding = v25._strip_legacy_model_finding_provenance(raw)
-    path, line = v25._path_line(finding)
+    finding = repair._strip_legacy_model_finding_provenance(raw)
+    path, line = repair._path_line(finding)
     finding["suggested_replacement"] = ""
     if confidence is None:
         reason = "finding confidence was missing, malformed, non-finite, or outside 0.0..1.0"
@@ -97,7 +97,7 @@ def _confidence_deferred_verified_finding(
             + ". The finding remains published, but no one-click repair is authorized by this stage."
         )[:1400],
     }
-    finding[v25.REPAIR_MARKER] = {
+    finding[repair.REPAIR_MARKER] = {
         "version": VERSION,
         "outcome": CONFIDENCE_DEFERRED_OUTCOME,
         "path": path,
@@ -111,7 +111,7 @@ def _confidence_deferred_verified_finding(
 
 
 def _repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
-    marker = item.get(v25.REPAIR_MARKER) if isinstance(item.get(v25.REPAIR_MARKER), dict) else {}
+    marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
     outcome = str(marker.get("outcome", "") or "")
     counters = {
         "repair_sets": 0,
@@ -278,7 +278,7 @@ def synthesize_verified_repair_sets(
             continue
 
         attempts += 1
-        finding = v25._strip_legacy_model_finding_provenance(raw)
+        finding = repair._strip_legacy_model_finding_provenance(raw)
         try:
             item = v36._build_repair_set_for_finding(
                 module,
@@ -344,8 +344,8 @@ def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
 
-    # v25's public synthesis wrapper resolves this symbol dynamically. v30's
+    # the canonical repair pipeline's public synthesis wrapper resolves this symbol dynamically. v30's
     # suppression wrapper therefore remains outside this replacement, while v36
     # continues to own every repair attempt's author/critic/exact-head mechanics.
-    v25.synthesize_verified_repairs = synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = synthesize_verified_repair_sets
     setattr(module, APPLIED_MARKER, True)

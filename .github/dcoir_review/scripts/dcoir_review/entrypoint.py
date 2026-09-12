@@ -36,11 +36,8 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v22',
         'dcoir_review_required_runtime_patch_v23',
         'dcoir_review_required_runtime_patch_v24',
-        'dcoir_review_required_runtime_patch_v25',
+        'dcoir_review.repair_pipeline',
         'dcoir_review_required_runtime_patch_v26',
-        'dcoir_review_required_runtime_patch_v27',
-        'dcoir_review_required_runtime_patch_v29',
-        'dcoir_review_required_runtime_patch_v28',
         'dcoir_review_required_runtime_patch_v30',
         # v32 owns adversarial model/prompt/hybrid review behavior. v33 then
         # separates pre-publication verification capacity from the bounded

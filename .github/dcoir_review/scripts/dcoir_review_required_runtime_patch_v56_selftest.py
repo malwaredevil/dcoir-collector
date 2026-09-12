@@ -91,13 +91,13 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair_pipeline = importlib.import_module("dcoir_review.repair_pipeline")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     v53 = importlib.import_module("dcoir_review_required_runtime_patch_v53")
     v54 = importlib.import_module("dcoir_review_required_runtime_patch_v54")
     v56 = importlib.import_module("dcoir_review_required_runtime_patch_v56")
     batch = importlib.import_module("dcoir_review_required_runtime_patch_v56_batch")
-    repair = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
+    repair_stage = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
     assert getattr(review, v56.APPLIED_MARKER, False) is True
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
@@ -180,7 +180,7 @@ def main() -> None:
         assert sum(1 for call in calls if call[0] == "author") == 3
         assert sum(1 for call in calls if call[0] == "batch-critic") == 1
         assert sum(1 for call in calls if call[0] == "single-critic") == 0
-        markers = [item[v25.REPAIR_MARKER] for item in result]
+        markers = [item[repair_pipeline.REPAIR_MARKER] for item in result]
         assert all(marker["outcome"] == v36.REPAIR_SET_OUTCOME for marker in markers)
         assert all(marker["version"] == v36.VERSION for marker in markers)
         assert all(marker["critic_batch_version"] == v56.VERSION for marker in markers)
@@ -219,7 +219,7 @@ def main() -> None:
         critics = [call for call in calls if call[0] == "single-critic"]
         assert len(critics) == 2, calls
         assert {call[2] for call in critics} == {"openai/gpt-5.6-sol-pro", "anthropic/claude-opus-5"}
-        assert all(item[v25.REPAIR_MARKER]["critic_accepted"] is True for item in result)
+        assert all(item[repair_pipeline.REPAIR_MARKER]["critic_accepted"] is True for item in result)
 
         # The identity parser isolates malformed, missing, duplicate, and unknown
         # results. Batch-schema violations fail closed before v36 acceptance logic.
@@ -232,12 +232,12 @@ def main() -> None:
             "critic_model": "openai/gpt-5.6-sol-pro",
         }
         p1 = dict(template)
-        p1["critic_item_id"] = repair.critic_item_id(1, p1["finding"], p1["author"])
+        p1["critic_item_id"] = repair_stage.critic_item_id(1, p1["finding"], p1["author"])
         p2 = copy.deepcopy(template)
         p2["ordinal"] = 2
         p2["finding"] = _finding("b.py")
         p2["author"] = _author("b.py")
-        p2["critic_item_id"] = repair.critic_item_id(2, p2["finding"], p2["author"])
+        p2["critic_item_id"] = repair_stage.critic_item_id(2, p2["finding"], p2["author"])
         parsed = batch.parse_batch(
             {
                 "results": [
@@ -323,8 +323,8 @@ def main() -> None:
             Reporter(),
         )
         assert [call[0] for call in calls] == ["author", "single-critic"], calls
-        assert result[0][v25.REPAIR_MARKER]["critic_batch_size"] == 1
-        assert result[0][v25.REPAIR_MARKER]["version"] == v36.VERSION
+        assert result[0][repair_pipeline.REPAIR_MARKER]["critic_batch_size"] == 1
+        assert result[0][repair_pipeline.REPAIR_MARKER]["version"] == v36.VERSION
 
         # The governed config exposes an operator rollback switch. Explicit disable
         # delegates to the exact v53 implementation rather than partially entering

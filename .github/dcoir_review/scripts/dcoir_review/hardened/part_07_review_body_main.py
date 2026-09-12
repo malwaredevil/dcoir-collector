@@ -129,6 +129,10 @@ def main() -> None:
         reporter.update("reaction", f"eyes add: {reaction_status['added']}")
         reporter.update("github", "fetching PR metadata")
         pr = gh.get_pr(pr_number)
+        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
+        set_reviewed_commit = getattr(reporter, "set_reviewed_commit", None)
+        if callable(set_reviewed_commit):
+            set_reviewed_commit(reviewed_commit)
         reporter.update("github", "fetching PR diff")
         diff = gh.get_pr_diff(pr_number)
         reporter.update("github", "fetching changed file list")
@@ -152,11 +156,13 @@ def main() -> None:
             comments.append({"path": path, "line": line, "side": "RIGHT", "body": base.build_inline_comment(finding, model_used, config)})
 
         event = "REQUEST_CHANGES" if comments and config.request_changes_on_findings else "COMMENT"
-        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
         review_body = build_review_body_with_unanchored(result, findings, unanchored_findings, model_used, config, reviewed_commit)
         unanchored_note = f" and {len(unanchored_findings)} unanchored review-body findings" if unanchored_findings else ""
         reporter.update("github-review", f"posting GitHub review with {len(comments)} inline comments{unanchored_note}")
-        gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        review = gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        set_formal_review = getattr(reporter, "set_formal_review", None)
+        if callable(set_formal_review):
+            set_formal_review(review)
         remove_eyes_reaction(gh, trigger_comment_id, reaction_id, reaction_status)
         tier_note = f"; service_tier={service_tier}" if service_tier else ""
         reporter.update("reaction", f"eyes add: {reaction_status['added']}; eyes remove: {reaction_status['removed']}")

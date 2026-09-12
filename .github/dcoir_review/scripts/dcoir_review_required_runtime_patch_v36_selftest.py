@@ -29,7 +29,7 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
     v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     assert getattr(review, v36.APPLIED_MARKER, False) is True
@@ -106,7 +106,7 @@ def main() -> None:
         "line": 2,
         "body": "The verified defect requires coordinated edits.",
         "validation": "python3 -m py_compile probe.py",
-        v25.REPAIR_MARKER: {
+        repair.REPAIR_MARKER: {
             "version": v36.VERSION,
             "outcome": v36.REPAIR_SET_OUTCOME,
             "repair_set_id": "R01",
@@ -175,7 +175,7 @@ def main() -> None:
     original_openrouter = review.hardened.openrouter_review
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
-    original_public_synth = v25.synthesize_verified_repairs
+    original_public_synth = repair.synthesize_verified_repairs
     model_calls = []
 
     def _fake_verify(mod, findings, gh, pr, cfg, reporter):
@@ -219,7 +219,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     v30.v21.verify_findings_for_publication = _fake_verify
-    v25.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -234,14 +234,14 @@ def main() -> None:
             pipeline_reporter,
         )
     finally:
-        v25.synthesize_verified_repairs = original_public_synth
+        repair.synthesize_verified_repairs = original_public_synth
         v30.v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_openrouter
         review.fetch_pr_file_text = original_fetch
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     assert len(pipeline_result) == 1
-    pipeline_marker = pipeline_result[0][v25.REPAIR_MARKER]
+    pipeline_marker = pipeline_result[0][repair.REPAIR_MARKER]
     assert pipeline_marker["version"] == v36.VERSION
     assert pipeline_marker["outcome"] == v36.REPAIR_SET_OUTCOME
     assert pipeline_marker["edit_count"] == 1
@@ -263,13 +263,13 @@ def main() -> None:
         "display_body": "The alleged defect is absent.",
     }
     suppressed = v36._declined_item(finding, absent_author, "exact evidence disproves the claim")
-    assert suppressed[v25.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
+    assert suppressed[repair.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
 
     publisher_before = review.build_review_comments_for_finding
-    synth_before = v25.synthesize_verified_repairs
+    synth_before = repair.synthesize_verified_repairs
     v36.apply_pareto_context_module(review)
     assert review.build_review_comments_for_finding is publisher_before
-    assert v25.synthesize_verified_repairs is synth_before
+    assert repair.synthesize_verified_repairs is synth_before
 
     print("dcoir_review_required_runtime_patch_v36_selftest passed")
 

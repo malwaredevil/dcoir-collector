@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v27 exact-anchor preservation."""
+"""Stable regression checks for DCOIR Review finding-anchor normalization."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 PATH = ".github/dcoir_review/evaluation/live_verifier_probe.py"
 
 
-def patched_review():
+def production_review():
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     return review
@@ -36,7 +36,7 @@ def probe_diff() -> str:
     return (
         f"diff --git a/{PATH} b/{PATH}\n"
         "new file mode 100644\n"
-        "index 0000000..1111111\n"
+        "index 0000000..1111111 100644\n"
         "--- /dev/null\n"
         f"+++ b/{PATH}\n"
         "@@ -0,0 +1,12 @@\n"
@@ -100,11 +100,35 @@ def test_valid_anchor_is_immutable_even_when_adjacent_prose_scores_higher(review
     assert anchored.get("_reanchored_from_line") is None, anchored
 
 
+def test_unpostable_anchor_can_still_be_rescued(review) -> None:
+    diff = probe_diff()
+    line_index = review.hardened.build_added_line_index(diff)
+    changed_lines_by_path = {PATH: list(review.hardened.iter_added_diff_lines(diff))}
+    finding = {
+        "title": "Inverted upper-bound comparison in is_recent",
+        "body": "The age_minutes upper-bound comparison violates the documented inclusive range.",
+        "path": PATH,
+        "line": 99,
+        "confidence": 0.99,
+    }
+    anchored = review.reanchor_finding_to_changed_line(
+        finding,
+        line_index,
+        changed_lines_by_path,
+        [],
+    )
+    rescued_line = int(anchored["line"])
+    assert rescued_line != 99, anchored
+    assert (PATH, rescued_line) in line_index, anchored
+    assert anchored.get("_reanchored_from_line") == 99, anchored
+
+
 def main() -> None:
-    review = patched_review()
+    review = production_review()
     test_exact_postable_anchor_survives_review_body_fallback(review)
     test_valid_anchor_is_immutable_even_when_adjacent_prose_scores_higher(review)
-    print("dcoir_review_required_runtime_patch_v27_selftest passed")
+    test_unpostable_anchor_can_still_be_rescued(review)
+    print("DCOIR Review anchor-normalization selftest passed")
 
 
 if __name__ == "__main__":

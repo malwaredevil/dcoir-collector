@@ -182,11 +182,11 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v22_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v23_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v24_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v25_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_pipeline_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v26_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v27_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v28_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v29_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_anchor_normalization_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_reliability_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_routing_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py
