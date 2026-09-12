@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34696628638",
   "github_sha": "85edf574713cf3031a1640fbd8db040475161628",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-first-patch-retirement-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-first-patch-retirement-validation-001.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-12T13:31:20Z",
+  "updated_utc": "2026-09-12T13:31:23Z",
   "workflow": "chatgpt-exec"
 }
