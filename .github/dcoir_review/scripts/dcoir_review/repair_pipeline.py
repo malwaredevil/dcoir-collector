@@ -79,7 +79,7 @@ _repair_critic_prompt = support._repair_critic_prompt
 _unused_independent_config = support._independent_config
 _parse_author = support._parse_author
 _parse_critic = support._parse_critic
-_replacement_validation_reason = support._replacement_validation_reason
+_unused_replacement_validation_reason = support._replacement_validation_reason
 _fallback_display = support._fallback_display
 
 def _build_repair_for_finding(
