@@ -64,8 +64,15 @@ REPAIR_CRITIC_SCHEMA: dict[str, Any] = {
 _path_line = support._path_line
 _file_line = support._file_line
 _strip_legacy_model_finding_provenance = support._strip_legacy_model_finding_provenance
-_verifier_evidence = support._verifier_evidence
-_sanitize_prompt = support._sanitize_prompt
+
+def _verifier_evidence(finding: dict[str, Any]) -> str:
+    return support._verifier_evidence(finding)
+
+
+def _sanitize_prompt(module: Any, text: str, config: Any) -> str:
+    return support._sanitize_prompt(module, text, config)
+
+
 _repair_author_prompt = support._repair_author_prompt
 _repair_critic_prompt = support._repair_critic_prompt
 _independent_config = support._independent_config

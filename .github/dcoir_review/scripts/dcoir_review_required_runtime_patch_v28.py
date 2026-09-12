@@ -402,10 +402,8 @@ def apply_pareto_context_module(module: Any) -> None:
     # repair.synthesize_verified_repairs resolves this helper dynamically, so
     # replacing it upgrades the active production repair path without another
     # verifier wrapper or any branch-writing capability.
-    repair._build_repair_for_finding = lambda mod, ordinal, finding, file_text, config: build_repair_for_finding(
-        mod, ordinal, finding, file_text, config
-    )
-    repair._render_repair = lambda mod, finding, config: _render_v28(mod, finding, config)
+    repair._build_repair_for_finding = build_repair_for_finding
+    repair._render_repair = _render_v28
 
     # Keep a bounded terminal diagnostic for failures outside the per-finding
     # author/critic stages. Per-finding failures are handled inside v28 above.
