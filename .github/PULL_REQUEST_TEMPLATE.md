@@ -59,8 +59,9 @@
 - [ ] Every internal review rerun received fresh current-session operator approval; a prior approval was not reused
 - [ ] No GitHub Copilot review request was made without explicit operator approval unless the operator manually triggered it
 - [ ] Approved external `@codex` requests are top-level PR comments when a Codex action or review is required
-- [ ] Approved Codex fix requests include exact scope, files, commands, and finish command when a push is expected
-- [ ] Codex PR fix tasks are expected to use `codex-pr-context`, relevant validation, and `codex-pr-finish` when available
+- [ ] Approved Codex Cloud fix/action requests include exact scope, files, ordered instructions, validation commands, and expected native publish behavior when a branch update is expected
+- [ ] Codex Cloud PR change tasks use exact-head PR context, repository-native validation, task-side `Update branch` publication, and GitHub source-truth readback rather than retired environment-specific push helpers
+- [ ] A Codex task-side diff or commit was not treated as persisted GitHub state until the target PR branch/head and changed source were read back after publication
 
 ## Workflow Boundary
 
