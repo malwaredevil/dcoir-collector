@@ -21,11 +21,18 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from dcoir_review import repair_pipeline as repair
-
 
 # Compatibility provenance value retained for existing review/debug consumers.
 VERSION = "v28"
+
+# Keep this threshold aligned with repair pipeline suggestion eligibility.
+AUTHOR_MIN_CONFIDENCE = 0.85
+
+
+def _fallback_display(finding: dict[str, Any], path: str, line: int) -> tuple[str, str]:
+    title = str(finding.get("title", "") or "").strip() or f"Suggested repair for {path}:{line}"
+    body = str(finding.get("body", "") or "").strip() or "A safe single-line replacement was proposed."
+    return title, body
 
 
 def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, hardened: Any) -> dict[str, Any]:
@@ -39,7 +46,7 @@ def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, h
     except (TypeError, ValueError) as exc:
         raise hardened.ReviewQualityError("DCOIR repair author returned invalid confidence") from exc
 
-    fallback_title, fallback_body = repair._fallback_display(finding, path, line)
+    fallback_title, fallback_body = _fallback_display(finding, path, line)
     display_title = str(result.get("display_title", "") or "").strip()
     display_body = str(result.get("display_body", "") or "").strip()
     if not display_title:
@@ -56,7 +63,7 @@ def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, h
         "rationale": str(result.get("rationale", "") or "").strip(),
         "validation": str(result.get("validation", "") or "").strip(),
     }
-    if action == "replace_line" and confidence < repair.AUTHOR_MIN_CONFIDENCE:
+    if action == "replace_line" and confidence < AUTHOR_MIN_CONFIDENCE:
         parsed["action"] = "no_safe_single_line_fix"
         parsed["replacement"] = ""
         parsed["rationale"] = parsed["rationale"] or "Repair author confidence was below the suggestion threshold."
