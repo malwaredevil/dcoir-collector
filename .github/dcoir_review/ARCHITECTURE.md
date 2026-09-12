@@ -30,10 +30,10 @@ A future fix belongs in its canonical responsibility owner. A new numbered produ
 
 The corrected exact-head characterization for Draft PR #553 completed successfully in ChatGPT Exec run `34694686544` against source head `421fb8dbd5b03d068d3abb20b5865e1ccc82b67b`. It used an isolated secondary worktree and verified that the shared harness checkout remained unchanged.
 
-The generated inventory/provenance evidence records:
+The generated baseline inventory/provenance evidence records:
 
 - `87` inventoried architecture modules;
-- `59` production patch applications in the current ordered chain;
+- `59` production patch applications in the characterized ordered chain;
 - numbered production patch ceiling `v58`, with no missing inventory modules;
 - `86` loaded patch-module override namespaces represented in final provenance;
 - final changed callable surfaces concentrated in the `base`, `hardened`, and `review` namespaces rather than requiring one new owner per historical patch generation.
@@ -51,7 +51,16 @@ The first canonical extraction is the operator-facing status publication surface
 - the previous non-progress failure fallback that could create a separate status-like issue comment has been removed;
 - existing v50/v54/v48 gate, telemetry, and exact-head terminal decorators remain temporarily active around `ProgressReporter` during staged migration. This first extraction therefore does not claim that the runtime patch chain has been retired.
 
-The stable status contract is covered by `dcoir_review_status_comment_selftest.py`, including rerun reuse, same-comment identity, exact-head/formal-review rendering, spoofed-user marker rejection, debug-flag independence, and observational write failures.
+The stable status contract is covered by `dcoir_review_status_comment_selftest.py`, including rerun reuse, same-comment identity, exact-head/formal-review rendering, spoofed-user marker rejection, debug-flag independence, and observational write failures. Exact-head status-cutover validation passed in ChatGPT Exec run `34695700055` at source head `efabcaec43676951a596afed06c601dc8486d840`; current-head CodeQL also passed at that source head.
+
+The first historical runtime overlay retirement is now staged in source for finding-anchor normalization:
+
+- the exact changed-line preservation invariant formerly installed by `dcoir_review_required_runtime_patch_v27.py` now lives directly in the canonical `reanchor_finding_to_changed_line(...)` implementation;
+- the production entrypoint no longer applies v27, and the obsolete v27 runtime source has been deleted;
+- `dcoir_review_anchor_normalization_selftest.py` owns the stable contract: a valid changed-line anchor is immutable, while a genuinely unpostable anchor can still be rescued by bounded heuristic re-anchoring;
+- the old `dcoir_review_required_runtime_patch_v27_selftest.py` filename remains only as a temporary compatibility wrapper for the existing validation-command registry and contains no version-specific assertions.
+
+This v27 retirement is a post-status source change and must not be described as exact-head validated until the new PR head receives governed execution readback. The characterized production patch count of 59 is therefore a historical baseline; source composition after this retirement contains one fewer production overlay while retaining `v58` as the maximum permitted numbered version.
 
 ## Migration invariants
 
