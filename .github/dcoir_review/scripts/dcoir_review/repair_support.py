@@ -309,4 +309,3 @@ def _fallback_display(finding: dict[str, Any], path: str, line: int) -> tuple[st
         str(finding.get("title", "DCOIR Review finding") or "DCOIR Review finding").strip(),
         str(finding.get("body", "") or "").strip(),
     )
-
