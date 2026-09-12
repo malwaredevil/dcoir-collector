@@ -172,9 +172,7 @@ def synthesize_verified_repairs(
 
 
 def _render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
-    from dcoir_review import repair_render
-
-    return repair_render.render_repair(module, finding, config)
+    return support.render_repair(module, finding, config)
 
 
 def apply_pareto_context_module(module: Any) -> None:
