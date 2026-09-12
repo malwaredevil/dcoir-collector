@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue466-delete-codex-canary-branch-20260912",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue466-delete-codex-canary-branch-20260912",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34693977574",
+  "github_run_attempt": "1",
+  "github_sha": "c38922f40b6bd8d5b72454e3d3cb8c12e58d0f3c",
+  "github_ref": "refs/heads/agent-ops",
+  "created_utc": "2026-09-12T12:33:31Z"
+}
