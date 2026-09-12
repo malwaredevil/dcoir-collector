@@ -76,7 +76,7 @@ def _sanitize_prompt(module: Any, text: str, config: Any) -> str:
 _unused_repair_author_prompt = support._repair_author_prompt
 _repair_author_prompt = _unused_repair_author_prompt
 _repair_critic_prompt = support._repair_critic_prompt
-_independent_config = support._independent_config
+_unused_independent_config = support._independent_config
 _parse_author = support._parse_author
 _parse_critic = support._parse_critic
 _replacement_validation_reason = support._replacement_validation_reason
