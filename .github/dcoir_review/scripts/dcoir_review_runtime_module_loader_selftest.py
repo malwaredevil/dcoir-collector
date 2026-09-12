@@ -13,6 +13,7 @@ SCRIPTS = ROOT / "scripts"
 if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
+import dcoir_review_architecture_inventory as architecture_inventory
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.module_loader import LAYER_SEGMENTS, RuntimeSegmentLoader
 
@@ -145,6 +146,16 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     assert "dcoir_review_required_runtime_patch_v58" in numbered
 
 
+def assert_patch_inventory_is_source_complete() -> None:
+    """Require the #550 static inventory to cover every active patch root."""
+    inventory = architecture_inventory.build_inventory()
+    assert tuple(inventory["production_patch_sequence"]) == production_patch_module_names()
+    assert inventory["production_patch_count"] == len(production_patch_module_names())
+    assert inventory["inventory_module_count"] >= inventory["production_patch_count"]
+    assert not inventory["missing_modules"], inventory["missing_modules"]
+    assert inventory["max_numbered_version"] == MAX_NUMBERED_PRODUCTION_PATCH_VERSION
+
+
 def assert_segment_source_sizes(paths: tuple[Path, ...], layer: str) -> None:
     """Enforce the normal size cap plus narrowly frozen legacy debt."""
     loader_root = SCRIPTS / "dcoir_review"
@@ -205,6 +216,7 @@ def assert_segment_registry_is_complete() -> None:
 
 def main() -> None:
     assert_numbered_patch_freeze_before_cutover()
+    assert_patch_inventory_is_source_complete()
     assert_segment_registry_is_complete()
 
     for layer in LAYER_SEGMENTS:
