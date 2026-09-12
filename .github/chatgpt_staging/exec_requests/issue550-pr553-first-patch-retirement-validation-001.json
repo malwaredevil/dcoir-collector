@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-first-patch-retirement-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-12T13:30:05Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run the operator-approved PR #553 exact-head first production-patch-retirement deterministic validation in an isolated secondary worktree, preserve the shared harness checkout, verify v27 retirement, and capture inventory/provenance artifacts.",
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-first-patch-retirement-validation-001.ps1"
+}
