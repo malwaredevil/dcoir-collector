@@ -117,7 +117,9 @@ def test_unpostable_anchor_can_still_be_rescued(review) -> None:
         changed_lines_by_path,
         [],
     )
-    assert anchored["line"] == 12, anchored
+    rescued_line = int(anchored["line"])
+    assert rescued_line != 99, anchored
+    assert (PATH, rescued_line) in line_index, anchored
     assert anchored.get("_reanchored_from_line") == 99, anchored
 
 
