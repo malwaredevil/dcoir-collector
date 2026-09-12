@@ -4,26 +4,23 @@ from __future__ import annotations
 
 from typing import Any
 
+from dcoir_review import repair_support as support
+
 
 # Preserve the historical display/provenance fallback while the numbered patch is retired.
 DEFAULT_PIPELINE_VERSION = "v28"
-REPAIR_MARKER = "repair"
+DEFAULT_REPAIR_MARKER = "_dcoir_repair"
 
 
-def _path_line(finding: dict[str, Any]) -> tuple[str, int]:
-    loc = finding.get("location") if isinstance(finding.get("location"), dict) else {}
-    path = str(loc.get("path", "") or "").strip()
-    line_raw = loc.get("line", 0)
-    try:
-        line = int(line_raw)
-    except (TypeError, ValueError):
-        line = 0
-    return path, line
-
-
-def render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
+def render_repair(
+    module: Any,
+    finding: dict[str, Any],
+    config: Any,
+    *,
+    repair_marker: str = DEFAULT_REPAIR_MARKER,
+) -> str:
     base = module.base
-    marker = finding.get(REPAIR_MARKER) if isinstance(finding.get(REPAIR_MARKER), dict) else {}
+    marker = finding.get(repair_marker) if isinstance(finding.get(repair_marker), dict) else {}
     title = base.markdown_emphasis_safe_text(
         base.sanitize_github_output(str(finding.get("title", "Finding") or "Finding").strip(), config)
     )
@@ -35,7 +32,7 @@ def render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
 
     suggestion = str(finding.get("suggested_replacement", "") or "")
     if marker.get("outcome") == "native-suggestion" and suggestion:
-        path, line = _path_line(finding)
+        path, line = support._path_line(finding)
         if (
             path
             and line > 0

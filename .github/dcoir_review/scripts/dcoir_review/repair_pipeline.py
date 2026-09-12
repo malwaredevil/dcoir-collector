@@ -59,11 +59,29 @@ REPAIR_CRITIC_SCHEMA: dict[str, Any] = {
 
 
 
-# Stable helper exports intentionally remain module globals because later
-# historical overlays still replace a bounded subset during staged retirement.
+# Stable helper exports remain available to later historical overlays during
+# staged retirement.  Dynamic forwarding avoids dead forwarding assignments
+# while preserving ordinary module attribute reads and later monkey-patch writes.
 _path_line = support._path_line
-_unused_file_line = support._file_line
 _strip_legacy_model_finding_provenance = support._strip_legacy_model_finding_provenance
+_COMPAT_SUPPORT_EXPORTS = {
+    "_file_line": "_file_line",
+    "_repair_author_prompt": "_repair_author_prompt",
+    "_repair_critic_prompt": "_repair_critic_prompt",
+    "_independent_config": "_independent_config",
+    "_parse_author": "_parse_author",
+    "_parse_critic": "_parse_critic",
+    "_replacement_validation_reason": "_replacement_validation_reason",
+    "_fallback_display": "_fallback_display",
+}
+
+
+def __getattr__(name: str) -> Any:
+    support_name = _COMPAT_SUPPORT_EXPORTS.get(name)
+    if support_name is not None:
+        return getattr(support, support_name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 def _verifier_evidence(finding: dict[str, Any]) -> str:
     return support._verifier_evidence(finding)
@@ -72,16 +90,6 @@ def _verifier_evidence(finding: dict[str, Any]) -> str:
 def _sanitize_prompt(module: Any, text: str, config: Any) -> str:
     return support._sanitize_prompt(module, text, config)
 
-
-_unused_repair_author_prompt = support._repair_author_prompt
-_unused_repair_author_prompt_alias = _unused_repair_author_prompt
-_unused_repair_critic_prompt = support._repair_critic_prompt
-_unused_independent_config = support._independent_config
-_unused_parse_author = support._parse_author
-_unused_parse_critic = support._parse_critic
-_unused_replacement_validation_reason = support._replacement_validation_reason
-_fallback_display = support._fallback_display
-
 def _build_repair_for_finding(
     module: Any,
     ordinal: int,
@@ -89,7 +97,9 @@ def _build_repair_for_finding(
     file_text: str,
     config: Any,
 ) -> dict[str, Any]:
-    return support.build_repair_for_finding(module, ordinal, finding, file_text, config)
+    from dcoir_review import repair_reliability
+
+    return repair_reliability.build_repair_for_finding(module, ordinal, finding, file_text, config)
 
 
 def synthesize_verified_repairs(
@@ -132,7 +142,7 @@ def synthesize_verified_repairs(
             # unavailable; applyable suggestions fail closed, not findings.
             item = finding
             path, line = _path_line(item)
-            title, body = _fallback_display(item, path, line)
+            title, body = support._fallback_display(item, path, line)
             item["title"] = title
             item["body"] = body
             item["suggested_replacement"] = ""
@@ -172,7 +182,9 @@ def synthesize_verified_repairs(
 
 
 def _render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
-    return support.render_repair(module, finding, config)
+    from dcoir_review import repair_render
+
+    return repair_render.render_repair(module, finding, config, repair_marker=REPAIR_MARKER)
 
 
 def apply_pareto_context_module(module: Any) -> None:

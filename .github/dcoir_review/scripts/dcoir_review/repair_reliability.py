@@ -19,20 +19,27 @@ for compatibility while the production patch module itself is retired.
 from __future__ import annotations
 
 from pathlib import Path
+import sys
 from typing import Any
+
+from dcoir_review import repair_support as support
 
 
 # Compatibility provenance value retained for existing review/debug consumers.
 VERSION = "v28"
 
-# Keep this threshold aligned with repair pipeline suggestion eligibility.
-AUTHOR_MIN_CONFIDENCE = 0.85
+def _repair_contract() -> Any:
+    """Return the already-loaded pipeline compatibility contract without importing it.
 
+    The pipeline lazily imports this reliability owner, so a static reverse import
+    would recreate the cycle that GHAS correctly identified.  Runtime lookups keep
+    later compatibility overlays (notably v30) visible without a module import cycle.
+    """
 
-def _fallback_display(finding: dict[str, Any], path: str, line: int) -> tuple[str, str]:
-    title = str(finding.get("title", "") or "").strip() or f"Suggested repair for {path}:{line}"
-    body = str(finding.get("body", "") or "").strip() or "A safe single-line replacement was proposed."
-    return title, body
+    contract = sys.modules.get("dcoir_review.repair_pipeline")
+    if contract is None:
+        raise RuntimeError("DCOIR repair reliability requires the canonical repair pipeline contract")
+    return contract
 
 
 def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, hardened: Any) -> dict[str, Any]:
@@ -46,7 +53,7 @@ def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, h
     except (TypeError, ValueError) as exc:
         raise hardened.ReviewQualityError("DCOIR repair author returned invalid confidence") from exc
 
-    fallback_title, fallback_body = _fallback_display(finding, path, line)
+    fallback_title, fallback_body = support._fallback_display(finding, path, line)
     display_title = str(result.get("display_title", "") or "").strip()
     display_body = str(result.get("display_body", "") or "").strip()
     if not display_title:
@@ -63,7 +70,7 @@ def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, h
         "rationale": str(result.get("rationale", "") or "").strip(),
         "validation": str(result.get("validation", "") or "").strip(),
     }
-    if action == "replace_line" and confidence < AUTHOR_MIN_CONFIDENCE:
+    if action == "replace_line" and confidence < float(_repair_contract().AUTHOR_MIN_CONFIDENCE):
         parsed["action"] = "no_safe_single_line_fix"
         parsed["replacement"] = ""
         parsed["rationale"] = parsed["rationale"] or "Repair author confidence was below the suggestion threshold."
@@ -87,8 +94,9 @@ def _declined_item(
     author_tier: str = "",
     outcome: str = "no-safe-single-line-fix",
 ) -> dict[str, Any]:
+    repair = _repair_contract()
     item = dict(finding)
-    fallback_title, fallback_body = repair._fallback_display(item, path, line)
+    fallback_title, fallback_body = support._fallback_display(item, path, line)
     if author:
         item["title"] = str(author.get("display_title", "") or fallback_title)[:160]
         item["body"] = str(author.get("display_body", "") or fallback_body)[:1800]
@@ -158,6 +166,7 @@ def _stage_failure(
 
 
 def _persist_final(module: Any, config: Any, ordinal: int, item: dict[str, Any]) -> None:
+    repair = _repair_contract()
     marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
     _debug(module, config, f"responses/repair-v28/{ordinal:02d}-final.json", dict(marker))
 
@@ -169,8 +178,9 @@ def build_repair_for_finding(
     file_text: str,
     config: Any,
 ) -> dict[str, Any]:
+    repair = _repair_contract()
     hardened = module.hardened
-    path, line = repair._path_line(finding)
+    path, line = support._path_line(finding)
     original = repair._file_line(file_text, line)
     if not path or not original:
         raise hardened.ReviewQualityError("DCOIR repair stage received an unreadable anchored finding")
