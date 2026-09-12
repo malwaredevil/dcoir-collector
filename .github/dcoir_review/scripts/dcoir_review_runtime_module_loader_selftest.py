@@ -38,6 +38,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "module_loader.py",
+    "repair.py",
     "status.py",
     "pareto_context/credit_aware_concurrency.py",
     "selftests/provider_transport/fixtures.py",
