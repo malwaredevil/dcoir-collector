@@ -10,12 +10,12 @@ from __future__ import annotations
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v36 as v36
 import dcoir_review_required_runtime_patch_v53 as v53
 import dcoir_review_required_runtime_patch_v56_batch as batch
-import dcoir_review_required_runtime_patch_v56_repair as repair
+import dcoir_review_required_runtime_patch_v56_repair as repair_stage
 
 VERSION = "v56"
 APPLIED_MARKER = "_dcoir_review_v56_applied"
@@ -122,9 +122,9 @@ def synthesize_verified_repair_sets(
             continue
 
         attempts += 1
-        finding = v25._strip_legacy_model_finding_provenance(raw)
+        finding = repair._strip_legacy_model_finding_provenance(raw)
         try:
-            final, candidate = repair.prepare_candidate(
+            final, candidate = repair_stage.prepare_candidate(
                 module, ordinal, finding, gh, head_sha, pr_diff, config, file_cache
             )
             if final is not None:
@@ -227,5 +227,5 @@ def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
     _install_config_loader(module)
-    v25.synthesize_verified_repairs = synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = synthesize_verified_repair_sets
     setattr(module, APPLIED_MARKER, True)

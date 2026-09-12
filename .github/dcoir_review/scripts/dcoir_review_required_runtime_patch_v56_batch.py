@@ -6,9 +6,9 @@ import json
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v36 as v36
-import dcoir_review_required_runtime_patch_v56_repair as repair
+import dcoir_review_required_runtime_patch_v56_repair as repair_stage
 
 MAX_BATCH_ITEMS = 8
 MAX_BATCH_PROMPT_CHARS = 120000
@@ -62,7 +62,7 @@ def batch_prompt(module: Any, pending: list[dict[str, Any]], file_cache: dict[st
                 "path": finding.get("path", ""),
                 "line": finding.get("line", 0),
                 "title": finding.get("title", ""),
-                "verifier_evidence": v25._verifier_evidence(finding),
+                "verifier_evidence": repair._verifier_evidence(finding),
             },
             "repair_set": author,
         }
@@ -199,7 +199,7 @@ def run_group(
             f"responses/repair-v36/{item['ordinal']:02d}-critic.json",
             {"path": item["finding"].get("path", ""), "line": item["finding"].get("line", 0), "model": model, "service_tier": tier, "result": raw},
         )
-        final = repair.finalize_candidate(
+        final = repair_stage.finalize_candidate(
             module, item, decision, model, tier, right_line_index, file_cache, config, 1
         )
         return [(item["ordinal"], final)], 1
@@ -244,7 +244,7 @@ def run_group(
             f"responses/repair-v36/{item['ordinal']:02d}-critic.json",
             {"path": item["finding"].get("path", ""), "line": item["finding"].get("line", 0), "model": model, "service_tier": tier, "critic_item_id": item["critic_item_id"], "batch_size": len(group), "decision": decision},
         )
-        final = repair.finalize_candidate(
+        final = repair_stage.finalize_candidate(
             module, item, decision, model, tier, right_line_index, file_cache, config, len(group)
         )
         results.append((item["ordinal"], final))

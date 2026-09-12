@@ -18,7 +18,7 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     v38 = importlib.import_module("dcoir_review_required_runtime_patch_v38")
 
@@ -134,7 +134,7 @@ def main() -> None:
     original_openrouter = review.hardened.openrouter_review
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
-    original_public_synth = v25.synthesize_verified_repairs
+    original_public_synth = repair.synthesize_verified_repairs
     model_calls = []
 
     def _fake_verify(mod, findings, gh, pr, cfg, reporter):
@@ -155,7 +155,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     v21.verify_findings_for_publication = _fake_verify
-    v25.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "def f():\n    old_call()\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -170,14 +170,14 @@ def main() -> None:
             reporter,
         )
     finally:
-        v25.synthesize_verified_repairs = original_public_synth
+        repair.synthesize_verified_repairs = original_public_synth
         v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_openrouter
         review.fetch_pr_file_text = original_fetch
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     assert len(result) == 1
-    marker = result[0][v25.REPAIR_MARKER]
+    marker = result[0][repair.REPAIR_MARKER]
     assert marker["version"] == v36.VERSION
     assert marker["outcome"] == v36.REPAIR_SET_OUTCOME
     assert marker["author_confidence"] == 0.0

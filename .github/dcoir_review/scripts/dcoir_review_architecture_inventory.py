@@ -80,7 +80,8 @@ def _is_patch_module(module_name: str) -> bool:
 def _source_paths_for_module(module_name: str) -> tuple[Path, ...]:
     """Resolve a wrapper/module and any connector-safe segment sources it owns."""
     paths: list[Path] = []
-    wrapper = SCRIPTS / f"{module_name}.py"
+    module_path = Path(*module_name.split("."))
+    wrapper = (SCRIPTS / module_path).with_suffix(".py")
     if wrapper.is_file():
         paths.append(wrapper)
     for relative in LAYER_SEGMENTS.get(module_name, ()):

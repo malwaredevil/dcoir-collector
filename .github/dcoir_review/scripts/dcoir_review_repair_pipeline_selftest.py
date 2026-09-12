@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Full-stack regression checks for DCOIR Review v25 verified repairs."""
+"""Full-stack regression checks for the canonical DCOIR Review repair pipeline."""
 
 from __future__ import annotations
 
@@ -31,8 +31,8 @@ def patched_modules():
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
-    return review, v21, v25
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
+    return review, v21, repair
 
 
 def model_judged_finding(v21):
@@ -76,8 +76,8 @@ def test_diff_position_first_hunk(review) -> None:
     assert mapping[("probe.py", 12)] == 12, mapping
 
 
-def test_model_judge_provenance_is_cleaned(v21, v25) -> None:
-    cleaned = v25._strip_legacy_model_finding_provenance(model_judged_finding(v21))
+def test_model_judge_provenance_is_cleaned(v21, repair) -> None:
+    cleaned = repair._strip_legacy_model_finding_provenance(model_judged_finding(v21))
     assert "_risk_sentinel_kind" not in cleaned
     assert "_risk_sentinel_key" not in cleaned
     assert "covered_risk_sentinel_keys" not in cleaned
@@ -85,13 +85,13 @@ def test_model_judge_provenance_is_cleaned(v21, v25) -> None:
     assert cleaned["_detector_suggested_replacement"] == "detector output must never be trusted"
 
 
-def test_exact_python_replacement_passes(review, v25) -> None:
-    reason = v25._replacement_validation_reason(review, PATH, LINE, ORIGINAL, REPLACEMENT, FILE_TEXT)
+def test_exact_python_replacement_passes(review, repair) -> None:
+    reason = repair._replacement_validation_reason(review, PATH, LINE, ORIGINAL, REPLACEMENT, FILE_TEXT)
     assert reason == "", reason
 
 
-def test_multiline_replacement_is_rejected(review, v25) -> None:
-    reason = v25._replacement_validation_reason(
+def test_multiline_replacement_is_rejected(review, repair) -> None:
+    reason = repair._replacement_validation_reason(
         review,
         PATH,
         LINE,
@@ -102,8 +102,8 @@ def test_multiline_replacement_is_rejected(review, v25) -> None:
     assert "one plain source line" in reason, reason
 
 
-def test_wrong_indentation_is_rejected(review, v25) -> None:
-    reason = v25._replacement_validation_reason(
+def test_wrong_indentation_is_rejected(review, repair) -> None:
+    reason = repair._replacement_validation_reason(
         review,
         PATH,
         LINE,
@@ -114,8 +114,8 @@ def test_wrong_indentation_is_rejected(review, v25) -> None:
     assert "indentation" in reason, reason
 
 
-def test_python_syntax_break_is_rejected(review, v25) -> None:
-    reason = v25._replacement_validation_reason(
+def test_python_syntax_break_is_rejected(review, repair) -> None:
+    reason = repair._replacement_validation_reason(
         review,
         PATH,
         LINE,
@@ -126,8 +126,8 @@ def test_python_syntax_break_is_rejected(review, v25) -> None:
     assert "Python syntax invalid" in reason, reason
 
 
-def test_author_no_safe_fix(v25, review) -> None:
-    parsed = v25._parse_author(
+def test_author_no_safe_fix(repair, review) -> None:
+    parsed = repair._parse_author(
         {
             "action": "no_safe_single_line_fix",
             "replacement": REPLACEMENT,
@@ -143,8 +143,8 @@ def test_author_no_safe_fix(v25, review) -> None:
     assert parsed["replacement"] == ""
 
 
-def test_low_confidence_critic_rejects(v25, review) -> None:
-    accepted, confidence, _reason = v25._parse_critic(
+def test_low_confidence_critic_rejects(repair, review) -> None:
+    accepted, confidence, _reason = repair._parse_critic(
         {"accepted": True, "confidence": 0.70, "reason": "Probably correct."},
         review.hardened,
     )
@@ -152,14 +152,14 @@ def test_low_confidence_critic_rejects(v25, review) -> None:
     assert confidence == 0.70
 
 
-def test_native_renderer_preserves_verified_semantics(review, v21, v25) -> None:
+def test_native_renderer_preserves_verified_semantics(review, v21, repair) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
-    finding = v25._strip_legacy_model_finding_provenance(model_judged_finding(v21))
+    finding = repair._strip_legacy_model_finding_provenance(model_judged_finding(v21))
     finding["title"] = "Upper-bound comparison is inverted"
     finding["body"] = "The function documents an inclusive 0..60 range, but this line requires age_minutes to be at least 60 for the upper-bound term."
     finding["suggested_replacement"] = REPLACEMENT
-    finding[v25.REPAIR_MARKER] = {
-        "version": v25.VERSION,
+    finding[repair.REPAIR_MARKER] = {
+        "version": repair.VERSION,
         "outcome": "native-suggestion",
         "path": PATH,
         "line": LINE,
@@ -173,15 +173,15 @@ def test_native_renderer_preserves_verified_semantics(review, v21, v25) -> None:
     assert f"```suggestion\n{REPLACEMENT}\n```" in rendered, rendered
 
 
-def test_fallback_renderer_has_no_native_fence(review, v21, v25) -> None:
+def test_fallback_renderer_has_no_native_fence(review, v21, repair) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
-    finding = v25._strip_legacy_model_finding_provenance(model_judged_finding(v21))
+    finding = repair._strip_legacy_model_finding_provenance(model_judged_finding(v21))
     finding["title"] = "Upper-bound comparison is inverted"
     finding["body"] = "Verified boundary-condition issue."
     finding["suggested_replacement"] = ""
     finding["fix_guidance"] = {"language": "py", "notes": "No safe exact one-line fix was proven."}
-    finding[v25.REPAIR_MARKER] = {
-        "version": v25.VERSION,
+    finding[repair.REPAIR_MARKER] = {
+        "version": repair.VERSION,
         "outcome": "no-safe-single-line-fix",
         "path": PATH,
         "line": LINE,
@@ -192,18 +192,18 @@ def test_fallback_renderer_has_no_native_fence(review, v21, v25) -> None:
 
 
 def main() -> None:
-    review, v21, v25 = patched_modules()
+    review, v21, repair = patched_modules()
     test_diff_position_first_hunk(review)
-    test_model_judge_provenance_is_cleaned(v21, v25)
-    test_exact_python_replacement_passes(review, v25)
-    test_multiline_replacement_is_rejected(review, v25)
-    test_wrong_indentation_is_rejected(review, v25)
-    test_python_syntax_break_is_rejected(review, v25)
-    test_author_no_safe_fix(v25, review)
-    test_low_confidence_critic_rejects(v25, review)
-    test_native_renderer_preserves_verified_semantics(review, v21, v25)
-    test_fallback_renderer_has_no_native_fence(review, v21, v25)
-    print("dcoir_review_required_runtime_patch_v25_selftest passed")
+    test_model_judge_provenance_is_cleaned(v21, repair)
+    test_exact_python_replacement_passes(review, repair)
+    test_multiline_replacement_is_rejected(review, repair)
+    test_wrong_indentation_is_rejected(review, repair)
+    test_python_syntax_break_is_rejected(review, repair)
+    test_author_no_safe_fix(repair, review)
+    test_low_confidence_critic_rejects(repair, review)
+    test_native_renderer_preserves_verified_semantics(review, v21, repair)
+    test_fallback_renderer_has_no_native_fence(review, v21, repair)
+    print("dcoir_review_repair_pipeline_selftest passed")
 
 
 if __name__ == "__main__":

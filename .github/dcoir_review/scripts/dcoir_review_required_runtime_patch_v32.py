@@ -42,7 +42,7 @@ import copy
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import repair_pipeline as repair
 
 
 VERSION = "v32"
@@ -138,13 +138,13 @@ def _patch_config_loader(module: Any) -> None:
             data.get("review_reasoning_effort", DEFAULT_REASONING_EFFORT) or DEFAULT_REASONING_EFFORT
         ).strip()
 
-        # v21/v25 predate the v32 two-reviewer union and historically hard-coded
+        # v21/repair predate the v32 two-reviewer union and historically hard-coded
         # a six-candidate ceiling.  Keep their fail-closed bounds, but align them
         # to the already-governed configured finding budget so a seventh valid
         # candidate is verified instead of causing terminal overflow.
         verifier_repair_limit = _configured_verifier_repair_limit(config)
         v21.VERIFIER_MAX_MODEL_FINDINGS = verifier_repair_limit
-        v25.MAX_REPAIR_CANDIDATES = verifier_repair_limit
+        repair.MAX_REPAIR_CANDIDATES = verifier_repair_limit
         config.dcoir_v32_verifier_repair_limit = verifier_repair_limit
         return config
 

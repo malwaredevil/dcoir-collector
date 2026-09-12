@@ -39,6 +39,8 @@ DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "module_loader.py",
     "repair.py",
+    "repair_pipeline.py",
+    "repair_support.py",
     "status.py",
     "pareto_context/credit_aware_concurrency.py",
     "selftests/provider_transport/fixtures.py",
@@ -225,6 +227,10 @@ def main() -> None:
         paths = RuntimeSegmentLoader(layer).segment_paths()
         assert all(path.is_file() for path in paths), layer
         assert_segment_source_sizes(paths, layer)
+
+    direct_paths = tuple((SCRIPTS / "dcoir_review" / relative) for relative in DIRECT_IMPORT_MODULES)
+    assert all(path.is_file() for path in direct_paths)
+    assert_segment_source_sizes(direct_paths, "direct-import")
 
     for layer, pairs in EXPECTED_ADJACENCY.items():
         segments = LAYER_SEGMENTS[layer]

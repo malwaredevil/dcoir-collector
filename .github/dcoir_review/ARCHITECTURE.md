@@ -65,13 +65,23 @@ That retirement is exact-head validated. ChatGPT Exec run `34697687314` passed a
 The second historical runtime-overlay retirement is now staged in source for repair-critic routing:
 
 - `dcoir_review/repair.py` is the canonical repair-policy owner for the independent critic model stack, direct-provider routing controls, and separate repair-critic session namespace;
-- the active v25 repair pipeline delegates `_independent_config(...)` directly to that canonical owner, so later repair stages consume the stable policy without runtime replacement;
+- the active repair pipeline delegates independent-critic configuration directly to that canonical owner, so later repair stages consume stable policy without runtime replacement;
 - the production entrypoint no longer applies `dcoir_review_required_runtime_patch_v29` and the obsolete v29 runtime source has been deleted;
 - `dcoir_review_repair_routing_selftest.py` owns the stable contract, including shared-config immutability, the direct GPT-5.6 Terra / Sonnet fallback stack, strict JSON-schema payload behavior, Auto/Pareto-router removal, and explicit v29 absence from production composition;
 - the governed validation-command registry now names `dcoir_review_repair_routing_selftest.py` directly, and the obsolete v29 compatibility wrapper has been deleted rather than retained as repository history;
 - `repair.py` is declared as an ordinary direct-import owner so orphan-module validation remains fail-closed without misclassifying it as a concatenated runtime segment.
 
 This v29 retirement is not yet exact-head validated. The last validated production patch count is 58 after v27 retirement; source composition after the staged v29 retirement should enumerate 57 production patch applications while retaining `v58` as the maximum numbered version. Governed execution must confirm that expectation before the retirement is called validated.
+
+The third staged retirement removes the oversized historical v25 repair-pipeline owner:
+
+- production composition now loads `dcoir_review.repair_pipeline` at the former v25 position, preserving repair-stage ordering without a numbered runtime module;
+- `dcoir_review/repair_support.py` owns prompt construction, parsing, verifier-provenance cleanup, and exact-line replacement validation, while `repair_pipeline.py` owns the mutable repair pipeline namespace used during the remaining staged retirements;
+- later not-yet-retired repair overlays import the stable repair-pipeline namespace instead of importing v25, eliminating their direct dependency on the deleted historical module;
+- both permanent repair modules are below the 15,000-byte connector-safe source limit and the runtime-module self-test now enforces that limit for direct-import modules as well as concatenated segments;
+- `dcoir_review_repair_pipeline_selftest.py` owns the stable repair contract, the governed validation registry names it directly, and the obsolete v25 runtime/self-test files are deleted; Git history remains the archive.
+
+This v25 retirement is staged but not yet exact-head validated. Because the permanent repair pipeline remains one production composition root at the former v25 position, the expected production composition count remains 57 after the already-staged v29 retirement; the numbered-patch count decreases by one.
 
 ## Migration invariants
 

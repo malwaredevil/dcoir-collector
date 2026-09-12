@@ -51,8 +51,8 @@ def finding(confidence, line: int, detector_suggestion: str = "") -> dict:
     }
 
 
-def marker(v25, item: dict) -> dict:
-    value = item.get(v25.REPAIR_MARKER)
+def marker(repair, item: dict) -> dict:
+    value = item.get(repair.REPAIR_MARKER)
     assert isinstance(value, dict), item
     return value
 
@@ -64,7 +64,7 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
     v33 = importlib.import_module("dcoir_review_required_runtime_patch_v33")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     v53 = importlib.import_module("dcoir_review_required_runtime_patch_v53")
@@ -80,7 +80,7 @@ def main() -> None:
     original_verify = v21.verify_findings_for_publication
     original_build = v36._build_repair_set_for_finding
     original_debug = review.hardened.write_debug_json_artifact_safely
-    original_public_synth = v25.synthesize_verified_repairs
+    original_public_synth = repair.synthesize_verified_repairs
     calls: list[tuple[int, float, str, str]] = []
     metrics: list[tuple[str, dict]] = []
 
@@ -100,7 +100,7 @@ def main() -> None:
             )
         )
         result = dict(item)
-        result[v25.REPAIR_MARKER] = {
+        result[repair.REPAIR_MARKER] = {
             "version": v36.VERSION,
             "outcome": v36.REPAIR_SET_OUTCOME,
             "repair_set_id": f"R{ordinal:02d}",
@@ -121,7 +121,7 @@ def main() -> None:
             metrics.append((path, dict(payload)))
 
     v21.verify_findings_for_publication = fake_verify
-    v25.synthesize_verified_repairs = v53.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = v53.synthesize_verified_repair_sets
     v36._build_repair_set_for_finding = fake_build
     review.hardened.write_debug_json_artifact_safely = fake_debug
     try:
@@ -148,9 +148,9 @@ def main() -> None:
             reporter,
         )
         assert len(result) == 3
-        first = marker(v25, result[0])
-        second = marker(v25, result[1])
-        third = marker(v25, result[2])
+        first = marker(repair, result[0])
+        second = marker(repair, result[1])
+        third = marker(repair, result[2])
         assert first["outcome"] == v53.CONFIDENCE_DEFERRED_OUTCOME
         assert first["finding_confidence"] == 0.79
         assert first["repair_confidence_floor"] == 0.80
@@ -182,7 +182,7 @@ def main() -> None:
             reporter,
         )
         assert len(result) == 4
-        assert all(marker(v25, item)["outcome"] == v53.CONFIDENCE_DEFERRED_OUTCOME for item in result)
+        assert all(marker(repair, item)["outcome"] == v53.CONFIDENCE_DEFERRED_OUTCOME for item in result)
         assert calls == []
         assert gh.diff_calls == 0
         assert metrics[-1][1]["repair_confidence_deferred"] == 4
@@ -204,7 +204,7 @@ def main() -> None:
             reporter,
         )
         assert len(result) == 2
-        assert all(marker(v25, item)["outcome"] == v33.DEFERRED_OUTCOME for item in result)
+        assert all(marker(repair, item)["outcome"] == v33.DEFERRED_OUTCOME for item in result)
         assert calls == []
         assert gh.diff_calls == 0
         assert metrics[-1][1]["repair_synthesis_enabled"] is False
@@ -230,14 +230,14 @@ def main() -> None:
             reporter,
         )
         assert len(result) == 2
-        assert [marker(v25, item)["outcome"] for item in result] == [
+        assert [marker(repair, item)["outcome"] for item in result] == [
             v36.REPAIR_SET_OUTCOME,
             v36.REPAIR_SET_OUTCOME,
         ]
         assert [call[1] for call in calls] == [0.0, 0.5]
         assert gh.diff_calls == 1
     finally:
-        v25.synthesize_verified_repairs = original_public_synth
+        repair.synthesize_verified_repairs = original_public_synth
         v21.verify_findings_for_publication = original_verify
         v36._build_repair_set_for_finding = original_build
         review.hardened.write_debug_json_artifact_safely = original_debug

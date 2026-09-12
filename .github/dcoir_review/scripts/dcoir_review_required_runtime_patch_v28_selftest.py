@@ -39,12 +39,12 @@ def patched_modules():
     assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v30") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
     v28 = importlib.import_module("dcoir_review_required_runtime_patch_v28")
-    return review, v21, v25, v28
+    return review, v21, repair, v28
 
 
-def verified_finding(v21, v25):
+def verified_finding(v21, repair):
     finding = {
         "title": "Upper-bound comparison is inverted",
         "severity": "medium",
@@ -65,7 +65,7 @@ def verified_finding(v21, v25):
             "line": LINE,
         },
     }
-    return v25._strip_legacy_model_finding_provenance(finding)
+    return repair._strip_legacy_model_finding_provenance(finding)
 
 
 def config_for(review):
@@ -85,7 +85,7 @@ def schema_title(schema: dict[str, Any]) -> str:
     return str(schema.get("title", "") or "")
 
 
-def test_native_suggestion_survives_missing_author_display_text(review, v21, v25, v28) -> None:
+def test_native_suggestion_survives_missing_author_display_text(review, v21, repair, v28) -> None:
     calls: list[str] = []
 
     def fake(_prompt, schema, _config, reporter=None):
@@ -113,13 +113,13 @@ def test_native_suggestion_survives_missing_author_display_text(review, v21, v25
             )
         raise AssertionError(title)
 
-    finding = verified_finding(v21, v25)
+    finding = verified_finding(v21, repair)
     item = run_with_openrouter(
         review,
         fake,
         lambda: v28.build_repair_for_finding(review, 1, finding, FILE_TEXT, config_for(review)),
     )
-    marker = item[v25.REPAIR_MARKER]
+    marker = item[repair.REPAIR_MARKER]
     assert calls == ["DCOIR Verified Finding Repair Author", "DCOIR Verified Finding Repair Critic"], calls
     assert marker["version"] == "v28", marker
     assert marker["outcome"] == "native-suggestion", marker
@@ -132,7 +132,7 @@ def test_native_suggestion_survives_missing_author_display_text(review, v21, v25
     assert "verified repair pipeline v28" in rendered, rendered
 
 
-def test_author_decline_skips_critic(review, v21, v25, v28) -> None:
+def test_author_decline_skips_critic(review, v21, repair, v28) -> None:
     calls: list[str] = []
 
     def fake(_prompt, schema, _config, reporter=None):
@@ -158,14 +158,14 @@ def test_author_decline_skips_critic(review, v21, v25, v28) -> None:
     item = run_with_openrouter(
         review,
         fake,
-        lambda: v28.build_repair_for_finding(review, 2, verified_finding(v21, v25), FILE_TEXT, config_for(review)),
+        lambda: v28.build_repair_for_finding(review, 2, verified_finding(v21, repair), FILE_TEXT, config_for(review)),
     )
     assert len(calls) == 1, calls
-    assert item[v25.REPAIR_MARKER]["outcome"] == "author-declined"
+    assert item[repair.REPAIR_MARKER]["outcome"] == "author-declined"
     assert item["suggested_replacement"] == ""
 
 
-def test_deterministic_precheck_skips_critic(review, v21, v25, v28) -> None:
+def test_deterministic_precheck_skips_critic(review, v21, repair, v28) -> None:
     calls: list[str] = []
 
     def fake(_prompt, schema, _config, reporter=None):
@@ -191,14 +191,14 @@ def test_deterministic_precheck_skips_critic(review, v21, v25, v28) -> None:
     item = run_with_openrouter(
         review,
         fake,
-        lambda: v28.build_repair_for_finding(review, 3, verified_finding(v21, v25), FILE_TEXT, config_for(review)),
+        lambda: v28.build_repair_for_finding(review, 3, verified_finding(v21, repair), FILE_TEXT, config_for(review)),
     )
     assert len(calls) == 1, calls
-    assert item[v25.REPAIR_MARKER]["outcome"] == "deterministic-precheck-declined"
-    assert "indentation" in item[v25.REPAIR_MARKER]["reason"], item[v25.REPAIR_MARKER]
+    assert item[repair.REPAIR_MARKER]["outcome"] == "deterministic-precheck-declined"
+    assert "indentation" in item[repair.REPAIR_MARKER]["reason"], item[repair.REPAIR_MARKER]
 
 
-def test_author_call_failure_is_bounded(review, v21, v25, v28) -> None:
+def test_author_call_failure_is_bounded(review, v21, repair, v28) -> None:
     def fake(_prompt, _schema, _config, reporter=None):
         del reporter
         raise RuntimeError("synthetic author transport failure")
@@ -206,15 +206,15 @@ def test_author_call_failure_is_bounded(review, v21, v25, v28) -> None:
     item = run_with_openrouter(
         review,
         fake,
-        lambda: v28.build_repair_for_finding(review, 4, verified_finding(v21, v25), FILE_TEXT, config_for(review)),
+        lambda: v28.build_repair_for_finding(review, 4, verified_finding(v21, repair), FILE_TEXT, config_for(review)),
     )
-    marker = item[v25.REPAIR_MARKER]
+    marker = item[repair.REPAIR_MARKER]
     assert marker["outcome"] == "author-call-stage-failed-closed", marker
     assert "synthetic author transport failure" in marker["reason"], marker
     assert item["suggested_replacement"] == ""
 
 
-def test_critic_call_failure_is_bounded(review, v21, v25, v28) -> None:
+def test_critic_call_failure_is_bounded(review, v21, repair, v28) -> None:
     calls = 0
 
     def fake(_prompt, schema, _config, reporter=None):
@@ -241,9 +241,9 @@ def test_critic_call_failure_is_bounded(review, v21, v25, v28) -> None:
     item = run_with_openrouter(
         review,
         fake,
-        lambda: v28.build_repair_for_finding(review, 5, verified_finding(v21, v25), FILE_TEXT, config_for(review)),
+        lambda: v28.build_repair_for_finding(review, 5, verified_finding(v21, repair), FILE_TEXT, config_for(review)),
     )
-    marker = item[v25.REPAIR_MARKER]
+    marker = item[repair.REPAIR_MARKER]
     assert calls == 2, calls
     assert marker["outcome"] == "critic-call-stage-failed-closed", marker
     assert "synthetic critic transport failure" in marker["reason"], marker
@@ -251,12 +251,12 @@ def test_critic_call_failure_is_bounded(review, v21, v25, v28) -> None:
 
 
 def main() -> None:
-    review, v21, v25, v28 = patched_modules()
-    test_native_suggestion_survives_missing_author_display_text(review, v21, v25, v28)
-    test_author_decline_skips_critic(review, v21, v25, v28)
-    test_deterministic_precheck_skips_critic(review, v21, v25, v28)
-    test_author_call_failure_is_bounded(review, v21, v25, v28)
-    test_critic_call_failure_is_bounded(review, v21, v25, v28)
+    review, v21, repair, v28 = patched_modules()
+    test_native_suggestion_survives_missing_author_display_text(review, v21, repair, v28)
+    test_author_decline_skips_critic(review, v21, repair, v28)
+    test_deterministic_precheck_skips_critic(review, v21, repair, v28)
+    test_author_call_failure_is_bounded(review, v21, repair, v28)
+    test_critic_call_failure_is_bounded(review, v21, repair, v28)
     print("dcoir_review_required_runtime_patch_v28_selftest passed")
 
 

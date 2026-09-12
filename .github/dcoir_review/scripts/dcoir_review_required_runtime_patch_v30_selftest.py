@@ -38,20 +38,20 @@ def main() -> None:
     entrypoint.apply_runtime_patches(review)
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
     v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
     v28 = importlib.import_module("dcoir_review_required_runtime_patch_v28")
     v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
 
     # Applying only the v30 overlay again in a reused interpreter must be a no-op
     # rather than stacking prompt/parser/synthesis/renderer wrappers.
-    prompt_before = v25._repair_author_prompt
+    prompt_before = repair._repair_author_prompt
     author_result_before = v28._author_result
     declined_before = v28._declined_item
     synthesis_before = review.synthesize_fixes_for_findings
     renderer_before = review.base.build_inline_comment
     v30.apply_pareto_context_module(review)
     v30.apply_pareto_context_module(review)
-    assert v25._repair_author_prompt is prompt_before
+    assert repair._repair_author_prompt is prompt_before
     assert v28._author_result is author_result_before
     assert v28._declined_item is declined_before
     assert review.synthesize_fixes_for_findings is synthesis_before
@@ -84,8 +84,8 @@ def main() -> None:
     assert _has_truthy_sentinel(review, "probe.py", 'if severity == "critical" or "high": return True')
     assert _has_truthy_sentinel(review, "probe.ps1", 'if ($Severity -eq "High" -or "Critical") { return $true }')
 
-    assert "defect_present" in v25.REPAIR_AUTHOR_SCHEMA["required"]
-    assert v25.REPAIR_AUTHOR_SCHEMA["properties"]["defect_present"] == {"type": "boolean"}
+    assert "defect_present" in repair.REPAIR_AUTHOR_SCHEMA["required"]
+    assert repair.REPAIR_AUTHOR_SCHEMA["properties"]["defect_present"] == {"type": "boolean"}
 
     class Hardened:
         class ReviewQualityError(RuntimeError):
@@ -124,8 +124,8 @@ def main() -> None:
         author_tier="test",
         outcome="author-declined",
     )
-    assert suppressed[v25.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
-    assert suppressed[v25.REPAIR_MARKER]["defect_present"] is False
+    assert suppressed[repair.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
+    assert suppressed[repair.REPAIR_MARKER]["defect_present"] is False
     kept, count = v30.filter_suppressed_findings([suppressed])
     assert kept == []
     assert count == 1
@@ -154,7 +154,7 @@ def main() -> None:
     kept, count = v30.filter_suppressed_findings([real_item])
     assert count == 0
     assert len(kept) == 1
-    assert kept[0][v25.REPAIR_MARKER]["outcome"] == "author-declined"
+    assert kept[0][repair.REPAIR_MARKER]["outcome"] == "author-declined"
 
     low_confidence_raw = dict(absent_raw)
     low_confidence_raw["confidence"] = 0.80
@@ -172,7 +172,7 @@ def main() -> None:
     kept, count = v30.filter_suppressed_findings([low_item])
     assert count == 0
     assert len(kept) == 1
-    assert kept[0][v25.REPAIR_MARKER].get("suppression_declined")
+    assert kept[0][repair.REPAIR_MARKER].get("suppression_declined")
 
     # The final renderer must ignore model-authored semantics for a verifier-
     # proven deterministic sentinel while preserving the human-applied native
@@ -200,7 +200,7 @@ def main() -> None:
             "head_sha": "probe-head",
             "line": 10,
         },
-        v25.REPAIR_MARKER: {
+        repair.REPAIR_MARKER: {
             "version": v30.VERSION,
             "outcome": "native-suggestion",
             "path": ".github/dcoir_review/evaluation/live_suggestion_probe.py",

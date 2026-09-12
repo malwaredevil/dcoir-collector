@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import importlib
 
-from dcoir_review import repair
+from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -25,22 +25,22 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    repair_pipeline = importlib.import_module("dcoir_review.repair_pipeline")
 
     base_config = review.load_pareto_context_config(
         ".github/dcoir_review/openrouter-pr-review-pareto.yml"
     )
     original_stack = list(base_config.model_stack)
-    critic = v25._independent_config(base_config)
+    critic = repair_pipeline._independent_config(base_config)
 
     assert base_config.model_stack == original_stack, (
         "critic config mutated shared production config"
     )
     assert critic is not base_config
-    assert critic.model == repair.PRIMARY_CRITIC_MODEL
+    assert critic.model == repair_policy.PRIMARY_CRITIC_MODEL
     assert critic.model_stack == [
-        repair.PRIMARY_CRITIC_MODEL,
-        repair.FALLBACK_CRITIC_MODEL,
+        repair_policy.PRIMARY_CRITIC_MODEL,
+        repair_policy.FALLBACK_CRITIC_MODEL,
     ]
     assert critic.fallback_models == []
     assert critic.openrouter_route == ""
@@ -49,12 +49,12 @@ def main() -> None:
 
     payload = review.hardened.build_openrouter_payload(
         "critic probe",
-        v25.REPAIR_CRITIC_SCHEMA,
+        repair_pipeline.REPAIR_CRITIC_SCHEMA,
         critic,
         [],
         critic.model_stack[0],
     )
-    assert payload["model"] == repair.PRIMARY_CRITIC_MODEL
+    assert payload["model"] == repair_policy.PRIMARY_CRITIC_MODEL
     assert payload["response_format"]["type"] == "json_schema"
     assert payload["response_format"]["json_schema"]["strict"] is True
     assert payload["provider"]["require_parameters"] is True
