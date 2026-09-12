@@ -57,6 +57,8 @@ REPAIR_CRITIC_SCHEMA: dict[str, Any] = {
     },
 }
 
+
+
 # Stable helper exports intentionally remain module globals because later
 # historical overlays still replace a bounded subset during staged retirement.
 _path_line = support._path_line
@@ -91,6 +93,7 @@ def _build_repair_for_finding(
     )
     author = _parse_author(author_raw, hardened)
 
+    # Reject malformed replacement text before spending a critic call on it.
     precheck_reason = ""
     if author["action"] == "replace_line":
         precheck_reason = _replacement_validation_reason(
@@ -216,6 +219,8 @@ def synthesize_verified_repairs(
         try:
             item = _build_repair_for_finding(module, ordinal, finding, file_cache[path], config)
         except Exception as exc:
+            # Finding publication remains useful even when repair generation is
+            # unavailable; applyable suggestions fail closed, not findings.
             item = finding
             path, line = _path_line(item)
             title, body = _fallback_display(item, path, line)
@@ -272,6 +277,9 @@ def _render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
     suggestion = str(finding.get("suggested_replacement", "") or "")
     if marker.get("outcome") == "native-suggestion" and suggestion:
         path, line = _path_line(finding)
+        # Final rendering does not have file text, so it repeats the immutable
+        # shape checks. The stronger full-file check happened immediately after
+        # the critic against the exact reviewed head.
         if (
             path
             and line > 0
@@ -296,6 +304,9 @@ def _render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:
 
 
 def apply_pareto_context_module(module: Any) -> None:
+    # Replace—not wrap—the accumulated legacy post-verifier synthesis stack.
+    # v21 remains the finding publication verifier and is called explicitly by
+    # synthesize_verified_repairs above.
     def synthesize_fixes_for_findings(
         findings: list[dict[str, Any]],
         gh: Any,

@@ -18,7 +18,6 @@ import dcoir_review_required_runtime_patch_v21 as v21
 AUTHOR_MIN_CONFIDENCE = 0.90
 CRITIC_MIN_CONFIDENCE = 0.90
 
-
 def _path_line(finding: dict[str, Any]) -> tuple[str, int]:
     path = str(finding.get("path", "") or "").strip()
     try:
@@ -47,6 +46,12 @@ def _model_judge_marker(finding: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _strip_legacy_model_finding_provenance(finding: dict[str, Any]) -> dict[str, Any]:
+    """Model-judged findings are ordinary findings, not deterministic sentinels.
+
+    Earlier required-coverage layers may attach inferred sentinel metadata while
+    selecting a postable candidate. Once v21 independently model-judges the
+    candidate, that inferred metadata must not rewrite its semantics or repair.
+    """
     item = dict(finding)
     if _model_judge_marker(item) is not None:
         for key in list(item):
@@ -206,6 +211,7 @@ Full head-file context:
 
 
 def _independent_config(config: Any) -> Any:
+    """Build the repair critic config through the canonical repair owner."""
     return repair.build_repair_critic_config(config)
 
 
@@ -303,3 +309,5 @@ def _fallback_display(finding: dict[str, Any], path: str, line: int) -> tuple[st
         str(finding.get("title", "DCOIR Review finding") or "DCOIR Review finding").strip(),
         str(finding.get("body", "") or "").strip(),
     )
+
+
