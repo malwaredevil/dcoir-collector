@@ -58,7 +58,7 @@ The first historical runtime-overlay retirement moved finding-anchor normalizati
 - the exact changed-line preservation invariant formerly installed by `dcoir_review_required_runtime_patch_v27.py` now lives directly in the canonical `reanchor_finding_to_changed_line(...)` implementation;
 - the production entrypoint no longer applies v27, and the obsolete v27 runtime source has been deleted;
 - `dcoir_review_anchor_normalization_selftest.py` owns the stable contract: a valid changed-line anchor is immutable, while a genuinely unpostable anchor can still be rescued by bounded heuristic re-anchoring;
-- the old `dcoir_review_required_runtime_patch_v27_selftest.py` filename remains only as a temporary compatibility wrapper for the existing validation-command registry and contains no version-specific assertions.
+- the governed validation-command registry now names the stable `dcoir_review_anchor_normalization_selftest.py` contract directly, and the obsolete v27 compatibility wrapper has been deleted; Git history remains the record of the retired filename.
 
 That retirement is exact-head validated. ChatGPT Exec run `34697687314` passed at source head `a94ccfec6171df57da77c839466a67a092ee9139` with architecture inventory reporting 86 modules, 58 production patch applications, maximum v58, and zero missing modules. Runtime provenance confirmed v27 is absent from the production sequence and `reanchor_finding_to_changed_line` is no longer patch-owned. Current-head CodeQL run `34697652006` also passed at that source head.
 
@@ -68,7 +68,7 @@ The second historical runtime-overlay retirement is now staged in source for rep
 - the active v25 repair pipeline delegates `_independent_config(...)` directly to that canonical owner, so later repair stages consume the stable policy without runtime replacement;
 - the production entrypoint no longer applies `dcoir_review_required_runtime_patch_v29` and the obsolete v29 runtime source has been deleted;
 - `dcoir_review_repair_routing_selftest.py` owns the stable contract, including shared-config immutability, the direct GPT-5.6 Terra / Sonnet fallback stack, strict JSON-schema payload behavior, Auto/Pareto-router removal, and explicit v29 absence from production composition;
-- the historical `dcoir_review_required_runtime_patch_v29_selftest.py` path remains only as a temporary compatibility wrapper for the governed validation-command registry;
+- the governed validation-command registry now names `dcoir_review_repair_routing_selftest.py` directly, and the obsolete v29 compatibility wrapper has been deleted rather than retained as repository history;
 - `repair.py` is declared as an ordinary direct-import owner so orphan-module validation remains fail-closed without misclassifying it as a concatenated runtime segment.
 
 This v29 retirement is not yet exact-head validated. The last validated production patch count is 58 after v27 retirement; source composition after the staged v29 retirement should enumerate 57 production patch applications while retaining `v58` as the maximum numbered version. Governed execution must confirm that expectation before the retirement is called validated.
