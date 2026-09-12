@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34706775099",
   "github_sha": "4b14b95921c40891d82a6f78e5201a2003c5e9a7",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-repair-consolidation-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-repair-consolidation-validation-001.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-12T16:57:43Z",
+  "updated_utc": "2026-09-12T16:57:45Z",
   "workflow": "chatgpt-exec"
 }
