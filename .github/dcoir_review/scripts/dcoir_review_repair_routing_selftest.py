@@ -12,6 +12,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
+    assert "dcoir_review_required_runtime_patch_v29" not in names
     assert "dcoir_review_required_runtime_patch_v28" in names
     assert "dcoir_review_required_runtime_patch_v30" in names
     assert "dcoir_review_required_runtime_patch_v31" in names
