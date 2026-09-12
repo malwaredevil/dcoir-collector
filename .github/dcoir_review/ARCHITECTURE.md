@@ -20,10 +20,38 @@ The consolidated implementation should assign one canonical owner to each active
 - quality gate: confidence/actionability floors and fail-closed publication eligibility;
 - repair: repair synthesis, critic context, coordinated edit sets, and repair budgets;
 - publication: review body and inline finding publication, comment deduplication, and bounded output;
+- operator status: one reusable top-level PR status comment for the latest DCOIR Review activity, with formal GitHub review output remaining authoritative;
 - telemetry: observational usage/provider/recovery data that cannot change finding disposition;
 - pipeline/entrypoint: explicit readable sequencing of the responsibilities above.
 
 A future fix belongs in its canonical responsibility owner. A new numbered production patch is not the normal extension mechanism.
+
+## Characterization checkpoint
+
+The corrected exact-head characterization for Draft PR #553 completed successfully in ChatGPT Exec run `34694686544` against source head `421fb8dbd5b03d068d3abb20b5865e1ccc82b67b`. It used an isolated secondary worktree and verified that the shared harness checkout remained unchanged.
+
+The generated inventory/provenance evidence records:
+
+- `87` inventoried architecture modules;
+- `59` production patch applications in the current ordered chain;
+- numbered production patch ceiling `v58`, with no missing inventory modules;
+- `86` loaded patch-module override namespaces represented in final provenance;
+- final changed callable surfaces concentrated in the `base`, `hardened`, and `review` namespaces rather than requiring one new owner per historical patch generation.
+
+Public patch-owned callable characterization currently resolves to five base callables, eighteen hardened callables, and thirty review callables, plus historical stored-original compatibility shims. Migration planning should follow the active responsibilities of those callables, not reproduce the historical patch count.
+
+## Staged cutover status
+
+The first canonical extraction is the operator-facing status publication surface required by issue #550 comment `5645826560`:
+
+- `dcoir_review/status.py` owns discovery/reuse and best-effort create/update behavior for the stable hidden status-comment marker;
+- the base `ProgressReporter` delegates status publication to that owner regardless of the legacy `post_progress_comment` debug flag;
+- the status comment progresses through `Queued`, `Running`, `Completed`, or `Failed`, carries exact-head provenance once the PR head is captured, links the formal GitHub review on completion, bounds repeated same-stage edits, and reuses the same bot-authored comment on reruns;
+- status-publication API failures are observational and are not raised into review disposition;
+- the previous non-progress failure fallback that could create a separate status-like issue comment has been removed;
+- existing v50/v54/v48 gate, telemetry, and exact-head terminal decorators remain temporarily active around `ProgressReporter` during staged migration. This first extraction therefore does not claim that the runtime patch chain has been retired.
+
+The stable status contract is covered by `dcoir_review_status_comment_selftest.py`, including rerun reuse, same-comment identity, exact-head/formal-review rendering, spoofed-user marker rejection, debug-flag independence, and observational write failures.
 
 ## Migration invariants
 
@@ -61,7 +89,7 @@ The final architecture must be mechanically guarded. Validation should fail when
 - maintained runtime ownership is ambiguous, duplicated, missing, or genuinely orphaned;
 - dependency direction recreates cross-generation backreferences or a cycle that makes order implicit behavior.
 
-DCOIR Review does not review changes to itself. Independent GitHub Copilot review is the current self-change review lane, and DCOIR Review should not be restored as a required gate for other PRs until the consolidated implementation has completed its governed deterministic, semantic/canary, provider, publication/deduplication, repair, security, exact-head, and post-merge validation.
+DCOIR Review does not review changes to itself. Independent GitHub Copilot and External Codex are available independent review lanes, but their trigger requests remain operator-controlled. DCOIR Review should not be restored as a required gate for other PRs until the consolidated implementation has completed its governed deterministic, semantic/canary, provider, publication/deduplication, repair, security, exact-head, and post-merge validation.
 
 ## Validation before cutover completion
 
