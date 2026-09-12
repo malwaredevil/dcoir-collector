@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue550-pr553-repair-consolidation-validation-003",
+  "exit_code": "1",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34707721563",
   "github_sha": "20858d0639a2a871688879b5eed65660fb5d2c9b",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue550-pr553-repair-consolidation-validation-003",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-repair-consolidation-validation-003.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-12T17:16:48Z",
+  "updated_utc": "2026-09-12T17:17:15Z",
   "workflow": "chatgpt-exec"
 }
