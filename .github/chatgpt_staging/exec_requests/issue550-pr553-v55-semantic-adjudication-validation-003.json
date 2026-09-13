@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-v55-semantic-adjudication-validation-003",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-13T17:05:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 2400,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\nif ([string]::IsNullOrWhiteSpace($repo)) { $repo = $env:GITHUB_WORKSPACE }\n$script = Join-Path $repo '.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v55-semantic-adjudication-validation-003.ps1'\nif (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw \"Missing validation harness: $script\" }\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script\nif ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }",
+  "command": "$repo = [Environment]::GetEnvironmentVariable('DCOIR_REPO_ROOT','Machine')\nif ([string]::IsNullOrWhiteSpace($repo)) { $repo = $env:GITHUB_WORKSPACE }\n$script = Join-Path $repo '.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v55-semantic-adjudication-validation-003.ps1'\nif (-not (Test-Path -LiteralPath $script -PathType Leaf)) { throw \"Missing validation harness: $script\" }\n& powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script\nif ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
+}
