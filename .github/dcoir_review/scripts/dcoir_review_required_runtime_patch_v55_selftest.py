@@ -173,7 +173,7 @@ def main() -> None:
         "dcoir_review_required_runtime_patch_v54",
     )
     post_telemetry = entrypoint.post_telemetry_patch_module_names
-    assert post_telemetry[0] == "dcoir_review_required_runtime_patch_v58"
+    assert post_telemetry[0] == "dcoir_review.provider_transport_retry"
     assert post_telemetry[-3:] == (
         "dcoir_review_required_runtime_patch_v55",
         "dcoir_review_required_runtime_patch_v56",

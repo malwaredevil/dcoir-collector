@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""DCOIR Review v58: bounded retry for interrupted provider transport reads.
+"""Stable DCOIR Review provider transport retry for interrupted reads.
 
 Issue #548 proved that a chunked HTTP response can fail inside ``response.read()``
 with ``http.client.IncompleteRead``. That exception bypassed the existing
-provider retry loop even though the request had remaining attempts. This
-post-composition overlay maps only narrowly classified transient transport
-failures onto the existing bounded retry machinery, while preserving the
-original HTTP-status, JSON/schema, routing, and fail-closed behavior.
+provider retry loop even though the request had remaining attempts. This stable
+post-telemetry owner maps only narrowly classified transient transport failures
+onto the existing bounded retry machinery, while preserving the original HTTP-status,
+JSON/schema, routing, and fail-closed behavior.
 
 The same protection covers interrupted reads of ``HTTPError`` response bodies.
 Those failures are replayed through the historical HTTP-status path so that
@@ -26,9 +26,9 @@ import urllib.error
 from typing import Any
 
 
-APPLIED_MARKER = "_dcoir_v58_transport_retry_applied"
-REQUEST_STORAGE = "_dcoir_v58_original_openrouter_request_once"
-TELEMETRY_STORAGE = "_dcoir_v58_original_record_openrouter_attempt_telemetry"
+APPLIED_MARKER = "_dcoir_provider_transport_retry_applied"
+REQUEST_STORAGE = "_dcoir_provider_transport_retry_original_openrouter_request_once"
+TELEMETRY_STORAGE = "_dcoir_provider_transport_retry_original_record_openrouter_attempt_telemetry"
 TRANSPORT_FAILURE_CLASS = "transport_error"
 _RETRYABLE_HTTP_EXCEPTIONS = (
     http.client.IncompleteRead,
@@ -155,7 +155,7 @@ def _patch_request_boundary(module: Any) -> None:
         if callable(original):
             setattr(hardened, REQUEST_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v58 could not locate hardened openrouter_request_once")
+        raise RuntimeError("DCOIR provider transport retry could not locate hardened openrouter_request_once")
 
     review_timeout_error = getattr(hardened, "ReviewTimeoutError", None)
     if not isinstance(review_timeout_error, type) or not issubclass(
@@ -219,7 +219,7 @@ def _patch_attempt_telemetry(module: Any) -> None:
         if callable(original):
             setattr(hardened, TELEMETRY_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v58 could not locate provider attempt telemetry recorder")
+        raise RuntimeError("DCOIR provider transport retry could not locate provider attempt telemetry recorder")
 
     def record_openrouter_attempt_telemetry(config, event):
         transport_failure, http_status = _take_transport_marker(config)

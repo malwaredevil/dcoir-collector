@@ -18,7 +18,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.module_loader import LAYER_SEGMENTS, RuntimeSegmentLoader
 
 MAX_SEGMENT_SOURCE_BYTES = 15_000
-MAX_NUMBERED_PRODUCTION_PATCH_VERSION = 58
+NUMBERED_PRODUCTION_PATCH_VERSION_CEILING = 58
 NUMBERED_PRODUCTION_PATCH_RE = re.compile(
     r"^dcoir_review_required_runtime_patch_v(?P<version>\d+)(?:$|_)"
 )
@@ -42,6 +42,7 @@ DIRECT_IMPORT_MODULES = (
     "module_loader.py",
     "normalized_finding_selection.py",
     "per_file_routing.py",
+    "provider_transport_retry.py",
     "precision_guard.py",
     "quality_gate.py",
     "repair.py",
@@ -139,7 +140,7 @@ def production_patch_module_names() -> tuple[str, ...]:
 
 
 def assert_numbered_patch_freeze_before_cutover() -> None:
-    """Enforce the #550 no-v59 production freeze until the chain is retired."""
+    """Enforce the #550 no-v59 production freeze while retirements continue."""
     numbered: dict[str, int] = {}
     for module_name in production_patch_module_names():
         match = NUMBERED_PRODUCTION_PATCH_RE.match(module_name)
@@ -147,17 +148,19 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
             numbered[module_name] = int(match.group("version"))
 
     assert numbered, "expected historical numbered production patches before #550 cutover"
-    observed_max = max(numbered.values())
-    assert observed_max == MAX_NUMBERED_PRODUCTION_PATCH_VERSION, {
-        "numbered_patch_freeze_violation": sorted(
-            name
-            for name, version in numbered.items()
-            if version > MAX_NUMBERED_PRODUCTION_PATCH_VERSION
-        ),
-        "expected_max_version": MAX_NUMBERED_PRODUCTION_PATCH_VERSION,
-        "observed_max_version": observed_max,
+    violating = sorted(
+        name
+        for name, version in numbered.items()
+        if version > NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
+    )
+    assert not violating, {
+        "numbered_patch_freeze_violation": violating,
+        "ceiling": NUMBERED_PRODUCTION_PATCH_VERSION_CEILING,
     }
-    assert "dcoir_review_required_runtime_patch_v58" in numbered
+    assert "dcoir_review_required_runtime_patch_v58" not in numbered, (
+        "retired v58 production owner reappeared"
+    )
+    assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
 def assert_patch_inventory_is_source_complete() -> None:
@@ -167,7 +170,14 @@ def assert_patch_inventory_is_source_complete() -> None:
     assert inventory["production_patch_count"] == len(production_patch_module_names())
     assert inventory["inventory_module_count"] >= inventory["production_patch_count"]
     assert not inventory["missing_modules"], inventory["missing_modules"]
-    assert inventory["max_numbered_version"] == MAX_NUMBERED_PRODUCTION_PATCH_VERSION
+    numbered_versions = [
+        int(match.group("version"))
+        for name in production_patch_module_names()
+        if (match := NUMBERED_PRODUCTION_PATCH_RE.match(name)) is not None
+    ]
+    expected_max = max(numbered_versions) if numbered_versions else None
+    assert inventory["max_numbered_version"] == expected_max
+    assert expected_max is None or expected_max < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
 def assert_segment_source_sizes(paths: tuple[Path, ...], layer: str) -> None:
