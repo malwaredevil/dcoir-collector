@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue550-pr553-v47-per-file-routing-validation-001",
+  "exit_code": "0",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34761670791",
   "github_sha": "09dab1bf55d6003fd92eeaa2f1f2c74aa17d5df9",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue550-pr553-v47-per-file-routing-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v47-per-file-routing-validation-001.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-13T14:06:10Z",
+  "updated_utc": "2026-09-13T14:06:50Z",
   "workflow": "chatgpt-exec"
 }
