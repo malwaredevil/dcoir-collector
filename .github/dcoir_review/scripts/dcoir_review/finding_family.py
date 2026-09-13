@@ -1,9 +1,9 @@
-"""Fifteenth required-coverage layer for DCOIR Review.
+"""Stable finding-family classification and family-priority ownership.
 
-v15 is intentionally small: it fixes the #341 compatibility crash where v14
-introduced a family-balancing helper but delegated it to a v13 helper that did
-not exist on live main. It also keeps Kubernetes findings as optional/bonus
-rather than part of the core must-pass family order.
+Preserves the compatibility behavior introduced by historical v15: family
+classification remains available when earlier overlays lack the helper, and
+Kubernetes findings remain optional rather than part of the core must-pass
+family order.
 """
 
 from __future__ import annotations

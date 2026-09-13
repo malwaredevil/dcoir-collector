@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression self-test for the DCOIR Review v15 compatibility overlay."""
+"""Regression checks for stable DCOIR Review finding-family ownership."""
 
 from __future__ import annotations
 
@@ -14,11 +14,11 @@ import dcoir_review_required_runtime_patch_v13 as v13
 import dcoir_review_required_runtime_patch_v14 as v14
 
 
-def _reload_v15_without_v13_family():
+def _reload_finding_family_without_v13_family():
     if hasattr(v13, "_family"):
         delattr(v13, "_family")
-    sys.modules.pop("dcoir_review_required_runtime_patch_v15", None)
-    return importlib.import_module("dcoir_review_required_runtime_patch_v15")
+    sys.modules.pop("dcoir_review.finding_family", None)
+    return importlib.import_module("dcoir_review.finding_family")
 
 
 def _finding(path: str, line: int, kind: str, text: str) -> dict[str, Any]:
@@ -35,13 +35,13 @@ def _finding(path: str, line: int, kind: str, text: str) -> dict[str, Any]:
 
 
 def main() -> None:
-    v15 = _reload_v15_without_v13_family()
+    finding_family = _reload_finding_family_without_v13_family()
     module = SimpleNamespace(base=None, hardened=SimpleNamespace())
 
     # Match the runtime entrypoint ordering: v14 applies first, then v15 patches
     # the family-compat helpers that v14 exposes.
     v14.apply_pareto_context_module(module)
-    v15.apply_pareto_context_module(module)
+    finding_family.apply_pareto_context_module(module)
 
     assert v14._family("yaml_broad_write") == "yaml"
     assert v14._family("ps_process_launch") == "powershell"
@@ -75,7 +75,24 @@ def main() -> None:
     assert len(ranked) == 5
     assert ranked_kinds[:3] == ["yaml", "powershell", "python"]
 
-    print("dcoir_review_required_runtime_patch_v15_selftest passed")
+    from dcoir_review.entrypoint import DcoirReviewEntrypoint
+    names = (
+        *DcoirReviewEntrypoint().patch_module_names,
+        *DcoirReviewEntrypoint().terminal_patch_module_names,
+        *DcoirReviewEntrypoint().post_terminal_patch_module_names,
+        *DcoirReviewEntrypoint().candidate_integrity_patch_module_names,
+        *DcoirReviewEntrypoint().stage_local_patch_module_names,
+        *DcoirReviewEntrypoint().execution_policy_patch_module_names,
+        *DcoirReviewEntrypoint().telemetry_patch_module_names,
+        *DcoirReviewEntrypoint().post_telemetry_patch_module_names,
+    )
+    assert "dcoir_review.finding_family" in names, names
+    assert "dcoir_review_required_runtime_patch_v15" not in names, names
+    idx = names.index("dcoir_review.finding_family")
+    assert names[idx - 1] == "dcoir_review_required_runtime_patch_v14", names[max(0, idx-2):idx+3]
+    assert names[idx + 1] == "dcoir_review_required_runtime_patch_v16", names[max(0, idx-2):idx+3]
+
+    print("dcoir_review_finding_family_selftest passed")
 
 
 if __name__ == "__main__":

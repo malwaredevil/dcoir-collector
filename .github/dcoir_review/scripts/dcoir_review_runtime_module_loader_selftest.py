@@ -37,6 +37,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 # without forcing ordinary helper/selftest modules into LAYER_SEGMENTS.
 DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
+    "finding_family.py",
     "module_loader.py",
     "normalized_finding_selection.py",
     "repair.py",

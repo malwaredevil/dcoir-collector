@@ -125,6 +125,18 @@ The next bounded retirement moves normalized-finding selection compatibility out
 
 This v23 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback remain required after publication before the slice can be credited as governed validated.
 
+The next bounded retirement moves finding-family compatibility out of historical v15:
+
+- `dcoir_review/finding_family.py` owns stable finding-family classification and family-priority compatibility;
+- production composition loads the stable owner at the former v15 position between v14 and v16;
+- v16 now imports the stable finding-family owner instead of the historical v15 module;
+- `dcoir_review_finding_family_selftest.py` replaces the version-specific v15 self-test and adds an exact composition assertion;
+- the v14 import-compatibility regression now exercises the stable owner;
+- runtime module ownership and the governed validation-command registry reference the stable module/test directly;
+- the historical v15 wrapper, segmented implementation, and version-specific self-test are removed; Git history remains the archive.
+
+This v15 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback remain required after publication before the slice can be credited as governed validated.
+
 ## Migration invariants
 
 The migration must preserve externally observable behavior before historical layers are removed. In particular:
