@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-v19-recovery-exact-head-validation-002",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-13T13:21:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Clean corrective retry of the already-approved recovery exact-head no-inference validation for PR #553 head f57eab7464beb601ce350833a6152e5b6d77b20e, using a fresh request ID after the prior reused request path caused report-branch rebase conflicts. Same validation scope and assertions only; no provider/API calls, review trigger, Draft-to-Ready transition, merge, workflow redesign, source mutation, or v59+ work is authorized.",
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v19-recovery-exact-head-validation-002.ps1"
+}
