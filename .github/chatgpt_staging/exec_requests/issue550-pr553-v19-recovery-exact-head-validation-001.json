@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-v19-recovery-exact-head-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-13T13:21:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Recovery exact-head no-inference validation for PR #553 corrective head f57eab7464beb601ce350833a6152e5b6d77b20e; reuse the already-governed v19 precision_guard validation harness with only exact-head/request-id/terminal-marker substitutions; assert 56 production components, max numbered version 58, retired v15/v19/v21-v29, precision_guard composition v18->precision_guard->v20, preserved v19 telemetry artifact/schema contract, semantic recall/precision regressions, 293-file Windows parser and harness SHA, CodeQL workflow config, no v59+, no provider/API calls, and source-branch immutability. No review trigger, Draft-to-Ready transition, merge, workflow redesign, or source mutation is authorized.",
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v19-recovery-exact-head-validation-001.ps1"
+}
