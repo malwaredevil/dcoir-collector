@@ -224,6 +224,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
 
 
 def _patch_core_semantics() -> None:
+    from dcoir_review import finding_family as v15
     v12.REQUIRED_KINDS = set(getattr(v12, "REQUIRED_KINDS", set())) | CORE_REQUIRED_KINDS
     v13.REQUIRED_KINDS = set(getattr(v13, "REQUIRED_KINDS", set())) | CORE_REQUIRED_KINDS
     v13.TRACKED_HIGH_RISK_KINDS = set(getattr(v13, "TRACKED_HIGH_RISK_KINDS", set())) | TRACKED_KINDS
