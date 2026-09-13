@@ -1,0 +1,254 @@
+diff --git a/.github/dcoir_review/ARCHITECTURE.md b/.github/dcoir_review/ARCHITECTURE.md
+index 6157b9adf..3d7eb3a57 100644
+--- a/.github/dcoir_review/ARCHITECTURE.md
++++ b/.github/dcoir_review/ARCHITECTURE.md
+@@ -159,7 +159,17 @@ The next bounded retirement moves candidate-finding evidence verification out of
+ - runtime module ownership and the governed validation-command registry reference the stable module/test directly;
+ - the historical v21 runtime and version-specific self-test files are removed; Git history remains the archive.
+ 
+-This v21 finding-verifier retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
++This v21 finding-verifier retirement is exact-head validated. ChatGPT Exec run `34757094524` passed at source head `f42b9d43ea637cc88a5f13329f655b7352b85d84` with terminal marker `ISSUE550_PR553_V21_FINDING_VERIFIER_VALIDATION_001_PASS`; its artifact confirms 56 production components, maximum numbered version 58, and `retired=v15,v21,v22,v23,v24,v25,v26,v27,v28,v29`. Current-head CodeQL run `34756805023` passed Actions, Python, and aggregate reporting on the same source head.
++
++The next bounded retirement moves precision guarding out of historical v19:
++
++- `dcoir_review/precision_guard.py` owns language-scoped sentinel suppression, fail-closed fix-synthesis contradiction detection, and bounded repair-outcome telemetry as one precision responsibility;
++- the externally meaningful `metadata/fix-synthesis-outcomes-v19.json` path and `v19` artifact schema marker are intentionally preserved as compatibility data contracts, while private stored-original names move to stable precision-guard ownership;
++- `dcoir_review_precision_guard_selftest.py` replaces the version-specific v19 self-test and asserts both behavior and exact stable composition between v18 and v20;
++- runtime composition, direct-import ownership, and the governed validation-command registry reference the stable owner/test directly;
++- the historical v19 runtime and version-specific self-test files are removed; Git history remains the archive.
++
++This v19 precision-guard retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
+ 
+ ## Migration invariants
+ 
+diff --git a/.github/dcoir_review/openrouter-pr-review-pareto.yml b/.github/dcoir_review/openrouter-pr-review-pareto.yml
+index 327ae92c8..8af22f1d2 100644
+--- a/.github/dcoir_review/openrouter-pr-review-pareto.yml
++++ b/.github/dcoir_review/openrouter-pr-review-pareto.yml
+@@ -177,7 +177,7 @@ validation_commands:
+   - python3 .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py
+   - python3 .github/dcoir_review/scripts/dcoir_review_finding_family_selftest.py
+   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v16_selftest.py
+-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py
++  - python3 .github/dcoir_review/scripts/dcoir_review_precision_guard_selftest.py
+   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v20_selftest.py
+   - python3 .github/dcoir_review/scripts/dcoir_review_finding_verifier_selftest.py
+   - python3 .github/dcoir_review/scripts/dcoir_review_quality_gate_selftest.py
+diff --git a/.github/dcoir_review/scripts/dcoir_review/entrypoint.py b/.github/dcoir_review/scripts/dcoir_review/entrypoint.py
+index 440968c5c..9731645c3 100644
+--- a/.github/dcoir_review/scripts/dcoir_review/entrypoint.py
++++ b/.github/dcoir_review/scripts/dcoir_review/entrypoint.py
+@@ -30,7 +30,7 @@ class DcoirReviewEntrypoint:
+         'dcoir_review_required_runtime_patch_v16',
+         'dcoir_review_required_runtime_patch_v17',
+         'dcoir_review_required_runtime_patch_v18',
+-        'dcoir_review_required_runtime_patch_v19',
++        'dcoir_review.precision_guard',
+         'dcoir_review_required_runtime_patch_v20',
+         'dcoir_review.finding_verifier',
+         'dcoir_review.quality_gate',
+diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19.py b/.github/dcoir_review/scripts/dcoir_review/precision_guard.py
+similarity index 95%
+rename from .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19.py
+rename to .github/dcoir_review/scripts/dcoir_review/precision_guard.py
+index 489b40dcf..2cd78ef76 100644
+--- a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19.py
++++ b/.github/dcoir_review/scripts/dcoir_review/precision_guard.py
+@@ -1,7 +1,7 @@
+-"""DCOIR Review v19 quality overlay.
++"""Stable DCOIR Review precision guard.
+ 
+-This narrow overlay advances #433 and #434 without granting DCOIR Review any
+-branch-write capability. It:
++This responsibility owner preserves the bounded precision safeguards originally
++introduced by the historical v19 overlay without granting branch-write capability. It:
+ 
+ - records whether each post-synthesis finding received a native GitHub
+   suggestion, fallback guidance, or no repair proposal;
+@@ -23,7 +23,7 @@ from pathlib import Path
+ from typing import Any
+ 
+ 
+-VERSION = "v19"
++ARTIFACT_SCHEMA_VERSION = "v19"
+ OUTCOME_ARTIFACT = "metadata/fix-synthesis-outcomes-v19.json"
+ WEAK_NO_REPAIR_REASON = "fix synthesis says no code change is warranted"
+ 
+@@ -83,7 +83,7 @@ def sentinel_matches_source_language(sentinel: Any) -> bool:
+ 
+ 
+ def _patch_language_scoped_sentinels(owner: Any) -> None:
+-    storage = "_dcoir_required_v19_original_detect_risk_sentinels"
++    storage = "_dcoir_precision_guard_original_detect_risk_sentinels"
+     original = getattr(owner, storage, None)
+     if original is None:
+         original = getattr(owner, "detect_risk_sentinels", None)
+@@ -171,7 +171,7 @@ def _write_outcomes(module: Any, config: Any, findings: list[dict[str, Any]]) ->
+             config,
+             OUTCOME_ARTIFACT,
+             {
+-                "version": VERSION,
++                "version": ARTIFACT_SCHEMA_VERSION,
+                 "finding_count": len(rows),
+                 "native_suggestion_count": sum(row["outcome"] == "native-suggestion" for row in rows),
+                 "fallback_guidance_count": sum(row["outcome"] == "fallback-guidance" for row in rows),
+@@ -183,7 +183,7 @@ def _write_outcomes(module: Any, config: Any, findings: list[dict[str, Any]]) ->
+ 
+ 
+ def _patch_fix_synthesis_collection(module: Any) -> None:
+-    storage = "_dcoir_required_v19_original_synthesize_fixes_for_findings"
++    storage = "_dcoir_precision_guard_original_synthesize_fixes_for_findings"
+     original = getattr(module, storage, None)
+     if original is None:
+         original = getattr(module, "synthesize_fixes_for_findings", None)
+diff --git a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py b/.github/dcoir_review/scripts/dcoir_review_precision_guard_selftest.py
+similarity index 81%
+rename from .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py
+rename to .github/dcoir_review/scripts/dcoir_review_precision_guard_selftest.py
+index 3a4a50565..a0805cfe0 100755
+--- a/.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py
++++ b/.github/dcoir_review/scripts/dcoir_review_precision_guard_selftest.py
+@@ -1,12 +1,12 @@
+ #!/usr/bin/env python3
+-"""Regression self-test for DCOIR Review v19 suggestion/precision overlay."""
++"""Regression self-test for the stable DCOIR Review precision guard."""
+ 
+ from __future__ import annotations
+ 
+ from types import SimpleNamespace
+ from typing import Any
+ 
+-import dcoir_review_required_runtime_patch_v19 as v19
++from dcoir_review import precision_guard
+ import openrouter_pr_review as base
+ 
+ 
+@@ -40,7 +40,7 @@ def _module_returning(enriched: list[dict[str, Any]]) -> tuple[SimpleNamespace,
+         return [dict(item) for item in enriched]
+ 
+     module = SimpleNamespace(hardened=hardened, synthesize_fixes_for_findings=original)
+-    v19.apply_pareto_context_module(module)
++    precision_guard.apply_pareto_context_module(module)
+     return module, hardened, reporter
+ 
+ 
+@@ -68,14 +68,14 @@ def test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text(
+     )
+ 
+     module = SimpleNamespace(detect_risk_sentinels=lambda _diff: [false_python_powershell, real_powershell, generic_python])
+-    v19.apply_pareto_context_module(module)
++    precision_guard.apply_pareto_context_module(module)
+     filtered = module.detect_risk_sentinels("synthetic diff")
+ 
+     assert false_python_powershell not in filtered
+     assert real_powershell in filtered
+     assert generic_python in filtered
+-    assert not v19.sentinel_matches_source_language(false_python_powershell)
+-    assert v19.sentinel_matches_source_language(real_powershell)
++    assert not precision_guard.sentinel_matches_source_language(false_python_powershell)
++    assert precision_guard.sentinel_matches_source_language(real_powershell)
+ 
+ 
+ def test_fix_synthesis_false_positive_contradiction_fails_closed() -> None:
+@@ -104,7 +104,7 @@ def test_fix_synthesis_false_positive_contradiction_fails_closed() -> None:
+     else:
+         raise AssertionError("self-disqualifying fix synthesis must fail closed")
+ 
+-    artifact = hardened.artifacts[v19.OUTCOME_ARTIFACT]
++    artifact = hardened.artifacts[precision_guard.OUTCOME_ARTIFACT]
+     assert artifact["self_disqualified_count"] == 1
+     assert artifact["native_suggestion_count"] == 0
+     assert artifact["findings"][0]["self_disqualification_reason"]
+@@ -127,7 +127,7 @@ def test_live_no_code_modification_wording_fails_closed() -> None:
+             ),
+         },
+     }
+-    assert v19.fix_synthesis_self_disqualification_reason(finding) == v19.WEAK_NO_REPAIR_REASON
++    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == precision_guard.WEAK_NO_REPAIR_REASON
+     module, _hardened, reporter = _module_returning([finding])
+     try:
+         module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
+@@ -149,7 +149,7 @@ def test_weak_no_repair_wording_does_not_override_concrete_repair() -> None:
+             "notes": "No additional code modification is required after applying this exact replacement.",
+         },
+     }
+-    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
++    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == ""
+ 
+ 
+ def test_normal_fix_guidance_is_not_self_disqualifying() -> None:
+@@ -165,11 +165,11 @@ def test_normal_fix_guidance_is_not_self_disqualifying() -> None:
+             "notes": "Cap the requested result count before the query is issued.",
+         },
+     }
+-    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
++    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == ""
+     module, hardened, reporter = _module_returning([finding])
+     result = module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
+     assert result[0]["title"] == finding["title"]
+-    artifact = hardened.artifacts[v19.OUTCOME_ARTIFACT]
++    artifact = hardened.artifacts[precision_guard.OUTCOME_ARTIFACT]
+     assert artifact["fallback_guidance_count"] == 1
+     assert artifact["self_disqualified_count"] == 0
+ 
+@@ -188,7 +188,7 @@ def test_safe_native_suggestion_is_recorded_and_renders_github_suggestion_fence(
+     module, hardened, reporter = _module_returning([finding])
+     result = module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
+     assert result[0]["suggested_replacement"] == "limit = min(limit, 100)"
+-    artifact = hardened.artifacts[v19.OUTCOME_ARTIFACT]
++    artifact = hardened.artifacts[precision_guard.OUTCOME_ARTIFACT]
+     assert artifact["native_suggestion_count"] == 1
+     assert artifact["findings"][0]["outcome"] == "native-suggestion"
+ 
+@@ -207,10 +207,29 @@ def test_detector_text_alone_cannot_self_disqualify_after_synthesis() -> None:
+         "suggested_replacement": "value = sanitize(value)",
+         "fix_guidance": {},
+     }
+-    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
++    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == ""
++
++
++def test_legacy_artifact_contract_is_preserved() -> None:
++    assert precision_guard.OUTCOME_ARTIFACT == "metadata/fix-synthesis-outcomes-v19.json"
++    assert precision_guard.ARTIFACT_SCHEMA_VERSION == "v19"
++
++
++def test_stable_owner_composition() -> None:
++    from dcoir_review.entrypoint import DcoirReviewEntrypoint
++
++    names = DcoirReviewEntrypoint().patch_module_names
++    assert "dcoir_review.precision_guard" in names, names
++    assert "dcoir_review_required_runtime_patch_v19" not in names, names
++    index = names.index("dcoir_review.precision_guard")
++    assert names[index - 1] == "dcoir_review_required_runtime_patch_v18", names[max(0, index - 2):index + 4]
++    assert names[index + 1] == "dcoir_review_required_runtime_patch_v20", names[max(0, index - 2):index + 4]
++
+ 
+ 
+ def main() -> None:
++    test_legacy_artifact_contract_is_preserved()
++    test_stable_owner_composition()
+     test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text()
+     test_fix_synthesis_false_positive_contradiction_fails_closed()
+     test_live_no_code_modification_wording_fails_closed()
+@@ -218,7 +237,7 @@ def main() -> None:
+     test_normal_fix_guidance_is_not_self_disqualifying()
+     test_safe_native_suggestion_is_recorded_and_renders_github_suggestion_fence()
+     test_detector_text_alone_cannot_self_disqualify_after_synthesis()
+-    print("dcoir_review_required_runtime_patch_v19_selftest passed")
++    print("dcoir_review_precision_guard_selftest passed")
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/.github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py b/.github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
+index 3a64a3ee4..7c08348a0 100644
+--- a/.github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
++++ b/.github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
+@@ -41,6 +41,7 @@ DIRECT_IMPORT_MODULES = (
+     "finding_verifier.py",
+     "module_loader.py",
+     "normalized_finding_selection.py",
++    "precision_guard.py",
+     "quality_gate.py",
+     "repair.py",
+     "repair_pipeline.py",
