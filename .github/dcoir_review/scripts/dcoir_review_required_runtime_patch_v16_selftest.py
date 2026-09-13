@@ -87,6 +87,13 @@ def test_python_dynamic_exec_classifier_only_matches_execution_builtins() -> Non
         assert v16._line_kind(path, line) == v16.PYTHON_DYNAMIC_EXEC, line
 
 
+def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
+    from dcoir_review import finding_family
+
+    v16._patch_core_semantics()
+    assert finding_family.FAMILY_ORDER == ("yaml", "python", "powershell", "other", "typescript")
+
+
 def main() -> None:
     workflow = ".github/workflows/dcoir-review-v16-probe.yml"
     py = ".github/chatgpt_staging/dcoir_review_probe/v16_probe.py"
@@ -144,6 +151,7 @@ def main() -> None:
     test_python_path_write_sentinel_skips_test_files()
     test_python_path_write_sentinel_keeps_non_test_files()
     test_python_dynamic_exec_classifier_only_matches_execution_builtins()
+    test_core_semantics_keeps_stable_finding_family_dependency()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
 
