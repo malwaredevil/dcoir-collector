@@ -1,0 +1,1 @@
+Recovery note: source commit 40837ede8065a4c3d9b2a1828cc14f9017fb6c9d accidentally replaced .github/dcoir_review/ARCHITECTURE.md with PLACEHOLDER during documentation refresh. Recovery uses the exact pre-error blob 3d7eb3a57a05c8dd89227b385e0edff60a31b998 from validated source head 9b7d3d35bfac3b99d7ed09a5be640deb398dcbf4. No other source path is intended to change.
