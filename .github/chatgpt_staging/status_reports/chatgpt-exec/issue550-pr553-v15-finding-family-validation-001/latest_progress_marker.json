@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "34752978482",
+  "github_sha": "8382cb7a08b99064b0e45851f849c6f03b9152a0",
+  "phase": "request-resolved",
+  "request_id": "issue550-pr553-v15-finding-family-validation-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v15-finding-family-validation-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-13T10:52:47Z",
+  "workflow": "chatgpt-exec"
+}
