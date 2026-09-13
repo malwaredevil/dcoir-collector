@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue550-pr553-v58-provider-transport-retry-validation-001",
+  "exit_code": "1",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "34765934204",
   "github_sha": "ba0089837045513ae1452f849dd4466806ccd081",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue550-pr553-v58-provider-transport-retry-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v58-provider-transport-retry-validation-001.json",
-  "result": "running",
+  "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-13T15:33:17Z",
+  "updated_utc": "2026-09-13T15:33:54Z",
   "workflow": "chatgpt-exec"
 }
