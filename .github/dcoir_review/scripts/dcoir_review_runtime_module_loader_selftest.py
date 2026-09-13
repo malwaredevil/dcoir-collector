@@ -43,6 +43,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_reliability.py",
     "repair_render.py",
     "repair_support.py",
+    "sentinel_selection.py",
     "status.py",
     "pareto_context/credit_aware_concurrency.py",
     "selftests/provider_transport/fixtures.py",

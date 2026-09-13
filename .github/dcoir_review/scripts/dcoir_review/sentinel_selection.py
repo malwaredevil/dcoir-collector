@@ -1,4 +1,4 @@
-"""DCOIR Review v26 immutable ordinary-finding anchor overlay.
+"""Stable ordinary-finding / deterministic-sentinel selection ownership.
 
 The normalized model finding has already passed confidence/actionability checks
 and is anchored to an added changed line. Required-sentinel selection may add or
@@ -6,7 +6,7 @@ prioritize deterministic findings for real risk sentinels, but it must never
 relocate or semantically rewrite an ordinary normalized model finding merely
 because legacy classifiers infer a sentinel kind from its prose.
 
-v26 therefore preserves normalized model findings verbatim and merges only
+This owner preserves normalized model findings verbatim and merges only
 selection outputs that provably correspond to a risk sentinel actually detected
 in the changed diff. With no real risk sentinels, selection is a no-op.
 """
@@ -17,8 +17,6 @@ from typing import Any
 
 import dcoir_review_required_runtime_patch_v16 as v16
 
-
-VERSION = "v26"
 
 
 def _line(value: Any) -> int:

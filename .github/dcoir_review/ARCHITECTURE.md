@@ -90,7 +90,18 @@ The next bounded retirement moves repair operational reliability out of historic
 - the production entrypoint no longer applies v28, the historical v28 runtime file is deleted, and `dcoir_review_repair_reliability_selftest.py` replaces the historical v28 self-test path;
 - the runtime module-loader registry classifies the new owners as direct-import modules, preserving fail-closed orphan detection and the connector-safe source-size rule.
 
-This v28 retirement is source-staged but not yet exact-head validated. Local Prog/Adva coverage passes the stable reliability, repair-pipeline, routing, v30, v33, v36, v38, v53, v56, module-loader, base, hardened, Pareto, precision, and semantic-recall contracts. Architecture inventory reports 84 modules, 56 production patch applications, maximum v58, zero missing modules, and no v28 production entry. Governed exact-head execution is still required before this retirement is credited as validated.
+This v28 retirement is exact-head validated. ChatGPT Exec run `34714762351` passed at source head `1be96623305fdaca08ddb7f686f480ca8525c97b`; its artifact records 56 production components, maximum numbered version 58, `retired=v25,v27,v28,v29`, stable repair pipeline/reliability/render ownership, and the explicit terminal marker `ISSUE550_PR553_V28_RETIREMENT_VALIDATION_002_PASS`. Current-head CodeQL run `34714292707` and Dependency Review run `34714292700` also passed, and all 21 GHAS review threads are resolved and outdated.
+
+The next bounded retirement moves immutable ordinary-finding / deterministic-sentinel selection out of historical v26:
+
+- `dcoir_review/sentinel_selection.py` owns the v26 invariant that normalized ordinary model findings remain unchanged unless selection output has provenance matching a real changed-code risk sentinel;
+- production composition loads `dcoir_review.sentinel_selection` at the former v26 position, preserving ordering while removing the numbered production overlay;
+- the stable owner intentionally retains the existing v16 sentinel-key helper dependency for this bounded slice rather than widening the change into the much larger historical sentinel-classification migration; that backreference remains explicit debt for a later responsibility-based retirement;
+- `dcoir_review_sentinel_selection_selftest.py` replaces the historical v26 self-test and extends the contract with a characterized real-sentinel case proving deterministic priority does not rewrite an ordinary model finding at the same site;
+- the runtime module-loader registry classifies the stable owner as a direct-import module, and the governed validation-command registry names the stable contract test directly;
+- the historical v26 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This v26 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback are required after publication before the slice can be credited as validated.
 
 ## Migration invariants
 
