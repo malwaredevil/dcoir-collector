@@ -159,7 +159,17 @@ The next bounded retirement moves candidate-finding evidence verification out of
 - runtime module ownership and the governed validation-command registry reference the stable module/test directly;
 - the historical v21 runtime and version-specific self-test files are removed; Git history remains the archive.
 
-This v21 finding-verifier retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
+This v21 finding-verifier retirement is exact-head validated. ChatGPT Exec run `34757094524` passed at source head `f42b9d43ea637cc88a5f13329f655b7352b85d84` with terminal marker `ISSUE550_PR553_V21_FINDING_VERIFIER_VALIDATION_001_PASS`; its artifact confirms 56 production components, maximum numbered version 58, and `retired=v15,v21,v22,v23,v24,v25,v26,v27,v28,v29`. Current-head CodeQL run `34756805023` passed Actions, Python, and aggregate reporting on the same source head.
+
+The next bounded retirement moves precision guarding out of historical v19:
+
+- `dcoir_review/precision_guard.py` owns language-scoped sentinel suppression, fail-closed fix-synthesis contradiction detection, and bounded repair-outcome telemetry as one precision responsibility;
+- the externally meaningful `metadata/fix-synthesis-outcomes-v19.json` path and `v19` artifact schema marker are intentionally preserved as compatibility data contracts, while private stored-original names move to stable precision-guard ownership;
+- `dcoir_review_precision_guard_selftest.py` replaces the version-specific v19 self-test and asserts both behavior and exact stable composition between v18 and v20;
+- runtime composition, direct-import ownership, and the governed validation-command registry reference the stable owner/test directly;
+- the historical v19 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This v19 precision-guard retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
 
 ## Migration invariants
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Regression self-test for DCOIR Review v19 suggestion/precision overlay."""
+"""Regression self-test for the stable DCOIR Review precision guard."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v19 as v19
+from dcoir_review import precision_guard
 import openrouter_pr_review as base
 
 
@@ -40,7 +40,7 @@ def _module_returning(enriched: list[dict[str, Any]]) -> tuple[SimpleNamespace, 
         return [dict(item) for item in enriched]
 
     module = SimpleNamespace(hardened=hardened, synthesize_fixes_for_findings=original)
-    v19.apply_pareto_context_module(module)
+    precision_guard.apply_pareto_context_module(module)
     return module, hardened, reporter
 
 
@@ -68,14 +68,14 @@ def test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text(
     )
 
     module = SimpleNamespace(detect_risk_sentinels=lambda _diff: [false_python_powershell, real_powershell, generic_python])
-    v19.apply_pareto_context_module(module)
+    precision_guard.apply_pareto_context_module(module)
     filtered = module.detect_risk_sentinels("synthetic diff")
 
     assert false_python_powershell not in filtered
     assert real_powershell in filtered
     assert generic_python in filtered
-    assert not v19.sentinel_matches_source_language(false_python_powershell)
-    assert v19.sentinel_matches_source_language(real_powershell)
+    assert not precision_guard.sentinel_matches_source_language(false_python_powershell)
+    assert precision_guard.sentinel_matches_source_language(real_powershell)
 
 
 def test_fix_synthesis_false_positive_contradiction_fails_closed() -> None:
@@ -104,7 +104,7 @@ def test_fix_synthesis_false_positive_contradiction_fails_closed() -> None:
     else:
         raise AssertionError("self-disqualifying fix synthesis must fail closed")
 
-    artifact = hardened.artifacts[v19.OUTCOME_ARTIFACT]
+    artifact = hardened.artifacts[precision_guard.OUTCOME_ARTIFACT]
     assert artifact["self_disqualified_count"] == 1
     assert artifact["native_suggestion_count"] == 0
     assert artifact["findings"][0]["self_disqualification_reason"]
@@ -127,7 +127,7 @@ def test_live_no_code_modification_wording_fails_closed() -> None:
             ),
         },
     }
-    assert v19.fix_synthesis_self_disqualification_reason(finding) == v19.WEAK_NO_REPAIR_REASON
+    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == precision_guard.WEAK_NO_REPAIR_REASON
     module, _hardened, reporter = _module_returning([finding])
     try:
         module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
@@ -149,7 +149,7 @@ def test_weak_no_repair_wording_does_not_override_concrete_repair() -> None:
             "notes": "No additional code modification is required after applying this exact replacement.",
         },
     }
-    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
+    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == ""
 
 
 def test_normal_fix_guidance_is_not_self_disqualifying() -> None:
@@ -165,11 +165,11 @@ def test_normal_fix_guidance_is_not_self_disqualifying() -> None:
             "notes": "Cap the requested result count before the query is issued.",
         },
     }
-    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
+    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == ""
     module, hardened, reporter = _module_returning([finding])
     result = module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
     assert result[0]["title"] == finding["title"]
-    artifact = hardened.artifacts[v19.OUTCOME_ARTIFACT]
+    artifact = hardened.artifacts[precision_guard.OUTCOME_ARTIFACT]
     assert artifact["fallback_guidance_count"] == 1
     assert artifact["self_disqualified_count"] == 0
 
@@ -188,7 +188,7 @@ def test_safe_native_suggestion_is_recorded_and_renders_github_suggestion_fence(
     module, hardened, reporter = _module_returning([finding])
     result = module.synthesize_fixes_for_findings([finding], object(), {"head": {"sha": "abc"}}, {}, SimpleNamespace(), reporter)
     assert result[0]["suggested_replacement"] == "limit = min(limit, 100)"
-    artifact = hardened.artifacts[v19.OUTCOME_ARTIFACT]
+    artifact = hardened.artifacts[precision_guard.OUTCOME_ARTIFACT]
     assert artifact["native_suggestion_count"] == 1
     assert artifact["findings"][0]["outcome"] == "native-suggestion"
 
@@ -207,10 +207,29 @@ def test_detector_text_alone_cannot_self_disqualify_after_synthesis() -> None:
         "suggested_replacement": "value = sanitize(value)",
         "fix_guidance": {},
     }
-    assert v19.fix_synthesis_self_disqualification_reason(finding) == ""
+    assert precision_guard.fix_synthesis_self_disqualification_reason(finding) == ""
+
+
+def test_legacy_artifact_contract_is_preserved() -> None:
+    assert precision_guard.OUTCOME_ARTIFACT == "metadata/fix-synthesis-outcomes-v19.json"
+    assert precision_guard.ARTIFACT_SCHEMA_VERSION == "v19"
+
+
+def test_stable_owner_composition() -> None:
+    from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review.precision_guard" in names, names
+    assert "dcoir_review_required_runtime_patch_v19" not in names, names
+    index = names.index("dcoir_review.precision_guard")
+    assert names[index - 1] == "dcoir_review_required_runtime_patch_v18", names[max(0, index - 2):index + 4]
+    assert names[index + 1] == "dcoir_review_required_runtime_patch_v20", names[max(0, index - 2):index + 4]
+
 
 
 def main() -> None:
+    test_legacy_artifact_contract_is_preserved()
+    test_stable_owner_composition()
     test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text()
     test_fix_synthesis_false_positive_contradiction_fails_closed()
     test_live_no_code_modification_wording_fails_closed()
@@ -218,7 +237,7 @@ def main() -> None:
     test_normal_fix_guidance_is_not_self_disqualifying()
     test_safe_native_suggestion_is_recorded_and_renders_github_suggestion_fence()
     test_detector_text_alone_cannot_self_disqualify_after_synthesis()
-    print("dcoir_review_required_runtime_patch_v19_selftest passed")
+    print("dcoir_review_precision_guard_selftest passed")
 
 
 if __name__ == "__main__":

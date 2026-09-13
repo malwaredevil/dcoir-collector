@@ -1,7 +1,7 @@
-"""DCOIR Review v19 quality overlay.
+"""Stable DCOIR Review precision guard.
 
-This narrow overlay advances #433 and #434 without granting DCOIR Review any
-branch-write capability. It:
+This responsibility owner preserves the bounded precision safeguards originally
+introduced by the historical v19 overlay without granting branch-write capability. It:
 
 - records whether each post-synthesis finding received a native GitHub
   suggestion, fallback guidance, or no repair proposal;
@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 
-VERSION = "v19"
+ARTIFACT_SCHEMA_VERSION = "v19"
 OUTCOME_ARTIFACT = "metadata/fix-synthesis-outcomes-v19.json"
 WEAK_NO_REPAIR_REASON = "fix synthesis says no code change is warranted"
 
@@ -83,7 +83,7 @@ def sentinel_matches_source_language(sentinel: Any) -> bool:
 
 
 def _patch_language_scoped_sentinels(owner: Any) -> None:
-    storage = "_dcoir_required_v19_original_detect_risk_sentinels"
+    storage = "_dcoir_precision_guard_original_detect_risk_sentinels"
     original = getattr(owner, storage, None)
     if original is None:
         original = getattr(owner, "detect_risk_sentinels", None)
@@ -171,7 +171,7 @@ def _write_outcomes(module: Any, config: Any, findings: list[dict[str, Any]]) ->
             config,
             OUTCOME_ARTIFACT,
             {
-                "version": VERSION,
+                "version": ARTIFACT_SCHEMA_VERSION,
                 "finding_count": len(rows),
                 "native_suggestion_count": sum(row["outcome"] == "native-suggestion" for row in rows),
                 "fallback_guidance_count": sum(row["outcome"] == "fallback-guidance" for row in rows),
@@ -183,7 +183,7 @@ def _write_outcomes(module: Any, config: Any, findings: list[dict[str, Any]]) ->
 
 
 def _patch_fix_synthesis_collection(module: Any) -> None:
-    storage = "_dcoir_required_v19_original_synthesize_fixes_for_findings"
+    storage = "_dcoir_precision_guard_original_synthesize_fixes_for_findings"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "synthesize_fixes_for_findings", None)
