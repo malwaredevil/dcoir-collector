@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34757094524",
   "github_sha": "c78f2cfe3197f085bbb565c0e0aa64cd81fb7fc5",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-v21-finding-verifier-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v21-finding-verifier-validation-001.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-13T12:27:19Z",
+  "updated_utc": "2026-09-13T12:27:22Z",
   "workflow": "chatgpt-exec"
 }
