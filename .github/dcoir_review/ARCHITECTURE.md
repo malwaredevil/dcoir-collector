@@ -118,7 +118,7 @@ The next bounded retirement moves normalized-finding selection compatibility out
 
 - `dcoir_review/normalized_finding_selection.py` owns the v23 contract that sentinel/required coverage retains priority while otherwise-eligible normalized model findings dropped by legacy required-coverage selection are restored only into spare inline capacity;
 - occupied sentinel sites and exact selected identities remain protected from duplicate restoration, and v21 remains the downstream publication gate for restored ordinary candidates;
-- production composition loads the stable owner at the former v23 position, after v22 and immediately before `dcoir_review.verified_finding_render`;
+- production composition loads the stable owner at the former v23 position, after `dcoir_review.quality_gate` and immediately before `dcoir_review.verified_finding_render`;
 - `dcoir_review_normalized_finding_selection_selftest.py` replaces the historical v23 self-test and mechanically asserts stable composition plus ordinary-candidate survival and one-comment sentinel priority;
 - the runtime module-loader registry and governed validation-command registry reference the stable owner/test directly;
 - the historical v23 runtime and version-specific self-test files are removed; Git history remains the archive.
@@ -135,7 +135,19 @@ The next bounded retirement moves finding-family compatibility out of historical
 - runtime module ownership and the governed validation-command registry reference the stable module/test directly;
 - the historical v15 wrapper, segmented implementation, and version-specific self-test are removed; Git history remains the archive.
 
-This v15 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback remain required after publication before the slice can be credited as governed validated.
+This v15 retirement is exact-head validated. ChatGPT Exec run `34752978482` passed at source head `0e6106705b7231e785e3934adc2097b3bfaff61d` with terminal marker `ISSUE550_PR553_V15_FINDING_FAMILY_VALIDATION_001_PASS`; its artifact confirms 56 production components, maximum numbered version 58, and `retired=v15,v23,v24,v25,v26,v27,v28,v29`. The same exact head includes the v16 split-module dependency regression that caught and repaired the intervening GHAS unused-import Autofix break. Current-head CodeQL run `34750501850` passed Actions, Python, and aggregate reporting.
+
+The next bounded retirement moves summary-only semantic recovery out of historical v22:
+
+- `dcoir_review/quality_gate.py` owns the stable quality-gate contract that recognizes actionable semantic problem language when structured findings are empty while suppressing explicit negations, zero-count findings, and neutral schema-only references;
+- the stable owner also preserves the bounded whole-PR quality-retry path at the former v22 composition point, immediately before `dcoir_review.normalized_finding_selection`;
+- the stable quality gate explicitly tags its retry configuration as `broad-quality-retry`, removing the historical filename-inspection dependency from telemetry classification;
+- private compatibility storage and debug artifact paths now use stable quality-gate/semantic-retry names rather than version chronology;
+- `dcoir_review_quality_gate_selftest.py` replaces the version-specific v22 self-test and asserts both semantic positive/negative precision and exact stable-owner composition;
+- runtime module ownership and the governed validation-command registry reference the stable module/test directly;
+- the historical v22 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This v22 quality-gate retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
 
 ## Migration invariants
 

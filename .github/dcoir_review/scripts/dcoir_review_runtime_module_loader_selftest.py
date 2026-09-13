@@ -40,6 +40,7 @@ DIRECT_IMPORT_MODULES = (
     "finding_family.py",
     "module_loader.py",
     "normalized_finding_selection.py",
+    "quality_gate.py",
     "repair.py",
     "repair_pipeline.py",
     "repair_reliability.py",

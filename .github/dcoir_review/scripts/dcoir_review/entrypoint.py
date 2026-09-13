@@ -33,7 +33,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v19',
         'dcoir_review_required_runtime_patch_v20',
         'dcoir_review_required_runtime_patch_v21',
-        'dcoir_review_required_runtime_patch_v22',
+        'dcoir_review.quality_gate',
         'dcoir_review.normalized_finding_selection',
         'dcoir_review.verified_finding_render',
         'dcoir_review.repair_pipeline',

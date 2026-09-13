@@ -1,25 +1,25 @@
-"""DCOIR Review v22 summary-only semantic-problem recovery overlay.
+"""Stable semantic quality-gate recovery for DCOIR Review.
 
 The detector can sometimes describe a real problem in the review summary while
 returning an empty structured findings array. The existing recovery classifier
 already recognizes issue/problem/error language, but it did not recognize
 bug/defect/vulnerability wording or typed finding phrases such as
-"correctness finding". This overlay adds that vocabulary without treating
+"correctness finding". This owner adds that vocabulary without treating
 explicitly negated or zero-count statements as actionable problems.
 
-Several historical compatibility layers can replace lower-level quality
-helpers. v22 therefore also wraps the production hybrid first-pass boundary:
+During staged migration, historical compatibility layers can replace lower-level quality
+helpers. This owner therefore also wraps the production hybrid first-pass boundary:
 a semantic summary-only result that has not already retried receives the same
 bounded whole-PR quality-retry flow before normalization/publication.
 """
 
 from __future__ import annotations
 
+import copy
 import re
 from typing import Any
 
 
-VERSION = "v22"
 TYPED_FINDING = r"(?:(?:correctness|logic|semantic|security|functional|behavioral)\s+findings?)"
 PROBLEM_NOUN = rf"(?:bugs?|defects?|vulnerabilit(?:y|ies)|{TYPED_FINDING})"
 DISCOVERY_VERB = r"(?:found|identified|detected|observed)"
@@ -66,7 +66,7 @@ def _scrub_explicit_semantic_negations(summary: str) -> str:
     signal simply because the word ``finding`` remains. It can likewise treat
     neutral metadata prose such as ``mentions a finding schema`` as substantive
     review output. Scrubbing only those bounded phrases before delegating keeps
-    the older issue/problem/error vocabulary while honoring v22's precision
+    the older issue/problem/error vocabulary while honoring the stable quality-gate precision
     contract.
     """
 
@@ -139,7 +139,7 @@ def semantic_recovery_reason(result: Any, config: Any) -> str:
 
 
 def _patch_hardened_helpers(hardened: Any) -> None:
-    summary_storage = "_dcoir_required_v22_original_summary_suggests_problem"
+    summary_storage = "_dcoir_quality_gate_original_summary_suggests_problem"
     original_summary = getattr(hardened, summary_storage, None)
     if original_summary is None:
         original_summary = getattr(hardened, "summary_suggests_problem", None)
@@ -153,7 +153,7 @@ def _patch_hardened_helpers(hardened: Any) -> None:
 
         hardened.summary_suggests_problem = summary_suggests_problem
 
-    retry_storage = "_dcoir_required_v22_original_review_quality_retry_reason"
+    retry_storage = "_dcoir_quality_gate_original_review_quality_retry_reason"
     original_retry = getattr(hardened, retry_storage, None)
     if original_retry is None:
         original_retry = getattr(hardened, "review_quality_retry_reason", None)
@@ -177,7 +177,7 @@ def _patch_hardened_helpers(hardened: Any) -> None:
 
 
 def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
-    storage = "_dcoir_required_v22_original_hybrid_first_pass"
+    storage = "_dcoir_quality_gate_original_hybrid_first_pass"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
@@ -217,7 +217,7 @@ def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
         summary = str(result.get("summary", "") or "") if isinstance(result, dict) else ""
         semantic_signal = _explicit_semantic_problem_discovery(summary)
         diagnostic = (
-            f"v22 active; structured_findings={len(_structured_findings(result))}; "
+            f"quality_gate active; structured_findings={len(_structured_findings(result))}; "
             f"semantic_signal={str(semantic_signal).lower()}; "
             f"retry_attempted={str(bool(isinstance(result, dict) and result.get('_quality_retry_attempted'))).lower()}; "
             f"anchors={_structured_finding_digest(result)}"
@@ -248,16 +248,18 @@ def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
             config,
             retry_reason,
         )
-        hardened.write_debug_text_artifact_safely(config, "prompts/02-v22-semantic-quality-retry-prompt.txt", retry_prompt)
+        hardened.write_debug_text_artifact_safely(config, "prompts/02-semantic-quality-retry-prompt.txt", retry_prompt)
+        retry_config = copy.copy(config)
+        setattr(retry_config, "_dcoir_v54_stage_label", "broad-quality-retry")
         retry_result, retry_model_used, retry_service_tier = hardened.openrouter_review(
             retry_prompt,
             schema,
-            config,
+            retry_config,
             reporter,
         )
         hardened.write_debug_json_artifact_safely(
             config,
-            "responses/02-v22-semantic-quality-retry-result.json",
+            "responses/02-semantic-quality-retry-result.json",
             {"model_used": retry_model_used, "service_tier": retry_service_tier, "result": retry_result},
         )
         merged_result = hardened.merge_quality_retry_results(
@@ -269,7 +271,7 @@ def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
         )
         hardened.write_debug_json_artifact_safely(
             config,
-            "responses/03-v22-semantic-quality-retry-merged-result.json",
+            "responses/03-semantic-quality-retry-merged-result.json",
             {
                 "model_used": retry_model_used,
                 "service_tier": retry_service_tier,
