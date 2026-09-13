@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Production-stack regression for DCOIR Review v24 rendering semantics."""
+"""Regression checks for stable verifier-aware ordinary-finding rendering."""
 
 from __future__ import annotations
 
@@ -85,11 +85,53 @@ def test_deterministic_sentinel_still_uses_canonical_renderer(review) -> None:
     assert "model wording should not replace deterministic sentinel template" not in rendered
 
 
+
+
+def test_unverified_ordinary_falls_through_to_prior_renderer(review) -> None:
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    finding = {
+        "title": "Unverified ordinary probe",
+        "severity": "medium",
+        "confidence": 0.99,
+        "path": PROBE_PATH,
+        "line": 11,
+        "body": "ordinary semantic text without verifier support",
+        "suggested_replacement": "",
+        "validation": "python3 -m py_compile .github/dcoir_review/evaluation/live_verifier_probe.py",
+    }
+    prior = getattr(review.base, "_dcoir_verified_finding_render_original_build_inline_comment", None)
+    assert callable(prior), "stable renderer did not preserve its prior renderer"
+    rendered = review.base.build_inline_comment(finding, "test-model", config)
+    expected = prior(finding, "test-model", config)
+    assert rendered == expected, (rendered, expected)
+
+
+def test_stable_owner_composition() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    names = (
+        *entrypoint.patch_module_names,
+        *entrypoint.terminal_patch_module_names,
+        *entrypoint.post_terminal_patch_module_names,
+        *entrypoint.candidate_integrity_patch_module_names,
+        *entrypoint.stage_local_patch_module_names,
+        *entrypoint.execution_policy_patch_module_names,
+        *entrypoint.telemetry_patch_module_names,
+        *entrypoint.post_telemetry_patch_module_names,
+    )
+    assert 'dcoir_review.verified_finding_render' in names, names
+    assert 'dcoir_review_required_runtime_patch_v24' not in names, names
+    idx = names.index('dcoir_review.verified_finding_render')
+    assert names[idx - 1] == 'dcoir_review_required_runtime_patch_v23', names[max(0, idx-2):idx+3]
+    assert names[idx + 1] == 'dcoir_review.repair_pipeline', names[max(0, idx-2):idx+3]
+
+
 def main() -> None:
+    test_stable_owner_composition()
     review = patched_review()
     test_model_judge_finding_preserves_verified_semantics(review)
     test_deterministic_sentinel_still_uses_canonical_renderer(review)
-    print("dcoir_review_required_runtime_patch_v24_selftest passed")
+    test_unverified_ordinary_falls_through_to_prior_renderer(review)
+    print("dcoir_review_verified_finding_render_selftest passed")
 
 
 if __name__ == "__main__":

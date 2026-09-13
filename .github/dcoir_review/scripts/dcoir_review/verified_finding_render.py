@@ -1,11 +1,11 @@
-"""DCOIR Review v24 verifier-aware ordinary-finding renderer.
+"""Stable verifier-aware ordinary-finding rendering ownership.
 
 Legacy required-coverage renderers intentionally canonicalize sentinel-backed
 findings to deterministic security templates. That is correct for deterministic
 sentinels, but it can corrupt an independently verified ordinary semantic
 finding by inferring a sentinel kind from rendered prose.
 
-v24 keeps the existing renderer for deterministic/sentinel findings. For a v21
+This owner keeps the existing renderer for deterministic/sentinel findings. For a v21
 ``model-judge`` finding with no explicit sentinel provenance, it renders the
 verified detector title/body plus independently synthesized repair guidance
 through the same GitHub-safe base helpers. Native suggestions still require the
@@ -19,8 +19,6 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v20 as v20
 import dcoir_review_required_runtime_patch_v21 as v21
 
-
-VERSION = "v24"
 
 
 def _is_verified_ordinary_finding(finding: Any) -> bool:
@@ -87,7 +85,7 @@ def apply_pareto_context_module(module: Any) -> None:
     base = getattr(module, "base", None)
     if base is None:
         return
-    storage = "_dcoir_required_v24_original_build_inline_comment"
+    storage = "_dcoir_verified_finding_render_original_build_inline_comment"
     original = getattr(base, storage, None)
     if original is None:
         original = getattr(base, "build_inline_comment", None)

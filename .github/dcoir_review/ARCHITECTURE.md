@@ -101,7 +101,18 @@ The next bounded retirement moves immutable ordinary-finding / deterministic-sen
 - the runtime module-loader registry classifies the stable owner as a direct-import module, and the governed validation-command registry names the stable contract test directly;
 - the historical v26 runtime and version-specific self-test files are removed; Git history remains the archive.
 
-This v26 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback are required after publication before the slice can be credited as validated.
+This v26 retirement is exact-head validated. ChatGPT Exec run `34744968256` passed at source head `bcabb8d69f9c2a52399c533fce812fdaf3030f8d`; its artifact records 56 production components, maximum numbered version 58, `retired=v25,v26,v27,v28,v29`, stable `dcoir_review.sentinel_selection` ownership, and terminal marker `ISSUE550_PR553_V26_SENTINEL_SELECTION_VALIDATION_001_PASS`. Current-head CodeQL run `34744704692` and Dependency Review run `34744704821` also passed, and all 21 observed GHAS review threads remain resolved and outdated.
+
+The next bounded retirement moves verifier-aware ordinary-finding rendering out of historical v24:
+
+- `dcoir_review/verified_finding_render.py` owns the v24 contract that independently verified ordinary semantic findings retain their verified title/body and repair guidance instead of being rewritten through deterministic sentinel templates;
+- deterministic/sentinel-backed findings continue through the pre-existing canonical renderer unchanged;
+- production composition loads the stable owner at the former v24 position, after v23 selection compatibility and before the canonical repair pipeline, preserving runtime ordering without a numbered v24 owner;
+- `dcoir_review_verified_finding_render_selftest.py` replaces the historical v24 self-test and mechanically asserts the stable owner position plus the verified-ordinary/deterministic-sentinel rendering split;
+- the runtime module-loader registry classifies the stable owner as a direct-import module and the governed validation-command registry names the stable contract test directly;
+- the historical v24 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This v24 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback remain required after publication before the slice can be credited as governed validated.
 
 ## Migration invariants
 
