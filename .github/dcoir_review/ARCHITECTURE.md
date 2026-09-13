@@ -190,10 +190,23 @@ This slice must not be credited as governed validated until publication readback
 The next bounded retirement moves interrupted provider response-read recovery out of historical v58:
 
 - `dcoir_review/provider_transport_retry.py` owns transient transport-failure classification, interrupted HTTP error-body replay, bounded reuse of the existing retry/fallback loop, and transport-failure telemetry projection;
-- production composition loads `dcoir_review.provider_transport_retry` immediately after v54 telemetry and before the remaining v55-v57 post-telemetry overlays;
+- production composition loads `dcoir_review.provider_transport_retry` immediately after v54 telemetry and before stable semantic-adjudication recovery plus the remaining v56-v57 post-telemetry overlays;
 - `dcoir_review_provider_transport_retry_selftest.py` remains the stable behavioral contract and imports the stable owner directly;
 - the runtime module-loader guard keeps 58 as the historical ceiling, rejects v59+, and also rejects reintroduction of retired v58 production ownership while allowing the highest remaining numbered overlay to fall below 58;
 - the historical v58 production module is removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
+
+### Semantic-adjudication recovery retirement
+
+The next bounded retirement moves the #524 valid-JSON/schema-shape recovery out of historical v55:
+
+- `dcoir_review/semantic_adjudication_recovery.py` owns the narrow adjudicator-shape fallback and v51-aware exact semantic deduplication used before adjudication;
+- canonical and complete flat-finding results remain on the existing v35/v37 path, while only the proven unsupported valid-object shape may retain already-structured upstream hypotheses for independent verification;
+- recovery stays bounded to the active production ranker and verifier capacity, performs no extra model call, and preserves the stable `_semantic_adjudication_shape_recovery` result marker consumed by downstream disposition logic;
+- production composition loads `dcoir_review.semantic_adjudication_recovery` after provider transport retry and before the remaining v56-v57 post-telemetry overlays;
+- `dcoir_review_semantic_adjudication_recovery_selftest.py` owns the stable behavioral contract, including fail-closed malformed-shape coverage and semantic-identity preservation;
+- the historical `v55` marker value is retained only as compatibility/provenance data inside the recovery marker; the historical v55 production module and version-specific self-test are removed.
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
@@ -216,7 +229,7 @@ The migration must preserve externally observable behavior before historical lay
 
 ## Patch-chain freeze
 
-v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
+v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58 or v55 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
 
 ## Retirement rules
 

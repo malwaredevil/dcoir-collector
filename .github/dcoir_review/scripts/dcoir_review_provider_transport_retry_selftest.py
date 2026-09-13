@@ -22,7 +22,7 @@ def main() -> None:
     post_telemetry = entrypoint.post_telemetry_patch_module_names
     assert "dcoir_review.provider_transport_retry" in post_telemetry
     assert post_telemetry[-3:] == (
-        "dcoir_review_required_runtime_patch_v55",
+        "dcoir_review.semantic_adjudication_recovery",
         "dcoir_review_required_runtime_patch_v56",
         "dcoir_review_required_runtime_patch_v57",
     )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic regression checks for DCOIR Review v55 shape recovery."""
+"""Deterministic regression checks for stable semantic-adjudication recovery."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import dcoir_review_required_runtime_patch_v37 as v37
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v51 as v51
-import dcoir_review_required_runtime_patch_v55 as v55
+from dcoir_review import semantic_adjudication_recovery as recovery
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -40,7 +40,7 @@ class Hardened:
 
     def openrouter_review(self, _prompt, _schema, config, _reporter=None):
         self.calls += 1
-        self.stage_labels.append(str(getattr(config, v55._V54_STAGE_LABEL_ATTR, "") or ""))
+        self.stage_labels.append(str(getattr(config, recovery._V54_STAGE_LABEL_ATTR, "") or ""))
         return self.raw, "adjudicator-model", "default"
 
     @staticmethod
@@ -74,7 +74,7 @@ def finding(
         "line": line,
         "body": f"Concrete defect {title} is demonstrated by the changed predicate.",
         "suggested_replacement": "",
-        "validation": "Run the deterministic v55 shape-recovery regression.",
+        "validation": "Run the deterministic semantic-adjudication recovery regression.",
         "_dcoir_v51_candidate_id": f"candidate-{line}",
         "_dcoir_v51_semantic_candidate_key": [
             "probe.py",
@@ -123,7 +123,7 @@ def module_for(raw: Any):
 def run(raw: Any, hypotheses: list[dict[str, Any]]):
     module, hardened, rank_calls = module_for(raw)
     reporter = Reporter()
-    result = v55.run_adjudicator(
+    result = recovery.run_adjudicator(
         module,
         {"type": "object"},
         config(),
@@ -139,7 +139,7 @@ def expect_runtime_error(raw: Any, hypotheses: list[dict[str, Any]], text: str) 
     module, hardened, _rank_calls = module_for(raw)
     reporter = Reporter()
     try:
-        v55.run_adjudicator(
+        recovery.run_adjudicator(
             module,
             {"type": "object"},
             config(),
@@ -175,21 +175,21 @@ def main() -> None:
     post_telemetry = entrypoint.post_telemetry_patch_module_names
     assert post_telemetry[0] == "dcoir_review.provider_transport_retry"
     assert post_telemetry[-3:] == (
-        "dcoir_review_required_runtime_patch_v55",
+        "dcoir_review.semantic_adjudication_recovery",
         "dcoir_review_required_runtime_patch_v56",
         "dcoir_review_required_runtime_patch_v57",
     )
-    assert post_telemetry.index("dcoir_review_required_runtime_patch_v55") < post_telemetry.index("dcoir_review_required_runtime_patch_v56")
+    assert post_telemetry.index("dcoir_review.semantic_adjudication_recovery") < post_telemetry.index("dcoir_review_required_runtime_patch_v56")
 
-    # v55 preserves the v44 helper.
-    original = getattr(execution, v55.RUN_STORAGE, None) or execution.run_adjudicator
+    # Stable recovery preserves the v44 helper.
+    original = getattr(execution, recovery.RUN_STORAGE, None) or execution.run_adjudicator
     fake_apply_module = SimpleNamespace()
-    v55.apply_pareto_context_module(fake_apply_module)
-    assert getattr(fake_apply_module, v55.APPLIED_MARKER, False) is True
-    assert execution.run_adjudicator is v55.run_adjudicator
-    assert getattr(execution, v55.RUN_STORAGE) is original
-    v55.apply_pareto_context_module(fake_apply_module)
-    assert getattr(execution, v55.RUN_STORAGE) is original
+    recovery.apply_pareto_context_module(fake_apply_module)
+    assert getattr(fake_apply_module, recovery.APPLIED_MARKER, False) is True
+    assert execution.run_adjudicator is recovery.run_adjudicator
+    assert getattr(execution, recovery.RUN_STORAGE) is original
+    recovery.apply_pareto_context_module(fake_apply_module)
+    assert getattr(execution, recovery.RUN_STORAGE) is original
 
     cfg = config()
     assert v33.verifier_candidate_limit(cfg) == 12
@@ -202,7 +202,7 @@ def main() -> None:
     assert hardened.calls == 1
     assert hardened.stage_labels == ["semantic-adjudicator"]
     assert rank_calls == []
-    assert v55.RECOVERY_MARKER not in canonical_result
+    assert recovery.RECOVERY_MARKER not in canonical_result
     assert canonical_result["findings"][0]["title"] == "canonical"
     assert not any(stage == "semantic-adjudicator-shape-recovery" for stage, _ in reporter.events)
 
@@ -215,7 +215,7 @@ def main() -> None:
     assert hardened.stage_labels == ["semantic-adjudicator"]
     assert rank_calls == []
     assert flat_result[v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
-    assert v55.RECOVERY_MARKER not in flat_result
+    assert recovery.RECOVERY_MARKER not in flat_result
 
     # A valid JSON object that is neither supported v37 shape recovers only from
     # complete upstream hypotheses. The rejected object's content is not copied.
@@ -235,8 +235,8 @@ def main() -> None:
     assert tier == "default"
     assert len(rank_calls) == 1
     assert len(recovered["findings"]) == 12
-    marker = recovered[v55.RECOVERY_MARKER]
-    assert marker["reason"] == v55.RECOVERY_REASON
+    marker = recovered[recovery.RECOVERY_MARKER]
+    assert marker["reason"] == recovery.RECOVERY_REASON
     assert marker["upstream_hypotheses"] == 14
     assert marker["usable_hypotheses"] == 14
     assert marker["deduped_hypotheses"] == 14
@@ -257,7 +257,7 @@ def main() -> None:
     )
 
     # v51 may remove untrusted detector replacement text while preserving the
-    # semantic candidate. That must not make the candidate ineligible for v55.
+    # semantic candidate. That must not make the candidate ineligible for recovery.
     v51_candidate = finding(100, "v51-preserved-semantic-candidate")
     v51_candidate.pop("suggested_replacement")
     (v51_recovered, _model, _tier), _module, hardened, rank_calls, _reporter = run(
@@ -274,10 +274,10 @@ def main() -> None:
     review = production_review()
     prod_cfg = production_config(review)
     assert prod_cfg.semantic_candidate_identity_review is True
-    # Production v55 must patch v44's earlier scope dedupe, not merely the
+    # Production recovery must patch v44's earlier scope dedupe, not merely the
     # recovery helper, so same-site semantic candidates survive before the
     # adjudicator/recovery seam is reached.
-    assert scope.dedupe_exact_findings is v55._dedupe_upstream_hypotheses
+    assert scope.dedupe_exact_findings is recovery._dedupe_upstream_hypotheses
     first = finding(101, "same-site-semantic-candidate")
     second = finding(101, "same-site-semantic-candidate")
     for item in (first, second):
@@ -299,18 +299,18 @@ def main() -> None:
     ]
     deduped = scope.dedupe_exact_findings([first, dict(first), second])
     assert len(deduped) == 2
-    recovered_identity = v55._recover_upstream_hypotheses(
+    recovered_identity = recovery._recover_upstream_hypotheses(
         review, [first, dict(first), second], prod_cfg
     )
     assert recovered_identity is not None
     identity_findings = recovered_identity["findings"]
     assert len(identity_findings) == 2
-    assert all(v55._complete_upstream_hypothesis(review, item) for item in identity_findings)
+    assert all(recovery._complete_upstream_hypothesis(review, item) for item in identity_findings)
     candidate_ids = [str(item.get(v51.CANDIDATE_ID_FIELD, "")) for item in identity_findings]
     semantic_keys = [tuple(item.get(v51.SEMANTIC_KEY_FIELD, [])) for item in identity_findings]
     assert len(set(candidate_ids)) == 2
     assert len(set(semantic_keys)) == 2
-    identity_marker = recovered_identity[v55.RECOVERY_MARKER]
+    identity_marker = recovered_identity[recovery.RECOVERY_MARKER]
     assert identity_marker["upstream_hypotheses"] == 3
     assert identity_marker["usable_hypotheses"] == 3
     assert identity_marker["deduped_hypotheses"] == 2
@@ -321,7 +321,7 @@ def main() -> None:
     # unusable upstream evidence rather than escaping the fallback candidate filter.
     oversized = finding(102, "oversized-confidence")
     oversized["confidence"] = 10**400
-    assert v55._complete_upstream_hypothesis(review, oversized) is False
+    assert recovery._complete_upstream_hypothesis(review, oversized) is False
     calls = expect_runtime_error(
         rejected,
         [oversized],
@@ -379,7 +379,7 @@ def main() -> None:
     )
     assert calls == 1
 
-    print("DCOIR Review v55 adjudicator shape-recovery selftest passed")
+    print("DCOIR Review semantic-adjudication recovery selftest passed")
 
 
 if __name__ == "__main__":

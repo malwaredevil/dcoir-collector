@@ -1,4 +1,4 @@
-"""DCOIR Review v55 bounded semantic-adjudicator shape recovery.
+"""Stable bounded semantic-adjudicator shape recovery for DCOIR Review.
 
 Issue #524 was exposed by live benchmark run 34454110354: the semantic
 adjudicator completed successfully and returned valid JSON, but the parsed
@@ -6,7 +6,7 @@ object matched neither the canonical findings envelope nor v37's complete flat
 single-finding compatibility shape. The review then terminated after all premium
 semantic work had already completed.
 
-v55 preserves the versioned v44 helper unchanged and replaces only its
+This stable owner preserves the versioned v44 helper unchanged and replaces only its
 ``run_adjudicator`` seam after v54 telemetry is installed. Recovery is deliberately
 narrow: only an unrelated valid-JSON object with none of the flat-finding fields
 may fall back to already-structured hypotheses from the same escalation. Those
@@ -36,10 +36,10 @@ import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v51 as v51
 
 
-VERSION = "v55"
-APPLIED_MARKER = "_dcoir_review_v55_applied"
-RUN_STORAGE = "_dcoir_review_v55_original_run_adjudicator"
-DEDUPE_STORAGE = "_dcoir_review_v55_original_scope_dedupe_exact_findings"
+RECOVERY_MARKER_VERSION = "v55"  # Compatibility/provenance value retained from the historical owner.
+APPLIED_MARKER = "_dcoir_semantic_adjudication_recovery_applied"
+RUN_STORAGE = "_dcoir_semantic_adjudication_recovery_original_run_adjudicator"
+DEDUPE_STORAGE = "_dcoir_semantic_adjudication_recovery_original_scope_dedupe_exact_findings"
 RECOVERY_MARKER = "_semantic_adjudication_shape_recovery"
 RECOVERY_REASON = "schema-incompatible-valid-json-object"
 _V37_SHAPE_ERROR_PREFIX = (
@@ -62,7 +62,7 @@ def _recoverable_shape_failure(raw: Any, exc: Exception) -> bool:
         return False
     if any(field in raw for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
         # Preserve v37's historical fail-closed behavior for partial flat
-        # findings. v55 never repairs missing semantic fields.
+        # findings. Recovery never repairs missing semantic fields.
         return False
     return str(exc).startswith(_V37_SHAPE_ERROR_PREFIX)
 
@@ -163,7 +163,7 @@ def _recover_upstream_hypotheses(
         return None
 
     marker = {
-        "version": VERSION,
+        "version": RECOVERY_MARKER_VERSION,
         "reason": RECOVERY_REASON,
         "upstream_hypotheses": len(hypotheses),
         "usable_hypotheses": len(usable),
@@ -200,8 +200,8 @@ def run_adjudicator(
     )
     staged.model_stack = models
     staged.model = models[0]
-    # v54 is already installed when v55 is applied. Give its observational
-    # wrapper an explicit stage label because the callsite now lives in v55.
+    # v54 is already installed before this stable owner. Give its observational
+    # wrapper an explicit stage label because the callsite now lives here.
     setattr(staged, _V54_STAGE_LABEL_ATTR, "semantic-adjudicator")
 
     max_findings = int(
@@ -304,7 +304,7 @@ def _patch_scope_dedupe() -> None:
         if callable(original):
             setattr(scope, DEDUPE_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v55 could not locate v44 scope dedupe helper")
+        raise RuntimeError("DCOIR semantic adjudication recovery could not locate v44 scope dedupe helper")
     scope.dedupe_exact_findings = _dedupe_upstream_hypotheses
 
 
@@ -317,7 +317,7 @@ def apply_pareto_context_module(module: Any) -> None:
         if callable(original):
             setattr(execution, RUN_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v55 could not locate v44 adjudicator execution helper")
+        raise RuntimeError("DCOIR semantic adjudication recovery could not locate v44 adjudicator execution helper")
     execution.run_adjudicator = run_adjudicator
     _patch_scope_dedupe()
     setattr(module, APPLIED_MARKER, True)

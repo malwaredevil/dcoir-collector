@@ -128,15 +128,15 @@ class DcoirReviewEntrypoint:
     )
     # The stable provider transport retry owner is installed immediately after
     # v54 so interrupted provider response reads inherit the observational
-    # telemetry surface while preserving the historical v55-v57 post-telemetry
-    # ordering invariant. v55 recovers only the
+    # telemetry surface while preserving the historical post-telemetry
+    # ordering invariant. Stable semantic-adjudication recovery recovers only the
     # bounded valid-JSON/schema-shape failure proven by #524. v56 reduces repeated
     # repair-critic calls by batching compatible candidates. v57 remains the final
     # semantic guard for #546 and may withdraw only fully valid candidates that
     # are all below the active publication floor.
     post_telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review.provider_transport_retry',
-        'dcoir_review_required_runtime_patch_v55',
+        'dcoir_review.semantic_adjudication_recovery',
         'dcoir_review_required_runtime_patch_v56',
         'dcoir_review_required_runtime_patch_v57',
     )
