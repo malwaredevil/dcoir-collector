@@ -129,7 +129,7 @@ def main() -> None:
         def update(self, stage, message):
             self.events.append((stage, message))
 
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
     original_verify = v21.verify_findings_for_publication
     original_openrouter = review.hardened.openrouter_review
     original_fetch = review.fetch_pr_file_text

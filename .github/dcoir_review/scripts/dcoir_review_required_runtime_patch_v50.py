@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v45 as v45
 import dcoir_review_required_runtime_patch_v50_prior as gate_prior
 import dcoir_review_required_runtime_patch_v50_state as gate_state

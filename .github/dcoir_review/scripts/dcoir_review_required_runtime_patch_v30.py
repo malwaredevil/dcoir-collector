@@ -24,7 +24,7 @@ import re
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v20 as v20
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_pipeline as repair
 from dcoir_review import repair_reliability as reliability
 

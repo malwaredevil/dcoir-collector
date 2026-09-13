@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v32 as v32
 import dcoir_review_required_runtime_patch_v33 as v33
 

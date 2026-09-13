@@ -147,7 +147,19 @@ The next bounded retirement moves summary-only semantic recovery out of historic
 - runtime module ownership and the governed validation-command registry reference the stable module/test directly;
 - the historical v22 runtime and version-specific self-test files are removed; Git history remains the archive.
 
-This v22 quality-gate retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
+This v22 quality-gate retirement is exact-head validated. ChatGPT Exec run `34754938413` passed at source head `2e6d47a3d25e5ccb33d0a91fbc1bb260ff266c94` with terminal marker `ISSUE550_PR553_V22_QUALITY_GATE_VALIDATION_001_PASS`; its artifact confirms 56 production components, maximum numbered version 58, and `retired=v15,v22,v23,v24,v25,v26,v27,v28,v29`. Current-head CodeQL run `34754683222` passed Python, Actions, and aggregate reporting on the same source head.
+
+The next bounded retirement moves candidate-finding evidence verification out of historical v21:
+
+- `dcoir_review/finding_verifier.py` owns the bounded publication-verification contract for ordinary model findings and deterministic core sentinels;
+- ordinary findings require exact anchored head-file evidence plus a fail-closed model verifier, while deterministic core sentinels remain evidence-verified without allowing a model veto;
+- the existing `_dcoir_verifier_v21` finding marker is intentionally preserved as a compatibility data contract during this behavior-preserving migration;
+- stable downstream owners (`verified_finding_render.py`, `repair_support.py`, and `repair_pipeline.py`) now depend directly on `dcoir_review.finding_verifier`; historical overlays that still consume the verifier resolve that dependency through the stable owner path;
+- `dcoir_review_finding_verifier_selftest.py` replaces the version-specific v21 self-test and asserts exact stable composition between v20 and `dcoir_review.quality_gate`;
+- runtime module ownership and the governed validation-command registry reference the stable module/test directly;
+- the historical v21 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This v21 finding-verifier retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
 
 ## Migration invariants
 

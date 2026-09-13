@@ -19,7 +19,7 @@ def patched_review():
 
 def test_model_judge_finding_preserves_verified_semantics(review) -> None:
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     finding = {
         "title": "Inverted upper-bound check excludes valid recent ages",
@@ -54,7 +54,7 @@ def test_model_judge_finding_preserves_verified_semantics(review) -> None:
 
 def test_deterministic_sentinel_still_uses_canonical_renderer(review) -> None:
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     finding = {
         "title": "model wording should not replace deterministic sentinel template",

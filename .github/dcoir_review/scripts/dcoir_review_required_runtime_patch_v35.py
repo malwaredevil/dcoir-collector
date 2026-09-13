@@ -26,7 +26,7 @@ import copy
 import json
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v34 as v34
 
 

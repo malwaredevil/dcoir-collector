@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
 import dcoir_review_required_runtime_patch_v50_prior as prior_io
 import dcoir_review_required_runtime_patch_v50_state as state

@@ -17,14 +17,14 @@ from __future__ import annotations
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v20 as v20
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier
 
 
 
 def _is_verified_ordinary_finding(finding: Any) -> bool:
     if not isinstance(finding, dict):
         return False
-    verifier = finding.get(v21.VERIFIER_MARKER)
+    verifier = finding.get(finding_verifier.VERIFIER_MARKER)
     if not isinstance(verifier, dict) or verifier.get("mode") != "model-judge" or verifier.get("supported") is not True:
         return False
     if str(finding.get("_risk_sentinel_kind", "") or "").strip():

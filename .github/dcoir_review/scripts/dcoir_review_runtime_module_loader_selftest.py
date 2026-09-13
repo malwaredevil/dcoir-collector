@@ -38,6 +38,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "finding_family.py",
+    "finding_verifier.py",
     "module_loader.py",
     "normalized_finding_selection.py",
     "quality_gate.py",

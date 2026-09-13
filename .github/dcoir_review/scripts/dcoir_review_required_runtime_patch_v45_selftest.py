@@ -6,7 +6,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v45 as v45
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 

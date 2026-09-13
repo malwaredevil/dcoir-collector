@@ -8,7 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v5 as v5
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v51 as v51
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 

@@ -29,7 +29,7 @@ import math
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v33 as v33

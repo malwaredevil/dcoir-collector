@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Full production-patch-stack regression for the DCOIR v21 verifier."""
+"""Production-stack regression for the stable DCOIR finding verifier."""
 
 from __future__ import annotations
 
@@ -36,16 +36,16 @@ def patched_modules():
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     v16 = importlib.import_module("dcoir_review_required_runtime_patch_v16")
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    verifier = importlib.import_module("dcoir_review.finding_verifier")
     v16.v9._ensure_prompt_review = lambda _config: None
-    return review, v20, v21
+    return review, v20, verifier
 
 
 def pr() -> dict:
     return {"head": {"sha": "a" * 40}}
 
 
-def test_deterministic_core_sentinel_is_evidence_verified_without_model(review, v20, v21) -> None:
+def test_deterministic_core_sentinel_is_evidence_verified_without_model(review, v20, verifier) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     sentinel = review.hardened.RiskSentinel(
         path=PROBE_PATH,
@@ -61,11 +61,11 @@ def test_deterministic_core_sentinel_is_evidence_verified_without_model(review, 
     original = review.hardened.openrouter_review
     review.hardened.openrouter_review = lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("core sentinel must not require model verifier"))
     try:
-        verified = v21.verify_findings_for_publication(review, [finding], object(), pr(), config, Reporter())
+        verified = verifier.verify_findings_for_publication(review, [finding], object(), pr(), config, Reporter())
     finally:
         review.hardened.openrouter_review = original
     assert len(verified) == 1
-    marker = verified[0][v21.VERIFIER_MARKER]
+    marker = verified[0][verifier.VERIFIER_MARKER]
     assert marker["mode"] == "deterministic-core-sentinel"
     assert marker["supported"] is True
 
@@ -82,7 +82,7 @@ def ordinary_finding() -> dict:
     }
 
 
-def test_unsupported_model_candidate_is_suppressed(review, v21) -> None:
+def test_unsupported_model_candidate_is_suppressed(review, verifier) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     review.fetch_pr_file_text = lambda _gh, path, _sha: ORDINARY_SOURCE if path == ORDINARY_PATH else ""
     original = review.hardened.openrouter_review
@@ -93,14 +93,14 @@ def test_unsupported_model_candidate_is_suppressed(review, v21) -> None:
     )
     reporter = Reporter()
     try:
-        verified = v21.verify_findings_for_publication(review, [ordinary_finding()], object(), pr(), config, reporter)
+        verified = verifier.verify_findings_for_publication(review, [ordinary_finding()], object(), pr(), config, reporter)
     finally:
         review.hardened.openrouter_review = original
     assert verified == []
     assert any("suppressed=1" in detail for stage, detail in reporter.events if stage == "finding-verifier")
 
 
-def test_supported_model_candidate_retains_concrete_evidence(review, v21) -> None:
+def test_supported_model_candidate_retains_concrete_evidence(review, verifier) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     review.fetch_pr_file_text = lambda _gh, path, _sha: ORDINARY_SOURCE if path == ORDINARY_PATH else ""
     original = review.hardened.openrouter_review
@@ -115,17 +115,17 @@ def test_supported_model_candidate_retains_concrete_evidence(review, v21) -> Non
         "default",
     )
     try:
-        verified = v21.verify_findings_for_publication(review, [ordinary_finding()], object(), pr(), config, Reporter())
+        verified = verifier.verify_findings_for_publication(review, [ordinary_finding()], object(), pr(), config, Reporter())
     finally:
         review.hardened.openrouter_review = original
     assert len(verified) == 1
-    marker = verified[0][v21.VERIFIER_MARKER]
+    marker = verified[0][verifier.VERIFIER_MARKER]
     assert marker["mode"] == "model-judge"
     assert marker["confidence"] == 0.94
     assert "value % 2" in marker["evidence"]
 
 
-def test_ambiguous_verifier_output_fails_closed(review, v21) -> None:
+def test_ambiguous_verifier_output_fails_closed(review, verifier) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     review.fetch_pr_file_text = lambda _gh, path, _sha: ORDINARY_SOURCE if path == ORDINARY_PATH else ""
     original = review.hardened.openrouter_review
@@ -136,7 +136,7 @@ def test_ambiguous_verifier_output_fails_closed(review, v21) -> None:
     )
     try:
         try:
-            v21.verify_findings_for_publication(review, [ordinary_finding()], object(), pr(), config, Reporter())
+            verifier.verify_findings_for_publication(review, [ordinary_finding()], object(), pr(), config, Reporter())
         except review.hardened.ReviewQualityError:
             pass
         else:
@@ -145,13 +145,23 @@ def test_ambiguous_verifier_output_fails_closed(review, v21) -> None:
         review.hardened.openrouter_review = original
 
 
+
+def test_stable_owner_composition() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review.finding_verifier" in names, names
+    assert "dcoir_review_required_runtime_patch_v21" not in names, names
+    index = names.index("dcoir_review.finding_verifier")
+    assert names[index - 1] == "dcoir_review_required_runtime_patch_v20", names[max(0, index - 2):index + 4]
+    assert names[index + 1] == "dcoir_review.quality_gate", names[max(0, index - 2):index + 4]
+
 def main() -> None:
-    review, v20, v21 = patched_modules()
-    test_deterministic_core_sentinel_is_evidence_verified_without_model(review, v20, v21)
-    test_unsupported_model_candidate_is_suppressed(review, v21)
-    test_supported_model_candidate_retains_concrete_evidence(review, v21)
-    test_ambiguous_verifier_output_fails_closed(review, v21)
-    print("dcoir_review_required_runtime_patch_v21_selftest passed")
+    test_stable_owner_composition()
+    review, v20, verifier = patched_modules()
+    test_deterministic_core_sentinel_is_evidence_verified_without_model(review, v20, verifier)
+    test_unsupported_model_candidate_is_suppressed(review, verifier)
+    test_supported_model_candidate_retains_concrete_evidence(review, verifier)
+    test_ambiguous_verifier_output_fails_closed(review, verifier)
+    print("dcoir_review_finding_verifier_selftest passed")
 
 
 if __name__ == "__main__":

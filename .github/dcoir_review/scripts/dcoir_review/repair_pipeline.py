@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from dcoir_review import repair_support as support
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier
 
 VERSION = "repair"
 REPAIR_MARKER = "_dcoir_repair"
@@ -112,7 +112,7 @@ def synthesize_verified_repairs(
     reporter: Any,
 ) -> list[dict[str, Any]]:
     del schema
-    verified = v21.verify_findings_for_publication(module, findings, gh, pr, config, reporter)
+    verified = finding_verifier.verify_findings_for_publication(module, findings, gh, pr, config, reporter)
     if not verified:
         reporter.update("repair", "no verifier-supported findings required repair")
         return []

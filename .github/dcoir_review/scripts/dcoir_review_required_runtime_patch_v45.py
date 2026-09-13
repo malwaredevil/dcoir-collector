@@ -12,7 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v16 as v16
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier as v21
 
 
 VERSION = "v45"

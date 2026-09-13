@@ -30,7 +30,7 @@ def is_recent(age_minutes: int) -> bool:
 def patched_modules():
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     DcoirReviewEntrypoint().apply_runtime_patches(review)
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     return review, v21, repair
 

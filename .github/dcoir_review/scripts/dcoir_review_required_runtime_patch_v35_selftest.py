@@ -26,7 +26,7 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
     v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
 
     assert getattr(review, v35.APPLIED_MARKER, False) is True

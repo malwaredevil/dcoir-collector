@@ -1,4 +1,4 @@
-"""DCOIR Review v21 evidence verifier overlay.
+"""Stable DCOIR Review finding evidence verifier.
 
 Ordinary model-generated findings must survive a bounded second-pass verifier
 that sees the exact anchored line plus the full head-file context before they
@@ -18,7 +18,6 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v16 as v16
 
 
-VERSION = "v21"
 VERIFIER_MAX_MODEL_FINDINGS = 6
 VERIFIER_MIN_SUPPORT_CONFIDENCE = 0.80
 VERIFIER_MARKER = "_dcoir_verifier_v21"
@@ -247,7 +246,7 @@ def verify_findings_for_publication(
 
 
 def apply_pareto_context_module(module: Any) -> None:
-    storage = "_dcoir_required_v21_original_synthesize_fixes_for_findings"
+    storage = "_dcoir_finding_verifier_original_synthesize_fixes_for_findings"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "synthesize_fixes_for_findings", None)

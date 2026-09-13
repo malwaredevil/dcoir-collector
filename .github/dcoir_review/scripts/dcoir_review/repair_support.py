@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from dcoir_review import repair
-import dcoir_review_required_runtime_patch_v21 as v21
+from dcoir_review import finding_verifier
 
 AUTHOR_MIN_CONFIDENCE = 0.90
 CRITIC_MIN_CONFIDENCE = 0.90
@@ -39,7 +39,7 @@ def _leading_whitespace(text: str) -> str:
 
 
 def _model_judge_marker(finding: dict[str, Any]) -> dict[str, Any] | None:
-    marker = finding.get(v21.VERIFIER_MARKER)
+    marker = finding.get(finding_verifier.VERIFIER_MARKER)
     if isinstance(marker, dict) and marker.get("mode") == "model-judge" and marker.get("supported") is True:
         return marker
     return None
@@ -66,7 +66,7 @@ def _strip_legacy_model_finding_provenance(finding: dict[str, Any]) -> dict[str,
 
 
 def _verifier_evidence(finding: dict[str, Any]) -> str:
-    marker = finding.get(v21.VERIFIER_MARKER)
+    marker = finding.get(finding_verifier.VERIFIER_MARKER)
     if not isinstance(marker, dict):
         return ""
     return str(marker.get("evidence", "") or marker.get("reason", "") or "").strip()
@@ -89,7 +89,7 @@ def _repair_author_prompt(
     file_text: str,
     config: Any,
 ) -> str:
-    verifier = finding.get(v21.VERIFIER_MARKER) if isinstance(finding.get(v21.VERIFIER_MARKER), dict) else {}
+    verifier = finding.get(finding_verifier.VERIFIER_MARKER) if isinstance(finding.get(finding_verifier.VERIFIER_MARKER), dict) else {}
     finding_payload = json.dumps(
         {
             "title": finding.get("title", ""),
