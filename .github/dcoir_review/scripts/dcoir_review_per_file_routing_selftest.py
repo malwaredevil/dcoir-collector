@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v47 stage-local first-pass routing."""
+"""Regression checks for stable DCOIR Review stage-local per-file routing."""
 
 from __future__ import annotations
 
@@ -47,13 +47,13 @@ def main() -> None:
         "dcoir_review_required_runtime_patch_v50",
     )
     assert entrypoint.stage_local_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v47",
+        "dcoir_review.per_file_routing",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v47 = importlib.import_module("dcoir_review_required_runtime_patch_v47")
-    assert getattr(review, v47.APPLIED_MARKER, False) is True
+    per_file_routing = importlib.import_module("dcoir_review.per_file_routing")
+    assert getattr(review, per_file_routing.APPLIED_MARKER, False) is True
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.model == "anthropic/claude-opus-5"
@@ -78,7 +78,7 @@ def main() -> None:
         for plugin in global_payload.get("plugins", [])
     )
 
-    projected = v47.project_per_file_review_config(config)
+    projected = per_file_routing.project_per_file_review_config(config)
     assert projected is not config
     assert projected.model == "anthropic/claude-sonnet-5"
     assert projected.model_stack == ["anthropic/claude-sonnet-5"]
@@ -89,7 +89,8 @@ def main() -> None:
     assert projected.openrouter_capture_request_telemetry is True
     assert projected.openrouter_require_object_response is True
     assert projected.openrouter_require_stop_finish_reason is True
-    assert projected.dcoir_v47_per_file_projection is True
+    assert per_file_routing.PER_FILE_PROJECTION_ATTR == "dcoir_v47_per_file_projection"
+    assert getattr(projected, per_file_routing.PER_FILE_PROJECTION_ATTR, False) is True
     assert not hasattr(config, "openrouter_request_max_tokens")
     assert not hasattr(config, "openrouter_provider_sort")
     assert not hasattr(config, "openrouter_capture_request_telemetry")
@@ -115,11 +116,11 @@ def main() -> None:
         model_stack=["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"],
         review_reasoning_effort="xhigh",
     )
-    legacy_projected = v47.project_per_file_review_config(legacy)
+    legacy_projected = per_file_routing.project_per_file_review_config(legacy)
     assert legacy_projected.model == legacy.model
     assert legacy_projected.model_stack == legacy.model_stack
     assert legacy_projected.review_reasoning_effort == "xhigh"
-    assert not hasattr(legacy_projected, "dcoir_v47_per_file_projection")
+    assert not hasattr(legacy_projected, per_file_routing.PER_FILE_PROJECTION_ATTR)
     assert not hasattr(legacy_projected, "openrouter_request_max_tokens")
     assert not hasattr(legacy_projected, "openrouter_require_stop_finish_reason")
     assert not hasattr(legacy_projected, "openrouter_capture_request_telemetry")
@@ -274,7 +275,7 @@ def main() -> None:
     try:
         valid_content = json.dumps({"summary": "clean", "findings": []})
         for non_stop_reason in ("length", "content_filter"):
-            capped = v47.project_per_file_review_config(config)
+            capped = per_file_routing.project_per_file_review_config(config)
             install_response(non_stop_reason, valid_content)
             try:
                 review.hardened.openrouter_request_once(
@@ -292,7 +293,7 @@ def main() -> None:
             assert len(telemetry["request_events"]) == 1
             assert telemetry["response_healing_observed"] is True
 
-        stopped = v47.project_per_file_review_config(config)
+        stopped = per_file_routing.project_per_file_review_config(config)
         install_response("stop", valid_content)
         parsed, served_model, service_tier = review.hardened.openrouter_request_once(
             "probe", schema, stopped, [], "anthropic/claude-sonnet-5"
@@ -304,7 +305,7 @@ def main() -> None:
         assert stopped._openrouter_last_request_telemetry["finish_reason"] == "stop"
         assert stopped._openrouter_last_request_telemetry["response_healing_pipeline"]
 
-        invalid_root = v47.project_per_file_review_config(config)
+        invalid_root = per_file_routing.project_per_file_review_config(config)
         install_response("stop", "[]")
         try:
             review.hardened.openrouter_request_once(
@@ -317,7 +318,7 @@ def main() -> None:
 
         # A retryable malformed structured body must keep both billed response
         # events instead of reporting only the final successful attempt.
-        retrying = v47.project_per_file_review_config(config)
+        retrying = per_file_routing.project_per_file_review_config(config)
         install_response("stop", "not-json")
         try:
             review.hardened.openrouter_request_once(
@@ -343,22 +344,23 @@ def main() -> None:
         else:
             os.environ["OPENROUTER_API_KEY"] = previous_key
 
-    patch_source = Path(
-        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v47.py"
+    stable_source = Path(
+        ".github/dcoir_review/scripts/dcoir_review/per_file_routing.py"
     ).read_text(encoding="utf-8")
     provider_source = Path(
         ".github/dcoir_review/scripts/dcoir_review/hardened/part_04a_provider.py"
     ).read_text(encoding="utf-8")
-    assert "def openrouter_request_once" not in patch_source
+    assert "VERSION = \"v47\"" not in stable_source
+    assert "def openrouter_request_once" not in stable_source
     assert "openrouter_capture_request_telemetry" in provider_source
     assert "openrouter_require_stop_finish_reason" in provider_source
     assert "openrouter_require_object_response" in provider_source
     assert "_openrouter_last_request_telemetry" in provider_source
     for forbidden in ("git push", "merge_pull_request", "workflow_dispatch", "create_commit("):
-        assert forbidden not in patch_source
+        assert forbidden not in stable_source
         assert forbidden not in provider_source
 
-    print("dcoir_review_required_runtime_patch_v47_selftest passed")
+    print("dcoir_review_per_file_routing_selftest passed")
 
 
 if __name__ == "__main__":

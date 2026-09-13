@@ -169,7 +169,21 @@ The next bounded retirement moves precision guarding out of historical v19:
 - runtime composition, direct-import ownership, and the governed validation-command registry reference the stable owner/test directly;
 - the historical v19 runtime and version-specific self-test files are removed; Git history remains the archive.
 
-This v19 precision-guard retirement is locally staged only. Publication, current-head security workflow readback, and a separately approved exact-head governed validation remain required before this slice can be credited as governed validated.
+The v19 precision-guard retirement is exact-head governed validated on corrective source head `f57eab7464beb601ce350833a6152e5b6d77b20e`. Recovery ChatGPT Exec run `34760172201` passed after the architecture document was restored to the already-validated tree, and current-head CodeQL run `34759462183` passed on that exact head.
+
+## v47 per-file routing retirement
+
+The next bounded retirement moves stage-local first-pass routing out of historical v47:
+
+- `dcoir_review/per_file_routing.py` owns per-file configuration projection, calibrated Sonnet routing controls, Response Healing payload projection, and bounded per-file request telemetry attachment;
+- production composition loads `dcoir_review.per_file_routing` in the stage-local position instead of the numbered v47 overlay;
+- the historical `dcoir_v47_per_file_projection` attribute value is intentionally preserved as a compatibility/provenance data marker, while `PER_FILE_PROJECTION_ATTR` in the stable owner becomes its canonical definition;
+- v54 telemetry imports that stable marker constant instead of hard-coding a dependency on historical v47 ownership;
+- `dcoir_review_per_file_routing_selftest.py` owns the stable behavioral contract, and the validation registry plus v48 composition regression reference the stable owner directly;
+- the runtime module-loader registry classifies `per_file_routing.py` as an ordinary direct-import owner;
+- the historical v47 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
 ## Migration invariants
 

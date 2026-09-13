@@ -1,11 +1,11 @@
-"""DCOIR Review v47 stage-local first-pass routing projection for issue #457.
+"""Stable DCOIR Review stage-local first-pass routing projection.
 
 The #485 calibration showed that routine per-file first-pass review can use
 Claude Sonnet 5 at high reasoning with a 32,768-token output cap and price-sorted
 provider selection while the mature premium challenger, adjudicator, verifier,
 and escalation stages remain on their existing Opus/Sol contracts.
 
-v47 keeps that distinction explicit. New per-file configuration is projected
+This owner keeps that distinction explicit. New per-file configuration is projected
 onto a shallow copy only for ``review_single_file_context``. The shared global
 configuration is left unchanged for every later semantic stage. The projected
 payload enables Response Healing explicitly, preserves strict structured output
@@ -25,9 +25,9 @@ import copy
 from typing import Any
 
 
-VERSION = "v47"
-APPLIED_MARKER = "_dcoir_review_v47_applied"
+APPLIED_MARKER = "_dcoir_per_file_routing_applied"
 RESPONSE_HEALING_PLUGIN_ID = "response-healing"
+PER_FILE_PROJECTION_ATTR = "dcoir_v47_per_file_projection"
 
 
 def _optional_string_list(value: Any) -> list[str]:
@@ -79,21 +79,21 @@ def project_per_file_review_config(config: Any) -> Any:
         projected.openrouter_response_healing = True
         projected.openrouter_capture_request_telemetry = True
         projected.openrouter_require_object_response = True
-        projected.dcoir_v47_per_file_projection = True
+        setattr(projected, PER_FILE_PROJECTION_ATTR, True)
     if max_tokens is not None:
         projected.openrouter_require_stop_finish_reason = True
     return projected
 
 
 def _patch_config_loader(module: Any) -> None:
-    storage = "_dcoir_review_v47_original_load_pareto_context_config"
+    storage = "_dcoir_per_file_routing_original_load_pareto_context_config"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "load_pareto_context_config", None)
         if callable(original):
             setattr(module, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v47 could not locate load_pareto_context_config")
+        raise RuntimeError("DCOIR per-file routing could not locate load_pareto_context_config")
 
     def load_pareto_context_config(path: str):
         config = original(path)
@@ -112,14 +112,14 @@ def _patch_config_loader(module: Any) -> None:
 
 def _patch_payload_builder(module: Any) -> None:
     hardened = module.hardened
-    storage = "_dcoir_review_v47_original_build_openrouter_payload"
+    storage = "_dcoir_per_file_routing_original_build_openrouter_payload"
     original = getattr(hardened, storage, None)
     if original is None:
         original = getattr(hardened, "build_openrouter_payload", None)
         if callable(original):
             setattr(hardened, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v47 could not locate hardened build_openrouter_payload")
+        raise RuntimeError("DCOIR per-file routing could not locate hardened build_openrouter_payload")
 
     def build_openrouter_payload(prompt, schema, config, ignored_providers, model):
         payload = original(prompt, schema, config, ignored_providers, model)
@@ -143,9 +143,9 @@ def _patch_payload_builder(module: Any) -> None:
             payload["plugins"] = plugins
 
         # Only the calibrated per-file Sonnet contract omits the generic
-        # sampling temperature. Installing v47 must not change an unrelated
+        # sampling temperature. Installing the stable per-file routing owner must not change an unrelated
         # global/premium Sonnet request when the stage-local projection is absent.
-        projected_per_file = bool(getattr(config, "dcoir_v47_per_file_projection", False))
+        projected_per_file = bool(getattr(config, PER_FILE_PROJECTION_ATTR, False))
         if projected_per_file and _is_claude_sonnet_5(model):
             payload.pop("temperature", None)
 
@@ -171,14 +171,14 @@ def _write_request_telemetry(module: Any, projected: Any, index: int, context: A
 
 
 def _patch_per_file_review(module: Any) -> None:
-    storage = "_dcoir_review_v47_original_review_single_file_context"
+    storage = "_dcoir_per_file_routing_original_review_single_file_context"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "review_single_file_context", None)
         if callable(original):
             setattr(module, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v47 could not locate review_single_file_context")
+        raise RuntimeError("DCOIR per-file routing could not locate review_single_file_context")
 
     def review_single_file_context(
         index,

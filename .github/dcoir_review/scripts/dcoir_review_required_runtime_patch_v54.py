@@ -2,7 +2,7 @@
 
 Issue #519 closes an execution-observability gap under #457. The canonical
 provider already records rich request metadata when capture is enabled, but that
-history was stage-local and normally available only to the v47 per-file path.
+history was stage-local and normally available only to the stage-local per-file path.
 
 v54 is deliberately behavior-neutral:
 - every semantic model call receives a shallow config copy with telemetry capture
@@ -28,6 +28,8 @@ import math
 import threading
 from collections import Counter
 from typing import Any
+
+from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 
 
 VERSION = "v54"
@@ -249,7 +251,7 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
             if isinstance(pending, dict) and pending:
                 return "bounded-low-confidence-disposition"
         return explicit
-    if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
+    if bool(getattr(config, PER_FILE_PROJECTION_ATTR, False)):
         return "per-file-first-pass"
 
     callsite = _callsite_stage_label(prompt)
@@ -709,7 +711,7 @@ def _patch_openrouter_review(module: Any) -> None:
             except Exception:
                 _note_telemetry_error(config)
             try:
-                if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
+                if bool(getattr(config, PER_FILE_PROJECTION_ATTR, False)):
                     _copy_stage_local_telemetry(staged, config)
             except Exception:
                 _note_telemetry_error(config)
@@ -720,7 +722,7 @@ def _patch_openrouter_review(module: Any) -> None:
         except Exception:
             _note_telemetry_error(config)
         try:
-            if bool(getattr(config, "dcoir_v47_per_file_projection", False)):
+            if bool(getattr(config, PER_FILE_PROJECTION_ATTR, False)):
                 _copy_stage_local_telemetry(staged, config)
         except Exception:
             _note_telemetry_error(config)

@@ -41,6 +41,7 @@ DIRECT_IMPORT_MODULES = (
     "finding_verifier.py",
     "module_loader.py",
     "normalized_finding_selection.py",
+    "per_file_routing.py",
     "precision_guard.py",
     "quality_gate.py",
     "repair.py",

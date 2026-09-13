@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 
 
 class FakeResponse:
@@ -315,7 +316,7 @@ def main() -> None:
     # Stage classification uses only schema/config/ephemeral prompt markers and
     # stores no prompt body in the sink.
     per_file = copy.copy(config)
-    per_file.dcoir_v47_per_file_projection = True
+    setattr(per_file, PER_FILE_PROJECTION_ATTR, True)
     assert v54.classify_stage("anything", review_schema(), per_file) == "per-file-first-pass"
     stage_tagged = copy.copy(config)
     stage_tagged._dcoir_v54_stage_label = "independent-challenger"
@@ -464,7 +465,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     # per-file execution. Each worker still receives its own capture projection.
     def run_worker(index: int) -> None:
         staged = copy.copy(config)
-        staged.dcoir_v47_per_file_projection = True
+        setattr(staged, PER_FILE_PROJECTION_ATTR, True)
         fake.hardened.openrouter_review(
             f"worker-{index}", review_schema(), staged
         )

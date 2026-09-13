@@ -32,7 +32,7 @@ def main() -> None:
         "dcoir_review_required_runtime_patch_v50",
     )
     assert entrypoint.stage_local_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v47",
+        "dcoir_review.per_file_routing",
     )
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review_required_runtime_patch_v48",

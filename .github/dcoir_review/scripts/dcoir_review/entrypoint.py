@@ -102,7 +102,7 @@ class DcoirReviewEntrypoint:
     # contract only onto routine per-file first-pass calls after the fully
     # composed semantic pipeline exists; premium later stages remain unchanged.
     stage_local_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v47',
+        'dcoir_review.per_file_routing',
     )
     # Execution-policy overlays run last so they guard the fully composed provider
     # and publication paths without changing Architecture-B semantic ordering or
