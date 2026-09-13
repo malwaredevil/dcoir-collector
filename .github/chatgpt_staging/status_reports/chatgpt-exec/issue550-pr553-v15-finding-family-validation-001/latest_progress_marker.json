@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34752978482",
   "github_sha": "8382cb7a08b99064b0e45851f849c6f03b9152a0",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-v15-finding-family-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v15-finding-family-validation-001.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-13T10:53:27Z",
+  "updated_utc": "2026-09-13T10:53:30Z",
   "workflow": "chatgpt-exec"
 }
