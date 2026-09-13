@@ -1,0 +1,1 @@
+The source restore is pending application. The previous two recovery-note commits touched agent-ops only, not PR #553 source. PR source restoration must point ARCHITECTURE.md back to blob 3d7eb3a57a05c8dd89227b385e0edff60a31b998 and return the source tree to db815d83d73e1960fc9dcaa170bb69169ea61fad.
