@@ -38,6 +38,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "module_loader.py",
+    "normalized_finding_selection.py",
     "repair.py",
     "repair_pipeline.py",
     "repair_reliability.py",

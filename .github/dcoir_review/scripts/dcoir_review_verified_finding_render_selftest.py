@@ -121,7 +121,7 @@ def test_stable_owner_composition() -> None:
     assert 'dcoir_review.verified_finding_render' in names, names
     assert 'dcoir_review_required_runtime_patch_v24' not in names, names
     idx = names.index('dcoir_review.verified_finding_render')
-    assert names[idx - 1] == 'dcoir_review_required_runtime_patch_v23', names[max(0, idx-2):idx+3]
+    assert names[idx - 1] == 'dcoir_review.normalized_finding_selection', names[max(0, idx-2):idx+3]
     assert names[idx + 1] == 'dcoir_review.repair_pipeline', names[max(0, idx-2):idx+3]
 
 

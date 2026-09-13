@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Production-stack regression for DCOIR Review v23 ordinary selection."""
+"""Regression checks for stable normalized-finding selection compatibility."""
 
 from __future__ import annotations
 
@@ -80,11 +80,32 @@ def test_required_sentinel_keeps_priority_under_one_comment_budget(review, v20) 
         config.max_inline_comments = original_limit
 
 
+
+def test_stable_owner_composition() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    names = (
+        *entrypoint.patch_module_names,
+        *entrypoint.terminal_patch_module_names,
+        *entrypoint.post_terminal_patch_module_names,
+        *entrypoint.candidate_integrity_patch_module_names,
+        *entrypoint.stage_local_patch_module_names,
+        *entrypoint.execution_policy_patch_module_names,
+        *entrypoint.telemetry_patch_module_names,
+        *entrypoint.post_telemetry_patch_module_names,
+    )
+    assert 'dcoir_review.normalized_finding_selection' in names, names
+    assert 'dcoir_review_required_runtime_patch_v23' not in names, names
+    idx = names.index('dcoir_review.normalized_finding_selection')
+    assert names[idx - 1] == 'dcoir_review_required_runtime_patch_v22', names[max(0, idx-2):idx+4]
+    assert names[idx + 1] == 'dcoir_review.verified_finding_render', names[max(0, idx-2):idx+4]
+
+
 def main() -> None:
+    test_stable_owner_composition()
     review, v16, v20 = patched_review_modules()
     test_ordinary_finding_survives_both_selector_passes(review, v16)
     test_required_sentinel_keeps_priority_under_one_comment_budget(review, v20)
-    print("dcoir_review_required_runtime_patch_v23_selftest passed")
+    print("dcoir_review_normalized_finding_selection_selftest passed")
 
 
 if __name__ == "__main__":

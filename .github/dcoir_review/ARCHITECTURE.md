@@ -112,7 +112,18 @@ The next bounded retirement moves verifier-aware ordinary-finding rendering out 
 - the runtime module-loader registry classifies the stable owner as a direct-import module and the governed validation-command registry names the stable contract test directly;
 - the historical v24 runtime and version-specific self-test files are removed; Git history remains the archive.
 
-This v24 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback remain required after publication before the slice can be credited as governed validated.
+This v24 retirement is exact-head validated. ChatGPT Exec run `34746090998` passed at source head `11a7297678ab65930da4ff96bb64af6bed51388b`; its artifact records 56 production components, maximum numbered version 58, `retired=v24,v25,v26,v27,v28,v29`, stable `dcoir_review.verified_finding_render` ownership, and terminal marker `ISSUE550_PR553_V24_VERIFIED_FINDING_RENDER_VALIDATION_001_PASS`. Current-head CodeQL run `34745679351` also passed; Dependency Review is not enabled for this repository, and the 21 observed historical GHAS review threads remain resolved/outdated.
+
+The next bounded retirement moves normalized-finding selection compatibility out of historical v23:
+
+- `dcoir_review/normalized_finding_selection.py` owns the v23 contract that sentinel/required coverage retains priority while otherwise-eligible normalized model findings dropped by legacy required-coverage selection are restored only into spare inline capacity;
+- occupied sentinel sites and exact selected identities remain protected from duplicate restoration, and v21 remains the downstream publication gate for restored ordinary candidates;
+- production composition loads the stable owner at the former v23 position, after v22 and immediately before `dcoir_review.verified_finding_render`;
+- `dcoir_review_normalized_finding_selection_selftest.py` replaces the historical v23 self-test and mechanically asserts stable composition plus ordinary-candidate survival and one-comment sentinel priority;
+- the runtime module-loader registry and governed validation-command registry reference the stable owner/test directly;
+- the historical v23 runtime and version-specific self-test files are removed; Git history remains the archive.
+
+This v23 retirement is locally staged only. Exact-head GitHub validation and current-head security workflow readback remain required after publication before the slice can be credited as governed validated.
 
 ## Migration invariants
 

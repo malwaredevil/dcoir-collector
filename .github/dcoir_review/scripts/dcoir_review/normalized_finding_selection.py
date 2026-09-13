@@ -1,11 +1,11 @@
-"""DCOIR Review v23 normalized-finding selection compatibility overlay.
+"""Stable normalized-finding selection compatibility ownership.
 
 The required-coverage selector was designed around sentinel-backed findings.
 An ordinary model finding can already pass confidence/actionability checks and
 be exactly anchored to the changed diff, yet still be erased by legacy
 required-coverage selection before the v21 evidence verifier sees it.
 
-v23 wraps the final hardened selection callables used by production. Required
+This owner wraps the final hardened selection callables used by production. Required
 and optional sentinel coverage keeps priority. Any already-normalized model
 candidate dropped by that selector is restored only into spare inline capacity
 and never onto a line already occupied by selected sentinel coverage. v21
@@ -17,7 +17,6 @@ from __future__ import annotations
 from typing import Any
 
 
-VERSION = "v23"
 
 
 def _line_number(value: Any) -> int:
@@ -107,7 +106,7 @@ def _patch_final_hardened_selection(module: Any) -> None:
     if hardened is None:
         return
 
-    add_storage = "_dcoir_required_v23_original_add_risk_sentinel_fallback_findings"
+    add_storage = "_dcoir_normalized_selection_original_add_risk_sentinel_fallback_findings"
     original_add = getattr(hardened, add_storage, None)
     if original_add is None:
         original_add = getattr(hardened, "add_risk_sentinel_fallback_findings", None)
@@ -128,7 +127,7 @@ def _patch_final_hardened_selection(module: Any) -> None:
 
         hardened.add_risk_sentinel_fallback_findings = add_risk_sentinel_fallback_findings
 
-    enforce_storage = "_dcoir_required_v23_original_enforce_risk_sentinel_findings"
+    enforce_storage = "_dcoir_normalized_selection_original_enforce_risk_sentinel_findings"
     original_enforce = getattr(hardened, enforce_storage, None)
     if original_enforce is None:
         original_enforce = getattr(hardened, "enforce_risk_sentinel_findings", None)
