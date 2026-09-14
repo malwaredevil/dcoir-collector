@@ -1,4 +1,4 @@
-"""Architecture-B v50 unresolved verified-finding gate overlay."""
+"""Stable unresolved verified-finding gate for DCOIR Review."""
 
 from __future__ import annotations
 
@@ -7,17 +7,17 @@ from typing import Any
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import publication_disposition as publication
-import dcoir_review_required_runtime_patch_v50_prior as gate_prior
-import dcoir_review_required_runtime_patch_v50_state as gate_state
+from dcoir_review import verified_finding_gate_prior as gate_prior
+from dcoir_review import verified_finding_gate_state as gate_state
 
 VERSION = "v50"
-_APPLIED_ATTR = "_dcoir_v50_applied"
-_CONFIG_STORAGE = "_dcoir_v50_original_load_pareto_context_config"
-_VERIFIER_STORAGE = "_dcoir_v50_original_verify_findings_for_publication"
-_BODY_STORAGE = "_dcoir_v50_original_build_review_body_with_unanchored"
-_REPORTER_STORAGE = "_dcoir_v50_original_progress_reporter"
-_PRIOR_ATTR = "_dcoir_v50_prior_gate_context"
-_STATE_ATTR = "_dcoir_v50_gate_state"
+_APPLIED_ATTR = "_dcoir_review_verified_finding_gate_applied"
+_CONFIG_STORAGE = "_dcoir_review_verified_finding_gate_original_load_pareto_context_config"
+_VERIFIER_STORAGE = "_dcoir_review_verified_finding_gate_original_verify_findings_for_publication"
+_BODY_STORAGE = "_dcoir_review_verified_finding_gate_original_build_review_body_with_unanchored"
+_REPORTER_STORAGE = "_dcoir_review_verified_finding_gate_original_progress_reporter"
+_PRIOR_ATTR = "_dcoir_review_verified_finding_gate_prior_context"
+_STATE_ATTR = "_dcoir_review_verified_finding_gate_state"
 
 
 def _patch_config_loader(module: Any) -> None:
@@ -27,7 +27,7 @@ def _patch_config_loader(module: Any) -> None:
         if callable(original):
             setattr(module, _CONFIG_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v50 could not locate load_pareto_context_config")
+        raise RuntimeError("DCOIR verified-finding gate could not locate load_pareto_context_config")
 
     def load_pareto_context_config(path: str):
         config = original(path)
@@ -47,7 +47,7 @@ def _patch_verifier(module: Any) -> None:
         if callable(original):
             setattr(v21, _VERIFIER_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v50 could not locate the active publication verifier")
+        raise RuntimeError("DCOIR verified-finding gate could not locate the active publication verifier")
 
     def verify_findings_for_publication(
         review_module: Any,
@@ -65,7 +65,7 @@ def _patch_verifier(module: Any) -> None:
         disposition = getattr(review_module, publication._DISPOSITION_ATTR, None)
         if not isinstance(disposition, dict):
             raise review_module.hardened.ReviewQualityError(
-                "DCOIR v50 is missing the v45 exact-head verifier disposition"
+                "DCOIR verified-finding gate is missing the v45 exact-head verifier disposition"
             )
         carried = len(
             [item for item in prior.get("carried_records", []) if isinstance(item, dict)]
@@ -140,7 +140,7 @@ def _patch_review_body(module: Any) -> None:
         if callable(original):
             setattr(module, _BODY_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v50 could not locate the final review-body builder")
+        raise RuntimeError("DCOIR verified-finding gate could not locate the final review-body builder")
 
     def build_review_body_with_unanchored(
         result: dict[str, Any],
@@ -163,11 +163,11 @@ def _patch_review_body(module: Any) -> None:
         prior = getattr(module, _PRIOR_ATTR, None)
         if not isinstance(prior, dict):
             raise module.hardened.ReviewQualityError(
-                "DCOIR v50 publication is missing prior verified-finding gate context"
+                "DCOIR verified-finding gate publication is missing prior verified-finding gate context"
             )
         if not reviewed_commit:
             raise module.hardened.ReviewQualityError(
-                "DCOIR v50 publication could not determine the reviewed PR head SHA"
+                "DCOIR verified-finding gate publication could not determine the reviewed PR head SHA"
             )
         state = gate_state.compose_state(
             [item for item in findings if isinstance(item, dict)],
@@ -177,7 +177,7 @@ def _patch_review_body(module: Any) -> None:
         )
         if not gate_prior.persist_gate_state(module, config, state):
             raise module.hardened.ReviewQualityError(
-                "DCOIR v50 could not persist exact-head verified-finding gate state"
+                "DCOIR verified-finding gate could not persist exact-head verified-finding gate state"
             )
         setattr(module, _STATE_ATTR, state)
         final = gate_state.final_disposition(state)
@@ -215,10 +215,10 @@ def _patch_progress_reporter(module: Any) -> None:
         if isinstance(original, type):
             setattr(module, _REPORTER_STORAGE, original)
     if not isinstance(original, type):
-        raise RuntimeError("DCOIR v50 could not locate ProgressReporter")
+        raise RuntimeError("DCOIR verified-finding gate could not locate ProgressReporter")
     required = ("complete", "_record", "_body", "_update_comment")
     if any(not callable(getattr(original, name, None)) for name in required):
-        raise RuntimeError("DCOIR v50 ProgressReporter contract is incomplete")
+        raise RuntimeError("DCOIR verified-finding gate ProgressReporter contract is incomplete")
 
     class GateAwareProgressReporter(original):
         def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
@@ -267,14 +267,14 @@ def _patch_progress_reporter(module: Any) -> None:
 
     GateAwareProgressReporter.__name__ = original.__name__
     GateAwareProgressReporter.__qualname__ = original.__qualname__
-    GateAwareProgressReporter._dcoir_v50_gate_aware = True
+    GateAwareProgressReporter._dcoir_review_verified_finding_gate_aware = True
     patched = False
     for owner in owners:
         if getattr(owner, "ProgressReporter", None) is original:
             setattr(owner, "ProgressReporter", GateAwareProgressReporter)
             patched = True
     if not patched:
-        raise RuntimeError("DCOIR v50 could not install ProgressReporter overlay")
+        raise RuntimeError("DCOIR verified-finding gate could not install ProgressReporter overlay")
 
 
 def apply_pareto_context_module(module: Any) -> None:

@@ -67,6 +67,9 @@ DIRECT_IMPORT_MODULES = (
     "structured_result_provider.py",
     "structured_result_recovery.py",
     "structured_result_retry.py",
+    "verified_finding_gate.py",
+    "verified_finding_gate_prior.py",
+    "verified_finding_gate_state.py",
     "verified_finding_render.py",
     "pareto_context/credit_aware_concurrency.py",
     "selftests/provider_transport/fixtures.py",
@@ -198,6 +201,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v45" not in numbered, (
         "retired v45 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v50" not in numbered, (
+        "retired v50 production owner reappeared"
     )
     assert "dcoir_review_required_runtime_patch_v51" not in numbered, (
         "retired v51 production owner reappeared"

@@ -209,7 +209,7 @@ def test_production_registration() -> None:
         "dcoir_review_required_runtime_patch_v44",
         "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
-        "dcoir_review_required_runtime_patch_v50",
+        "dcoir_review.verified_finding_gate",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "verifier_authoritative_publication_review: true" in production

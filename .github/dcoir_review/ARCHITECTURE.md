@@ -349,3 +349,7 @@ DCOIR Review does not review changes to itself. Independent GitHub Copilot and E
 ## Validation before cutover completion
 
 Before #550 can be considered complete, the exact PR head must pass the governed DCOIR deterministic command set plus semantic recall/precision, provider transport/retry/fallback, malformed/schema/fail-closed, publication/deduplication/candidate-identity, repair-author/critic/budget, security/static, and applicable repository validation. Independent review findings must be dispositioned on the exact head. Post-merge `main` must then be read back and validated before the reviewer is restored to normal gating.
+
+### v50 verified-finding gate retirement
+
+`dcoir_review.verified_finding_gate` now owns incremental unresolved verified-finding gate composition. Pure gate rules and persisted compatibility contracts live in `verified_finding_gate_state.py`, while trusted prior-run artifact/readback logic lives in `verified_finding_gate_prior.py`. Historical v50 production and version-named self-test ownership is retired. The compatibility version `v50`, gate contract identifiers, and `metadata/*-v50.json` artifact paths remain unchanged because prior-run recovery consumes them as durable data rather than source ownership.

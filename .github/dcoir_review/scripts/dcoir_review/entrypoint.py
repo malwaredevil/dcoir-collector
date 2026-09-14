@@ -88,7 +88,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v44',
         'dcoir_review.publication_disposition',
         'dcoir_review_required_runtime_patch_v46',
-        'dcoir_review_required_runtime_patch_v50',
+        'dcoir_review.verified_finding_gate',
     )
     # Candidate-integrity overlays are cross-cutting semantic guards installed
     # after the composed Architecture-B post-terminal contract but before stage-

@@ -1,4 +1,4 @@
-"""Trusted prior-review readback for Architecture-B verified gate state v50."""
+"""Trusted prior-review readback for the stable verified-finding gate."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ import dcoir_review_required_runtime_patch_v41_review_state as v41_state
 import dcoir_review_required_runtime_patch_v41_scope as v41_scope
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
 from dcoir_review import publication_disposition as publication
-import dcoir_review_required_runtime_patch_v50_state as state
+from dcoir_review import verified_finding_gate_state as state
 
 
 def _artifact_json(payload: bytes, suffix: str) -> dict[str, Any] | None:

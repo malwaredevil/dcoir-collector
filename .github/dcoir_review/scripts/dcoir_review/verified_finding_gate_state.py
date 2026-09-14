@@ -1,4 +1,4 @@
-"""Pure verified-finding gate-state rules for Architecture-B v50."""
+"""Pure rules and compatibility contracts for the stable verified-finding gate."""
 
 from __future__ import annotations
 

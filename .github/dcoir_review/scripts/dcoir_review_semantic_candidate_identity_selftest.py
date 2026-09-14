@@ -279,7 +279,7 @@ def test_debug_manifest_records_candidate_provenance(review) -> None:
 def test_production_registration_and_config(review) -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-1] == (
-        "dcoir_review_required_runtime_patch_v50"
+        "dcoir_review.verified_finding_gate"
     )
     assert entrypoint.candidate_integrity_patch_module_names == (
         "dcoir_review.semantic_candidate_identity",

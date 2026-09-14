@@ -44,7 +44,7 @@ def main() -> None:
         "dcoir_review_required_runtime_patch_v44",
         "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
-        "dcoir_review_required_runtime_patch_v50",
+        "dcoir_review.verified_finding_gate",
     )
     assert entrypoint.stage_local_patch_module_names == (
         "dcoir_review.per_file_routing",

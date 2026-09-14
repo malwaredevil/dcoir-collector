@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline publication/reporter regressions for verified-finding gate state v50."""
+"""Offline publication/reporter regressions for verified-finding gate state verified_gate."""
 
 from __future__ import annotations
 
@@ -8,10 +8,10 @@ from types import SimpleNamespace
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import publication_disposition as publication
-import dcoir_review_required_runtime_patch_v50 as v50
-import dcoir_review_required_runtime_patch_v50_prior as prior_io
-import dcoir_review_required_runtime_patch_v50_state as state
-import dcoir_review_required_runtime_patch_v50_selftest as core
+from dcoir_review import verified_finding_gate as verified_gate
+from dcoir_review import verified_finding_gate_prior as prior_io
+from dcoir_review import verified_finding_gate_state as state
+import dcoir_review_verified_finding_gate_selftest as core
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -19,11 +19,11 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
     module = core.review_module()
-    setattr(module, v50._PRIOR_ATTR, core.blocked_prior())
+    setattr(module, verified_gate._PRIOR_ATTR, core.blocked_prior())
     original_persist = prior_io.persist_gate_state
     try:
         prior_io.persist_gate_state = lambda *_args: True
-        v50._patch_review_body(module)
+        verified_gate._patch_review_body(module)
         body = module.hardened.build_review_body_with_unanchored(
             {"summary": ""}, [], [], "model", core.config(), core.NEW_HEAD
         )
@@ -33,7 +33,7 @@ def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
     assert "Gate status: `BLOCKED`" in body
     assert "Carried unresolved prior verified findings: `1`" in body
     assert "src/b.py:20" in body
-    active = getattr(module, v50._STATE_ATTR)
+    active = getattr(module, verified_gate._STATE_ATTR)
     assert active["gate_status"] == "blocked"
     assert active["current_published_count"] == 0
     assert active["carried_unresolved_count"] == 1
@@ -43,11 +43,11 @@ def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
 
 def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
     module = core.review_module()
-    setattr(module, v50._PRIOR_ATTR, core.blocked_prior())
+    setattr(module, verified_gate._PRIOR_ATTR, core.blocked_prior())
     original_persist = prior_io.persist_gate_state
     try:
         prior_io.persist_gate_state = lambda *_args: False
-        v50._patch_review_body(module)
+        verified_gate._patch_review_body(module)
         try:
             module.hardened.build_review_body_with_unanchored(
                 {"summary": ""}, [], [], "model", core.config(), core.NEW_HEAD
@@ -58,14 +58,14 @@ def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
             raise AssertionError("gate-state persistence failure must block publication")
     finally:
         prior_io.persist_gate_state = original_persist
-    assert not hasattr(module, v50._STATE_ATTR)
+    assert not hasattr(module, verified_gate._STATE_ATTR)
 
 
 def test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_telemetry() -> None:
     module = core.review_module()
     original = v21.verify_findings_for_publication
-    stored = getattr(v21, v50._VERIFIER_STORAGE, None)
-    had_stored = hasattr(v21, v50._VERIFIER_STORAGE)
+    stored = getattr(v21, verified_gate._VERIFIER_STORAGE, None)
+    had_stored = hasattr(v21, verified_gate._VERIFIER_STORAGE)
     original_loader = prior_io.load_prior_gate_context
     updates: list[tuple[str, str]] = []
     try:
@@ -83,10 +83,10 @@ def test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_teleme
             return items
 
         v21.verify_findings_for_publication = prior_verifier
-        if hasattr(v21, v50._VERIFIER_STORAGE):
-            delattr(v21, v50._VERIFIER_STORAGE)
+        if hasattr(v21, verified_gate._VERIFIER_STORAGE):
+            delattr(v21, verified_gate._VERIFIER_STORAGE)
         prior_io.load_prior_gate_context = lambda *_args: core.blocked_prior()
-        v50._patch_verifier(module)
+        verified_gate._patch_verifier(module)
         reporter = SimpleNamespace(update=lambda kind, text: updates.append((kind, text)))
         item = core.current_finding("src/a.py", 10, "Current")
         verified = v21.verify_findings_for_publication(
@@ -107,17 +107,17 @@ def test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_teleme
         v21.verify_findings_for_publication = original
         prior_io.load_prior_gate_context = original_loader
         if had_stored:
-            setattr(v21, v50._VERIFIER_STORAGE, stored)
-        elif hasattr(v21, v50._VERIFIER_STORAGE):
-            delattr(v21, v50._VERIFIER_STORAGE)
+            setattr(v21, verified_gate._VERIFIER_STORAGE, stored)
+        elif hasattr(v21, verified_gate._VERIFIER_STORAGE):
+            delattr(v21, verified_gate._VERIFIER_STORAGE)
 
 
 def test_completion_reporter_exposes_blocked_carried_state() -> None:
     module = core.review_module()
-    v50._patch_progress_reporter(module)
+    verified_gate._patch_progress_reporter(module)
     setattr(
         module,
-        v50._STATE_ATTR,
+        verified_gate._STATE_ATTR,
         {
             "gate_status": "blocked",
             "carried_unresolved_count": 2,
@@ -136,10 +136,10 @@ def test_completion_reporter_exposes_blocked_carried_state() -> None:
 
 def test_completion_reporter_exposes_indeterminate_gate() -> None:
     module = core.review_module()
-    v50._patch_progress_reporter(module)
+    verified_gate._patch_progress_reporter(module)
     setattr(
         module,
-        v50._STATE_ATTR,
+        verified_gate._STATE_ATTR,
         {
             "gate_status": "indeterminate",
             "carried_unresolved_count": 0,
@@ -156,8 +156,8 @@ def test_completion_reporter_exposes_indeterminate_gate() -> None:
 
 def test_completion_reporter_delegates_when_gate_is_clear() -> None:
     module = core.review_module()
-    v50._patch_progress_reporter(module)
-    setattr(module, v50._STATE_ATTR, {"gate_status": "clear"})
+    verified_gate._patch_progress_reporter(module)
+    setattr(module, verified_gate._STATE_ATTR, {"gate_status": "clear"})
     reporter = module.ProgressReporter(core.config())
     reporter.complete("model", 0, "COMMENT")
     assert "legacy completion" in reporter.steps[-1][1]
@@ -169,13 +169,13 @@ def test_completion_reporter_patches_production_owner_aliases() -> None:
     delattr(module, "ProgressReporter")
     module.base.ProgressReporter = original
     module.hardened.ProgressReporter = original
-    v50._patch_progress_reporter(module)
+    verified_gate._patch_progress_reporter(module)
     assert module.base.ProgressReporter is module.hardened.ProgressReporter
     assert module.base.ProgressReporter is not original
-    assert getattr(module.base.ProgressReporter, "_dcoir_v50_gate_aware", False) is True
+    assert getattr(module.base.ProgressReporter, "_dcoir_review_verified_finding_gate_aware", False) is True
     setattr(
         module,
-        v50._STATE_ATTR,
+        verified_gate._STATE_ATTR,
         {
             "gate_status": "blocked",
             "carried_unresolved_count": 1,
@@ -193,12 +193,12 @@ def test_production_registration() -> None:
         "dcoir_review_required_runtime_patch_v44",
         "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
-        "dcoir_review_required_runtime_patch_v50",
+        "dcoir_review.verified_finding_gate",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "verified_finding_gate_state_review: true" in production
-    assert "dcoir_review_required_runtime_patch_v50_selftest.py" in production
-    assert "dcoir_review_required_runtime_patch_v50_publication_selftest.py" in production
+    assert "dcoir_review_verified_finding_gate_selftest.py" in production
+    assert "dcoir_review_verified_finding_gate_publication_selftest.py" in production
 
 
 def main() -> None:
@@ -210,7 +210,7 @@ def main() -> None:
     test_completion_reporter_delegates_when_gate_is_clear()
     test_completion_reporter_patches_production_owner_aliases()
     test_production_registration()
-    print("dcoir_review_required_runtime_patch_v50_publication_selftest passed")
+    print("dcoir_review_verified_finding_gate_publication_selftest passed")
 
 
 if __name__ == "__main__":

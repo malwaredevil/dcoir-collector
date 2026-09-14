@@ -11,8 +11,8 @@ from types import SimpleNamespace
 
 from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
-import dcoir_review_required_runtime_patch_v50_prior as prior_io
-import dcoir_review_required_runtime_patch_v50_state as state
+from dcoir_review import verified_finding_gate_prior as prior_io
+from dcoir_review import verified_finding_gate_state as state
 
 OLD_HEAD = "a" * 40
 NEW_HEAD = "b" * 40
@@ -215,7 +215,7 @@ def main() -> None:
     test_legacy_nonzero_without_complete_inline_state_fails_closed()
     test_legacy_zero_finding_disposition_migrates_cleanly()
     test_gate_state_persists_when_debug_is_disabled()
-    print("dcoir_review_required_runtime_patch_v50_selftest passed")
+    print("dcoir_review_verified_finding_gate_selftest passed")
 
 
 if __name__ == "__main__":

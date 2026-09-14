@@ -321,7 +321,7 @@ def test_config_and_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-2:] == (
         "dcoir_review_required_runtime_patch_v46",
-        "dcoir_review_required_runtime_patch_v50",
+        "dcoir_review.verified_finding_gate",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "canonical_semantic_context_review: true" in production
