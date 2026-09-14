@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-ghas-review-scope-cycle-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-14T10:16:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-ghas-review-scope-cycle-validation-001.ps1",
+  "approved_command_preview": "No-inference exact-head validation for PR #553 source head b24aa32e83d69ef3f93258b2675d7aac98f49b01 / tree bf703010b103180a67a3d741db29fe852b1555cb. Run the governed DCOIR validation registry in an isolated worktree; verify the review-scope GHAS cycle correction uses owner-module injection with no hook back-import; preserve full v48 and v34 stable-owner contracts, semantic recall/precision, architecture inventory, and Windows parser invariants. Clear provider/model credentials and make no inference/provider/model calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+  "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-ghas-review-scope-cycle-validation-001.ps1'"
+}
