@@ -1,0 +1,13 @@
+{
+    "schema":  "dcoir.chatgpt_staging.exec_request.v1",
+    "request_id":  "issue550-pr553-v42-semantic-review-ledger-validation-001",
+    "operator_approved":  true,
+    "approved_at_utc":  "2026-09-14T12:18:50Z",
+    "shell":  "powershell_5",
+    "timeout_seconds":  1800,
+    "artifact_retention_days":  3,
+    "cleanup_request_after_run":  true,
+    "script_path":  ".github/chatgpt_staging/exec_scripts/issue550-pr553-v42-semantic-review-ledger-validation-001.ps1",
+    "approved_command_preview":  "No-inference exact-head validation for PR #553 source head 7555beea5e1de15a20ff21d258bd1bd6486dd6a2 / tree d87d0b1c2bbee6acfb2218c20c676a5ed634d870. Run the governed 59-command DCOIR registry in an isolated worktree; require 56 production components, max numbered version 57, zero missing modules; prove historical v42 root/helper/selftest ownership is retired; require stable semantic_review_ledger/builder/contract/fingerprints/hooks ownership, exact incremental_review_frontier -\u003e semantic_review_ledger -\u003e v43 composition, and preserved v42 contract/client-attribute/dependency/reuse compatibility data. Carry forward v41/v52/v51/v50/v48/v45/v34 invariants, semantic recall 12/10/2, precision 1.0/1.0 with zero regressions, and the 293-file Windows parser. Clear provider/model credentials and make no inference/provider calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+    "command":  "\u0026 \u0027D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v42-semantic-review-ledger-validation-001.ps1\u0027"
+}
