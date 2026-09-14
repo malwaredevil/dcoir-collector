@@ -1,0 +1,13 @@
+{
+    "schema": "dcoir.chatgpt_staging.exec_request.v1",
+    "request_id": "issue550-pr553-v48-review-scope-guard-validation-001",
+    "operator_approved": true,
+    "approved_at_utc": "2026-09-14T09:45:04Z",
+    "shell": "powershell_5",
+    "timeout_seconds": 1800,
+    "artifact_retention_days": 3,
+    "cleanup_request_after_run": true,
+    "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v48-review-scope-guard-validation-001.ps1",
+    "approved_command_preview": "No-inference exact-head validation for PR #553 source head 31dfc84f4849b960d937580e580f7aaf2ca3a860 / tree 19158833ed235bb5aea7a4bad575221636672891. Run the governed 59-command DCOIR registry in an isolated worktree; require 56 production components, max numbered version 57, zero missing modules; prove full historical v48 review-scope ownership is retired, stable dcoir_review.review_scope_guard and dcoir_review.prompt_review_scope_guard ownership, exact review_scope_guard -> prompt_review_scope_guard -> v52 -> v53 composition, preserved stale-head artifact/schema/terminal contracts, semantic recall 12/10/2, precision 1.0/1.0 with zero regressions, and the 293-file Windows parser. Clear provider/model credentials and make no inference or provider/model calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+    "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v48-review-scope-guard-validation-001.ps1'"
+}
