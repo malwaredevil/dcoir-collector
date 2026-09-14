@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-v37-semantic-adjudication-normalization-validation-002",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-14T05:03:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v37-semantic-adjudication-normalization-validation-002.ps1",
+  "approved_command_preview": "Bounded retry of the already-approved no-inference exact-head validation for PR #553 source head 137873e568273181c113b53b21a97f1f8536da1d / tree 3c163de26263d6a8310b904b585b7d6d87e216b0. The only control correction from -001 is invoking the staged validation wrapper through the actual .github/chatgpt_staging path and assigning the unique -002 request/terminal marker. Run the governed 59-command DCOIR registry in an isolated worktree, require 56 production components with max numbered version 57 and zero missing modules, prove historical v37/v55/v58 production ownership is retired, prove stable v36 -> dcoir_review.semantic_adjudication_normalization -> v38 and v54 -> provider_transport_retry -> semantic_adjudication_recovery -> v56 composition, confirm semantic recall 12/10/2, precision 1.0/1.0 with zero regressions, and the 293-file Windows parser. Provider/model credentials are cleared before validation; make no inference or provider/model calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+  "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v37-semantic-adjudication-normalization-validation-002.ps1'"
+}
