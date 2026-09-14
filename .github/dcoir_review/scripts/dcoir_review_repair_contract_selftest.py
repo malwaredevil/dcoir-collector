@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v38 repair-author contract hardening."""
+"""Regression checks for the stable DCOIR Review repair-author/critic contract."""
 
 from __future__ import annotations
 
@@ -12,17 +12,17 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v38" in names
-    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review_required_runtime_patch_v38")
-    assert names.index("dcoir_review_required_runtime_patch_v38") < names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review.repair_contract" in names
+    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review.repair_contract")
+    assert names.index("dcoir_review.repair_contract") < names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
-    v38 = importlib.import_module("dcoir_review_required_runtime_patch_v38")
+    contract = importlib.import_module("dcoir_review.repair_contract")
 
-    assert getattr(review, v38.APPLIED_MARKER, False) is True
+    assert getattr(review, contract.APPLIED_MARKER, False) is True
     assert v36.AUTHOR_MIN_CONFIDENCE == 0.0
     assert v36.CRITIC_MIN_CONFIDENCE == 0.95
 
@@ -40,7 +40,7 @@ def main() -> None:
     }
 
     # Reproduce the live v37 repair-author drift: exact edit, but no purpose and
-    # no author confidence. v38 may fill only those metadata fields.
+    # no author confidence. The stable repair contract may fill only those metadata fields.
     live_shape = {
         "defect_present": True,
         "action": "repair_set",
@@ -71,7 +71,7 @@ def main() -> None:
     assert parsed_low["action"] == "repair_set"
     assert parsed_low["confidence"] == 0.78
 
-    # Structural defects remain fail-closed; v38 does not fabricate repair
+    # Structural defects remain fail-closed; the stable repair contract does not fabricate repair
     # semantics beyond purpose/confidence metadata.
     malformed = dict(live_shape)
     malformed["edits"] = [
@@ -103,7 +103,7 @@ def main() -> None:
     for phrase in ("EVERY edit MUST contain all six fields", "purpose", "confidence", "independent cross-family critic"):
         assert phrase in prompt
 
-    # Exercise the v38-hardened v36 synthesis contract with the same near-schema
+    # Exercise the repair-contract-hardened v36 synthesis contract with the same near-schema
     # author shape seen live: no purpose and no confidence. The independent
     # critic, exact-head validation, and native suggestion rendering must still
     # execute successfully. The synthetic source remains valid Python both before
@@ -189,17 +189,17 @@ def main() -> None:
     assert len(comments) == 1
     assert "```suggestion\n    fixed_call()\n```" in comments[0]["body"]
 
-    source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38.py").read_text(encoding="utf-8")
+    source = Path(".github/dcoir_review/scripts/dcoir_review/repair_contract.py").read_text(encoding="utf-8")
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 
     prompt_before = v36._repair_author_prompt
     parse_before = v36._parse_author
-    v38.apply_pareto_context_module(review)
+    contract.apply_pareto_context_module(review)
     assert v36._repair_author_prompt is prompt_before
     assert v36._parse_author is parse_before
 
-    print("dcoir_review_required_runtime_patch_v38_selftest passed")
+    print("dcoir_review_repair_contract_selftest passed")
 
 
 if __name__ == "__main__":

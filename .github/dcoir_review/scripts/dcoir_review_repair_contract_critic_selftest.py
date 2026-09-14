@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Focused fail-closed regression for the v38 repair critic confidence gate."""
+"""Focused fail-closed regression for the stable repair-critic confidence gate."""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def main() -> None:
     )
     assert accepted is False and confidence == 0.949
 
-    print("dcoir_review_required_runtime_patch_v38_critic_selftest passed")
+    print("dcoir_review_repair_contract_critic_selftest passed")
 
 
 if __name__ == "__main__":

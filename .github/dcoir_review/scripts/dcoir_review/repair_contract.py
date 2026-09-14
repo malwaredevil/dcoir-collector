@@ -1,4 +1,4 @@
-"""DCOIR Review v38 repair-author contract hardening.
+"""Stable DCOIR Review repair-author/critic contract hardening.
 
 A live blind issue-456 run proved that v37 preserves semantic findings through
 publication, but all three verified repairs failed before the independent critic
@@ -33,12 +33,11 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v36 as v36
 
 
-VERSION = "v38"
-APPLIED_MARKER = "_dcoir_review_v38_applied"
-PROMPT_STORAGE = "_dcoir_review_v38_original_repair_author_prompt"
-PARSE_STORAGE = "_dcoir_review_v38_original_parse_author"
-CRITIC_PROMPT_STORAGE = "_dcoir_review_v38_original_repair_critic_prompt"
-CRITIC_PARSE_STORAGE = "_dcoir_review_v38_original_parse_critic"
+APPLIED_MARKER = "_dcoir_review_repair_contract_applied"
+PROMPT_STORAGE = "_dcoir_review_repair_contract_original_repair_author_prompt"
+PARSE_STORAGE = "_dcoir_review_repair_contract_original_parse_author"
+CRITIC_PROMPT_STORAGE = "_dcoir_review_repair_contract_original_repair_critic_prompt"
+CRITIC_PARSE_STORAGE = "_dcoir_review_repair_contract_original_parse_critic"
 CRITIC_MIN_CONFIDENCE = 0.95
 AUTHOR_MIN_CONFIDENCE = 0.0
 
@@ -90,7 +89,7 @@ def _patch_repair_author_contract() -> None:
         if callable(original_prompt):
             setattr(v36, PROMPT_STORAGE, original_prompt)
     if not callable(original_prompt):
-        raise RuntimeError("DCOIR v38 could not locate v36 repair-author prompt")
+        raise RuntimeError("DCOIR repair contract could not locate the repair-author prompt")
 
     original_parse = getattr(v36, PARSE_STORAGE, None)
     if original_parse is None:
@@ -98,7 +97,7 @@ def _patch_repair_author_contract() -> None:
         if callable(original_parse):
             setattr(v36, PARSE_STORAGE, original_parse)
     if not callable(original_parse):
-        raise RuntimeError("DCOIR v38 could not locate v36 repair-author parser")
+        raise RuntimeError("DCOIR repair contract could not locate the repair-author parser")
 
     original_critic_prompt = getattr(v36, CRITIC_PROMPT_STORAGE, None)
     if original_critic_prompt is None:
@@ -106,7 +105,7 @@ def _patch_repair_author_contract() -> None:
         if callable(original_critic_prompt):
             setattr(v36, CRITIC_PROMPT_STORAGE, original_critic_prompt)
     if not callable(original_critic_prompt):
-        raise RuntimeError("DCOIR v38 could not locate v36 repair-critic prompt")
+        raise RuntimeError("DCOIR repair contract could not locate the repair-critic prompt")
 
     original_critic_parse = getattr(v36, CRITIC_PARSE_STORAGE, None)
     if original_critic_parse is None:
@@ -114,7 +113,7 @@ def _patch_repair_author_contract() -> None:
         if callable(original_critic_parse):
             setattr(v36, CRITIC_PARSE_STORAGE, original_critic_parse)
     if not callable(original_critic_parse):
-        raise RuntimeError("DCOIR v38 could not locate v36 repair-critic parser")
+        raise RuntimeError("DCOIR repair contract could not locate the repair-critic parser")
 
     def _repair_author_prompt(
         module: Any,

@@ -254,9 +254,22 @@ The migration must preserve externally observable behavior before historical lay
 - genuinely orphaned maintained modules remain a validation failure while ordinary direct-import modules are not forced into runtime-segment ownership;
 - known-positive canaries retain recall and clean controls remain clean.
 
+### Repair-author/critic contract retirement
+
+The next bounded retirement moves repair-author/critic output-contract hardening out of historical v38:
+
+- `dcoir_review/repair_contract.py` owns the non-semantic repair-author metadata normalization, explicit author/critic prompt contracts, advisory author-confidence posture, and independent critic confidence acceptance/range checks;
+- production composition loads `dcoir_review.repair_contract` at the former v38 position between semantic-adjudication normalization and semantic-adjudication confidence, preserving execution order without numbered ownership;
+- `dcoir_review_repair_contract_selftest.py` and `dcoir_review_repair_contract_critic_selftest.py` own the stable behavioral/fail-closed regression contract;
+- private apply/original-function storage markers use responsibility-based names because no externally meaningful v38 artifact/schema contract requires historical marker preservation;
+- the runtime module-loader guard classifies `repair_contract.py` as a direct-import module and rejects reintroduction of historical v38 production ownership;
+- the historical v38 production module and version-specific self-tests are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
+
 ## Patch-chain freeze
 
-v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58, v55, v39, or v37 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
+v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58, v55, v39, v38, or v37 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
 
 ## Retirement rules
 

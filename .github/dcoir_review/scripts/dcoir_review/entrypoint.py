@@ -63,7 +63,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v36',
         'dcoir_review.semantic_adjudication_normalization',
-        'dcoir_review_required_runtime_patch_v38',
+        'dcoir_review.repair_contract',
         'dcoir_review.semantic_adjudication_confidence',
         'dcoir_review_required_runtime_patch_v31',
     )

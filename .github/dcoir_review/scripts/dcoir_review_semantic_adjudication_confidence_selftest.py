@@ -31,7 +31,7 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
     assert "dcoir_review.semantic_adjudication_confidence" in names
-    assert names.index("dcoir_review_required_runtime_patch_v38") < names.index(
+    assert names.index("dcoir_review.repair_contract") < names.index(
         "dcoir_review.semantic_adjudication_confidence"
     )
     assert names.index("dcoir_review.semantic_adjudication_confidence") < names.index(
