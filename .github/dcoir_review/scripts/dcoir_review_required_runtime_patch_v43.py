@@ -6,7 +6,7 @@ import os
 import threading
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
+from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v43_reuse as reuse
 

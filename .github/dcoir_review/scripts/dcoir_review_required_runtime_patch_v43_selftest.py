@@ -101,7 +101,7 @@ def make_module(semantic_calls, debug_payloads):
 
 def main() -> None:
     assert DcoirReviewEntrypoint().terminal_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v41",
+        "dcoir_review.incremental_review_frontier",
         "dcoir_review_required_runtime_patch_v42",
         "dcoir_review_required_runtime_patch_v43",
     )

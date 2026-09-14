@@ -73,7 +73,7 @@ class DcoirReviewEntrypoint:
     # (v41), semantic-ledger/fingerprint foundation (v42), then fail-closed
     # semantic-result reuse on exact compatible evidence (v43).
     terminal_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v41',
+        'dcoir_review.incremental_review_frontier',
         'dcoir_review_required_runtime_patch_v42',
         'dcoir_review_required_runtime_patch_v43',
     )

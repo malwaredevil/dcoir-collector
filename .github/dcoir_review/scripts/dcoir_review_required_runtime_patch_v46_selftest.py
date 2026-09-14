@@ -7,7 +7,7 @@ import copy
 from pathlib import Path
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
+from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review_required_runtime_patch_v46 as v46
 import dcoir_review_required_runtime_patch_v46_budget as budget
 import dcoir_review_required_runtime_patch_v46_context as context

@@ -201,8 +201,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_confidence_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_per_file_coverage_recovery_v40_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_credit_aware_concurrency_v49_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_provenance_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_incremental_review_frontier_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_incremental_review_provenance_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py

@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Any
 
-from dcoir_review_required_runtime_patch_v41_review_state import (
+from dcoir_review.incremental_review_state import (
     ARCHITECTURE_CONTRACT,
     PROVENANCE_PREFIX,
 )

@@ -1,4 +1,4 @@
-"""Runtime hooks composing the v41 review-scope overlay."""
+"""Runtime hooks composing the stable incremental review frontier."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import copy
 import os
 from typing import Any
 
-from dcoir_review_required_runtime_patch_v41_review_state import (
+from dcoir_review.incremental_review_state import (
     ARCHITECTURE_CONTRACT,
     ARCHITECTURE_CONTRACT_MARKER,
     BASE_CONTRACT_PREFIX,
@@ -14,16 +14,16 @@ from dcoir_review_required_runtime_patch_v41_review_state import (
     build_review_provenance_marker,
     latest_compatible_context_review,
 )
-from dcoir_review_required_runtime_patch_v41_scope import (
+from dcoir_review.incremental_review_scope import (
     INITIAL_DIFF_CONSUMED_KEY,
     SCOPE_CACHE_ATTR,
     resolve_review_scope,
 )
 
-_GET_DIFF_STORAGE = "_dcoir_v41_original_get_pr_diff"
-_LIST_FILES_STORAGE = "_dcoir_v41_original_list_files"
-_DEEP_CONTEXT_STORAGE = "_dcoir_v41_original_build_deep_context_block"
-_DEBUG_JSON_STORAGE = "_dcoir_v41_original_write_debug_json_artifact_safely"
+_GET_DIFF_STORAGE = "_dcoir_review_incremental_frontier_original_get_pr_diff"
+_LIST_FILES_STORAGE = "_dcoir_review_incremental_frontier_original_list_files"
+_DEEP_CONTEXT_STORAGE = "_dcoir_review_incremental_frontier_original_build_deep_context_block"
+_DEBUG_JSON_STORAGE = "_dcoir_review_incremental_frontier_original_write_debug_json_artifact_safely"
 _LAST_SCOPE: dict[str, Any] = {}
 
 
@@ -40,7 +40,7 @@ def _scope_summary(scope: dict[str, Any]) -> str:
 
 
 def apply_pareto_context_module(module: Any) -> None:
-    """Apply the v41 incremental-frontier overlay to the active review module."""
+    """Apply the stable incremental-frontier composition to the active review module."""
     global _LAST_SCOPE
     _LAST_SCOPE = {}
     client_cls = module.base.GitHubClient

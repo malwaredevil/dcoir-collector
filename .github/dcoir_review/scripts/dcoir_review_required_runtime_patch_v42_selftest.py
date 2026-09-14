@@ -14,7 +14,7 @@ def main() -> None:
     v42 = importlib.import_module("dcoir_review_required_runtime_patch_v42")
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.terminal_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v41",
+        "dcoir_review.incremental_review_frontier",
         "dcoir_review_required_runtime_patch_v42",
         "dcoir_review_required_runtime_patch_v43",
     )
@@ -68,7 +68,7 @@ def main() -> None:
         update=lambda stage, message: reporter_events.append((stage, message))
     )
     gh = SimpleNamespace(
-        _dcoir_v41_review_scope={
+        _dcoir_review_incremental_scope={
             "source": "incremental-reviewed-head",
             "prior_reviewed_head_sha": "1" * 40,
             "current_head_sha": "2" * 40,

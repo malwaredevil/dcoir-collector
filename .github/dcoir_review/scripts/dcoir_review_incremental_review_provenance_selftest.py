@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 
 def main() -> None:
-    state = importlib.import_module("dcoir_review_required_runtime_patch_v41_review_state")
+    state = importlib.import_module("dcoir_review.incremental_review_state")
     base_sha = "1" * 40
     reviewed_head = "a" * 40
     repo = "malwaredevil/dcoir-collector"
@@ -143,7 +143,7 @@ def main() -> None:
         else:
             os.environ["DCOIR_REVIEW_STATE_HMAC_KEY"] = old_dedicated
 
-    print("dcoir_review_required_runtime_patch_v41_provenance_selftest passed")
+    print("dcoir_review_incremental_review_provenance_selftest passed")
 
 
 if __name__ == "__main__":

@@ -39,6 +39,10 @@ DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "finding_family.py",
     "finding_verifier.py",
+    "incremental_review_frontier.py",
+    "incremental_review_frontier_hooks.py",
+    "incremental_review_scope.py",
+    "incremental_review_state.py",
     "module_loader.py",
     "normalized_finding_selection.py",
     "per_file_routing.py",
@@ -198,6 +202,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v48_prompt_guard" not in numbered, (
         "retired v48 prompt-review companion production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v41" not in numbered, (
+        "retired v41 production owner reappeared"
     )
     assert "dcoir_review_required_runtime_patch_v45" not in numbered, (
         "retired v45 production owner reappeared"

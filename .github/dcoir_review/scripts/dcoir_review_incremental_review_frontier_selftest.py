@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Architecture-B incremental review frontier (v41)."""
+"""Regression checks for the stable DCOIR Architecture-B incremental review frontier."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
     assert entrypoint.terminal_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v41",
+        "dcoir_review.incremental_review_frontier",
         "dcoir_review_required_runtime_patch_v42",
         "dcoir_review_required_runtime_patch_v43",
     )
@@ -39,7 +39,7 @@ def main() -> None:
     assert applied_modules == ["test-explicit-subset"]
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
-    v41 = importlib.import_module("dcoir_review_required_runtime_patch_v41")
+    v41 = importlib.import_module("dcoir_review.incremental_review_frontier")
     assert v41.TRUSTED_REVIEW_AUTHORS == frozenset({"github-actions[bot]"})
     assert v41.TRUSTED_WORKFLOW_PATH == ".github/workflows/openrouter-pr-review.yml"
     assert v41.PROVENANCE_PREFIX == "DCOIR review provenance: "
@@ -223,10 +223,10 @@ def main() -> None:
     source = "".join(
         (source_root / name).read_text(encoding="utf-8")
         for name in (
-            "dcoir_review_required_runtime_patch_v41.py",
-            "dcoir_review_required_runtime_patch_v41_review_state.py",
-            "dcoir_review_required_runtime_patch_v41_scope.py",
-            "dcoir_review_required_runtime_patch_v41_hooks.py",
+            "dcoir_review/incremental_review_frontier.py",
+            "dcoir_review/incremental_review_state.py",
+            "dcoir_review/incremental_review_scope.py",
+            "dcoir_review/incremental_review_frontier_hooks.py",
         )
     )
     for required in (
@@ -243,7 +243,7 @@ def main() -> None:
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 
-    print("dcoir_review_required_runtime_patch_v41_selftest passed")
+    print("dcoir_review_incremental_review_frontier_selftest passed")
 
 
 if __name__ == "__main__":

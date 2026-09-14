@@ -9,8 +9,8 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v41_review_state as v41_state
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
+from dcoir_review import incremental_review_state as v41_state
+from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
 from dcoir_review import publication_disposition as publication
 from dcoir_review import verified_finding_gate_state as state

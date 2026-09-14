@@ -1,7 +1,7 @@
-"""DCOIR Review v41 Architecture-B incremental review frontier composition layer."""
+"""Stable Architecture-B incremental review frontier composition for DCOIR Review."""
 
-from dcoir_review_required_runtime_patch_v41_hooks import apply_pareto_context_module
-from dcoir_review_required_runtime_patch_v41_review_state import (
+from dcoir_review.incremental_review_frontier_hooks import apply_pareto_context_module
+from dcoir_review.incremental_review_state import (
     ARCHITECTURE_CONTRACT,
     ARCHITECTURE_CONTRACT_MARKER,
     BASE_CONTRACT_PREFIX,
@@ -11,7 +11,7 @@ from dcoir_review_required_runtime_patch_v41_review_state import (
     build_review_provenance_marker,
     latest_compatible_context_review,
 )
-from dcoir_review_required_runtime_patch_v41_scope import (
+from dcoir_review.incremental_review_scope import (
     INITIAL_DIFF_CONSUMED_KEY,
     SCOPE_CACHE_ATTR,
     resolve_review_scope,

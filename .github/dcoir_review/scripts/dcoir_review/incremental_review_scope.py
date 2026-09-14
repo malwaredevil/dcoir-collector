@@ -1,4 +1,4 @@
-"""Review-scope resolution for the v41 runtime overlay."""
+"""Incremental-versus-cumulative review-scope resolution."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ import os
 import urllib.parse
 from typing import Any
 
-from dcoir_review_required_runtime_patch_v41_review_state import (
+from dcoir_review.incremental_review_state import (
     ARCHITECTURE_CONTRACT,
     _review_base_sha,
     latest_compatible_context_review,
 )
 
-SCOPE_CACHE_ATTR = "_dcoir_v41_review_scope"
+SCOPE_CACHE_ATTR = "_dcoir_review_incremental_scope"
 INITIAL_DIFF_CONSUMED_KEY = "_initial_semantic_diff_consumed"
 
 

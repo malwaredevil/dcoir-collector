@@ -1,4 +1,4 @@
-"""Trusted review-state parsing for the v41 runtime overlay."""
+"""Trusted review-state and provenance parsing for the incremental review frontier."""
 
 from __future__ import annotations
 

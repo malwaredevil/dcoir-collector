@@ -353,3 +353,7 @@ Before #550 can be considered complete, the exact PR head must pass the governed
 ### v50 verified-finding gate retirement
 
 `dcoir_review.verified_finding_gate` now owns incremental unresolved verified-finding gate composition. Pure gate rules and persisted compatibility contracts live in `verified_finding_gate_state.py`, while trusted prior-run artifact/readback logic lives in `verified_finding_gate_prior.py`. Historical v50 production and version-named self-test ownership is retired. The compatibility version `v50`, gate contract identifiers, and `metadata/*-v50.json` artifact paths remain unchanged because prior-run recovery consumes them as durable data rather than source ownership.
+
+### v41 incremental review frontier retirement
+
+`dcoir_review.incremental_review_frontier` now owns Architecture-B incremental review-frontier composition. `incremental_review_state.py` owns trusted prior-review/HMAC provenance parsing, `incremental_review_scope.py` owns incremental-versus-cumulative scope resolution, and `incremental_review_frontier_hooks.py` owns runtime wiring. Historical v41 production/helper/self-test ownership is retired. Compatibility values including `v41`, `architecture-b-v1`, review/base/provenance marker text, trusted workflow identity, and frontier-signature payload semantics remain unchanged. Internal v41-prefixed scope/storage attributes are replaced by responsibility-named implementation markers.

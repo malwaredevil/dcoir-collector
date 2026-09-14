@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
+from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review_required_runtime_patch_v43 as v43
 import dcoir_review_required_runtime_patch_v43_reuse as reuse
 
