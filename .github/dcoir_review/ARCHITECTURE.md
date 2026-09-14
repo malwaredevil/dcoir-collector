@@ -171,6 +171,12 @@ The next bounded retirement moves precision guarding out of historical v19:
 
 The v19 precision-guard retirement is exact-head governed validated on corrective source head `f57eab7464beb601ce350833a6152e5b6d77b20e`. Recovery ChatGPT Exec run `34760172201` passed after the architecture document was restored to the already-validated tree, and current-head CodeQL run `34759462183` passed on that exact head.
 
+## v34 semantic-evidence hardening retirement
+
+Historical v34 runtime ownership is retired into `dcoir_review.semantic_evidence_hardening`. The stable owner preserves the predicate/call-site audit requirements used by primary and independent semantic review, distinguishes an intentionally blank changed-line anchor from missing evidence for the finding verifier, and records the bounded verifier input/output debug manifests. v35 consumes the stable predicate-audit contract directly.
+
+The historical debug artifact paths `metadata/v34-verifier-input.json` and `responses/v34-verifier-output.json`, plus their `dcoir_review_v34_*` schema identifiers, remain compatibility data and do not imply continuing v34 runtime ownership. The stable self-test owns the predicate-audit, blank-anchor, verifier lifecycle, composition-order, and idempotence regressions.
+
 ## v47 per-file routing retirement
 
 The next bounded retirement moves stage-local first-pass routing out of historical v47:

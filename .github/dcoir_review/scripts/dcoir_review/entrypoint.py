@@ -59,7 +59,7 @@ class DcoirReviewEntrypoint:
         # terminal for this historical semantic-patch chain.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
-        'dcoir_review_required_runtime_patch_v34',
+        'dcoir_review.semantic_evidence_hardening',
         'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v36',
         'dcoir_review.semantic_adjudication_normalization',

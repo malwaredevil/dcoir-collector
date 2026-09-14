@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v34 predicate audit and blank-anchor verification."""
+"""Regression checks for stable semantic-evidence hardening."""
 
 from __future__ import annotations
 
@@ -19,32 +19,32 @@ class _Reporter:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert "dcoir_review_required_runtime_patch_v34" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v34")
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v34") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review.semantic_evidence_hardening" in entrypoint.patch_module_names
+    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33") < entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening")
+    assert entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     v32 = importlib.import_module("dcoir_review_required_runtime_patch_v32")
-    v34 = importlib.import_module("dcoir_review_required_runtime_patch_v34")
+    semantic_evidence = importlib.import_module("dcoir_review.semantic_evidence_hardening")
 
-    assert getattr(review, v34.APPLIED_MARKER, False) is True
+    assert getattr(review, semantic_evidence.APPLIED_MARKER, False) is True
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
 
-    # v34 strengthens both primary and independent prompts without teaching a
+    # The stable owner strengthens both primary and independent prompts without teaching a
     # PR-specific answer. The audit is structural: call-site defaults, every OR
     # branch, and rejected/mentioned propositions must be examined.
-    assert v34.PREDICATE_AUDIT_BLOCK in v32.ADVERSARIAL_SEMANTIC_BLOCK
-    assert v34.PREDICATE_AUDIT_BLOCK in v32.INDEPENDENT_CONFIRMATION_BLOCK
-    assert "omitted defaults" in v34.PREDICATE_AUDIT_BLOCK
-    assert "Audit each OR branch independently" in v34.PREDICATE_AUDIT_BLOCK
-    assert "rejected proposition" in v34.PREDICATE_AUDIT_BLOCK
+    assert semantic_evidence.PREDICATE_AUDIT_BLOCK in v32.ADVERSARIAL_SEMANTIC_BLOCK
+    assert semantic_evidence.PREDICATE_AUDIT_BLOCK in v32.INDEPENDENT_CONFIRMATION_BLOCK
+    assert "omitted defaults" in semantic_evidence.PREDICATE_AUDIT_BLOCK
+    assert "Audit each OR branch independently" in semantic_evidence.PREDICATE_AUDIT_BLOCK
+    assert "rejected proposition" in semantic_evidence.PREDICATE_AUDIT_BLOCK
 
     # An in-range blank changed line is valid GitHub anchoring evidence and must
     # remain distinguishable from missing/out-of-range file evidence.
-    assert v21._file_line_text("alpha\n\nomega\n", 2) == v34.BLANK_LINE_NOTATION
+    assert v21._file_line_text("alpha\n\nomega\n", 2) == semantic_evidence.BLANK_LINE_NOTATION
     assert v21._file_line_text("alpha\n\nomega\n", 4) == ""
 
     original_fetch = review.fetch_pr_file_text
@@ -54,7 +54,7 @@ def main() -> None:
     debug_payloads: dict[str, dict[str, Any]] = {}
 
     def fake_openrouter(prompt: str, schema: dict[str, Any], cfg: Any, reporter: Any = None):
-        assert v34.BLANK_LINE_NOTATION in prompt
+        assert semantic_evidence.BLANK_LINE_NOTATION in prompt
         return (
             {
                 "supported": True,
@@ -104,17 +104,17 @@ def main() -> None:
     assert debug_payloads["metadata/v34-verifier-input.json"]["candidates"][0]["line"] == 2
     assert debug_payloads["responses/v34-verifier-output.json"]["verified_count"] == 1
 
-    # Re-applying v34 is a no-op; wrappers and prompt blocks must not stack.
+    # Re-applying the stable owner is a no-op; wrappers and prompt blocks must not stack.
     verifier_before = v21.verify_findings_for_publication
     semantic_before = v32.ADVERSARIAL_SEMANTIC_BLOCK
     confirmation_before = v32.INDEPENDENT_CONFIRMATION_BLOCK
-    v34.apply_pareto_context_module(review)
-    v34.apply_pareto_context_module(review)
+    semantic_evidence.apply_pareto_context_module(review)
+    semantic_evidence.apply_pareto_context_module(review)
     assert v21.verify_findings_for_publication is verifier_before
     assert v32.ADVERSARIAL_SEMANTIC_BLOCK == semantic_before
     assert v32.INDEPENDENT_CONFIRMATION_BLOCK == confirmation_before
 
-    print("dcoir_review_required_runtime_patch_v34_selftest passed")
+    print("dcoir_review_semantic_evidence_hardening_selftest passed")
 
 
 if __name__ == "__main__":

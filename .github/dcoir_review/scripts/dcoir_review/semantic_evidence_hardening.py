@@ -1,4 +1,4 @@
-"""DCOIR Review v34 predicate-audit recall and verifier-evidence hardening.
+"""Semantic predicate-audit and verifier-evidence hardening for DCOIR Review.
 
 Issue #456 blind run 33371074405 demonstrated two remaining generalized gaps:
 
@@ -9,7 +9,7 @@ Issue #456 blind run 33371074405 demonstrated two remaining generalized gaps:
   anchor, while v21 historically treated an empty line string as unreadable
   evidence and aborted the whole review before model verification.
 
-v34 strengthens the existing adversarial prompt into a call-site/predicate audit,
+This owner strengthens the existing adversarial prompt into a call-site/predicate audit,
 preserves blank changed-line anchors using an explicit verifier-only notation,
 and records compact post-normalization verifier input/output manifests when debug
 is enabled. It does not raise publication budgets, bypass evidence verification,
@@ -25,10 +25,9 @@ import dcoir_review_required_runtime_patch_v32 as v32
 import dcoir_review_required_runtime_patch_v33 as v33
 
 
-VERSION = "v34"
-APPLIED_MARKER = "_dcoir_review_v34_applied"
-LINE_TEXT_STORAGE = "_dcoir_review_v34_original_file_line_text"
-VERIFIER_STORAGE = "_dcoir_review_v34_original_verify_findings_for_publication"
+APPLIED_MARKER = "_dcoir_review_semantic_evidence_hardening_applied"
+LINE_TEXT_STORAGE = "_dcoir_review_semantic_evidence_hardening_original_file_line_text"
+VERIFIER_STORAGE = "_dcoir_review_semantic_evidence_hardening_original_verify_findings_for_publication"
 BLANK_LINE_NOTATION = "[DCOIR anchor is an intentionally blank changed line]"
 
 PREDICATE_AUDIT_BLOCK = """
@@ -51,7 +50,7 @@ def _append_once(text: str, addition: str) -> str:
 
 def _patch_v32_prompt_blocks() -> None:
     # v32's installed prompt wrappers resolve these module globals at call time,
-    # so v34 can strengthen both primary per-file and independent aggregate
+    # so the stable owner can strengthen both primary per-file and independent aggregate
     # reviews without stacking another prompt wrapper.
     v32.ADVERSARIAL_SEMANTIC_BLOCK = _append_once(v32.ADVERSARIAL_SEMANTIC_BLOCK, PREDICATE_AUDIT_BLOCK)
     v32.INDEPENDENT_CONFIRMATION_BLOCK = _append_once(v32.INDEPENDENT_CONFIRMATION_BLOCK, PREDICATE_AUDIT_BLOCK)
@@ -64,7 +63,7 @@ def _patch_blank_anchor_readback() -> None:
         if callable(original):
             setattr(v21, LINE_TEXT_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v34 could not locate v21 line-evidence reader")
+        raise RuntimeError("DCOIR semantic-evidence hardening could not locate the line-evidence reader")
 
     def _file_line_text(file_text: str, line_number: int) -> str:
         lines = file_text.splitlines()
@@ -108,7 +107,7 @@ def _patch_verifier_lifecycle_debug() -> None:
         if callable(original):
             setattr(v21, VERIFIER_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v34 could not locate active v21 verifier")
+        raise RuntimeError("DCOIR semantic-evidence hardening could not locate the active finding verifier")
 
     def verify_findings_for_publication(
         module: Any,

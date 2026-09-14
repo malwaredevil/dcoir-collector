@@ -27,7 +27,7 @@ import json
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v34 as v34
+from dcoir_review import semantic_evidence_hardening as semantic_evidence
 
 
 VERSION = "v35"
@@ -85,7 +85,7 @@ Publication-quality rules:
   fewer is better when those are the only demonstrable defects.
 
 Required adversarial method:
-{v34.PREDICATE_AUDIT_BLOCK}
+{semantic_evidence.PREDICATE_AUDIT_BLOCK}
 
 For each retained finding, use the normal review fields. Put the concrete
 counterexample and code-path explanation in the finding body/validation text so

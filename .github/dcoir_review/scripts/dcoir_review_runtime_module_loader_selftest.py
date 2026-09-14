@@ -55,6 +55,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_render.py",
     "repair_support.py",
     "semantic_adjudication_confidence.py",
+    "semantic_evidence_hardening.py",
     "semantic_adjudication_normalization.py",
     "semantic_adjudication_recovery.py",
     "sentinel_selection.py",
@@ -178,6 +179,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v38" not in numbered, (
         "retired v38 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v34" not in numbered, (
+        "retired v34 production owner reappeared"
     )
     assert "dcoir_review_required_runtime_patch_v48" not in numbered, (
         "retired v48 production owner reappeared"

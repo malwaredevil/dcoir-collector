@@ -192,7 +192,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v33_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v34_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_evidence_hardening_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v35_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_normalization_selftest.py
