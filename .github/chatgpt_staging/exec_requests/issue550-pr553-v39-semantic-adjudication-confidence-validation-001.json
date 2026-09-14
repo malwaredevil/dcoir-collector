@@ -1,0 +1,13 @@
+{
+    "schema":  "dcoir.chatgpt_staging.exec_request.v1",
+    "request_id":  "issue550-pr553-v39-semantic-adjudication-confidence-validation-001",
+    "operator_approved":  true,
+    "approved_at_utc":  "2026-09-14T06:15:45Z",
+    "shell":  "powershell_5",
+    "timeout_seconds":  1800,
+    "artifact_retention_days":  3,
+    "cleanup_request_after_run":  true,
+    "script_path":  ".github/chatgpt_staging/exec_scripts/issue550-pr553-v39-semantic-adjudication-confidence-validation-001.ps1",
+    "approved_command_preview":  "No-inference exact-head validation for PR #553 source head 3e48c4f2ab8b4f9a76f540b7f18cd59065d06812 / tree c63825d9b6d1a0f4470b2971c575dfb67ebd7607. Run the governed 59-command DCOIR registry in an isolated worktree, require 56 production components with max numbered version 57 and zero missing modules, prove historical v39/v37/v55/v58 production ownership is retired, prove stable v36 -\u003e semantic_adjudication_normalization -\u003e v38 -\u003e semantic_adjudication_confidence -\u003e v31 and v54 -\u003e provider_transport_retry -\u003e semantic_adjudication_recovery -\u003e v56 composition, confirm semantic recall 12/10/2, precision 1.0/1.0 with zero regressions, and the 293-file Windows parser. Provider/model credentials are cleared before validation; make no inference or provider/model calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+    "command":  "\u0026 \u0027D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v39-semantic-adjudication-confidence-validation-001.ps1\u0027"
+}
