@@ -115,7 +115,7 @@ class DcoirReviewEntrypoint:
     # author/critic calls, while leaving verified finding publication unchanged.
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v48',
-        'dcoir_review_required_runtime_patch_v48_prompt_guard',
+        'dcoir_review.prompt_review_scope_guard',
         'dcoir_review_required_runtime_patch_v52',
         'dcoir_review_required_runtime_patch_v53',
     )

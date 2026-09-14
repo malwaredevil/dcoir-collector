@@ -42,6 +42,7 @@ DIRECT_IMPORT_MODULES = (
     "module_loader.py",
     "normalized_finding_selection.py",
     "per_file_routing.py",
+    "prompt_review_scope_guard.py",
     "provider_transport_retry.py",
     "precision_guard.py",
     "quality_gate.py",
@@ -175,6 +176,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v38" not in numbered, (
         "retired v38 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v48_prompt_guard" not in numbered, (
+        "retired v48 prompt-review companion production owner reappeared"
     )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 

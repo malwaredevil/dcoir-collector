@@ -36,7 +36,7 @@ def main() -> None:
     )
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review_required_runtime_patch_v48",
-        "dcoir_review_required_runtime_patch_v48_prompt_guard",
+        "dcoir_review.prompt_review_scope_guard",
         "dcoir_review_required_runtime_patch_v52",
         "dcoir_review_required_runtime_patch_v53",
     )
@@ -44,7 +44,7 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v48 = importlib.import_module("dcoir_review_required_runtime_patch_v48")
-    v48_prompt = importlib.import_module("dcoir_review_required_runtime_patch_v48_prompt_guard")
+    v48_prompt = importlib.import_module("dcoir_review.prompt_review_scope_guard")
     assert getattr(review, v48.APPLIED_MARKER, False) is True
     assert getattr(review, v48_prompt.APPLIED_MARKER, False) is True
 

@@ -1,6 +1,6 @@
-"""v48 companion guard for the legacy prompt-review provider seam.
+"""Stable exact-scope guard for the legacy prompt-review provider seam.
 
-The main v48 overlay guards the canonical hardened provider request. Historical
+The existing exact-scope core guards the canonical hardened provider request. Historical
 v6 prompt-review support can issue a separate provider request before that
 canonical request when prompt review is enabled. This companion keeps the same
 exact-scope invariant and request-ticket race closure around that direct request
@@ -14,14 +14,14 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v48_core as core
+import dcoir_review_required_runtime_patch_v48_core as scope_core
 
 
-APPLIED_MARKER = "_dcoir_review_v48_prompt_guard_applied"
+APPLIED_MARKER = "_dcoir_review_prompt_review_scope_guard_applied"
 
 
 def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
-    request_storage = "_dcoir_review_v48_prompt_original_request"
+    request_storage = "_dcoir_review_prompt_review_scope_original_request"
     original_request = getattr(prompt_module, request_storage, None)
     if original_request is None:
         original_request = getattr(prompt_module, "_request_prompt_review", None)
@@ -30,17 +30,17 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
 
     if callable(original_request):
         def guarded_request(original_prompt, prompt_kind, config, hardened, base):
-            if core._guard(module) is not None:
-                core.assert_current_review_scope(module, "prompt-review request", config)
-                core.authorize_provider_request(module, config)
+            if scope_core._guard(module) is not None:
+                scope_core.assert_current_review_scope(module, "prompt-review request", config)
+                scope_core.authorize_provider_request(module, config)
             result = original_request(original_prompt, prompt_kind, config, hardened, base)
-            if core._guard(module) is not None:
-                core.assert_current_review_scope(module, "prompt-review response", config)
+            if scope_core._guard(module) is not None:
+                scope_core.assert_current_review_scope(module, "prompt-review response", config)
             return result
 
         prompt_module._request_prompt_review = guarded_request
 
-    review_storage = "_dcoir_review_v48_prompt_original_review_once"
+    review_storage = "_dcoir_review_prompt_review_scope_original_review_once"
     original_review = getattr(prompt_module, review_storage, None)
     if original_review is None:
         original_review = getattr(prompt_module, "_review_prompt_once", None)
@@ -49,14 +49,14 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
 
     if callable(original_review):
         def guarded_review_once(original_prompt, config, hardened, base):
-            if core._guard(module) is not None:
-                core.assert_current_review_scope(module, "prompt-review stage", config)
+            if scope_core._guard(module) is not None:
+                scope_core.assert_current_review_scope(module, "prompt-review stage", config)
             result = original_review(original_prompt, config, hardened, base)
-            if core._guard(module) is not None:
+            if scope_core._guard(module) is not None:
                 # v6 intentionally falls back to the original prompt on provider
                 # exceptions. If the direct-request guard was the exception, its
                 # terminal state must win before the target provider call begins.
-                core.assert_current_review_scope(module, "prompt-review stage completion", config)
+                scope_core.assert_current_review_scope(module, "prompt-review stage completion", config)
             return result
 
         prompt_module._review_prompt_once = guarded_review_once

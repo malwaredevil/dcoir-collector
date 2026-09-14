@@ -185,6 +185,19 @@ The next bounded retirement moves stage-local first-pass routing out of historic
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
+## v48 prompt-review scope-guard retirement
+
+The bounded companion retirement moves only the legacy prompt-review provider seam out of historical v48 naming:
+
+- `dcoir_review/prompt_review_scope_guard.py` owns exact-scope guarding around the legacy v6 direct prompt-review request and restores supersession after v6 fallback handling;
+- production composition loads `dcoir_review.prompt_review_scope_guard` immediately after the existing v48 exact-scope owner and before v52/v53 execution-policy overlays;
+- the stable companion continues to depend on `dcoir_review_required_runtime_patch_v48_core` for exact-scope state and authorization, so this slice does **not** claim full v48 retirement;
+- private applied/storage attributes move to responsibility-based names; no external compatibility marker is changed;
+- existing v48 and v52 regression coverage now references the stable companion directly, and the runtime module-loader inventory treats it as an ordinary direct-import owner;
+- the historical `dcoir_review_required_runtime_patch_v48_prompt_guard.py` production file is removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and exact-head validation pass on the published PR head.
+
 ### Provider transport retry retirement
 
 The next bounded retirement moves interrupted provider response-read recovery out of historical v58:
