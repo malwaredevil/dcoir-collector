@@ -1,0 +1,13 @@
+{
+    "schema":  "dcoir.chatgpt_staging.exec_request.v1",
+    "request_id":  "issue550-pr553-v41-incremental-review-frontier-validation-001",
+    "operator_approved":  true,
+    "approved_at_utc":  "2026-09-14T12:03:55Z",
+    "shell":  "powershell_5",
+    "timeout_seconds":  1800,
+    "artifact_retention_days":  3,
+    "cleanup_request_after_run":  true,
+    "script_path":  ".github/chatgpt_staging/exec_scripts/issue550-pr553-v41-incremental-review-frontier-validation-001.ps1",
+    "approved_command_preview":  "No-inference exact-head validation for PR #553 source head 1916d4ecde5dd16f519167d1ef4696fc085bda17 / tree bb44401f3e69fcde1e624df1025c14413bd9a4af. Run the governed 59-command DCOIR registry in an isolated worktree; require 56 production components, max numbered version 57, zero missing modules; prove historical v41 production/helper/selftest ownership is retired; require stable incremental_review_frontier/hooks/state/scope ownership, exact v31 -\u003e incremental_review_frontier -\u003e v42 -\u003e v43 composition, and preserved v41 Architecture-B/HMAC compatibility contracts. Carry forward v52/v51/v50/v48/v45/v34 invariants, semantic recall 12/10/2, precision 1.0/1.0 with zero regressions, and the 293-file Windows parser. Clear provider/model credentials and make no inference/provider calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+    "command":  "\u0026 \u0027D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v41-incremental-review-frontier-validation-001.ps1\u0027"
+}
