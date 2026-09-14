@@ -49,7 +49,7 @@ The first canonical extraction is the operator-facing status publication surface
 - the status comment progresses through `Queued`, `Running`, `Completed`, or `Failed`, carries exact-head provenance once the PR head is captured, links the formal GitHub review on completion, bounds repeated same-stage edits, and reuses the same bot-authored comment on reruns;
 - status-publication API failures are observational and are not raised into review disposition;
 - the previous non-progress failure fallback that could create a separate status-like issue comment has been removed;
-- existing v50/v54/v48 gate, telemetry, and exact-head terminal decorators remain temporarily active around `ProgressReporter` during staged migration. This first extraction therefore does not claim that the runtime patch chain has been retired.
+- existing v50/v54 gate and telemetry decorators remain temporarily active around `ProgressReporter` during staged migration. This first extraction therefore does not claim that the runtime patch chain has been retired.
 
 The stable status contract is covered by `dcoir_review_status_comment_selftest.py`, including rerun reuse, same-comment identity, exact-head/formal-review rendering, spoofed-user marker rejection, debug-flag independence, and observational write failures. Exact-head status-cutover validation passed in ChatGPT Exec run `34695700055` at source head `efabcaec43676951a596afed06c601dc8486d840`; current-head CodeQL also passed at that source head.
 
@@ -179,22 +179,24 @@ The next bounded retirement moves stage-local first-pass routing out of historic
 - production composition loads `dcoir_review.per_file_routing` in the stage-local position instead of the numbered v47 overlay;
 - the historical `dcoir_v47_per_file_projection` attribute value is intentionally preserved as a compatibility/provenance data marker, while `PER_FILE_PROJECTION_ATTR` in the stable owner becomes its canonical definition;
 - v54 telemetry imports that stable marker constant instead of hard-coding a dependency on historical v47 ownership;
-- `dcoir_review_per_file_routing_selftest.py` owns the stable behavioral contract, and the validation registry plus v48 composition regression reference the stable owner directly;
+- `dcoir_review_per_file_routing_selftest.py` owns the stable behavioral contract, and the validation registry plus review-scope composition regression reference the stable owner directly;
 - the runtime module-loader registry classifies `per_file_routing.py` as an ordinary direct-import owner;
 - the historical v47 runtime and version-specific self-test files are removed; Git history remains the archive.
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
-## v48 prompt-review scope-guard retirement
+## v48 review-scope guard retirement
 
-The bounded companion retirement moves only the legacy prompt-review provider seam out of historical v48 naming:
+The historical v48 exact-scope execution policy is now responsibility-owned rather than version-owned:
 
-- `dcoir_review/prompt_review_scope_guard.py` owns exact-scope guarding around the legacy v6 direct prompt-review request and restores supersession after v6 fallback handling;
-- production composition loads `dcoir_review.prompt_review_scope_guard` immediately after the existing v48 exact-scope owner and before v52/v53 execution-policy overlays;
-- the stable companion continues to depend on `dcoir_review_required_runtime_patch_v48_core` for exact-scope state and authorization, so this slice does **not** claim full v48 retirement;
-- private applied/storage attributes move to responsibility-based names; no external compatibility marker is changed;
-- existing v48 and v52 regression coverage now references the stable companion directly, and the runtime module-loader inventory treats it as an ordinary direct-import owner;
-- the historical `dcoir_review_required_runtime_patch_v48_prompt_guard.py` production file is removed; Git history remains the archive.
+- `dcoir_review/review_scope_guard.py` owns immutable PR head/base scope state, fail-closed live-scope verification, request authorization, stale-head terminal classification, and the stable stale-head debug artifact contract;
+- `dcoir_review/review_scope_guard_hooks.py` owns the provider, publication, progress-reporter, and main-path hooks that enforce that state without changing workflow concurrency;
+- production composition loads `dcoir_review.review_scope_guard` immediately before `dcoir_review.prompt_review_scope_guard`, preserving the historical execution-policy ordering before v52/v53;
+- `dcoir_review.prompt_review_scope_guard` now delegates to the stable review-scope owner for the legacy v6 direct prompt-review request;
+- v52 structured-output recovery now imports the stable review-scope owner and uses the stable stored-provider boundary name while preserving the exact-scope checks around recovered requests;
+- private `_dcoir_review_v48_*` storage and apply markers are retired because they were implementation history, not compatibility data; the externally meaningful `metadata/stale-head-supersession.json` path, `dcoir_review_stale_head_guard_v1` schema, and terminal prefixes are preserved;
+- `dcoir_review_review_scope_guard_selftest.py` plus its stable support module own the deterministic supersession/publication regression contract;
+- the historical v48 wrapper/core/hooks, version-specific selftest/support, and earlier prompt-review companion source are removed; Git history remains the archive.
 
 This slice must not be credited as governed validated until publication readback and exact-head validation pass on the published PR head.
 

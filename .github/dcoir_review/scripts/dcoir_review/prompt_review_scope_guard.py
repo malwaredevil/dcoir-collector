@@ -14,7 +14,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v48_core as scope_core
+from dcoir_review import review_scope_guard as scope_core
 
 
 APPLIED_MARKER = "_dcoir_review_prompt_review_scope_guard_applied"

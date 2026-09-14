@@ -107,20 +107,20 @@ class DcoirReviewEntrypoint:
     )
     # Execution-policy overlays run last so they guard the fully composed provider
     # and publication paths without changing Architecture-B semantic ordering or
-    # the v47 per-file routing contract. v48 owns exact-scope provider/publication
-    # guards; its companion covers the legacy optional prompt-review request. v52
+    # the v47 per-file routing contract. Stable review-scope guards own exact-scope
+    # provider/publication protection and the legacy optional prompt-review request. v52
     # preserves those guards while specializing deterministic structured-output
     # recovery and bounded near-threshold disposition. v53 then restores the
     # configured repair-synthesis confidence floor before v36 can spend repair-
     # author/critic calls, while leaving verified finding publication unchanged.
     execution_policy_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v48',
+        'dcoir_review.review_scope_guard',
         'dcoir_review.prompt_review_scope_guard',
         'dcoir_review_required_runtime_patch_v52',
         'dcoir_review_required_runtime_patch_v53',
     )
     # Telemetry overlays are deliberately outside execution-policy ordering
-    # invariants. v54 observes the fully composed request path after v48/v52/v53,
+    # invariants. v54 observes the fully composed request path after the scope guards/v52/v53,
     # aggregates returned OpenRouter usage/provider/recovery metadata across
     # shallow stage configs, and emits a bounded terminal status summary without
     # changing routing, retries, verification, repair, or publication behavior.

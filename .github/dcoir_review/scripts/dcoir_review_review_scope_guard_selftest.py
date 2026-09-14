@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic regression checks for DCOIR Review v48 supersession handling."""
+"""Deterministic regression checks for stable DCOIR Review exact-scope handling."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import os
 from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
-from dcoir_review_required_runtime_patch_v48_selftest_support import (
+from dcoir_review_review_scope_guard_selftest_support import (
     BASE,
     HEAD,
     NEW_BASE,
@@ -35,7 +35,7 @@ def main() -> None:
         "dcoir_review.per_file_routing",
     )
     assert entrypoint.execution_policy_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v48",
+        "dcoir_review.review_scope_guard",
         "dcoir_review.prompt_review_scope_guard",
         "dcoir_review_required_runtime_patch_v52",
         "dcoir_review_required_runtime_patch_v53",
@@ -43,13 +43,13 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v48 = importlib.import_module("dcoir_review_required_runtime_patch_v48")
+    scope_guard = importlib.import_module("dcoir_review.review_scope_guard")
     v48_prompt = importlib.import_module("dcoir_review.prompt_review_scope_guard")
-    assert getattr(review, v48.APPLIED_MARKER, False) is True
+    assert getattr(review, scope_guard.APPLIED_MARKER, False) is True
     assert getattr(review, v48_prompt.APPLIED_MARKER, False) is True
 
-    module, hardened, main_state = build_fake_module(v48)
-    assert getattr(module, v48.APPLIED_MARKER, False) is True
+    module, hardened, main_state = build_fake_module(scope_guard)
+    assert getattr(module, scope_guard.APPLIED_MARKER, False) is True
     config = SimpleNamespace(debug=True)
 
     previous_repo = os.environ.get("GITHUB_REPOSITORY")
@@ -59,16 +59,16 @@ def main() -> None:
     try:
         # The first production PR metadata read captures the immutable run scope.
         client = FakeClient()
-        v48.clear_guard_context(module)
+        scope_guard.clear_guard_context(module)
         first = client.get_pr(PR_NUMBER)
-        context = getattr(module, v48.GUARD_ATTR)
+        context = getattr(module, scope_guard.GUARD_ATTR)
         assert first["head"]["sha"] == HEAD
         assert context["expected_head_sha"] == HEAD
         assert context["expected_base_sha"] == BASE
         assert context["pr_number"] == PR_NUMBER
 
         # With no production guard installed, direct probes retain historical behavior.
-        v48.clear_guard_context(module)
+        scope_guard.clear_guard_context(module)
         before = hardened.paid_calls
         result, model, _tier = hardened.openrouter_request_once(
             "probe", {}, config, [], "anthropic/claude-sonnet-5"
@@ -79,10 +79,10 @@ def main() -> None:
 
         # An unchanged exact scope permits the request and verifies both before and after.
         client = FakeClient()
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         before = hardened.paid_calls
         hardened.openrouter_request_once("probe", {}, config, [], "anthropic/claude-sonnet-5")
-        context = getattr(module, v48.GUARD_ATTR)
+        context = getattr(module, scope_guard.GUARD_ATTR)
         assert hardened.paid_calls == before + 1
         assert context["check_count"] == 2
         assert context["request_ticket_count"] == 1
@@ -91,41 +91,41 @@ def main() -> None:
         # If the head already moved, no provider request may start.
         client = FakeClient()
         client.head = NEW_HEAD
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         before = hardened.paid_calls
         moved = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: hardened.openrouter_request_once(
                 "probe", {}, config, [], "anthropic/claude-sonnet-5"
             ),
         )
-        assert v48.SUPERSEDED_PREFIX in str(moved)
+        assert scope_guard.SUPERSEDED_PREFIX in str(moved)
         assert hardened.paid_calls == before
-        artifact = hardened.artifacts[v48.ARTIFACT_PATH]
+        artifact = hardened.artifacts[scope_guard.ARTIFACT_PATH]
         assert artifact["result"] == "superseded"
         assert artifact["expected_head_sha"] == HEAD
         assert artifact["observed_head_sha"] == NEW_HEAD
 
         # A head move while a request is already in flight discards that result.
         client = FakeClient()
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         hardened.on_request = lambda: setattr(client, "head", NEW_HEAD)
         before = hardened.paid_calls
         during = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: hardened.openrouter_request_once(
                 "probe", {}, config, [], "anthropic/claude-sonnet-5"
             ),
         )
         hardened.on_request = None
-        assert v48.SUPERSEDED_PREFIX in str(during)
+        assert scope_guard.SUPERSEDED_PREFIX in str(during)
         assert hardened.paid_calls == before + 1
-        assert getattr(module, v48.GUARD_ATTR)["terminal"]["kind"] == "superseded"
+        assert getattr(module, scope_guard.GUARD_ATTR)["terminal"]["kind"] == "superseded"
 
         # Once superseded, queued/later requests fail immediately without another provider call.
         before = hardened.paid_calls
         expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: hardened.openrouter_request_once(
                 "probe-2", {}, config, [], "anthropic/claude-sonnet-5"
             ),
@@ -135,10 +135,10 @@ def main() -> None:
         # Base movement changes the effective PR diff even when the head is unchanged.
         client = FakeClient()
         client.base = NEW_BASE
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         before = hardened.paid_calls
         base_move = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: hardened.openrouter_request_once("probe", {}, config, [], "model"),
         )
         assert "PR base moved" in str(base_move)
@@ -147,10 +147,10 @@ def main() -> None:
         # A closed PR is terminal and must not continue model work.
         client = FakeClient()
         client.state = "closed"
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         before = hardened.paid_calls
         closed = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: hardened.openrouter_request_once("probe", {}, config, [], "model"),
         )
         assert "no longer open" in str(closed)
@@ -159,36 +159,36 @@ def main() -> None:
         # GitHub read failure is not guessed as stale; it fails closed distinctly.
         client = FakeClient()
         client.fail_reads = True
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         before = hardened.paid_calls
         unreadable = expect_raises(
-            v48.ReviewHeadVerificationError,
+            scope_guard.ReviewHeadVerificationError,
             lambda: hardened.openrouter_request_once("probe", {}, config, [], "model"),
         )
-        assert v48.VERIFICATION_PREFIX in str(unreadable)
+        assert scope_guard.VERIFICATION_PREFIX in str(unreadable)
         assert hardened.paid_calls == before
-        assert hardened.artifacts[v48.ARTIFACT_PATH]["result"] == "verification_failed"
+        assert hardened.artifacts[scope_guard.ARTIFACT_PATH]["result"] == "verification_failed"
 
         # Historical v6 prompt review has a direct provider call and deliberately
         # catches provider exceptions. The companion guard must restore a detected
         # supersession before a later target-provider request could begin.
         client = FakeClient()
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         prompt_module = FakePromptModule()
         v48_prompt.patch_prompt_review_module(module, prompt_module)
         prompt_module.on_direct_request = lambda: setattr(client, "head", NEW_HEAD)
         prompt_superseded = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: prompt_module._review_prompt_once(
                 "original prompt", config, hardened, SimpleNamespace()
             ),
         )
-        assert v48.SUPERSEDED_PREFIX in str(prompt_superseded)
+        assert scope_guard.SUPERSEDED_PREFIX in str(prompt_superseded)
         assert prompt_module.direct_calls == 1
 
         # The final GitHub review write is independently exact-head guarded.
         client = FakeClient()
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         posted = client.create_review(PR_NUMBER, "body", "COMMENT", [], HEAD)
         assert posted["commit_id"] == HEAD
         assert client.review_posts == 1
@@ -196,28 +196,28 @@ def main() -> None:
         # A head that is already stale before publication blocks the write.
         client = FakeClient()
         client.head = NEW_HEAD
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         stale_publication = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: client.create_review(PR_NUMBER, "body", "COMMENT", [], HEAD),
         )
-        assert v48.SUPERSEDED_PREFIX in str(stale_publication)
+        assert scope_guard.SUPERSEDED_PREFIX in str(stale_publication)
         assert client.review_posts == 0
 
         # GitHub cannot atomically compare mutable PR head and create a review.
-        # If the head moves inside that narrow write window, v48 post-checks the
+        # If the head moves inside that narrow write window, the scope guard post-checks the
         # scope immediately, marks the run superseded, and refuses to treat the
         # already-posted old-commit review as current-head evidence.
         client = FakeClient()
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         client.on_review = lambda: setattr(client, "head", NEW_HEAD)
         publication_race = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: client.create_review(PR_NUMBER, "body", "COMMENT", [], HEAD),
         )
-        assert v48.SUPERSEDED_PREFIX in str(publication_race)
+        assert scope_guard.SUPERSEDED_PREFIX in str(publication_race)
         assert client.review_posts == 1
-        race_terminal = getattr(module, v48.GUARD_ATTR)["terminal"]
+        race_terminal = getattr(module, scope_guard.GUARD_ATTR)["terminal"]
         assert race_terminal["kind"] == "superseded"
         assert race_terminal["stage"] == "GitHub review publication completion"
 
@@ -239,9 +239,9 @@ def main() -> None:
         assert "GitHub review publication after supersession detection: blocked." not in race_body
 
         client = FakeClient()
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         wrong_commit = expect_raises(
-            v48.ReviewHeadVerificationError,
+            scope_guard.ReviewHeadVerificationError,
             lambda: client.create_review(PR_NUMBER, "body", "COMMENT", [], NEW_HEAD),
         )
         assert "commit id" in str(wrong_commit)
@@ -251,16 +251,16 @@ def main() -> None:
         # boundary restores the stronger superseded terminal classification.
         client = FakeClient()
         client.head = NEW_HEAD
-        v48.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
+        scope_guard.install_guard_context(module, client, PR_NUMBER, HEAD, BASE)
         expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: hardened.openrouter_request_once("probe", {}, config, [], "model"),
         )
         restored = expect_raises(
-            v48.ReviewSupersededError,
+            scope_guard.ReviewSupersededError,
             lambda: module.openrouter_review_with_hybrid_first_pass(),
         )
-        assert v48.SUPERSEDED_PREFIX in str(restored)
+        assert scope_guard.SUPERSEDED_PREFIX in str(restored)
 
         # Pre-publication superseded status is explicit even when ordinary progress
         # comments are disabled and must say publication is blocked.
@@ -283,14 +283,14 @@ def main() -> None:
         assert NEW_HEAD in terminal_body
 
         # Supersession exits the process path cleanly; verification failure remains a failure.
-        main_state["main_exception"] = v48.ReviewSupersededError(
-            f"{v48.SUPERSEDED_PREFIX} synthetic main-path supersession"
+        main_state["main_exception"] = scope_guard.ReviewSupersededError(
+            f"{scope_guard.SUPERSEDED_PREFIX} synthetic main-path supersession"
         )
         assert module.main() is None
-        main_state["main_exception"] = v48.ReviewHeadVerificationError(
-            f"{v48.VERIFICATION_PREFIX} synthetic verification failure"
+        main_state["main_exception"] = scope_guard.ReviewHeadVerificationError(
+            f"{scope_guard.VERIFICATION_PREFIX} synthetic verification failure"
         )
-        expect_raises(v48.ReviewHeadVerificationError, module.main)
+        expect_raises(scope_guard.ReviewHeadVerificationError, module.main)
     finally:
         if previous_repo is None:
             os.environ.pop("GITHUB_REPOSITORY", None)
@@ -301,7 +301,7 @@ def main() -> None:
         else:
             os.environ["PR_NUMBER"] = previous_pr
 
-    print("DCOIR Review v48 stale-head supersession selftest passed")
+    print("DCOIR Review stable review-scope guard selftest passed")
 
 
 if __name__ == "__main__":

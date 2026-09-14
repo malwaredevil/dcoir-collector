@@ -1,4 +1,4 @@
-"""Core exact-scope state and verification for DCOIR Review v48."""
+"""Stable exact-scope state and verification for DCOIR Review."""
 
 from __future__ import annotations
 
@@ -9,9 +9,8 @@ import threading
 from typing import Any
 
 
-VERSION = "v48"
-APPLIED_MARKER = "_dcoir_review_v48_applied"
-GUARD_ATTR = "_dcoir_review_v48_scope_guard"
+APPLIED_MARKER = "_dcoir_review_review_scope_guard_applied"
+GUARD_ATTR = "_dcoir_review_review_scope_guard_context"
 ARTIFACT_PATH = "metadata/stale-head-supersession.json"
 SUPERSEDED_PREFIX = "DCOIR_REVIEW_SUPERSEDED:"
 VERIFICATION_PREFIX = "DCOIR_REVIEW_HEAD_VERIFICATION_FAILED:"
@@ -293,3 +292,10 @@ def authorize_provider_request(module: Any, config: Any = None) -> int | None:
         ticket = int(context.get("request_ticket_count", 0) or 0) + 1
         context["request_ticket_count"] = ticket
         return ticket
+
+
+def apply_pareto_context_module(module: Any) -> None:
+    """Install stable exact-scope execution/publication hooks."""
+    from dcoir_review import review_scope_guard_hooks
+
+    review_scope_guard_hooks.apply_pareto_context_module(module)

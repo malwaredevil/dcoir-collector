@@ -7,12 +7,12 @@ import re
 import types
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v48_core as v48_core
+from dcoir_review import review_scope_guard as review_scope
 
 RECOVERY_ATTR = "_dcoir_v52_last_structured_output_recovery"
 _PROVIDER_STORAGE = "_dcoir_review_v52_prior_openrouter_request_once"
 _REVIEW_STORAGE = "_dcoir_review_v52_prior_openrouter_review"
-_V48_PROVIDER_STORAGE = "_dcoir_review_v48_original_openrouter_request_once"
+_SCOPE_PROVIDER_STORAGE = "_dcoir_review_review_scope_guard_original_openrouter_request_once"
 _FENCED_OBJECT_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", flags=re.DOTALL)
 
 
@@ -141,7 +141,7 @@ def _clone_function(
 def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
     """Clone the composed request chain down to its real JSON provider boundary.
 
-    v48 stores the fully composed pre-guard request wrapper, not the raw hardened
+    The stable review-scope guard stores the fully composed pre-guard request wrapper, not the raw hardened
     provider function. v9/v6 wrappers keep that raw provider in nested closure
     cells, so replacing only the outer wrapper globals does not affect parsing.
     Clone the per-call wrapper chain and replace exactly one inner provider JSON
@@ -239,7 +239,7 @@ def annotate_request_telemetry(
 
 
 def patch_provider(module: Any) -> None:
-    """Replace the v48 provider boundary while preserving its exact-scope guard."""
+    """Replace the provider boundary while preserving the stable exact-scope guard."""
     hardened = module.hardened
     current = getattr(hardened, "openrouter_request_once", None)
     if not callable(current):
@@ -247,14 +247,14 @@ def patch_provider(module: Any) -> None:
     if not hasattr(hardened, _PROVIDER_STORAGE):
         setattr(hardened, _PROVIDER_STORAGE, current)
 
-    core_request = getattr(hardened, _V48_PROVIDER_STORAGE, None)
+    core_request = getattr(hardened, _SCOPE_PROVIDER_STORAGE, None)
     if not callable(core_request):
-        raise RuntimeError("DCOIR v52 requires the v48 exact-scope provider boundary")
+        raise RuntimeError("DCOIR v52 requires the stable exact-scope provider boundary")
 
     def openrouter_request_once(prompt, schema, config, ignored_providers, model):
-        if v48_core._guard(module) is not None:
-            v48_core.assert_current_review_scope(module, f"model request ({model})", config)
-            v48_core.authorize_provider_request(module, config)
+        if review_scope._guard(module) is not None:
+            review_scope.assert_current_review_scope(module, f"model request ({model})", config)
+            review_scope.authorize_provider_request(module, config)
         history = getattr(config, "_openrouter_request_telemetry_events", None)
         event_count_before = len(history) if isinstance(history, list) else 0
         clone, proxy = clone_with_json_proxy(core_request)
@@ -265,8 +265,8 @@ def patch_provider(module: Any) -> None:
             raise
         mode = proxy.structured_mode or "direct"
         annotate_request_telemetry(config, mode, event_count_before)
-        if v48_core._guard(module) is not None:
-            v48_core.assert_current_review_scope(module, f"model response ({model})", config)
+        if review_scope._guard(module) is not None:
+            review_scope.assert_current_review_scope(module, f"model response ({model})", config)
         return result
 
     hardened.openrouter_request_once = openrouter_request_once

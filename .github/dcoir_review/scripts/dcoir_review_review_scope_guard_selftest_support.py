@@ -1,4 +1,4 @@
-"""Shared deterministic fakes for the DCOIR Review v48 selftest."""
+"""Shared deterministic fakes for the stable DCOIR Review scope-guard selftest."""
 
 from __future__ import annotations
 
@@ -132,7 +132,7 @@ class FakeModule(SimpleNamespace):
     pass
 
 
-def build_fake_module(v48):
+def build_fake_module(scope_guard):
     state = {"main_exception": None}
     hardened = FakeHardened()
 
@@ -150,7 +150,7 @@ def build_fake_module(v48):
         openrouter_review_with_hybrid_first_pass=hybrid,
         main=original_main,
     )
-    v48.apply_pareto_context_module(module)
+    scope_guard.apply_pareto_context_module(module)
     return module, hardened, state
 
 

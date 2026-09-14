@@ -1,4 +1,4 @@
-"""Execution and publication hooks for DCOIR Review v48."""
+"""Execution and publication hooks for the stable DCOIR Review scope guard."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import os
 import sys
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v48_core as core
+from dcoir_review import review_scope_guard as scope
 
 
 def _capture_is_production_target(client: Any, number: int) -> bool:
@@ -23,26 +23,26 @@ def _capture_is_production_target(client: Any, number: int) -> bool:
 
 def _patch_get_pr(module: Any) -> None:
     client_cls = module.base.GitHubClient
-    storage = "_dcoir_review_v48_original_get_pr"
+    storage = "_dcoir_review_review_scope_guard_original_get_pr"
     original = getattr(client_cls, storage, None)
     if original is None:
         original = getattr(client_cls, "get_pr", None)
         if callable(original):
             setattr(client_cls, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v48 could not locate GitHubClient.get_pr")
+        raise RuntimeError("DCOIR review-scope guard could not locate GitHubClient.get_pr")
 
     def get_pr(self, number: int):
         pr = original(self, number)
-        if core._guard(module) is None and _capture_is_production_target(self, number):
+        if scope._guard(module) is None and _capture_is_production_target(self, number):
             head_data = pr.get("head") if isinstance(pr, dict) and isinstance(pr.get("head"), dict) else {}
             base_data = pr.get("base") if isinstance(pr, dict) and isinstance(pr.get("base"), dict) else {}
-            core.install_guard_context(
+            scope.install_guard_context(
                 module,
                 self,
                 int(number),
-                core._normalize_sha(head_data.get("sha", "")),
-                core._normalize_sha(base_data.get("sha", "")),
+                scope._normalize_sha(head_data.get("sha", "")),
+                scope._normalize_sha(base_data.get("sha", "")),
             )
         return pr
 
@@ -51,22 +51,22 @@ def _patch_get_pr(module: Any) -> None:
 
 def _patch_provider_request(module: Any) -> None:
     hardened = module.hardened
-    storage = "_dcoir_review_v48_original_openrouter_request_once"
+    storage = "_dcoir_review_review_scope_guard_original_openrouter_request_once"
     original = getattr(hardened, storage, None)
     if original is None:
         original = getattr(hardened, "openrouter_request_once", None)
         if callable(original):
             setattr(hardened, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v48 could not locate hardened openrouter_request_once")
+        raise RuntimeError("DCOIR review-scope guard could not locate hardened openrouter_request_once")
 
     def openrouter_request_once(prompt, schema, config, ignored_providers, model):
-        if core._guard(module) is not None:
-            core.assert_current_review_scope(module, f"model request ({model})", config)
-            core.authorize_provider_request(module, config)
+        if scope._guard(module) is not None:
+            scope.assert_current_review_scope(module, f"model request ({model})", config)
+            scope.authorize_provider_request(module, config)
         result = original(prompt, schema, config, ignored_providers, model)
-        if core._guard(module) is not None:
-            core.assert_current_review_scope(module, f"model response ({model})", config)
+        if scope._guard(module) is not None:
+            scope.assert_current_review_scope(module, f"model response ({model})", config)
         return result
 
     hardened.openrouter_request_once = openrouter_request_once
@@ -75,7 +75,7 @@ def _patch_provider_request(module: Any) -> None:
 
 
 def _patch_hybrid_boundary(module: Any) -> None:
-    storage = "_dcoir_review_v48_original_hybrid_first_pass"
+    storage = "_dcoir_review_review_scope_guard_original_hybrid_first_pass"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
@@ -88,10 +88,10 @@ def _patch_hybrid_boundary(module: Any) -> None:
         try:
             return original(*args, **kwargs)
         except Exception:
-            context = core._guard(module)
+            context = scope._guard(module)
             terminal = context.get("terminal") if isinstance(context, dict) else None
             if isinstance(terminal, dict):
-                raise core._terminal_exception(terminal)
+                raise scope._terminal_exception(terminal)
             raise
 
     module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
@@ -99,17 +99,17 @@ def _patch_hybrid_boundary(module: Any) -> None:
 
 def _patch_review_publication(module: Any) -> None:
     client_cls = module.base.GitHubClient
-    storage = "_dcoir_review_v48_original_create_review"
+    storage = "_dcoir_review_review_scope_guard_original_create_review"
     original = getattr(client_cls, storage, None)
     if original is None:
         original = getattr(client_cls, "create_review", None)
         if callable(original):
             setattr(client_cls, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v48 could not locate GitHubClient.create_review")
+        raise RuntimeError("DCOIR review-scope guard could not locate GitHubClient.create_review")
 
     def create_review(self, number, body, event, comments, commit_id):
-        context = core._guard(module)
+        context = scope._guard(module)
         guarded = (
             isinstance(context, dict)
             and str(getattr(self, "repo", "") or "") == str(context.get("repo", "") or "")
@@ -117,16 +117,16 @@ def _patch_review_publication(module: Any) -> None:
         )
         if guarded:
             expected_head = str(context.get("expected_head_sha", "") or "")
-            if core._normalize_sha(commit_id) != expected_head:
-                raise core._mark_terminal(
+            if scope._normalize_sha(commit_id) != expected_head:
+                raise scope._mark_terminal(
                     module,
                     kind="verification_failed",
                     stage="GitHub review publication",
                     reason="review commit id did not match the captured exact PR head",
-                    observed_head_sha=core._normalize_sha(commit_id),
+                    observed_head_sha=scope._normalize_sha(commit_id),
                     config=context.get("last_config"),
                 )
-            core.assert_current_review_scope(
+            scope.assert_current_review_scope(
                 module,
                 "GitHub review publication",
                 context.get("last_config"),
@@ -141,7 +141,7 @@ def _patch_review_publication(module: Any) -> None:
             # classified as superseded rather than treating the old-commit review
             # as current-head evidence. The review itself remains anchored to the
             # explicit old commit id and the terminal status makes it non-current.
-            core.assert_current_review_scope(
+            scope.assert_current_review_scope(
                 module,
                 "GitHub review publication completion",
                 context.get("last_config"),
@@ -153,7 +153,7 @@ def _patch_review_publication(module: Any) -> None:
 
 def _patch_progress_reporter(module: Any) -> None:
     reporter_cls = module.hardened.ProgressReporter
-    storage = "_dcoir_review_v48_original_fail"
+    storage = "_dcoir_review_review_scope_guard_original_fail"
     original = getattr(reporter_cls, storage, None)
     if original is None:
         original = getattr(reporter_cls, "fail", None)
@@ -164,8 +164,8 @@ def _patch_progress_reporter(module: Any) -> None:
 
     def fail(self, message: str) -> None:
         raw = str(message or "")
-        superseded = core.SUPERSEDED_PREFIX in raw
-        verification_failed = core.VERIFICATION_PREFIX in raw
+        superseded = scope.SUPERSEDED_PREFIX in raw
+        verification_failed = scope.VERIFICATION_PREFIX in raw
         if not superseded and not verification_failed:
             original(self, message)
             return
@@ -175,7 +175,7 @@ def _patch_progress_reporter(module: Any) -> None:
         stage = "superseded" if superseded else "head-verification-failed"
         self._record(stage, safe_message[:500])
 
-        context = core._guard(module) or {}
+        context = scope._guard(module) or {}
         terminal = context.get("terminal") if isinstance(context.get("terminal"), dict) else {}
         terminal_stage = str(terminal.get("stage", "") or "")
         final_lines = []
@@ -234,31 +234,31 @@ def _patch_progress_reporter(module: Any) -> None:
 
 
 def _patch_main_terminal_semantics(module: Any) -> None:
-    storage = "_dcoir_review_v48_original_main"
+    storage = "_dcoir_review_review_scope_guard_original_main"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "main", None)
         if callable(original):
             setattr(module, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v48 could not locate review main")
+        raise RuntimeError("DCOIR review-scope guard could not locate review main")
 
     def main() -> None:
         try:
             original()
-        except core.ReviewSupersededError:
+        except scope.ReviewSupersededError:
             # Supersession is an expected terminal outcome, not an execution
             # failure. The patched reporter has already emitted the explicit
             # terminal status and stale publication is not accepted as current.
             return
         finally:
-            core.clear_guard_context(module)
+            scope.clear_guard_context(module)
 
     module.main = main
 
 
 def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, core.APPLIED_MARKER, False):
+    if getattr(module, scope.APPLIED_MARKER, False):
         return
     _patch_get_pr(module)
     _patch_provider_request(module)
@@ -266,4 +266,4 @@ def apply_pareto_context_module(module: Any) -> None:
     _patch_review_publication(module)
     _patch_progress_reporter(module)
     _patch_main_terminal_semantics(module)
-    setattr(module, core.APPLIED_MARKER, True)
+    setattr(module, scope.APPLIED_MARKER, True)
