@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34845146875",
   "github_sha": "3bce7882ba057b0c78b948ff2839734a4d113cca",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-v43-semantic-result-reuse-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v43-semantic-result-reuse-validation-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-14T12:45:24Z",
+  "updated_utc": "2026-09-14T12:45:27Z",
   "workflow": "chatgpt-exec"
 }
