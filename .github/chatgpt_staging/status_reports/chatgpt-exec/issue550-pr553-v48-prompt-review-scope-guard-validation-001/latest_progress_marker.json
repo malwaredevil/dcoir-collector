@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34826941710",
   "github_sha": "9eb2d0c28e312ef4f44779de91b72c654b10a6e9",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-v48-prompt-review-scope-guard-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v48-prompt-review-scope-guard-validation-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-14T09:15:38Z",
+  "updated_utc": "2026-09-14T09:15:41Z",
   "workflow": "chatgpt-exec"
 }
