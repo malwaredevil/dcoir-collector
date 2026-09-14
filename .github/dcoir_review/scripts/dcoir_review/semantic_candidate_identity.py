@@ -20,7 +20,6 @@ import sys
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v16 as v16
-from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v5 as v5
 
 VERSION = "v51"
