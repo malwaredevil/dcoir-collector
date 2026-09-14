@@ -37,7 +37,7 @@ def main() -> None:
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review.review_scope_guard",
         "dcoir_review.prompt_review_scope_guard",
-        "dcoir_review_required_runtime_patch_v52",
+        "dcoir_review.structured_result_recovery",
         "dcoir_review_required_runtime_patch_v53",
     )
 

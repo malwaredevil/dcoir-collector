@@ -108,7 +108,7 @@ class DcoirReviewEntrypoint:
     # Execution-policy overlays run last so they guard the fully composed provider
     # and publication paths without changing Architecture-B semantic ordering or
     # the v47 per-file routing contract. Stable review-scope guards own exact-scope
-    # provider/publication protection and the legacy optional prompt-review request. v52
+    # provider/publication protection and the legacy optional prompt-review request. Stable structured-result recovery
     # preserves those guards while specializing deterministic structured-output
     # recovery and bounded near-threshold disposition. v53 then restores the
     # configured repair-synthesis confidence floor before v36 can spend repair-
@@ -116,7 +116,7 @@ class DcoirReviewEntrypoint:
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review.review_scope_guard',
         'dcoir_review.prompt_review_scope_guard',
-        'dcoir_review_required_runtime_patch_v52',
+        'dcoir_review.structured_result_recovery',
         'dcoir_review_required_runtime_patch_v53',
     )
     # Telemetry overlays are deliberately outside execution-policy ordering

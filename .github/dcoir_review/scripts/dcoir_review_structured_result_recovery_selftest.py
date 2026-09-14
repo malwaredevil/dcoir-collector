@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic regressions for DCOIR Review v52 bounded recovery."""
+"""Deterministic regressions for stable DCOIR structured-result recovery."""
 
 from __future__ import annotations
 
@@ -61,16 +61,16 @@ def main() -> None:
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review.review_scope_guard",
         "dcoir_review.prompt_review_scope_guard",
-        "dcoir_review_required_runtime_patch_v52",
+        "dcoir_review.structured_result_recovery",
         "dcoir_review_required_runtime_patch_v53",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v52 = importlib.import_module("dcoir_review_required_runtime_patch_v52")
-    provider = importlib.import_module("dcoir_review_required_runtime_patch_v52_provider")
-    disposition = importlib.import_module("dcoir_review_required_runtime_patch_v52_disposition")
-    assert getattr(review, v52.APPLIED_MARKER, False) is True
+    recovery = importlib.import_module("dcoir_review.structured_result_recovery")
+    provider = importlib.import_module("dcoir_review.structured_result_provider")
+    disposition = importlib.import_module("dcoir_review.structured_result_disposition")
+    assert getattr(review, recovery.APPLIED_MARKER, False) is True
     assert callable(getattr(review.hardened, "_dcoir_review_review_scope_guard_original_openrouter_request_once", None))
 
     # The balanced scanner ignores braces and escaped quotes inside JSON strings.
@@ -266,7 +266,7 @@ def main() -> None:
         )
 
         def forbidden_challenger(*args, **kwargs):
-            raise AssertionError("v52 low-confidence diff disposition must not run a challenger")
+            raise AssertionError("bounded low-confidence diff disposition must not run a challenger")
 
         def adjudicator(module, schema_arg, cfg, rep, hypotheses, evidence, scope):
             calls.append("disposition")
@@ -316,7 +316,7 @@ def main() -> None:
         disposition.v44_execution.run_adjudicator = original_adjudicator
 
     print(
-        "dcoir_review_required_runtime_patch_v52_selftest passed: "
+        "dcoir_review_structured_result_recovery_selftest passed: "
         "single-object envelope recovery is deterministic/fail-closed and "
         "near-threshold anchored hypotheses use one bounded independent disposition"
     )

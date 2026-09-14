@@ -1,4 +1,4 @@
-"""Provider-side deterministic structured-output recovery for DCOIR Review v52."""
+"""Stable provider-side deterministic structured-output recovery for DCOIR Review."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ from typing import Any
 from dcoir_review import review_scope_guard as review_scope
 
 RECOVERY_ATTR = "_dcoir_v52_last_structured_output_recovery"
-_PROVIDER_STORAGE = "_dcoir_review_v52_prior_openrouter_request_once"
-_REVIEW_STORAGE = "_dcoir_review_v52_prior_openrouter_review"
+_PROVIDER_STORAGE = "_dcoir_review_structured_result_provider_prior_openrouter_request_once"
+_REVIEW_STORAGE = "_dcoir_review_structured_result_provider_prior_openrouter_review"
 _SCOPE_PROVIDER_STORAGE = "_dcoir_review_review_scope_guard_original_openrouter_request_once"
 _FENCED_OBJECT_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", flags=re.DOTALL)
 
@@ -149,7 +149,7 @@ def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
     per-file workers.
     """
     if not isinstance(function, types.FunctionType):
-        raise RuntimeError("DCOIR v52 requires a Python provider request function")
+        raise RuntimeError("DCOIR structured-result provider recovery requires a Python provider request function")
 
     visited: set[int] = set()
 
@@ -187,7 +187,7 @@ def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
                 continue
             if found_proxy is not None:
                 raise RuntimeError(
-                    "DCOIR v52 found multiple nested provider JSON boundaries"
+                    "DCOIR structured-result provider recovery found multiple nested provider JSON boundaries"
                 )
             replacement_index = index
             replacement_function = cloned_value
@@ -207,7 +207,7 @@ def clone_with_json_proxy(function: Any) -> tuple[Any, RecoveryJsonProxy]:
     clone, proxy = clone_chain(function)
     if proxy is None:
         raise RuntimeError(
-            "DCOIR v52 could not locate the canonical provider JSON boundary"
+            "DCOIR structured-result provider recovery could not locate the canonical provider JSON boundary"
         )
     return clone, proxy
 
@@ -243,13 +243,13 @@ def patch_provider(module: Any) -> None:
     hardened = module.hardened
     current = getattr(hardened, "openrouter_request_once", None)
     if not callable(current):
-        raise RuntimeError("DCOIR v52 could not locate hardened openrouter_request_once")
+        raise RuntimeError("DCOIR structured-result provider recovery could not locate hardened openrouter_request_once")
     if not hasattr(hardened, _PROVIDER_STORAGE):
         setattr(hardened, _PROVIDER_STORAGE, current)
 
     core_request = getattr(hardened, _SCOPE_PROVIDER_STORAGE, None)
     if not callable(core_request):
-        raise RuntimeError("DCOIR v52 requires the stable exact-scope provider boundary")
+        raise RuntimeError("DCOIR structured-result provider recovery requires the stable exact-scope provider boundary")
 
     def openrouter_request_once(prompt, schema, config, ignored_providers, model):
         if review_scope._guard(module) is not None:
@@ -275,7 +275,7 @@ def patch_provider(module: Any) -> None:
 
     current_review = getattr(hardened, "openrouter_review", None)
     if not callable(current_review):
-        raise RuntimeError("DCOIR v52 could not locate hardened openrouter_review")
+        raise RuntimeError("DCOIR structured-result provider recovery could not locate hardened openrouter_review")
     if not hasattr(hardened, _REVIEW_STORAGE):
         setattr(hardened, _REVIEW_STORAGE, current_review)
 

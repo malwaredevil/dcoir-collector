@@ -1,4 +1,4 @@
-"""Bounded low-confidence semantic disposition for DCOIR Review v52."""
+"""Stable bounded low-confidence semantic disposition for DCOIR Review."""
 
 from __future__ import annotations
 
@@ -8,13 +8,13 @@ from typing import Any
 
 import dcoir_review_required_runtime_patch_v44_execution as v44_execution
 import dcoir_review_required_runtime_patch_v44_scope as v44_scope
-import dcoir_review_required_runtime_patch_v52_retry as retry
+from dcoir_review import structured_result_retry as retry
 
 VERSION = "v52"
 ALLOW_ATTR = "_dcoir_v52_allow_low_confidence_disposition"
 PENDING_ATTR = "_dcoir_v52_pending_low_confidence_disposition"
-_RETRY_STORAGE = "_dcoir_review_v52_prior_quality_retry_reason"
-_HYBRID_STORAGE = "_dcoir_review_v52_prior_hybrid_first_pass"
+_RETRY_STORAGE = "_dcoir_review_structured_result_disposition_prior_quality_retry_reason"
+_HYBRID_STORAGE = "_dcoir_review_structured_result_disposition_prior_hybrid_first_pass"
 _LOW_CONFIDENCE_PREFIX = (
     "model returned structured findings, but none met the configured minimum confidence"
 )
@@ -128,7 +128,7 @@ def patch_quality_retry_reason(module: Any) -> None:
         if callable(original):
             setattr(hardened, _RETRY_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v52 could not locate review_quality_retry_reason")
+        raise RuntimeError("DCOIR structured-result disposition could not locate review_quality_retry_reason")
 
     def review_quality_retry_reason(result, config, risk_sentinels, line_index=None):
         reason = original(result, config, risk_sentinels, line_index)
@@ -281,7 +281,7 @@ def patch_hybrid(module: Any) -> None:
         if callable(original):
             setattr(module, _HYBRID_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v52 could not locate active hybrid review function")
+        raise RuntimeError("DCOIR structured-result disposition could not locate active hybrid review function")
 
     def openrouter_review_with_hybrid_first_pass(
         pr,
@@ -317,7 +317,7 @@ def patch_hybrid(module: Any) -> None:
         finally:
             setattr(config, ALLOW_ATTR, False)
         pending = getattr(config, PENDING_ATTR, None)
-        # v52's near-threshold disposition is intentionally ordinary-diff only;
+        # Near-threshold structured-result disposition is intentionally ordinary-diff only;
         # first-pass/deep modes retain the existing v44 escalation contract.
         if review_mode != "diff" or not isinstance(pending, dict):
             return result, model, tier

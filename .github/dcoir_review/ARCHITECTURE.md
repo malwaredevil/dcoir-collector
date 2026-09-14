@@ -281,6 +281,20 @@ The next bounded retirement moves semantic-adjudicator confidence compatibility 
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
+### Structured-result recovery retirement
+
+The bounded structured-output recovery and near-threshold disposition responsibility is now owned by stable modules rather than historical v52 production ownership:
+
+- `dcoir_review/structured_result_recovery.py` owns execution-policy composition for deterministic provider-envelope recovery and bounded low-confidence disposition;
+- `dcoir_review/structured_result_provider.py`, `structured_result_disposition.py`, and `structured_result_retry.py` own provider parsing/recovery, candidate-scoped disposition, and fail-closed whole-PR retry fallback respectively;
+- production composition loads `dcoir_review.structured_result_recovery` between the stable prompt review-scope guard and v53, preserving execution order without numbered ownership;
+- v54 telemetry imports the stable disposition contract and recognizes the stable retry owner rather than hard-coding the historical v52 module filename;
+- the literal `v52` version, `_dcoir_v52_allow_low_confidence_disposition`, `_dcoir_v52_pending_low_confidence_disposition`, `_dcoir_v52_last_structured_output_recovery`, `metadata/v52-structured-low-confidence.json`, and `10-v52-*` debug artifact paths remain compatibility/provenance data because telemetry, diagnostics, and durable artifacts consume those values;
+- `dcoir_review_structured_result_recovery_selftest.py` owns the stable behavioral contract for deterministic/fail-closed envelope recovery and single bounded independent disposition;
+- the runtime module-loader guard classifies all four stable modules as direct imports and rejects reintroduction of historical v52 production ownership;
+- the historical v52 production/helper modules and version-specific self-test are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and exact-head validation pass on the published PR head.
 ## Migration invariants
 
 The migration must preserve externally observable behavior before historical layers are removed. In particular:

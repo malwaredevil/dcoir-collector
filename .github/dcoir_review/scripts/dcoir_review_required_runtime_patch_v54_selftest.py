@@ -12,6 +12,7 @@ from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
+from dcoir_review import structured_result_disposition as structured_disposition
 
 
 class FakeResponse:
@@ -325,7 +326,7 @@ def main() -> None:
     assert v54.classify_stage("probe", review_schema(), stage_tagged) == "semantic-adjudicator"
     bounded = copy.copy(config)
     bounded._dcoir_v54_stage_label = "semantic-adjudicator"
-    bounded._dcoir_v52_pending_low_confidence_disposition = {"candidate_count": 1}
+    setattr(bounded, structured_disposition.PENDING_ATTR, {"candidate_count": 1})
     assert v54.classify_stage("probe", review_schema(), bounded) == "bounded-low-confidence-disposition"
     assert v54.classify_stage("probe", verifier_schema(), config) == "verifier"
     assert v54.classify_stage("probe", repair_author_schema(), config) == "repair-author"

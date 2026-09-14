@@ -63,6 +63,10 @@ DIRECT_IMPORT_MODULES = (
     "semantic_adjudication_recovery.py",
     "sentinel_selection.py",
     "status.py",
+    "structured_result_disposition.py",
+    "structured_result_provider.py",
+    "structured_result_recovery.py",
+    "structured_result_retry.py",
     "verified_finding_render.py",
     "pareto_context/credit_aware_concurrency.py",
     "selftests/provider_transport/fixtures.py",
@@ -197,6 +201,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v51" not in numbered, (
         "retired v51 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v52" not in numbered, (
+        "retired v52 production owner reappeared"
     )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 

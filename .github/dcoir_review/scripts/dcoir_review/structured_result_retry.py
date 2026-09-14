@@ -1,4 +1,4 @@
-"""Fail-closed broad quality-retry fallback for DCOIR Review v52."""
+"""Stable fail-closed broad quality-retry fallback for DCOIR Review."""
 
 from __future__ import annotations
 

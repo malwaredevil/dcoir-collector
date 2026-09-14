@@ -30,6 +30,7 @@ from collections import Counter
 from typing import Any
 
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
+from dcoir_review import structured_result_disposition as structured_disposition
 
 
 VERSION = "v54"
@@ -204,7 +205,7 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "broad-quality-retry"
             if (
-                filename == "dcoir_review_required_runtime_patch_v52_retry.py"
+                filename == "structured_result_retry.py"
                 and function == "broad_retry_fallback"
             ):
                 return "broad-quality-retry"
@@ -247,7 +248,7 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
     explicit = _explicit_stage_label(config)
     if explicit:
         if explicit == "semantic-adjudicator":
-            pending = getattr(config, "_dcoir_v52_pending_low_confidence_disposition", None)
+            pending = getattr(config, structured_disposition.PENDING_ATTR, None)
             if isinstance(pending, dict) and pending:
                 return "bounded-low-confidence-disposition"
         return explicit
@@ -257,7 +258,7 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
     callsite = _callsite_stage_label(prompt)
     if callsite:
         if callsite == "semantic-adjudicator":
-            pending = getattr(config, "_dcoir_v52_pending_low_confidence_disposition", None)
+            pending = getattr(config, structured_disposition.PENDING_ATTR, None)
             if isinstance(pending, dict) and pending:
                 return "bounded-low-confidence-disposition"
         return callsite

@@ -1,6 +1,6 @@
-"""DCOIR Review v52 bounded structured-result recovery execution policy.
+"""Stable bounded structured-result recovery execution policy for DCOIR Review.
 
-v52 reduces avoidable broad semantic replay while preserving Architecture B's
+This owner reduces avoidable broad semantic replay while preserving Architecture B's
 quality, verifier, risk-sentinel, exact-head, and operator-control contracts.
 """
 
@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v52_disposition as disposition
-import dcoir_review_required_runtime_patch_v52_provider as provider
+from dcoir_review import structured_result_disposition as disposition
+from dcoir_review import structured_result_provider as provider
 
 VERSION = "v52"
-APPLIED_MARKER = "_dcoir_review_v52_applied"
+APPLIED_MARKER = "_dcoir_review_structured_result_recovery_applied"
 
 
 def apply_pareto_context_module(module: Any) -> None:
