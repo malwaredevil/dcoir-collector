@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34829616621",
   "github_sha": "36e7720646849141cc1b842fd305205fa4caf6bb",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-v48-review-scope-guard-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v48-review-scope-guard-validation-001.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-14T09:46:26Z",
+  "updated_utc": "2026-09-14T09:46:28Z",
   "workflow": "chatgpt-exec"
 }
