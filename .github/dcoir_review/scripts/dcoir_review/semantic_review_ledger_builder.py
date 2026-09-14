@@ -1,4 +1,4 @@
-"""Canonical semantic-review ledger builder for DCOIR Review v42."""
+"""Canonical stable semantic-review ledger builder."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ from typing import Any
 
 from dcoir_review.incremental_review_state import ARCHITECTURE_CONTRACT
 from dcoir_review.incremental_review_scope import SCOPE_CACHE_ATTR
-from dcoir_review_required_runtime_patch_v42_contract import (
+from dcoir_review.semantic_review_ledger_contract import (
     SEMANTIC_LEDGER_CONTRACT,
     VERSION,
 )
-from dcoir_review_required_runtime_patch_v42_fingerprints import (
+from dcoir_review.semantic_review_ledger_fingerprints import (
     config_snapshot,
     digest,
     file_record,

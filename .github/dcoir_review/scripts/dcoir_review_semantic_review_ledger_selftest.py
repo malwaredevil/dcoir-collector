@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for Architecture-B semantic ledger/context fingerprints (v42)."""
+"""Regression checks for the stable Architecture-B semantic review ledger."""
 
 from __future__ import annotations
 
@@ -11,11 +11,11 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 def main() -> None:
-    v42 = importlib.import_module("dcoir_review_required_runtime_patch_v42")
+    v42 = importlib.import_module("dcoir_review.semantic_review_ledger")
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.terminal_patch_module_names == (
         "dcoir_review.incremental_review_frontier",
-        "dcoir_review_required_runtime_patch_v42",
+        "dcoir_review.semantic_review_ledger",
         "dcoir_review_required_runtime_patch_v43",
     )
 
@@ -316,7 +316,7 @@ def main() -> None:
     assert changed["context_fingerprint"] != direct_a["context_fingerprint"]
 
     source = Path(
-        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42.py"
+        ".github/dcoir_review/scripts/dcoir_review/semantic_review_ledger.py"
     ).read_text(encoding="utf-8")
     for required in (
         "architecture-b-semantic-ledger-v1",
@@ -337,7 +337,7 @@ def main() -> None:
     ):
         assert forbidden not in source
 
-    print("dcoir_review_required_runtime_patch_v42_selftest passed")
+    print("dcoir_review_semantic_review_ledger_selftest passed")
 
 
 if __name__ == "__main__":

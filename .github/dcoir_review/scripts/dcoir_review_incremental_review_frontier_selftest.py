@@ -16,7 +16,7 @@ def main() -> None:
     assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
     assert entrypoint.terminal_patch_module_names == (
         "dcoir_review.incremental_review_frontier",
-        "dcoir_review_required_runtime_patch_v42",
+        "dcoir_review.semantic_review_ledger",
         "dcoir_review_required_runtime_patch_v43",
     )
 

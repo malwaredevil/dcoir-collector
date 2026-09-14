@@ -1,4 +1,4 @@
-"""Deterministic hashing and file-identity helpers for DCOIR Review v42."""
+"""Deterministic semantic-review ledger hashing and file-identity helpers."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from dcoir_review.incremental_review_state import (
     ARCHITECTURE_CONTRACT,
     PROVENANCE_PREFIX,
 )
-from dcoir_review_required_runtime_patch_v42_contract import (
+from dcoir_review.semantic_review_ledger_contract import (
     SEMANTIC_LEDGER_CONTRACT,
 )
 

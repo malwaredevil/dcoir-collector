@@ -1,4 +1,4 @@
-"""Shared contract constants for DCOIR Review v42 semantic-ledger modules."""
+"""Stable semantic-review ledger contract constants."""
 
 VERSION = "v42"
 SEMANTIC_LEDGER_CONTRACT = "architecture-b-semantic-ledger-v1"

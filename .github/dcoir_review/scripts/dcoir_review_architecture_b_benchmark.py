@@ -19,7 +19,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import dcoir_review_precision_regression_selftest as precision_selftest
-import dcoir_review_required_runtime_patch_v42_fingerprints as v42_fp
+import dcoir_review.semantic_review_ledger_fingerprints as v42_fp
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
 import dcoir_review_required_runtime_patch_v44_scope as v44_scope
 from dcoir_review import publication_disposition as publication

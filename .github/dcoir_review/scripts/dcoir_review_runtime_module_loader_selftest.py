@@ -43,6 +43,11 @@ DIRECT_IMPORT_MODULES = (
     "incremental_review_frontier_hooks.py",
     "incremental_review_scope.py",
     "incremental_review_state.py",
+    "semantic_review_ledger.py",
+    "semantic_review_ledger_builder.py",
+    "semantic_review_ledger_contract.py",
+    "semantic_review_ledger_fingerprints.py",
+    "semantic_review_ledger_hooks.py",
     "module_loader.py",
     "normalized_finding_selection.py",
     "per_file_routing.py",
@@ -205,6 +210,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v41" not in numbered, (
         "retired v41 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v42" not in numbered, (
+        "retired v42 production owner reappeared"
     )
     assert "dcoir_review_required_runtime_patch_v45" not in numbered, (
         "retired v45 production owner reappeared"

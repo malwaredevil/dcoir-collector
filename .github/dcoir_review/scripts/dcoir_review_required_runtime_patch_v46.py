@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v46_budget as budgets
 import dcoir_review_required_runtime_patch_v46_context as context
 from dcoir_review_required_runtime_patch_v46_contract import (

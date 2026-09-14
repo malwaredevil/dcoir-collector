@@ -12,7 +12,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v43 as v43
 import dcoir_review_required_runtime_patch_v43_reuse as reuse
 
@@ -102,7 +102,7 @@ def make_module(semantic_calls, debug_payloads):
 def main() -> None:
     assert DcoirReviewEntrypoint().terminal_patch_module_names == (
         "dcoir_review.incremental_review_frontier",
-        "dcoir_review_required_runtime_patch_v42",
+        "dcoir_review.semantic_review_ledger",
         "dcoir_review_required_runtime_patch_v43",
     )
 

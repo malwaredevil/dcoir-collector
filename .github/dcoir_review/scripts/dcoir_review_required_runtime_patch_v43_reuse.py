@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from dcoir_review import incremental_review_state as v41_state
-import dcoir_review_required_runtime_patch_v42_fingerprints as v42_fp
+import dcoir_review.semantic_review_ledger_fingerprints as v42_fp
 
 VERSION = "v43"
 REUSE_CONTRACT = "architecture-b-semantic-result-reuse-v1"

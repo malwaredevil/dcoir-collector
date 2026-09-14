@@ -7,7 +7,7 @@ import threading
 from typing import Any
 
 from dcoir_review import incremental_review_scope as v41_scope
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v43_reuse as reuse
 
 VERSION = "v43"

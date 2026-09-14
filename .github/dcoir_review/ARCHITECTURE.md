@@ -357,3 +357,7 @@ Before #550 can be considered complete, the exact PR head must pass the governed
 ### v41 incremental review frontier retirement
 
 `dcoir_review.incremental_review_frontier` now owns Architecture-B incremental review-frontier composition. `incremental_review_state.py` owns trusted prior-review/HMAC provenance parsing, `incremental_review_scope.py` owns incremental-versus-cumulative scope resolution, and `incremental_review_frontier_hooks.py` owns runtime wiring. Historical v41 production/helper/self-test ownership is retired. Compatibility values including `v41`, `architecture-b-v1`, review/base/provenance marker text, trusted workflow identity, and frontier-signature payload semantics remain unchanged. Internal v41-prefixed scope/storage attributes are replaced by responsibility-named implementation markers.
+
+### v42 semantic-review ledger retirement
+
+The historical v42 semantic-ledger patch family is retired from production ownership. `dcoir_review.semantic_review_ledger` is the stable composition owner, with `semantic_review_ledger_builder`, `semantic_review_ledger_contract`, `semantic_review_ledger_fingerprints`, and `semantic_review_ledger_hooks` as explicit responsibility helpers. The `v42` version value, `architecture-b-semantic-ledger-v1` contract, `DCOIR semantic ledger: ` marker, `_dcoir_v42_semantic_review_ledger` client attribute, dependency-context/reuse metadata, and review-context payload fields remain compatibility data rather than source ownership labels.

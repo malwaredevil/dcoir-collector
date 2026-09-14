@@ -127,7 +127,7 @@ def main() -> None:
 
     # The projected config participates in v43's config fingerprint, so a
     # pre-v47 Opus per-file result cannot be reused as if it were Sonnet output.
-    v42_fp = importlib.import_module("dcoir_review_required_runtime_patch_v42_fingerprints")
+    v42_fp = importlib.import_module("dcoir_review.semantic_review_ledger_fingerprints")
     global_config_hash = v42_fp.digest(v42_fp.config_snapshot(config))
     projected_config_hash = v42_fp.digest(v42_fp.config_snapshot(projected))
     assert projected_config_hash != global_config_hash

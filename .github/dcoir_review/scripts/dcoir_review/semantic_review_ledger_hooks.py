@@ -1,22 +1,22 @@
-"""Runtime wrapper instrumentation for the DCOIR Review v42 semantic ledger."""
+"""Runtime wiring for the stable semantic-review ledger."""
 
 from __future__ import annotations
 
 import copy
 from typing import Any
 
-from dcoir_review_required_runtime_patch_v42_contract import (
+from dcoir_review.semantic_review_ledger_contract import (
     SEMANTIC_LEDGER_ATTR,
     SEMANTIC_LEDGER_CONTRACT,
     SEMANTIC_LEDGER_MARKER_PREFIX,
 )
-from dcoir_review_required_runtime_patch_v42_ledger import (
+from dcoir_review.semantic_review_ledger_builder import (
     build_semantic_review_ledger,
 )
 
-_HYBRID_STORAGE = "_dcoir_v42_original_hybrid_first_pass"
-_APPEND_CONTEXT_STORAGE = "_dcoir_v42_original_append_context_to_review_body"
-_DEBUG_JSON_STORAGE = "_dcoir_v42_original_write_debug_json_artifact_safely"
+_HYBRID_STORAGE = "_dcoir_review_semantic_ledger_original_hybrid_first_pass"
+_APPEND_CONTEXT_STORAGE = "_dcoir_review_semantic_ledger_original_append_context_to_review_body"
+_DEBUG_JSON_STORAGE = "_dcoir_review_semantic_ledger_original_write_debug_json_artifact_safely"
 _LAST_LEDGER: dict[str, Any] = {}
 _LAST_REVIEW_CONTEXT: dict[str, Any] | None = None
 
@@ -95,14 +95,14 @@ def apply_pareto_context_module(module: Any) -> None:
     if original_hybrid is None:
         original_hybrid = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
         if not callable(original_hybrid):
-            raise RuntimeError("DCOIR v42 could not locate the active hybrid review function")
+            raise RuntimeError("DCOIR semantic review ledger could not locate the active hybrid review function")
         setattr(module, _HYBRID_STORAGE, original_hybrid)
 
     original_append_context = getattr(module, _APPEND_CONTEXT_STORAGE, None)
     if original_append_context is None:
         original_append_context = getattr(module, "append_context_to_review_body", None)
         if not callable(original_append_context):
-            raise RuntimeError("DCOIR v42 could not locate append_context_to_review_body")
+            raise RuntimeError("DCOIR semantic review ledger could not locate append_context_to_review_body")
         setattr(module, _APPEND_CONTEXT_STORAGE, original_append_context)
 
     original_debug_json = getattr(module, _DEBUG_JSON_STORAGE, None)

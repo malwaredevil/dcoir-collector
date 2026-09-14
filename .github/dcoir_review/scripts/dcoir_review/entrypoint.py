@@ -74,7 +74,7 @@ class DcoirReviewEntrypoint:
     # semantic-result reuse on exact compatible evidence (v43).
     terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review.incremental_review_frontier',
-        'dcoir_review_required_runtime_patch_v42',
+        'dcoir_review.semantic_review_ledger',
         'dcoir_review_required_runtime_patch_v43',
     )
     # v44-v46 remain the Architecture-B post-terminal semantic contract:
