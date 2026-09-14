@@ -1,4 +1,4 @@
-"""Architecture-B v45 verifier-authoritative publication overlay.
+"""Stable verifier-authoritative publication disposition for DCOIR Review.
 
 The semantic detector summary is a hypothesis, not a publication verdict.  This
 post-terminal layer records the exact-head v21 verifier disposition and builds
@@ -15,13 +15,13 @@ import dcoir_review_required_runtime_patch_v16 as v16
 from dcoir_review import finding_verifier as v21
 
 
-VERSION = "v45"
+VERSION = "v45"  # Compatibility/provenance value retained from the historical owner.
 SCHEMA_VERSION = "dcoir_review_final_publication_disposition_v1"
-_APPLIED_ATTR = "_dcoir_v45_applied"
-_CONFIG_STORAGE = "_dcoir_v45_original_load_pareto_context_config"
-_BODY_STORAGE = "_dcoir_v45_original_build_review_body_with_unanchored"
-_VERIFIER_STORAGE = "_dcoir_v45_original_verify_findings_for_publication"
-_DISPOSITION_ATTR = "_dcoir_v45_verifier_disposition"
+_APPLIED_ATTR = "_dcoir_review_publication_disposition_applied"
+_CONFIG_STORAGE = "_dcoir_review_publication_disposition_original_load_pareto_context_config"
+_BODY_STORAGE = "_dcoir_review_publication_disposition_original_build_review_body_with_unanchored"
+_VERIFIER_STORAGE = "_dcoir_review_publication_disposition_original_verify_findings_for_publication"
+_DISPOSITION_ATTR = "_dcoir_review_publication_disposition"
 ARTIFACT_PATH = "metadata/final-publication-disposition-v45.json"
 
 
@@ -45,7 +45,7 @@ def _patch_config_loader(module: Any) -> None:
         if callable(original):
             setattr(module, _CONFIG_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v45 could not locate load_pareto_context_config")
+        raise RuntimeError("DCOIR publication disposition could not locate load_pareto_context_config")
 
     def load_pareto_context_config(path: str):
         config = original(path)
@@ -87,7 +87,7 @@ def _patch_verifier(module: Any) -> None:
         if callable(original):
             setattr(v21, _VERIFIER_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v45 could not locate the v21 publication verifier")
+        raise RuntimeError("DCOIR publication disposition could not locate the v21 publication verifier")
 
     def verify_findings_for_publication(
         review_module: Any,
@@ -230,7 +230,7 @@ def _patch_review_body(module: Any) -> None:
         if callable(original):
             setattr(module, _BODY_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v45 could not locate the final review-body builder")
+        raise RuntimeError("DCOIR publication disposition could not locate the final review-body builder")
 
     def build_review_body_with_unanchored(
         result: dict[str, Any],

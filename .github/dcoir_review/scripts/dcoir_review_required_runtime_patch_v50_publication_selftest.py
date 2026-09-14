@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v45 as v45
+from dcoir_review import publication_disposition as publication
 import dcoir_review_required_runtime_patch_v50 as v50
 import dcoir_review_required_runtime_patch_v50_prior as prior_io
 import dcoir_review_required_runtime_patch_v50_state as state
@@ -61,7 +61,7 @@ def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
     assert not hasattr(module, v50._STATE_ATTR)
 
 
-def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
+def test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_telemetry() -> None:
     module = core.review_module()
     original = v21.verify_findings_for_publication
     stored = getattr(v21, v50._VERIFIER_STORAGE, None)
@@ -72,7 +72,7 @@ def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
         def prior_verifier(review_module, items, _gh, pr, _cfg, _reporter):
             setattr(
                 review_module,
-                v45._DISPOSITION_ATTR,
+                publication._DISPOSITION_ATTR,
                 {
                     "reviewed_head_sha": pr["head"]["sha"],
                     "verifier_candidate_count": len(items),
@@ -98,7 +98,7 @@ def test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry() -> None:
             reporter,
         )
         assert verified == [item]
-        disposition = getattr(module, v45._DISPOSITION_ATTR)
+        disposition = getattr(module, publication._DISPOSITION_ATTR)
         assert disposition["carried_unresolved_count"] == 1
         assert disposition["prior_gate_status"] == "blocked"
         assert disposition["incremental_gate_indeterminate"] is False
@@ -191,7 +191,7 @@ def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-4:] == (
         "dcoir_review_required_runtime_patch_v44",
-        "dcoir_review_required_runtime_patch_v45",
+        "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
         "dcoir_review_required_runtime_patch_v50",
     )
@@ -204,7 +204,7 @@ def test_production_registration() -> None:
 def main() -> None:
     test_body_blocks_false_clean_without_duplicate_inline_publication()
     test_body_fails_closed_when_gate_state_cannot_persist()
-    test_verifier_wrapper_preserves_v45_and_adds_gate_telemetry()
+    test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_telemetry()
     test_completion_reporter_exposes_blocked_carried_state()
     test_completion_reporter_exposes_indeterminate_gate()
     test_completion_reporter_delegates_when_gate_is_clear()

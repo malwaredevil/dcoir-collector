@@ -12,7 +12,7 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v41_review_state as v41_state
 import dcoir_review_required_runtime_patch_v41_scope as v41_scope
 import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
-import dcoir_review_required_runtime_patch_v45 as v45
+from dcoir_review import publication_disposition as publication
 import dcoir_review_required_runtime_patch_v50_state as state
 
 
@@ -138,7 +138,7 @@ def load_prior_gate_context(module: Any, gh: Any, pr: dict[str, Any]) -> dict[st
                 "source": "v50-state",
                 "indeterminate_prior_count": 0,
             }
-        legacy = _artifact_json(payload, v45.ARTIFACT_PATH)
+        legacy = _artifact_json(payload, publication.ARTIFACT_PATH)
         if legacy is None:
             return _indeterminate("trusted-prior-gate-artifact-missing")
         published = int(legacy.get("published_finding_count", 0) or 0)

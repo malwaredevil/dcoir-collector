@@ -177,6 +177,14 @@ Historical v34 runtime ownership is retired into `dcoir_review.semantic_evidence
 
 The historical debug artifact paths `metadata/v34-verifier-input.json` and `responses/v34-verifier-output.json`, plus their `dcoir_review_v34_*` schema identifiers, remain compatibility data and do not imply continuing v34 runtime ownership. The stable self-test owns the predicate-audit, blank-anchor, verifier lifecycle, composition-order, and idempotence regressions.
 
+## v45 publication-disposition retirement
+
+Historical v45 runtime ownership is retired into `dcoir_review.publication_disposition`. The stable owner records the exact-head verifier disposition and builds the final GitHub review body only from verifier-authoritative findings plus the final repaired set; model-authored summary prose, unanchored hypotheses, and legacy overflow prose cannot bypass publication verification.
+
+The historical `metadata/final-publication-disposition-v45.json` artifact path, `dcoir_review_final_publication_disposition_v1` schema, and `v45` version value remain compatibility/provenance data for downstream gate-state recovery. v50 gate-state code and architecture benchmarks import the stable publication owner directly. The stable self-test owns the publication body, exact-head disposition, configuration, and composition regressions. Historical v45 production/self-test files are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and exact-head validation pass on the published PR head.
+
 ## v47 per-file routing retirement
 
 The next bounded retirement moves stage-local first-pass routing out of historical v47:

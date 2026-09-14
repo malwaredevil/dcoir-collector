@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline regressions for verifier-authoritative publication v45."""
+"""Offline regressions for stable verifier-authoritative publication disposition."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v45 as v45
+from dcoir_review import publication_disposition as publication
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -58,14 +58,14 @@ def config(enabled: bool = True):
 
 
 def capture(module, candidates, verified, head=HEAD):
-    return v45._capture_verifier_disposition(
+    return publication._capture_verifier_disposition(
         module, candidates, verified, {"head": {"sha": head}}
     )
 
 
 def test_zero_published_discards_contradictory_summary() -> None:
     module = review_module(old_body="legacy actionable defect prose")
-    v45._patch_review_body(module)
+    publication._patch_review_body(module)
     candidate = {"path": "src/app.py", "line": 7, "title": "Candidate"}
     capture(module, [candidate], [])
     body = module.hardened.build_review_body_with_unanchored(
@@ -81,14 +81,14 @@ def test_zero_published_discards_contradictory_summary() -> None:
     assert "Verifier-suppressed candidates: `1`" in body
     assert "Verified actionable defects remain" not in body
     assert "legacy actionable defect prose" not in body
-    artifact = module.artifacts[v45.ARTIFACT_PATH]
+    artifact = module.artifacts[publication.ARTIFACT_PATH]
     assert artifact["model_summary_discarded"] is True
     assert artifact["reviewed_head_sha"] == HEAD
 
 
 def test_supported_and_downstream_suppressed_counts() -> None:
     module = review_module()
-    v45._patch_review_body(module)
+    publication._patch_review_body(module)
     first, second = finding("First"), finding("Second")
     capture(module, [first, second], [first, second])
     body = module.hardened.build_review_body_with_unanchored(
@@ -108,7 +108,7 @@ def test_supported_and_downstream_suppressed_counts() -> None:
 def test_unanchored_and_overflow_are_not_rendered(monkey_summary=None) -> None:
     del monkey_summary
     module = review_module(old_body="UNSAFE LEGACY OVERFLOW PROSE")
-    v45._patch_review_body(module)
+    publication._patch_review_body(module)
     unanchored = {
         "path": "src/app.py",
         "line": 99,
@@ -132,7 +132,7 @@ def test_unanchored_and_overflow_are_not_rendered(monkey_summary=None) -> None:
 
 def test_missing_or_stale_verifier_evidence_fails_closed() -> None:
     module = review_module()
-    v45._patch_review_body(module)
+    publication._patch_review_body(module)
     try:
         module.hardened.build_review_body_with_unanchored({}, [], [], "model", config(), HEAD)
     except ReviewQualityError as exc:
@@ -161,7 +161,7 @@ def test_missing_or_stale_verifier_evidence_fails_closed() -> None:
 
 def test_rollback_delegates_to_prior_body() -> None:
     module = review_module(old_body="legacy rollback body")
-    v45._patch_review_body(module)
+    publication._patch_review_body(module)
     assert (
         module.hardened.build_review_body_with_unanchored(
             {"summary": "legacy"}, [], [], "model", config(False), HEAD
@@ -173,32 +173,32 @@ def test_rollback_delegates_to_prior_body() -> None:
 def test_verifier_wrapper_and_config() -> None:
     module = review_module()
     original = v21.verify_findings_for_publication
-    stored = getattr(v21, v45._VERIFIER_STORAGE, None)
-    had_stored = hasattr(v21, v45._VERIFIER_STORAGE)
+    stored = getattr(v21, publication._VERIFIER_STORAGE, None)
+    had_stored = hasattr(v21, publication._VERIFIER_STORAGE)
     try:
         v21.verify_findings_for_publication = (
             lambda _module, items, _gh, _pr, _cfg, _reporter: items[:1]
         )
-        if hasattr(v21, v45._VERIFIER_STORAGE):
-            delattr(v21, v45._VERIFIER_STORAGE)
-        v45._patch_verifier(module)
+        if hasattr(v21, publication._VERIFIER_STORAGE):
+            delattr(v21, publication._VERIFIER_STORAGE)
+        publication._patch_verifier(module)
         items = [finding("First"), finding("Second")]
         verified = v21.verify_findings_for_publication(
             module, items, SimpleNamespace(), {"head": {"sha": HEAD}}, config(), None
         )
         assert len(verified) == 1
-        disposition = getattr(module, v45._DISPOSITION_ATTR)
+        disposition = getattr(module, publication._DISPOSITION_ATTR)
         assert disposition["verifier_candidate_count"] == 2
         assert disposition["verifier_supported_count"] == 1
         assert disposition["verifier_suppressed_count"] == 1
     finally:
         v21.verify_findings_for_publication = original
         if had_stored:
-            setattr(v21, v45._VERIFIER_STORAGE, stored)
-        elif hasattr(v21, v45._VERIFIER_STORAGE):
-            delattr(v21, v45._VERIFIER_STORAGE)
+            setattr(v21, publication._VERIFIER_STORAGE, stored)
+        elif hasattr(v21, publication._VERIFIER_STORAGE):
+            delattr(v21, publication._VERIFIER_STORAGE)
 
-    v45._patch_config_loader(module)
+    publication._patch_config_loader(module)
     loaded = module.load_pareto_context_config("unused.yml")
     assert loaded.verifier_authoritative_publication_review is True
 
@@ -207,20 +207,20 @@ def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-4:] == (
         "dcoir_review_required_runtime_patch_v44",
-        "dcoir_review_required_runtime_patch_v45",
+        "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
         "dcoir_review_required_runtime_patch_v50",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "verifier_authoritative_publication_review: true" in production
-    assert "dcoir_review_required_runtime_patch_v45_selftest.py" in production
+    assert "dcoir_review_publication_disposition_selftest.py" in production
     review = entrypoint.import_module(entrypoint.review_module_name)
     entrypoint.apply_runtime_patches(review)
     loaded = review.load_pareto_context_config(
         str(ROOT / "openrouter-pr-review-pareto.yml")
     )
     assert loaded.verifier_authoritative_publication_review is True
-    assert getattr(review, v45._APPLIED_ATTR) is True
+    assert getattr(review, publication._APPLIED_ATTR) is True
 
 
 def main() -> None:
@@ -231,7 +231,7 @@ def main() -> None:
     test_rollback_delegates_to_prior_body()
     test_verifier_wrapper_and_config()
     test_production_registration()
-    print("dcoir_review_required_runtime_patch_v45_selftest passed")
+    print("dcoir_review_publication_disposition_selftest passed")
 
 
 if __name__ == "__main__":

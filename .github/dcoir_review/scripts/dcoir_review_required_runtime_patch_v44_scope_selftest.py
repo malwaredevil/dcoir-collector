@@ -218,7 +218,7 @@ def test_config_and_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names == (
         "dcoir_review_required_runtime_patch_v44",
-        "dcoir_review_required_runtime_patch_v45",
+        "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
         "dcoir_review_required_runtime_patch_v50",
     )

@@ -86,7 +86,7 @@ class DcoirReviewEntrypoint:
     # from receiving implicit overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v44',
-        'dcoir_review_required_runtime_patch_v45',
+        'dcoir_review.publication_disposition',
         'dcoir_review_required_runtime_patch_v46',
         'dcoir_review_required_runtime_patch_v50',
     )

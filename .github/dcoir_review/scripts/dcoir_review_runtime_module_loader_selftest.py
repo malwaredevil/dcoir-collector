@@ -47,6 +47,7 @@ DIRECT_IMPORT_MODULES = (
     "review_scope_guard_hooks.py",
     "provider_transport_retry.py",
     "precision_guard.py",
+    "publication_disposition.py",
     "quality_gate.py",
     "repair.py",
     "repair_contract.py",
@@ -190,6 +191,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v48_prompt_guard" not in numbered, (
         "retired v48 prompt-review companion production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v45" not in numbered, (
+        "retired v45 production owner reappeared"
     )
     assert "dcoir_review_required_runtime_patch_v51" not in numbered, (
         "retired v51 production owner reappeared"

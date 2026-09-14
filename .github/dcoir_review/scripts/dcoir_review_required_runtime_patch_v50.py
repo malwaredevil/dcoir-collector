@@ -6,7 +6,7 @@ import os
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v45 as v45
+from dcoir_review import publication_disposition as publication
 import dcoir_review_required_runtime_patch_v50_prior as gate_prior
 import dcoir_review_required_runtime_patch_v50_state as gate_state
 
@@ -62,7 +62,7 @@ def _patch_verifier(module: Any) -> None:
             return verified
         prior = gate_prior.load_prior_gate_context(review_module, gh, pr)
         setattr(review_module, _PRIOR_ATTR, prior)
-        disposition = getattr(review_module, v45._DISPOSITION_ATTR, None)
+        disposition = getattr(review_module, publication._DISPOSITION_ATTR, None)
         if not isinstance(disposition, dict):
             raise review_module.hardened.ReviewQualityError(
                 "DCOIR v50 is missing the v45 exact-head verifier disposition"
