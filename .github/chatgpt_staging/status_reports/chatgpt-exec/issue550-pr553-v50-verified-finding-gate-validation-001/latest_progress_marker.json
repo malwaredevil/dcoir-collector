@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34839701940",
+  "github_sha": "ab4a96ead9ff5e7a4c630998642d559b88ef9f82",
+  "phase": "request-resolved",
+  "request_id": "issue550-pr553-v50-verified-finding-gate-validation-001",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v50-verified-finding-gate-validation-001.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-14T11:44:19Z",
+  "workflow": "chatgpt-exec"
+}
