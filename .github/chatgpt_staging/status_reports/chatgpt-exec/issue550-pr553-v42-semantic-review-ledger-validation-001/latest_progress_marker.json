@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34842749781",
   "github_sha": "b579a30b1035242640bd9c116c937cd5ac7baed4",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-v42-semantic-review-ledger-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v42-semantic-review-ledger-validation-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-14T12:19:11Z",
+  "updated_utc": "2026-09-14T12:19:14Z",
   "workflow": "chatgpt-exec"
 }
