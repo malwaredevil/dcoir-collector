@@ -298,4 +298,4 @@ def apply_pareto_context_module(module: Any) -> None:
     """Install stable exact-scope execution/publication hooks."""
     from dcoir_review import review_scope_guard_hooks
 
-    review_scope_guard_hooks.apply_pareto_context_module(module)
+    review_scope_guard_hooks.apply_pareto_context_module(module, sys.modules[__name__])

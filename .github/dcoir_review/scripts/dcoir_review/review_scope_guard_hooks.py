@@ -6,7 +6,7 @@ import os
 import sys
 from typing import Any
 
-from dcoir_review import review_scope_guard as scope
+scope: Any = None
 
 
 def _capture_is_production_target(client: Any, number: int) -> bool:
@@ -257,7 +257,9 @@ def _patch_main_terminal_semantics(module: Any) -> None:
     module.main = main
 
 
-def apply_pareto_context_module(module: Any) -> None:
+def apply_pareto_context_module(module: Any, scope_module: Any) -> None:
+    global scope
+    scope = scope_module
     if getattr(module, scope.APPLIED_MARKER, False):
         return
     _patch_get_pr(module)
