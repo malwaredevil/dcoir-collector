@@ -14,7 +14,7 @@ import dcoir_review_required_runtime_patch_v33 as v33
 from dcoir_review import semantic_adjudication_normalization as normalization
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
-import dcoir_review_required_runtime_patch_v51 as v51
+from dcoir_review import semantic_candidate_identity as candidate_identity
 from dcoir_review import semantic_adjudication_recovery as recovery
 
 
@@ -260,17 +260,17 @@ def main() -> None:
     # semantic candidate. That must not make the candidate ineligible for recovery.
     v51_candidate = finding(100, "v51-preserved-semantic-candidate")
     v51_candidate.pop("suggested_replacement")
-    (v51_recovered, _model, _tier), _module, hardened, rank_calls, _reporter = run(
+    (identity_recovered, _model, _tier), _module, hardened, rank_calls, _reporter = run(
         rejected, [v51_candidate]
     )
     assert hardened.calls == 1
     assert len(rank_calls) == 1
-    assert len(v51_recovered["findings"]) == 1
-    assert "suggested_replacement" not in v51_recovered["findings"][0]
-    assert v51_recovered["findings"][0]["_dcoir_v51_candidate_id"] == "candidate-100"
+    assert len(identity_recovered["findings"]) == 1
+    assert "suggested_replacement" not in identity_recovered["findings"][0]
+    assert identity_recovered["findings"][0]["_dcoir_v51_candidate_id"] == "candidate-100"
 
     # Exact semantic duplicates collapse, but distinct same-site/same-title
-    # hypotheses must survive into the active production v51-aware ranker.
+    # hypotheses must survive into the active production semantic-identity-aware ranker.
     review = production_review()
     prod_cfg = production_config(review)
     assert prod_cfg.semantic_candidate_identity_review is True
@@ -281,21 +281,21 @@ def main() -> None:
     first = finding(101, "same-site-semantic-candidate")
     second = finding(101, "same-site-semantic-candidate")
     for item in (first, second):
-        item.pop(v51.CANDIDATE_ID_FIELD, None)
+        item.pop(candidate_identity.CANDIDATE_ID_FIELD, None)
         item.pop("suggested_replacement", None)
     first["body"] = "Primary semantic defect at the shared changed line remains independently actionable."
     first["validation"] = "Run the first same-site semantic invariant regression."
-    first[v51.SEMANTIC_KEY_FIELD] = [
+    first[candidate_identity.SEMANTIC_KEY_FIELD] = [
         "probe.py",
         101,
-        f"{v51.SEMANTIC_KIND_PREFIX}same-site-primary",
+        f"{candidate_identity.SEMANTIC_KIND_PREFIX}same-site-primary",
     ]
     second["body"] = "A distinct fallback semantic defect at the same changed line has different impact."
     second["validation"] = "Run the second same-site semantic invariant regression."
-    second[v51.SEMANTIC_KEY_FIELD] = [
+    second[candidate_identity.SEMANTIC_KEY_FIELD] = [
         "probe.py",
         101,
-        f"{v51.SEMANTIC_KIND_PREFIX}same-site-fallback",
+        f"{candidate_identity.SEMANTIC_KIND_PREFIX}same-site-fallback",
     ]
     deduped = scope.dedupe_exact_findings([first, dict(first), second])
     assert len(deduped) == 2
@@ -306,8 +306,8 @@ def main() -> None:
     identity_findings = recovered_identity["findings"]
     assert len(identity_findings) == 2
     assert all(recovery._complete_upstream_hypothesis(review, item) for item in identity_findings)
-    candidate_ids = [str(item.get(v51.CANDIDATE_ID_FIELD, "")) for item in identity_findings]
-    semantic_keys = [tuple(item.get(v51.SEMANTIC_KEY_FIELD, [])) for item in identity_findings]
+    candidate_ids = [str(item.get(candidate_identity.CANDIDATE_ID_FIELD, "")) for item in identity_findings]
+    semantic_keys = [tuple(item.get(candidate_identity.SEMANTIC_KEY_FIELD, [])) for item in identity_findings]
     assert len(set(candidate_ids)) == 2
     assert len(set(semantic_keys)) == 2
     identity_marker = recovered_identity[recovery.RECOVERY_MARKER]

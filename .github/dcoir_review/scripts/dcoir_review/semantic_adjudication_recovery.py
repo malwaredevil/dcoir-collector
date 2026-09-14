@@ -33,7 +33,7 @@ from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import semantic_adjudication_confidence as confidence
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
-import dcoir_review_required_runtime_patch_v51 as v51
+from dcoir_review import semantic_candidate_identity as candidate_identity
 
 
 RECOVERY_MARKER_VERSION = "v55"  # Compatibility/provenance value retained from the historical owner.
@@ -106,21 +106,21 @@ def _complete_upstream_hypothesis(_module: Any, item: Any) -> bool:
 
 
 def _recovery_identity_key(item: dict[str, Any]) -> tuple[Any, ...]:
-    """Return a stable identity-aware key without collapsing v51 semantics."""
+    """Return a stable key without collapsing semantic-candidate identity."""
 
-    candidate_id = str(item.get(v51.CANDIDATE_ID_FIELD, "") or "").strip()
+    candidate_id = str(item.get(candidate_identity.CANDIDATE_ID_FIELD, "") or "").strip()
     if candidate_id:
         return ("candidate-id", candidate_id)
 
-    semantic_key = v51._raw_key(item.get(v51.SEMANTIC_KEY_FIELD))
-    if semantic_key is not None and semantic_key[2].startswith(v51.SEMANTIC_KIND_PREFIX):
+    semantic_key = candidate_identity._raw_key(item.get(candidate_identity.SEMANTIC_KEY_FIELD))
+    if semantic_key is not None and semantic_key[2].startswith(candidate_identity.SEMANTIC_KIND_PREFIX):
         return ("semantic-key",) + semantic_key
 
     # Unprepared hypotheses still need deterministic duplicate removal before the
-    # active ranker. v51's derived candidate identity includes path, line, title,
+    # active ranker. The stable identity owner's derived key includes path, line, title,
     # body, and validation, so same-site/same-title but semantically distinct
     # hypotheses remain separate while exact semantic duplicates collapse.
-    return ("derived-candidate-id", v51._candidate_id(item))
+    return ("derived-candidate-id", candidate_identity._candidate_id(item))
 
 
 def _dedupe_upstream_hypotheses(findings: list[dict[str, Any]]) -> list[dict[str, Any]]:

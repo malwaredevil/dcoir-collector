@@ -55,6 +55,8 @@ DIRECT_IMPORT_MODULES = (
     "repair_render.py",
     "repair_support.py",
     "semantic_adjudication_confidence.py",
+    "semantic_candidate_identity.py",
+    "semantic_candidate_identity_hooks.py",
     "semantic_evidence_hardening.py",
     "semantic_adjudication_normalization.py",
     "semantic_adjudication_recovery.py",
@@ -188,6 +190,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v48_prompt_guard" not in numbered, (
         "retired v48 prompt-review companion production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v51" not in numbered, (
+        "retired v51 production owner reappeared"
     )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 

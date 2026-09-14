@@ -92,11 +92,11 @@ class DcoirReviewEntrypoint:
     )
     # Candidate-integrity overlays are cross-cutting semantic guards installed
     # after the composed Architecture-B post-terminal contract but before stage-
-    # local provider routing. v51 protects ordinary candidate identity from
+    # local provider routing. The stable identity owner protects ordinary candidates from
     # unsupported free-text risk-kind inference while leaving deterministic
     # sentinel coverage and verifier authority intact.
     candidate_integrity_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v51',
+        'dcoir_review.semantic_candidate_identity',
     )
     # Stage-local routing overlays are deliberately separate from Architecture-B
     # semantic-order invariants. v47 projects the calibrated Sonnet request

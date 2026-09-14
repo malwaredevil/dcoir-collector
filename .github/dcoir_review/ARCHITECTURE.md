@@ -222,7 +222,7 @@ This slice must not be credited as governed validated until publication readback
 
 The next bounded retirement moves the #524 valid-JSON/schema-shape recovery out of historical v55:
 
-- `dcoir_review/semantic_adjudication_recovery.py` owns the narrow adjudicator-shape fallback and v51-aware exact semantic deduplication used before adjudication;
+- `dcoir_review/semantic_adjudication_recovery.py` owns the narrow adjudicator-shape fallback and stable semantic-candidate-identity-aware exact deduplication used before adjudication;
 - canonical and complete flat-finding results remain on the existing v35/v37 path, while only the proven unsupported valid-object shape may retain already-structured upstream hypotheses for independent verification;
 - recovery stays bounded to the active production ranker and verifier capacity, performs no extra model call, and preserves the stable `_semantic_adjudication_shape_recovery` result marker consumed by downstream disposition logic;
 - production composition loads `dcoir_review.semantic_adjudication_recovery` after provider transport retry and before the remaining v56-v57 post-telemetry overlays;
@@ -230,6 +230,21 @@ The next bounded retirement moves the #524 valid-JSON/schema-shape recovery out 
 - the historical `v55` marker value is retained only as compatibility/provenance data inside the recovery marker; the historical v55 production module and version-specific self-test are removed.
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
+
+### Semantic-candidate identity retirement
+
+Historical v51 runtime ownership is retired into an explicit stable responsibility:
+
+- `dcoir_review/semantic_candidate_identity.py` owns candidate IDs, semantic keys, risk-provenance discrimination, ranking-boundary identity protection, and the stable candidate-identity contract;
+- `dcoir_review/semantic_candidate_identity_hooks.py` owns the bounded final-selector and verifier hook installation and receives the stable owner explicitly, avoiding a reciprocal import/cycle;
+- production composition loads `dcoir_review.semantic_candidate_identity` in the existing candidate-integrity position before stage-local routing;
+- stable semantic-adjudication recovery imports the stable identity owner directly for exact candidate-key derivation and no longer depends on historical v51 runtime ownership;
+- `_dcoir_v51_candidate_id`, `_dcoir_v51_semantic_candidate_key`, `metadata/v51-*`, `dcoir_review_v51_*`, and the `v51:` contract/version marker remain compatibility/provenance data because durable diagnostics and recovery consume those values;
+- `dcoir_review_semantic_candidate_identity_selftest.py` owns the stable behavioral contract, including semantic/risk identity preservation, final selection, verifier provenance, composition, and compatibility-data assertions;
+- the runtime module-loader guard classifies both stable modules as direct imports and rejects reintroduction of historical v51 production ownership;
+- the historical v51 production module and version-specific self-test are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and exact-head validation pass on the published PR head.
 
 ### Semantic-adjudication normalization retirement
 
