@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34808133670",
   "github_sha": "ad94b5736b08fd7396ffc111ee0dea1df8b26cea",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-v37-semantic-adjudication-normalization-validation-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-v37-semantic-adjudication-normalization-validation-001.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-14T05:02:16Z",
+  "updated_utc": "2026-09-14T05:02:18Z",
   "workflow": "chatgpt-exec"
 }
