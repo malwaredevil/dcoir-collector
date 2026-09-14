@@ -1,0 +1,13 @@
+{
+    "schema":  "dcoir.chatgpt_staging.exec_request.v1",
+    "request_id":  "issue550-pr553-v50-verified-finding-gate-validation-001",
+    "operator_approved":  true,
+    "approved_at_utc":  "2026-09-14T11:44:00Z",
+    "shell":  "powershell_5",
+    "timeout_seconds":  1800,
+    "artifact_retention_days":  3,
+    "cleanup_request_after_run":  true,
+    "script_path":  ".github/chatgpt_staging/exec_scripts/issue550-pr553-v50-verified-finding-gate-validation-001.ps1",
+    "approved_command_preview":  "No-inference exact-head validation for PR #553 source head 1eae83b29f916d85416ce9062651679d2ae20262 / tree 8fbe61da2a80533c83996143c7cf1fa902c7ce31. Run the governed 59-command DCOIR registry in an isolated worktree; require 56 production components, max numbered version 57, zero missing modules; prove historical v50 production/helper/selftest ownership is retired; require stable verified_finding_gate/prior/state ownership, exact v46 -\u003e verified_finding_gate -\u003e semantic_candidate_identity composition, and preserved VERSION v50, gate contracts, metadata/*-v50.json paths, and trusted-v50 prior provenance. Carry forward v52/v51/v48/v45/v34 invariants, semantic recall 12/10/2, precision 1.0/1.0 with zero regressions, and the 293-file Windows parser. Clear provider/model credentials and make no inference/provider calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+    "command":  "\u0026 \u0027D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-v50-verified-finding-gate-validation-001.ps1\u0027"
+}
