@@ -223,6 +223,20 @@ The next bounded retirement moves semantic-adjudicator result-shape compatibilit
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
+### Semantic-adjudication confidence retirement
+
+The next bounded retirement moves semantic-adjudicator confidence compatibility out of historical v39:
+
+- `dcoir_review/semantic_adjudication_confidence.py` owns the narrow confidence contract for semantic-adjudicator output, preserving valid supplied confidence and admitting otherwise-complete missing/null confidence only at the configured normal floor for independent verification; malformed confidence remains fail-closed;
+- production composition loads `dcoir_review.semantic_adjudication_confidence` at the former v39 position between v38 and v31, preserving historical semantic ordering without numbered ownership;
+- stable `dcoir_review/semantic_adjudication_recovery.py` and `dcoir_review_required_runtime_patch_v44_execution.py` import the stable confidence owner instead of historical v39;
+- `dcoir_review_semantic_adjudication_confidence_selftest.py` owns the stable regression contract for prompt requirements, supplied-confidence preservation, missing/null confidence admission, verifier handoff, malformed-result rejection, configured-floor validation, and idempotent application;
+- the historical debug artifact path `responses/07-v39-confidence-normalized.json` and schema value `dcoir_review_v39_confidence_normalization_v1` remain compatibility/provenance data only;
+- the runtime module-loader guard classifies the stable owner as a direct-import module and rejects reintroduction of historical v39 production ownership;
+- the historical v39 production module and version-specific self-test are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
+
 ## Migration invariants
 
 The migration must preserve externally observable behavior before historical layers are removed. In particular:
@@ -242,7 +256,7 @@ The migration must preserve externally observable behavior before historical lay
 
 ## Patch-chain freeze
 
-v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58, v55, or v37 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
+v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58, v55, v39, or v37 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
 
 ## Retirement rules
 

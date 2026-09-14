@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v39 adjudicator confidence compatibility."""
+"""Regression checks for stable DCOIR semantic-adjudicator confidence compatibility."""
 
 from __future__ import annotations
 
@@ -30,11 +30,11 @@ def _finding(*, confidence_marker: object = ...):
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v39" in names
+    assert "dcoir_review.semantic_adjudication_confidence" in names
     assert names.index("dcoir_review_required_runtime_patch_v38") < names.index(
-        "dcoir_review_required_runtime_patch_v39"
+        "dcoir_review.semantic_adjudication_confidence"
     )
-    assert names.index("dcoir_review_required_runtime_patch_v39") < names.index(
+    assert names.index("dcoir_review.semantic_adjudication_confidence") < names.index(
         "dcoir_review_required_runtime_patch_v31"
     )
 
@@ -42,9 +42,9 @@ def main() -> None:
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
-    v39 = importlib.import_module("dcoir_review_required_runtime_patch_v39")
+    confidence = importlib.import_module("dcoir_review.semantic_adjudication_confidence")
 
-    assert getattr(review, v39.APPLIED_MARKER, False) is True
+    assert getattr(review, confidence.APPLIED_MARKER, False) is True
     assert "EVERY retained finding MUST include ``confidence``" in v35.ADJUDICATION_BLOCK
 
     config = review.load_pareto_context_config(
@@ -58,7 +58,7 @@ def main() -> None:
         "findings": [_finding(confidence_marker=0.93)],
         "_semantic_adjudication_attempted": True,
     }
-    normalized, count, floor = v39._normalize_semantic_adjudication_confidence(
+    normalized, count, floor = confidence._normalize_semantic_adjudication_confidence(
         review, canonical, config
     )
     assert normalized is canonical
@@ -67,21 +67,23 @@ def main() -> None:
     assert normalized["findings"][0]["confidence"] == 0.93
 
     # Reproduce live run 33389436164: otherwise complete retained finding with
-    # the schema-required confidence field omitted. v39 assigns only the normal
+    # the schema-required confidence field omitted. the stable owner assigns only the normal
     # review floor so the independent v21 verifier can judge it.
     live_shape = {
         "findings": [_finding()],
         "_semantic_adjudication_attempted": True,
         "_semantic_adjudication_model": "anthropic/claude-opus-5",
     }
-    normalized, count, floor = v39._normalize_semantic_adjudication_confidence(
+    normalized, count, floor = confidence._normalize_semantic_adjudication_confidence(
         review, live_shape, config
     )
     assert count == 1
     assert floor == 0.70
     assert normalized["findings"][0]["confidence"] == 0.70
-    assert normalized[v39.NORMALIZATION_MARKER] == v39.NORMALIZATION_VALUE
-    assert normalized[v39.NORMALIZATION_COUNT] == 1
+    assert normalized[confidence.NORMALIZATION_MARKER] == confidence.NORMALIZATION_VALUE
+    assert normalized[confidence.NORMALIZATION_COUNT] == 1
+    assert confidence.DEBUG_ARTIFACT_PATH == "responses/07-v39-confidence-normalized.json"
+    assert confidence.DEBUG_SCHEMA_VERSION == "dcoir_review_v39_confidence_normalization_v1"
 
     # Null confidence is the same provider omission class; it may be admitted to
     # verification but is never promoted above the configured publication floor.
@@ -89,7 +91,7 @@ def main() -> None:
         "findings": [_finding(confidence_marker=None)],
         "_semantic_adjudication_attempted": True,
     }
-    normalized_null, count_null, _ = v39._normalize_semantic_adjudication_confidence(
+    normalized_null, count_null, _ = confidence._normalize_semantic_adjudication_confidence(
         review, null_shape, config
     )
     assert count_null == 1
@@ -184,16 +186,16 @@ def main() -> None:
         ),
     ):
         try:
-            v39._normalize_semantic_adjudication_confidence(review, bad_result, config)
+            confidence._normalize_semantic_adjudication_confidence(review, bad_result, config)
         except review.hardened.ReviewQualityError as exc:
             assert expected in str(exc)
         else:
-            raise AssertionError(f"v39 did not fail closed for {expected}")
+            raise AssertionError(f"stable confidence owner did not fail closed for {expected}")
 
     # Detector/challenger results are outside this compatibility seam and remain
     # unchanged, including their missing confidence if malformed upstream.
     detector_result = {"findings": [_finding()]}
-    untouched, count, _ = v39._normalize_semantic_adjudication_confidence(
+    untouched, count, _ = confidence._normalize_semantic_adjudication_confidence(
         review, detector_result, config
     )
     assert untouched is detector_result
@@ -205,28 +207,28 @@ def main() -> None:
     for bad_floor in (-0.01, 1.01, True, "not-a-number"):
         config.minimum_confidence = bad_floor
         try:
-            v39._normalize_semantic_adjudication_confidence(review, live_shape, config)
+            confidence._normalize_semantic_adjudication_confidence(review, live_shape, config)
         except review.hardened.ReviewQualityError:
             pass
         else:
-            raise AssertionError(f"v39 accepted invalid configured floor {bad_floor!r}")
+            raise AssertionError(f"stable confidence owner accepted invalid configured floor {bad_floor!r}")
     config.minimum_confidence = original_floor
 
-    # Applying v39 twice must not stack wrappers or duplicate prompt contracts.
+    # Applying the stable confidence owner twice must not stack wrappers or duplicate prompt contracts.
     wrapper_before = review.openrouter_review_with_hybrid_first_pass
     block_before = v35.ADJUDICATION_BLOCK
-    v39.apply_pareto_context_module(review)
+    confidence.apply_pareto_context_module(review)
     assert review.openrouter_review_with_hybrid_first_pass is wrapper_before
     assert v35.ADJUDICATION_BLOCK == block_before
     assert v35.ADJUDICATION_BLOCK.count("EVERY retained finding MUST include ``confidence``") == 1
 
     source = Path(
-        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v39.py"
+        ".github/dcoir_review/scripts/dcoir_review/semantic_adjudication_confidence.py"
     ).read_text(encoding="utf-8")
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 
-    print("dcoir_review_required_runtime_patch_v39_selftest passed")
+    print("dcoir_review_semantic_adjudication_confidence_selftest passed")
 
 
 if __name__ == "__main__":

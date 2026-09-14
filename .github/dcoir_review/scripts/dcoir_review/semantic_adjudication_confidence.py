@@ -1,4 +1,4 @@
-"""DCOIR Review v39 semantic-adjudicator confidence-shape compatibility.
+"""Stable DCOIR Review semantic-adjudicator confidence compatibility.
 
 A live issue-456 blind run proved that the primary detector, independent
 challenger, and semantic adjudicator still recover the deliberate semantic
@@ -8,9 +8,9 @@ adjudicated findings. The hardened normalizer correctly treats missing
 confidence as 0.0, which is fail-closed but prevents the v21 evidence verifier
 from independently deciding whether a real finding is supported.
 
-v39 repairs only that provider/schema compatibility seam. It does not invent a
+This stable owner repairs only that provider/schema compatibility seam. It does not invent a
 high confidence score and it does not authorize publication. For an otherwise
-complete semantic-adjudication finding whose confidence is missing or null, v39
+complete semantic-adjudication finding whose confidence is missing or null, this owner
 sets confidence to the configured normal publication floor solely to admit the
 candidate to the existing v21 exact-head evidence verifier. Ordinary findings
 still require verifier support at the verifier's own confidence floor before
@@ -31,13 +31,14 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v35 as v35
 
 
-VERSION = "v39"
-APPLIED_MARKER = "_dcoir_review_v39_applied"
-HYBRID_STORAGE = "_dcoir_review_v39_original_hybrid_first_pass"
-ADJUDICATION_BLOCK_STORAGE = "_dcoir_review_v39_original_adjudication_block"
+APPLIED_MARKER = "_dcoir_semantic_adjudication_confidence_applied"
+HYBRID_STORAGE = "_dcoir_semantic_adjudication_confidence_original_hybrid_first_pass"
+ADJUDICATION_BLOCK_STORAGE = "_dcoir_semantic_adjudication_confidence_original_adjudication_block"
 NORMALIZATION_MARKER = "_semantic_adjudication_confidence_normalization"
 NORMALIZATION_COUNT = "_semantic_adjudication_confidence_normalized_count"
 NORMALIZATION_VALUE = "minimum-floor-for-verifier-admission"
+DEBUG_ARTIFACT_PATH = "responses/07-v39-confidence-normalized.json"  # Compatibility/provenance path.
+DEBUG_SCHEMA_VERSION = "dcoir_review_v39_confidence_normalization_v1"  # Compatibility/provenance value.
 
 _REQUIRED_OTHER_FIELDS = (
     "title",
@@ -63,13 +64,13 @@ Output-shape requirement:
 def _configured_floor(config: Any, hardened: Any) -> float:
     raw = getattr(config, "minimum_confidence", 0.0)
     if isinstance(raw, bool):
-        raise hardened.ReviewQualityError("DCOIR v39 minimum confidence floor was boolean")
+        raise hardened.ReviewQualityError("DCOIR semantic-adjudication confidence minimum confidence floor was boolean")
     try:
         floor = float(raw)
     except (TypeError, ValueError) as exc:
-        raise hardened.ReviewQualityError("DCOIR v39 minimum confidence floor was not numeric") from exc
+        raise hardened.ReviewQualityError("DCOIR semantic-adjudication confidence minimum confidence floor was not numeric") from exc
     if not math.isfinite(floor) or not 0.0 <= floor <= 1.0:
-        raise hardened.ReviewQualityError("DCOIR v39 minimum confidence floor was outside 0.0..1.0")
+        raise hardened.ReviewQualityError("DCOIR semantic-adjudication confidence minimum confidence floor was outside 0.0..1.0")
     return floor
 
 
@@ -77,31 +78,31 @@ def _validate_other_finding_fields(item: dict[str, Any], hardened: Any) -> None:
     missing = [field for field in _REQUIRED_OTHER_FIELDS if field not in item]
     if missing:
         raise hardened.ReviewQualityError(
-            "DCOIR v39 refused missing-confidence normalization for a partial finding; "
+            "DCOIR semantic-adjudication confidence refused missing-confidence normalization for a partial finding; "
             f"missing fields: {', '.join(missing)}"
         )
 
     for field in ("title", "path", "body", "validation"):
         if not isinstance(item.get(field), str) or not str(item.get(field) or "").strip():
             raise hardened.ReviewQualityError(
-                f"DCOIR v39 refused missing-confidence normalization for invalid {field}"
+                f"DCOIR semantic-adjudication confidence refused missing-confidence normalization for invalid {field}"
             )
 
     severity = item.get("severity")
     if not isinstance(severity, str) or severity.strip().lower() not in _VALID_SEVERITIES:
         raise hardened.ReviewQualityError(
-            "DCOIR v39 refused missing-confidence normalization for invalid severity"
+            "DCOIR semantic-adjudication confidence refused missing-confidence normalization for invalid severity"
         )
 
     raw_line = item.get("line")
     if isinstance(raw_line, bool) or not isinstance(raw_line, int) or raw_line <= 0:
         raise hardened.ReviewQualityError(
-            "DCOIR v39 refused missing-confidence normalization for invalid line"
+            "DCOIR semantic-adjudication confidence refused missing-confidence normalization for invalid line"
         )
 
     if not isinstance(item.get("suggested_replacement"), str):
         raise hardened.ReviewQualityError(
-            "DCOIR v39 refused missing-confidence normalization for invalid suggested_replacement"
+            "DCOIR semantic-adjudication confidence refused missing-confidence normalization for invalid suggested_replacement"
         )
 
 
@@ -111,12 +112,12 @@ def _validate_provided_confidence(raw: Any, hardened: Any) -> None:
     # coerce them.
     if isinstance(raw, bool) or not isinstance(raw, (int, float)):
         raise hardened.ReviewQualityError(
-            "DCOIR v39 semantic adjudicator returned non-numeric confidence"
+            "DCOIR semantic-adjudication confidence semantic adjudicator returned non-numeric confidence"
         )
     confidence = float(raw)
     if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
         raise hardened.ReviewQualityError(
-            "DCOIR v39 semantic adjudicator confidence was outside 0.0..1.0"
+            "DCOIR semantic-adjudication confidence semantic adjudicator confidence was outside 0.0..1.0"
         )
 
 
@@ -132,7 +133,7 @@ def _normalize_semantic_adjudication_confidence(
     """
 
     if not isinstance(result, dict):
-        raise module.hardened.ReviewQualityError("DCOIR v39 received a non-object review result")
+        raise module.hardened.ReviewQualityError("DCOIR semantic-adjudication confidence received a non-object review result")
 
     floor = _configured_floor(config, module.hardened)
     if not bool(result.get("_semantic_adjudication_attempted")):
@@ -141,7 +142,7 @@ def _normalize_semantic_adjudication_confidence(
     raw_findings = result.get("findings")
     if not isinstance(raw_findings, list):
         raise module.hardened.ReviewQualityError(
-            "DCOIR v39 semantic-adjudication result did not contain a findings list"
+            "DCOIR semantic-adjudication confidence semantic-adjudication result did not contain a findings list"
         )
 
     normalized_findings: list[Any] = []
@@ -149,7 +150,7 @@ def _normalize_semantic_adjudication_confidence(
     for raw_item in raw_findings:
         if not isinstance(raw_item, dict):
             raise module.hardened.ReviewQualityError(
-                "DCOIR v39 semantic adjudicator returned a non-object finding"
+                "DCOIR semantic-adjudication confidence semantic adjudicator returned a non-object finding"
             )
         item = dict(raw_item)
         if "confidence" not in item or item.get("confidence") is None:
@@ -176,7 +177,7 @@ def _patch_adjudication_prompt() -> None:
         original = str(getattr(v35, "ADJUDICATION_BLOCK", "") or "")
         setattr(v35, ADJUDICATION_BLOCK_STORAGE, original)
     if not original:
-        raise RuntimeError("DCOIR v39 could not locate the v35 semantic adjudication prompt block")
+        raise RuntimeError("DCOIR semantic-adjudication confidence could not locate the v35 semantic adjudication prompt block")
     v35.ADJUDICATION_BLOCK = original.rstrip() + "\n\n" + ADJUDICATION_CONFIDENCE_CONTRACT
 
 
@@ -187,7 +188,7 @@ def _patch_semantic_adjudication_result(module: Any) -> None:
         if callable(original):
             setattr(module, HYBRID_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v39 could not locate the active hybrid review function")
+        raise RuntimeError("DCOIR semantic-adjudication confidence could not locate the active hybrid review function")
 
     def openrouter_review_with_hybrid_first_pass(
         pr,
@@ -223,9 +224,9 @@ def _patch_semantic_adjudication_result(module: Any) -> None:
         if count:
             module.hardened.write_debug_json_artifact_safely(
                 config,
-                "responses/07-v39-confidence-normalized.json",
+                DEBUG_ARTIFACT_PATH,
                 {
-                    "schema_version": "dcoir_review_v39_confidence_normalization_v1",
+                    "schema_version": DEBUG_SCHEMA_VERSION,
                     "normalized_count": count,
                     "admission_floor": floor,
                     "normalization": NORMALIZATION_VALUE,

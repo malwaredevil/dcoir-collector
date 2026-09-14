@@ -51,10 +51,11 @@ class DcoirReviewEntrypoint:
         # v38 makes repair-author confidence advisory, normalizes only missing
         # explanatory repair metadata, and raises the independent critic hard
         # acceptance threshold while preserving exact-head structural checks.
-        # v39 handles one additional provider-schema seam: when an otherwise
-        # complete semantic-adjudication finding omits confidence, it assigns only
-        # the configured normal floor to admit the candidate to v21 verification;
-        # verifier support remains mandatory before repair/publication. v31 stays
+        # Stable semantic-adjudication confidence compatibility handles one additional
+        # provider-schema seam: when an otherwise complete semantic-adjudication
+        # finding omits confidence, it assigns only the configured normal floor to
+        # admit the candidate to v21 verification; verifier support remains mandatory
+        # before repair/publication. v31 stays
         # terminal for this historical semantic-patch chain.
         'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
@@ -63,7 +64,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v36',
         'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review_required_runtime_patch_v38',
-        'dcoir_review_required_runtime_patch_v39',
+        'dcoir_review.semantic_adjudication_confidence',
         'dcoir_review_required_runtime_patch_v31',
     )
     # Architecture-B overlays are deliberately outside the historical semantic

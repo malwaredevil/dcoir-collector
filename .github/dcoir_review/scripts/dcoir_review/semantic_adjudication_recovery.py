@@ -30,7 +30,7 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v35 as v35
 from dcoir_review import semantic_adjudication_normalization as normalization
-import dcoir_review_required_runtime_patch_v39 as v39
+from dcoir_review import semantic_adjudication_confidence as confidence
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v51 as v51
@@ -274,7 +274,7 @@ def run_adjudicator(
     capped["_semantic_adjudication_model"] = model
     capped["_semantic_adjudication_input_candidates"] = len(hypotheses)
     capped["_semantic_adjudication_context_scope"] = context_scope
-    capped, normalized_count, floor = v39._normalize_semantic_adjudication_confidence(
+    capped, normalized_count, floor = confidence._normalize_semantic_adjudication_confidence(
         module, capped, config
     )
     capped["_semantic_adjudication_output_findings"] = len(module.hardened.result_findings(capped))
