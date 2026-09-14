@@ -21,7 +21,7 @@ from typing import Any
 
 import dcoir_review_architecture_b_benchmark as core
 from dcoir_review import incremental_review_scope as v41_scope
-import dcoir_review_required_runtime_patch_v43 as v43
+import dcoir_review.semantic_result_reuse as v43
 import dcoir_review_required_runtime_patch_v46 as v46
 
 

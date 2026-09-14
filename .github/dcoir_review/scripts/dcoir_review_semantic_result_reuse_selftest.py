@@ -13,8 +13,8 @@ from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review.semantic_review_ledger_hooks as v42_hooks
-import dcoir_review_required_runtime_patch_v43 as v43
-import dcoir_review_required_runtime_patch_v43_reuse as reuse
+import dcoir_review.semantic_result_reuse as v43
+import dcoir_review.semantic_result_reuse_support as reuse
 
 
 def fake_prompt(pr, item, file_text, diff, config, path_sentinels, review_mode):
@@ -103,7 +103,7 @@ def main() -> None:
     assert DcoirReviewEntrypoint().terminal_patch_module_names == (
         "dcoir_review.incremental_review_frontier",
         "dcoir_review.semantic_review_ledger",
-        "dcoir_review_required_runtime_patch_v43",
+        "dcoir_review.semantic_result_reuse",
     )
 
     config = SimpleNamespace(
@@ -357,8 +357,8 @@ def main() -> None:
     source = "\n".join(
         (source_root / name).read_text(encoding="utf-8")
         for name in (
-            "dcoir_review_required_runtime_patch_v43.py",
-            "dcoir_review_required_runtime_patch_v43_reuse.py",
+            "dcoir_review/semantic_result_reuse.py",
+            "dcoir_review/semantic_result_reuse_support.py",
         )
     )
     for required in (
@@ -374,7 +374,7 @@ def main() -> None:
     for forbidden in ("openrouter.ai", "chat/completions", "git push", "merge_pull_request"):
         assert forbidden not in source
 
-    print("dcoir_review_required_runtime_patch_v43_selftest passed")
+    print("dcoir_review_semantic_result_reuse_selftest passed")
 
 
 if __name__ == "__main__":

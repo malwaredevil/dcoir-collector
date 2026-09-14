@@ -361,3 +361,7 @@ Before #550 can be considered complete, the exact PR head must pass the governed
 ### v42 semantic-review ledger retirement
 
 The historical v42 semantic-ledger patch family is retired from production ownership. `dcoir_review.semantic_review_ledger` is the stable composition owner, with `semantic_review_ledger_builder`, `semantic_review_ledger_contract`, `semantic_review_ledger_fingerprints`, and `semantic_review_ledger_hooks` as explicit responsibility helpers. The `v42` version value, `architecture-b-semantic-ledger-v1` contract, `DCOIR semantic ledger: ` marker, `_dcoir_v42_semantic_review_ledger` client attribute, dependency-context/reuse metadata, and review-context payload fields remain compatibility data rather than source ownership labels.
+
+### v43 semantic-result reuse retirement
+
+The historical v43 semantic-result reuse overlay is retired from production ownership. `dcoir_review.semantic_result_reuse` owns fail-closed reuse orchestration and ledger telemetry, while `semantic_result_reuse_support.py` owns deterministic reuse identity, trusted prior-manifest validation/readback, and manifest persistence. The compatibility version `v43`, `architecture-b-semantic-result-reuse-v1`, `dependency-context-v2`, `exact-semantic-prompt-v1`, and `metadata/semantic-result-reuse-manifest.json` remain durable data contracts. Private runtime state/apply markers are responsibility-named rather than version-named.

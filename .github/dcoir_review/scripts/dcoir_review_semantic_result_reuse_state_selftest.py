@@ -9,8 +9,8 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from dcoir_review import incremental_review_scope as v41_scope
-import dcoir_review_required_runtime_patch_v43 as v43
-import dcoir_review_required_runtime_patch_v43_reuse as reuse
+import dcoir_review.semantic_result_reuse as v43
+import dcoir_review.semantic_result_reuse_support as reuse
 
 
 def _record(path: str, head: str) -> dict[str, object]:
@@ -166,7 +166,7 @@ def main() -> None:
     _assert_incremental_carry_forward_is_exact()
     _assert_untrusted_scopes_never_carry()
     _assert_invalid_prior_records_never_carry()
-    print("dcoir_review_required_runtime_patch_v43_state_selftest passed")
+    print("dcoir_review_semantic_result_reuse_state_selftest passed")
 
 
 if __name__ == "__main__":

@@ -204,8 +204,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_incremental_review_frontier_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_incremental_review_provenance_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_review_ledger_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_result_reuse_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_result_reuse_state_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_scope_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_review_context_ledger_integration_selftest.py

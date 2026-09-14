@@ -10,7 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
+import dcoir_review.semantic_result_reuse_support as v43_reuse
 from dcoir_review import verified_finding_gate_prior as prior_io
 from dcoir_review import verified_finding_gate_state as state
 

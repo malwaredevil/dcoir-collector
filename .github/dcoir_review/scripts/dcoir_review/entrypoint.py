@@ -67,15 +67,15 @@ class DcoirReviewEntrypoint:
         'dcoir_review.semantic_adjudication_confidence',
         'dcoir_review_required_runtime_patch_v31',
     )
-    # Architecture-B overlays are deliberately outside the historical semantic
+    # Architecture-B responsibilities are deliberately outside the historical semantic
     # patch chain. These run after v31 so old semantic-order invariants remain
     # meaningful while production receives the approved incremental frontier
-    # (v41), semantic-ledger/fingerprint foundation (v42), then fail-closed
-    # semantic-result reuse on exact compatible evidence (v43).
+    # responsibility, semantic-ledger/fingerprint foundation, then fail-closed
+    # semantic-result reuse on exact compatible evidence.
     terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review.incremental_review_frontier',
         'dcoir_review.semantic_review_ledger',
-        'dcoir_review_required_runtime_patch_v43',
+        'dcoir_review.semantic_result_reuse',
     )
     # v44-v46 remain the Architecture-B post-terminal semantic contract:
     # candidate-scoped escalation, verifier-authoritative publication, and one

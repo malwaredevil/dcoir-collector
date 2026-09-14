@@ -1,4 +1,4 @@
-"""Architecture-B v43 terminal overlay for conservative semantic-result reuse."""
+"""Stable Architecture-B composition for conservative semantic-result reuse."""
 
 from __future__ import annotations
 
@@ -8,11 +8,11 @@ from typing import Any
 
 from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review.semantic_review_ledger_hooks as v42_hooks
-import dcoir_review_required_runtime_patch_v43_reuse as reuse
+import dcoir_review.semantic_result_reuse_support as reuse
 
 VERSION = "v43"
-_STATE_ATTR = "_dcoir_v43_reuse_state"
-_APPLIED_ATTR = "_dcoir_v43_applied"
+_STATE_ATTR = "_dcoir_review_semantic_result_reuse_state"
+_APPLIED_ATTR = "_dcoir_review_semantic_result_reuse_applied"
 
 
 def _new_state(module: Any, gh: Any, pr: dict[str, Any]) -> dict[str, Any]:
@@ -233,7 +233,7 @@ def apply_pareto_context_module(module: Any) -> None:
     original_hybrid = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
     original_single = getattr(module, "review_single_file_context", None)
     if not callable(original_hybrid) or not callable(original_single):
-        raise RuntimeError("DCOIR v43 could not locate active semantic review functions")
+        raise RuntimeError("DCOIR semantic-result reuse could not locate active semantic review functions")
 
     def review_single_file_context(
         index, context, pr, diff, schema, config, risk_sentinels, review_mode

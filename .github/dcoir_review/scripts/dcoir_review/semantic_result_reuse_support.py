@@ -1,4 +1,4 @@
-"""Fail-closed semantic-result reuse helpers for DCOIR v43."""
+"""Fail-closed manifest and evidence helpers for semantic-result reuse."""
 
 from __future__ import annotations
 
