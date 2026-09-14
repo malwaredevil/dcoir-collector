@@ -13,7 +13,7 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v38" in names
-    assert names.index("dcoir_review_required_runtime_patch_v37") < names.index("dcoir_review_required_runtime_patch_v38")
+    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review_required_runtime_patch_v38")
     assert names.index("dcoir_review_required_runtime_patch_v38") < names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")

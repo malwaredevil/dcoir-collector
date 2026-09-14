@@ -46,7 +46,7 @@ class DcoirReviewEntrypoint:
         # final semantic adjudicator plus falsification-first verifier guidance.
         # v36 upgrades verified repairs from one exact line to bounded coordinated
         # edit sets (multi-line, non-contiguous, and cross-file) while keeping
-        # human-only application. v37 strictly normalizes the adjudicator's valid
+        # human-only application. The stable semantic-adjudication normalizer preserves the adjudicator's valid
         # flat-single-finding compatibility shape before v35 capping/publication.
         # v38 makes repair-author confidence advisory, normalizes only missing
         # explanatory repair metadata, and raises the independent critic hard
@@ -61,7 +61,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v34',
         'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v36',
-        'dcoir_review_required_runtime_patch_v37',
+        'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review_required_runtime_patch_v38',
         'dcoir_review_required_runtime_patch_v39',
         'dcoir_review_required_runtime_patch_v31',

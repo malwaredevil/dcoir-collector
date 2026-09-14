@@ -7,7 +7,7 @@ from typing import Any
 
 import dcoir_review_required_runtime_patch_v32 as v32
 import dcoir_review_required_runtime_patch_v35 as v35
-import dcoir_review_required_runtime_patch_v37 as v37
+from dcoir_review import semantic_adjudication_normalization as normalization
 import dcoir_review_required_runtime_patch_v39 as v39
 import dcoir_review_required_runtime_patch_v44_scope as scope
 
@@ -120,7 +120,7 @@ def run_adjudicator(
     raw, model, tier = module.hardened.openrouter_review(
         prompt, schema, staged, reporter
     )
-    normalized = v37._normalize_adjudicator_result(module, raw)
+    normalized = normalization._normalize_adjudicator_result(module, raw)
     capped = v35._cap_adjudicated_findings(module, normalized, max_findings)
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model

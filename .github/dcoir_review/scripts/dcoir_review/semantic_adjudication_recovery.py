@@ -2,8 +2,8 @@
 
 Issue #524 was exposed by live benchmark run 34454110354: the semantic
 adjudicator completed successfully and returned valid JSON, but the parsed
-object matched neither the canonical findings envelope nor v37's complete flat
-single-finding compatibility shape. The review then terminated after all premium
+object matched neither the canonical findings envelope nor the stable complete
+flat-single-finding compatibility shape. The review then terminated after all premium
 semantic work had already completed.
 
 This stable owner preserves the versioned v44 helper unchanged and replaces only its
@@ -29,7 +29,7 @@ from typing import Any
 
 import dcoir_review_required_runtime_patch_v33 as v33
 import dcoir_review_required_runtime_patch_v35 as v35
-import dcoir_review_required_runtime_patch_v37 as v37
+from dcoir_review import semantic_adjudication_normalization as normalization
 import dcoir_review_required_runtime_patch_v39 as v39
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
@@ -42,8 +42,8 @@ RUN_STORAGE = "_dcoir_semantic_adjudication_recovery_original_run_adjudicator"
 DEDUPE_STORAGE = "_dcoir_semantic_adjudication_recovery_original_scope_dedupe_exact_findings"
 RECOVERY_MARKER = "_semantic_adjudication_shape_recovery"
 RECOVERY_REASON = "schema-incompatible-valid-json-object"
-_V37_SHAPE_ERROR_PREFIX = (
-    "DCOIR v37 adjudicator returned neither a findings envelope nor a complete flat single finding"
+_NORMALIZATION_SHAPE_ERROR_PREFIX = (
+    "DCOIR semantic adjudicator returned neither a findings envelope nor a complete flat single finding"
 )
 _V54_STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
@@ -55,30 +55,30 @@ def _recoverable_shape_failure(raw: Any, exc: Exception) -> bool:
     if not isinstance(raw, dict):
         return False
     if "findings" in raw:
-        # Canonical-envelope validation stays owned by v35/v37. A malformed
-        # findings value must not be converted into a fallback.
+        # Canonical-envelope validation stays owned by v35 and the stable normalizer.
+        # A malformed findings value must not be converted into a fallback.
         return False
-    if v37._is_complete_flat_finding(raw):
+    if normalization._is_complete_flat_finding(raw):
         return False
-    if any(field in raw for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
-        # Preserve v37's historical fail-closed behavior for partial flat
+    if any(field in raw for field in normalization._REQUIRED_FLAT_FINDING_FIELDS):
+        # Preserve the historical fail-closed behavior for partial flat
         # findings. Recovery never repairs missing semantic fields.
         return False
-    return str(exc).startswith(_V37_SHAPE_ERROR_PREFIX)
+    return str(exc).startswith(_NORMALIZATION_SHAPE_ERROR_PREFIX)
 
 
 def _complete_upstream_hypothesis(_module: Any, item: Any) -> bool:
     """Accept only complete publication candidates without coercing semantic data.
 
     v51 may deliberately remove detector-authored ``suggested_replacement`` while
-    preserving the semantic candidate. That field is not part of v37's publication
-    identity and is regenerated only after verification, so its absence must not
+    preserving the semantic candidate. That field is not part of the flat-finding
+    publication identity and is regenerated only after verification, so its absence must not
     erase otherwise complete upstream evidence during this fallback.
     """
 
     if not isinstance(item, dict):
         return False
-    if not all(field in item for field in v37._REQUIRED_FLAT_FINDING_FIELDS):
+    if not all(field in item for field in normalization._REQUIRED_FLAT_FINDING_FIELDS):
         return False
     for field in ("title", "severity", "path", "body", "validation"):
         if not isinstance(item.get(field), str) or not str(item.get(field) or "").strip():
@@ -245,7 +245,7 @@ def run_adjudicator(
     raw, model, tier = module.hardened.openrouter_review(prompt, schema, staged, reporter)
     recovered_shape = False
     try:
-        normalized = v37._normalize_adjudicator_result(module, raw)
+        normalized = normalization._normalize_adjudicator_result(module, raw)
     except module.hardened.ReviewQualityError as exc:
         if not _recoverable_shape_failure(raw, exc):
             raise

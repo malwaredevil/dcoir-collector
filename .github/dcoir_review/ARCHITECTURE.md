@@ -210,6 +210,19 @@ The next bounded retirement moves the #524 valid-JSON/schema-shape recovery out 
 
 This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
 
+### Semantic-adjudication normalization retirement
+
+The next bounded retirement moves semantic-adjudicator result-shape compatibility out of historical v37:
+
+- `dcoir_review/semantic_adjudication_normalization.py` owns the narrow normalization contract for canonical findings envelopes and the complete flat-single-finding compatibility shape; malformed or partial shapes still fail closed;
+- production composition loads `dcoir_review.semantic_adjudication_normalization` at the former v37 position between v36 and v38, preserving the historical semantic ordering without numbered ownership;
+- `dcoir_review_required_runtime_patch_v44_execution.py` and stable `dcoir_review/semantic_adjudication_recovery.py` now import the stable normalizer instead of the historical v37 module;
+- `dcoir_review_semantic_adjudication_normalization_selftest.py` owns the stable regression contract, including canonical/flat shape handling, capping, malformed-output rejection, the original live-loss seam, and idempotent application;
+- the runtime module-loader guard classifies the stable owner as a direct-import module and rejects reintroduction of historical v37 production ownership;
+- the historical v37 production module and version-specific self-test are removed; Git history remains the archive.
+
+This slice must not be credited as governed validated until publication readback and separately approved exact-head validation pass on the published PR head.
+
 ## Migration invariants
 
 The migration must preserve externally observable behavior before historical layers are removed. In particular:
@@ -229,7 +242,7 @@ The migration must preserve externally observable behavior before historical lay
 
 ## Patch-chain freeze
 
-v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58 or v55 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
+v58 was the last permitted numbered production runtime patch and is now retired from production composition. Do not add `dcoir_review_required_runtime_patch_v59.py`, v60, or another numbered production overlay as the normal repair pattern, and do not reintroduce retired v58, v55, or v37 ownership. Historical patch source may remain temporarily during characterization and staged cutover inside the #550 implementation PR, but it must not remain the production composition mechanism at completion.
 
 ## Retirement rules
 

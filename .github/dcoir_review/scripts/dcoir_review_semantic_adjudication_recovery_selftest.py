@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """Deterministic regression checks for stable semantic-adjudication recovery."""
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v33 as v33
-import dcoir_review_required_runtime_patch_v37 as v37
+from dcoir_review import semantic_adjudication_normalization as normalization
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
 import dcoir_review_required_runtime_patch_v51 as v51
@@ -214,7 +214,7 @@ def main() -> None:
     assert hardened.calls == 1
     assert hardened.stage_labels == ["semantic-adjudicator"]
     assert rank_calls == []
-    assert flat_result[v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
+    assert flat_result[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
     assert recovery.RECOVERY_MARKER not in flat_result
 
     # A valid JSON object that is neither supported v37 shape recovers only from

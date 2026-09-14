@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v37 adjudicator shape normalization."""
+"""Regression checks for stable DCOIR semantic-adjudicator shape normalization."""
 
 from __future__ import annotations
 
@@ -34,16 +34,16 @@ def _finding(line: int = 12, title: str = "Predicate accepts rejected evidence")
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v37" in names
-    assert names.index("dcoir_review_required_runtime_patch_v36") < names.index("dcoir_review_required_runtime_patch_v37")
-    assert names.index("dcoir_review_required_runtime_patch_v37") < names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review.semantic_adjudication_normalization" in names
+    assert names.index("dcoir_review_required_runtime_patch_v36") < names.index("dcoir_review.semantic_adjudication_normalization")
+    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
-    v37 = importlib.import_module("dcoir_review_required_runtime_patch_v37")
+    normalization = importlib.import_module("dcoir_review.semantic_adjudication_normalization")
 
-    assert getattr(review, v37.APPLIED_MARKER, False) is True
+    assert getattr(review, normalization.APPLIED_MARKER, False) is True
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
 
@@ -54,17 +54,17 @@ def main() -> None:
     )
 
     canonical = {"summary": "none", "findings": []}
-    assert v37._normalize_adjudicator_result(fake_module, canonical) is canonical
+    assert normalization._normalize_adjudicator_result(fake_module, canonical) is canonical
 
     flat = _finding()
-    normalized = v37._normalize_adjudicator_result(fake_module, flat)
+    normalized = normalization._normalize_adjudicator_result(fake_module, flat)
     assert len(normalized["findings"]) == 1
     assert normalized["findings"][0]["title"] == flat["title"]
-    assert normalized[v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
+    assert normalized[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
 
     capped_flat = v35._cap_adjudicated_findings(fake_module, flat, 8)
     assert len(capped_flat["findings"]) == 1
-    assert capped_flat[v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
+    assert capped_flat[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
 
     many = {"findings": [_finding(index, f"finding-{index}") for index in range(1, 4)]}
     capped_many = v35._cap_adjudicated_findings(fake_module, many, 2)
@@ -136,21 +136,21 @@ def main() -> None:
     )
     assert len(result["findings"]) == 1
     assert result["findings"][0]["title"] == "Recovered flat root cause"
-    assert result[v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
+    assert result[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
     assert result["_semantic_adjudication_output_findings"] == 1
     assert "semantic-adjudicator=adjudicator-model" in model_label
     assert tier == "default, default"
     artifact = debug_json["responses/06-semantic-adjudication-result.json"]
     assert artifact["output_finding_count"] == 1
-    assert artifact["result"][v37.FLAT_SHAPE_MARKER] == v37.FLAT_SHAPE_VALUE
+    assert artifact["result"][normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
     assert any(stage == "semantic-adjudication" and "retained=1" in message for stage, message in reporter.events)
 
-    # Reapplying v37 must not stack the v35 cap wrapper.
+    # Reapplying the stable owner must not stack the v35 cap wrapper.
     cap_before = v35._cap_adjudicated_findings
-    v37.apply_pareto_context_module(review)
+    normalization.apply_pareto_context_module(review)
     assert v35._cap_adjudicated_findings is cap_before
 
-    print("dcoir_review_required_runtime_patch_v37_selftest passed")
+    print("dcoir_review_semantic_adjudication_normalization_selftest passed")
 
 
 if __name__ == "__main__":

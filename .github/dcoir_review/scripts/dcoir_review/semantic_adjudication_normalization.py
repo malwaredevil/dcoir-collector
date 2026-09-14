@@ -1,4 +1,4 @@
-"""DCOIR Review v37 semantic-adjudicator result-shape compatibility.
+"""Stable semantic-adjudicator result-shape normalization for DCOIR Review.
 
 A live issue-456 blind run proved that the primary detector, independent
 challenger, and v35 semantic adjudicator can all recover the same concrete
@@ -6,7 +6,7 @@ semantic defect, while publication still loses the finding when the adjudicator
 returns one complete finding as the top-level JSON object instead of the normal
 ``{"findings": [...]}`` envelope.
 
-v37 repairs only that serialization seam. It does not alter detector prompts,
+This stable owner repairs only that serialization seam. It does not alter detector prompts,
 adjudication prompts, model selection, confidence thresholds, publication
 budgets, verification, repair synthesis, or branch-write capabilities.
 
@@ -26,9 +26,8 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v35 as v35
 
 
-VERSION = "v37"
-APPLIED_MARKER = "_dcoir_review_v37_applied"
-CAP_STORAGE = "_dcoir_review_v37_original_cap_adjudicated_findings"
+APPLIED_MARKER = "_dcoir_semantic_adjudication_normalization_applied"
+CAP_STORAGE = "_dcoir_semantic_adjudication_normalization_original_cap_adjudicated_findings"
 FLAT_SHAPE_MARKER = "_semantic_adjudication_result_shape"
 FLAT_SHAPE_VALUE = "flat-single-finding"
 
@@ -82,7 +81,7 @@ def _normalize_adjudicator_result(module: Any, result: Any) -> dict[str, Any]:
     """Normalize the one safe compatibility shape without forgiving malformed output."""
 
     if not isinstance(result, dict):
-        raise module.hardened.ReviewQualityError("DCOIR v37 adjudicator returned a non-object result")
+        raise module.hardened.ReviewQualityError("DCOIR semantic adjudicator returned a non-object result")
 
     if "findings" in result:
         # Preserve the canonical envelope exactly. v35 remains responsible for
@@ -93,7 +92,7 @@ def _normalize_adjudicator_result(module: Any, result: Any) -> dict[str, Any]:
         missing = [field for field in _REQUIRED_FLAT_FINDING_FIELDS if field not in result]
         detail = f"; missing required fields: {', '.join(missing)}" if missing else ""
         raise module.hardened.ReviewQualityError(
-            "DCOIR v37 adjudicator returned neither a findings envelope nor a complete flat single finding"
+            "DCOIR semantic adjudicator returned neither a findings envelope nor a complete flat single finding"
             + detail
         )
 
@@ -111,7 +110,7 @@ def _patch_v35_adjudication_cap(module: Any) -> None:
         if callable(original):
             setattr(v35, CAP_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v37 could not locate v35 adjudication result cap")
+        raise RuntimeError("DCOIR semantic-adjudication normalizer could not locate v35 adjudication result cap")
 
     def _cap_adjudicated_findings(active_module: Any, result: Any, limit: int) -> dict[str, Any]:
         normalized = _normalize_adjudicator_result(active_module, result)

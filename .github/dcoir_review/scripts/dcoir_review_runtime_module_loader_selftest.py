@@ -50,6 +50,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_reliability.py",
     "repair_render.py",
     "repair_support.py",
+    "semantic_adjudication_normalization.py",
     "semantic_adjudication_recovery.py",
     "sentinel_selection.py",
     "status.py",
@@ -163,6 +164,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v55" not in numbered, (
         "retired v55 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v37" not in numbered, (
+        "retired v37 production owner reappeared"
     )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
