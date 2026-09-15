@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34933911818",
   "github_sha": "e121ca10d9dca662da5734dc335cbe3ba6b8806b",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-config-transformed-function-ownership-audit-007",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-config-transformed-function-ownership-audit-007.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T05:43:54Z",
+  "updated_utc": "2026-09-15T05:43:57Z",
   "workflow": "chatgpt-exec"
 }
