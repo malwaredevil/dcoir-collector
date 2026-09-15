@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-sanitization-exact-head-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T16:50:16Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Validate exact committed PR #553 head a9f77a3a5aaf9d1a12424919d8c5040d47d02b07 (tree c8ca24a56d4b6ca2ebc96bf3d55f11797009a7e3, parent ffc4a13f95a521f87432b76fa55df1c78ff85b81) with all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, independent secret scan, canonical sanitize_text ownership, 26->25 multi-stage chains, 4->2 base stored-original callables, and exact commit diff SHA 8d910b5986b0c2e46f290bb28b55a9591535670c378f0c8e79d85b9201f9a766. No provider/model calls, workflow source mutation, self-review, Copilot trigger, Ready transition, or merge.",
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-sanitization-exact-head-001-launcher.py"
+}
