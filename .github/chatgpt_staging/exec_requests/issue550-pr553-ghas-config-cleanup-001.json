@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-ghas-config-cleanup-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:58:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-ghas-config-cleanup-001.py",
+  "approved_command_preview": "Address the three exact-current-head CodeQL review findings on Draft PR #553: replace the silent fail-soft telemetry except with an explicit explanatory return, remove the now-unused v21 and repair imports from v32, compile touched files, run six focused architecture/semantic tests, commit exactly two paths once, race-check the branch, and push non-force. No provider calls, DCOIR self-review, Copilot, Ready transition, or merge.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-ghas-config-cleanup-001.py'"
+}
