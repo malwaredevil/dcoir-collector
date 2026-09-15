@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34935984811",
   "github_sha": "9c654c44a7565ac1ea63f42d0f9ead2001c7f577",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-readable-config-behavior-parity-adva-015",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-readable-config-behavior-parity-adva-015.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T06:14:37Z",
+  "updated_utc": "2026-09-15T06:14:41Z",
   "workflow": "chatgpt-exec"
 }
