@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-dispatch-codeql-exact-head-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:52:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 300,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-dispatch-codeql-exact-head-001.py",
+  "approved_command_preview": "Dispatch the existing CodeQL workflow by workflow_dispatch on branch refactor/issue-550-dcoir-runtime-consolidation after fail-closed verification that its exact head is 1210e9689200c7a97a8b48c0d6a1dc792675700d. Use forwarded GitHub token secrets without printing secret values. No source/workflow mutation, self-review, Copilot, Ready transition, or merge.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-dispatch-codeql-exact-head-001.py'"
+}
