@@ -145,7 +145,7 @@ def main() -> None:
         build_prompt=lambda *args, **kwargs: "PR EVIDENCE: changed predicate and tests",
         rank_findings_for_required_budget=lambda findings, limit: findings[:limit],
     )
-    v35._patch_semantic_adjudication(fake_module)
+    v35_hybrid = v35.build_semantic_adjudication_stage(fake_module, fake_detector)
     fake_config = SimpleNamespace(
         semantic_adjudication_review=True,
         semantic_adjudication_max_findings=8,
@@ -153,7 +153,7 @@ def main() -> None:
         semantic_adjudication_model_stack=["adjudicator-model"],
         max_prompt_chars=120000,
     )
-    result, model_label, tier = fake_module.openrouter_review_with_hybrid_first_pass(
+    result, model_label, tier = v35_hybrid(
         {"number": 1},
         [],
         "diff",

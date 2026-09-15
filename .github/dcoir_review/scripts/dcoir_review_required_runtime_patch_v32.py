@@ -170,17 +170,12 @@ def _patch_per_file_prompt(module: Any) -> None:
     module.build_per_file_review_prompt = build_per_file_review_prompt
 
 
-def _patch_hybrid_confirmation(module: Any) -> None:
-    storage = "_dcoir_review_v32_original_hybrid_first_pass"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, storage, original)
+def build_adversarial_confirmation_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate openrouter_review_with_hybrid_first_pass")
+        raise RuntimeError("DCOIR v32 requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def adversarial_confirmation_stage(
         pr,
         files,
         diff,
@@ -194,7 +189,7 @@ def _patch_hybrid_confirmation(module: Any) -> None:
         context_summary,
         gh,
     ):
-        first_result, first_model, first_tier = getattr(module, storage)(
+        first_result, first_model, first_tier = original(
             pr,
             files,
             diff,
@@ -284,7 +279,7 @@ def _patch_hybrid_confirmation(module: Any) -> None:
         tier_label = ", ".join(item for item in tier_parts if item)
         return merged, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return adversarial_confirmation_stage
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -292,5 +287,4 @@ def apply_pareto_context_module(module: Any) -> None:
         return
     _patch_reasoning_payload(module)
     _patch_per_file_prompt(module)
-    _patch_hybrid_confirmation(module)
     setattr(module, APPLIED_MARKER, True)

@@ -61,16 +61,20 @@ def main() -> None:
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review.review_scope_guard",
         "dcoir_review.prompt_review_scope_guard",
-        "dcoir_review.structured_result_recovery",
+        "dcoir_review.review_orchestration",
         "dcoir_review_required_runtime_patch_v53",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     recovery = importlib.import_module("dcoir_review.structured_result_recovery")
+    orchestration = importlib.import_module("dcoir_review.review_orchestration")
     provider = importlib.import_module("dcoir_review.structured_result_provider")
     disposition = importlib.import_module("dcoir_review.structured_result_disposition")
     assert getattr(review, recovery.APPLIED_MARKER, False) is True
+    assert getattr(review, orchestration.APPLIED_MARKER, False) is True
+    assert review.openrouter_review_with_hybrid_first_pass.__module__ == "dcoir_review.review_orchestration"
+    assert tuple(review.DCOIR_REVIEW_ORCHESTRATION_STAGE_ORDER) == orchestration.STAGE_ORDER
     assert callable(getattr(review.hardened, "_dcoir_review_review_scope_guard_original_openrouter_request_once", None))
 
     # The balanced scanner ignores braces and escaped quotes inside JSON strings.

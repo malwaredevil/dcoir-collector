@@ -125,23 +125,12 @@ def main() -> None:
     assert non_reasoning_openai_payload["temperature"] == 0.2
     assert non_reasoning_openai_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
 
-    # Prove v32's own contract in isolation: a clean primary pass cannot leave
-    # the v32 stage without the independent Sol Pro challenger, and challenger
-    # findings are preserved. Later runtime overlays (for example v35's final
-    # adjudicator) may legitimately make additional model calls after v32, so
-    # call the v32 hybrid wrapper captured by the next overlay rather than the
-    # terminal active pipeline wrapper.
-    storage = "_dcoir_review_v32_original_hybrid_first_pass"
-    original_first_pass = getattr(review, storage)
+    # Prove v32's own contract in isolation through its explicit stage builder.
+    # The stage no longer stores or recovers a historical hybrid wrapper.
     original_build_prompt = review.build_prompt
     original_openrouter_review = review.hardened.openrouter_review
     original_write_text = review.hardened.write_debug_text_artifact_safely
     original_write_json = review.hardened.write_debug_json_artifact_safely
-    v32_hybrid = getattr(
-        review,
-        "_dcoir_review_v35_original_hybrid_first_pass",
-        review.openrouter_review_with_hybrid_first_pass,
-    )
     observed: dict[str, object] = {}
 
     def fake_first_pass(*args, **kwargs):
@@ -174,11 +163,11 @@ def main() -> None:
         )
 
     try:
-        setattr(review, storage, fake_first_pass)
         review.build_prompt = fake_build_prompt
         review.hardened.openrouter_review = fake_openrouter_review
         review.hardened.write_debug_text_artifact_safely = lambda *args, **kwargs: None
         review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
+        v32_hybrid = v32.build_adversarial_confirmation_stage(review, fake_first_pass)
         result, model_used, service_tier = v32_hybrid(
             {},
             [],
@@ -194,7 +183,6 @@ def main() -> None:
             None,
         )
     finally:
-        setattr(review, storage, original_first_pass)
         review.build_prompt = original_build_prompt
         review.hardened.openrouter_review = original_openrouter_review
         review.hardened.write_debug_text_artifact_safely = original_write_text

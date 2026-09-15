@@ -150,7 +150,12 @@ def build_fake_module(scope_guard):
         openrouter_review_with_hybrid_first_pass=hybrid,
         main=original_main,
     )
+    from dcoir_review import review_scope_guard_hooks
+
     scope_guard.apply_pareto_context_module(module)
+    module.openrouter_review_with_hybrid_first_pass = review_scope_guard_hooks.build_review_scope_terminal_translation_stage(
+        module, hybrid
+    )
     return module, hardened, state
 
 

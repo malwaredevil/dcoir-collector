@@ -14,7 +14,6 @@ from dcoir_review.semantic_review_ledger_builder import (
     build_semantic_review_ledger,
 )
 
-_HYBRID_STORAGE = "_dcoir_review_semantic_ledger_original_hybrid_first_pass"
 _APPEND_CONTEXT_STORAGE = "_dcoir_review_semantic_ledger_original_append_context_to_review_body"
 _DEBUG_JSON_STORAGE = "_dcoir_review_semantic_ledger_original_write_debug_json_artifact_safely"
 _LAST_LEDGER: dict[str, Any] = {}
@@ -84,47 +83,14 @@ def _ledger_marker(ledger: dict[str, Any]) -> str:
     )
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    """Attach behavior-preserving Architecture-B semantic-ledger instrumentation."""
+def build_semantic_review_ledger_stage(module: Any, next_review: Any) -> Any:
+    """Build the semantic-ledger lifecycle stage around ``next_review``."""
 
-    global _LAST_LEDGER, _LAST_REVIEW_CONTEXT
-    _LAST_LEDGER = {}
-    _LAST_REVIEW_CONTEXT = None
+    original_hybrid = next_review
+    if not callable(original_hybrid):
+        raise RuntimeError("DCOIR semantic review ledger requires a callable hybrid review stage")
 
-    original_hybrid = getattr(module, _HYBRID_STORAGE, None)
-    if original_hybrid is None:
-        original_hybrid = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if not callable(original_hybrid):
-            raise RuntimeError("DCOIR semantic review ledger could not locate the active hybrid review function")
-        setattr(module, _HYBRID_STORAGE, original_hybrid)
-
-    original_append_context = getattr(module, _APPEND_CONTEXT_STORAGE, None)
-    if original_append_context is None:
-        original_append_context = getattr(module, "append_context_to_review_body", None)
-        if not callable(original_append_context):
-            raise RuntimeError("DCOIR semantic review ledger could not locate append_context_to_review_body")
-        setattr(module, _APPEND_CONTEXT_STORAGE, original_append_context)
-
-    original_debug_json = getattr(module, _DEBUG_JSON_STORAGE, None)
-    if original_debug_json is None:
-        original_debug_json = module.hardened.write_debug_json_artifact_safely
-        setattr(module, _DEBUG_JSON_STORAGE, original_debug_json)
-
-    def write_debug_json_artifact_safely(
-        config: Any, relative_path: str, value: Any
-    ) -> None:
-        global _LAST_REVIEW_CONTEXT
-        if (
-            relative_path == "metadata/review-context.json"
-            and isinstance(value, dict)
-        ):
-            if not _LAST_LEDGER:
-                _LAST_REVIEW_CONTEXT = copy.deepcopy(value)
-            else:
-                value = _review_context_payload_with_ledger(value, _LAST_LEDGER)
-        original_debug_json(config, relative_path, value)
-
-    def openrouter_review_with_hybrid_first_pass(
+    def semantic_review_ledger_stage(
         pr,
         files,
         diff,
@@ -228,6 +194,42 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         return result, model_used, service_tier
 
+    return semantic_review_ledger_stage
+
+
+def apply_pareto_context_module(module: Any) -> None:
+    """Attach non-hybrid Architecture-B semantic-ledger instrumentation."""
+
+    global _LAST_LEDGER, _LAST_REVIEW_CONTEXT
+    _LAST_LEDGER = {}
+    _LAST_REVIEW_CONTEXT = None
+
+    original_append_context = getattr(module, _APPEND_CONTEXT_STORAGE, None)
+    if original_append_context is None:
+        original_append_context = getattr(module, "append_context_to_review_body", None)
+        if not callable(original_append_context):
+            raise RuntimeError("DCOIR semantic review ledger could not locate append_context_to_review_body")
+        setattr(module, _APPEND_CONTEXT_STORAGE, original_append_context)
+
+    original_debug_json = getattr(module, _DEBUG_JSON_STORAGE, None)
+    if original_debug_json is None:
+        original_debug_json = module.hardened.write_debug_json_artifact_safely
+        setattr(module, _DEBUG_JSON_STORAGE, original_debug_json)
+
+    def write_debug_json_artifact_safely(
+        config: Any, relative_path: str, value: Any
+    ) -> None:
+        global _LAST_REVIEW_CONTEXT
+        if (
+            relative_path == "metadata/review-context.json"
+            and isinstance(value, dict)
+        ):
+            if not _LAST_LEDGER:
+                _LAST_REVIEW_CONTEXT = copy.deepcopy(value)
+            else:
+                value = _review_context_payload_with_ledger(value, _LAST_LEDGER)
+        original_debug_json(config, relative_path, value)
+
     def append_context_to_review_body(
         body: str, review_mode: str, context_summary: str, config: Any
     ) -> str:
@@ -249,13 +251,14 @@ def apply_pareto_context_module(module: Any) -> None:
         return f"{rendered.rstrip()}\n\n{marker}" if rendered.strip() else marker
 
     module.hardened.write_debug_json_artifact_safely = write_debug_json_artifact_safely
-    module.openrouter_review_with_hybrid_first_pass = (
-        openrouter_review_with_hybrid_first_pass
-    )
     module.append_context_to_review_body = append_context_to_review_body
     module.DCOIR_SEMANTIC_LEDGER_CONTRACT = SEMANTIC_LEDGER_CONTRACT
     module.DCOIR_SEMANTIC_LEDGER_MARKER_PREFIX = SEMANTIC_LEDGER_MARKER_PREFIX
     module.semantic_review_ledger_for_client = semantic_review_ledger_for_client
 
 
-__all__ = ["apply_pareto_context_module", "semantic_review_ledger_for_client"]
+__all__ = [
+    "apply_pareto_context_module",
+    "build_semantic_review_ledger_stage",
+    "semantic_review_ledger_for_client",
+]

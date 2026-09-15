@@ -51,12 +51,15 @@ def main() -> None:
     wrapped_append = fake_module.append_context_to_review_body
     wrapped_debug = fake_module.hardened.write_debug_json_artifact_safely
 
-    # Re-applying replaces each wrapper around the saved original instead of
-    # stacking duplicate semantic calls, markers, or debug transformations.
+    # Re-applying refreshes only the ledger's non-hybrid hooks. Hybrid ownership
+    # remains untouched until canonical review orchestration composes the stage.
     v42.apply_pareto_context_module(fake_module)
-    assert fake_module.openrouter_review_with_hybrid_first_pass is not wrapped_hybrid
+    assert fake_module.openrouter_review_with_hybrid_first_pass is wrapped_hybrid
     assert fake_module.append_context_to_review_body is not wrapped_append
     assert fake_module.hardened.write_debug_json_artifact_safely is not wrapped_debug
+    fake_module.openrouter_review_with_hybrid_first_pass = v42.build_semantic_review_ledger_stage(
+        fake_module, fake_hybrid
+    )
 
     config = SimpleNamespace(
         model="anthropic/claude-opus-5",

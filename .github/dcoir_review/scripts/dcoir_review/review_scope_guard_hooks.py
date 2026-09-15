@@ -74,17 +74,12 @@ def _patch_provider_request(module: Any) -> None:
         module.openrouter_request_once = openrouter_request_once
 
 
-def _patch_hybrid_boundary(module: Any) -> None:
-    storage = "_dcoir_review_review_scope_guard_original_hybrid_first_pass"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, storage, original)
+def build_review_scope_terminal_translation_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        return
+        raise RuntimeError("DCOIR review-scope guard requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(*args, **kwargs):
+    def review_scope_terminal_translation_stage(*args, **kwargs):
         try:
             return original(*args, **kwargs)
         except Exception:
@@ -94,7 +89,7 @@ def _patch_hybrid_boundary(module: Any) -> None:
                 raise scope._terminal_exception(terminal)
             raise
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return review_scope_terminal_translation_stage
 
 
 def _patch_review_publication(module: Any) -> None:
@@ -264,7 +259,6 @@ def apply_pareto_context_module(module: Any, scope_module: Any) -> None:
         return
     _patch_get_pr(module)
     _patch_provider_request(module)
-    _patch_hybrid_boundary(module)
     _patch_review_publication(module)
     _patch_progress_reporter(module)
     _patch_main_terminal_semantics(module)

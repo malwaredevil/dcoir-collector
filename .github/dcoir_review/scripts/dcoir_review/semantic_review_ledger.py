@@ -19,6 +19,7 @@ from dcoir_review.semantic_review_ledger_contract import (
 )
 from dcoir_review.semantic_review_ledger_hooks import (
     apply_pareto_context_module,
+    build_semantic_review_ledger_stage,
     semantic_review_ledger_for_client,
 )
 from dcoir_review.semantic_review_ledger_builder import (
@@ -31,6 +32,7 @@ __all__ = [
     "SEMANTIC_LEDGER_MARKER_PREFIX",
     "SEMANTIC_LEDGER_ATTR",
     "build_semantic_review_ledger",
+    "build_semantic_review_ledger_stage",
     "semantic_review_ledger_for_client",
     "apply_pareto_context_module",
 ]

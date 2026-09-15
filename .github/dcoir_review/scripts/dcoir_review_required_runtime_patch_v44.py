@@ -12,7 +12,6 @@ import dcoir_review_required_runtime_patch_v44_telemetry as telemetry
 
 VERSION = "v44"
 _APPLIED_ATTR = "_dcoir_v44_applied"
-_HYBRID_STORAGE = "_dcoir_v44_original_hybrid_first_pass"
 
 
 def _merge_scoped_result(
@@ -99,16 +98,12 @@ def _widen_plan(plan, reason, findings):
     return widened
 
 
-def _patch_semantic_escalation(module: Any) -> None:
-    original = getattr(module, _HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, _HYBRID_STORAGE, original)
+def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR v44 could not locate active hybrid review function")
+        raise RuntimeError("DCOIR v44 requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def candidate_scoped_escalation_stage(
         pr,
         files,
         diff,
@@ -374,11 +369,10 @@ def _patch_semantic_escalation(module: Any) -> None:
         )
         return final, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return candidate_scoped_escalation_stage
 
 
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    _patch_semantic_escalation(module)
     setattr(module, _APPLIED_ATTR, True)

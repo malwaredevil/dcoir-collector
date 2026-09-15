@@ -116,7 +116,7 @@ class DcoirReviewEntrypoint:
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review.review_scope_guard',
         'dcoir_review.prompt_review_scope_guard',
-        'dcoir_review.structured_result_recovery',
+        'dcoir_review.review_orchestration',
         'dcoir_review_required_runtime_patch_v53',
     )
     # Telemetry overlays are deliberately outside execution-policy ordering

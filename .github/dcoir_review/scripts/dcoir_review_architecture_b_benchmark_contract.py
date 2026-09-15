@@ -225,6 +225,9 @@ def _context_projection_report(
 
     module.openrouter_review_with_hybrid_first_pass = hybrid
     v46.apply_pareto_context_module(module)
+    module.openrouter_review_with_hybrid_first_pass = v46.build_canonical_semantic_context_stage(
+        module, hybrid
+    )
 
     gh = SimpleNamespace()
     setattr(

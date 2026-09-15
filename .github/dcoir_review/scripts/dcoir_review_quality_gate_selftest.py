@@ -59,13 +59,14 @@ def test_retry_uses_explicit_telemetry_stage_without_mutating_shared_config() ->
     module = SimpleNamespace(
         openrouter_review_with_hybrid_first_pass=original,
         build_prompt=lambda *_args: "aggregate-prompt",
+        hardened=hardened,
     )
-    quality_gate._patch_hybrid_boundary(module, hardened)
+    hybrid_stage = quality_gate.build_quality_gate_stage(module, original)
     config = SimpleNamespace(
         review_quality_retry_on_rejected_output=True,
         fail_on_summary_only_problem=True,
     )
-    module.openrouter_review_with_hybrid_first_pass(
+    hybrid_stage(
         {}, [], "", {}, config, Reporter(), [], {}, "", "standard", "", object()
     )
     assert captured["stage"] == "broad-quality-retry"

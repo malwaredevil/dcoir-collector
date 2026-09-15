@@ -285,9 +285,9 @@ This slice must not be credited as governed validated until publication readback
 
 The bounded structured-output recovery and near-threshold disposition responsibility is now owned by stable modules rather than historical v52 production ownership:
 
-- `dcoir_review/structured_result_recovery.py` owns execution-policy composition for deterministic provider-envelope recovery and bounded low-confidence disposition;
+- `dcoir_review/structured_result_recovery.py` owns the deterministic provider-envelope recovery and bounded low-confidence disposition helper setup; canonical hybrid composition is owned by `dcoir_review.review_orchestration`;
 - `dcoir_review/structured_result_provider.py`, `structured_result_disposition.py`, and `structured_result_retry.py` own provider parsing/recovery, candidate-scoped disposition, and fail-closed whole-PR retry fallback respectively;
-- production composition loads `dcoir_review.structured_result_recovery` between the stable prompt review-scope guard and v53, preserving execution order without numbered ownership;
+- production composition loads `dcoir_review.review_orchestration` between the stable prompt review-scope guard and v53; that owner initializes structured-result recovery helpers and composes the hybrid lifecycle once, preserving the characterized execution order without sequential wrapper ownership;
 - v54 telemetry imports the stable disposition contract and recognizes the stable retry owner rather than hard-coding the historical v52 module filename;
 - the literal `v52` version, `_dcoir_v52_allow_low_confidence_disposition`, `_dcoir_v52_pending_low_confidence_disposition`, `_dcoir_v52_last_structured_output_recovery`, `metadata/v52-structured-low-confidence.json`, and `10-v52-*` debug artifact paths remain compatibility/provenance data because telemetry, diagnostics, and durable artifacts consume those values;
 - `dcoir_review_structured_result_recovery_selftest.py` owns the stable behavioral contract for deterministic/fail-closed envelope recovery and single bounded independent disposition;
@@ -369,3 +369,12 @@ The historical v43 semantic-result reuse overlay is retired from production owne
 ### Canonical configuration consolidation
 
 The canonical Pareto loader now parses configuration once and delegates post-base DCOIR settings to `dcoir_review.review_config.apply_review_config`. This replaces the sequential config-loader wrappers formerly installed by v32, v35, v44, publication disposition, v46, verified-finding gate, semantic candidate identity, per-file routing, v54, and v56. Those modules retain only their non-configuration responsibilities; the runtime-loader self-test prevents config-wrapper reintroduction and verifies final loader ownership remains canonical.
+
+
+### Canonical hybrid-review orchestration consolidation
+
+`dcoir_review.review_orchestration` is the single production owner of `openrouter_review_with_hybrid_first_pass`. The prior runtime shape replaced that callable repeatedly across quality gating, adversarial confirmation, semantic adjudication, confidence normalization, semantic-ledger lifecycle, semantic-result reuse, candidate-scoped escalation, canonical semantic context/adaptive budgets, exact-scope terminal translation, and structured-result disposition. Those responsibilities now expose explicitly named stage builders and no longer install or store their own hybrid wrapper.
+
+The canonical stage order is explicit and mechanically guarded: quality gate -> adversarial confirmation -> semantic adjudication -> adjudication-confidence normalization -> semantic review ledger -> semantic-result reuse -> candidate-scoped escalation -> canonical semantic context/adaptive budgets -> review-scope terminal translation -> structured-result disposition. `review_orchestration` composes those stages around the pre-existing Pareto hybrid implementation and installs one final callable. Reapplication is idempotent, participating modules may not reintroduce `original_hybrid_first_pass` storage shims, and later production modules may not replace the canonical owner.
+
+This consolidation deliberately leaves each participant's non-hybrid responsibilities in place until their own functional areas are dispositioned. For example, semantic-review ledger debug/context hooks, semantic-result per-file reuse, v46 prompt/context projections, review-scope provider/publication guards, and structured-result provider/retry helpers remain separate responsibilities. Historical numbered files are not deleted merely because one of their responsibilities moved; deletion occurs only when every live responsibility in that file has been moved, proven superseded/dead, or retained solely as a compatibility contract.

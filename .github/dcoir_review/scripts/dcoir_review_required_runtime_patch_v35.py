@@ -32,7 +32,6 @@ from dcoir_review import semantic_evidence_hardening as semantic_evidence
 
 VERSION = "v35"
 APPLIED_MARKER = "_dcoir_review_v35_applied"
-HYBRID_STORAGE = "_dcoir_review_v35_original_hybrid_first_pass"
 VERIFIER_PROMPT_STORAGE = "_dcoir_review_v35_original_verifier_prompt"
 FINAL_ADJUDICATION_COMPLETION_ATTR = "_semantic_adjudication_completion_token"
 FINAL_ADJUDICATION_COMPLETION_TOKEN = object()
@@ -198,16 +197,12 @@ def _cap_adjudicated_findings(module: Any, result: dict[str, Any], limit: int) -
     return capped
 
 
-def _patch_semantic_adjudication(module: Any) -> None:
-    original = getattr(module, HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, HYBRID_STORAGE, original)
+def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR v35 could not locate active hybrid review function")
+        raise RuntimeError("DCOIR v35 requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def semantic_adjudication_stage(
         pr,
         files,
         diff,
@@ -329,7 +324,7 @@ def _patch_semantic_adjudication(module: Any) -> None:
         tier_label = ", ".join(item for item in tier_parts if item)
         return adjudicated, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return semantic_adjudication_stage
 
 
 def _patch_verifier_prompt() -> None:
@@ -352,6 +347,5 @@ def _patch_verifier_prompt() -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_semantic_adjudication(module)
     _patch_verifier_prompt()
     setattr(module, APPLIED_MARKER, True)

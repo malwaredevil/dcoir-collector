@@ -20,5 +20,4 @@ def apply_pareto_context_module(module: Any) -> None:
         return
     provider.patch_provider(module)
     disposition.patch_quality_retry_reason(module)
-    disposition.patch_hybrid(module)
     setattr(module, APPLIED_MARKER, True)

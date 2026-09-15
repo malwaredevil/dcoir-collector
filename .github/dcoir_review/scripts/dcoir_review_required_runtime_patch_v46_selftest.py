@@ -256,9 +256,17 @@ def invoke(module, cfg=None, *, diff="diff", mode="first-pass-deep", gh=None):
     return result, target, reporter
 
 
+def apply_v46_with_hybrid_stage(module) -> None:
+    base_hybrid = module.openrouter_review_with_hybrid_first_pass
+    v46.apply_pareto_context_module(module)
+    module.openrouter_review_with_hybrid_first_pass = v46.build_canonical_semantic_context_stage(
+        module, base_hybrid
+    )
+
+
 def test_composed_context_reuse_and_artifacts() -> None:
     module, artifacts, calls = make_review_module()
-    v46.apply_pareto_context_module(module)
+    apply_v46_with_hybrid_stage(module)
     (result, model, tier), gh, reporter = invoke(module)
     assert result["_semantic_context_package_id"]
     assert result["_adaptive_semantic_budget_mode"] == "full-quality-floor"
@@ -297,14 +305,14 @@ def test_composed_context_reuse_and_artifacts() -> None:
 
 def test_incremental_budget_and_rollback() -> None:
     module, _artifacts, calls = make_review_module()
-    v46.apply_pareto_context_module(module)
+    apply_v46_with_hybrid_stage(module)
     gh = invoke(module, diff="tiny", mode="diff", cfg=config(), gh=SimpleNamespace())[1]
     package = module.semantic_context_package_for_client(gh)
     assert package["budget_plan"]["mode"] == "small-incremental-delta"
     assert package["budget_plan"]["selected"]["max_prompt_chars"] == 60000
 
     rollback, _rollback_artifacts, rollback_calls = make_review_module()
-    v46.apply_pareto_context_module(rollback)
+    apply_v46_with_hybrid_stage(rollback)
     invoke(rollback, cfg=config(canonical_semantic_context_review=False))
     assert rollback_calls["hybrid"] == 1
     assert not hasattr(rollback, v46.RUNTIME_ATTR)

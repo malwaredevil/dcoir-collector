@@ -71,7 +71,7 @@ def make_module(primary_findings):
         ),
         ReviewQualityError=RuntimeError,
     )
-    v44._patch_semantic_escalation(module)
+    module.openrouter_review_with_hybrid_first_pass = v44.build_candidate_scoped_escalation_stage(module, original)
     return module, original_calls, debug
 
 

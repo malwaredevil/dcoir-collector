@@ -227,13 +227,73 @@ def _write_manifest(module: Any, config: Any, pr: dict[str, Any], state: dict[st
     return reuse.persist_manifest(module, config, manifest)
 
 
+def build_semantic_result_reuse_stage(module: Any, next_review: Any) -> Any:
+    """Build the per-review semantic-reuse lifecycle around ``next_review``."""
+
+    original_hybrid = next_review
+    if not callable(original_hybrid):
+        raise RuntimeError("DCOIR semantic-result reuse requires a callable hybrid review stage")
+
+    def semantic_result_reuse_stage(
+        pr,
+        files,
+        diff,
+        schema,
+        config,
+        reporter,
+        risk_sentinels,
+        line_index,
+        deep_context_block,
+        review_mode,
+        context_summary,
+        gh,
+    ):
+        state = _new_state(module, gh, pr)
+        setattr(module, _STATE_ATTR, state)
+        result = original_hybrid(
+            pr,
+            files,
+            diff,
+            schema,
+            config,
+            reporter,
+            risk_sentinels,
+            line_index,
+            deep_context_block,
+            review_mode,
+            context_summary,
+            gh,
+        )
+        carried = _carry_forward_unchanged_records(gh, pr, state)
+        _apply_ledger_telemetry(module, gh, config, state)
+        manifest_persisted = _write_manifest(module, config, pr, state)
+        reused = sum(
+            1 for item in state["decisions"].values() if item.get("decision") == "reused"
+        )
+        recomputed = sum(
+            1
+            for item in state["decisions"].values()
+            if item.get("decision") == "recomputed"
+        )
+        reporter.update(
+            "semantic-reuse",
+            (
+                f"reused={reused}; recomputed={recomputed}; carried={carried}; "
+                f"prior={state['load_reason']}; "
+                f"state={'persisted' if manifest_persisted else 'not-persisted'}"
+            ),
+        )
+        return result
+
+    return semantic_result_reuse_stage
+
+
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    original_hybrid = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
     original_single = getattr(module, "review_single_file_context", None)
-    if not callable(original_hybrid) or not callable(original_single):
-        raise RuntimeError("DCOIR semantic-result reuse could not locate active semantic review functions")
+    if not callable(original_single):
+        raise RuntimeError("DCOIR semantic-result reuse could not locate review_single_file_context")
 
     def review_single_file_context(
         index, context, pr, diff, schema, config, risk_sentinels, review_mode
@@ -309,57 +369,8 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         return result
 
-    def openrouter_review_with_hybrid_first_pass(
-        pr,
-        files,
-        diff,
-        schema,
-        config,
-        reporter,
-        risk_sentinels,
-        line_index,
-        deep_context_block,
-        review_mode,
-        context_summary,
-        gh,
-    ):
-        state = _new_state(module, gh, pr)
-        setattr(module, _STATE_ATTR, state)
-        result = original_hybrid(
-            pr,
-            files,
-            diff,
-            schema,
-            config,
-            reporter,
-            risk_sentinels,
-            line_index,
-            deep_context_block,
-            review_mode,
-            context_summary,
-            gh,
-        )
-        carried = _carry_forward_unchanged_records(gh, pr, state)
-        _apply_ledger_telemetry(module, gh, config, state)
-        manifest_persisted = _write_manifest(module, config, pr, state)
-        reused = sum(
-            1 for item in state["decisions"].values() if item.get("decision") == "reused"
-        )
-        recomputed = sum(
-            1
-            for item in state["decisions"].values()
-            if item.get("decision") == "recomputed"
-        )
-        reporter.update(
-            "semantic-reuse",
-            (
-                f"reused={reused}; recomputed={recomputed}; carried={carried}; "
-                f"prior={state['load_reason']}; "
-                f"state={'persisted' if manifest_persisted else 'not-persisted'}"
-            ),
-        )
-        return result
-
     module.review_single_file_context = review_single_file_context
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
     setattr(module, _APPLIED_ATTR, True)
+
+
+__all__ = ["apply_pareto_context_module", "build_semantic_result_reuse_stage"]

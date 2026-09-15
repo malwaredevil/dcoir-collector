@@ -269,7 +269,11 @@ def main() -> None:
             },
         )
         v42_hooks._LAST_REVIEW_CONTEXT = None
+        reused_base_hybrid = reused_module.openrouter_review_with_hybrid_first_pass
         v43.apply_pareto_context_module(reused_module)
+        reused_module.openrouter_review_with_hybrid_first_pass = v43.build_semantic_result_reuse_stage(
+            reused_module, reused_base_hybrid
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
             old_dir = os.environ.get(reuse.ARTIFACT_DIR_ENV)
             os.environ[reuse.ARTIFACT_DIR_ENV] = temp_dir
@@ -321,7 +325,11 @@ def main() -> None:
                 "reuse": {},
             },
         )
+        recompute_base_hybrid = recompute_module.openrouter_review_with_hybrid_first_pass
         v43.apply_pareto_context_module(recompute_module)
+        recompute_module.openrouter_review_with_hybrid_first_pass = v43.build_semantic_result_reuse_stage(
+            recompute_module, recompute_base_hybrid
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
             old_dir = os.environ.get(reuse.ARTIFACT_DIR_ENV)
             os.environ[reuse.ARTIFACT_DIR_ENV] = temp_dir

@@ -32,7 +32,6 @@ import dcoir_review_required_runtime_patch_v35 as v35
 
 
 APPLIED_MARKER = "_dcoir_semantic_adjudication_confidence_applied"
-HYBRID_STORAGE = "_dcoir_semantic_adjudication_confidence_original_hybrid_first_pass"
 ADJUDICATION_BLOCK_STORAGE = "_dcoir_semantic_adjudication_confidence_original_adjudication_block"
 NORMALIZATION_MARKER = "_semantic_adjudication_confidence_normalization"
 NORMALIZATION_COUNT = "_semantic_adjudication_confidence_normalized_count"
@@ -181,16 +180,12 @@ def _patch_adjudication_prompt() -> None:
     v35.ADJUDICATION_BLOCK = original.rstrip() + "\n\n" + ADJUDICATION_CONFIDENCE_CONTRACT
 
 
-def _patch_semantic_adjudication_result(module: Any) -> None:
-    original = getattr(module, HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, HYBRID_STORAGE, original)
+def build_semantic_adjudication_confidence_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR semantic-adjudication confidence could not locate the active hybrid review function")
+        raise RuntimeError("DCOIR semantic-adjudication confidence requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def semantic_adjudication_confidence_stage(
         pr,
         files,
         diff,
@@ -243,7 +238,7 @@ def _patch_semantic_adjudication_result(module: Any) -> None:
                 )
         return normalized, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return semantic_adjudication_confidence_stage
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -251,5 +246,4 @@ def apply_pareto_context_module(module: Any) -> None:
         return
 
     _patch_adjudication_prompt()
-    _patch_semantic_adjudication_result(module)
     setattr(module, APPLIED_MARKER, True)

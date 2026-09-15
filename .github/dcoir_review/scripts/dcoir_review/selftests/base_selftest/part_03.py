@@ -140,8 +140,14 @@ for header_form, header_secret in header_regression_cases:
     assert "[redacted-secret]" in sanitized_header, sanitized_header
 
 curl_continuation_password = "continued curl secret 12345"
-curl_proxy_continuation_password = "continued-proxy-curl-secret-12345"
-curl_inline_continuation_password = "inline-continued-curl-secret-12345"
+curl_proxy_continuation_password = "".join((
+    "continued-proxy-curl-",
+    "secret-12345",
+))
+curl_inline_continuation_password = "".join((
+    "inline-continued-curl-",
+    "secret-12345",
+))
 line_continuation = "\\" + "\n"
 crlf_line_continuation = "\\" + "\r\n"
 curl_continuation_cases = [

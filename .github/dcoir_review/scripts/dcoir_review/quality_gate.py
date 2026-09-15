@@ -176,17 +176,15 @@ def _patch_hardened_helpers(hardened: Any) -> None:
     hardened.review_quality_retry_reason = review_quality_retry_reason
 
 
-def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
-    storage = "_dcoir_quality_gate_original_hybrid_first_pass"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, storage, original)
+def build_quality_gate_stage(module: Any, next_review: Any) -> Any:
+    hardened = getattr(module, "hardened", None)
+    if hardened is None:
+        raise RuntimeError("DCOIR quality gate requires hardened review helpers")
+    original = next_review
     if not callable(original):
-        return
+        raise RuntimeError("DCOIR quality gate requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def quality_gate_stage(
         pr: dict[str, Any],
         files: list[dict[str, Any]],
         diff: str,
@@ -284,7 +282,7 @@ def _patch_hybrid_boundary(module: Any, hardened: Any) -> None:
         )
         return merged_result, retry_model_used, retry_service_tier
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return quality_gate_stage
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -292,4 +290,3 @@ def apply_pareto_context_module(module: Any) -> None:
     if hardened is None:
         return
     _patch_hardened_helpers(hardened)
-    _patch_hybrid_boundary(module, hardened)

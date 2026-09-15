@@ -14,7 +14,6 @@ VERSION = "v52"
 ALLOW_ATTR = "_dcoir_v52_allow_low_confidence_disposition"
 PENDING_ATTR = "_dcoir_v52_pending_low_confidence_disposition"
 _RETRY_STORAGE = "_dcoir_review_structured_result_disposition_prior_quality_retry_reason"
-_HYBRID_STORAGE = "_dcoir_review_structured_result_disposition_prior_hybrid_first_pass"
 _LOW_CONFIDENCE_PREFIX = (
     "model returned structured findings, but none met the configured minimum confidence"
 )
@@ -274,16 +273,12 @@ def bounded_low_confidence_disposition(
     return adjudicated, model_label, tier_label
 
 
-def patch_hybrid(module: Any) -> None:
-    original = getattr(module, _HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, _HYBRID_STORAGE, original)
+def build_structured_result_disposition_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR structured-result disposition could not locate active hybrid review function")
+        raise RuntimeError("DCOIR structured-result disposition requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def structured_result_disposition_stage(
         pr,
         files,
         diff,
@@ -341,4 +336,4 @@ def patch_hybrid(module: Any) -> None:
             pending,
         )
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return structured_result_disposition_stage

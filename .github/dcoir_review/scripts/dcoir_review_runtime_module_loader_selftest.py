@@ -56,6 +56,7 @@ DIRECT_IMPORT_MODULES = (
     "prompt_review_scope_guard.py",
     "review_scope_guard.py",
     "review_config.py",
+    "review_orchestration.py",
     "review_scope_guard_hooks.py",
     "provider_transport_retry.py",
     "precision_guard.py",
@@ -363,9 +364,90 @@ def assert_canonical_config_loader_ownership() -> None:
     ]
     assert stored_originals == [], stored_originals
 
+def assert_canonical_hybrid_review_ownership() -> None:
+    from dcoir_review import review_orchestration
+
+    assert review_orchestration.STAGE_ORDER == (
+        "quality-gate",
+        "adversarial-confirmation",
+        "semantic-adjudication",
+        "semantic-adjudication-confidence",
+        "semantic-review-ledger",
+        "semantic-result-reuse",
+        "candidate-scoped-escalation",
+        "canonical-semantic-context",
+        "review-scope-terminal-translation",
+        "structured-result-disposition",
+    )
+
+    former_hybrid_owners = (
+        "dcoir_review/quality_gate.py",
+        "dcoir_review_required_runtime_patch_v32.py",
+        "dcoir_review_required_runtime_patch_v35.py",
+        "dcoir_review/semantic_adjudication_confidence.py",
+        "dcoir_review/semantic_review_ledger_hooks.py",
+        "dcoir_review/semantic_result_reuse.py",
+        "dcoir_review_required_runtime_patch_v44.py",
+        "dcoir_review_required_runtime_patch_v46.py",
+        "dcoir_review/review_scope_guard_hooks.py",
+        "dcoir_review/structured_result_disposition.py",
+    )
+    for relative in former_hybrid_owners:
+        source = (SCRIPTS / relative).read_text(encoding="utf-8")
+        assert "module.openrouter_review_with_hybrid_first_pass =" not in source, relative
+        assert "original_hybrid_first_pass" not in source, relative
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    base_after_v16 = None
+    final_hybrid = None
+    orchestration_seen = False
+
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            active = module.openrouter_review_with_hybrid_first_pass
+            if patch_name == "dcoir_review_required_runtime_patch_v16":
+                base_after_v16 = active
+                continue
+            if base_after_v16 is None:
+                continue
+            if patch_name == "dcoir_review.review_orchestration":
+                orchestration_seen = True
+                final_hybrid = active
+                assert final_hybrid is not base_after_v16
+                assert final_hybrid.__module__ == "dcoir_review.review_orchestration"
+                assert tuple(module.DCOIR_REVIEW_ORCHESTRATION_STAGE_ORDER) == review_orchestration.STAGE_ORDER
+                continue
+            if not orchestration_seen:
+                assert active is base_after_v16, f"{patch_name} replaced the pre-orchestration hybrid review callable"
+            else:
+                assert active is final_hybrid, f"{patch_name} replaced canonical hybrid review orchestration"
+
+    assert orchestration_seen and callable(final_hybrid)
+    former_storage_attrs = (
+        "_dcoir_quality_gate_original_hybrid_first_pass",
+        "_dcoir_review_v32_original_hybrid_first_pass",
+        "_dcoir_review_v35_original_hybrid_first_pass",
+        "_dcoir_semantic_adjudication_confidence_original_hybrid_first_pass",
+        "_dcoir_review_semantic_ledger_original_hybrid_first_pass",
+        "_dcoir_v44_original_hybrid_first_pass",
+        "_dcoir_v46_original_hybrid_first_pass",
+        "_dcoir_review_review_scope_guard_original_hybrid_first_pass",
+        "_dcoir_review_structured_result_disposition_prior_hybrid_first_pass",
+    )
+    present = [name for name in former_storage_attrs if callable(getattr(module, name, None))]
+    assert present == [], present
+
+    before = module.openrouter_review_with_hybrid_first_pass
+    review_orchestration.apply_pareto_context_module(module)
+    assert module.openrouter_review_with_hybrid_first_pass is before
+
+
 def main() -> None:
     assert_numbered_patch_freeze_before_cutover()
     assert_patch_inventory_is_source_complete()
+    assert_canonical_hybrid_review_ownership()
     assert_canonical_config_loader_ownership()
     assert_segment_registry_is_complete()
 
