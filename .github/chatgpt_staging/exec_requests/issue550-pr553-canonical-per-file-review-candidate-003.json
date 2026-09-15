@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-per-file-review-candidate-003",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T11:33:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 240,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Execute the same approved canonical per-file review candidate through the stable staging launcher, including the patch-exporter intent-to-add fix. No source-branch mutation, provider calls, review trigger, Ready transition, or merge.",
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-per-file-review-candidate-003-launcher.py"
+}
