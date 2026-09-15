@@ -312,6 +312,9 @@ def main() -> None:
     fake = FakeModule()
     v54.apply_pareto_context_module(fake)
     config = fake.load_pareto_context_config("unused")
+    # Synthetic component fixtures bypass the canonical production config loader.
+    # Production initialization is asserted above; initialize the shared sink explicitly here.
+    v54._ensure_sink(config)
     assert isinstance(getattr(config, v54.SINK_ATTR, None), v54.RunTelemetrySink)
 
     # Stage classification uses only schema/config/ephemeral prompt markers and
@@ -495,7 +498,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
 
     # Missing categorical response metadata is explicit, not silently filtered.
     missing_config = fake.load_pareto_context_config("unused")
-    missing_sink = getattr(missing_config, v54.SINK_ATTR)
+    missing_sink = v54._ensure_sink(missing_config)
     missing_event = v54.normalize_event(
         {"usage": {}}, "primary-semantic", "success"
     )
@@ -525,6 +528,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
 
     # Errors raised on shallow stage projections must surface on the root config.
     error_config = fake.load_pareto_context_config("unused")
+    v54._ensure_sink(error_config)
     shallow_error_config = copy.copy(error_config)
     v54._note_telemetry_error(shallow_error_config)
     assert v54._telemetry_error_count(error_config) == 1
@@ -599,8 +603,12 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
         raise RuntimeError("synthetic telemetry sink failure")
     v54._ensure_sink = broken_ensure
     try:
-        fallback_config = fake.load_pareto_context_config("unused")
-        assert fallback_config.model == "model-a"
+        # Loader-side initialization now belongs to canonical review_config, not v54.
+        # Exercise the real canonical production loader while sink creation is broken.
+        fallback_config = review.load_pareto_context_config(
+            ".github/dcoir_review/openrouter-pr-review-pareto.yml"
+        )
+        assert fallback_config.debug is False
         assert v54._telemetry_error_count(fallback_config) >= 1
     finally:
         v54._ensure_sink = original_ensure
@@ -620,7 +628,6 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
         "openrouter-review", "progress-reporter"
     }
     assert broken_module.load_pareto_context_config is original_loader
-    assert not hasattr(broken_module, v54.LOAD_STORAGE)
     entrypoint._emit_telemetry_patch_unavailable(broken_module)
     assert len(unavailable_updates) == 1
     assert unavailable_updates[0][0] == "openrouter-telemetry"

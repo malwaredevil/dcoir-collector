@@ -18,7 +18,6 @@ from dcoir_review import finding_verifier as v21
 VERSION = "v45"  # Compatibility/provenance value retained from the historical owner.
 SCHEMA_VERSION = "dcoir_review_final_publication_disposition_v1"
 _APPLIED_ATTR = "_dcoir_review_publication_disposition_applied"
-_CONFIG_STORAGE = "_dcoir_review_publication_disposition_original_load_pareto_context_config"
 _BODY_STORAGE = "_dcoir_review_publication_disposition_original_build_review_body_with_unanchored"
 _VERIFIER_STORAGE = "_dcoir_review_publication_disposition_original_verify_findings_for_publication"
 _DISPOSITION_ATTR = "_dcoir_review_publication_disposition"
@@ -36,26 +35,6 @@ def _head_sha(pr: Any) -> str:
 
 def _dict_findings(value: Any) -> list[dict[str, Any]]:
     return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
-
-
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, _CONFIG_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, _CONFIG_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR publication disposition could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.verifier_authoritative_publication_review = module.hardened.bool_value(
-            data, "verifier_authoritative_publication_review", True
-        )
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
 
 
 def _capture_verifier_disposition(
@@ -263,7 +242,6 @@ def _patch_review_body(module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    _patch_config_loader(module)
     _patch_verifier(module)
     _patch_review_body(module)
     setattr(module, _APPLIED_ATTR, True)

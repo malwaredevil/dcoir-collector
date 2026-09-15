@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from dcoir_review import finding_verifier as v21
 from dcoir_review import publication_disposition as publication
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import review_config
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -198,8 +199,8 @@ def test_verifier_wrapper_and_config() -> None:
         elif hasattr(v21, publication._VERIFIER_STORAGE):
             delattr(v21, publication._VERIFIER_STORAGE)
 
-    publication._patch_config_loader(module)
     loaded = module.load_pareto_context_config("unused.yml")
+    review_config.apply_review_config(loaded, module.hardened.parse_yaml_like_data("unused.yml"), module.hardened)
     assert loaded.verifier_authoritative_publication_review is True
 
 

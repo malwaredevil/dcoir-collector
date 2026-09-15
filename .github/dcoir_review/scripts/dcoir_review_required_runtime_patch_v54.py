@@ -40,7 +40,6 @@ SUMMARY_ATTR = "_dcoir_v54_run_telemetry_summary"
 ERROR_COUNT_ATTR = "_dcoir_v54_telemetry_error_count"
 PATCH_ERRORS_ATTR = "_dcoir_v54_patch_errors"
 STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
-LOAD_STORAGE = "_dcoir_review_v54_original_load_pareto_context_config"
 REVIEW_STORAGE = "_dcoir_review_v54_original_openrouter_review"
 REPORTER_STORAGE = "_dcoir_review_v54_original_progress_reporter"
 SCHEMA_VERSION = "dcoir_openrouter_run_telemetry_v1"
@@ -658,26 +657,6 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
     return text[:limit]
 
 
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, LOAD_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, LOAD_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v54 could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        try:
-            _ensure_sink(config)
-        except Exception:
-            _note_telemetry_error(config)
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
-
-
 def _patch_openrouter_review(module: Any) -> None:
     hardened = module.hardened
     original = getattr(hardened, REVIEW_STORAGE, None)
@@ -835,8 +814,6 @@ def _restore_attr(target: Any, name: str, state: tuple[bool, Any]) -> None:
 
 def _restore_patch_state(module: Any, hardened: Any, snapshot: dict[str, tuple[bool, Any]]) -> None:
     for target, name, key in (
-        (module, "load_pareto_context_config", "module.load_pareto_context_config"),
-        (module, LOAD_STORAGE, "module.load-storage"),
         (module, "openrouter_review", "module.openrouter_review"),
         (module, "ProgressReporter", "module.ProgressReporter"),
         (hardened, REVIEW_STORAGE, "hardened.review-storage"),
@@ -855,8 +832,6 @@ def apply_pareto_context_module(module: Any) -> None:
         return
     hardened = getattr(module, "hardened", None)
     snapshot = {
-        "module.load_pareto_context_config": _capture_attr(module, "load_pareto_context_config"),
-        "module.load-storage": _capture_attr(module, LOAD_STORAGE),
         "module.openrouter_review": _capture_attr(module, "openrouter_review"),
         "module.ProgressReporter": _capture_attr(module, "ProgressReporter"),
         "hardened.review-storage": _capture_attr(hardened, REVIEW_STORAGE),
@@ -866,7 +841,6 @@ def apply_pareto_context_module(module: Any) -> None:
     }
     errors: list[str] = []
     for name, patcher in (
-        ("config-loader", _patch_config_loader),
         ("openrouter-review", _patch_openrouter_review),
         ("progress-reporter", _patch_progress_reporter),
     ):

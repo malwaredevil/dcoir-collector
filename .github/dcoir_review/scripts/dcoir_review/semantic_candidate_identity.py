@@ -24,7 +24,6 @@ import dcoir_review_required_runtime_patch_v5 as v5
 
 VERSION = "v51"
 _APPLIED_ATTR = "_dcoir_review_semantic_candidate_identity_applied"
-_CONFIG_STORAGE = "_dcoir_review_semantic_candidate_identity_original_load_pareto_context_config"
 _RANK_STORAGE = "_dcoir_review_semantic_candidate_identity_original_rank_findings_for_required_budget"
 _POSTABLE_STORAGE = "_dcoir_review_semantic_candidate_identity_original_postable_key"
 
@@ -188,26 +187,6 @@ def _restore_semantic_candidate(
     return restored
 
 
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, _CONFIG_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, _CONFIG_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR semantic-candidate identity could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.semantic_candidate_identity_review = module.hardened.bool_value(
-            data, "semantic_candidate_identity_review", True
-        )
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
-
-
 def _patch_postable_key() -> None:
     original = _original_postable_key()
 
@@ -299,7 +278,6 @@ def apply_pareto_context_module(module: Any) -> None:
         return
     from dcoir_review import semantic_candidate_identity_hooks
 
-    _patch_config_loader(module)
     _patch_postable_key()
     _patch_ranker(module)
     semantic_candidate_identity_hooks.apply_pareto_context_module(

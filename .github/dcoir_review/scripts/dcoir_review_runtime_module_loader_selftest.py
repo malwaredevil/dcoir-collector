@@ -55,6 +55,7 @@ DIRECT_IMPORT_MODULES = (
     "per_file_routing.py",
     "prompt_review_scope_guard.py",
     "review_scope_guard.py",
+    "review_config.py",
     "review_scope_guard_hooks.py",
     "provider_transport_retry.py",
     "precision_guard.py",
@@ -309,9 +310,63 @@ def assert_segment_registry_is_complete() -> None:
     }
 
 
+
+def assert_canonical_config_loader_ownership() -> None:
+    base = (
+        SCRIPTS / "dcoir_review" / "pareto_context" / "part_01_config_payload.py"
+    ).read_text(encoding="utf-8")
+    assert "review_config.apply_review_config(config, data, hardened)" in base
+
+    former_config_owners = (
+        "dcoir_review_required_runtime_patch_v32.py",
+        "dcoir_review_required_runtime_patch_v35.py",
+        "dcoir_review_required_runtime_patch_v44.py",
+        "dcoir_review/publication_disposition.py",
+        "dcoir_review_required_runtime_patch_v46.py",
+        "dcoir_review/verified_finding_gate.py",
+        "dcoir_review/semantic_candidate_identity.py",
+        "dcoir_review/per_file_routing.py",
+        "dcoir_review_required_runtime_patch_v54.py",
+        "dcoir_review_required_runtime_patch_v56.py",
+    )
+    for relative in former_config_owners:
+        source = (SCRIPTS / relative).read_text(encoding="utf-8")
+        assert "def _patch_config_loader(" not in source, relative
+        assert "def _install_config_loader(" not in source, relative
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    canonical_loader = module.load_pareto_context_config
+    assert canonical_loader.__module__ == entrypoint.review_module_name
+
+    production_groups = (
+        "patch_module_names",
+        "terminal_patch_module_names",
+        "post_terminal_patch_module_names",
+        "candidate_integrity_patch_module_names",
+        "stage_local_patch_module_names",
+        "execution_policy_patch_module_names",
+        "telemetry_patch_module_names",
+        "post_telemetry_patch_module_names",
+    )
+    for group_name in production_groups:
+        for patch_name in getattr(entrypoint, group_name):
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            assert module.load_pareto_context_config is canonical_loader, (
+                f"{patch_name} replaced canonical load_pareto_context_config"
+            )
+
+    stored_originals = [
+        name
+        for name, value in vars(module).items()
+        if name.endswith("original_load_pareto_context_config") and callable(value)
+    ]
+    assert stored_originals == [], stored_originals
+
 def main() -> None:
     assert_numbered_patch_freeze_before_cutover()
     assert_patch_inventory_is_source_complete()
+    assert_canonical_config_loader_ownership()
     assert_segment_registry_is_complete()
 
     for layer in LAYER_SEGMENTS:

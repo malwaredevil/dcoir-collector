@@ -365,3 +365,7 @@ The historical v42 semantic-ledger patch family is retired from production owner
 ### v43 semantic-result reuse retirement
 
 The historical v43 semantic-result reuse overlay is retired from production ownership. `dcoir_review.semantic_result_reuse` owns fail-closed reuse orchestration and ledger telemetry, while `semantic_result_reuse_support.py` owns deterministic reuse identity, trusted prior-manifest validation/readback, and manifest persistence. The compatibility version `v43`, `architecture-b-semantic-result-reuse-v1`, `dependency-context-v2`, `exact-semantic-prompt-v1`, and `metadata/semantic-result-reuse-manifest.json` remain durable data contracts. Private runtime state/apply markers are responsibility-named rather than version-named.
+
+### Canonical configuration consolidation
+
+The canonical Pareto loader now parses configuration once and delegates post-base DCOIR settings to `dcoir_review.review_config.apply_review_config`. This replaces the sequential config-loader wrappers formerly installed by v32, v35, v44, publication disposition, v46, verified-finding gate, semantic candidate identity, per-file routing, v54, and v56. Those modules retain only their non-configuration responsibilities; the runtime-loader self-test prevents config-wrapper reintroduction and verifies final loader ownership remains canonical.

@@ -12,6 +12,7 @@ import dcoir_review_required_runtime_patch_v46 as v46
 import dcoir_review_required_runtime_patch_v46_budget as budget
 import dcoir_review_required_runtime_patch_v46_context as context
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import review_config
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -312,8 +313,8 @@ def test_incremental_budget_and_rollback() -> None:
 
 def test_config_and_production_registration() -> None:
     module, _artifacts, _calls = make_review_module()
-    v46._patch_config_loader(module)
     loaded = module.load_pareto_context_config("unused.yml")
+    review_config.apply_review_config(loaded, module.hardened.parse_yaml_like_data("unused.yml"), module.hardened)
     assert loaded.canonical_semantic_context_review is True
     assert loaded.adaptive_semantic_budgets_review is True
     assert loaded.adaptive_semantic_small_delta_prompt_chars == 60000

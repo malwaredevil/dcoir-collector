@@ -12,32 +12,11 @@ from dcoir_review import verified_finding_gate_state as gate_state
 
 VERSION = "v50"
 _APPLIED_ATTR = "_dcoir_review_verified_finding_gate_applied"
-_CONFIG_STORAGE = "_dcoir_review_verified_finding_gate_original_load_pareto_context_config"
 _VERIFIER_STORAGE = "_dcoir_review_verified_finding_gate_original_verify_findings_for_publication"
 _BODY_STORAGE = "_dcoir_review_verified_finding_gate_original_build_review_body_with_unanchored"
 _REPORTER_STORAGE = "_dcoir_review_verified_finding_gate_original_progress_reporter"
 _PRIOR_ATTR = "_dcoir_review_verified_finding_gate_prior_context"
 _STATE_ATTR = "_dcoir_review_verified_finding_gate_state"
-
-
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, _CONFIG_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, _CONFIG_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR verified-finding gate could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.verified_finding_gate_state_review = module.hardened.bool_value(
-            data, "verified_finding_gate_state_review", True
-        )
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
 
 
 def _patch_verifier(module: Any) -> None:
@@ -280,7 +259,6 @@ def _patch_progress_reporter(module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    _patch_config_loader(module)
     _patch_verifier(module)
     _patch_review_body(module)
     _patch_progress_reporter(module)

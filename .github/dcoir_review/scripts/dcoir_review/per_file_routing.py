@@ -38,18 +38,6 @@ def _optional_string_list(value: Any) -> list[str]:
     return []
 
 
-def _optional_positive_int(value: Any, key: str) -> int | None:
-    if value in (None, ""):
-        return None
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"Config key {key!r} must be a positive integer or empty, got {value!r}") from exc
-    if parsed <= 0:
-        raise ValueError(f"Config key {key!r} must be a positive integer or empty, got {value!r}")
-    return parsed
-
-
 def _is_claude_sonnet_5(model: Any) -> bool:
     value = str(model or "").strip().lower().split(":", 1)[0]
     return value == "anthropic/claude-sonnet-5" or value.startswith("anthropic/claude-sonnet-5-")
@@ -83,31 +71,6 @@ def project_per_file_review_config(config: Any) -> Any:
     if max_tokens is not None:
         projected.openrouter_require_stop_finish_reason = True
     return projected
-
-
-def _patch_config_loader(module: Any) -> None:
-    storage = "_dcoir_per_file_routing_original_load_pareto_context_config"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR per-file routing could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.per_file_review_model_stack = _optional_string_list(data.get("per_file_review_model_stack"))
-        effort = str(data.get("per_file_review_reasoning_effort", "") or "").strip()
-        config.per_file_review_reasoning_effort = effort or None
-        config.per_file_review_max_tokens = _optional_positive_int(
-            data.get("per_file_review_max_tokens"), "per_file_review_max_tokens"
-        )
-        config.per_file_review_provider_sort = str(data.get("per_file_review_provider_sort", "") or "").strip()
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
 
 
 def _patch_payload_builder(module: Any) -> None:
@@ -220,7 +183,6 @@ def _patch_per_file_review(module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_config_loader(module)
     _patch_payload_builder(module)
     _patch_per_file_review(module)
     setattr(module, APPLIED_MARKER, True)

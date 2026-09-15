@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import dcoir_review_required_runtime_patch_v44 as v44
 import dcoir_review_required_runtime_patch_v44_scope as scope
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import review_config
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -207,8 +208,8 @@ def test_config_and_registration() -> None:
             bool_value=lambda data, key, default: data.get(key, default),
         ),
     )
-    v44._patch_config_loader(module)
     loaded = module.load_pareto_context_config("unused.yml")
+    review_config.apply_review_config(loaded, parsed, module.hardened)
     assert loaded.candidate_scoped_escalation_review is True
     assert loaded.candidate_escalation_confidence_margin == 0.08
     assert loaded.candidate_escalation_max_paths == 3
