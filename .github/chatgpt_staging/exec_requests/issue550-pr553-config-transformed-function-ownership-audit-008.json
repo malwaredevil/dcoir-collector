@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-config-transformed-function-ownership-audit-008",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T05:48:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-config-transformed-function-ownership-audit-008.py",
+  "approved_command_preview": "Reproduce the green complete canonical-config preview, apply the exact emitted patch to a fresh exact-head worktree, run the same no-inference function-ownership audit as baseline, and validate the new untracked review_config.py through git status rather than git diff. Do not mutate PR #553 source.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-config-transformed-function-ownership-audit-008.py'"
+}
