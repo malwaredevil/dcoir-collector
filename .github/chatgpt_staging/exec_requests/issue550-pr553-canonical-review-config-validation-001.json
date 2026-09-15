@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-review-config-validation-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:55:30Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-review-config-validation-001.py",
+  "approved_command_preview": "Perform no-inference exact-head validation of Draft PR #553 source head 1210e9689200c7a97a8b48c0d6a1dc792675700d/tree 72b50e19e9da8eaaf566a79726a6615442c9c94c. Run the governed 59-command registry, native Windows PowerShell 5.1 parser, CodeQL workflow config validation, semantic recall and precision, architecture inventory, canonical review_config ownership checks, and strong stage-by-stage loader guard. No provider calls, source mutation, DCOIR self-review, Copilot, Ready transition, or merge.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-canonical-review-config-validation-001.py'"
+}
