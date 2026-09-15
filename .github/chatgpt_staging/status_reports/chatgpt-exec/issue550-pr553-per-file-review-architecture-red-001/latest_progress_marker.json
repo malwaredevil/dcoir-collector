@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34963083627",
   "github_sha": "0f7689df252f36c9071cdc4f611e72c7f4859b30",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-per-file-review-architecture-red-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-per-file-review-architecture-red-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T11:24:24Z",
+  "updated_utc": "2026-09-15T11:24:27Z",
   "workflow": "chatgpt-exec"
 }
