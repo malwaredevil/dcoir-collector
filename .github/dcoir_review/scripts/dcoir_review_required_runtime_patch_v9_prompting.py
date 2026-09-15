@@ -298,18 +298,3 @@ def _normalize_yaml_identifier(body: str, finding: dict[str, Any]) -> str:
     arg = _yaml_load_arg(str(finding.get("_anchored_line_text", "") or ""))
     body = re.sub(r"yaml\.safe_load\([A-Za-z_][A-Za-z0-9_.]*\)", f"yaml.safe_load({arg})", body)
     return re.sub(r"yaml\.load\([A-Za-z_][A-Za-z0-9_.]*,\s*Loader=yaml\.SafeLoader\)", f"yaml.load({arg}, Loader=yaml.SafeLoader)", body)
-
-
-def _patch_validation_text(base: Any) -> None:
-    original = getattr(base, "_dcoir_required_v9_original_validation_text_for_finding", None)
-    if original is None:
-        original = getattr(base, "validation_text_for_finding", None)
-        base._dcoir_required_v9_original_validation_text_for_finding = original
-    if not callable(original):
-        return
-
-    def validation_text_for_finding(finding: dict[str, Any]) -> str:
-        path, line, kind = _postable_key(finding)
-        return _validation_for_key(kind, path, line) or original(finding)
-
-    base.validation_text_for_finding = validation_text_for_finding

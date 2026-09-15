@@ -59,22 +59,6 @@ def _kind_for_validation(finding: dict[str, Any]) -> str:
     return v5._semantic_kind(finding)
 
 
-def _patch_validation_text(base: Any) -> None:
-    original = getattr(base, "_dcoir_required_v8_original_validation_text_for_finding", None)
-    if original is None:
-        original = getattr(base, "validation_text_for_finding", None)
-        base._dcoir_required_v8_original_validation_text_for_finding = original
-    if not callable(original):
-        return
-
-    def required_v8_validation_text_for_finding(finding: dict[str, Any]) -> str:
-        path = str(finding.get("path", "") or "")
-        validation = _validation_for_kind(_kind_for_validation(finding), path)
-        return validation or original(finding)
-
-    base.validation_text_for_finding = required_v8_validation_text_for_finding
-
-
 def _patch_progress_body(base: Any) -> None:
     original = getattr(base.ProgressReporter, "_dcoir_required_v8_original_body", None)
     if original is None:
@@ -127,7 +111,6 @@ def apply_pareto_context_module(module: Any) -> None:
     base = getattr(module, "base", None)
     hardened = getattr(module, "hardened", None)
     if base is not None:
-        _patch_validation_text(base)
         _patch_progress_body(base)
     _patch_prompt_review_budget()
     if hardened is not None:

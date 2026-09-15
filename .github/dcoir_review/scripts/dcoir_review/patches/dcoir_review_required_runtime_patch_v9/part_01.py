@@ -35,7 +35,6 @@ from dcoir_review_required_runtime_patch_v9_prompting import (
     _patch_prompt_review_call_accounting,
     _patch_prompt_review_readback,
     _patch_target_call_accounting,
-    _patch_validation_text,
     _record_prompt_review_call,
     _record_prompt_review_event,
     _record_target_call,
@@ -82,7 +81,6 @@ def apply_pareto_context_module(module: Any) -> None:
     _patch_yaml_safe_load_note()
     _patch_prompt_review_call_accounting()
     if base is not None:
-        _patch_validation_text(base)
         _patch_progress_comment(base, hardened)
     if hardened is not None and base is not None:
         _patch_target_call_accounting(hardened)

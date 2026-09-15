@@ -114,19 +114,6 @@ def default_validation_commands_for_path(path: str) -> list[str]:
     return []
 
 
-def validation_text_for_finding(finding: dict[str, Any]) -> str:
-    path = str(finding.get("path", "")).strip()
-    commands = extract_validation_commands(str(finding.get("validation", "")).strip())
-    defaults = default_validation_commands_for_path(path)
-    combined: list[str] = []
-    seen: set[str] = set()
-    for command in [*commands, *defaults]:
-        if command and command not in seen:
-            combined.append(command)
-            seen.add(command)
-    return "\n".join(combined)
-
-
 def strip_markdown_fence_lines(text: str) -> str:
     lines: list[str] = []
     for line in text.splitlines():

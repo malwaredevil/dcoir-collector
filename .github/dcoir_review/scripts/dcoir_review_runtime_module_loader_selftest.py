@@ -95,6 +95,7 @@ EXPECTED_ADJACENCY = {
     "base": (
         ("base/part_01_core_config_github.py", "base/part_01a_progress_diff.py"),
         ("base/part_03_redaction_shell.py", "base/part_03a_redaction_command_shell.py"),
+        ("base/part_06_findings_comments.py", "base/part_06a_finding_validation.py"),
     ),
     "hardened": (
         ("hardened/part_01_rules.py", "hardened/part_01a_finding_rules.py"),
@@ -367,6 +368,76 @@ def assert_canonical_config_loader_ownership() -> None:
     assert stored_originals == [], stored_originals
 
 
+def assert_canonical_validation_text_ownership() -> None:
+    canonical_path = SCRIPTS / "dcoir_review" / "base" / "part_06a_finding_validation.py"
+    assert canonical_path.is_file(), "canonical finding-validation base segment is missing"
+
+    former_owners = (
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v8/part_01a.py",
+        "dcoir_review_required_runtime_patch_v9_prompting.py",
+    )
+    for relative in former_owners:
+        source = (SCRIPTS / relative).read_text(encoding="utf-8")
+        assert "def _patch_validation_text(" not in source, relative
+        assert "original_validation_text_for_finding" not in source, relative
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    canonical = module.base.validation_text_for_finding
+    assert canonical.__module__ == "openrouter_pr_review"
+
+    ordinary = canonical({"path": "probe.py", "line": 3, "validation": "pytest -q tests/test_probe.py"})
+    assert ordinary.splitlines() == [
+        "pytest -q tests/test_probe.py",
+        "python3 -m py_compile probe.py",
+        "bandit -r probe.py",
+    ]
+    yaml_broad = canonical({"path": ".github/workflows/probe.yml", "line": 5, "_risk_sentinel_kind": "yaml_broad_write"})
+    assert "write-all" in yaml_broad and "python3 - <<'PY'" in yaml_broad
+    ps_env = canonical({"path": "tools/probe.ps1", "line": 15, "_risk_sentinel_kind": "ps_env_token_callback"})
+    assert "$line = 15" in ps_env and "DCOIR_TOKEN" in ps_env and "callback" in ps_env
+    py_shell = canonical({"path": "probe.py", "line": 18, "_risk_sentinel_kind": "python_shell_exec"})
+    assert "shell=True" in py_shell
+    pickle = canonical({"path": "probe.py", "line": 14, "_risk_sentinel_kind": "python_pickle_load"})
+    assert "pickle.loads" in pickle and "pickle.load(" in pickle
+
+    inferred_yaml = canonical({
+        "path": ".github/workflows/probe.yml",
+        "line": 5,
+        "title": "GitHub Actions workflow grants write permissions",
+        "body": "contents: write grants broad write token permissions",
+    })
+    assert inferred_yaml == yaml_broad
+    inferred_shell = canonical({
+        "path": "probe.py",
+        "line": 18,
+        "title": "Issue",
+        "body": "Issue",
+        "_anchored_line_text": "return subprocess.run(command, shell=True, check=False)",
+    })
+    assert inferred_shell == py_shell
+    quote_safe = canonical({
+        "path": ".github/chatgpt_staging/$bad/path.ps1",
+        "line": 15,
+        "_risk_sentinel_kind": "ps_env_token_callback",
+    })
+    assert "$bad" in quote_safe
+    assert '$p = ".github/chatgpt_staging/$bad/path.ps1"' not in quote_safe
+
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            assert module.base.validation_text_for_finding is canonical, (
+                f"{patch_name} replaced canonical validation_text_for_finding"
+            )
+
+    stored = [
+        name for name, value in vars(module.base).items()
+        if "validation_text_for_finding" in name and name.startswith("_dcoir_") and callable(value)
+    ]
+    assert stored == [], stored
+
+
 def assert_canonical_sanitize_text_ownership() -> None:
     former_owners = (
         "dcoir_review/patches/dcoir_review_required_runtime_patch_v6/part_01a.py",
@@ -636,6 +707,7 @@ def main() -> None:
     assert_canonical_per_file_review_ownership()
     assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
+    assert_canonical_validation_text_ownership()
     assert_canonical_sanitize_text_ownership()
     assert_segment_registry_is_complete()
 
