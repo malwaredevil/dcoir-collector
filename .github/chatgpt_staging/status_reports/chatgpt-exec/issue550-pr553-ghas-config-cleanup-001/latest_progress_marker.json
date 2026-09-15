@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34939366907",
   "github_sha": "f03d4cc53749f07136245228d06b85f30c3b4255",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-ghas-config-cleanup-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-ghas-config-cleanup-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T06:58:31Z",
+  "updated_utc": "2026-09-15T06:58:34Z",
   "workflow": "chatgpt-exec"
 }
