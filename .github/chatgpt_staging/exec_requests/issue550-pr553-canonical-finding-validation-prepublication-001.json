@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-15T17:41:15Z",
+  "approved_command_preview": "Validate frozen canonical finding-validation patch b3f0ec406b0fb3088fc89df37fca2968a37106b620f1b2cc0b10674fe3714f76 against exact PR parent a9f77a3a5aaf9d1a12424919d8c5040d47d02b07; run all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, 15-case validation parity, architecture ownership metrics, independent secret scan, and immutable patch readback. No PR source mutation, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, workflow source change, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-finding-validation-prepublication-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-canonical-finding-validation-prepublication-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
