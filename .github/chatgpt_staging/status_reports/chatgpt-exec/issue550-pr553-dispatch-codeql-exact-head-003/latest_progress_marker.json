@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34948781492",
   "github_sha": "042095cd194a98d19ef7c9c0f7270723760fc33f",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-dispatch-codeql-exact-head-003",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-dispatch-codeql-exact-head-003.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T08:46:33Z",
+  "updated_utc": "2026-09-15T08:46:36Z",
   "workflow": "chatgpt-exec"
 }
