@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-config-consolidation-preview-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T05:11:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-config-consolidation-preview-001.py",
+  "approved_command_preview": "No-inference exact-head preview of canonical configuration consolidation for Draft PR #553 head 781a480bb306ff7e0bf1fd55302636a0176ad5c5 / tree ecfe9870cff993695d58c9ee8f35525a0ccd9902. In an isolated worktree only, consolidate the ten sequential load_pareto_context_config wrappers into the canonical Pareto loader plus dcoir_review.review_config, remove their config storage shims, add a durable loader-ownership guard, run focused regression tests, and emit a patch artifact. Do not mutate the PR branch, call providers/models, trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-canonical-config-consolidation-preview-001.py'"
+}
