@@ -99,50 +99,45 @@ def _model_uses_openai_gpt5_reasoning(model: Any) -> bool:
     return model_id.startswith("gpt-5")
 
 
-def _patch_reasoning_payload(module: Any) -> None:
-    hardened = module.hardened
-    storage = "_dcoir_review_v32_original_build_openrouter_payload"
-    original = getattr(hardened, storage, None)
-    if original is None:
-        original = getattr(hardened, "build_openrouter_payload", None)
-        if callable(original):
-            setattr(hardened, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate hardened build_openrouter_payload")
+def apply_reasoning_payload_policy(
+    payload: dict[str, Any],
+    config: Any,
+    model: Any,
+) -> dict[str, Any]:
+    """Apply the v32 reasoning compatibility contract to an explicit payload.
 
-    def build_openrouter_payload(prompt, schema, config, ignored_providers, model):
-        payload = original(prompt, schema, config, ignored_providers, model)
-        effort = str(getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or "").strip()
+    Runtime ownership now lives in ``dcoir_review.per_file_routing``.  v32
+    contributes this pure transformation instead of replacing the shared
+    payload builder and retaining a stored-original shim.
+    """
 
-        # GPT-5 reasoning requests do not use sampling temperature when reasoning
-        # is enabled.  Strip the base reviewer's generic sampling control while
-        # preserving provider.require_parameters=true as the compatibility gate.
-        if _model_uses_openai_gpt5_reasoning(model) and (
-            _model_owns_fixed_pro_reasoning(model)
-            or (effort and effort.lower() != "none")
-        ):
-            payload.pop("temperature", None)
+    effort = str(
+        getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or ""
+    ).strip()
 
-        if _model_owns_fixed_pro_reasoning(model):
-            # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.
-            # Do not add or retain a second reasoning selector that can make the
-            # otherwise available Pro endpoint ineligible.
-            payload.pop("reasoning", None)
-            return payload
+    # GPT-5 reasoning requests do not use sampling temperature when reasoning
+    # is enabled. Strip the base reviewer's generic sampling control while
+    # preserving provider.require_parameters=true as the compatibility gate.
+    if _model_uses_openai_gpt5_reasoning(model) and (
+        _model_owns_fixed_pro_reasoning(model)
+        or (effort and effort.lower() != "none")
+    ):
+        payload.pop("temperature", None)
 
-        if effort and effort.lower() != "none":
-            payload["reasoning"] = {
-                "enabled": True,
-                "effort": effort,
-                "exclude": True,
-            }
+    if _model_owns_fixed_pro_reasoning(model):
+        # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.
+        # Do not add or retain a second reasoning selector that can make the
+        # otherwise available Pro endpoint ineligible.
+        payload.pop("reasoning", None)
         return payload
 
-    hardened.build_openrouter_payload = build_openrouter_payload
-    # Some compatibility surfaces re-export the payload builder directly.
-    if hasattr(module, "build_openrouter_payload"):
-        module.build_openrouter_payload = build_openrouter_payload
-
+    if effort and effort.lower() != "none":
+        payload["reasoning"] = {
+            "enabled": True,
+            "effort": effort,
+            "exclude": True,
+        }
+    return payload
 
 def _patch_per_file_prompt(module: Any) -> None:
     storage = "_dcoir_review_v32_original_build_per_file_review_prompt"
@@ -285,6 +280,5 @@ def build_adversarial_confirmation_stage(module: Any, next_review: Any) -> Any:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_reasoning_payload(module)
     _patch_per_file_prompt(module)
     setattr(module, APPLIED_MARKER, True)

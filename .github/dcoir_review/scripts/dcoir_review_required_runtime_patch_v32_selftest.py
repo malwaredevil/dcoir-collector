@@ -89,6 +89,25 @@ def main() -> None:
     assert v32._model_uses_openai_gpt5_reasoning("openai/gpt-4.1") is False
     assert v32._model_uses_openai_gpt5_reasoning("anthropic/claude-opus-5") is False
 
+    # v32 contributes an explicit payload transformation; it no longer owns a
+    # runtime payload-builder wrapper or stored-original shim.
+    direct_pro = v32.apply_reasoning_payload_policy(
+        {"temperature": 0.2, "reasoning": {"enabled": True, "effort": "legacy"}},
+        config,
+        "openai/gpt-5.6-sol-pro",
+    )
+    assert "temperature" not in direct_pro
+    assert "reasoning" not in direct_pro
+    direct_opus = v32.apply_reasoning_payload_policy(
+        {"temperature": 0.2}, config, "anthropic/claude-opus-5"
+    )
+    assert direct_opus["temperature"] == 0.2
+    assert direct_opus["reasoning"] == {
+        "enabled": True,
+        "effort": "xhigh",
+        "exclude": True,
+    }
+
     pro_payload = review.hardened.build_openrouter_payload(
         "probe",
         schema,

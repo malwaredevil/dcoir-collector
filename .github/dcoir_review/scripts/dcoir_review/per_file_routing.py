@@ -24,6 +24,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v32 as reasoning_policy
+
 
 APPLIED_MARKER = "_dcoir_per_file_routing_applied"
 RESPONSE_HEALING_PLUGIN_ID = "response-healing"
@@ -75,17 +77,13 @@ def project_per_file_review_config(config: Any) -> Any:
 
 def _patch_payload_builder(module: Any) -> None:
     hardened = module.hardened
-    storage = "_dcoir_per_file_routing_original_build_openrouter_payload"
-    original = getattr(hardened, storage, None)
-    if original is None:
-        original = getattr(hardened, "build_openrouter_payload", None)
-        if callable(original):
-            setattr(hardened, storage, original)
-    if not callable(original):
+    base_builder = getattr(hardened, "build_openrouter_payload", None)
+    if not callable(base_builder):
         raise RuntimeError("DCOIR per-file routing could not locate hardened build_openrouter_payload")
 
     def build_openrouter_payload(prompt, schema, config, ignored_providers, model):
-        payload = original(prompt, schema, config, ignored_providers, model)
+        payload = base_builder(prompt, schema, config, ignored_providers, model)
+        payload = reasoning_policy.apply_reasoning_payload_policy(payload, config, model)
 
         request_max_tokens = getattr(config, "openrouter_request_max_tokens", None)
         if request_max_tokens is not None:

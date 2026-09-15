@@ -365,6 +365,47 @@ def assert_canonical_config_loader_ownership() -> None:
     ]
     assert stored_originals == [], stored_originals
 
+def assert_canonical_payload_builder_ownership() -> None:
+    from dcoir_review import per_file_routing
+
+    v32_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v32.py").read_text(
+        encoding="utf-8"
+    )
+    assert "hardened.build_openrouter_payload =" not in v32_source
+    assert "module.build_openrouter_payload =" not in v32_source
+    assert "_dcoir_review_v32_original_build_openrouter_payload" not in v32_source
+    assert "def apply_reasoning_payload_policy(" in v32_source
+
+    routing_source = (SCRIPTS / "dcoir_review" / "per_file_routing.py").read_text(
+        encoding="utf-8"
+    )
+    assert routing_source.count("hardened.build_openrouter_payload = build_openrouter_payload") == 1
+    assert routing_source.count("module.build_openrouter_payload = build_openrouter_payload") == 1
+    assert "_dcoir_per_file_routing_original_build_openrouter_payload" not in routing_source
+    assert "reasoning_policy.apply_reasoning_payload_policy" in routing_source
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    canonical = module.hardened.build_openrouter_payload
+    assert canonical.__module__ == "dcoir_review.per_file_routing", canonical.__module__
+    if hasattr(module, "build_openrouter_payload"):
+        assert module.build_openrouter_payload is canonical
+
+    stored = [
+        name
+        for owner in (module, module.hardened)
+        for name, value in vars(owner).items()
+        if "build_openrouter_payload" in name
+        and name.startswith("_dcoir_")
+        and callable(value)
+    ]
+    assert stored == [], stored
+
+    before = module.hardened.build_openrouter_payload
+    per_file_routing.apply_pareto_context_module(module)
+    assert module.hardened.build_openrouter_payload is before
+
+
 def assert_canonical_finding_comment_render_ownership() -> None:
     from dcoir_review import finding_comment_render
 
@@ -509,6 +550,7 @@ def main() -> None:
     assert_numbered_patch_freeze_before_cutover()
     assert_patch_inventory_is_source_complete()
     assert_canonical_hybrid_review_ownership()
+    assert_canonical_payload_builder_ownership()
     assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
     assert_segment_registry_is_complete()

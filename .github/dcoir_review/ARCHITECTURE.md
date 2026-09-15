@@ -190,6 +190,7 @@ This slice must not be credited as governed validated until publication readback
 The next bounded retirement moves stage-local first-pass routing out of historical v47:
 
 - `dcoir_review/per_file_routing.py` owns per-file configuration projection, calibrated Sonnet routing controls, Response Healing payload projection, and bounded per-file request telemetry attachment;
+- the shared OpenRouter payload builder is installed once by `dcoir_review.per_file_routing`: v32 contributes its GPT-5/reasoning compatibility contract through `apply_reasoning_payload_policy(...)` instead of wrapping the builder, so the final payload path is `base hardened builder -> explicit v32 reasoning policy -> per-file routing projection` without v32/per-file stored-original payload shims;
 - production composition loads `dcoir_review.per_file_routing` in the stage-local position instead of the numbered v47 overlay;
 - the historical `dcoir_v47_per_file_projection` attribute value is intentionally preserved as a compatibility/provenance data marker, while `PER_FILE_PROJECTION_ATTR` in the stable owner becomes its canonical definition;
 - v54 telemetry imports that stable marker constant instead of hard-coding a dependency on historical v47 ownership;
