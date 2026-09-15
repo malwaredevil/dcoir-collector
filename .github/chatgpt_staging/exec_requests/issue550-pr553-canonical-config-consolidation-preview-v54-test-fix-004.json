@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-config-consolidation-preview-v54-test-fix-004",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T05:38:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-config-consolidation-preview-v54-test-fix-004.py",
+  "approved_command_preview": "Retry exact-head no-inference canonical configuration consolidation preview. Move the v54 loader-failure regression to the real canonical production loader, keep synthetic component fixtures explicit, run focused regressions, emit patch, and do not mutate PR #553 source.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-canonical-config-consolidation-preview-v54-test-fix-004.py'"
+}
