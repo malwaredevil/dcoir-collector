@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-function-ownership-audit-002",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T07:19:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-function-ownership-audit-002.ps1",
+  "approved_command_preview": "Run the no-inference callable-ownership audit on Draft PR #553 exact source head f10aa75bbdf54110329409371d7aa86404b6ba65/tree 91021d85eec18569fe52492c13959cd8b28a0331. Measure multi-stage callable chains, superseded callable installations, stored-original callable attributes, duplicate function names, final numbered/stable callable ownership, remaining numbered source paths, and stable-stage survivorship. Do not call providers, mutate PR source, invoke DCOIR self-review, trigger Copilot, move Ready, or merge.",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-function-ownership-audit-002.ps1'"
+}
