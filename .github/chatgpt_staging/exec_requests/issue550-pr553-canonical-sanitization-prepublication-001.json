@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-sanitization-prepublication-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T16:38:02Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 600,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Run no-inference prepublication validation for the frozen 12-file canonical sanitization candidate at parent ffc4a13f95a521f87432b76fa55df1c78ff85b81. Require exact patch SHA 8d910b5986b0c2e46f290bb28b55a9591535670c378f0c8e79d85b9201f9a766 before and after validation, all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, architecture ownership 26->25 chains and 4->2 base stored-original callables, zero sanitize_text runtime replacements/shims, independent secret scan, and no workflow/provider/review/Ready/merge mutation.",
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-sanitization-prepublication-001-launcher.py"
+}
