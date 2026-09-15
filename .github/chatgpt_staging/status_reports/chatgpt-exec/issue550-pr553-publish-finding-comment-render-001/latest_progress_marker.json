@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34954359518",
   "github_sha": "04d14dfcf62ae1d9b5c4b31b0b44ab81dc0cd39c",
-  "phase": "request-resolved",
+  "phase": "running-harness",
   "request_id": "issue550-pr553-publish-finding-comment-render-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-publish-finding-comment-render-001.json",
   "result": "running",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T09:46:42Z",
+  "updated_utc": "2026-09-15T09:46:45Z",
   "workflow": "chatgpt-exec"
 }
