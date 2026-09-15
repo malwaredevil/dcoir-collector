@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34964382608",
   "github_sha": "87568ea1bad6ff55782f471e32aea56c67c7f52d",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-canonical-per-file-review-prepublication-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-canonical-per-file-review-prepublication-001.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T11:39:15Z",
+  "updated_utc": "2026-09-15T11:39:18Z",
   "workflow": "chatgpt-exec"
 }
