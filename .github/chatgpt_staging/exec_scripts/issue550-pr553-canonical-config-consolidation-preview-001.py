@@ -1,0 +1,79 @@
+from __future__ import annotations
+import ast, os, shutil, subprocess, sys, tempfile
+from pathlib import Path
+
+HEAD='781a480bb306ff7e0bf1fd55302636a0176ad5c5'; TREE='ecfe9870cff993695d58c9ee8f35525a0ccd9902'; BR='refactor/issue-550-dcoir-runtime-consolidation'
+repo=Path(os.environ.get('DCOIR_REPO_ROOT') or os.environ.get('GITHUB_WORKSPACE') or '.').resolve(); out=Path(os.environ.get('DCOIR_DOWNLOADS_DIR') or os.environ.get('RUNNER_TEMP') or tempfile.gettempdir())
+wt=out/'issue550-pr553-config-preview-worktree'; patch=out/'issue550-pr553-canonical-config-consolidation-preview-001.patch'; summary=out/'issue550-pr553-canonical-config-consolidation-preview-001-summary.txt'
+for k in ('OPENROUTER_API_KEY','GITHUB_TOKEN','GH_TOKEN','DCOIR_GITHUB_FG_TOKEN','DCOIR_GITHUB_CL_TOKEN','DCOIR_GEMINI_API','DCOIR_OPENAI_API_KEY','DCOIR_OPENAI_PROJECT_ID','OPENAI_API_KEY'): os.environ.pop(k,None)
+os.environ['PYTHONDONTWRITEBYTECODE']='1'
+def run(*a,cwd=None,check=True):
+ p=subprocess.run(a,cwd=cwd,text=True,capture_output=True); print(p.stdout,end=''); print(p.stderr,end='',file=sys.stderr)
+ if check and p.returncode: raise RuntimeError(f'command failed {p.returncode}: {a}')
+ return p
+run('git','-C',str(repo),'fetch','--no-tags','origin',f'+refs/heads/{BR}:refs/remotes/origin/{BR}')
+if run('git','-C',str(repo),'rev-parse',f'refs/remotes/origin/{BR}').stdout.strip()!=HEAD: raise RuntimeError('head drift')
+if run('git','-C',str(repo),'rev-parse',f'{HEAD}^{{tree}}').stdout.strip()!=TREE: raise RuntimeError('tree drift')
+if wt.exists(): run('git','-C',str(repo),'worktree','remove','--force',str(wt),check=False)
+run('git','-C',str(repo),'worktree','add','--detach',str(wt),HEAD)
+scripts=wt/'.github/dcoir_review/scripts'; pkg=scripts/'dcoir_review'
+def rd(p): return p.read_text(encoding='utf-8')
+def wr(p,s): p.write_text(s.replace('\r\n','\n'),encoding='utf-8',newline='\n')
+def remove_func(p,name):
+ s=rd(p); ls=s.splitlines(True); t=ast.parse(s); n=next((x for x in t.body if isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name==name),None)
+ if n is None: raise RuntimeError(f'missing {name}: {p}')
+ a=n.lineno-1; b=n.end_lineno
+ while b<len(ls) and not ls[b].strip(): b+=1
+ wr(p,''.join(ls[:a]+ls[b:]))
+def loads(p,name): return sum(isinstance(x,ast.Name) and isinstance(x.ctx,ast.Load) and x.id==name for x in ast.walk(ast.parse(rd(p))))
+def remove_dead_func(p,name):
+ if any(isinstance(x,(ast.FunctionDef,ast.AsyncFunctionDef)) and x.name==name for x in ast.parse(rd(p)).body) and loads(p,name)==0: remove_func(p,name)
+def remove_dead_assign(p,name):
+ if loads(p,name): return
+ s=rd(p); ls=s.splitlines(True); t=ast.parse(s)
+ for n in t.body:
+  ts=n.targets if isinstance(n,ast.Assign) else [n.target] if isinstance(n,ast.AnnAssign) else []
+  if any(isinstance(x,ast.Name) and x.id==name for x in ts):
+   a=n.lineno-1;b=n.end_lineno
+   while b<len(ls) and not ls[b].strip(): b+=1
+   wr(p,''.join(ls[:a]+ls[b:])); return
+def remove_call(p,call):
+ s=rd(p); q='    '+call+'\n'
+ if q not in s: raise RuntimeError(f'missing call {call}: {p}')
+ wr(p,s.replace(q,'',1))
+
+CONFIG='''"""Canonical post-base configuration for DCOIR Review."""\nfrom __future__ import annotations\nfrom typing import Any\nCONF=("openai/gpt-5.6-sol-pro",); REASON="xhigh"; ADJ=("anthropic/claude-opus-5","openai/gpt-5.6-sol-pro")\ndef _list(v,f):\n    if isinstance(v,list):\n        x=[str(i).strip() for i in v if str(i).strip()]\n        if x:return x\n    if isinstance(v,str) and v.strip():return [v.strip()]\n    return list(f)\ndef _olist(v):\n    return [str(i).strip() for i in v if str(i).strip()] if isinstance(v,list) else [v.strip()] if isinstance(v,str) and v.strip() else []\ndef _pi(v,f):\n    try:x=int(v)\n    except (TypeError,ValueError):x=f\n    return max(1,x)\ndef _opi(v,k):\n    if v in (None,""):return None\n    try:x=int(v)\n    except (TypeError,ValueError) as e:raise ValueError(f"Config key {k!r} must be a positive integer or empty, got {v!r}") from e\n    if x<=0:raise ValueError(f"Config key {k!r} must be a positive integer or empty, got {v!r}")\n    return x\ndef _uf(v,f):\n    try:x=float(v)\n    except (TypeError,ValueError):return f\n    return x if 0<=x<=1 else f\ndef apply_review_config(c,d,h):\n    c.adversarial_confirmation_review=h.bool_value(d,"adversarial_confirmation_review",True); c.adversarial_confirmation_model_stack=_list(d.get("adversarial_confirmation_model_stack"),CONF); c.review_reasoning_effort=str(d.get("review_reasoning_effort",REASON) or REASON).strip()\n    try:n=int(getattr(c,"fix_synthesis_max_findings",8))\n    except (TypeError,ValueError):n=8\n    try:m=int(getattr(c,"max_inline_comments",n))\n    except (TypeError,ValueError):m=n\n    n=max(1,min(n,m)); from dcoir_review import finding_verifier,repair_pipeline; finding_verifier.VERIFIER_MAX_MODEL_FINDINGS=n; repair_pipeline.MAX_REPAIR_CANDIDATES=n; c.dcoir_v32_verifier_repair_limit=n\n    c.semantic_adjudication_review=h.bool_value(d,"semantic_adjudication_review",True); c.semantic_adjudication_model_stack=_list(d.get("semantic_adjudication_model_stack"),ADJ); x=_pi(d.get("semantic_adjudication_max_findings",8),8); c.semantic_adjudication_max_findings=min(x,_pi(getattr(c,"max_inline_comments",x),x)); c.semantic_adjudication_candidate_digest_chars=_pi(d.get("semantic_adjudication_candidate_digest_chars",24000),24000)\n    c.candidate_scoped_escalation_review=h.bool_value(d,"candidate_scoped_escalation_review",True); c.candidate_escalation_confidence_margin=_uf(d.get("candidate_escalation_confidence_margin",.10),.10); c.candidate_escalation_max_paths=_pi(d.get("candidate_escalation_max_paths",4),4); c.candidate_escalation_file_chars=_pi(d.get("candidate_escalation_file_chars",12000),12000); c.candidate_escalation_total_context_chars=_pi(d.get("candidate_escalation_total_context_chars",48000),48000)\n    c.verifier_authoritative_publication_review=h.bool_value(d,"verifier_authoritative_publication_review",True); c.canonical_semantic_context_review=h.bool_value(d,"canonical_semantic_context_review",True); c.adaptive_semantic_budgets_review=h.bool_value(d,"adaptive_semantic_budgets_review",True)\n    for k,f in {"adaptive_semantic_min_prompt_chars":48000,"adaptive_semantic_small_delta_prompt_chars":60000,"adaptive_semantic_small_delta_max_files":4,"adaptive_semantic_small_delta_max_diff_chars":20000,"adaptive_semantic_small_delta_max_context_chars":30000}.items():setattr(c,k,_pi(d.get(k,f),f))\n    c.verified_finding_gate_state_review=h.bool_value(d,"verified_finding_gate_state_review",True); c.semantic_candidate_identity_review=h.bool_value(d,"semantic_candidate_identity_review",True); c.per_file_review_model_stack=_olist(d.get("per_file_review_model_stack")); e=str(d.get("per_file_review_reasoning_effort","") or "").strip(); c.per_file_review_reasoning_effort=e or None; c.per_file_review_max_tokens=_opi(d.get("per_file_review_max_tokens"),"per_file_review_max_tokens"); c.per_file_review_provider_sort=str(d.get("per_file_review_provider_sort","") or "").strip()\n    try:\n        import dcoir_review_required_runtime_patch_v54 as t; t._ensure_sink(c)\n    except Exception:\n        try:t._note_telemetry_error(c)\n        except Exception:pass\n    c.repair_critic_batching_enabled=h.bool_value(d,"repair_critic_batching_enabled",True); r=d.get("repair_critic_batch_max_findings",8)\n    try:c.repair_critic_batch_max_findings=int(r)\n    except (TypeError,ValueError) as e:raise ValueError("Config key 'repair_critic_batch_max_findings' must be an integer") from e\n    return c\n'''
+wr(pkg/'review_config.py',CONFIG)
+base=pkg/'pareto_context/part_01_config_payload.py'; s=rd(base); s=s.replace('import openrouter_pr_review_hardened as hardened\n','import openrouter_pr_review_hardened as hardened\nfrom dcoir_review import review_config\n',1); s=s.replace('    hardened.ensure_free_models_are_opt_in(config)\n    return config\n','    hardened.ensure_free_models_are_opt_in(config)\n    review_config.apply_review_config(config, data, hardened)\n    return config\n',1); wr(base,s)
+T=[('dcoir_review_required_runtime_patch_v32.py','_patch_config_loader','_patch_config_loader(module)',[]),('dcoir_review_required_runtime_patch_v35.py','_patch_config_loader','_patch_config_loader(module)',['CONFIG_STORAGE']),('dcoir_review_required_runtime_patch_v44.py','_patch_config_loader','_patch_config_loader(module)',['_CONFIG_STORAGE']),('dcoir_review/publication_disposition.py','_patch_config_loader','_patch_config_loader(module)',['_CONFIG_STORAGE']),('dcoir_review_required_runtime_patch_v46.py','_patch_config_loader','_patch_config_loader(module)',['_CONFIG_STORAGE']),('dcoir_review/verified_finding_gate.py','_patch_config_loader','_patch_config_loader(module)',['_CONFIG_STORAGE']),('dcoir_review/semantic_candidate_identity.py','_patch_config_loader','_patch_config_loader(module)',['_CONFIG_STORAGE']),('dcoir_review/per_file_routing.py','_patch_config_loader','_patch_config_loader(module)',[]),('dcoir_review_required_runtime_patch_v54.py','_patch_config_loader','_patch_config_loader(module)',['LOAD_STORAGE']),('dcoir_review_required_runtime_patch_v56.py','_install_config_loader','_install_config_loader(module)',['CONFIG_LOADER_MARKER'])]
+for rel,fn,call,cs in T:
+ p=scripts/rel; remove_func(p,fn); remove_call(p,call)
+ for c in cs:remove_dead_assign(p,c)
+for rel,fs in {'dcoir_review_required_runtime_patch_v32.py':['_configured_verifier_repair_limit'],'dcoir_review_required_runtime_patch_v35.py':['_positive_int'],'dcoir_review_required_runtime_patch_v44.py':['_positive_int','_unit_float'],'dcoir_review/per_file_routing.py':['_optional_positive_int']}.items():
+ for f in fs:remove_dead_func(scripts/rel,f)
+U={'dcoir_review_required_runtime_patch_v44_scope_selftest.py':('    v44._patch_config_loader(module)\n    loaded = module.load_pareto_context_config("unused.yml")\n','    loaded = module.load_pareto_context_config("unused.yml")\n    review_config.apply_review_config(loaded, parsed, module.hardened)\n'),'dcoir_review_publication_disposition_selftest.py':('    publication._patch_config_loader(module)\n    loaded = module.load_pareto_context_config("unused.yml")\n','    loaded = module.load_pareto_context_config("unused.yml")\n    review_config.apply_review_config(loaded, module.hardened.parse_yaml_like_data("unused.yml"), module.hardened)\n'),'dcoir_review_required_runtime_patch_v46_selftest.py':('    v46._patch_config_loader(module)\n    loaded = module.load_pareto_context_config("unused.yml")\n','    loaded = module.load_pareto_context_config("unused.yml")\n    review_config.apply_review_config(loaded, module.hardened.parse_yaml_like_data("unused.yml"), module.hardened)\n')}
+for rel,(old,new) in U.items():
+ p=scripts/rel;s=rd(p)
+ if old not in s:raise RuntimeError('test anchor '+rel)
+ if 'from dcoir_review import review_config\n' not in s:
+  a='from dcoir_review.entrypoint import DcoirReviewEntrypoint\n'; s=s.replace(a,a+'from dcoir_review import review_config\n',1) if a in s else s.replace('from types import SimpleNamespace\n','from types import SimpleNamespace\nfrom dcoir_review import review_config\n',1)
+ wr(p,s.replace(old,new,1))
+lt=scripts/'dcoir_review_runtime_module_loader_selftest.py'; s=rd(lt)
+if '    "review_config.py",\n' not in s:s=s.replace('    "review_scope_guard.py",\n','    "review_scope_guard.py",\n    "review_config.py",\n',1)
+guard='''\n\ndef assert_canonical_config_loader_ownership() -> None:\n    base=(SCRIPTS/"dcoir_review"/"pareto_context"/"part_01_config_payload.py").read_text(encoding="utf-8")\n    assert "review_config.apply_review_config(config, data, hardened)" in base\n    for r in ("dcoir_review_required_runtime_patch_v32.py","dcoir_review_required_runtime_patch_v35.py","dcoir_review_required_runtime_patch_v44.py","dcoir_review/publication_disposition.py","dcoir_review_required_runtime_patch_v46.py","dcoir_review/verified_finding_gate.py","dcoir_review/semantic_candidate_identity.py","dcoir_review/per_file_routing.py","dcoir_review_required_runtime_patch_v54.py","dcoir_review_required_runtime_patch_v56.py"):\n        x=(SCRIPTS/r).read_text(encoding="utf-8"); assert "def _patch_config_loader(" not in x,r; assert "def _install_config_loader(" not in x,r\n    e=DcoirReviewEntrypoint(); m=e.import_module(e.review_module_name); e.apply_runtime_patches(m); assert m.load_pareto_context_config.__module__==e.review_module_name\n'''
+if 'def assert_canonical_config_loader_ownership()' not in s:s=s.replace('\ndef main() -> None:\n',guard+'\ndef main() -> None:\n',1).replace('    assert_patch_inventory_is_source_complete()\n','    assert_patch_inventory_is_source_complete()\n    assert_canonical_config_loader_ownership()\n',1)
+wr(lt,s)
+arch=wt/'.github/dcoir_review/ARCHITECTURE.md'; s=rd(arch)
+if '### Canonical configuration consolidation' not in s:wr(arch,s.rstrip()+'''\n\n### Canonical configuration consolidation\n\nThe canonical Pareto loader now parses configuration once and delegates post-base DCOIR settings to `dcoir_review.review_config.apply_review_config`. This replaces the sequential config-loader wrappers formerly installed by v32, v35, v44, publication disposition, v46, verified-finding gate, semantic candidate identity, per-file routing, v54, and v56. Those modules retain only their non-configuration responsibilities; the runtime-loader self-test prevents config-wrapper reintroduction and verifies final loader ownership remains canonical.\n''')
+for p in scripts.rglob('*.py'):
+ x=rd(p)
+ if 'def _patch_config_loader(' in x or 'def _install_config_loader(' in x or '._patch_config_loader(' in x or '._install_config_loader(' in x: raise RuntimeError('config wrapper remains '+str(p.relative_to(scripts)))
+changed=run('git','diff','--name-only',cwd=wt).stdout.splitlines(); py=[x for x in changed if x.endswith('.py') and (wt/x).is_file()]
+run(sys.executable,'-m','py_compile',*py,cwd=wt); run('git','diff','--check',cwd=wt)
+focused=['dcoir_review_required_runtime_patch_v32_selftest.py','dcoir_review_required_runtime_patch_v35_selftest.py','dcoir_review_required_runtime_patch_v44_scope_selftest.py','dcoir_review_required_runtime_patch_v44_selftest.py','dcoir_review_publication_disposition_selftest.py','dcoir_review_required_runtime_patch_v46_selftest.py','dcoir_review_verified_finding_gate_selftest.py','dcoir_review_semantic_candidate_identity_selftest.py','dcoir_review_per_file_routing_selftest.py','dcoir_review_required_runtime_patch_v54_selftest.py','dcoir_review_required_runtime_patch_v56_selftest.py','dcoir_review_runtime_module_loader_selftest.py','dcoir_review_architecture_b_benchmark_selftest.py','dcoir_review_semantic_recall_corpus_selftest.py','dcoir_review_precision_regression_selftest.py']
+for f in focused:run(sys.executable,str(Path('.github/dcoir_review/scripts')/f),cwd=wt)
+code="import sys;from pathlib import Path;p=Path('.github/dcoir_review/scripts').resolve();sys.path.insert(0,str(p));from dcoir_review.entrypoint import DcoirReviewEntrypoint as E;e=E();m=e.import_module(e.review_module_name);e.apply_runtime_patches(m);assert m.load_pareto_context_config.__module__==e.review_module_name;print(m.load_pareto_context_config.__module__)"
+run(sys.executable,'-c',code,cwd=wt)
+patch.write_bytes(subprocess.check_output(['git','diff','--binary'],cwd=wt)); summary.write_text('\n'.join(['result=PASS',f'exact_head={HEAD}',f'exact_tree={TREE}','canonical_config_loader=openrouter_pr_review_pareto_context.load_pareto_context_config','canonical_config_helper=dcoir_review.review_config.apply_review_config','removed_runtime_config_wrappers=10','focused_tests=15','no_inference=true','no_provider_calls=true'])+'\n',encoding='utf-8'); print(summary.read_text())
+run('git','-C',str(repo),'worktree','remove','--force',str(wt),check=False)
+print('ISSUE550_PR553_CANONICAL_CONFIG_CONSOLIDATION_PREVIEW_001_PASS')
