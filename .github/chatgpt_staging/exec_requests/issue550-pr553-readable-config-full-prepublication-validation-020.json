@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-readable-config-full-prepublication-validation-020",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:41:40Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-readable-config-full-prepublication-validation-020.py",
+  "approved_command_preview": "Run the full governed pre-publication validation for canonical review-config strong-guard patch sha256 923ffd839b... with deterministic scripts PYTHONPATH, native Windows PowerShell 5.1 parser validation using a validation-process-only SHA256 compatibility function, and a 12 KB maintainability bound for readable review_config.py. No PR source mutation, provider call, inference, independent review, Ready transition, or merge.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-readable-config-full-prepublication-validation-020.py'"
+}
