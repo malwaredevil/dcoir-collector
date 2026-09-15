@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-per-file-registration-assumption-audit-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T11:41:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 120,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Read-only exact-head audit of stable self-tests that still encode semantic_result_reuse runtime-registration assumptions after the approved per-file consolidation. No source mutation, provider/model calls, reviewer trigger, Ready transition, or merge.",
+  "command": "$ErrorActionPreference='Stop'; git fetch --no-tags origin refactor/issue-550-dcoir-runtime-consolidation; $sha='c3f718ae226158b9fad09f2b8693740b7d47de4c'; Write-Output '=== semantic_result_reuse selftest references ==='; git grep -n 'semantic_result_reuse' $sha -- '.github/dcoir_review/scripts/*selftest.py'; if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }; Write-Output '=== terminal_patch_module_names selftest references ==='; git grep -n 'terminal_patch_module_names' $sha -- '.github/dcoir_review/scripts/*selftest.py'; if ($LASTEXITCODE -gt 1) { exit $LASTEXITCODE }; exit 0"
+}
