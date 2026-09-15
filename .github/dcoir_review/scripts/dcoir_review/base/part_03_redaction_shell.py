@@ -124,16 +124,35 @@ def find_unquoted_header_value_end(text: str, start: int) -> int:
     return find_unquoted_header_credential_end(text, start)
 
 
-def is_safe_header_secret_value(value: str) -> bool:
+def is_safe_source_token_reference(value: str) -> bool:
     stripped = value.strip()
     if is_safe_reference(stripped):
         return True
+    if re.fullmatch(r"(?i)\$env:[A-Za-z_][A-Za-z0-9_]*|%[A-Za-z_][A-Za-z0-9_]*%", stripped):
+        return True
+    if len(stripped) >= 2 and stripped[0] == "{" and stripped[-1] == "}" and not stripped.startswith("{{"):
+        inner = stripped[1:-1].strip()
+        return bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", inner) or is_safe_reference(inner))
+    if len(stripped) >= 3 and stripped.startswith("${") and stripped.endswith("}") and not stripped.startswith("${{"):
+        inner = stripped[2:-1].strip()
+        return bool(re.fullmatch(r"[A-Za-z_][A-Za-z0-9_.]*", inner) or is_safe_reference(inner))
+    return False
+
+
+def is_safe_header_secret_value(value: str) -> bool:
+    stripped = value.strip()
+    if is_safe_source_token_reference(stripped):
+        return True
     if len(stripped) >= 2 and stripped[0] in {'"', "'"} and stripped[-1] == stripped[0]:
-        return is_safe_reference(stripped[1:-1].strip())
+        return is_safe_source_token_reference(stripped[1:-1].strip())
     if len(stripped) >= 3 and stripped[0] == "$" and stripped[1] in {'"', "'"} and stripped[-1] == stripped[1]:
-        return is_safe_reference(stripped[2:-1].strip())
+        return is_safe_source_token_reference(stripped[2:-1].strip())
     if len(stripped) >= 4 and stripped[0] == "\\" and stripped[1] in {'"', "'"} and stripped[-2:] == f"\\{stripped[1]}":
-        return is_safe_reference(stripped[2:-2].strip())
+        return is_safe_source_token_reference(stripped[2:-2].strip())
+    if len(stripped) >= 2 and stripped[0] == "`" and stripped[-1] == "`":
+        inner = stripped[1:-1].strip()
+        scheme_match = HEADER_VALUE_SCHEME.fullmatch(inner)
+        return bool(scheme_match and is_safe_source_token_reference(scheme_match.group("secret")))
     return False
 
 def redact_unquoted_header_credentials(text: str) -> str:
@@ -147,6 +166,9 @@ def redact_unquoted_header_credentials(text: str) -> str:
         value = text[value_start:value_end]
         stripped_value = value.strip()
         if not stripped_value or stripped_value == REDACTION:
+            continue
+        tail = text[value_end:].lstrip()
+        if re.fullmatch(r"[rubf]{1,2}", stripped_value, re.IGNORECASE) and tail[:1] in {'"', "'"}:
             continue
         scheme_match = HEADER_VALUE_SCHEME.fullmatch(value)
         secret_value = scheme_match.group("secret").strip() if scheme_match else stripped_value

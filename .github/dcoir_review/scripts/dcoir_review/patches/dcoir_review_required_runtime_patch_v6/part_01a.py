@@ -78,22 +78,6 @@ def _review_prompt_once(original_prompt: str, config: Any, hardened: Any, base: 
     return candidate
 
 
-def _patch_sanitize_text(base: Any) -> None:
-    original = getattr(base, "_dcoir_required_v6_original_sanitize_text", None)
-    if original is None:
-        original = getattr(base, "sanitize_text", None)
-        base._dcoir_required_v6_original_sanitize_text = original
-    if not callable(original):
-        return
-
-    def required_v6_sanitize_text(text: str, config: Any) -> str:
-        protected_text, protected_values = _protect_env_provenance(str(text or ""))
-        cleaned = original(protected_text, config)
-        return _restore_env_provenance(cleaned, protected_values)
-
-    base.sanitize_text = required_v6_sanitize_text
-
-
 def _patch_yaml_metadata_priority() -> None:
     original_v4_line_kind = getattr(v4, "_dcoir_required_v6_original_line_kind", None)
     if original_v4_line_kind is None:

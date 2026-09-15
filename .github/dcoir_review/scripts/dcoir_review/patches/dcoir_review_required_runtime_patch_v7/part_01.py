@@ -2,13 +2,11 @@
 
 PR #330 showed that required findings can be present in model output but still
 fail final enforcement after normalization, ranking, and refill. v7 uses a
-stable required-sentinel ledger keyed by path, line, and semantic kind, and it
-preserves safe interpolated bearer-token source syntax during redaction.
+stable required-sentinel ledger keyed by path, line, and semantic kind.
 """
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v4 as v4
@@ -16,14 +14,6 @@ import dcoir_review_required_runtime_patch_v5 as v5
 import dcoir_review_required_runtime_patch_v6 as v6
 
 SentinelKey = tuple[str, int, str]
-
-SAFE_AUTH_LINE_RE = re.compile(r"(?im)^.*(?:authorization|bearer).*$")
-STATIC_BEARER_RE = re.compile(r"bearer\s+['\"]?[A-Za-z0-9_./+=-]{16,}['\"]?", re.IGNORECASE)
-VARIABLE_BEARER_RE = re.compile(
-    r"bearer[^\n]*(?:\{[^}\n]+\}|\$\{[^}\n]+\}|\$[A-Za-z_][A-Za-z0-9_]*|%[A-Za-z_][A-Za-z0-9_]*%|\+\s*[A-Za-z_][A-Za-z0-9_]*|process\.env\.|os\.environ|os\.getenv|api_?token|token)",
-    re.IGNORECASE,
-)
-
 
 def _line_number(value: Any) -> int:
     try:

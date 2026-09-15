@@ -366,6 +366,36 @@ def assert_canonical_config_loader_ownership() -> None:
     ]
     assert stored_originals == [], stored_originals
 
+
+def assert_canonical_sanitize_text_ownership() -> None:
+    former_owners = (
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v6/part_01a.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v7/part_01a.py",
+    )
+    for relative in former_owners:
+        source = (SCRIPTS / relative).read_text(encoding="utf-8")
+        assert "def _patch_sanitize_text(" not in source, relative
+        assert "original_sanitize_text" not in source, relative
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    canonical = module.base.sanitize_text
+    assert canonical.__module__ == "openrouter_pr_review"
+
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            assert module.base.sanitize_text is canonical, (
+                f"{patch_name} replaced canonical sanitize_text"
+            )
+
+    stored = [
+        name for name, value in vars(module.base).items()
+        if "sanitize_text" in name and name.startswith("_dcoir_") and callable(value)
+    ]
+    assert stored == [], stored
+
+
 def assert_canonical_payload_builder_ownership() -> None:
     from dcoir_review import per_file_review
 
@@ -606,6 +636,7 @@ def main() -> None:
     assert_canonical_per_file_review_ownership()
     assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
+    assert_canonical_sanitize_text_ownership()
     assert_segment_registry_is_complete()
 
     for layer in LAYER_SEGMENTS:
