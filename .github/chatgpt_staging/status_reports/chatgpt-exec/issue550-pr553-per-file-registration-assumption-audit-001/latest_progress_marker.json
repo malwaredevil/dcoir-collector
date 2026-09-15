@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34964572036",
   "github_sha": "9f1935f528062fa61177d774ae40207bb7f376d0",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-per-file-registration-assumption-audit-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-per-file-registration-assumption-audit-001.json",
   "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T11:41:06Z",
+  "updated_utc": "2026-09-15T11:41:09Z",
   "workflow": "chatgpt-exec"
 }
