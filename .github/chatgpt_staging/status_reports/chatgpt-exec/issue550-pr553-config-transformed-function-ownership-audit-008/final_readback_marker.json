@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue550-pr553-config-transformed-function-ownership-audit-008",
+  "result": "success",
+  "exit_code": "0",
+  "artifact_name": "chatgpt-exec-issue550-pr553-config-transformed-function-ownership-audit-008",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34934080534",
+  "github_run_attempt": "1",
+  "github_sha": "ef065e471d432649848148ff194cf276366a2345",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-15T05:46:51Z"
+}
