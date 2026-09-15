@@ -71,11 +71,11 @@ class DcoirReviewEntrypoint:
     # patch chain. These run after v31 so old semantic-order invariants remain
     # meaningful while production receives the approved incremental frontier
     # responsibility, semantic-ledger/fingerprint foundation, then fail-closed
-    # semantic-result reuse on exact compatible evidence.
+    # semantic-result reuse on exact compatible evidence. Semantic-result reuse
+    # now participates through explicit orchestration rather than a runtime installer.
     terminal_patch_module_names: tuple[str, ...] = (
         'dcoir_review.incremental_review_frontier',
         'dcoir_review.semantic_review_ledger',
-        'dcoir_review.semantic_result_reuse',
     )
     # v44-v46 remain the Architecture-B post-terminal semantic contract:
     # candidate-scoped escalation, verifier-authoritative publication, and one
@@ -92,18 +92,18 @@ class DcoirReviewEntrypoint:
     )
     # Candidate-integrity overlays are cross-cutting semantic guards installed
     # after the composed Architecture-B post-terminal contract but before stage-
-    # local provider routing. The stable identity owner protects ordinary candidates from
+    # local per-file composition. The stable identity owner protects ordinary candidates from
     # unsupported free-text risk-kind inference while leaving deterministic
     # sentinel coverage and verifier authority intact.
     candidate_integrity_patch_module_names: tuple[str, ...] = (
         'dcoir_review.semantic_candidate_identity',
     )
-    # Stage-local routing overlays are deliberately separate from Architecture-B
-    # semantic-order invariants. v47 projects the calibrated Sonnet request
-    # contract only onto routine per-file first-pass calls after the fully
-    # composed semantic pipeline exists; premium later stages remain unchanged.
+    # Stage-local per-file composition is deliberately separate from Architecture-B
+    # semantic-order invariants. The canonical per-file owner explicitly composes
+    # semantic-result reuse with calibrated routing/telemetry while premium later
+    # stages remain unchanged.
     stage_local_patch_module_names: tuple[str, ...] = (
-        'dcoir_review.per_file_routing',
+        'dcoir_review.per_file_review',
     )
     # Execution-policy overlays run last so they guard the fully composed provider
     # and publication paths without changing Architecture-B semantic ordering or

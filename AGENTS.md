@@ -18,6 +18,21 @@ This file is the repository/workspace adapter. It keeps local bootstrapping and 
 * GitHub Copilot review requests are operator-controlled. Do not request a Copilot review unless the operator explicitly approves the request or manually triggers that review.
 * Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current or future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation: every rerun or later internal review request requires fresh explicit operator approval. If another rule says an internal review is the next gate, interpret that as the next gate to propose to the operator, not permission to post it automatically. See `.github/agent-governance/review_request_operator_approval.md`.
 
+## DCOIR architecture maintenance standard
+
+For DCOIR architecture/refactor work, especially issue #550 / PR #553 and follow-on maintenance, use a responsibility-first professional-maintainer standard rather than a history-preservation standard.
+
+* Refactor by stable responsibility, not by historical `v##` file boundary. A one-for-one rename or move of a numbered patch into a friendly filename is not sufficient architecture work.
+* Each active behavior should have one obvious canonical function/file owner, or a small explicit composition whose imports, ordering, and dependencies are readable without reconstructing patch chronology.
+* Consolidate duplicate/superseded functions into the canonical owner. Remove unnecessary runtime overrides, forwarding wrappers, stored-original callables, aliases, and historical shims after behavior/parity evidence proves they are no longer required.
+* Split and merge modules according to cohesive responsibility. Do not preserve awkward boundaries merely because earlier patches introduced them separately.
+* Keep version identifiers in production only when they represent a genuine external, schema, protocol, or persisted-data compatibility contract. Source-code history belongs in Git.
+* Stable tests should assert behavior, canonical ownership, explicit composition, and invariants. Do not keep or add tests whose only purpose is to force obsolete patch registration/order to remain in production.
+* Credit a consolidation slice only when it produces measurable structural improvement, such as fewer override chains, duplicate/superseded callable installations, stored-original shims, numbered final owners, or historical source paths, while preserving required behavior.
+* Apply the maintainer test: a professional engineer unfamiliar with the issue history should be able to locate the authoritative implementation, understand the active path, and make a future fix without walking backward through `_v##` files or PR chronology. If not, the responsibility is not fully consolidated.
+
+The detailed DCOIR-specific architecture contract is in `.github/dcoir_review/ARCHITECTURE.md`; live issue #550 and PR #553 carry the same operator acceptance standard for the active migration.
+
 ## Canonical connector targets
 
 * Default GitHub `repository_full_name`: `malwaredevil/dcoir-collector`

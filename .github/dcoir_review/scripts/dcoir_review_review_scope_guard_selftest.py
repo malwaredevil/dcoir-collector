@@ -32,7 +32,7 @@ def main() -> None:
         "dcoir_review.verified_finding_gate",
     )
     assert entrypoint.stage_local_patch_module_names == (
-        "dcoir_review.per_file_routing",
+        "dcoir_review.per_file_review",
     )
     assert entrypoint.execution_policy_patch_module_names == (
         "dcoir_review.review_scope_guard",

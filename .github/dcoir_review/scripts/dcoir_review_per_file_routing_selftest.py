@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -47,13 +48,15 @@ def main() -> None:
         "dcoir_review.verified_finding_gate",
     )
     assert entrypoint.stage_local_patch_module_names == (
-        "dcoir_review.per_file_routing",
+        "dcoir_review.per_file_review",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     per_file_routing = importlib.import_module("dcoir_review.per_file_routing")
-    assert getattr(review, per_file_routing.APPLIED_MARKER, False) is True
+    per_file_review = importlib.import_module("dcoir_review.per_file_review")
+    assert getattr(review, per_file_review.APPLIED_MARKER, False) is True
+    assert review.review_single_file_context.__module__ == "dcoir_review.per_file_review"
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.model == "anthropic/claude-opus-5"
@@ -192,6 +195,60 @@ def main() -> None:
         assert telemetry_artifact["usage"]["cost"] == 0.001
         assert telemetry_artifact["cost"] == 0.001
         assert telemetry_artifact["aggregate_cost"] == 0.001
+
+        # The canonical per-file orchestrator must preserve the characterized
+        # execution order: routing projects the stage-local config first, then
+        # semantic reuse fingerprints that projected config before recomputation.
+        semantic_result_reuse = importlib.import_module("dcoir_review.semantic_result_reuse")
+        original_reuse_material = semantic_result_reuse.reuse.reuse_material
+        state_attr = semantic_result_reuse._STATE_ATTR
+        had_state = hasattr(review, state_attr)
+        prior_state = getattr(review, state_attr, None)
+        reuse_state = {
+            "prior_records": {},
+            "trusted_prior_head": "",
+            "load_reason": "selftest",
+            "decisions": {},
+            "carry_forward_decisions": {},
+            "records": {},
+            "carried_forward_record_count": 0,
+            "lock": threading.Lock(),
+        }
+
+        def capture_reuse_material(
+            module_arg, context_arg, pr_arg, diff_arg, schema_arg, config_arg, sentinels_arg, mode_arg
+        ):
+            captured["reuse_config"] = config_arg
+            return original_reuse_material(
+                module_arg, context_arg, pr_arg, diff_arg, schema_arg, config_arg, sentinels_arg, mode_arg
+            )
+
+        try:
+            semantic_result_reuse.reuse.reuse_material = capture_reuse_material
+            setattr(review, state_attr, reuse_state)
+            reuse_probe = review.review_single_file_context(
+                3,
+                {"path": "reuse-probe.py", "item": {"filename": "reuse-probe.py", "patch": "+print('reuse')"}, "text": "print('reuse')\n"},
+                {"number": 457, "title": "probe", "head": {"sha": "a" * 40}},
+                "diff --git a/reuse-probe.py b/reuse-probe.py\n+print('reuse')\n",
+                schema,
+                config,
+                [],
+                "deep-forced",
+            )
+            reuse_config = captured["reuse_config"]
+            assert reuse_config is not config
+            assert reuse_config.model_stack == ["anthropic/claude-sonnet-5"]
+            assert reuse_config.review_reasoning_effort == "high"
+            assert getattr(reuse_config, per_file_routing.PER_FILE_PROJECTION_ATTR, False) is True
+            assert reuse_state["decisions"]["reuse-probe.py"]["decision"] == "recomputed"
+            assert reuse_probe["request_telemetry"]["finish_reason"] == "stop"
+        finally:
+            semantic_result_reuse.reuse.reuse_material = original_reuse_material
+            if had_state:
+                setattr(review, state_attr, prior_state)
+            else:
+                delattr(review, state_attr)
 
         # A failed capped request still writes the last available usage/cost and
         # finish evidence before the existing per-file coverage path re-raises.

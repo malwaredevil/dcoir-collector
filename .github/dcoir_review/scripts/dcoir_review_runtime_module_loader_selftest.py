@@ -53,6 +53,7 @@ DIRECT_IMPORT_MODULES = (
     "semantic_result_reuse_support.py",
     "module_loader.py",
     "normalized_finding_selection.py",
+    "per_file_review.py",
     "per_file_routing.py",
     "prompt_review_scope_guard.py",
     "review_scope_guard.py",
@@ -366,7 +367,7 @@ def assert_canonical_config_loader_ownership() -> None:
     assert stored_originals == [], stored_originals
 
 def assert_canonical_payload_builder_ownership() -> None:
-    from dcoir_review import per_file_routing
+    from dcoir_review import per_file_review
 
     v32_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v32.py").read_text(
         encoding="utf-8"
@@ -402,8 +403,59 @@ def assert_canonical_payload_builder_ownership() -> None:
     assert stored == [], stored
 
     before = module.hardened.build_openrouter_payload
-    per_file_routing.apply_pareto_context_module(module)
+    per_file_review.apply_pareto_context_module(module)
     assert module.hardened.build_openrouter_payload is before
+
+
+def assert_canonical_per_file_review_ownership() -> None:
+    from dcoir_review import per_file_review
+
+    assert per_file_review.STAGE_ORDER == (
+        "stage-local-routing",
+        "semantic-result-reuse",
+        "base-review",
+    )
+
+    semantic_source = (SCRIPTS / "dcoir_review" / "semantic_result_reuse.py").read_text(
+        encoding="utf-8"
+    )
+    routing_source = (SCRIPTS / "dcoir_review" / "per_file_routing.py").read_text(
+        encoding="utf-8"
+    )
+    canonical_source = (SCRIPTS / "dcoir_review" / "per_file_review.py").read_text(
+        encoding="utf-8"
+    )
+    assert "module.review_single_file_context =" not in semantic_source
+    assert "module.review_single_file_context =" not in routing_source
+    assert "_dcoir_per_file_routing_original_review_single_file_context" not in routing_source
+    assert "def build_per_file_semantic_result_reuse_stage(" in semantic_source
+    assert "def build_per_file_routing_stage(" in routing_source
+    assert canonical_source.count("module.review_single_file_context = review_single_file_context") == 1
+    assert "semantic_result_reuse.build_per_file_semantic_result_reuse_stage" in canonical_source
+    assert "per_file_routing.build_per_file_routing_stage" in canonical_source
+
+    entrypoint = DcoirReviewEntrypoint()
+    assert "dcoir_review.semantic_result_reuse" not in entrypoint.terminal_patch_module_names
+    assert entrypoint.stage_local_patch_module_names == ("dcoir_review.per_file_review",)
+
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    entrypoint.apply_runtime_patches(module)
+    canonical = module.review_single_file_context
+    assert canonical.__module__ == "dcoir_review.per_file_review", canonical.__module__
+    assert tuple(module.DCOIR_PER_FILE_REVIEW_STAGE_ORDER) == per_file_review.STAGE_ORDER
+
+    stored = [
+        name
+        for name, value in vars(module).items()
+        if "review_single_file_context" in name
+        and name.startswith("_dcoir_")
+        and callable(value)
+    ]
+    assert stored == [], stored
+
+    before = module.review_single_file_context
+    per_file_review.apply_pareto_context_module(module)
+    assert module.review_single_file_context is before
 
 
 def assert_canonical_finding_comment_render_ownership() -> None:
@@ -551,6 +603,7 @@ def main() -> None:
     assert_patch_inventory_is_source_complete()
     assert_canonical_hybrid_review_ownership()
     assert_canonical_payload_builder_ownership()
+    assert_canonical_per_file_review_ownership()
     assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
     assert_segment_registry_is_complete()

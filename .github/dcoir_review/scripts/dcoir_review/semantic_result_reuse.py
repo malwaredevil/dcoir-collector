@@ -12,7 +12,6 @@ import dcoir_review.semantic_result_reuse_support as reuse
 
 VERSION = "v43"
 _STATE_ATTR = "_dcoir_review_semantic_result_reuse_state"
-_APPLIED_ATTR = "_dcoir_review_semantic_result_reuse_applied"
 
 
 def _new_state(module: Any, gh: Any, pr: dict[str, Any]) -> dict[str, Any]:
@@ -288,14 +287,14 @@ def build_semantic_result_reuse_stage(module: Any, next_review: Any) -> Any:
     return semantic_result_reuse_stage
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, _APPLIED_ATTR, False):
-        return
-    original_single = getattr(module, "review_single_file_context", None)
-    if not callable(original_single):
-        raise RuntimeError("DCOIR semantic-result reuse could not locate review_single_file_context")
+def build_per_file_semantic_result_reuse_stage(module: Any, next_review: Any) -> Any:
+    """Compose semantic-result reuse around one explicit per-file review callable."""
 
-    def review_single_file_context(
+    original_single = next_review
+    if not callable(original_single):
+        raise RuntimeError("DCOIR semantic-result reuse requires a callable per-file review stage")
+
+    def semantic_result_reuse_file_stage(
         index, context, pr, diff, schema, config, risk_sentinels, review_mode
     ):
         state = getattr(module, _STATE_ATTR, None)
@@ -369,8 +368,10 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         return result
 
-    module.review_single_file_context = review_single_file_context
-    setattr(module, _APPLIED_ATTR, True)
+    return semantic_result_reuse_file_stage
 
 
-__all__ = ["apply_pareto_context_module", "build_semantic_result_reuse_stage"]
+__all__ = [
+    "build_per_file_semantic_result_reuse_stage",
+    "build_semantic_result_reuse_stage",
+]

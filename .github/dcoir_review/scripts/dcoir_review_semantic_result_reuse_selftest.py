@@ -103,7 +103,6 @@ def main() -> None:
     assert DcoirReviewEntrypoint().terminal_patch_module_names == (
         "dcoir_review.incremental_review_frontier",
         "dcoir_review.semantic_review_ledger",
-        "dcoir_review.semantic_result_reuse",
     )
 
     config = SimpleNamespace(
@@ -270,7 +269,9 @@ def main() -> None:
         )
         v42_hooks._LAST_REVIEW_CONTEXT = None
         reused_base_hybrid = reused_module.openrouter_review_with_hybrid_first_pass
-        v43.apply_pareto_context_module(reused_module)
+        reused_module.review_single_file_context = v43.build_per_file_semantic_result_reuse_stage(
+            reused_module, reused_module.review_single_file_context
+        )
         reused_module.openrouter_review_with_hybrid_first_pass = v43.build_semantic_result_reuse_stage(
             reused_module, reused_base_hybrid
         )
@@ -326,7 +327,9 @@ def main() -> None:
             },
         )
         recompute_base_hybrid = recompute_module.openrouter_review_with_hybrid_first_pass
-        v43.apply_pareto_context_module(recompute_module)
+        recompute_module.review_single_file_context = v43.build_per_file_semantic_result_reuse_stage(
+            recompute_module, recompute_module.review_single_file_context
+        )
         recompute_module.openrouter_review_with_hybrid_first_pass = v43.build_semantic_result_reuse_stage(
             recompute_module, recompute_base_hybrid
         )

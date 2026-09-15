@@ -6,6 +6,16 @@ DCOIR Review is migrating from historical runtime overlays to explicit, responsi
 
 The current migration baseline is `main` after PR #545. At that baseline, `scripts/dcoir_review/entrypoint.py` still imports the Pareto-context review module and applies an ordered series of historical `apply_pareto_context_module(...)` overlays. The package `module_loader.py` also retains segmented source assembly through `exec(compile(...))`. Those mechanisms are migration inputs, not the target extension model.
 
+## Maintainer-readability and consolidation standard
+
+The architecture migration is judged by maintainability and actual ownership collapse, not by cosmetic renaming. Canonical files and packages must represent stable responsibilities, and active functions must have one obvious authoritative owner or a deliberately small explicit composition. Historical patch boundaries do not define the target module boundaries.
+
+A rename, file move, alias, forwarding wrapper, or one-for-one `v## -> friendly_name.py` translation is not sufficient progress when the same duplicate implementations, runtime replacement chain, stored-original shims, or hidden mutation order still exist. Surviving behavior should be merged into responsibility-based owners; superseded/dead implementations and unnecessary compatibility wrappers should be removed once characterization and parity evidence make that safe. Version labels remain only where they are genuine external/schema/protocol/persisted-data compatibility contracts.
+
+Stable tests must protect product behavior, canonical ownership, explicit composition, and security/reliability invariants. They must not require obsolete patch registration or historical ordering solely to preserve the old architecture. Each credited slice should demonstrate a measurable structural improvement such as fewer override chains, superseded callable installations, stored-original callables, numbered final owners, duplicate definitions, or historical source paths while preserving required behavior.
+
+**Maintainer test:** a professional programmer new to the repository should be able to locate the authoritative implementation, understand how the active path is composed, and make a future fix from normal module/function structure without reconstructing issue chronology or walking backward through `_v##` files. If this is not true for a responsibility, its migration is incomplete.
+
 ## Required responsibility boundaries
 
 The consolidated implementation should assign one canonical owner to each active responsibility. Exact package names may change as the dependency inventory is completed, but the stable responsibilities are:
@@ -387,3 +397,9 @@ This consolidation deliberately leaves each participant's non-hybrid responsibil
 The canonical renderer expresses that surviving behavior directly and installs one final callable immediately after v30. Earlier patch layers retain their unrelated detection, selection, prompting, synthesis, and repair responsibilities but no longer replace `build_inline_comment` or store prior renderer callables. `dcoir_review.verified_finding_render` is now a pure helper for verifier-aware ordinary rendering rather than a production installer, and `dcoir_review.repair_pipeline` retains repair synthesis while exposing its stable repair renderer to the canonical owner.
 
 The cutover is guarded mechanically: former renderer owners may not assign `build_inline_comment` or retain `original_build_inline_comment` storage, later production modules may not replace the canonical owner, repeated application is idempotent, and an exact seven-case output corpus locks verified ordinary, deterministic sentinel, repair, native-suggestion, unverified fallback, and YAML/security rendering byte-for-byte to the characterized pre-cutover behavior.
+
+### Canonical per-file review composition
+
+`dcoir_review.per_file_review` is the single production owner of `review_single_file_context`. The previous runtime shape first installed semantic-result reuse and then wrapped that callable again for stage-local routing and telemetry. The canonical owner now composes those responsibilities explicitly in the characterized order: stage-local routing projects the per-file configuration, semantic-result reuse decides reuse versus recomputation using that projected configuration, and the base Pareto per-file review executes only when recomputation is required.
+
+`dcoir_review.semantic_result_reuse` retains reusable semantic state, exact-match eligibility, carry-forward, manifest, and hybrid-lifecycle responsibilities but no longer installs a per-file runtime override. `dcoir_review.per_file_routing` retains config projection, OpenRouter payload routing, Response Healing controls, and request telemetry but no longer installs or stores a prior per-file callable. Production composition removes semantic-result reuse from the runtime patch sequence and installs `dcoir_review.per_file_review` once as the stage-local owner, reducing both the patch application count and the per-file override graph rather than merely renaming historical layers.

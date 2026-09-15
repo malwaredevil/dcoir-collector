@@ -27,7 +27,6 @@ from typing import Any
 import dcoir_review_required_runtime_patch_v32 as reasoning_policy
 
 
-APPLIED_MARKER = "_dcoir_per_file_routing_applied"
 RESPONSE_HEALING_PLUGIN_ID = "response-healing"
 PER_FILE_PROJECTION_ATTR = "dcoir_v47_per_file_projection"
 
@@ -75,7 +74,7 @@ def project_per_file_review_config(config: Any) -> Any:
     return projected
 
 
-def _patch_payload_builder(module: Any) -> None:
+def install_payload_builder(module: Any) -> None:
     hardened = module.hardened
     base_builder = getattr(hardened, "build_openrouter_payload", None)
     if not callable(base_builder):
@@ -131,17 +130,14 @@ def _write_request_telemetry(module: Any, projected: Any, index: int, context: A
     return dict(telemetry)
 
 
-def _patch_per_file_review(module: Any) -> None:
-    storage = "_dcoir_per_file_routing_original_review_single_file_context"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "review_single_file_context", None)
-        if callable(original):
-            setattr(module, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR per-file routing could not locate review_single_file_context")
+def build_per_file_routing_stage(module: Any, next_review: Any) -> Any:
+    """Compose stage-local routing and request telemetry around a per-file callable."""
 
-    def review_single_file_context(
+    original = next_review
+    if not callable(original):
+        raise RuntimeError("DCOIR per-file routing requires a callable per-file review stage")
+
+    def per_file_routing_stage(
         index,
         context,
         pr,
@@ -175,12 +171,12 @@ def _patch_per_file_review(module: Any) -> None:
             result["request_telemetry"] = telemetry
         return result
 
-    module.review_single_file_context = review_single_file_context
+    return per_file_routing_stage
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, APPLIED_MARKER, False):
-        return
-    _patch_payload_builder(module)
-    _patch_per_file_review(module)
-    setattr(module, APPLIED_MARKER, True)
+__all__ = [
+    "PER_FILE_PROJECTION_ATTR",
+    "build_per_file_routing_stage",
+    "install_payload_builder",
+    "project_per_file_review_config",
+]
