@@ -137,7 +137,7 @@ def expect_legacy_failure(module: FakeModule, result: dict[str, Any], config: An
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_telemetry_patch_module_names[-3:] == (
-        "dcoir_review_required_runtime_patch_v55",
+        "dcoir_review.semantic_adjudication_recovery",
         "dcoir_review_required_runtime_patch_v56",
         "dcoir_review_required_runtime_patch_v57",
     )

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v44 as v44
 
 
@@ -71,7 +71,7 @@ def make_module(primary_findings):
         ),
         ReviewQualityError=RuntimeError,
     )
-    v44._patch_semantic_escalation(module)
+    module.openrouter_review_with_hybrid_first_pass = v44.build_candidate_scoped_escalation_stage(module, original)
     return module, original_calls, debug
 
 

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any, NamedTuple
 
 import openrouter_pr_review_hardened as hardened
+from dcoir_review import review_config
 
 
 base = hardened.base
@@ -60,6 +61,7 @@ def load_pareto_context_config(path: str) -> Any:
     config.deep_review_max_file_chars = int(data.get("deep_review_max_file_chars", 12000))
     config.deep_review_max_total_chars = int(data.get("deep_review_max_total_chars", 24000))
     hardened.ensure_free_models_are_opt_in(config)
+    review_config.apply_review_config(config, data, hardened)
     return config
 
 

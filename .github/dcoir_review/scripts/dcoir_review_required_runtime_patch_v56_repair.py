@@ -6,7 +6,7 @@ import hashlib
 import json
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v36 as v36
 
@@ -41,7 +41,7 @@ def prepare_candidate(
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Run the historical author and pre-critic exact-head checks only."""
 
-    path, line = v25._path_line(finding)
+    path, line = repair._path_line(finding)
     if not path or line <= 0:
         raise module.hardened.ReviewQualityError("DCOIR v56 repair stage received an unreadable finding anchor")
     if path not in file_cache:
@@ -149,7 +149,7 @@ def finalize_candidate(
             author_model=pending["author_model"],
             author_tier=pending["author_tier"],
         )
-        item[v25.REPAIR_MARKER].update(
+        item[repair.REPAIR_MARKER].update(
             {
                 "critic_model": critic_model,
                 "critic_service_tier": critic_tier,
@@ -167,7 +167,7 @@ def finalize_candidate(
             author_model=pending["author_model"],
             author_tier=pending["author_tier"],
         )
-        item[v25.REPAIR_MARKER].update(
+        item[repair.REPAIR_MARKER].update(
             {
                 "critic_model": critic_model,
                 "critic_service_tier": critic_tier,
@@ -179,15 +179,15 @@ def finalize_candidate(
 
     edits = v36._annotate_native_eligibility(author["edits"], right_line_index)
     native_count = sum(1 for edit in edits if edit["native_suggestion"])
-    path, line = v25._path_line(finding)
-    item = v25._strip_legacy_model_finding_provenance(finding)
+    path, line = repair._path_line(finding)
+    item = repair._strip_legacy_model_finding_provenance(finding)
     item["title"] = author["display_title"]
     item["body"] = author["display_body"]
     item["suggested_replacement"] = ""
     item.pop("fix_guidance", None)
     if author["validation"]:
         item["validation"] = author["validation"]
-    item[v25.REPAIR_MARKER] = {
+    item[repair.REPAIR_MARKER] = {
         "version": v36.VERSION,
         "critic_batch_version": VERSION,
         "outcome": v36.REPAIR_SET_OUTCOME,
@@ -212,6 +212,6 @@ def finalize_candidate(
     module.hardened.write_debug_json_artifact_safely(
         config,
         f"responses/repair-v36/{pending['ordinal']:02d}-final.json",
-        dict(item[v25.REPAIR_MARKER]),
+        dict(item[repair.REPAIR_MARKER]),
     )
     return item

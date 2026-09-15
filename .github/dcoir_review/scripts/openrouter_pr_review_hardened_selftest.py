@@ -21,6 +21,13 @@ class _ProgressCommentGitHub:
         self.created: list[tuple[int, str]] = []
         self.updated: list[tuple[int, str]] = []
 
+    def request(self, method: str, path: str, body=None, accept: str = "application/vnd.github+json"):
+        del body, accept
+        assert method == "GET", (method, path)
+        if "/comments?" in path:
+            return []
+        raise AssertionError(path)
+
     def create_issue_comment(self, issue_number: int, body: str) -> dict[str, int]:
         self.created.append((issue_number, body))
         return {"id": 9001}
@@ -30,25 +37,29 @@ class _ProgressCommentGitHub:
         return {"id": comment_id}
 
 
-# Production keeps routine progress comments disabled, but terminal failures must
-# still leave one bounded PR-visible result instead of silently disappearing.
+# The canonical #550 status surface is first-class even when the legacy debug
+# progress flag is false. One comment is created, meaningful stage boundaries
+# update that same id, and terminal failure updates it again rather than
+# creating a second status artifact.
 progress_disabled = copy.copy(config)
 progress_disabled.post_progress_comment = False
 progress_gh = _ProgressCommentGitHub()
 progress_reporter = mod.base.ProgressReporter(progress_gh, 277, "/dcoir-review", progress_disabled)
 progress_reporter.start()
-progress_reporter.update("test", "routine progress remains suppressed")
-assert progress_gh.created == []
-assert progress_gh.updated == []
-progress_reporter.fail("Review quality failure: no actionable primary findings survived normalization.")
 assert len(progress_gh.created) == 1
 assert progress_gh.updated == []
-terminal_body = progress_gh.created[0][1]
+progress_reporter.update("test", "canonical status remains first-class")
+assert len(progress_gh.created) == 1
+assert len(progress_gh.updated) == 1
+progress_reporter.fail("Review quality failure: no actionable primary findings survived normalization.")
+assert len(progress_gh.created) == 1
+assert len(progress_gh.updated) == 2
+terminal_body = progress_gh.updated[-1][1]
 assert "review failed before a usable PR review could be posted" in terminal_body
 assert "no actionable primary findings survived normalization" in terminal_body
 
-# Existing progress-enabled behavior remains one created comment that is updated
-# on terminal failure rather than creating a duplicate.
+# The legacy flag no longer changes status-comment existence semantics. The
+# enabled case also creates one comment and mutates that same comment on failure.
 progress_enabled = copy.copy(config)
 progress_enabled.post_progress_comment = True
 enabled_gh = _ProgressCommentGitHub()
@@ -59,4 +70,4 @@ enabled_reporter.fail("synthetic terminal failure")
 assert len(enabled_gh.created) == 1
 assert len(enabled_gh.updated) == 1
 
-print("DCOIR Review terminal failure visibility selftest passed")
+print("DCOIR Review canonical status visibility selftest passed")

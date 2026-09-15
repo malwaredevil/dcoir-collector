@@ -28,12 +28,6 @@ PROMPT_REVIEW_MAX_ADDENDUM_CHARS = 1800
 PROMPT_REVIEW_MAX_INPUT_CHARS = 90000
 PROMPT_REVIEW_SECTION_TITLE = "Prompt-review supplemental guidance"
 
-ENV_PROVENANCE_LINE_RE = re.compile(
-    r"(?m)^.*(?:os\.environ(?:\.get)?|os\.getenv|\$env:|process\.env\.|Environment::GetEnvironmentVariable)[^\n]*$"
-)
-SAFE_BEARER_EXPR_RE = re.compile(
-    r"(?P<prefix>[fFrRbBuU]*)(?P<quote>[\"'])(?P<body>Bearer\s+(?:\{[^}\n]+\}|\$env:[A-Za-z_][A-Za-z0-9_]*|\$\{[^}\n]+\}|\$[A-Za-z_][A-Za-z0-9_]*|%[A-Za-z_][A-Za-z0-9_]*%))(?P=quote)"
-)
 SENTINEL_ANCHOR_RE = re.compile(r"(?m)^- (?P<anchor>[^:\n]+:\d+ \[[^\]\n]+\])")
 ENV_PROVENANCE_TOKEN_RE = re.compile(
     r"os\.environ(?:\.get)?\([^\n)]*\)|os\.environ\[[^\n\]]+\]|os\.getenv\([^\n)]*\)|\$env:[A-Za-z_][A-Za-z0-9_]*|process\.env\.[A-Za-z_][A-Za-z0-9_]*|Environment::GetEnvironmentVariable\([^\n)]*\)"
@@ -83,36 +77,6 @@ def _prompt_kind(prompt: str) -> str:
     if "context mode:" in lower:
         return "whole-pr-detector"
     return "model-prompt"
-
-
-def _protect_env_provenance(text: str) -> tuple[str, list[str]]:
-    protected: list[str] = []
-
-    def store(value: str) -> str:
-        protected.append(value)
-        return f"__DCOIR_ENV_PROVENANCE_{len(protected) - 1}__"
-
-    def stash(match: re.Match[str]) -> str:
-        return store(match.group(0))
-
-    result = ENV_PROVENANCE_LINE_RE.sub(stash, text)
-    protected_lines: list[str] = []
-    for line in result.splitlines(keepends=True):
-        if not SAFE_BEARER_EXPR_RE.search(line):
-            protected_lines.append(line)
-            continue
-        ending = "\r\n" if line.endswith("\r\n") else "\n" if line.endswith("\n") else ""
-        value = line[: -len(ending)] if ending else line
-        protected_lines.append(store(value) + ending)
-    result = "".join(protected_lines)
-    return result, protected
-
-
-def _restore_env_provenance(text: str, protected: list[str]) -> str:
-    result = text
-    for index, value in enumerate(protected):
-        result = result.replace(f"__DCOIR_ENV_PROVENANCE_{index}__", value)
-    return result
 
 
 def _extract_sentinel_anchors(prompt: str) -> list[str]:

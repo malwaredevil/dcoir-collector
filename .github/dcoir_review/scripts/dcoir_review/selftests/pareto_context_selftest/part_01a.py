@@ -97,8 +97,11 @@ anchored_findings, anchor_unanchored = mod.split_findings_with_review_body_fallb
     anchor_sentinels,
 )
 assert anchor_unanchored == []
-assert anchored_findings[0]["line"] == 3
-assert anchored_findings[0]["_reanchored_from_line"] == 4
+# The model supplied line 4, which is already an added changed line. Preserve
+# that exact GitHub-postable evidence boundary even though nearby line 3 has a
+# stronger lexical/sentinel match.
+assert anchored_findings[0]["line"] == 4
+assert anchored_findings[0].get("_reanchored_from_line") is None
 
 yaml_sentinels = mod.detect_risk_sentinels(
     """diff --git a/.github/workflows/probe.yml b/.github/workflows/probe.yml

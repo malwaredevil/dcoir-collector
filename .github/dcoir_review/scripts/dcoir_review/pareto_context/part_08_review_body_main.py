@@ -187,6 +187,13 @@ def reanchor_finding_to_changed_line(
         original_line = int(finding.get("line", 0) or 0)
     except (TypeError, ValueError):
         return finding
+
+    # A detector-provided anchor that is already a GitHub-postable changed line
+    # is authoritative evidence. Re-anchoring exists only to rescue unpostable
+    # locations; nearby prose or sentinels must never steal a valid exact anchor.
+    if path and original_line > 0 and (path, original_line) in line_index:
+        return dict(finding)
+
     candidates = changed_lines_by_path.get(path, [])
     if not path or not candidates:
         return finding

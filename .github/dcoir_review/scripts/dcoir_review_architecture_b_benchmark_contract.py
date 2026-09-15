@@ -20,8 +20,8 @@ from types import SimpleNamespace
 from typing import Any
 
 import dcoir_review_architecture_b_benchmark as core
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
-import dcoir_review_required_runtime_patch_v43 as v43
+from dcoir_review import incremental_review_scope as v41_scope
+import dcoir_review.semantic_result_reuse as v43
 import dcoir_review_required_runtime_patch_v46 as v46
 
 
@@ -225,6 +225,9 @@ def _context_projection_report(
 
     module.openrouter_review_with_hybrid_first_pass = hybrid
     v46.apply_pareto_context_module(module)
+    module.openrouter_review_with_hybrid_first_pass = v46.build_canonical_semantic_context_stage(
+        module, hybrid
+    )
 
     gh = SimpleNamespace()
     setattr(

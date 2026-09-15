@@ -22,9 +22,9 @@ def main() -> None:
         v13._rendered_comment_has_problem = lambda _rendered, _finding: False
 
     v14 = importlib.import_module("dcoir_review_required_runtime_patch_v14")
-    v15 = importlib.import_module("dcoir_review_required_runtime_patch_v15")
+    finding_family = importlib.import_module("dcoir_review.finding_family")
 
-    v15.apply_pareto_context_module(SimpleNamespace(base=None, hardened=None))
+    finding_family.apply_pareto_context_module(SimpleNamespace(base=None, hardened=None))
 
     assert v14._render_integrity_errors([], {}) == []
     assert v14._family("yaml_pull_request_target") == "yaml"
@@ -40,7 +40,7 @@ def main() -> None:
 
     module = SimpleNamespace(base=None, hardened=None)
     v14.apply_pareto_context_module(module)
-    v15.apply_pareto_context_module(module)
+    finding_family.apply_pareto_context_module(module)
     assert v13._rendered_comment_has_problem is v14._rendered_comment_has_integrity_problem
     assert v13._rendered_comment_has_integrity_problem is v14._rendered_comment_has_integrity_problem
 

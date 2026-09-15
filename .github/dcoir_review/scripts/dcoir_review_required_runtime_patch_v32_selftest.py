@@ -17,8 +17,8 @@ def main() -> None:
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
-    v25 = importlib.import_module("dcoir_review_required_runtime_patch_v25")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
     v32 = importlib.import_module("dcoir_review_required_runtime_patch_v32")
 
     assert getattr(review, v32.APPLIED_MARKER, False) is True
@@ -48,12 +48,12 @@ def main() -> None:
 
     # v32's independent challenger expands the ordinary candidate set.  Keep
     # verifier and verified-repair stages fail-closed, but bind both to the
-    # configured output budget rather than v21/v25's historical six-item cap.
+    # configured output budget rather than v21/repair's historical six-item cap.
     expected_limit = min(config.fix_synthesis_max_findings, config.max_inline_comments)
     assert expected_limit == 8
     assert config.dcoir_v32_verifier_repair_limit == expected_limit
     assert v21.VERIFIER_MAX_MODEL_FINDINGS == expected_limit
-    assert v25.MAX_REPAIR_CANDIDATES == expected_limit
+    assert repair.MAX_REPAIR_CANDIDATES == expected_limit
     assert v21.VERIFIER_MAX_MODEL_FINDINGS >= 7
 
     schema = {
@@ -88,6 +88,25 @@ def main() -> None:
     assert v32._model_uses_openai_gpt5_reasoning("openai/gpt-5.6-sol") is True
     assert v32._model_uses_openai_gpt5_reasoning("openai/gpt-4.1") is False
     assert v32._model_uses_openai_gpt5_reasoning("anthropic/claude-opus-5") is False
+
+    # v32 contributes an explicit payload transformation; it no longer owns a
+    # runtime payload-builder wrapper or stored-original shim.
+    direct_pro = v32.apply_reasoning_payload_policy(
+        {"temperature": 0.2, "reasoning": {"enabled": True, "effort": "legacy"}},
+        config,
+        "openai/gpt-5.6-sol-pro",
+    )
+    assert "temperature" not in direct_pro
+    assert "reasoning" not in direct_pro
+    direct_opus = v32.apply_reasoning_payload_policy(
+        {"temperature": 0.2}, config, "anthropic/claude-opus-5"
+    )
+    assert direct_opus["temperature"] == 0.2
+    assert direct_opus["reasoning"] == {
+        "enabled": True,
+        "effort": "xhigh",
+        "exclude": True,
+    }
 
     pro_payload = review.hardened.build_openrouter_payload(
         "probe",
@@ -125,23 +144,12 @@ def main() -> None:
     assert non_reasoning_openai_payload["temperature"] == 0.2
     assert non_reasoning_openai_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
 
-    # Prove v32's own contract in isolation: a clean primary pass cannot leave
-    # the v32 stage without the independent Sol Pro challenger, and challenger
-    # findings are preserved. Later runtime overlays (for example v35's final
-    # adjudicator) may legitimately make additional model calls after v32, so
-    # call the v32 hybrid wrapper captured by the next overlay rather than the
-    # terminal active pipeline wrapper.
-    storage = "_dcoir_review_v32_original_hybrid_first_pass"
-    original_first_pass = getattr(review, storage)
+    # Prove v32's own contract in isolation through its explicit stage builder.
+    # The stage no longer stores or recovers a historical hybrid wrapper.
     original_build_prompt = review.build_prompt
     original_openrouter_review = review.hardened.openrouter_review
     original_write_text = review.hardened.write_debug_text_artifact_safely
     original_write_json = review.hardened.write_debug_json_artifact_safely
-    v32_hybrid = getattr(
-        review,
-        "_dcoir_review_v35_original_hybrid_first_pass",
-        review.openrouter_review_with_hybrid_first_pass,
-    )
     observed: dict[str, object] = {}
 
     def fake_first_pass(*args, **kwargs):
@@ -174,11 +182,11 @@ def main() -> None:
         )
 
     try:
-        setattr(review, storage, fake_first_pass)
         review.build_prompt = fake_build_prompt
         review.hardened.openrouter_review = fake_openrouter_review
         review.hardened.write_debug_text_artifact_safely = lambda *args, **kwargs: None
         review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
+        v32_hybrid = v32.build_adversarial_confirmation_stage(review, fake_first_pass)
         result, model_used, service_tier = v32_hybrid(
             {},
             [],
@@ -194,7 +202,6 @@ def main() -> None:
             None,
         )
     finally:
-        setattr(review, storage, original_first_pass)
         review.build_prompt = original_build_prompt
         review.hardened.openrouter_review = original_openrouter_review
         review.hardened.write_debug_text_artifact_safely = original_write_text

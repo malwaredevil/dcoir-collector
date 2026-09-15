@@ -6,7 +6,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v7 as v7
-import openrouter_pr_review as base
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -97,25 +96,6 @@ def test_capacity_failure_is_explicit() -> None:
         raise AssertionError("expected capacity failure")
 
 
-def test_safe_auth_line_classification() -> None:
-    assert v7._safe_auth_line('headers = {"Authorization": f"Bearer {api_token}"}')
-    assert v7._safe_auth_line('$headers = @{ Authorization = "Bearer $token" }')
-    assert v7._safe_auth_line('headers.Authorization = `Bearer ${process.env.DCOIR_TOKEN}`')
-    assert not v7._safe_auth_line('headers = {"Authorization": "Bearer abcdefghijklmnopqrstuvwxyz"}')
-
-
-def test_sanitize_preserves_interpolated_bearer_lines() -> None:
-    v7._patch_sanitize_text(base)
-    text = '\n'.join([
-        'api_token = os.getenv("DCOIR_TOKEN")',
-        'headers = {"Authorization": f"Bearer {api_token}"}',
-        '$headers = @{ Authorization = "Bearer $token" }',
-    ])
-    cleaned = base.sanitize_text(text, Config())
-    assert 'f"Bearer {api_token}"' in cleaned
-    assert '"Bearer $token"' in cleaned
-
-
 def test_entrypoint_loads_v7_after_v6() -> None:
     patch_modules = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v6" in patch_modules
@@ -127,8 +107,6 @@ def main() -> None:
     test_pr330_required_ledger_survives_optional_pressure()
     test_pr330_missing_broad_write_gets_forced_fallback()
     test_capacity_failure_is_explicit()
-    test_safe_auth_line_classification()
-    test_sanitize_preserves_interpolated_bearer_lines()
     test_entrypoint_loads_v7_after_v6()
     print("dcoir_review_required_runtime_patch_v7_selftest passed")
 

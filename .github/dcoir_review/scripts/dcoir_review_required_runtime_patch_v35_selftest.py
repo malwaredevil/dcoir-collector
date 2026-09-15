@@ -21,12 +21,12 @@ class _Reporter:
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert "dcoir_review_required_runtime_patch_v35" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v34") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v35")
+    assert entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v35")
     assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v35") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v21 = importlib.import_module("dcoir_review_required_runtime_patch_v21")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
     v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
 
     assert getattr(review, v35.APPLIED_MARKER, False) is True
@@ -145,7 +145,7 @@ def main() -> None:
         build_prompt=lambda *args, **kwargs: "PR EVIDENCE: changed predicate and tests",
         rank_findings_for_required_budget=lambda findings, limit: findings[:limit],
     )
-    v35._patch_semantic_adjudication(fake_module)
+    v35_hybrid = v35.build_semantic_adjudication_stage(fake_module, fake_detector)
     fake_config = SimpleNamespace(
         semantic_adjudication_review=True,
         semantic_adjudication_max_findings=8,
@@ -153,7 +153,7 @@ def main() -> None:
         semantic_adjudication_model_stack=["adjudicator-model"],
         max_prompt_chars=120000,
     )
-    result, model_label, tier = fake_module.openrouter_review_with_hybrid_first_pass(
+    result, model_label, tier = v35_hybrid(
         {"number": 1},
         [],
         "diff",

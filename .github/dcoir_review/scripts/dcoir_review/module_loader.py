@@ -14,6 +14,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'base/part_04_debug_artifacts.py',
         'base/part_05_prompt_provider.py',
         'base/part_06_findings_comments.py',
+        'base/part_06a_finding_validation.py',
         'base/part_07_main.py',
     ),
     'hardened': (
@@ -158,9 +159,6 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'patches/dcoir_review_required_runtime_patch_v13/part_01a.py',
         'patches/dcoir_review_required_runtime_patch_v13/part_02.py',
         'patches/dcoir_review_required_runtime_patch_v13/part_02a.py',
-    ),
-    'dcoir_review_required_runtime_patch_v15': (
-        'patches/dcoir_review_required_runtime_patch_v15/part_01.py',
     ),
     'dcoir_review_required_runtime_patch_v14': (
         'patches/dcoir_review_required_runtime_patch_v14/part_01.py',

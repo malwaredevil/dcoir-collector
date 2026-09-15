@@ -175,54 +175,57 @@ ignored_providers:
 
 validation_commands:
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_finding_family_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v16_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v19_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_precision_guard_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v20_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v21_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v22_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v23_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v24_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v25_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v26_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v27_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v28_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v29_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_finding_verifier_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_quality_gate_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_normalized_finding_selection_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_verified_finding_render_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_pipeline_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_sentinel_selection_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_anchor_normalization_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_reliability_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_routing_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_finding_comment_render_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v33_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v34_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_evidence_hardening_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v35_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v37_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v38_critic_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v39_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_normalization_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_contract_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_contract_critic_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_confidence_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_per_file_coverage_recovery_v40_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_credit_aware_concurrency_v49_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v41_provenance_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v42_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v43_state_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_incremental_review_frontier_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_incremental_review_provenance_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_review_ledger_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_result_reuse_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_result_reuse_state_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_scope_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v44_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_review_context_ledger_integration_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v45_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_publication_disposition_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v46_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v50_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v50_publication_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v51_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v47_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v48_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v52_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_verified_finding_gate_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_verified_finding_gate_publication_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_candidate_identity_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_per_file_routing_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_review_scope_guard_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_structured_result_recovery_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v53_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v54_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v55_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_recovery_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_followup_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v57_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_provider_transport_retry_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_architecture_b_benchmark_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py

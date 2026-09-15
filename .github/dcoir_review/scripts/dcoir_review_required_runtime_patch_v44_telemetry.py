@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v44_scope as scope
 
 

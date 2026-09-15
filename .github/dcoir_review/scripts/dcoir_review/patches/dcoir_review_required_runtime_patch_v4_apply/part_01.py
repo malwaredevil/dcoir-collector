@@ -61,13 +61,6 @@ def apply_pareto_context_module(module: Any) -> None:
         original_synthesize = getattr(module, "synthesize_fix_for_finding", None)
         module._dcoir_required_v4_apply_original_synthesize_fix_for_finding = original_synthesize
 
-    original_build = None
-    if base is not None and callable(getattr(base, "build_inline_comment", None)):
-        original_build = getattr(base, "_dcoir_required_v4_apply_original_build_inline_comment", None)
-        if original_build is None:
-            original_build = base.build_inline_comment
-            base._dcoir_required_v4_apply_original_build_inline_comment = original_build
-
     hardened.required_risk_sentinels = lambda sentinels: v4._required_sentinels(original_required, sentinels)
 
     def required_v4_is_required_risk_sentinel(sentinel: Any) -> bool:
@@ -105,18 +98,3 @@ def apply_pareto_context_module(module: Any) -> None:
 
     if callable(original_synthesize):
         module.synthesize_fix_for_finding = lambda index, finding, file_text, schema, config: v4._normalize_comment_finding(original_synthesize(index, finding, file_text, schema, config))
-
-    if base is not None and callable(original_build):
-        def required_v4_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-            normalized = v4._normalize_comment_finding(finding)
-            kind = v4._semantic_kind(normalized)
-            if kind in v4.HARD_REQUIRED_KIND_TITLES or kind == v4.YAML_METADATA_SHELL or v4._is_env_token_callback(normalized):
-                try:
-                    if callable(getattr(base, "emit_status", None)):
-                        base.emit_status("required-v4-deterministic-comment", f"{normalized.get('path')}:{normalized.get('line')} {kind}")
-                except Exception:
-                    pass
-                return v4._render_deterministic_comment(normalized, model_used)
-            return v4._final_rendered_scrub(original_build(normalized, model_used, config), normalized)
-
-        base.build_inline_comment = required_v4_build_inline_comment

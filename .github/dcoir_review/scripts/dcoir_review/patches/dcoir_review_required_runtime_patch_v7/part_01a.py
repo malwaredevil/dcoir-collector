@@ -111,50 +111,6 @@ def _patch_required_selection(module: Any, hardened: Any) -> None:
     module.rank_findings_for_required_budget = lambda findings, config: _dedupe_postable(v5._rank_findings(module, hardened, original_rank, findings, config))
 
 
-def _safe_auth_line(line: str) -> bool:
-    if not ("bearer" in line.lower() or "authorization" in line.lower()):
-        return False
-    if STATIC_BEARER_RE.search(line) and not VARIABLE_BEARER_RE.search(line):
-        return False
-    return VARIABLE_BEARER_RE.search(line) is not None
-
-
-def _protect_auth_lines(text: str) -> tuple[str, list[str]]:
-    protected: list[str] = []
-
-    def stash(match: re.Match[str]) -> str:
-        value = match.group(0)
-        if not _safe_auth_line(value):
-            return value
-        protected.append(value)
-        return f"__DCOIR_V7_SAFE_AUTH_LINE_{len(protected) - 1}__"
-
-    return SAFE_AUTH_LINE_RE.sub(stash, str(text or "")), protected
-
-
-def _restore_auth_lines(text: str, protected: list[str]) -> str:
-    result = str(text or "")
-    for index, value in enumerate(protected):
-        result = result.replace(f"__DCOIR_V7_SAFE_AUTH_LINE_{index}__", value)
-    return result
-
-
-def _patch_sanitize_text(base: Any) -> None:
-    original = getattr(base, "_dcoir_required_v7_original_sanitize_text", None)
-    if original is None:
-        original = getattr(base, "sanitize_text", None)
-        base._dcoir_required_v7_original_sanitize_text = original
-    if not callable(original):
-        return
-
-    def required_v7_sanitize_text(text: str, config: Any) -> str:
-        protected_text, protected_values = _protect_auth_lines(str(text or ""))
-        cleaned = original(protected_text, config)
-        return _restore_auth_lines(cleaned, protected_values)
-
-    base.sanitize_text = required_v7_sanitize_text
-
-
 def _patch_prompt_review_debug() -> None:
     original = getattr(v6, "_dcoir_required_v7_original_write_prompt_review_debug", None)
     if original is None:
@@ -172,10 +128,7 @@ def _patch_prompt_review_debug() -> None:
 
 
 def apply_pareto_context_module(module: Any) -> None:
-    base = getattr(module, "base", None)
     hardened = getattr(module, "hardened", None)
-    if base is not None:
-        _patch_sanitize_text(base)
     _patch_prompt_review_debug()
     if hardened is not None:
         _patch_required_selection(module, hardened)
