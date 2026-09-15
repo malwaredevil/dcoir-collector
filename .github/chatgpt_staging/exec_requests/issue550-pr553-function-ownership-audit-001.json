@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-function-ownership-audit-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T05:00:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-function-ownership-audit-001.ps1",
+  "approved_command_preview": "No-inference exact-head function-ownership characterization for Draft PR #553 source head 781a480bb306ff7e0bf1fd55302636a0176ad5c5 / tree ecfe9870cff993695d58c9ee8f35525a0ccd9902. Apply the production DCOIR Review sequence one stage at a time in an isolated worktree and record callable displacement chains, final stable versus numbered owners, duplicate function definitions, callable stored-original attributes, storage-constant usage, and remaining numbered source paths. This is read-only characterization of PR source; clear provider/model credentials and make no inference/provider calls. Do not trigger DCOIR self-review, Copilot, Ready, merge, workflow redesign, or v59+ work.",
+  "command": "& 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-function-ownership-audit-001.ps1'"
+}
