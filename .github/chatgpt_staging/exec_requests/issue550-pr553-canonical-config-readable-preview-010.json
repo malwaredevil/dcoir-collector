@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-config-readable-preview-010",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T05:58:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-config-readable-preview-010.py",
+  "approved_command_preview": "Retry the already-authorized exact-head readable canonical-config consolidation preview after correcting the single DEFAULT_REASONING_EFFORT constant typo. Preserve the same source head/tree, 18-file responsibility consolidation, focused regressions, no-provider/no-inference envelope, and do not mutate PR #553 source.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-canonical-config-readable-preview-010.py'"
+}
