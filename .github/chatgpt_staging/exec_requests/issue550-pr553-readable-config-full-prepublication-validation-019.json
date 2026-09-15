@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-readable-config-full-prepublication-validation-019",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:24:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-readable-config-full-prepublication-validation-019.py",
+  "approved_command_preview": "Run the same full governed pre-publication validation for strong-guard patch sha256 923ffd839b... using a single self-contained harness transformation, deterministic scripts PYTHONPATH, and a validation-process-only .NET SHA256 Get-FileHash compatibility function before the unchanged native Windows PowerShell 5.1 parser validator. Continue through all remaining gates. No PR source mutation/provider call/inference.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-readable-config-full-prepublication-validation-019.py'"
+}
