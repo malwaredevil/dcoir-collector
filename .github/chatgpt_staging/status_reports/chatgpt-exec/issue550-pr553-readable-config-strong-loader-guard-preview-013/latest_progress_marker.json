@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34935760277",
+  "github_sha": "f6de5a757f81440064c783a4088ffa5f7d743484",
+  "phase": "request-resolved",
+  "request_id": "issue550-pr553-readable-config-strong-loader-guard-preview-013",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-readable-config-strong-loader-guard-preview-013.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-15T06:10:28Z",
+  "workflow": "chatgpt-exec"
+}
