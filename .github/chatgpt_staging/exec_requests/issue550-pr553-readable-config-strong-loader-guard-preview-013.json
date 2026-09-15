@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-readable-config-strong-loader-guard-preview-013",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:10:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-readable-config-strong-loader-guard-preview-013.py",
+  "approved_command_preview": "Apply the exact readable canonical-config patch on an isolated exact-head worktree, strengthen the permanent anti-regression test so every production patch stage must preserve the canonical load_pareto_context_config object, rerun runtime-loader and Architecture-B tests, emit a new complete patch, and make no PR source mutation/provider call/inference.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-readable-config-strong-loader-guard-preview-013.py'"
+}
