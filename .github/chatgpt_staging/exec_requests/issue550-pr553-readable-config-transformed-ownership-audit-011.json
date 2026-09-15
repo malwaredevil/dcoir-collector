@@ -1,0 +1,13 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-readable-config-transformed-ownership-audit-011",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T06:03:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 1800,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "script_path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-readable-config-transformed-ownership-audit-011.py",
+  "approved_command_preview": "Reproduce the corrected readable canonical-config preview on exact PR #553 source head 781a480b..., apply its exact emitted patch to a fresh worktree, and run the same callable-ownership audit as the credited baseline. Require the previously observed structural reductions to remain exact. No source mutation, inference, or provider calls.",
+  "command": "python 'D:\\a\\dcoir-collector\\dcoir-collector\\.github\\chatgpt_staging\\exec_scripts\\issue550-pr553-readable-config-transformed-ownership-audit-011.py'"
+}
