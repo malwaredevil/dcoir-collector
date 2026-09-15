@@ -1,0 +1,15 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_final_readback_marker.v2",
+  "request_id": "issue550-pr553-canonical-payload-owner-prepublication-validation-001",
+  "result": "failure",
+  "exit_code": "1",
+  "artifact_name": "chatgpt-exec-issue550-pr553-canonical-payload-owner-prepublication-validation-001",
+  "artifact_readback_committed": false,
+  "artifact_readback_policy": "not_committed_for_chatgpt_exec; .gitignore intentionally excludes artifact_readback to avoid long-path checkout problems",
+  "tracked_summary_policy": "requests/tools should write concise sanitized summaries beside workflow_report.md when ChatGPT connector-readable results are needed",
+  "github_run_id": "34959881749",
+  "github_run_attempt": "1",
+  "github_sha": "ad3555bda9b1dc41143ba222a16550093f0c0a70",
+  "github_ref": "refs/heads/main",
+  "created_utc": "2026-09-15T10:49:02Z"
+}
