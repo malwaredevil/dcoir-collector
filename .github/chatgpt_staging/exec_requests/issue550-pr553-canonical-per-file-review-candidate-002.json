@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue550-pr553-canonical-per-file-review-candidate-002",
+  "operator_approved": true,
+  "approved_at_utc": "2026-09-15T11:31:00Z",
+  "shell": "powershell_5",
+  "timeout_seconds": 240,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Rerun the same approved canonical per-file review candidate with only the patch-exporter fix that includes the new untracked canonical file in git diff. No source-branch mutation, provider calls, review trigger, Ready transition, or merge.",
+  "command": "$payload='.github/chatgpt_staging/exec_payloads/issue550-pr553-canonical-per-file-review-candidate-001.py.gz.b64'; $script=Join-Path $env:RUNNER_TEMP 'issue550-per-file-candidate-002.py'; python -c \"import base64,gzip,pathlib; p=pathlib.Path(r'$payload'); s=gzip.decompress(base64.b64decode(p.read_text())).decode(); s=s.replace('issue550-pr553-canonical-per-file-review-candidate-001','issue550-pr553-canonical-per-file-review-candidate-002').replace('ISSUE550_PR553_CANONICAL_PER_FILE_REVIEW_CANDIDATE_001_PASS','ISSUE550_PR553_CANONICAL_PER_FILE_REVIEW_CANDIDATE_002_PASS'); old='    run(\\\"git\\\", \\\"diff\\\", \\\"--check\\\", cwd=worktree)\\n    patch = run(\\\"git\\\", \\\"diff\\\", \\\"--binary\\\", cwd=worktree).stdout\\n'; new='    run(\\\"git\\\", \\\"add\\\", \\\"-N\\\", \\\".github/dcoir_review/scripts/dcoir_review/per_file_review.py\\\", cwd=worktree)\\n    run(\\\"git\\\", \\\"diff\\\", \\\"--check\\\", cwd=worktree)\\n    patch = run(\\\"git\\\", \\\"diff\\\", \\\"--binary\\\", cwd=worktree).stdout\\n'; assert old in s; s=s.replace(old,new,1); pathlib.Path(r'$script').write_text(s)\"; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }; python $script"
+}
