@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue550-pr553-publish-finding-comment-render-001",
+  "exit_code": "0",
   "github_ref": "refs/heads/main",
   "github_run_attempt": "1",
   "github_run_id": "34954359518",
   "github_sha": "04d14dfcf62ae1d9b5c4b31b0b44ab81dc0cd39c",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue550-pr553-publish-finding-comment-render-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-publish-finding-comment-render-001.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T09:46:45Z",
+  "updated_utc": "2026-09-15T09:46:56Z",
   "workflow": "chatgpt-exec"
 }
