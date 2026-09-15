@@ -1,0 +1,15 @@
+{
+  "artifact_name": "",
+  "exit_code": "",
+  "github_ref": "refs/heads/main",
+  "github_run_attempt": "1",
+  "github_run_id": "34933260234",
+  "github_sha": "d98d48fd393185f15eab351e4066614ac5278f44",
+  "phase": "request-resolved",
+  "request_id": "issue550-pr553-canonical-config-consolidation-preview-v54-test-fix-003",
+  "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-canonical-config-consolidation-preview-v54-test-fix-003.json",
+  "result": "running",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-15T05:34:22Z",
+  "workflow": "chatgpt-exec"
+}
