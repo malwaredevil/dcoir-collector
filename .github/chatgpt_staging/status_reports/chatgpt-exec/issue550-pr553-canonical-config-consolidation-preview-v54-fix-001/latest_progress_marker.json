@@ -5,11 +5,11 @@
   "github_run_attempt": "1",
   "github_run_id": "34931907964",
   "github_sha": "4cdaecb13bd152286356db7a36dc1cc59ce29d38",
-  "phase": "harness-finished",
+  "phase": "final-readback-commit",
   "request_id": "issue550-pr553-canonical-config-consolidation-preview-v54-fix-001",
   "request_path": ".github/chatgpt_staging/exec_requests/issue550-pr553-canonical-config-consolidation-preview-v54-fix-001.json",
   "result": "failure",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-09-15T05:14:28Z",
+  "updated_utc": "2026-09-15T05:14:30Z",
   "workflow": "chatgpt-exec"
 }
