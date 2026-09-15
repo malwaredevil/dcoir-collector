@@ -124,5 +124,4 @@ def apply_pareto_context_module(module: Any) -> None:
         v13._patch_required_selection(module, hardened)
         v13._patch_review_body_overflow(hardened)
     if base is not None:
-        v13._patch_final_rendering(base)
         v11._patch_progress_comment(base, hardened)

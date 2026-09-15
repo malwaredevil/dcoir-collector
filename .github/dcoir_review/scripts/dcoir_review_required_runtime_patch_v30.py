@@ -210,38 +210,6 @@ def _deterministic_sentinel_kind(finding: Any) -> str:
     return verifier_kind or explicit_kind or keyed_kind
 
 
-def _patch_deterministic_sentinel_renderer(module: Any) -> None:
-    """Keep deterministic sentinel semantics canonical through later renderers."""
-
-    base = getattr(module, "base", None)
-    if base is None:
-        return
-    storage = "_dcoir_required_v30_original_build_inline_comment"
-    original = getattr(base, storage, None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        if callable(original):
-            setattr(base, storage, original)
-    if not callable(original):
-        return
-
-    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        kind = _deterministic_sentinel_kind(finding)
-        if not kind:
-            return original(finding, model_used, config)
-
-        item = dict(finding)
-        title, body, _notes = v20._template_for_kind(kind)
-        item["title"] = str(title or item.get("title", "") or "DCOIR Review finding").strip()
-        item["body"] = str(body or item.get("body", "") or "").strip()
-        # Preserve all repair provenance and suggested_replacement fields. The
-        # previously installed renderer remains responsible for suggestion
-        # safety and native GitHub suggestion-fence emission.
-        return original(item, model_used, config)
-
-    base.build_inline_comment = build_inline_comment
-
-
 def apply_pareto_context_module(module: Any) -> None:
     # Selftests and composite harnesses can reuse one imported review module in
     # a process. Do not stack prompt/parser/synthesis/renderer wrappers on repeated apply.
@@ -292,5 +260,4 @@ def apply_pareto_context_module(module: Any) -> None:
         return kept
 
     module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
-    _patch_deterministic_sentinel_renderer(module)
     setattr(module, APPLIED_MARKER, True)

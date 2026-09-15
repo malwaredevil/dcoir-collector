@@ -81,22 +81,5 @@ def _render_verified_ordinary(base: Any, finding: dict[str, Any], config: Any) -
     return base.github_safe_body("\n".join(parts), limit=12000)
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    base = getattr(module, "base", None)
-    if base is None:
-        return
-    storage = "_dcoir_verified_finding_render_original_build_inline_comment"
-    original = getattr(base, storage, None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        if callable(original):
-            setattr(base, storage, original)
-    if not callable(original):
-        return
 
-    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        if _is_verified_ordinary_finding(finding):
-            return _render_verified_ordinary(base, finding, config)
-        return original(finding, model_used, config)
-
-    base.build_inline_comment = build_inline_comment
+__all__ = ["_is_verified_ordinary_finding", "_render_verified_ordinary"]

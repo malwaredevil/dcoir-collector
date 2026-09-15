@@ -38,6 +38,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "finding_family.py",
+    "finding_comment_render.py",
     "finding_verifier.py",
     "incremental_review_frontier.py",
     "incremental_review_frontier_hooks.py",
@@ -364,6 +365,66 @@ def assert_canonical_config_loader_ownership() -> None:
     ]
     assert stored_originals == [], stored_originals
 
+def assert_canonical_finding_comment_render_ownership() -> None:
+    from dcoir_review import finding_comment_render
+
+    former_renderer_owners = (
+        "dcoir_review/patches/dcoir_review_runtime_patches/part_02.py",
+        "dcoir_review/patches/dcoir_review_strict_runtime_patches/part_02a.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patches/part_02a.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v2/part_02.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v3/part_02.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v4_apply/part_01.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v5_apply/part_01.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v8/part_01a.py",
+        "dcoir_review_required_runtime_patch_v9_prompting.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v13/part_02a.py",
+        "dcoir_review/patches/dcoir_review_required_runtime_patch_v16/part_02.py",
+        "dcoir_review_required_runtime_patch_v20.py",
+        "dcoir_review/verified_finding_render.py",
+        "dcoir_review/repair_pipeline.py",
+        "dcoir_review_required_runtime_patch_v30.py",
+    )
+    for relative in former_renderer_owners:
+        source = (SCRIPTS / relative).read_text(encoding="utf-8")
+        assert "build_inline_comment =" not in source, relative
+        assert "original_build_inline_comment" not in source, relative
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    starting = module.base.build_inline_comment
+    canonical = starting if starting.__module__ == "dcoir_review.finding_comment_render" else None
+    seen = canonical is not None
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            before = module.base.build_inline_comment
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            active = module.base.build_inline_comment
+            if patch_name == "dcoir_review.finding_comment_render":
+                if canonical is None:
+                    assert active is not before
+                    canonical = active
+                else:
+                    assert active is canonical
+                seen = True
+                assert canonical.__module__ == "dcoir_review.finding_comment_render"
+                continue
+            if canonical is None:
+                assert active is before, f"{patch_name} replaced build_inline_comment before canonical renderer"
+            else:
+                assert active is canonical, f"{patch_name} replaced canonical finding-comment renderer"
+
+    assert seen and callable(canonical)
+    stored = [
+        name for name, value in vars(module.base).items()
+        if "build_inline_comment" in name and name.startswith("_dcoir_") and callable(value)
+    ]
+    assert stored == [], stored
+    before = module.base.build_inline_comment
+    finding_comment_render.apply_pareto_context_module(module)
+    assert module.base.build_inline_comment is before
+
+
 def assert_canonical_hybrid_review_ownership() -> None:
     from dcoir_review import review_orchestration
 
@@ -448,6 +509,7 @@ def main() -> None:
     assert_numbered_patch_freeze_before_cutover()
     assert_patch_inventory_is_source_complete()
     assert_canonical_hybrid_review_ownership()
+    assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
     assert_segment_registry_is_complete()
 

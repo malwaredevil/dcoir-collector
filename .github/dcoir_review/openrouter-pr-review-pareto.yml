@@ -189,6 +189,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_repair_reliability_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_repair_routing_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v30_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_finding_comment_render_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v31_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v32_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v33_selftest.py

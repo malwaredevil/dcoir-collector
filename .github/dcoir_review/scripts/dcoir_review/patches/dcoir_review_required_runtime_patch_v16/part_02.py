@@ -143,14 +143,6 @@ def _render_comment(finding: dict[str, Any]) -> str:
     return "\n".join(lines).strip()
 
 
-def _patch_final_rendering(base: Any) -> None:
-    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        del model_used, config
-        return _render_comment(finding)
-
-    base.build_inline_comment = build_inline_comment
-
-
 def _patch_review_body_overflow(hardened: Any) -> None:
     original = getattr(hardened, "_dcoir_v16_original_build_review_body_with_unanchored", None)
     if original is None:
@@ -270,5 +262,4 @@ def apply_pareto_context_module(module: Any) -> None:
         )
         _patch_review_body_overflow(hardened)
     if base is not None:
-        _patch_final_rendering(base)
         v11._patch_progress_comment(base, hardened)

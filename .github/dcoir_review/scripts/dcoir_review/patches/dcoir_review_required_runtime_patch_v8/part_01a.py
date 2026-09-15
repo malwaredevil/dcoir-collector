@@ -16,28 +16,6 @@ def _native_suggestion_replacement(finding: dict[str, Any], base: Any) -> str:
     return replace_code.rstrip()
 
 
-def _patch_inline_comment_renderer(base: Any) -> None:
-    original = getattr(base, "_dcoir_required_v8_original_build_inline_comment", None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        base._dcoir_required_v8_original_build_inline_comment = original
-    if not callable(original):
-        return
-
-    def required_v8_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        item = dict(finding)
-        replacement = _native_suggestion_replacement(item, base)
-        if replacement and not str(item.get("suggested_replacement", "") or "").strip():
-            item["suggested_replacement"] = replacement
-            guidance = dict(item.get("fix_guidance") or {})
-            guidance["remove"] = ""
-            guidance["replace"] = ""
-            item["fix_guidance"] = guidance
-        return original(item, model_used, config)
-
-    base.build_inline_comment = required_v8_build_inline_comment
-
-
 def _py_here_doc(path: str, body: str) -> str:
     return "\n".join(["python3 - <<'PY'", "from pathlib import Path", "import re", f"path = Path({path!r})", "text = path.read_text(encoding='utf-8')", body, "PY"])
 
@@ -149,7 +127,6 @@ def apply_pareto_context_module(module: Any) -> None:
     base = getattr(module, "base", None)
     hardened = getattr(module, "hardened", None)
     if base is not None:
-        _patch_inline_comment_renderer(base)
         _patch_validation_text(base)
         _patch_progress_body(base)
     _patch_prompt_review_budget()

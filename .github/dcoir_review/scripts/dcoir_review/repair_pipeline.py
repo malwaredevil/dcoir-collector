@@ -216,22 +216,3 @@ def apply_pareto_context_module(module: Any) -> None:
             raise
 
     module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
-
-    base = getattr(module, "base", None)
-    if base is None:
-        return
-    storage = "_dcoir_required_v25_original_build_inline_comment"
-    original = getattr(base, storage, None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        if callable(original):
-            setattr(base, storage, original)
-
-    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        if isinstance(finding.get(REPAIR_MARKER), dict):
-            return _render_repair(module, finding, config)
-        if callable(original):
-            return original(finding, model_used, config)
-        return ""
-
-    base.build_inline_comment = build_inline_comment

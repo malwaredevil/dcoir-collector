@@ -300,21 +300,6 @@ def _normalize_yaml_identifier(body: str, finding: dict[str, Any]) -> str:
     return re.sub(r"yaml\.load\([A-Za-z_][A-Za-z0-9_.]*,\s*Loader=yaml\.SafeLoader\)", f"yaml.load({arg}, Loader=yaml.SafeLoader)", body)
 
 
-def _patch_inline_comment(base: Any) -> None:
-    original = getattr(base, "_dcoir_required_v9_original_build_inline_comment", None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        base._dcoir_required_v9_original_build_inline_comment = original
-    if not callable(original):
-        return
-
-    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        _ensure_prompt_review(config)
-        return _normalize_yaml_identifier(_normalize_inline_comment(original(finding, model_used, config), finding), finding)
-
-    base.build_inline_comment = build_inline_comment
-
-
 def _patch_validation_text(base: Any) -> None:
     original = getattr(base, "_dcoir_required_v9_original_validation_text_for_finding", None)
     if original is None:

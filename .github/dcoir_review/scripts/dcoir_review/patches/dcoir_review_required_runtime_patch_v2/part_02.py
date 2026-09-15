@@ -237,18 +237,3 @@ def apply_pareto_context_module(module: Any) -> None:
             return _normalize_comment_finding(enriched)
 
         module.synthesize_fix_for_finding = required_v2_synthesize_fix_for_finding
-
-    if base is not None and callable(getattr(base, "build_inline_comment", None)):
-        original_build = getattr(base, "_dcoir_required_v2_original_build_inline_comment", None)
-        if original_build is None:
-            original_build = getattr(base, "_dcoir_strict_original_build_inline_comment", None)
-            if original_build is None:
-                original_build = getattr(base, "_dcoir_original_build_inline_comment", None)
-            if original_build is None:
-                original_build = base.build_inline_comment
-            base._dcoir_required_v2_original_build_inline_comment = original_build
-
-        def required_v2_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-            return original_build(_normalize_comment_finding(finding), model_used, config)
-
-        base.build_inline_comment = required_v2_build_inline_comment

@@ -87,7 +87,8 @@ def test_deterministic_sentinel_still_uses_canonical_renderer(review) -> None:
 
 
 
-def test_unverified_ordinary_falls_through_to_prior_renderer(review) -> None:
+def test_unverified_ordinary_uses_canonical_legacy_fallback(review) -> None:
+    v16 = importlib.import_module("dcoir_review_required_runtime_patch_v16")
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     finding = {
         "title": "Unverified ordinary probe",
@@ -99,10 +100,8 @@ def test_unverified_ordinary_falls_through_to_prior_renderer(review) -> None:
         "suggested_replacement": "",
         "validation": "python3 -m py_compile .github/dcoir_review/evaluation/live_verifier_probe.py",
     }
-    prior = getattr(review.base, "_dcoir_verified_finding_render_original_build_inline_comment", None)
-    assert callable(prior), "stable renderer did not preserve its prior renderer"
     rendered = review.base.build_inline_comment(finding, "test-model", config)
-    expected = prior(finding, "test-model", config)
+    expected = v16._render_comment(finding)
     assert rendered == expected, (rendered, expected)
 
 
@@ -118,19 +117,17 @@ def test_stable_owner_composition() -> None:
         *entrypoint.telemetry_patch_module_names,
         *entrypoint.post_telemetry_patch_module_names,
     )
-    assert 'dcoir_review.verified_finding_render' in names, names
-    assert 'dcoir_review_required_runtime_patch_v24' not in names, names
-    idx = names.index('dcoir_review.verified_finding_render')
-    assert names[idx - 1] == 'dcoir_review.normalized_finding_selection', names[max(0, idx-2):idx+3]
-    assert names[idx + 1] == 'dcoir_review.repair_pipeline', names[max(0, idx-2):idx+3]
-
+    assert 'dcoir_review.verified_finding_render' not in names, names
+    assert 'dcoir_review.finding_comment_render' in names, names
+    idx = names.index('dcoir_review.finding_comment_render')
+    assert names[idx - 1] == 'dcoir_review_required_runtime_patch_v30', names[max(0, idx-2):idx+3]
 
 def main() -> None:
     test_stable_owner_composition()
     review = patched_review()
     test_model_judge_finding_preserves_verified_semantics(review)
     test_deterministic_sentinel_still_uses_canonical_renderer(review)
-    test_unverified_ordinary_falls_through_to_prior_renderer(review)
+    test_unverified_ordinary_uses_canonical_legacy_fallback(review)
     print("dcoir_review_verified_finding_render_selftest passed")
 
 

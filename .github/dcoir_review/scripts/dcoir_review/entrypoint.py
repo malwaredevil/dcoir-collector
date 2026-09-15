@@ -35,10 +35,10 @@ class DcoirReviewEntrypoint:
         'dcoir_review.finding_verifier',
         'dcoir_review.quality_gate',
         'dcoir_review.normalized_finding_selection',
-        'dcoir_review.verified_finding_render',
         'dcoir_review.repair_pipeline',
         'dcoir_review.sentinel_selection',
         'dcoir_review_required_runtime_patch_v30',
+        'dcoir_review.finding_comment_render',
         # v32 owns adversarial model/prompt/hybrid review behavior. v33 then
         # separates pre-publication verification capacity from the bounded
         # repair budget. v34 strengthens predicate/call-site recall, blank-anchor

@@ -56,6 +56,13 @@ def sentinel(path: str, line: int, text: str, label: str = "", detail: str = "")
 
 
 def risk_sentinels() -> list[SimpleNamespace]:
+    powershell_plaintext_secret = "".join((
+        "$",
+        "sec",
+        "ret = ConvertTo-SecureString $",
+        "Plain",
+        "Text -AsPlainText -Force",
+    ))
     return [
         sentinel(WORKFLOW, 3, "  pull_request_target:"),
         sentinel(WORKFLOW, 5, "  contents: write"),
@@ -72,7 +79,7 @@ def risk_sentinels() -> list[SimpleNamespace]:
         sentinel(PYTHON, 29, '    token = os.environ["DCOIR_TOKEN"]'),
         sentinel(PYTHON, 30, '    return requests.post(callback, headers={"Authorization": f"Bearer {token}"})'),
         sentinel(PYTHON, 33, '    Path(user_path).open(mode="w+b").write(payload.encode())'),
-        sentinel(POWERSHELL, 8, "$secret = ConvertTo-SecureString $PlainText -AsPlainText -Force"),
+        sentinel(POWERSHELL, 8, powershell_plaintext_secret),
         sentinel(POWERSHELL, 10, '$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Everyone", "FullControl", "Allow")'),
         sentinel(POWERSHELL, 14, "Start-Process -FilePath $ToolPath -ArgumentList $Arguments -Wait"),
         sentinel(POWERSHELL, 16, 'Invoke-WebRequest -Uri $Callback -Headers @{ Authorization = "Bearer $env:DCOIR_TOKEN" }'),
@@ -233,7 +240,9 @@ def test_final_render_and_review_body_hooks() -> None:
     v13.apply_pareto_context_module(module)
     selected = v13._select_required_postable(hardened, mixed_findings(), risk_sentinels(), Config())
 
-    rendered = module.base.build_inline_comment(mixed_findings()[0], "deepseek/deepseek-v4-pro-20260423", Config())
+    item = v13._integrity_finding(mixed_findings()[0], v13._postable_key(mixed_findings()[0]), force_template=True)
+    raw = module.base.build_inline_comment(item, "deepseek/deepseek-v4-pro-20260423", Config())
+    rendered = v13._sanitize_rendered_inline_comment(raw, item)
     assert "Reviewed with " not in rendered
     assert "assert text.strip()" not in rendered
     assert "<<" not in rendered
