@@ -41,8 +41,6 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from dcoir_review import finding_verifier as v21
-from dcoir_review import repair_pipeline as repair
 
 
 VERSION = "v32"

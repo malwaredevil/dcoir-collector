@@ -220,7 +220,9 @@ def _initialize_run_telemetry_fail_soft(config: Any) -> None:
         try:
             telemetry._note_telemetry_error(config)
         except Exception:
-            pass
+            # Telemetry is observational only; config loading must remain available
+            # even when recording the telemetry failure also fails.
+            return
 
 
 def _apply_repair_critic_batching(config: Any, data: dict[str, Any], hardened: Any) -> None:
