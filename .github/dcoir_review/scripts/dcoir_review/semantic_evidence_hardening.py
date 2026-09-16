@@ -20,8 +20,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from dcoir_review import adversarial_prompt_policy as prompt_policy
 from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v32 as v32
 import dcoir_review_required_runtime_patch_v33 as v33
 
 
@@ -30,30 +30,7 @@ LINE_TEXT_STORAGE = "_dcoir_review_semantic_evidence_hardening_original_file_lin
 VERIFIER_STORAGE = "_dcoir_review_semantic_evidence_hardening_original_verify_findings_for_publication"
 BLANK_LINE_NOTATION = "[DCOIR anchor is an intentionally blank changed line]"
 
-PREDICATE_AUDIT_BLOCK = """
-Predicate and call-site audit requirements:
-- For each changed boolean acceptance/rejection helper, enumerate every positive-evidence branch or disjunct before deciding the helper is sound. Audit the actual call-site arguments and omitted defaults, not only the helper definition.
-- When a contextual matcher exposes polarity, quotation, rejection, scope, or boundary options, compare those options across sibling call sites. An omitted option is executable behavior and must be tested as deliberately as an explicitly enabled option.
-- For every changed positive textual signal, test four semantic placements when applicable: direct affirmative use, direct negation, quotation/mention-only use, and a rejected proposition such as saying that the signal would be wrong/false/misleading. A phrase that is itself worded as a prohibition is not automatically affirmative evidence when the whole proposition containing it is rejected or merely mentioned.
-- Audit each OR branch independently. A strong polarity check on one positive-evidence path does not protect a sibling path that calls the same matcher with weaker/default filtering.
-- Prefer root-cause defects in executable changed code over speculative fixture/loader concerns. For fixture-only findings, report only when the supplied consuming implementation or test wiring demonstrates the mis-score or evidence loss; do not hypothesize unseen loader behavior.
-- Keep the finding set Pareto-small: when several counterexamples share one root cause, report the root cause once with the strongest minimal counterexample instead of emitting neighboring variants as separate findings.
-""".strip()
-
-
-def _append_once(text: str, addition: str) -> str:
-    base = str(text or "").strip()
-    if addition in base:
-        return base
-    return f"{base}\n\n{addition}".strip()
-
-
-def _patch_v32_prompt_blocks() -> None:
-    # v32's installed prompt wrappers resolve these module globals at call time,
-    # so the stable owner can strengthen both primary per-file and independent aggregate
-    # reviews without stacking another prompt wrapper.
-    v32.ADVERSARIAL_SEMANTIC_BLOCK = _append_once(v32.ADVERSARIAL_SEMANTIC_BLOCK, PREDICATE_AUDIT_BLOCK)
-    v32.INDEPENDENT_CONFIRMATION_BLOCK = _append_once(v32.INDEPENDENT_CONFIRMATION_BLOCK, PREDICATE_AUDIT_BLOCK)
+PREDICATE_AUDIT_BLOCK = prompt_policy.PREDICATE_AUDIT_BLOCK
 
 
 def _patch_blank_anchor_readback() -> None:
@@ -149,7 +126,6 @@ def _patch_verifier_lifecycle_debug() -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_v32_prompt_blocks()
     _patch_blank_anchor_readback()
     _patch_verifier_lifecycle_debug()
     setattr(module, APPLIED_MARKER, True)

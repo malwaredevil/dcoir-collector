@@ -41,6 +41,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from dcoir_review import adversarial_prompt_policy as prompt_policy
+
 
 
 VERSION = "v32"
@@ -49,24 +51,8 @@ DEFAULT_CONFIRMATION_MODELS = ("openai/gpt-5.6-sol-pro",)
 DEFAULT_REASONING_EFFORT = "xhigh"
 DEFAULT_VERIFIER_REPAIR_LIMIT = 8
 
-ADVERSARIAL_SEMANTIC_BLOCK = """
-Adversarial semantic falsification requirements:
-- For every changed validator, scorer, parser, normalizer, router, policy gate, selector, or acceptance helper, state the intended accept/reject invariant from the supplied code, tests, PR description, and repository guidance, then actively try to falsify it.
-- Construct minimal counterexamples that should be rejected but might pass, and valid examples that should pass but might be rejected. Report only counterexamples you can validate against the supplied implementation.
-- Probe semantic scope binding: a required token/action in the wrong clause, lane, object, branch, phase, or namespace must not satisfy the intended requirement.
-- Probe assertion polarity and discourse: negation, rejection of a quoted/mentioned claim, postposed prohibition/unavailability, disclaimers, and statements such as 'wrong to say X' must not be mistaken for affirmative evidence of X.
-- Probe representation variants when matching text or structure: numbered/inline headings, punctuation, normalization, snake_case versus spaced keys, serialization/JSON forms, quoting, repeated blocks, and duplicate procedures.
-- Probe helper consistency: if one path uses stronger negation/scope/rejection handling than a sibling path for the same semantic concept, attempt the weaker-path bypass.
-- Treat passing tests as evidence, not proof. Inspect whether the negative controls actually isolate the changed invariant and whether an untested neighboring variant can bypass it.
-- Prefer a concrete reproducible counterexample over a general warning. If no counterexample or other actionable defect survives inspection, return a clean result.
-""".strip()
-
-INDEPENDENT_CONFIRMATION_BLOCK = """
-Independent adversarial confirmation pass:
-The preceding detector pass is untrusted evidence, not a conclusion. Review the supplied PR independently and try to disprove its changed correctness/validation contracts before accepting a clean result. In particular, apply the adversarial semantic falsification requirements below. Do not merely restate tests or the PR description, and do not assume an existing detector would have caught the defect.
-
-""" + ADVERSARIAL_SEMANTIC_BLOCK
-
+ADVERSARIAL_SEMANTIC_BLOCK = prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK
+INDEPENDENT_CONFIRMATION_BLOCK = prompt_policy.INDEPENDENT_CONFIRMATION_BLOCK
 
 def _as_string_list(value: Any, fallback: tuple[str, ...]) -> list[str]:
     if isinstance(value, list):
@@ -138,32 +124,6 @@ def apply_reasoning_payload_policy(
             "exclude": True,
         }
     return payload
-
-def _patch_per_file_prompt(module: Any) -> None:
-    storage = "_dcoir_review_v32_original_build_per_file_review_prompt"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "build_per_file_review_prompt", None)
-        if callable(original):
-            setattr(module, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate build_per_file_review_prompt")
-
-    def build_per_file_review_prompt(*args, **kwargs):
-        prompt = str(original(*args, **kwargs))
-        config = kwargs.get("config")
-        if config is None and len(args) >= 5:
-            config = args[4]
-        max_chars = int(getattr(config, "max_prompt_chars", 120000)) if config is not None else 120000
-        combined = f"{prompt}\n\n{ADVERSARIAL_SEMANTIC_BLOCK}"
-        marker = "\n\n[adversarial semantic prompt truncated by reviewer]"
-        if len(combined) > max_chars:
-            keep = max(0, max_chars - len(marker))
-            combined = combined[:keep] + marker
-        return combined
-
-    module.build_per_file_review_prompt = build_per_file_review_prompt
-
 
 def build_adversarial_confirmation_stage(module: Any, next_review: Any) -> Any:
     original = next_review
@@ -280,5 +240,4 @@ def build_adversarial_confirmation_stage(module: Any, next_review: Any) -> Any:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_per_file_prompt(module)
     setattr(module, APPLIED_MARKER, True)

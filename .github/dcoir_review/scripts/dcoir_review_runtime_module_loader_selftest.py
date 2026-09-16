@@ -36,6 +36,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 # or package marker (__init__.py). This keeps orphan detection fail-closed
 # without forcing ordinary helper/selftest modules into LAYER_SEGMENTS.
 DIRECT_IMPORT_MODULES = (
+    "adversarial_prompt_policy.py",
     "entrypoint.py",
     "finding_family.py",
     "finding_comment_render.py",
@@ -466,6 +467,54 @@ def assert_canonical_quality_retry_ownership() -> None:
     assert stored == set(), stored
 
 
+
+def assert_canonical_per_file_prompt_ownership() -> None:
+    policy_path = SCRIPTS / "dcoir_review" / "adversarial_prompt_policy.py"
+    assert policy_path.is_file(), "current adversarial prompt policy owner is missing"
+
+    v32_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v32.py").read_text(encoding="utf-8")
+    assert "def _patch_per_file_prompt(" not in v32_source
+    assert "_dcoir_review_v32_original_build_per_file_review_prompt" not in v32_source
+
+    evidence_source = (SCRIPTS / "dcoir_review" / "semantic_evidence_hardening.py").read_text(encoding="utf-8")
+    assert "def _patch_v32_prompt_blocks(" not in evidence_source
+    assert "v32.ADVERSARIAL_SEMANTIC_BLOCK =" not in evidence_source
+    assert "v32.INDEPENDENT_CONFIRMATION_BLOCK =" not in evidence_source
+
+    entrypoint = DcoirReviewEntrypoint()
+    wrapper = SCRIPTS / "openrouter_pr_review_pareto_context.py"
+    spec = importlib.util.spec_from_file_location("_dcoir_per_file_prompt_contract_probe", wrapper)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    canonical = module.build_per_file_review_prompt
+    config = module.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
+    prompt = canonical(
+        {"number": 553, "title": "prompt ownership"},
+        {"filename": "probe.py", "patch": "@@ -0,0 +1 @@\n+value = 1"},
+        "value = 1\n",
+        "diff --git a/probe.py b/probe.py\n@@ -0,0 +1 @@\n+value = 1\n",
+        config,
+        [],
+        "deep-forced",
+    )
+    assert "Adversarial semantic falsification requirements:" in prompt
+    assert "minimal counterexamples" in prompt
+    assert "Predicate and call-site audit requirements:" in prompt
+    assert "four semantic placements" in prompt
+
+    replacements = []
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            before = module.build_per_file_review_prompt
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            after = module.build_per_file_review_prompt
+            if after is not before:
+                replacements.append(patch_name)
+    assert replacements == ["dcoir_review_required_runtime_patch_v46"], replacements
+    assert not callable(getattr(module, "_dcoir_review_v32_original_build_per_file_review_prompt", None))
+
+
 def assert_canonical_guidance_code_classifier_ownership() -> None:
     canonical_path = SCRIPTS / "dcoir_review" / "base" / "part_06b_guidance_code.py"
     assert canonical_path.is_file(), "canonical guidance-code base segment is missing"
@@ -789,6 +838,7 @@ def main() -> None:
     assert_canonical_config_loader_ownership()
     assert_canonical_validation_text_ownership()
     assert_canonical_quality_retry_ownership()
+    assert_canonical_per_file_prompt_ownership()
     assert_canonical_guidance_code_classifier_ownership()
     assert_canonical_sanitize_text_ownership()
     assert_segment_registry_is_complete()

@@ -41,6 +41,9 @@ def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: An
     return selected
 
 
+from dcoir_review import adversarial_prompt_policy as adversarial_prompt_policy
+
+
 def build_per_file_review_prompt(
     pr: dict[str, Any],
     item: dict[str, Any],
@@ -100,7 +103,9 @@ Full head-file context:
     prompt = base.sanitize_text(prompt, config)
     if len(prompt) > config.max_prompt_chars:
         prompt = prompt[: config.max_prompt_chars - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
-    return prompt
+    return adversarial_prompt_policy.append_adversarial_semantic_block(
+        prompt, int(getattr(config, "max_prompt_chars", 120000))
+    )
 
 
 def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
