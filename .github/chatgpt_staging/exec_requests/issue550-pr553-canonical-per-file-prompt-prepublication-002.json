@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-16T09:55:15Z",
+  "approved_command_preview": "Retry the already-approved frozen canonical per-file-prompt prepublication validation after correcting only the environment-dependent prompt-parity fixture. Validate exact PR parent 1275b8e7338bdf5f9677d1d0e0ab3a0ba8dbbb57 and frozen source patch 7694a4ba7a6457b10f88ad13227a688c92ca7ba60c7eba42c660ef6f2ab70502 with all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, prompt ownership/parity contracts, architecture metrics, independent secret scan, and immutable patch readback. No PR source mutation, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, workflow source change, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-per-file-prompt-prepublication-002.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-canonical-per-file-prompt-prepublication-002",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
