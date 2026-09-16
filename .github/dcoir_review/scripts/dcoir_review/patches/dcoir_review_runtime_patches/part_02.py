@@ -102,12 +102,6 @@ def _strict_fix_guidance_from_result(result: dict[str, Any], finding: dict[str, 
     return _normalize_fix_guidance(synthetic)
 
 
-def _patch_base_formatter_module(module: Any) -> None:
-    # Final inline-comment ownership is canonicalized by dcoir_review.finding_comment_render.
-    # The historical normalization wrapper is superseded by v16's final renderer, but this
-    # layer still owns the guidance-code classifier used by later responsibilities.
-    module.guidance_value_looks_like_code = patched_guidance_value_looks_like_code
-
 
 def _patched_dynamic_exec_scope(finding: dict[str, Any], path: str, line_text: str) -> bool:
     if Path(path).suffix.lower() != ".py":

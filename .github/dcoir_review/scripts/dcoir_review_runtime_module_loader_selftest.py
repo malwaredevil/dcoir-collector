@@ -438,6 +438,58 @@ def assert_canonical_validation_text_ownership() -> None:
     assert stored == [], stored
 
 
+def assert_canonical_guidance_code_classifier_ownership() -> None:
+    canonical_path = SCRIPTS / "dcoir_review" / "base" / "part_06b_guidance_code.py"
+    assert canonical_path.is_file(), "canonical guidance-code base segment is missing"
+
+    former_owners = (
+        "dcoir_review/patches/dcoir_review_runtime_patches/part_02.py",
+        "dcoir_review/patches/dcoir_review_strict_runtime_patches/part_02a.py",
+    )
+    for relative in former_owners:
+        source = (SCRIPTS / relative).read_text(encoding="utf-8")
+        assert "guidance_value_looks_like_code =" not in source, relative
+
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    canonical = module.base.guidance_value_looks_like_code
+    assert canonical.__module__ == "openrouter_pr_review"
+
+    cases = (
+        ("value = 1", "python", True),
+        ("if ready:\n    run()", "python", True),
+        ("if ready", "python", False),
+        ("Use a safe parser instead.", "python", False),
+        ("$x = Get-Content file.txt", "powershell", True),
+        ("if ($x) {\nWrite-Host $x\n}", "powershell", True),
+        ("permissions:\n  contents: read", "yaml", True),
+        ("Use least privilege permissions.", "yaml", False),
+        ("const x = value;", "javascript", True),
+        ("return result;", "typescript", True),
+        ("foo=bar", "text", True),
+        ("Use foo=bar for this setting.", "text", False),
+        ("```python\nvalue = 1\n```", "python", True),
+        ("value = 1\nUse this value carefully.", "python", False),
+    )
+    for value, language, expected in cases:
+        assert canonical(value, language) is expected, (value, language, expected)
+
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            assert module.base.guidance_value_looks_like_code is canonical, (
+                f"{patch_name} replaced canonical guidance_value_looks_like_code"
+            )
+
+    stored = [
+        name for name, value in vars(module.base).items()
+        if "guidance_value_looks_like_code" in name
+        and name.startswith("_dcoir_")
+        and callable(value)
+    ]
+    assert stored == [], stored
+
+
 def assert_canonical_sanitize_text_ownership() -> None:
     former_owners = (
         "dcoir_review/patches/dcoir_review_required_runtime_patch_v6/part_01a.py",
@@ -708,6 +760,7 @@ def main() -> None:
     assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
     assert_canonical_validation_text_ownership()
+    assert_canonical_guidance_code_classifier_ownership()
     assert_canonical_sanitize_text_ownership()
     assert_segment_registry_is_complete()
 

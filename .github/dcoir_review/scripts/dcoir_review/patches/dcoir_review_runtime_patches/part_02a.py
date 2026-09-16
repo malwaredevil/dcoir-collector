@@ -1,9 +1,6 @@
 
 
 def _patch_pareto_globals(globals_dict: dict[str, Any]) -> None:
-    base = globals_dict.get("base")
-    if base is not None:
-        _patch_base_formatter_module(base)
 
     globals_dict["is_python_dynamic_exec_fix_scope"] = _patched_dynamic_exec_scope
 
@@ -188,9 +185,7 @@ def apply_pareto_context_module(module: Any) -> None:
 
 
 def _patch_main_globals(frame_globals: dict[str, Any], script_name: str) -> None:
-    if script_name == "openrouter_pr_review.py":
-        _patch_base_formatter_module(sys.modules["__main__"])
-    elif script_name == "openrouter_pr_review_pareto_context.py":
+    if script_name == "openrouter_pr_review_pareto_context.py":
         _patch_pareto_globals(frame_globals)
 
 
@@ -198,12 +193,6 @@ def activate(entrypoint: str | None = None) -> None:
     script_name = Path(entrypoint or sys.argv[0] or "").name
     if script_name not in REVIEW_ENTRYPOINTS:
         return
-    try:
-        import openrouter_pr_review as base
-
-        _patch_base_formatter_module(base)
-    except Exception:
-        pass
 
     def patch_on_main_call(frame: Any, event: str, arg: Any) -> Any:
         if event == "call" and frame.f_code.co_name == "main":

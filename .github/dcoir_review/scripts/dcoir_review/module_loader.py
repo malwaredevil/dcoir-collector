@@ -15,6 +15,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'base/part_05_prompt_provider.py',
         'base/part_06_findings_comments.py',
         'base/part_06a_finding_validation.py',
+        'base/part_06b_guidance_code.py',
         'base/part_07_main.py',
     ),
     'hardened': (

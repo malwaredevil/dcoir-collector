@@ -3,11 +3,6 @@
 def apply_pareto_context_module(module: Any) -> None:
     base = getattr(module, "base", None)
     hardened = getattr(module, "hardened", None)
-    if base is not None:
-        # v16 fully supersedes the historical strict rendering wrapper. Keep only the
-        # classifier responsibility; final comment rendering is installed once later.
-        base.guidance_value_looks_like_code = _strict_code_value_is_valid
-
     if hardened is not None:
         original_is_required = getattr(hardened, "is_required_risk_sentinel", None)
 
