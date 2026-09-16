@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-16T10:16:00Z",
+  "approved_command_preview": "Validate exact PR head 155237587cd8998d8ff5da8fad3daa2d7885e474 for canonical per-file prompt ownership; require tree f3aa2c3e46c5a87e34ce666145bdcb8f1256b778, parent 1275b8e7338bdf5f9677d1d0e0ab3a0ba8dbbb57, commit diff SHA 7694a4ba7a6457b10f88ad13227a688c92ca7ba60c7eba42c660ef6f2ab70502, all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, ownership/parity metrics, and independent secret scan. No PR source mutation, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, workflow source change, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-per-file-prompt-exact-head-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-canonical-per-file-prompt-exact-head-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
