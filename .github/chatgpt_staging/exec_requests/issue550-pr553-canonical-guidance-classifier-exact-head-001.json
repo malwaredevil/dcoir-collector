@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-16T06:10:40Z",
+  "approved_command_preview": "Validate exact PR head cd8665f024d7c3183d737ef85bc964bf2c7bfcac and tree 10c8ad66f41124574cb2eedf8f0e250b516d1f87 against parent fc5451a0b7d86de5557e9973f38944e11f9eb5e6; verify committed diff SHA feec8438af8a2a71befac5895db2439c4c693a5c7e83bf663560a0d7d58583dd, all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, 168-case classifier parity, ownership metrics, and independent secret scan. No PR source mutation, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, workflow source change, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-guidance-classifier-exact-head-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-canonical-guidance-classifier-exact-head-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
