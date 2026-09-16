@@ -13,8 +13,7 @@ from dcoir_review import structured_result_retry as retry
 VERSION = "v52"
 ALLOW_ATTR = "_dcoir_v52_allow_low_confidence_disposition"
 PENDING_ATTR = "_dcoir_v52_pending_low_confidence_disposition"
-_RETRY_STORAGE = "_dcoir_review_structured_result_disposition_prior_quality_retry_reason"
-_LOW_CONFIDENCE_PREFIX = (
+LOW_CONFIDENCE_RETRY_PREFIX = (
     "model returned structured findings, but none met the configured minimum confidence"
 )
 _REQUIRED_FINDING_FIELDS = (
@@ -118,42 +117,6 @@ def eligible_low_confidence_findings(
         eligible.append(item)
     return eligible, floor
 
-
-def patch_quality_retry_reason(module: Any) -> None:
-    hardened = module.hardened
-    original = getattr(hardened, _RETRY_STORAGE, None)
-    if original is None:
-        original = getattr(hardened, "review_quality_retry_reason", None)
-        if callable(original):
-            setattr(hardened, _RETRY_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR structured-result disposition could not locate review_quality_retry_reason")
-
-    def review_quality_retry_reason(result, config, risk_sentinels, line_index=None):
-        reason = original(result, config, risk_sentinels, line_index)
-        setattr(config, PENDING_ATTR, None)
-        if not str(reason or "").startswith(_LOW_CONFIDENCE_PREFIX):
-            return reason
-        eligible, floor = eligible_low_confidence_findings(
-            module, result, config, risk_sentinels, line_index
-        )
-        if not eligible:
-            return reason
-        pending = {
-            "reason": str(reason),
-            "candidate_count": len(eligible),
-            "candidate_floor": floor,
-            "paths": sorted({str(item.get("path", "") or "") for item in eligible}),
-        }
-        setattr(config, PENDING_ATTR, pending)
-        module.hardened.write_debug_json_artifact_safely(
-            config,
-            "metadata/v52-structured-low-confidence.json",
-            {"version": VERSION, "mode": "bounded-disposition-pending", **pending},
-        )
-        return ""
-
-    hardened.review_quality_retry_reason = review_quality_retry_reason
 
 
 def outside_paths(module: Any, result: dict[str, Any], selected_paths: set[str]) -> bool:

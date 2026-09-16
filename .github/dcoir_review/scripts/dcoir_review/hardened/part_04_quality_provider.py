@@ -121,7 +121,7 @@ def has_actionable_changed_line_finding(
     return False
 
 
-def review_quality_retry_reason(
+def baseline_review_quality_retry_reason(
     result: dict[str, Any],
     config: Any,
     risk_sentinels: list[RiskSentinel],
@@ -180,6 +180,10 @@ def review_quality_retry_reason(
                 )
 
     return ""
+
+
+# Baseline quality predicate retained as an explicit input to the canonical quality gate.
+review_quality_retry_reason = baseline_review_quality_retry_reason
 
 
 def build_quality_retry_prompt(

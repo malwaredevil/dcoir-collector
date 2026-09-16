@@ -438,6 +438,34 @@ def assert_canonical_validation_text_ownership() -> None:
     assert stored == [], stored
 
 
+def assert_canonical_quality_retry_ownership() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    original = module.hardened.review_quality_retry_reason
+    replacements = []
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            before = module.hardened.review_quality_retry_reason
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            after = module.hardened.review_quality_retry_reason
+            if after is not before:
+                replacements.append(patch_name)
+
+    final = module.hardened.review_quality_retry_reason
+    assert final is not original
+    assert final.__module__ == "dcoir_review.quality_gate", final.__module__
+    assert replacements == ["dcoir_review.quality_gate"], replacements
+    forbidden = {
+        "_dcoir_quality_gate_original_review_quality_retry_reason",
+        "_dcoir_review_structured_result_disposition_prior_quality_retry_reason",
+    }
+    stored = {
+        name for name, value in vars(module.hardened).items()
+        if name in forbidden and callable(value)
+    }
+    assert stored == set(), stored
+
+
 def assert_canonical_guidance_code_classifier_ownership() -> None:
     canonical_path = SCRIPTS / "dcoir_review" / "base" / "part_06b_guidance_code.py"
     assert canonical_path.is_file(), "canonical guidance-code base segment is missing"
@@ -760,6 +788,7 @@ def main() -> None:
     assert_canonical_finding_comment_render_ownership()
     assert_canonical_config_loader_ownership()
     assert_canonical_validation_text_ownership()
+    assert_canonical_quality_retry_ownership()
     assert_canonical_guidance_code_classifier_ownership()
     assert_canonical_sanitize_text_ownership()
     assert_segment_registry_is_complete()

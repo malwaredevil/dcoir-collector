@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from dcoir_review import structured_result_disposition as disposition
 from dcoir_review import structured_result_provider as provider
 
 VERSION = "v52"
@@ -19,5 +18,4 @@ def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
     provider.patch_provider(module)
-    disposition.patch_quality_retry_reason(module)
     setattr(module, APPLIED_MARKER, True)

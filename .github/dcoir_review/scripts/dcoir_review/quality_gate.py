@@ -19,6 +19,8 @@ import copy
 import re
 from typing import Any
 
+from dcoir_review import structured_result_disposition as disposition
+
 
 TYPED_FINDING = r"(?:(?:correctness|logic|semantic|security|functional|behavioral)\s+findings?)"
 PROBLEM_NOUN = rf"(?:bugs?|defects?|vulnerabilit(?:y|ies)|{TYPED_FINDING})"
@@ -138,7 +140,7 @@ def semantic_recovery_reason(result: Any, config: Any) -> str:
     return SEMANTIC_RETRY_REASON if _explicit_semantic_problem_discovery(summary) else ""
 
 
-def _patch_hardened_helpers(hardened: Any) -> None:
+def _patch_hardened_helpers(module: Any, hardened: Any) -> None:
     summary_storage = "_dcoir_quality_gate_original_summary_suggests_problem"
     original_summary = getattr(hardened, summary_storage, None)
     if original_summary is None:
@@ -153,14 +155,9 @@ def _patch_hardened_helpers(hardened: Any) -> None:
 
         hardened.summary_suggests_problem = summary_suggests_problem
 
-    retry_storage = "_dcoir_quality_gate_original_review_quality_retry_reason"
-    original_retry = getattr(hardened, retry_storage, None)
-    if original_retry is None:
-        original_retry = getattr(hardened, "review_quality_retry_reason", None)
-        if callable(original_retry):
-            setattr(hardened, retry_storage, original_retry)
-    if not callable(original_retry):
-        return
+    baseline_retry = getattr(hardened, "baseline_review_quality_retry_reason", None)
+    if not callable(baseline_retry):
+        raise RuntimeError("DCOIR quality gate could not locate baseline review-quality retry logic")
 
     def review_quality_retry_reason(
         result: dict[str, Any],
@@ -168,10 +165,31 @@ def _patch_hardened_helpers(hardened: Any) -> None:
         risk_sentinels: list[Any],
         line_index: dict[tuple[str, int], int] | None = None,
     ) -> str:
-        existing_reason = str(original_retry(result, config, risk_sentinels, line_index) or "")
-        if existing_reason:
-            return existing_reason
-        return semantic_recovery_reason(result, config)
+        reason = str(baseline_retry(result, config, risk_sentinels, line_index) or "")
+        if not reason:
+            reason = semantic_recovery_reason(result, config)
+
+        setattr(config, disposition.PENDING_ATTR, None)
+        if not reason.startswith(disposition.LOW_CONFIDENCE_RETRY_PREFIX):
+            return reason
+        eligible, floor = disposition.eligible_low_confidence_findings(
+            module, result, config, risk_sentinels, line_index
+        )
+        if not eligible:
+            return reason
+        pending = {
+            "reason": reason,
+            "candidate_count": len(eligible),
+            "candidate_floor": floor,
+            "paths": sorted({str(item.get("path", "") or "") for item in eligible}),
+        }
+        setattr(config, disposition.PENDING_ATTR, pending)
+        hardened.write_debug_json_artifact_safely(
+            config,
+            "metadata/v52-structured-low-confidence.json",
+            {"version": disposition.VERSION, "mode": "bounded-disposition-pending", **pending},
+        )
+        return ""
 
     hardened.review_quality_retry_reason = review_quality_retry_reason
 
@@ -289,4 +307,4 @@ def apply_pareto_context_module(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
     if hardened is None:
         return
-    _patch_hardened_helpers(hardened)
+    _patch_hardened_helpers(module, hardened)
