@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-16T14:11:33Z",
+  "approved_command_preview": "Validate frozen canonical ProgressReporter patch 480971955102c3dde5651dfbc02d89dbb6c63a2ce0897f1365ada6de4330e28a against exact PR parent 155237587cd8998d8ff5da8fad3daa2d7885e474; run all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, canonical ProgressReporter ownership/order and terminal telemetry fail-soft regression, architecture ownership metrics, independent secret scan, and immutable patch readback. No PR source mutation, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, workflow source change, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-progress-reporter-prepublication-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-canonical-progress-reporter-prepublication-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
