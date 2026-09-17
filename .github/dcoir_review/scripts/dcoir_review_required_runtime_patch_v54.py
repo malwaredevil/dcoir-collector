@@ -41,7 +41,6 @@ ERROR_COUNT_ATTR = "_dcoir_v54_telemetry_error_count"
 PATCH_ERRORS_ATTR = "_dcoir_v54_patch_errors"
 STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
 REVIEW_STORAGE = "_dcoir_review_v54_original_openrouter_review"
-REPORTER_STORAGE = "_dcoir_review_v54_original_progress_reporter"
 SCHEMA_VERSION = "dcoir_openrouter_run_telemetry_v1"
 
 
@@ -726,71 +725,42 @@ def _copy_stage_local_telemetry(source: Any, target: Any) -> None:
             setattr(target, name, copy.deepcopy(getattr(source, name)))
 
 
-def _patch_progress_reporter(module: Any) -> None:
-    hardened = module.hardened
-    original = getattr(hardened, REPORTER_STORAGE, None)
-    if original is None:
-        original = getattr(hardened, "ProgressReporter", None)
-        if isinstance(original, type):
-            setattr(hardened, REPORTER_STORAGE, original)
-    if not isinstance(original, type):
-        raise RuntimeError("DCOIR v54 could not locate ProgressReporter")
+def emit_run_telemetry(module: Any, reporter: Any) -> None:
+    """Emit one bounded terminal run-telemetry summary without changing review flow."""
 
-    class TelemetryProgressReporter(original):
-        def _emit_run_telemetry(self) -> None:
-            config = getattr(self, "config", None)
-            if config is None:
-                return
-            try:
-                summary = summarize_sink(config)
-                setattr(config, SUMMARY_ATTR, summary)
-                message = compact_summary(summary)
-            except Exception:
-                _note_telemetry_error(config)
-                summary = {
-                    "schema_version": SCHEMA_VERSION,
-                    "telemetry_status": "unavailable",
-                    "telemetry_error_count": _telemetry_error_count(config),
-                }
-                try:
-                    setattr(config, SUMMARY_ATTR, summary)
-                except Exception:
-                    # The bounded status message remains usable without persistence.
-                    _note_telemetry_error(config)
-                message = (
-                    f"schema={SCHEMA_VERSION}; telemetry_status=unavailable; "
-                    f"telemetry_error_count={_telemetry_error_count(config)}"
-                )
-            try:
-                self.update("openrouter-telemetry", message)
-                return
-            except Exception:
-                _note_telemetry_error(config)
-            try:
-                emit = getattr(getattr(module, "base", None), "emit_status", None)
-                if callable(emit):
-                    emit("openrouter-telemetry", message)
-            except Exception:
-                _note_telemetry_error(config)
-
-        def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
-            try:
-                self._emit_run_telemetry()
-            except Exception:
-                _note_telemetry_error(getattr(self, "config", None))
-            super().complete(model_used, findings_count, review_event)
-
-        def fail(self, message: str) -> None:
-            try:
-                self._emit_run_telemetry()
-            except Exception:
-                _note_telemetry_error(getattr(self, "config", None))
-            super().fail(message)
-
-    TelemetryProgressReporter.__name__ = getattr(original, "__name__", "ProgressReporter")
-    hardened.ProgressReporter = TelemetryProgressReporter
-    if hasattr(module, "ProgressReporter"):
-        module.ProgressReporter = TelemetryProgressReporter
+    config = getattr(reporter, "config", None)
+    if config is None:
+        return
+    try:
+        summary = summarize_sink(config)
+        setattr(config, SUMMARY_ATTR, summary)
+        message = compact_summary(summary)
+    except Exception:
+        _note_telemetry_error(config)
+        summary = {
+            "schema_version": SCHEMA_VERSION,
+            "telemetry_status": "unavailable",
+            "telemetry_error_count": _telemetry_error_count(config),
+        }
+        try:
+            setattr(config, SUMMARY_ATTR, summary)
+        except Exception:
+            _note_telemetry_error(config)
+        message = (
+            f"schema={SCHEMA_VERSION}; telemetry_status=unavailable; "
+            f"telemetry_error_count={_telemetry_error_count(config)}"
+        )
+    try:
+        reporter.update("openrouter-telemetry", message)
+        return
+    except Exception:
+        _note_telemetry_error(config)
+    try:
+        emit = getattr(getattr(module, "base", None), "emit_status", None)
+        if callable(emit):
+            emit("openrouter-telemetry", message)
+    except Exception:
+        _note_telemetry_error(config)
 
 
 def _capture_attr(target: Any, name: str) -> tuple[bool, Any]:
@@ -815,11 +785,8 @@ def _restore_attr(target: Any, name: str, state: tuple[bool, Any]) -> None:
 def _restore_patch_state(module: Any, hardened: Any, snapshot: dict[str, tuple[bool, Any]]) -> None:
     for target, name, key in (
         (module, "openrouter_review", "module.openrouter_review"),
-        (module, "ProgressReporter", "module.ProgressReporter"),
         (hardened, REVIEW_STORAGE, "hardened.review-storage"),
-        (hardened, REPORTER_STORAGE, "hardened.reporter-storage"),
         (hardened, "openrouter_review", "hardened.openrouter_review"),
-        (hardened, "ProgressReporter", "hardened.ProgressReporter"),
     ):
         try:
             _restore_attr(target, name, snapshot[key])
@@ -833,17 +800,11 @@ def apply_pareto_context_module(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
     snapshot = {
         "module.openrouter_review": _capture_attr(module, "openrouter_review"),
-        "module.ProgressReporter": _capture_attr(module, "ProgressReporter"),
         "hardened.review-storage": _capture_attr(hardened, REVIEW_STORAGE),
-        "hardened.reporter-storage": _capture_attr(hardened, REPORTER_STORAGE),
         "hardened.openrouter_review": _capture_attr(hardened, "openrouter_review"),
-        "hardened.ProgressReporter": _capture_attr(hardened, "ProgressReporter"),
     }
     errors: list[str] = []
-    for name, patcher in (
-        ("openrouter-review", _patch_openrouter_review),
-        ("progress-reporter", _patch_progress_reporter),
-    ):
+    for name, patcher in (("openrouter-review", _patch_openrouter_review),):
         try:
             patcher(module)
         except Exception:

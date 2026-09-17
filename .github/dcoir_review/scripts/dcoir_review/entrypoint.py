@@ -120,22 +120,20 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v53',
     )
     # Telemetry overlays are deliberately outside execution-policy ordering
-    # invariants. v54 observes the fully composed request path after the scope guards/v52/v53,
-    # aggregates returned OpenRouter usage/provider/recovery metadata across
-    # shallow stage configs, and emits a bounded terminal status summary without
-    # changing routing, retries, verification, repair, or publication behavior.
+    # invariants. v54 owns request-path usage/provider/recovery telemetry after the
+    # scope guards/v52/v53 and exposes bounded terminal run telemetry, but it no
+    # longer replaces ProgressReporter or stores a prior reporter shim.
     telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review_required_runtime_patch_v54',
     )
-    # The stable provider transport retry owner is installed immediately after
-    # v54 so interrupted provider response reads inherit the observational
-    # telemetry surface while preserving the historical post-telemetry
-    # ordering invariant. Stable semantic-adjudication recovery recovers only the
-    # bounded valid-JSON/schema-shape failure proven by #524. v56 reduces repeated
-    # repair-critic calls by batching compatible candidates. v57 remains the final
-    # semantic guard for #546 and may withdraw only fully valid candidates that
-    # are all below the active publication floor.
+    # Canonical progress reporting is installed immediately after v54 request
+    # telemetry. It is the single terminal reporter composition owner, combining
+    # verified-finding completion overrides with v54 terminal run telemetry while
+    # inheriting the existing base/review-scope reporter behavior. Provider
+    # transport retry follows that owner, then stable semantic-adjudication
+    # recovery and the remaining v56-v57 post-telemetry guards.
     post_telemetry_patch_module_names: tuple[str, ...] = (
+        'dcoir_review.progress_reporting',
         'dcoir_review.provider_transport_retry',
         'dcoir_review.semantic_adjudication_recovery',
         'dcoir_review_required_runtime_patch_v56',

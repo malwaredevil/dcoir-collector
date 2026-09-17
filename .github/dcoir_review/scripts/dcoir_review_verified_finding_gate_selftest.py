@@ -35,6 +35,10 @@ class FakeProgressReporter:
         )
         self._update_comment(self._body("completed", final_lines=["legacy completion"]))
 
+    def fail(self, message: str) -> None:
+        self._record("failed", message)
+        self._update_comment(self._body("failed", final_lines=[message]))
+
     def _record(self, stage: str, message: str) -> None:
         self.steps.append((stage, message))
 

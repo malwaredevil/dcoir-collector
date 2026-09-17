@@ -59,7 +59,7 @@ The first canonical extraction is the operator-facing status publication surface
 - the status comment progresses through `Queued`, `Running`, `Completed`, or `Failed`, carries exact-head provenance once the PR head is captured, links the formal GitHub review on completion, bounds repeated same-stage edits, and reuses the same bot-authored comment on reruns;
 - status-publication API failures are observational and are not raised into review disposition;
 - the previous non-progress failure fallback that could create a separate status-like issue comment has been removed;
-- existing v50/v54 gate and telemetry decorators remain temporarily active around `ProgressReporter` during staged migration. This first extraction therefore does not claim that the runtime patch chain has been retired.
+- `dcoir_review.progress_reporting` is the canonical terminal `ProgressReporter` composition owner. The verified-finding gate exposes `progress_completion_override(...)` and v54 exposes `emit_run_telemetry(...)`; neither responsibility now installs a reporter subclass or stores a prior reporter shim. Production installs the canonical owner immediately after v54 request telemetry and before provider transport retry, preserving gate-aware terminal completion and bounded terminal telemetry without chronology-dependent reporter replacement.
 
 The stable status contract is covered by `dcoir_review_status_comment_selftest.py`, including rerun reuse, same-comment identity, exact-head/formal-review rendering, spoofed-user marker rejection, debug-flag independence, and observational write failures. Exact-head status-cutover validation passed in ChatGPT Exec run `34695700055` at source head `efabcaec43676951a596afed06c601dc8486d840`; current-head CodeQL also passed at that source head.
 
@@ -230,7 +230,7 @@ This slice must not be credited as governed validated until publication readback
 The next bounded retirement moves interrupted provider response-read recovery out of historical v58:
 
 - `dcoir_review/provider_transport_retry.py` owns transient transport-failure classification, interrupted HTTP error-body replay, bounded reuse of the existing retry/fallback loop, and transport-failure telemetry projection;
-- production composition loads `dcoir_review.provider_transport_retry` immediately after v54 telemetry and before stable semantic-adjudication recovery plus the remaining v56-v57 post-telemetry overlays;
+- production composition loads canonical `dcoir_review.progress_reporting` immediately after v54 request telemetry, then `dcoir_review.provider_transport_retry`, stable semantic-adjudication recovery, and the remaining v56-v57 post-telemetry overlays;
 - `dcoir_review_provider_transport_retry_selftest.py` remains the stable behavioral contract and imports the stable owner directly;
 - the runtime module-loader guard keeps 58 as the historical ceiling, rejects v59+, and also rejects reintroduction of retired v58 production ownership while allowing the highest remaining numbered overlay to fall below 58;
 - the historical v58 production module is removed; Git history remains the archive.

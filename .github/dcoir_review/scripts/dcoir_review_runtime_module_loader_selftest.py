@@ -63,6 +63,7 @@ DIRECT_IMPORT_MODULES = (
     "review_scope_guard_hooks.py",
     "provider_transport_retry.py",
     "precision_guard.py",
+    "progress_reporting.py",
     "publication_disposition.py",
     "quality_gate.py",
     "repair.py",
@@ -468,6 +469,44 @@ def assert_canonical_quality_retry_ownership() -> None:
 
 
 
+def assert_canonical_progress_reporter_ownership() -> None:
+    owner_path = SCRIPTS / "dcoir_review" / "progress_reporting.py"
+    assert owner_path.is_file(), "canonical progress-reporting owner is missing"
+
+    gate_source = (SCRIPTS / "dcoir_review" / "verified_finding_gate.py").read_text(encoding="utf-8")
+    assert "def _patch_progress_reporter(" not in gate_source
+    assert "_dcoir_review_verified_finding_gate_original_progress_reporter" not in gate_source
+
+    v54_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v54.py").read_text(encoding="utf-8")
+    assert "def _patch_progress_reporter(" not in v54_source
+    assert "_dcoir_review_v54_original_progress_reporter" not in v54_source
+
+    entrypoint = DcoirReviewEntrypoint()
+    wrapper = SCRIPTS / "openrouter_pr_review_pareto_context.py"
+    spec = importlib.util.spec_from_file_location("_dcoir_progress_reporting_contract_probe", wrapper)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    initial = module.hardened.ProgressReporter
+    replacements = []
+    for group_name in PRODUCTION_PATCH_GROUPS:
+        for patch_name in getattr(entrypoint, group_name):
+            before = module.hardened.ProgressReporter
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            after = module.hardened.ProgressReporter
+            if after is not before:
+                replacements.append(patch_name)
+
+    final = module.hardened.ProgressReporter
+    assert final is not initial
+    assert final.__module__ == "dcoir_review.progress_reporting", final.__module__
+    assert replacements == ["dcoir_review.progress_reporting"], replacements
+    assert module.ProgressReporter is final
+    assert module.base.ProgressReporter is final
+    assert not callable(getattr(module, "_dcoir_review_verified_finding_gate_original_progress_reporter", None))
+    assert not callable(getattr(module.hardened, "_dcoir_review_v54_original_progress_reporter", None))
+
+
 def assert_canonical_per_file_prompt_ownership() -> None:
     policy_path = SCRIPTS / "dcoir_review" / "adversarial_prompt_policy.py"
     assert policy_path.is_file(), "current adversarial prompt policy owner is missing"
@@ -838,6 +877,7 @@ def main() -> None:
     assert_canonical_config_loader_ownership()
     assert_canonical_validation_text_ownership()
     assert_canonical_quality_retry_ownership()
+    assert_canonical_progress_reporter_ownership()
     assert_canonical_per_file_prompt_ownership()
     assert_canonical_guidance_code_classifier_ownership()
     assert_canonical_sanitize_text_ownership()

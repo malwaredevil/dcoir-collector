@@ -13,6 +13,7 @@ from types import SimpleNamespace
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 from dcoir_review import structured_result_disposition as structured_disposition
+from dcoir_review import progress_reporting
 
 
 class FakeResponse:
@@ -35,9 +36,20 @@ class FakeProgressReporter:
         self.updates: list[tuple[str, str]] = []
         self.completed = False
         self.failed = False
+        self.steps: list[tuple[str, str]] = []
+        self.bodies: list[str] = []
 
     def update(self, stage: str, message: str) -> None:
         self.updates.append((stage, message))
+
+    def _record(self, stage: str, message: str) -> None:
+        self.steps.append((stage, message))
+
+    def _body(self, state: str, final_lines=None) -> str:
+        return "\n".join([state, *(final_lines or [])])
+
+    def _update_comment(self, body: str) -> None:
+        self.bodies.append(body)
 
     def complete(self, _model_used: str, _findings_count: int, _review_event: str) -> None:
         self.completed = True
@@ -311,11 +323,28 @@ def main() -> None:
 
     fake = FakeModule()
     v54.apply_pareto_context_module(fake)
+    progress_reporting.apply_pareto_context_module(fake)
     config = fake.load_pareto_context_config("unused")
     # Synthetic component fixtures bypass the canonical production config loader.
     # Production initialization is asserted above; initialize the shared sink explicitly here.
     v54._ensure_sink(config)
     assert isinstance(getattr(config, v54.SINK_ATTR, None), v54.RunTelemetrySink)
+
+    # Terminal telemetry is strictly observational. Even an unexpected failure
+    # of the extracted helper itself must not block canonical completion/failure.
+    original_terminal_emit = v54.emit_run_telemetry
+    def broken_terminal_emit(_module, _reporter):
+        raise RuntimeError("synthetic terminal telemetry failure")
+    v54.emit_run_telemetry = broken_terminal_emit
+    try:
+        failsoft_complete = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
+        failsoft_complete.complete("model-a", 0, "COMMENT")
+        assert failsoft_complete.completed is True
+        failsoft_fail = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
+        failsoft_fail.fail("synthetic original failure")
+        assert failsoft_fail.failed is True
+    finally:
+        v54.emit_run_telemetry = original_terminal_emit
 
     # Stage classification uses only schema/config/ephemeral prompt markers and
     # stores no prompt body in the sink.
@@ -624,16 +653,14 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     original_loader = broken_module.load_pareto_context_config
     v54.apply_pareto_context_module(broken_module)
     assert getattr(broken_module, v54.APPLIED_MARKER, False) is False
-    assert set(getattr(broken_module, v54.PATCH_ERRORS_ATTR, ())) == {
-        "openrouter-review", "progress-reporter"
-    }
+    assert set(getattr(broken_module, v54.PATCH_ERRORS_ATTR, ())) == {"openrouter-review"}
     assert broken_module.load_pareto_context_config is original_loader
     entrypoint._emit_telemetry_patch_unavailable(broken_module)
     assert len(unavailable_updates) == 1
     assert unavailable_updates[0][0] == "openrouter-telemetry"
     assert "telemetry_status=unavailable" in unavailable_updates[0][1]
     assert "openrouter-review" in unavailable_updates[0][1]
-    assert "progress-reporter" in unavailable_updates[0][1]
+    assert "progress-reporter" not in unavailable_updates[0][1]
 
     # Provider-side attempt telemetry itself is bounded and prompt-free.
     provider_probe = copy.copy(production_config)

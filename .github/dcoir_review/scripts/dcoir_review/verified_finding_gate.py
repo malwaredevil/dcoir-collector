@@ -14,7 +14,6 @@ VERSION = "v50"
 _APPLIED_ATTR = "_dcoir_review_verified_finding_gate_applied"
 _VERIFIER_STORAGE = "_dcoir_review_verified_finding_gate_original_verify_findings_for_publication"
 _BODY_STORAGE = "_dcoir_review_verified_finding_gate_original_build_review_body_with_unanchored"
-_REPORTER_STORAGE = "_dcoir_review_verified_finding_gate_original_progress_reporter"
 _PRIOR_ATTR = "_dcoir_review_verified_finding_gate_prior_context"
 _STATE_ATTR = "_dcoir_review_verified_finding_gate_state"
 
@@ -175,85 +174,54 @@ def _patch_review_body(module: Any) -> None:
     module.hardened.build_review_body_with_unanchored = build_review_body_with_unanchored
 
 
-def _patch_progress_reporter(module: Any) -> None:
-    owners = [
-        owner
-        for owner in (getattr(module, "base", None), getattr(module, "hardened", None), module)
-        if owner is not None
-    ]
-    original = getattr(module, _REPORTER_STORAGE, None)
-    if original is None:
-        original = next(
-            (
-                getattr(owner, "ProgressReporter", None)
-                for owner in owners
-                if isinstance(getattr(owner, "ProgressReporter", None), type)
-            ),
-            None,
+def progress_completion_override(
+    module: Any,
+    config: Any,
+    findings_count: int,
+    review_event: str,
+) -> tuple[str, list[str]] | None:
+    """Return gate-aware terminal completion text, or ``None`` for base behavior."""
+
+    active = getattr(module, _STATE_ATTR, None)
+    if (
+        not bool(getattr(config, "verified_finding_gate_state_review", False))
+        or not isinstance(active, dict)
+    ):
+        return None
+    status = str(active.get("gate_status", "") or "")
+    if status not in {"blocked", "indeterminate"}:
+        return None
+
+    plural = "finding" if findings_count == 1 else "findings"
+    if status == "blocked":
+        carried = int(active.get("carried_unresolved_count", 0) or 0)
+        carried_plural = "finding" if carried == 1 else "findings"
+        message = (
+            f"posted GitHub review; {findings_count} new inline {plural}; "
+            f"gate BLOCKED by {carried} carried unresolved prior verified "
+            f"{carried_plural}; event={review_event}"
         )
-        if isinstance(original, type):
-            setattr(module, _REPORTER_STORAGE, original)
-    if not isinstance(original, type):
-        raise RuntimeError("DCOIR verified-finding gate could not locate ProgressReporter")
-    required = ("complete", "_record", "_body", "_update_comment")
-    if any(not callable(getattr(original, name, None)) for name in required):
-        raise RuntimeError("DCOIR verified-finding gate ProgressReporter contract is incomplete")
+        final_lines = [
+            f"- Result: GitHub review posted with `{findings_count}` new inline {plural}.",
+            "- Verified finding gate: `BLOCKED`.",
+            f"- Carried unresolved prior verified findings: `{carried}`.",
+            f"- Review event: `{review_event}`.",
+        ]
+        return message, final_lines
 
-    class GateAwareProgressReporter(original):
-        def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
-            config = getattr(self, "config", None)
-            active = getattr(module, _STATE_ATTR, None)
-            if (
-                not bool(getattr(config, "verified_finding_gate_state_review", False))
-                or not isinstance(active, dict)
-            ):
-                return super().complete(model_used, findings_count, review_event)
-            status = str(active.get("gate_status", "") or "")
-            if status not in {"blocked", "indeterminate"}:
-                return super().complete(model_used, findings_count, review_event)
-
-            plural = "finding" if findings_count == 1 else "findings"
-            if status == "blocked":
-                carried = int(active.get("carried_unresolved_count", 0) or 0)
-                carried_plural = "finding" if carried == 1 else "findings"
-                message = (
-                    f"posted GitHub review; {findings_count} new inline {plural}; "
-                    f"gate BLOCKED by {carried} carried unresolved prior verified "
-                    f"{carried_plural}; event={review_event}"
-                )
-                final_lines = [
-                    f"- Result: GitHub review posted with `{findings_count}` new inline {plural}.",
-                    "- Verified finding gate: `BLOCKED`.",
-                    f"- Carried unresolved prior verified findings: `{carried}`.",
-                    f"- Review event: `{review_event}`.",
-                ]
-            else:
-                known = int(active.get("indeterminate_prior_count", 0) or 0)
-                message = (
-                    f"posted GitHub review; {findings_count} new inline {plural}; "
-                    "gate INDETERMINATE/BLOCKED because prior verified-finding state "
-                    f"is incomplete; known_prior={known}; event={review_event}"
-                )
-                final_lines = [
-                    f"- Result: GitHub review posted with `{findings_count}` new inline {plural}.",
-                    "- Verified finding gate: `INDETERMINATE / BLOCKED`.",
-                    f"- Prior unresolved count known but not safely attributable: `{known}`.",
-                    f"- Review event: `{review_event}`.",
-                ]
-            self._record("completed", message)
-            self._update_comment(self._body("completed", final_lines=final_lines))
-            return None
-
-    GateAwareProgressReporter.__name__ = original.__name__
-    GateAwareProgressReporter.__qualname__ = original.__qualname__
-    GateAwareProgressReporter._dcoir_review_verified_finding_gate_aware = True
-    patched = False
-    for owner in owners:
-        if getattr(owner, "ProgressReporter", None) is original:
-            setattr(owner, "ProgressReporter", GateAwareProgressReporter)
-            patched = True
-    if not patched:
-        raise RuntimeError("DCOIR verified-finding gate could not install ProgressReporter overlay")
+    known = int(active.get("indeterminate_prior_count", 0) or 0)
+    message = (
+        f"posted GitHub review; {findings_count} new inline {plural}; "
+        "gate INDETERMINATE/BLOCKED because prior verified-finding state "
+        f"is incomplete; known_prior={known}; event={review_event}"
+    )
+    final_lines = [
+        f"- Result: GitHub review posted with `{findings_count}` new inline {plural}.",
+        "- Verified finding gate: `INDETERMINATE / BLOCKED`.",
+        f"- Prior unresolved count known but not safely attributable: `{known}`.",
+        f"- Review event: `{review_event}`.",
+    ]
+    return message, final_lines
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -261,6 +229,5 @@ def apply_pareto_context_module(module: Any) -> None:
         return
     _patch_verifier(module)
     _patch_review_body(module)
-    _patch_progress_reporter(module)
     module.DCOIR_VERIFIED_FINDING_GATE_CONTRACT = gate_state.STATE_CONTRACT
     setattr(module, _APPLIED_ATTR, True)

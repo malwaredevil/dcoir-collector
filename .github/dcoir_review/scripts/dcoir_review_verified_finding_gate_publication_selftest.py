@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import publication_disposition as publication
+from dcoir_review import progress_reporting
 from dcoir_review import verified_finding_gate as verified_gate
 from dcoir_review import verified_finding_gate_prior as prior_io
 from dcoir_review import verified_finding_gate_state as state
@@ -114,7 +115,7 @@ def test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_teleme
 
 def test_completion_reporter_exposes_blocked_carried_state() -> None:
     module = core.review_module()
-    verified_gate._patch_progress_reporter(module)
+    progress_reporting.apply_pareto_context_module(module)
     setattr(
         module,
         verified_gate._STATE_ATTR,
@@ -136,7 +137,7 @@ def test_completion_reporter_exposes_blocked_carried_state() -> None:
 
 def test_completion_reporter_exposes_indeterminate_gate() -> None:
     module = core.review_module()
-    verified_gate._patch_progress_reporter(module)
+    progress_reporting.apply_pareto_context_module(module)
     setattr(
         module,
         verified_gate._STATE_ATTR,
@@ -156,7 +157,7 @@ def test_completion_reporter_exposes_indeterminate_gate() -> None:
 
 def test_completion_reporter_delegates_when_gate_is_clear() -> None:
     module = core.review_module()
-    verified_gate._patch_progress_reporter(module)
+    progress_reporting.apply_pareto_context_module(module)
     setattr(module, verified_gate._STATE_ATTR, {"gate_status": "clear"})
     reporter = module.ProgressReporter(core.config())
     reporter.complete("model", 0, "COMMENT")
@@ -169,10 +170,10 @@ def test_completion_reporter_patches_production_owner_aliases() -> None:
     delattr(module, "ProgressReporter")
     module.base.ProgressReporter = original
     module.hardened.ProgressReporter = original
-    verified_gate._patch_progress_reporter(module)
+    progress_reporting.apply_pareto_context_module(module)
     assert module.base.ProgressReporter is module.hardened.ProgressReporter
     assert module.base.ProgressReporter is not original
-    assert getattr(module.base.ProgressReporter, "_dcoir_review_verified_finding_gate_aware", False) is True
+    assert getattr(module.base.ProgressReporter, progress_reporting.OWNER_MARKER, False) is True
     setattr(
         module,
         verified_gate._STATE_ATTR,
