@@ -59,7 +59,7 @@ The first canonical extraction is the operator-facing status publication surface
 - the status comment progresses through `Queued`, `Running`, `Completed`, or `Failed`, carries exact-head provenance once the PR head is captured, links the formal GitHub review on completion, bounds repeated same-stage edits, and reuses the same bot-authored comment on reruns;
 - status-publication API failures are observational and are not raised into review disposition;
 - the previous non-progress failure fallback that could create a separate status-like issue comment has been removed;
-- `dcoir_review.progress_reporting` is the canonical terminal `ProgressReporter` composition owner. The verified-finding gate exposes `progress_completion_override(...)` and v54 exposes `emit_run_telemetry(...)`; neither responsibility now installs a reporter subclass or stores a prior reporter shim. Production installs the canonical owner immediately after v54 request telemetry and before provider transport retry, preserving gate-aware terminal completion and bounded terminal telemetry without chronology-dependent reporter replacement.
+- `dcoir_review.progress_reporting` is the canonical terminal `ProgressReporter` composition owner. The verified-finding gate exposes `progress_completion_override(...)` and `dcoir_review.review_telemetry` exposes `emit_run_telemetry(...)`; neither responsibility installs another reporter subclass or stores a prior reporter shim. Production installs the canonical reporter before provider transport retry, while stable telemetry state is initialized by `review_config`, preserving gate-aware terminal completion and bounded terminal telemetry without chronology-dependent reporter replacement.
 
 The stable status contract is covered by `dcoir_review_status_comment_selftest.py`, including rerun reuse, same-comment identity, exact-head/formal-review rendering, spoofed-user marker rejection, debug-flag independence, and observational write failures. Exact-head status-cutover validation passed in ChatGPT Exec run `34695700055` at source head `efabcaec43676951a596afed06c601dc8486d840`; current-head CodeQL also passed at that source head.
 
@@ -203,7 +203,7 @@ The next bounded retirement moves stage-local first-pass routing out of historic
 - the shared OpenRouter payload builder is installed once by `dcoir_review.per_file_routing`: v32 contributes its GPT-5/reasoning compatibility contract through `apply_reasoning_payload_policy(...)` instead of wrapping the builder, so the final payload path is `base hardened builder -> explicit v32 reasoning policy -> per-file routing projection` without v32/per-file stored-original payload shims;
 - production composition loads `dcoir_review.per_file_routing` in the stage-local position instead of the numbered v47 overlay;
 - the historical `dcoir_v47_per_file_projection` attribute value is intentionally preserved as a compatibility/provenance data marker, while `PER_FILE_PROJECTION_ATTR` in the stable owner becomes its canonical definition;
-- v54 telemetry imports that stable marker constant instead of hard-coding a dependency on historical v47 ownership;
+- stable `dcoir_review.review_telemetry` imports that marker constant instead of hard-coding a dependency on historical v47 ownership;
 - `dcoir_review_per_file_routing_selftest.py` owns the stable behavioral contract, and the validation registry plus review-scope composition regression reference the stable owner directly;
 - the runtime module-loader registry classifies `per_file_routing.py` as an ordinary direct-import owner;
 - the historical v47 runtime and version-specific self-test files are removed; Git history remains the archive.
@@ -230,7 +230,7 @@ This slice must not be credited as governed validated until publication readback
 The next bounded retirement moves interrupted provider response-read recovery out of historical v58:
 
 - `dcoir_review/provider_transport_retry.py` owns transient transport-failure classification, interrupted HTTP error-body replay, bounded reuse of the existing retry/fallback loop, and transport-failure telemetry projection;
-- production composition loads canonical `dcoir_review.progress_reporting` immediately after v54 request telemetry, then `dcoir_review.provider_transport_retry`, stable semantic-adjudication recovery, and the remaining v56-v57 post-telemetry overlays;
+- production composition loads canonical `dcoir_review.progress_reporting`, then `dcoir_review.provider_transport_retry`, stable semantic-adjudication recovery, v56 repair batching, `dcoir_review.final_adjudication_policy`, and finally the canonical `dcoir_review.provider_review` owner;
 - `dcoir_review_provider_transport_retry_selftest.py` remains the stable behavioral contract and imports the stable owner directly;
 - the runtime module-loader guard keeps 58 as the historical ceiling, rejects v59+, and also rejects reintroduction of retired v58 production ownership while allowing the highest remaining numbered overlay to fall below 58;
 - the historical v58 production module is removed; Git history remains the archive.
@@ -244,7 +244,7 @@ The next bounded retirement moves the #524 valid-JSON/schema-shape recovery out 
 - `dcoir_review/semantic_adjudication_recovery.py` owns the narrow adjudicator-shape fallback and stable semantic-candidate-identity-aware exact deduplication used before adjudication;
 - canonical and complete flat-finding results remain on the existing v35/v37 path, while only the proven unsupported valid-object shape may retain already-structured upstream hypotheses for independent verification;
 - recovery stays bounded to the active production ranker and verifier capacity, performs no extra model call, and preserves the stable `_semantic_adjudication_shape_recovery` result marker consumed by downstream disposition logic;
-- production composition loads `dcoir_review.semantic_adjudication_recovery` after provider transport retry and before the remaining v56-v57 post-telemetry overlays;
+- production composition loads `dcoir_review.semantic_adjudication_recovery` after provider transport retry and before v56 repair batching, stable final-adjudication policy, and canonical provider-review composition;
 - `dcoir_review_semantic_adjudication_recovery_selftest.py` owns the stable behavioral contract, including fail-closed malformed-shape coverage and semantic-identity preservation;
 - the historical `v55` marker value is retained only as compatibility/provenance data inside the recovery marker; the historical v55 production module and version-specific self-test are removed.
 
@@ -299,7 +299,7 @@ The bounded structured-output recovery and near-threshold disposition responsibi
 - `dcoir_review/structured_result_recovery.py` owns the deterministic provider-envelope recovery and bounded low-confidence disposition helper setup; canonical hybrid composition is owned by `dcoir_review.review_orchestration`;
 - `dcoir_review/structured_result_provider.py`, `structured_result_disposition.py`, and `structured_result_retry.py` own provider parsing/recovery, candidate-scoped disposition, and fail-closed whole-PR retry fallback respectively;
 - production composition loads `dcoir_review.review_orchestration` between the stable prompt review-scope guard and v53; that owner initializes structured-result recovery helpers and composes the hybrid lifecycle once, preserving the characterized execution order without sequential wrapper ownership;
-- v54 telemetry imports the stable disposition contract and recognizes the stable retry owner rather than hard-coding the historical v52 module filename;
+- stable `dcoir_review.review_telemetry` imports the stable disposition contract and recognizes the stable retry owner rather than hard-coding the historical v52 module filename;
 - the literal `v52` version, `_dcoir_v52_allow_low_confidence_disposition`, `_dcoir_v52_pending_low_confidence_disposition`, `_dcoir_v52_last_structured_output_recovery`, `metadata/v52-structured-low-confidence.json`, and `10-v52-*` debug artifact paths remain compatibility/provenance data because telemetry, diagnostics, and durable artifacts consume those values;
 - `dcoir_review_structured_result_recovery_selftest.py` owns the stable behavioral contract for deterministic/fail-closed envelope recovery and single bounded independent disposition;
 - the runtime module-loader guard classifies all four stable modules as direct imports and rejects reintroduction of historical v52 production ownership;
@@ -397,6 +397,16 @@ This consolidation deliberately leaves each participant's non-hybrid responsibil
 The canonical renderer expresses that surviving behavior directly and installs one final callable immediately after v30. Earlier patch layers retain their unrelated detection, selection, prompting, synthesis, and repair responsibilities but no longer replace `build_inline_comment` or store prior renderer callables. `dcoir_review.verified_finding_render` is now a pure helper for verifier-aware ordinary rendering rather than a production installer, and `dcoir_review.repair_pipeline` retains repair synthesis while exposing its stable repair renderer to the canonical owner.
 
 The cutover is guarded mechanically: former renderer owners may not assign `build_inline_comment` or retain `original_build_inline_comment` storage, later production modules may not replace the canonical owner, repeated application is idempotent, and an exact seven-case output corpus locks verified ordinary, deterministic sentinel, repair, native-suggestion, unverified fallback, and YAML/security rendering byte-for-byte to the characterized pre-cutover behavior.
+
+### Canonical provider-review composition
+
+`dcoir_review.provider_review` is the single production owner of `hardened.openrouter_review`. The former structured-result-provider, v54 telemetry, and v57 final-adjudication wrappers are replaced by explicit composition in one readable call path:
+
+`final-adjudication projection -> telemetry preparation -> structured-result recovery/base provider review -> structured-recovery status -> telemetry drain/copy`.
+
+`dcoir_review.final_adjudication_policy` owns final-v35 publication-floor projection and terminal low-confidence disposition without wrapping provider review. `dcoir_review.structured_result_provider` continues to own deterministic request-boundary structured-output recovery and exposes explicit review-status helpers instead of storing a prior review callable. `dcoir_review.review_telemetry` is the public telemetry facade; connector-safe `review_telemetry_state`, `review_telemetry_events`, and `review_telemetry_summary` support modules own sink/error state, event normalization/draining, and aggregation/rendering respectively. Telemetry remains observational and fail-soft, structured recovery status is reported before telemetry drain, and provider exceptions are re-raised unchanged.
+
+The compatibility attributes and schemas that contain historical `v54` or `v57` identifiers remain unchanged where they are runtime/persisted contracts. The historical v54 and v57 production modules and version-specific selftests are removed; the validation registry now runs stable telemetry and final-adjudication policy contracts, and the runtime-loader guard rejects reintroduction of v54/v57 production ownership.
 
 ### Canonical per-file review composition
 

@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
-"""Prompt-floor and telemetry regressions for DCOIR Review v57 selftest."""
+"""Prompt-floor regressions for stable final-adjudication policy."""
 
 from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v57 as v57
+from dcoir_review import final_adjudication_policy as final_policy
+
+
+def _run_projected(module: Any, prompt: Any, config: Any):
+    projected_prompt, projected_config = final_policy.project_review_call(
+        module, prompt, config
+    )
+    return module.hardened.openrouter_review(
+        projected_prompt, {}, projected_config, None
+    )
 
 
 def _run_with_forced_final_callsite(module: Any, prompt: str, config: Any):
-    original_callsite_probe = v57._is_final_v35_semantic_adjudication_call
-    v57._is_final_v35_semantic_adjudication_call = lambda _prompt: True
+    original_callsite_probe = final_policy._is_final_v35_semantic_adjudication_call
+    final_policy._is_final_v35_semantic_adjudication_call = lambda _prompt: True
     try:
-        return module.hardened.openrouter_review(prompt, {}, config, None)
+        return _run_projected(module, prompt, config)
     finally:
-        v57._is_final_v35_semantic_adjudication_call = original_callsite_probe
+        final_policy._is_final_v35_semantic_adjudication_call = original_callsite_probe
 
 
 def run_prompt_regressions(module: Any, config: Any) -> None:
@@ -23,16 +32,16 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         "Final semantic adjudication pass.\n\n"
         "Publication-quality rules:\n"
         "- Return only distinct root-cause defects.\n\n"
-        f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
+        f"{final_policy.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
     )
     _run_with_forced_final_callsite(module, semantic_prompt, config)
     injected = module.hardened.review_prompts[-1]
-    assert v57.PROMPT_MARKER in injected
+    assert final_policy.PROMPT_MARKER in injected
     assert "0.70" in injected
     assert "empty findings list and a clean summary" in injected
-    assert injected.count(v57.PROMPT_MARKER) == 1
+    assert injected.count(final_policy.PROMPT_MARKER) == 1
     assert module.hardened.review_stages[-1] == "semantic-adjudicator"
-    assert module.hardened.debug_text_artifacts[v57.PROMPT_ARTIFACT_PATH] == injected
+    assert module.hardened.debug_text_artifacts[final_policy.PROMPT_ARTIFACT_PATH] == injected
 
     escalation_prompt = (
         "Final semantic adjudication pass.\n\n"
@@ -41,22 +50,22 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         "Candidate hypotheses from the bounded primary/challenger evidence:\n[]\n\n"
         "Escalation context scope: candidate-scoped."
     )
-    module.hardened.openrouter_review(escalation_prompt, {}, config, None)
+    _run_projected(module, escalation_prompt, config)
     assert module.hardened.review_prompts[-1] == escalation_prompt
     assert module.hardened.review_stages[-1] != "semantic-adjudicator"
 
     ordinary_prompt = "Routine per-file review prompt."
-    module.hardened.openrouter_review(ordinary_prompt, {}, config, None)
+    _run_projected(module, ordinary_prompt, config)
     assert module.hardened.review_prompts[-1] == ordinary_prompt
     assert module.hardened.review_stages[-1] != "semantic-adjudicator"
 
     untrusted_marker_prompt = (
         "Final semantic adjudication pass.\n\n"
         "PR diff mentions: "
-        f"{v57.PROMPT_MARKER}\n\n"
-        f"{v57.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
+        f"{final_policy.PROMPT_MARKER}\n\n"
+        f"{final_policy.FINAL_ADJUDICATION_PROMPT_MARKER}\n[]"
     )
-    module.hardened.openrouter_review(untrusted_marker_prompt, {}, config, None)
+    _run_projected(module, untrusted_marker_prompt, config)
     assert module.hardened.review_prompts[-1] == untrusted_marker_prompt
 
     tiny_budget_config = SimpleNamespace(
@@ -67,8 +76,8 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     _run_with_forced_final_callsite(module, semantic_prompt, tiny_budget_config)
     bounded_injected = module.hardened.review_prompts[-1]
     assert len(bounded_injected) <= tiny_budget_config.max_prompt_chars
-    assert bounded_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
-    assert v57.PROMPT_MARKER in bounded_injected
+    assert bounded_injected.endswith(final_policy.PROMPT_TRUNCATION_MARKER)
+    assert final_policy.PROMPT_MARKER in bounded_injected
 
     tiny_marker_budget = SimpleNamespace(
         minimum_confidence=0.70,
@@ -86,8 +95,8 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     )
     _run_with_forced_final_callsite(module, semantic_prompt, malformed_budget_config)
     malformed_budget_injected = module.hardened.review_prompts[-1]
-    assert v57.PROMPT_MARKER in malformed_budget_injected
-    assert not malformed_budget_injected.endswith(v57.PROMPT_TRUNCATION_MARKER)
+    assert final_policy.PROMPT_MARKER in malformed_budget_injected
+    assert not malformed_budget_injected.endswith(final_policy.PROMPT_TRUNCATION_MARKER)
 
     original_writer = module.hardened.write_debug_text_artifact_safely
 
@@ -104,5 +113,20 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     finally:
         module.hardened.write_debug_text_artifact_safely = original_writer
 
-    reinjected = v57._inject_publication_floor(injected, config)
+    reinjected = final_policy._inject_publication_floor(injected, config)
     assert reinjected == injected
+
+    original_inject = final_policy._inject_publication_floor
+    source_prompt = object()
+    source_config = SimpleNamespace(minimum_confidence=0.70)
+    def broken_inject(_prompt, _config):
+        raise RuntimeError("synthetic injection failure")
+    final_policy._inject_publication_floor = broken_inject
+    try:
+        projected_prompt, projected_config = final_policy.project_review_call(
+            module, source_prompt, source_config
+        )
+    finally:
+        final_policy._inject_publication_floor = original_inject
+    assert projected_prompt is source_prompt
+    assert projected_config is source_config

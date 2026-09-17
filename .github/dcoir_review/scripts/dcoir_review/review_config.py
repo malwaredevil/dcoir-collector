@@ -213,12 +213,12 @@ def _apply_per_file_routing(config: Any, data: dict[str, Any]) -> None:
 
 def _initialize_run_telemetry_fail_soft(config: Any) -> None:
     try:
-        import dcoir_review_required_runtime_patch_v54 as telemetry
+        from dcoir_review import review_telemetry as telemetry
 
-        telemetry._ensure_sink(config)
+        telemetry.ensure_sink(config)
     except Exception:
         try:
-            telemetry._note_telemetry_error(config)
+            telemetry.note_telemetry_error(config)
         except Exception:
             # Telemetry is observational only; config loading must remain available
             # even when recording the telemetry failure also fails.

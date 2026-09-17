@@ -10,6 +10,7 @@ import os
 import urllib.error
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 from dcoir_review.selftests.provider_transport.fixtures import (
     FakeResponse, Reporter, attempt_events, fresh_config, install_sequence,
     interrupted_credit_error, provider_response, review_schema,
@@ -21,15 +22,15 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     post_telemetry = entrypoint.post_telemetry_patch_module_names
     assert "dcoir_review.provider_transport_retry" in post_telemetry
-    assert post_telemetry[-3:] == (
+    assert post_telemetry[-4:] == (
         "dcoir_review.semantic_adjudication_recovery",
         "dcoir_review_required_runtime_patch_v56",
-        "dcoir_review_required_runtime_patch_v57",
+        "dcoir_review.final_adjudication_policy",
+        "dcoir_review.provider_review",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v54 = importlib.import_module("dcoir_review_required_runtime_patch_v54")
     transport_retry = importlib.import_module("dcoir_review.provider_transport_retry")
     assert getattr(review, transport_retry.APPLIED_MARKER, False) is True
 
@@ -40,13 +41,11 @@ def main() -> None:
     review.hardened.time.sleep = lambda _seconds: None
     schema = review_schema()
 
-    # Use the pre-v54 provider-review loop for deterministic attempt telemetry.
-    # The stable provider transport retry owner patches its live request and
-    # telemetry globals after composition, so this exercises the same bounded
-    # model/attempt loop without v54's shallow stage-config projection hiding the
-    # per-attempt history from the test.
-    retry_loop = getattr(review.hardened, v54.REVIEW_STORAGE)
-    assert callable(retry_loop)
+    # Exercise the canonical provider-review owner while requesting the
+    # documented per-file telemetry copy-back contract on each test config.
+    def retry_loop(prompt, schema, config, reporter):
+        setattr(config, PER_FILE_PROJECTION_ATTR, True)
+        return review.hardened.openrouter_review(prompt, schema, config, reporter)
 
     try:
         # Exact production failure shape: urlopen returns a response object and

@@ -88,6 +88,25 @@ def main() -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     config.openrouter_capture_request_telemetry = True
     config.openrouter_require_stop_finish_reason = False
+
+    assert callable(provider.reset_review_recovery)
+    assert callable(provider.report_review_recovery)
+    provider.reset_review_recovery(config)
+    assert getattr(config, provider.RECOVERY_ATTR) == ""
+    status_reporter = Reporter()
+    setattr(config, provider.RECOVERY_ATTR, "balanced-envelope")
+    provider.report_review_recovery(config, status_reporter)
+    assert status_reporter.events == [(
+        ("structured-output-recovery", "mode=balanced-envelope; deterministic recovery avoided provider/model retry")
+    )]
+    class BrokenReporter:
+        def update(self, _stage, _message):
+            raise RuntimeError("synthetic reporter failure")
+    provider.report_review_recovery(config, BrokenReporter())
+    assert not hasattr(
+        review.hardened,
+        "_dcoir_review_structured_result_provider_prior_openrouter_review",
+    )
     config.openrouter_require_object_response = True
     original_urlopen = review.hardened.urllib.request.urlopen
     previous_key = os.environ.get("OPENROUTER_API_KEY")

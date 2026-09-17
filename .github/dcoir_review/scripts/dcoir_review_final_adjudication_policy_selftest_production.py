@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Production-composition regressions for DCOIR Review v57 selftest."""
+"""Production-composition regressions for stable final-adjudication policy."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import importlib
 from typing import Any, Callable
 
 import dcoir_review_required_runtime_patch_v35 as v35
-import dcoir_review_required_runtime_patch_v57 as v57
+from dcoir_review import final_adjudication_policy as final_policy
 
 
 def run_production_regressions(
@@ -17,12 +17,13 @@ def run_production_regressions(
 ) -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    assert getattr(review, v57.APPLIED_MARKER, False) is True
+    final_policy.apply_pareto_context_module(review)
+    assert getattr(review, final_policy.APPLIED_MARKER, False) is True
     prod_config = review.load_pareto_context_config(
         ".github/dcoir_review/openrouter-pr-review-pareto.yml"
     )
     assert round(float(prod_config.minimum_confidence), 2) == 0.70
-    assert review.hardened.summary_suggests_problem(v57.CLEAN_SUMMARY) is False
+    assert review.hardened.summary_suggests_problem(final_policy.CLEAN_SUMMARY) is False
 
     production_live_shape = adjudicated_result(
         [
@@ -30,7 +31,7 @@ def run_production_regressions(
             finding("AGENTS.md", 248, 0.50),
             finding(".github/agent-governance/codex_cloud_environment.md", 77, 0.45),
         ],
-        v57.CLEAN_SUMMARY,
+        final_policy.CLEAN_SUMMARY,
     )
     production_live_shape["_candidate_escalation"] = {"mode": "full-deep"}
     production_live_shape["_semantic_context_package_id"] = "package-123"
@@ -46,8 +47,8 @@ def run_production_regressions(
         "+governance",
         [],
     ) == ([], [])
-    assert production_live_shape["summary"] == v57.CLEAN_SUMMARY
-    assert production_live_shape[v57.DISPOSITION_MARKER]["candidate_count"] == 3
+    assert production_live_shape["summary"] == final_policy.CLEAN_SUMMARY
+    assert production_live_shape[final_policy.DISPOSITION_MARKER]["candidate_count"] == 3
 
     production_problem_summary = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
@@ -68,7 +69,7 @@ def run_production_regressions(
 
     production_overflow = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        v57.CLEAN_SUMMARY,
+        final_policy.CLEAN_SUMMARY,
     )
     production_overflow["_semantic_adjudication_overflow_trimmed"] = 1
     try:
@@ -104,7 +105,7 @@ def run_production_regressions(
 
     spoofed_metadata = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        v57.CLEAN_SUMMARY,
+        final_policy.CLEAN_SUMMARY,
     )
     spoofed_metadata[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
     try:
@@ -122,7 +123,7 @@ def run_production_regressions(
 
     spoofed_provider_marker = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        v57.CLEAN_SUMMARY,
+        final_policy.CLEAN_SUMMARY,
         provider_result_keys=("summary", "findings", "_semantic_adjudication_result_shape"),
     )
     spoofed_provider_marker["_semantic_adjudication_result_shape"] = "flat-single-finding"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic regression checks for DCOIR Review v54 run telemetry."""
+"""Deterministic regressions for stable DCOIR Review run telemetry."""
 
 from __future__ import annotations
 
@@ -228,22 +228,17 @@ def critic_schema() -> dict:
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.execution_policy_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v53"
-    assert entrypoint.telemetry_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v54",
-    )
+    from dcoir_review import review_telemetry as telemetry
 
-    v54 = importlib.import_module("dcoir_review_required_runtime_patch_v54")
-
-    # Production composition applies v54 after the existing execution-policy
-    # chain without redefining the older ordering contract.
+    # Production config initialization now uses the stable telemetry owner.
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    assert getattr(review, v54.APPLIED_MARKER, False) is True
     production_config = review.load_pareto_context_config(
         ".github/dcoir_review/openrouter-pr-review-pareto.yml"
     )
     assert production_config.debug is False
-    assert isinstance(getattr(production_config, v54.SINK_ATTR, None), v54.RunTelemetrySink)
+    assert progress_reporting.telemetry is telemetry
+    assert isinstance(getattr(production_config, telemetry.SINK_ATTR, None), telemetry.RunTelemetrySink)
 
     # Capture-only telemetry must be observational. It must not select v47's
     # stricter stop/object response-enforcement branch for ordinary premium
@@ -322,20 +317,32 @@ def main() -> None:
             os.environ["OPENROUTER_API_KEY"] = previous_key
 
     fake = FakeModule()
-    v54.apply_pareto_context_module(fake)
     progress_reporting.apply_pareto_context_module(fake)
     config = fake.load_pareto_context_config("unused")
     # Synthetic component fixtures bypass the canonical production config loader.
     # Production initialization is asserted above; initialize the shared sink explicitly here.
-    v54._ensure_sink(config)
-    assert isinstance(getattr(config, v54.SINK_ATTR, None), v54.RunTelemetrySink)
+    telemetry.ensure_sink(config)
+    assert isinstance(getattr(config, telemetry.SINK_ATTR, None), telemetry.RunTelemetrySink)
+
+    def run_review(prompt, schema, call_config, reporter=None):
+        state = telemetry.prepare_review_call(prompt, schema, call_config)
+        active_config = state.staged_config if state is not None else call_config
+        try:
+            result = fake.hardened.openrouter_review(
+                prompt, schema, active_config, reporter
+            )
+        except Exception:
+            telemetry.finish_review_call(state, "failed")
+            raise
+        telemetry.finish_review_call(state, "success")
+        return result
 
     # Terminal telemetry is strictly observational. Even an unexpected failure
     # of the extracted helper itself must not block canonical completion/failure.
-    original_terminal_emit = v54.emit_run_telemetry
+    original_terminal_emit = telemetry.emit_run_telemetry
     def broken_terminal_emit(_module, _reporter):
         raise RuntimeError("synthetic terminal telemetry failure")
-    v54.emit_run_telemetry = broken_terminal_emit
+    telemetry.emit_run_telemetry = broken_terminal_emit
     try:
         failsoft_complete = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
         failsoft_complete.complete("model-a", 0, "COMMENT")
@@ -344,40 +351,40 @@ def main() -> None:
         failsoft_fail.fail("synthetic original failure")
         assert failsoft_fail.failed is True
     finally:
-        v54.emit_run_telemetry = original_terminal_emit
+        telemetry.emit_run_telemetry = original_terminal_emit
 
     # Stage classification uses only schema/config/ephemeral prompt markers and
     # stores no prompt body in the sink.
     per_file = copy.copy(config)
     setattr(per_file, PER_FILE_PROJECTION_ATTR, True)
-    assert v54.classify_stage("anything", review_schema(), per_file) == "per-file-first-pass"
+    assert telemetry.classify_stage("anything", review_schema(), per_file) == "per-file-first-pass"
     stage_tagged = copy.copy(config)
     stage_tagged._dcoir_v54_stage_label = "independent-challenger"
-    assert v54.classify_stage("probe", review_schema(), stage_tagged) == "independent-challenger"
+    assert telemetry.classify_stage("probe", review_schema(), stage_tagged) == "independent-challenger"
     stage_tagged._dcoir_v54_stage_label = "semantic-adjudicator"
-    assert v54.classify_stage("probe", review_schema(), stage_tagged) == "semantic-adjudicator"
+    assert telemetry.classify_stage("probe", review_schema(), stage_tagged) == "semantic-adjudicator"
     bounded = copy.copy(config)
     bounded._dcoir_v54_stage_label = "semantic-adjudicator"
     setattr(bounded, structured_disposition.PENDING_ATTR, {"candidate_count": 1})
-    assert v54.classify_stage("probe", review_schema(), bounded) == "bounded-low-confidence-disposition"
-    assert v54.classify_stage("probe", verifier_schema(), config) == "verifier"
-    assert v54.classify_stage("probe", repair_author_schema(), config) == "repair-author"
-    assert v54.classify_stage("probe", critic_schema(), config) == "repair-critic"
+    assert telemetry.classify_stage("probe", review_schema(), bounded) == "bounded-low-confidence-disposition"
+    assert telemetry.classify_stage("probe", verifier_schema(), config) == "verifier"
+    assert telemetry.classify_stage("probe", repair_author_schema(), config) == "repair-author"
+    assert telemetry.classify_stage("probe", critic_schema(), config) == "repair-critic"
     stage_tagged._dcoir_v54_stage_label = "broad-quality-retry"
-    assert v54.classify_stage("probe", review_schema(), stage_tagged) == "broad-quality-retry"
-    assert v54.classify_stage("ordinary", review_schema(), config) == "primary-semantic"
-    assert v54.classify_stage("unknown", {"properties": {}}, config) == "unclassified"
+    assert telemetry.classify_stage("probe", review_schema(), stage_tagged) == "broad-quality-retry"
+    assert telemetry.classify_stage("ordinary", review_schema(), config) == "primary-semantic"
+    assert telemetry.classify_stage("unknown", {"properties": {}}, config) == "unclassified"
     for synthetic_filename, synthetic_function in (
         ("part_05_debug_and_merge.py", "openrouter_review_with_quality_retry"),
         ("dcoir_review_required_runtime_patch_v22.py", "openrouter_review_with_hybrid_first_pass"),
     ):
-        namespace: dict[str, object] = {"v54": v54}
+        namespace: dict[str, object] = {"telemetry": telemetry}
         exec(
             compile(
                 f"""
 def {synthetic_function}(prompt, schema, config):
     retry_prompt = prompt
-    return v54.classify_stage(prompt, schema, config)
+    return telemetry.classify_stage(prompt, schema, config)
 """,
                 synthetic_filename,
                 "exec",
@@ -385,12 +392,12 @@ def {synthetic_function}(prompt, schema, config):
             namespace,
         )
         assert namespace[synthetic_function]("probe", review_schema(), config) == "broad-quality-retry"
-    namespace: dict[str, object] = {"v54": v54}
+    namespace: dict[str, object] = {"telemetry": telemetry}
     exec(
         compile(
             """
 def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
-    return v54.classify_stage(prompt, schema, config)
+    return telemetry.classify_stage(prompt, schema, config)
 """,
             "dcoir_review_required_runtime_patch_v44_execution.py",
             "exec",
@@ -401,13 +408,13 @@ def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
         namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
         == "primary-semantic"
     )
-    namespace = {"v54": v54}
+    namespace = {"telemetry": telemetry}
     exec(
         compile(
             """
 def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
     confirmation_prompt = prompt
-    return v54.classify_stage(prompt, schema, config)
+    return telemetry.classify_stage(prompt, schema, config)
 """,
             "dcoir_review_required_runtime_patch_v32.py",
             "exec",
@@ -418,13 +425,13 @@ def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
         namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
         == "independent-challenger"
     )
-    namespace = {"v54": v54}
+    namespace = {"telemetry": telemetry}
     exec(
         compile(
             """
 def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     prompt = wrapper_prompt
-    return v54.classify_stage(prompt, schema, config)
+    return telemetry.classify_stage(prompt, schema, config)
 """,
             "dcoir_review_required_runtime_patch_v35.py",
             "exec",
@@ -438,13 +445,13 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
 
     # One retrying call records only returned provider metadata and explicitly
     # accounts for the attempt lacking response telemetry.
-    result = fake.hardened.openrouter_review(
+    result = run_review(
         "Review quality retry:\nretry-call SECRET_PROMPT_MUST_NOT_SURVIVE",
         review_schema(),
         config,
     )
     assert result[0]["findings"] == []
-    summary = v54.summarize_sink(config)
+    summary = telemetry.summarize_sink(config)
     assert summary["review_calls"] == 1
     assert summary["request_attempts"] == 2
     assert summary["provider_response_events"] == 1
@@ -476,12 +483,12 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     # Failed calls remain visible without fabricating provider, token, or cost
     # data that never returned from OpenRouter.
     try:
-        fake.hardened.openrouter_review("fail-call", review_schema(), config)
+        run_review("fail-call", review_schema(), config)
     except RuntimeError as exc:
         assert "synthetic transport failure" in str(exc)
     else:
         raise AssertionError("synthetic failed call did not re-raise")
-    summary = v54.summarize_sink(config)
+    summary = telemetry.summarize_sink(config)
     assert summary["review_calls"] == 2
     assert summary["failed_review_calls"] == 1
     assert summary["request_attempts"] == 4
@@ -499,7 +506,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     def run_worker(index: int) -> None:
         staged = copy.copy(config)
         setattr(staged, PER_FILE_PROJECTION_ATTR, True)
-        fake.hardened.openrouter_review(
+        run_review(
             f"worker-{index}", review_schema(), staged
         )
         # v47 compatibility: telemetry remains readable from the caller's stage
@@ -508,13 +515,13 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(run_worker, range(12)))
-    summary = v54.summarize_sink(config)
+    summary = telemetry.summarize_sink(config)
     assert summary["review_calls"] == 14
     assert summary["stages"]["per-file-first-pass"]["calls"] == 12
     assert summary["provider_response_events"] == 13
 
     # Missing usage remains explicitly missing rather than converted to zeros.
-    missing = v54.normalize_event(
+    missing = telemetry.normalize_event(
         {"requested_model": "m", "served_model": "m", "provider": "p", "usage": {}},
         "primary-semantic",
         "success",
@@ -527,8 +534,8 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
 
     # Missing categorical response metadata is explicit, not silently filtered.
     missing_config = fake.load_pareto_context_config("unused")
-    missing_sink = v54._ensure_sink(missing_config)
-    missing_event = v54.normalize_event(
+    missing_sink = telemetry.ensure_sink(missing_config)
+    missing_event = telemetry.normalize_event(
         {"usage": {}}, "primary-semantic", "success"
     )
     missing_sink.add_call(
@@ -544,7 +551,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
         },
         [missing_event],
     )
-    missing_summary = v54.summarize_sink(missing_config)
+    missing_summary = telemetry.summarize_sink(missing_config)
     assert missing_summary["providers"] == {"unknown": 1}
     assert missing_summary["requested_models"] == {"unknown": 1}
     assert missing_summary["served_models"] == {"unknown": 1}
@@ -553,15 +560,15 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     assert missing_summary["metadata_coverage"]["provider"] == {
         "observed_events": 0, "missing_events": 1
     }
-    assert "metadata_missing=" in v54.compact_summary(missing_summary)
+    assert "metadata_missing=" in telemetry.compact_summary(missing_summary)
 
     # Errors raised on shallow stage projections must surface on the root config.
     error_config = fake.load_pareto_context_config("unused")
-    v54._ensure_sink(error_config)
+    telemetry.ensure_sink(error_config)
     shallow_error_config = copy.copy(error_config)
-    v54._note_telemetry_error(shallow_error_config)
-    assert v54._telemetry_error_count(error_config) == 1
-    assert v54.summarize_sink(error_config)["telemetry_status"] == "partial"
+    telemetry.note_telemetry_error(shallow_error_config)
+    assert telemetry.telemetry_error_count(error_config) == 1
+    assert telemetry.summarize_sink(error_config)["telemetry_status"] == "partial"
 
     # The existing terminal progress surface is the durable production output;
     # it remains active with debug=false and does not depend on debug artifacts.
@@ -582,36 +589,36 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     assert "finish_reasons=" in telemetry_updates[0]
     assert "structured_output_recovery=" in telemetry_updates[0]
     assert len(telemetry_updates[0]) <= 1800
-    assert getattr(config, v54.SUMMARY_ATTR)["review_calls"] == 14
+    assert getattr(config, telemetry.SUMMARY_ATTR)["review_calls"] == 14
 
 
     # Telemetry faults are side-channel failures only: they must never replace a
     # successful review result or mask the provider's original exception.
-    original_drain = v54._drain_call
+    original_drain = telemetry._drain_call
     def broken_drain(*_args, **_kwargs):
         raise RuntimeError("synthetic telemetry drain failure")
-    v54._drain_call = broken_drain
+    telemetry._drain_call = broken_drain
     try:
-        before_errors = v54._telemetry_error_count(config)
-        preserved = fake.hardened.openrouter_review("ordinary", review_schema(), config)
+        before_errors = telemetry.telemetry_error_count(config)
+        preserved = run_review("ordinary", review_schema(), config)
         assert preserved[0]["findings"] == []
-        assert v54._telemetry_error_count(config) == before_errors + 1
+        assert telemetry.telemetry_error_count(config) == before_errors + 1
         try:
-            fake.hardened.openrouter_review("fail-call", review_schema(), config)
+            run_review("fail-call", review_schema(), config)
         except RuntimeError as exc:
             assert "synthetic transport failure" in str(exc)
         else:
             raise AssertionError("telemetry failure masked provider failure semantics")
-        assert v54._telemetry_error_count(config) == before_errors + 2
+        assert telemetry.telemetry_error_count(config) == before_errors + 2
     finally:
-        v54._drain_call = original_drain
+        telemetry._drain_call = original_drain
 
     # Terminal telemetry summarization is also fail-soft. The original reporter
     # complete/fail methods must run, and a bounded unavailable marker is emitted.
-    original_summarize = v54.summarize_sink
+    original_summarize = telemetry.summarize_sink
     def broken_summary(_config):
         raise RuntimeError("synthetic telemetry summary failure")
-    v54.summarize_sink = broken_summary
+    telemetry.summarize_sink = broken_summary
     try:
         complete_reporter = fake.hardened.ProgressReporter(None, 519, "/dcoir-review", config)
         complete_reporter.complete("model-a", 0, "COMMENT")
@@ -624,43 +631,23 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
         fail_reporter.fail("synthetic original failure")
         assert fail_reporter.failed is True
     finally:
-        v54.summarize_sink = original_summarize
+        telemetry.summarize_sink = original_summarize
 
     # Loader-side telemetry initialization and patch wiring are best-effort too.
-    original_ensure = v54._ensure_sink
+    original_ensure = telemetry.ensure_sink
     def broken_ensure(_config):
         raise RuntimeError("synthetic telemetry sink failure")
-    v54._ensure_sink = broken_ensure
+    telemetry.ensure_sink = broken_ensure
     try:
-        # Loader-side initialization now belongs to canonical review_config, not v54.
+        # Loader-side initialization now belongs to canonical review_config, not telemetry.
         # Exercise the real canonical production loader while sink creation is broken.
         fallback_config = review.load_pareto_context_config(
             ".github/dcoir_review/openrouter-pr-review-pareto.yml"
         )
         assert fallback_config.debug is False
-        assert v54._telemetry_error_count(fallback_config) >= 1
+        assert telemetry.telemetry_error_count(fallback_config) >= 1
     finally:
-        v54._ensure_sink = original_ensure
-
-    unavailable_updates: list[tuple[str, str]] = []
-    broken_module = SimpleNamespace(
-        hardened=SimpleNamespace(),
-        base=SimpleNamespace(
-            emit_status=lambda stage, message: unavailable_updates.append((stage, message))
-        ),
-        load_pareto_context_config=lambda _path: SimpleNamespace(model="sentinel"),
-    )
-    original_loader = broken_module.load_pareto_context_config
-    v54.apply_pareto_context_module(broken_module)
-    assert getattr(broken_module, v54.APPLIED_MARKER, False) is False
-    assert set(getattr(broken_module, v54.PATCH_ERRORS_ATTR, ())) == {"openrouter-review"}
-    assert broken_module.load_pareto_context_config is original_loader
-    entrypoint._emit_telemetry_patch_unavailable(broken_module)
-    assert len(unavailable_updates) == 1
-    assert unavailable_updates[0][0] == "openrouter-telemetry"
-    assert "telemetry_status=unavailable" in unavailable_updates[0][1]
-    assert "openrouter-review" in unavailable_updates[0][1]
-    assert "progress-reporter" not in unavailable_updates[0][1]
+        telemetry.ensure_sink = original_ensure
 
     # Provider-side attempt telemetry itself is bounded and prompt-free.
     provider_probe = copy.copy(production_config)
@@ -686,7 +673,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     assert provider_attempt["http_status"] == 503
     assert "prompt" not in provider_attempt
 
-    print("dcoir_review_required_runtime_patch_v54_selftest: PASS")
+    print("dcoir_review_review_telemetry_selftest: PASS")
 
 
 if __name__ == "__main__":

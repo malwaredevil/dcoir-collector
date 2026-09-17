@@ -83,10 +83,11 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     post_telemetry = entrypoint.post_telemetry_patch_module_names
     assert "dcoir_review_required_runtime_patch_v56" in post_telemetry
-    assert "dcoir_review_required_runtime_patch_v57" in post_telemetry
+    assert "dcoir_review.final_adjudication_policy" in post_telemetry
+    assert "dcoir_review.provider_review" in post_telemetry
     assert post_telemetry.index("dcoir_review_required_runtime_patch_v56") < post_telemetry.index(
-        "dcoir_review_required_runtime_patch_v57"
-    )
+        "dcoir_review.final_adjudication_policy"
+    ) < post_telemetry.index("dcoir_review.provider_review")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
@@ -94,7 +95,7 @@ def main() -> None:
     repair_pipeline = importlib.import_module("dcoir_review.repair_pipeline")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     v53 = importlib.import_module("dcoir_review_required_runtime_patch_v53")
-    v54 = importlib.import_module("dcoir_review_required_runtime_patch_v54")
+    from dcoir_review import review_telemetry as telemetry
     v56 = importlib.import_module("dcoir_review_required_runtime_patch_v56")
     batch = importlib.import_module("dcoir_review_required_runtime_patch_v56_batch")
     repair_stage = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
@@ -140,7 +141,7 @@ def main() -> None:
             ids = re.findall(r'"critic_item_id": "([^"]+)"', prompt)
             assert len(ids) >= 2, ids
             assert getattr(cfg, batch.STAGE_LABEL_ATTR, "") == "repair-critic"
-            assert v54.classify_stage(prompt, schema, cfg) == "repair-critic"
+            assert telemetry.classify_stage(prompt, schema, cfg) == "repair-critic"
             calls.append(("batch-critic", ",".join(ids), str(cfg.model)))
             return {
                 "results": [

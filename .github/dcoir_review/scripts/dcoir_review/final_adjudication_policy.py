@@ -1,4 +1,4 @@
-"""DCOIR Review v57 terminal clean-disposition and prompt-floor overlay."""
+"""Stable final semantic-adjudication publication and disposition policy."""
 
 from __future__ import annotations
 
@@ -8,13 +8,11 @@ import math
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v35 as v35
-import dcoir_review_required_runtime_patch_v54 as v54
+from dcoir_review import review_telemetry
 
 
 VERSION = "v57"
-APPLIED_MARKER = "_dcoir_review_v57_applied"
-SPLIT_STORAGE = "_dcoir_review_v57_original_split_findings_with_review_body_fallback"
-REVIEW_STORAGE = "_dcoir_review_v57_original_openrouter_review"
+APPLIED_MARKER = "_dcoir_review_final_adjudication_policy_applied"
 DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
 PROMPT_INJECTION_ATTR = "_dcoir_v57_publication_floor_injected"
 PROMPT_MARKER = "DCOIR downstream publication confidence floor:"
@@ -333,77 +331,55 @@ def _apply_prompt_budget(prompt: str, config: Any) -> str:
     )
 
 
-def _patch_openrouter_review(module: Any) -> None:
-    hardened = module.hardened
-    original = getattr(hardened, REVIEW_STORAGE, None)
-    if original is None:
-        original = getattr(hardened, "openrouter_review", None)
-        if callable(original):
-            setattr(hardened, REVIEW_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v57 could not locate hardened openrouter_review")
 
-    def openrouter_review(prompt, schema, config, reporter=None):
+def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any]:
+    try:
         injected = _inject_publication_floor(prompt, config)
-        if injected is prompt:
-            return original(prompt, schema, config, reporter)
-
-        try:
-            staged = copy.copy(config)
-            setattr(staged, v54.STAGE_LABEL_ATTR, "semantic-adjudicator")
-            setattr(staged, PROMPT_INJECTION_ATTR, True)
-        except Exception:
-            return original(prompt, schema, config, reporter)
-        try:
-            module.hardened.write_debug_text_artifact_safely(
-                config,
-                PROMPT_ARTIFACT_PATH,
-                injected,
-            )
-        except Exception as exc:
-            try:
-                module.hardened.write_debug_text_artifact_safely(
-                    config,
-                    "dcoir_review_v57_prompt_floor_injection_error.txt",
-                    repr(exc),
-                )
-            except Exception:
-                # Intentionally ignore secondary debug-artifact write failures.
-                # This path is best-effort diagnostics and must not alter review flow.
-                pass
-        return original(injected, schema, staged, reporter)
-
-    hardened.openrouter_review = openrouter_review
+    except Exception:
+        return prompt, config
+    if injected is prompt:
+        return prompt, config
+    try:
+        staged = copy.copy(config)
+        setattr(staged, review_telemetry.STAGE_LABEL_ATTR, "semantic-adjudicator")
+        setattr(staged, PROMPT_INJECTION_ATTR, True)
+    except Exception:
+        return prompt, config
+    try:
+        module.hardened.write_debug_text_artifact_safely(
+            config, PROMPT_ARTIFACT_PATH, injected
+        )
+    except Exception:
+        pass
+    return injected, staged
 
 
-def _patch_terminal_split(module: Any) -> None:
-    original = getattr(module, SPLIT_STORAGE, None)
-    if original is None:
-        original = getattr(module, "split_findings_with_review_body_fallback", None)
-        if callable(original):
-            setattr(module, SPLIT_STORAGE, original)
+def _install_terminal_split(module: Any) -> None:
+    original = getattr(module, "split_findings_with_review_body_fallback", None)
     if not callable(original):
-        raise RuntimeError("DCOIR v57 could not locate split_findings_with_review_body_fallback")
+        raise RuntimeError(
+            "DCOIR final adjudication policy could not locate "
+            "split_findings_with_review_body_fallback"
+        )
 
     def split_findings_with_review_body_fallback(
-        result,
-        config,
-        line_index,
-        diff="",
-        risk_sentinels=None,
+        result, config, line_index, diff="", risk_sentinels=None
     ):
-        disposition = _terminal_disposition(module, result, config, line_index, risk_sentinels)
+        disposition = _terminal_disposition(
+            module, result, config, line_index, risk_sentinels
+        )
         if disposition is not None:
             _record_terminal_disposition(module, result, disposition, config)
             return [], []
         return original(result, config, line_index, diff, risk_sentinels)
 
-    module.split_findings_with_review_body_fallback = split_findings_with_review_body_fallback
+    module.split_findings_with_review_body_fallback = (
+        split_findings_with_review_body_fallback
+    )
 
 
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_openrouter_review(module)
-    _patch_terminal_split(module)
+    _install_terminal_split(module)
     setattr(module, APPLIED_MARKER, True)

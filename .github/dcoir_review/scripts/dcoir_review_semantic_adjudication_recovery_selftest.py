@@ -169,18 +169,17 @@ def production_config(review):
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.telemetry_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v54",
-    )
+    assert entrypoint.telemetry_patch_module_names == ()
     post_telemetry = entrypoint.post_telemetry_patch_module_names
     assert post_telemetry[:2] == (
         "dcoir_review.progress_reporting",
         "dcoir_review.provider_transport_retry",
     )
-    assert post_telemetry[-3:] == (
+    assert post_telemetry[-4:] == (
         "dcoir_review.semantic_adjudication_recovery",
         "dcoir_review_required_runtime_patch_v56",
-        "dcoir_review_required_runtime_patch_v57",
+        "dcoir_review.final_adjudication_policy",
+        "dcoir_review.provider_review",
     )
     assert post_telemetry.index("dcoir_review.semantic_adjudication_recovery") < post_telemetry.index("dcoir_review_required_runtime_patch_v56")
 

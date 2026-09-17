@@ -123,9 +123,7 @@ class DcoirReviewEntrypoint:
     # invariants. v54 owns request-path usage/provider/recovery telemetry after the
     # scope guards/v52/v53 and exposes bounded terminal run telemetry, but it no
     # longer replaces ProgressReporter or stores a prior reporter shim.
-    telemetry_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v54',
-    )
+    telemetry_patch_module_names: tuple[str, ...] = ()
     # Canonical progress reporting is installed immediately after v54 request
     # telemetry. It is the single terminal reporter composition owner, combining
     # verified-finding completion overrides with v54 terminal run telemetry while
@@ -137,7 +135,8 @@ class DcoirReviewEntrypoint:
         'dcoir_review.provider_transport_retry',
         'dcoir_review.semantic_adjudication_recovery',
         'dcoir_review_required_runtime_patch_v56',
-        'dcoir_review_required_runtime_patch_v57',
+        'dcoir_review.final_adjudication_policy',
+        'dcoir_review.provider_review',
     )
 
     def import_module(self, module_name: str) -> ModuleType:
@@ -172,40 +171,10 @@ class DcoirReviewEntrypoint:
             self._apply_patch_modules(review_module, self.telemetry_patch_module_names)
             self._apply_patch_modules(review_module, self.post_telemetry_patch_module_names)
 
-    def _emit_telemetry_patch_unavailable(self, review_module: ModuleType) -> None:
-        try:
-            errors = getattr(review_module, "_dcoir_v54_patch_errors", ())
-        except Exception:
-            return
-        if not isinstance(errors, (tuple, list)) or not errors:
-            return
-        safe_errors = []
-        for value in errors:
-            cleaned = "".join(
-                char for char in str(value) if char.isalnum() or char in {"-", "_", "."}
-            )[:48]
-            if cleaned:
-                safe_errors.append(cleaned)
-        detail = ",".join(safe_errors) or "unknown"
-        message = (
-            "schema=dcoir_openrouter_run_telemetry_v1; telemetry_status=unavailable; "
-            f"patch_errors={detail}"
-        )[:600]
-        try:
-            base = getattr(review_module, "base", None)
-            emit = getattr(base, "emit_status", None)
-            if callable(emit):
-                emit("openrouter-telemetry", message)
-        except Exception:
-            return
-
     def run(self) -> None:
         review_module = self.import_module(self.review_module_name)
-        try:
-            self.apply_runtime_patches(review_module)
-            review_module.main()
-        finally:
-            self._emit_telemetry_patch_unavailable(review_module)
+        self.apply_runtime_patches(review_module)
+        review_module.main()
 
 
 def main() -> None:

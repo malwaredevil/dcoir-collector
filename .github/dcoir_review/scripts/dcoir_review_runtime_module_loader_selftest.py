@@ -38,6 +38,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
 DIRECT_IMPORT_MODULES = (
     "adversarial_prompt_policy.py",
     "entrypoint.py",
+    "final_adjudication_policy.py",
     "finding_family.py",
     "finding_comment_render.py",
     "finding_verifier.py",
@@ -60,7 +61,12 @@ DIRECT_IMPORT_MODULES = (
     "review_scope_guard.py",
     "review_config.py",
     "review_orchestration.py",
+    "review_telemetry.py",
+    "review_telemetry_events.py",
+    "review_telemetry_state.py",
+    "review_telemetry_summary.py",
     "review_scope_guard_hooks.py",
+    "provider_review.py",
     "provider_transport_retry.py",
     "precision_guard.py",
     "progress_reporting.py",
@@ -238,6 +244,12 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     assert "dcoir_review_required_runtime_patch_v52" not in numbered, (
         "retired v52 production owner reappeared"
     )
+    assert "dcoir_review_required_runtime_patch_v54" not in numbered, (
+        "retired v54 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v57" not in numbered, (
+        "retired v57 production owner reappeared"
+    )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
@@ -332,7 +344,6 @@ def assert_canonical_config_loader_ownership() -> None:
         "dcoir_review/verified_finding_gate.py",
         "dcoir_review/semantic_candidate_identity.py",
         "dcoir_review/per_file_routing.py",
-        "dcoir_review_required_runtime_patch_v54.py",
         "dcoir_review_required_runtime_patch_v56.py",
     )
     for relative in former_config_owners:
@@ -477,9 +488,9 @@ def assert_canonical_progress_reporter_ownership() -> None:
     assert "def _patch_progress_reporter(" not in gate_source
     assert "_dcoir_review_verified_finding_gate_original_progress_reporter" not in gate_source
 
-    v54_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v54.py").read_text(encoding="utf-8")
-    assert "def _patch_progress_reporter(" not in v54_source
-    assert "_dcoir_review_v54_original_progress_reporter" not in v54_source
+    telemetry_source = (SCRIPTS / "dcoir_review" / "review_telemetry.py").read_text(encoding="utf-8")
+    assert "def _patch_progress_reporter(" not in telemetry_source
+    assert "_dcoir_review_v54_original_progress_reporter" not in telemetry_source
 
     entrypoint = DcoirReviewEntrypoint()
     wrapper = SCRIPTS / "openrouter_pr_review_pareto_context.py"

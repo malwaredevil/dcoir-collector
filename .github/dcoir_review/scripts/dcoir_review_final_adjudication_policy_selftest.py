@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic regressions for DCOIR Review v57."""
+"""Deterministic regressions for stable final-adjudication policy."""
 
 from __future__ import annotations
 
@@ -7,13 +7,13 @@ from types import SimpleNamespace
 from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
-import dcoir_review_required_runtime_patch_v54 as v54
+from dcoir_review import review_telemetry as telemetry
 import dcoir_review_required_runtime_patch_v35 as v35
-import dcoir_review_required_runtime_patch_v57 as v57
-from dcoir_review_required_runtime_patch_v57_selftest_prompt import (
+from dcoir_review import final_adjudication_policy as final_policy
+from dcoir_review_final_adjudication_policy_selftest_prompt import (
     run_prompt_regressions,
 )
-from dcoir_review_required_runtime_patch_v57_selftest_production import (
+from dcoir_review_final_adjudication_policy_selftest_production import (
     run_production_regressions,
 )
 
@@ -30,7 +30,7 @@ class FakeHardened:
 
     def openrouter_review(self, prompt, schema, config, _reporter=None):
         self.review_prompts.append(str(prompt))
-        self.review_stages.append(v54.classify_stage(prompt, schema, config))
+        self.review_stages.append(telemetry.classify_stage(prompt, schema, config))
         return {"summary": "clean", "findings": []}, "fake-model", "default"
 
     def required_risk_sentinels(self, values):
@@ -97,7 +97,7 @@ def finding(path: str, line: int, confidence: float, title: str = "Candidate") -
 
 def adjudicated_result(
     findings: list[dict[str, Any]],
-    summary: str = v57.CLEAN_SUMMARY,
+    summary: str = final_policy.CLEAN_SUMMARY,
     *,
     context_scope: str | None = None,
     provider_result_keys: tuple[str, ...] = ("summary", "findings"),
@@ -130,27 +130,20 @@ def expect_legacy_failure(module: FakeModule, result: dict[str, Any], config: An
     except RuntimeError as exc:
         assert "legacy fail-closed path" in str(exc)
     else:
-        raise AssertionError("v57 bypassed fail-closed")
+        raise AssertionError("stable final policy bypassed fail-closed")
     assert module.original_split_calls == before + 1
 
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_telemetry_patch_module_names[-3:] == (
-        "dcoir_review.semantic_adjudication_recovery",
-        "dcoir_review_required_runtime_patch_v56",
-        "dcoir_review_required_runtime_patch_v57",
-    )
-
     config = SimpleNamespace(minimum_confidence=0.70, fail_on_summary_only_problem=True)
     module = FakeModule()
-    v57.apply_pareto_context_module(module)
-    assert getattr(module, v57.APPLIED_MARKER, False) is True
-    stored_review = getattr(module.hardened, v57.REVIEW_STORAGE)
-    stored_split = getattr(module, v57.SPLIT_STORAGE)
-    v57.apply_pareto_context_module(module)
-    assert getattr(module.hardened, v57.REVIEW_STORAGE) is stored_review
-    assert getattr(module, v57.SPLIT_STORAGE) is stored_split
+    final_policy.apply_pareto_context_module(module)
+    assert getattr(module, final_policy.APPLIED_MARKER, False) is True
+    installed_split = module.split_findings_with_review_body_fallback
+    assert not hasattr(module.hardened, "_dcoir_review_v57_original_openrouter_review")
+    final_policy.apply_pareto_context_module(module)
+    assert module.split_findings_with_review_body_fallback is installed_split
 
     run_prompt_regressions(module, config)
 
@@ -165,7 +158,7 @@ def main() -> None:
                 "Readback gate may lack actor",
             ),
         ],
-        v57.CLEAN_SUMMARY,
+        final_policy.CLEAN_SUMMARY,
     )
     findings, unanchored = module.split_findings_with_review_body_fallback(
         live_shape,
@@ -182,8 +175,8 @@ def main() -> None:
     assert unanchored == []
     assert module.original_split_calls == 0
     assert live_shape["findings"] == []
-    assert live_shape["summary"] == v57.CLEAN_SUMMARY
-    marker = live_shape[v57.DISPOSITION_MARKER]
+    assert live_shape["summary"] == final_policy.CLEAN_SUMMARY
+    marker = live_shape[final_policy.DISPOSITION_MARKER]
     assert marker["candidate_count"] == 3
     assert marker["minimum_confidence"] == 0.70
     assert marker["lowest_confidence"] == 0.45
@@ -209,7 +202,7 @@ def main() -> None:
     expect_legacy_failure(module, early, config)
 
     incomplete_marker = {
-        "summary": v57.CLEAN_SUMMARY,
+        "summary": final_policy.CLEAN_SUMMARY,
         "findings": [finding("probe.py", 10, 0.55)],
         "_semantic_adjudication_attempted": True,
     }
@@ -262,14 +255,14 @@ def main() -> None:
     for scope in ("candidate-scoped", "broad"):
         scoped = adjudicated_result(
             [finding("probe.py", 10, 0.55)],
-            v57.CLEAN_SUMMARY,
+            final_policy.CLEAN_SUMMARY,
             context_scope=scope,
         )
         expect_legacy_failure(module, scoped, config)
 
     unanchored = adjudicated_result(
         [finding("probe.py", 99, 0.55)],
-        v57.CLEAN_SUMMARY,
+        final_policy.CLEAN_SUMMARY,
     )
     expect_legacy_failure(module, unanchored, config)
 
@@ -384,7 +377,7 @@ def main() -> None:
 
     run_production_regressions(entrypoint, adjudicated_result, finding)
 
-    print("dcoir_review_required_runtime_patch_v57_selftest passed")
+    print("dcoir_review_final_adjudication_policy_selftest passed")
 
 
 if __name__ == "__main__":

@@ -11,7 +11,6 @@ from dcoir_review import review_scope_guard as review_scope
 
 RECOVERY_ATTR = "_dcoir_v52_last_structured_output_recovery"
 _PROVIDER_STORAGE = "_dcoir_review_structured_result_provider_prior_openrouter_request_once"
-_REVIEW_STORAGE = "_dcoir_review_structured_result_provider_prior_openrouter_review"
 _SCOPE_PROVIDER_STORAGE = "_dcoir_review_review_scope_guard_original_openrouter_request_once"
 _FENCED_OBJECT_RE = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", flags=re.DOTALL)
 
@@ -238,6 +237,29 @@ def annotate_request_telemetry(
         setattr(config, "_openrouter_last_request_telemetry", revised)
 
 
+def reset_review_recovery(config: Any) -> None:
+    setattr(config, RECOVERY_ATTR, "")
+
+
+def report_review_recovery(config: Any, reporter: Any) -> None:
+    if reporter is None:
+        return
+    mode = str(getattr(config, RECOVERY_ATTR, "") or "")
+    try:
+        if mode == "balanced-envelope":
+            reporter.update(
+                "structured-output-recovery",
+                "mode=balanced-envelope; deterministic recovery avoided provider/model retry",
+            )
+        elif mode == "fenced-object":
+            reporter.update(
+                "structured-output-recovery",
+                "mode=fenced-object; existing fenced-object recovery used",
+            )
+    except Exception:
+        return
+
+
 def patch_provider(module: Any) -> None:
     """Replace the provider boundary while preserving the stable exact-scope guard."""
     hardened = module.hardened
@@ -272,29 +294,3 @@ def patch_provider(module: Any) -> None:
     hardened.openrouter_request_once = openrouter_request_once
     if hasattr(module, "openrouter_request_once"):
         module.openrouter_request_once = openrouter_request_once
-
-    current_review = getattr(hardened, "openrouter_review", None)
-    if not callable(current_review):
-        raise RuntimeError("DCOIR structured-result provider recovery could not locate hardened openrouter_review")
-    if not hasattr(hardened, _REVIEW_STORAGE):
-        setattr(hardened, _REVIEW_STORAGE, current_review)
-
-    def openrouter_review(prompt, schema, config, reporter=None):
-        setattr(config, RECOVERY_ATTR, "")
-        result = current_review(prompt, schema, config, reporter)
-        mode = str(getattr(config, RECOVERY_ATTR, "") or "")
-        if reporter and mode == "balanced-envelope":
-            reporter.update(
-                "structured-output-recovery",
-                "mode=balanced-envelope; deterministic recovery avoided provider/model retry",
-            )
-        elif reporter and mode == "fenced-object":
-            reporter.update(
-                "structured-output-recovery",
-                "mode=fenced-object; existing fenced-object recovery used",
-            )
-        return result
-
-    hardened.openrouter_review = openrouter_review
-    if hasattr(module, "openrouter_review"):
-        module.openrouter_review = openrouter_review
