@@ -127,6 +127,14 @@ header_regression_cases = [
     (f'Authorization: Bearer \\"{escaped_quoted_header_secret}\\"', escaped_quoted_header_secret),
     (f'Proxy-Authorization: Basic \\"{escaped_quoted_header_secret}\\"', escaped_quoted_header_secret),
 ]
+literal_braced_header = 'Authorization: "Bearer {abcdefghijklmnopqrstuvwxyz}"'
+redacted_literal_braced_header = mod.redact_header_field_credentials(literal_braced_header)
+assert "abcdefghijklmnopqrstuvwxyz" not in redacted_literal_braced_header, redacted_literal_braced_header
+assert "[redacted-secret]" in redacted_literal_braced_header, redacted_literal_braced_header
+
+fstring_braced_header = 'Authorization: f"Bearer {OPENROUTER_API_KEY}"'
+assert mod.redact_header_field_credentials(fstring_braced_header) == fstring_braced_header
+
 for safe_quoted_header in [
     'Authorization: Bearer "${OPENROUTER_API_KEY}"',
     "Proxy-Authorization: Basic '${OPENROUTER_API_KEY}'",

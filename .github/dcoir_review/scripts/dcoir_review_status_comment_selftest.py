@@ -24,10 +24,13 @@ class FakeGitHub:
 
     def request(self, method: str, path: str, body=None, accept: str = "application/vnd.github+json"):
         del body, accept
-        assert method == "GET", (method, path)
-        if "/comments?" in path:
+        if method == "GET" and "/comments?" in path:
             return list(self.comments)
-        raise AssertionError(path)
+        if method == "DELETE" and "/issues/comments/" in path:
+            comment_id = int(path.rsplit("/", 1)[-1])
+            self.comments = [c for c in self.comments if int(c.get("id", 0) or 0) != comment_id]
+            return None
+        raise AssertionError((method, path))
 
     def create_issue_comment(self, number: int, body: str):
         del number
@@ -133,6 +136,23 @@ def test_spoofed_user_marker_is_not_reused() -> None:
     assert gh.create_count == 1
 
 
+class RacingGitHub(FakeGitHub):
+    def create_issue_comment(self, number: int, body: str):
+        if not self.comments:
+            self.comments.append({"id": 900, "body": f"{STATUS_MARKER}\ncompeting", "user": {"login": "github-actions[bot]", "type": "Bot"}})
+        return super().create_issue_comment(number, body)
+
+
+def test_concurrent_creation_reconciles_to_earliest_comment() -> None:
+    gh = RacingGitHub()
+    publisher = MutableReviewStatusComment(gh, 55)
+    assert publisher.publish(f"{STATUS_MARKER}\nqueued") is True
+    canonical = [c for c in gh.comments if STATUS_MARKER in str(c.get("body", ""))]
+    assert len(canonical) == 1, canonical
+    assert publisher.comment_id == 900
+    assert str(canonical[0]["body"]) == f"{STATUS_MARKER}\nqueued"
+
+
 def test_status_write_failures_are_observational() -> None:
     gh = FakeGitHub(fail_writes=True)
     publisher = MutableReviewStatusComment(gh, 55)
@@ -151,6 +171,7 @@ def test_status_write_failures_are_observational() -> None:
 def main() -> None:
     test_single_mutable_comment_and_rerun_reuse()
     test_spoofed_user_marker_is_not_reused()
+    test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()
     print("DCOIR mutable status comment self-test passed")
 

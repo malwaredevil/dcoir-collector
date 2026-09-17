@@ -198,7 +198,11 @@ def redact_header_field_credentials(text: str) -> str:
             continue
         value = text[value_start:value_end]
         scheme_match = HEADER_VALUE_SCHEME.fullmatch(value)
-        if is_safe_header_secret_value(value.strip()) or (scheme_match and is_safe_header_secret_value(scheme_match.group("secret").strip())):
+        secret_value = scheme_match.group("secret").strip() if scheme_match else value.strip()
+        safe_value = is_safe_header_secret_value(value.strip()) or (scheme_match and is_safe_header_secret_value(secret_value))
+        bare_brace_reference = bool(re.fullmatch(r"\{[A-Za-z_][A-Za-z0-9_.]*\}", secret_value))
+        is_fstring = "f" in str(match.group("value_prefix") or "").lower()
+        if safe_value and (not bare_brace_reference or is_fstring):
             continue
         result.append(text[cursor:value_start])
         if scheme_match:

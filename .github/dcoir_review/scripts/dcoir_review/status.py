@@ -32,13 +32,12 @@ class MutableReviewStatusComment:
         self.last_body = ""
         self.last_error = ""
 
-    def discover(self) -> int:
-        """Reuse the newest bot-authored canonical status comment on this PR."""
+    def _canonical_comment_ids(self) -> list[int]:
         matches: list[int] = []
         try:
             repo = str(getattr(self.gh, "repo", "") or "").strip()
             if not repo:
-                return 0
+                return []
             for page in range(1, MAX_COMMENT_PAGES + 1):
                 batch = self.gh.request(
                     "GET",
@@ -62,12 +61,31 @@ class MutableReviewStatusComment:
                     break
         except Exception as exc:
             self._warn(f"unable to discover canonical status comment: {exc}")
-            return 0
+            return []
+        return sorted(set(matches))
 
+    def discover(self) -> int:
+        """Reuse the earliest bot-authored canonical status comment on this PR."""
+        matches = self._canonical_comment_ids()
         if not matches:
             return 0
-        self.comment_id = max(matches)
+        self.comment_id = matches[0]
         return self.comment_id
+
+    def _reconcile_created_comment(self) -> None:
+        matches = self._canonical_comment_ids()
+        if not matches:
+            return
+        canonical_id = matches[0]
+        self.comment_id = canonical_id
+        repo = str(getattr(self.gh, "repo", "") or "").strip()
+        if not repo:
+            return
+        for duplicate_id in matches[1:]:
+            try:
+                self.gh.request("DELETE", f"/repos/{repo}/issues/comments/{duplicate_id}")
+            except Exception as exc:
+                self._warn(f"unable to delete duplicate canonical status comment {duplicate_id}: {exc}")
 
     def publish(self, body: str, *, create_if_missing: bool = True, force: bool = False) -> bool:
         """Create or update the canonical comment without affecting review outcome."""
@@ -84,7 +102,11 @@ class MutableReviewStatusComment:
                 self.gh.update_issue_comment(self.comment_id, canonical)
             elif create_if_missing:
                 comment = self.gh.create_issue_comment(self.issue_number, canonical)
-                self.comment_id = int(comment.get("id", 0) or 0)
+                created_comment_id = int(comment.get("id", 0) or 0)
+                self.comment_id = created_comment_id
+                self._reconcile_created_comment()
+                if self.comment_id and self.comment_id != created_comment_id:
+                    self.gh.update_issue_comment(self.comment_id, canonical)
             else:
                 return False
             self.last_body = canonical
