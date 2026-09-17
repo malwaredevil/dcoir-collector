@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the chronology-dependent `hardened.openrouter_review` wrapper chain with one canonical provider-review owner while preserving structured-output recovery, request/run telemetry, final-adjudication publication-floor behavior, terminal low-confidence disposition, provider transport retry semantics, and exact existing failure behavior.
+**Goal:** Replace the chronology-dependent `hardened.openrouter_review` wrapper chain with one canonical provider-review owner while preserving structured-output recovery, request/run telemetry, final-adjudication publication-floor behavior, terminal low-confidence disposition, provider transport retry semantics, and exact failure behavior.
 
 **Architecture:** `dcoir_review.provider_review` becomes the only production installer/final owner of `hardened.openrouter_review`. It explicitly composes `dcoir_review.final_adjudication_policy`, `dcoir_review.review_telemetry`, and `dcoir_review.structured_result_provider` around the pre-existing provider-review loop, while v54/v57 production modules and their stored-original review shims are retired.
 
-**Tech Stack:** Python 3, existing DCOIR Review runtime modules/selftests, Git/GitHub, Windows PowerShell 5.1 parser validation, deterministic offline validation, GitHub Actions exact-head validation.
+**Tech Stack:** Python 3, DCOIR Review runtime modules/selftests, Git/GitHub, Git-for-Windows Bash, native Windows PowerShell 5.1, deterministic offline validation, GitHub Actions exact-head validation.
 
 **Spec:** `docs/superpowers/specs/2026-09-17-provider-review-consolidation-design.md`
 
@@ -31,16 +31,16 @@
 ### New stable responsibility modules
 
 - `.github/dcoir_review/scripts/dcoir_review/provider_review.py` — sole installer/final owner for `hardened.openrouter_review`.
-- `.github/dcoir_review/scripts/dcoir_review/review_telemetry.py` — stable request/run telemetry data structures, stage classification, call preparation/completion, summarization, and terminal emission.
+- `.github/dcoir_review/scripts/dcoir_review/review_telemetry.py` — request/run telemetry data structures, stage classification, call preparation/completion, summarization, and terminal emission.
 - `.github/dcoir_review/scripts/dcoir_review/final_adjudication_policy.py` — final-v35 publication-floor projection plus terminal low-confidence disposition policy.
 
 ### Stable selftests
 
-- `.github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py` — canonical ownership, call ordering, exception propagation, and zero stored-original review shims.
-- `.github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py` — migrated v54 telemetry behavior under stable ownership.
-- `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py` — migrated v57 terminal disposition behavior.
-- `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_prompt.py` — migrated publication-floor/prompt-budget behavior.
-- `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_production.py` — migrated production composition regressions.
+- `.github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py`
+- `.github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py`
+- `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py`
+- `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_prompt.py`
+- `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_production.py`
 
 ### Modified integration surfaces
 
@@ -70,12 +70,12 @@
 - Modify: `.github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py`
 
 **Interfaces:**
-- Consumes: current `DcoirReviewEntrypoint.apply_runtime_patches()` production composition.
-- Produces: a stable regression contract requiring `dcoir_review.provider_review` to be the sole final `hardened.openrouter_review` owner.
+- Consumes: `DcoirReviewEntrypoint.apply_runtime_patches()`.
+- Produces: stable regression coverage requiring `dcoir_review.provider_review` to be the sole final `hardened.openrouter_review` owner.
 
 - [ ] **Step 1: Write the failing ownership test**
 
-Create a deterministic selftest that applies the live production composition and asserts all of the following:
+Create a deterministic selftest that applies production composition and asserts:
 
 ```python
 review = importlib.import_module("openrouter_pr_review_pareto_context")
@@ -93,7 +93,7 @@ for storage in (
     assert not hasattr(review.hardened, storage), storage
 ```
 
-The same selftest must include a fake underlying provider review and event log proving canonical call order for a forced final-adjudication call:
+The same selftest must use a fake provider review and event log to prove final-adjudication success order:
 
 ```python
 [
@@ -105,7 +105,7 @@ The same selftest must include a fake underlying provider review and event log p
 ]
 ```
 
-Add the failed-provider variant and require:
+and failed-provider order:
 
 ```python
 [
@@ -116,11 +116,11 @@ Add the failed-provider variant and require:
 ]
 ```
 
-with the exact original provider exception re-raised.
+The failed-provider case must re-raise the exact original exception object.
 
-- [ ] **Step 2: Add runtime-loader expectations for the three future stable modules**
+- [ ] **Step 2: Register the three future stable modules in the runtime-loader ownership test**
 
-Add these direct-import paths to `DIRECT_IMPORT_MODULES` in `dcoir_review_runtime_module_loader_selftest.py`:
+Add to `DIRECT_IMPORT_MODULES`:
 
 ```python
 "final_adjudication_policy.py",
@@ -128,21 +128,19 @@ Add these direct-import paths to `DIRECT_IMPORT_MODULES` in `dcoir_review_runtim
 "review_telemetry.py",
 ```
 
-Do not remove v54/v57 production registration assertions yet; this task is RED by design.
+Do not retire v54/v57 assertions yet; this task is intentionally RED.
 
-- [ ] **Step 3: Run RED and capture the expected failure**
-
-Run:
+- [ ] **Step 3: Run RED**
 
 ```powershell
 python .github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py
 ```
 
-Expected: FAIL because `dcoir_review.provider_review` does not exist and the current runtime still exposes three stored-original `openrouter_review` shims.
+Expected: non-zero exit because `dcoir_review.provider_review` is absent and the current runtime still exposes three stored-original review shims.
 
-- [ ] **Step 4: Keep the RED test uncommitted**
+- [ ] **Step 4: Preserve RED evidence without an intermediate published source commit**
 
-Because this PR uses the operator-approved one-coherent-source-commit posture, do not publish an intermediate red-only commit. Record the RED evidence in the active turnover and continue to Task 2.
+Record the command, failure reason, and current head in the active turnover. Keep the source candidate uncommitted and continue to Task 2 so the operator-approved one-coherent-source-commit policy is preserved.
 
 ---
 
@@ -150,14 +148,11 @@ Because this PR uses the operator-approved one-coherent-source-commit posture, d
 
 **Files:**
 - Create: `.github/dcoir_review/scripts/dcoir_review/review_telemetry.py`
-- Create by responsibility-preserving rename/copy: `.github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py`
+- Create: `.github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py`
 - Modify: `.github/dcoir_review/scripts/dcoir_review/review_config.py`
 - Modify: `.github/dcoir_review/scripts/dcoir_review/progress_reporting.py`
-- Later delete after parity: `.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v54_selftest.py`
 
 **Interfaces:**
-- Consumes: existing v54 telemetry constants, `RunTelemetrySink`, stage classification, normalization, drain/copy, summary, compact summary, and terminal emission behavior.
-- Produces:
 
 ```python
 @dataclass(frozen=True)
@@ -177,9 +172,9 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str: ...
 def emit_run_telemetry(module: Any, reporter: Any) -> None: ...
 ```
 
-- [ ] **Step 1: Copy the stable telemetry primitives without changing serialized contracts**
+- [ ] **Step 1: Move telemetry primitives without changing serialized contracts**
 
-Move the v54 constants/data helpers into `review_telemetry.py`, preserving these literal compatibility values:
+Preserve these literal compatibility values:
 
 ```python
 SINK_ATTR = "_dcoir_v54_run_telemetry_sink"
@@ -189,35 +184,36 @@ STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
 SCHEMA_VERSION = "dcoir_openrouter_run_telemetry_v1"
 ```
 
-Keep `RunTelemetrySink`, `classify_stage`, `normalize_event`, `normalize_attempt`, `_drain_call`, `_copy_stage_local_telemetry`, `summarize_sink`, `compact_summary`, and `emit_run_telemetry` behavior byte-for-byte equivalent where practical.
+Move `RunTelemetrySink`, stage classification, normalization, drain/copy, summarization, compact-summary, and terminal-emission behavior from v54 into the stable module without changing their observable outputs.
 
-- [ ] **Step 2: Add explicit call preparation/completion APIs**
-
-Implement `prepare_review_call()` to perform the current v54 wrapper preparation:
+- [ ] **Step 2: Implement explicit call preparation**
 
 ```python
-try:
-    sink = ensure_sink(config)
-    stage = classify_stage(prompt, schema, config)
-    staged = copy.copy(config)
-    setattr(staged, SINK_ATTR, sink)
-    staged.openrouter_capture_request_telemetry = True
-    staged._openrouter_request_telemetry_events = []
-    staged._openrouter_request_attempt_telemetry_events = []
-    staged._openrouter_request_telemetry_error_count = 0
-    staged._openrouter_request_attempt_count = 0
-    staged._openrouter_last_request_telemetry = {}
-    return ReviewTelemetryCall(config, staged, sink, stage)
-except Exception:
-    note_telemetry_error(config)
-    return None
+def prepare_review_call(prompt: Any, schema: Any, config: Any) -> ReviewTelemetryCall | None:
+    try:
+        sink = ensure_sink(config)
+        stage = classify_stage(prompt, schema, config)
+        staged = copy.copy(config)
+        setattr(staged, SINK_ATTR, sink)
+        staged.openrouter_capture_request_telemetry = True
+        staged._openrouter_request_telemetry_events = []
+        staged._openrouter_request_attempt_telemetry_events = []
+        staged._openrouter_request_telemetry_error_count = 0
+        staged._openrouter_request_attempt_count = 0
+        staged._openrouter_last_request_telemetry = {}
+        return ReviewTelemetryCall(config, staged, sink, stage)
+    except Exception:
+        note_telemetry_error(config)
+        return None
 ```
 
-Implement `finish_review_call()` so it never raises. For `outcome in {"success", "failed"}`, call `_drain_call`; then, when `PER_FILE_PROJECTION_ATTR` is true on `root_config`, copy stage-local telemetry from `staged_config` back to `root_config`. Any telemetry failure calls `note_telemetry_error(root_config)` and returns.
+- [ ] **Step 3: Implement explicit call completion**
 
-- [ ] **Step 3: Switch canonical config initialization to stable telemetry**
+`finish_review_call(state, outcome)` must return immediately when `state is None`; otherwise call the existing drain logic with `outcome` equal to `success` or `failed`. If the root config has `PER_FILE_PROJECTION_ATTR`, copy stage-local telemetry back. Every telemetry error is caught, counted through `note_telemetry_error(root_config)`, and never escapes.
 
-Replace the historical import in `_initialize_run_telemetry_fail_soft()` with:
+- [ ] **Step 4: Switch canonical config initialization to stable telemetry**
+
+In `review_config._initialize_run_telemetry_fail_soft()` use:
 
 ```python
 from dcoir_review import review_telemetry as telemetry
@@ -228,9 +224,9 @@ except Exception:
     telemetry.note_telemetry_error(config)
 ```
 
-Preserve the existing outer fail-soft behavior.
+The outer config-load path must remain available even if both calls fail.
 
-- [ ] **Step 4: Switch canonical ProgressReporter telemetry to the stable module**
+- [ ] **Step 5: Switch ProgressReporter terminal telemetry to the stable module**
 
 Replace the v54 import in `progress_reporting.py` with:
 
@@ -238,35 +234,19 @@ Replace the v54 import in `progress_reporting.py` with:
 from dcoir_review import review_telemetry as telemetry
 ```
 
-Remove dependence on the v54 applied marker. `complete()` and `fail()` should call `telemetry.emit_run_telemetry(module, self)` inside the existing whole-call `try/except`, then continue into the original reporter behavior even if telemetry fails.
+Remove dependence on the v54 applied marker. `complete()` and `fail()` call `telemetry.emit_run_telemetry(module, self)` inside the existing whole-call `try/except`, then continue to the original reporter behavior even when telemetry fails.
 
-- [ ] **Step 5: Migrate the v54 selftest to stable names**
+- [ ] **Step 6: Migrate v54 behavioral tests to stable ownership**
 
-Copy the behavioral content of `dcoir_review_required_runtime_patch_v54_selftest.py` into `dcoir_review_review_telemetry_selftest.py`, replace imports/identifiers with `dcoir_review.review_telemetry`, and remove assertions about `telemetry_patch_module_names`, v54 patch application, `PATCH_ERRORS_ATTR`, `REVIEW_STORAGE`, or `_patch_openrouter_review`.
+Create `dcoir_review_review_telemetry_selftest.py` from the surviving behavioral assertions in the v54 selftest. Remove tests for v54 patch installation, `PATCH_ERRORS_ATTR`, `REVIEW_STORAGE`, and `_patch_openrouter_review`. Preserve tests for capture compatibility, stage classification, retry/failure attempt telemetry, secret/prompt exclusion, per-file copy-back, missing metadata, shared error counts, terminal emission, and fail-soft drain/summary/terminal behavior.
 
-Retain all behavior assertions for:
-
-- capture-on/off provider compatibility;
-- stage classification;
-- retry/failure attempt telemetry;
-- no prompt/response/secret leakage;
-- per-file copy-back;
-- missing metadata accounting;
-- shared error counts;
-- terminal telemetry emission;
-- terminal telemetry fail-soft behavior;
-- summary/drain failure fail-soft behavior.
-
-- [ ] **Step 6: Run focused telemetry GREEN**
-
-Run:
+- [ ] **Step 7: Run focused telemetry tests**
 
 ```powershell
 python .github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py
-python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py
 ```
 
-Expected: telemetry selftest PASS; runtime-loader may remain RED until entrypoint and historical source retirement are completed.
+Expected: exit 0. The runtime-loader ownership test may still fail until entrypoint cutover and historical-file retirement in Tasks 5-6.
 
 ---
 
@@ -274,24 +254,22 @@ Expected: telemetry selftest PASS; runtime-loader may remain RED until entrypoin
 
 **Files:**
 - Create: `.github/dcoir_review/scripts/dcoir_review/final_adjudication_policy.py`
-- Create by responsibility-preserving rename/copy: `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py`
-- Create by responsibility-preserving rename/copy: `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_prompt.py`
-- Create by responsibility-preserving rename/copy: `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_production.py`
+- Create: `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py`
+- Create: `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_prompt.py`
+- Create: `.github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest_production.py`
 
 **Interfaces:**
-- Consumes: v57 publication-floor injection, final-v35 callsite detection, prompt budgeting, terminal low-confidence classification/recording, and terminal split composition.
-- Produces:
 
 ```python
 def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any]: ...
 def apply_pareto_context_module(module: Any) -> None: ...
 ```
 
-- [ ] **Step 1: Move terminal disposition logic under stable ownership**
+- [ ] **Step 1: Move terminal-disposition logic under stable ownership**
 
-Move `_confidence`, `_publication_floor`, `_complete_subthreshold_candidate`, `_required_sentinels_absent`, `_summary_allows_clean`, `_completed_final_adjudication_matches_result`, `_provider_envelope_matches_schema`, `_terminal_disposition`, and `_record_terminal_disposition` into `final_adjudication_policy.py`.
+Move the v57 confidence, publication-floor, candidate validation, final-adjudication provenance, provider-envelope, terminal-disposition, and disposition-recording helpers into `final_adjudication_policy.py`.
 
-Preserve the compatibility literals currently consumed by result/debug/status contracts, including:
+Preserve compatibility literals:
 
 ```python
 DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
@@ -300,11 +278,9 @@ PROMPT_ARTIFACT_PATH = "prompts/06-semantic-adjudication-prompt.txt"
 CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
 ```
 
-Keep the persisted disposition payload field `"version": "v57"` unless a test proves it is not externally/persistently consumed.
+Preserve the persisted disposition payload field `"version": "v57"` unless a deterministic regression demonstrates it is not a compatibility/persisted-output contract.
 
-- [ ] **Step 2: Replace the v57 openrouter wrapper with a pure projection helper**
-
-Implement:
+- [ ] **Step 2: Replace the v57 provider wrapper with a pure projection helper**
 
 ```python
 def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any]:
@@ -318,33 +294,30 @@ def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any
     except Exception:
         return prompt, config
     try:
-        module.hardened.write_debug_text_artifact_safely(config, PROMPT_ARTIFACT_PATH, injected)
+        module.hardened.write_debug_text_artifact_safely(
+            config, PROMPT_ARTIFACT_PATH, injected
+        )
     except Exception:
         pass
     return injected, staged
 ```
 
-The helper must not call the provider, install `hardened.openrouter_review`, or store a prior provider-review callable.
+The helper must not call the provider, install `hardened.openrouter_review`, or retain a previous provider-review callable.
 
-- [ ] **Step 3: Install only terminal split policy**
+- [ ] **Step 3: Install only the terminal split policy**
 
-`apply_pareto_context_module(module)` should install the terminal split responsibility exactly once. Capture the pre-policy `split_findings_with_review_body_fallback` in the closure for explicit fallback, but do not create `REVIEW_STORAGE` and do not capture/store an `openrouter_review` callable.
+`apply_pareto_context_module(module)` installs the terminal split responsibility exactly once. The wrapper calls `_terminal_disposition`; when disposition exists it records the disposition and returns `([], [])`; otherwise it invokes the pre-policy split callable. Do not create `REVIEW_STORAGE` and do not capture/store `openrouter_review`.
 
-The wrapper behavior remains:
+- [ ] **Step 4: Migrate v57 tests to stable filenames/imports**
+
+Replace v57 imports with:
 
 ```python
-disposition = _terminal_disposition(module, result, config, line_index, risk_sentinels)
-if disposition is not None:
-    _record_terminal_disposition(module, result, disposition, config)
-    return [], []
-return original(result, config, line_index, diff, risk_sentinels)
+from dcoir_review import final_adjudication_policy as final_policy
+from dcoir_review import review_telemetry
 ```
 
-- [ ] **Step 4: Migrate the v57 tests to stable filenames/imports**
-
-Rename test responsibility, not behavior. Replace imports of `dcoir_review_required_runtime_patch_v57` with `from dcoir_review import final_adjudication_policy as final_policy` and v54 classification imports with `from dcoir_review import review_telemetry`.
-
-Replace storage/idempotence assertions with stable behavior assertions:
+Replace historical storage assertions with behavior/idempotence assertions:
 
 ```python
 final_policy.apply_pareto_context_module(module)
@@ -354,17 +327,15 @@ assert module.split_findings_with_review_body_fallback is first_split
 assert not hasattr(module.hardened, "_dcoir_review_v57_original_openrouter_review")
 ```
 
-Prompt tests should call `project_review_call()` directly rather than driving the historical v57 provider wrapper.
+Prompt tests call `project_review_call()` directly and assert the projected prompt/config, stage label, prompt budget, debug-artifact fail-soft behavior, and no-op behavior for ordinary calls.
 
-- [ ] **Step 5: Run final-policy GREEN**
-
-Run:
+- [ ] **Step 5: Run final-policy tests**
 
 ```powershell
 python .github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py
 ```
 
-Expected: PASS for terminal disposition, prompt-floor, budget, fail-closed, and production-composition behavior.
+Expected: exit 0, including imported prompt and production regression helpers.
 
 ---
 
@@ -372,11 +343,9 @@ Expected: PASS for terminal disposition, prompt-floor, budget, fail-closed, and 
 
 **Files:**
 - Modify: `.github/dcoir_review/scripts/dcoir_review/structured_result_provider.py`
-- Modify the existing structured-result/review-orchestration focused selftests that reference `_REVIEW_STORAGE` or the review wrapper.
+- Modify any focused selftest that directly references `_REVIEW_STORAGE` or the historical review wrapper.
 
 **Interfaces:**
-- Consumes: canonical request-boundary recovery around `openrouter_request_once`.
-- Produces:
 
 ```python
 def reset_review_recovery(config: Any) -> None: ...
@@ -385,19 +354,9 @@ def report_review_recovery(config: Any, reporter: Any) -> None: ...
 
 - [ ] **Step 1: Remove the review-wrapper storage contract**
 
-Delete:
-
-```python
-_REVIEW_STORAGE = "_dcoir_review_structured_result_provider_prior_openrouter_review"
-```
-
-and remove the `current_review` lookup, stored-original assignment, nested `openrouter_review`, and `hardened.openrouter_review = openrouter_review` block from `patch_provider()`.
-
-Keep request-boundary `openrouter_request_once` recovery unchanged.
+Delete `_REVIEW_STORAGE`, the `current_review` lookup/storage block, the nested review wrapper, and assignments to `hardened.openrouter_review`/`module.openrouter_review`. Keep request-boundary `openrouter_request_once` recovery unchanged.
 
 - [ ] **Step 2: Add explicit review recovery helpers**
-
-Implement:
 
 ```python
 def reset_review_recovery(config: Any) -> None:
@@ -423,25 +382,23 @@ def report_review_recovery(config: Any, reporter: Any) -> None:
         return
 ```
 
-This intentionally makes reporter status observational/fail-soft as required by the approved spec.
+- [ ] **Step 3: Add focused status-report regressions**
 
-- [ ] **Step 3: Add focused recovery-status regressions**
+Test `direct`, `balanced-envelope`, and `fenced-object` modes plus a reporter whose `update()` raises. Reporter failure must not alter provider results or provider exceptions.
 
-Test direct, `balanced-envelope`, and `fenced-object` modes, plus a reporter whose `update()` raises. The raising reporter must not change the provider result or exception behavior.
+- [ ] **Step 4: Run the focused recovery tests plus current provider-review RED/GREEN test**
 
-- [ ] **Step 4: Run focused structured-result tests**
-
-Run the current review-orchestration/structured-result focused selftests used by the branch plus:
+Run the branch’s structured-result/review-orchestration focused selftests that cover `structured_result_provider.patch_provider`, then:
 
 ```powershell
 python .github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py
 ```
 
-The provider-review selftest may still be RED until Task 5 creates the canonical owner.
+The provider-review test may remain RED until Task 5 installs the canonical owner; a failure is acceptable only when it is the expected missing-owner failure recorded in Task 1.
 
 ---
 
-### Task 5: Implement the canonical `dcoir_review.provider_review` owner and integrate production order
+### Task 5: Implement canonical `dcoir_review.provider_review` and production order
 
 **Files:**
 - Create: `.github/dcoir_review/scripts/dcoir_review/provider_review.py`
@@ -449,7 +406,6 @@ The provider-review selftest may still be RED until Task 5 creates the canonical
 - Modify: `.github/dcoir_review/scripts/dcoir_review_provider_transport_retry_selftest.py`
 
 **Interfaces:**
-- Consumes:
 
 ```python
 final_adjudication_policy.project_review_call(module, prompt, config)
@@ -459,11 +415,7 @@ structured_result_provider.report_review_recovery(config, reporter)
 review_telemetry.finish_review_call(state, outcome)
 ```
 
-- Produces: sole production owner `hardened.openrouter_review` marked with `_dcoir_review_provider_review_owner = True`.
-
-- [ ] **Step 1: Implement one explicit provider-review wrapper**
-
-Use this control flow:
+- [ ] **Step 1: Implement one explicit provider-review owner**
 
 ```python
 APPLIED_MARKER = "_dcoir_review_provider_review_applied"
@@ -482,7 +434,9 @@ def apply_pareto_context_module(module: Any) -> None:
         projected_prompt, projected_config = final_adjudication_policy.project_review_call(
             module, prompt, config
         )
-        state = review_telemetry.prepare_review_call(projected_prompt, schema, projected_config)
+        state = review_telemetry.prepare_review_call(
+            projected_prompt, schema, projected_config
+        )
         active_config = state.staged_config if state is not None else projected_config
         structured_result_provider.reset_review_recovery(active_config)
         try:
@@ -500,51 +454,45 @@ def apply_pareto_context_module(module: Any) -> None:
     setattr(module, APPLIED_MARKER, True)
 ```
 
-Do not assign `module.openrouter_review`; current production has no live alias and the approved design requires no compatibility alias.
+Do not assign `module.openrouter_review`; current production has no live alias.
 
 - [ ] **Step 2: Replace v54/v57 production registration with stable owners**
 
-In `DcoirReviewEntrypoint`:
+In `DcoirReviewEntrypoint` set:
 
-- set `telemetry_patch_module_names` to `()`;
-- keep `progress_reporting`, `provider_transport_retry`, `semantic_adjudication_recovery`, and v56 in their current relative order;
-- replace terminal v57 with:
+```python
+telemetry_patch_module_names: tuple[str, ...] = ()
+```
+
+Keep `progress_reporting`, `provider_transport_retry`, `semantic_adjudication_recovery`, and v56 in their current relative order. End `post_telemetry_patch_module_names` with:
 
 ```python
 "dcoir_review.final_adjudication_policy",
 "dcoir_review.provider_review",
 ```
 
-at the end of `post_telemetry_patch_module_names` so `provider_review` becomes the final `hardened.openrouter_review` owner.
+so provider review is the final `hardened.openrouter_review` owner.
 
-Remove `_emit_telemetry_patch_unavailable()` and the `finally` callback from `run()` because telemetry is no longer a best-effort patch installation; stable telemetry failures are handled inside the stable helper APIs.
+Remove `_emit_telemetry_patch_unavailable()` and the `finally` callback from `run()`; stable telemetry failures are handled by stable helper APIs rather than patch-installation metadata.
 
 - [ ] **Step 3: Remove provider-transport test dependence on v54 storage**
 
-In `dcoir_review_provider_transport_retry_selftest.py`, delete the v54 import and:
-
-```python
-retry_loop = getattr(review.hardened, v54.REVIEW_STORAGE)
-```
-
-Use the live canonical review path instead:
+Delete the v54 import and historical `REVIEW_STORAGE` lookup. Use:
 
 ```python
 retry_loop = review.hardened.openrouter_review
 ```
 
-For cases that inspect per-attempt telemetry on the caller config, set:
+For cases that must inspect per-attempt telemetry on the caller config, set:
 
 ```python
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 setattr(config, PER_FILE_PROJECTION_ATTR, True)
 ```
 
-before invoking `retry_loop`; the stable telemetry copy-back contract then exposes the same bounded attempt history without a historical stored-original testing hook.
+before calling `retry_loop`; stable telemetry copy-back must expose the same bounded attempt history.
 
 - [ ] **Step 4: Run canonical-owner GREEN**
-
-Run:
 
 ```powershell
 python .github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py
@@ -553,7 +501,7 @@ python .github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py
 python .github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py
 ```
 
-Expected: all PASS.
+Expected: all exit 0.
 
 ---
 
@@ -569,28 +517,17 @@ Expected: all PASS.
 - Modify: `.github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py`
 - Modify: `.github/dcoir_review/ARCHITECTURE.md`
 
-**Interfaces:**
-- Consumes: green stable telemetry/final-policy/provider-review modules.
-- Produces: production sequence with max numbered version <= 56 and no v54/v57 source ownership.
+- [ ] **Step 1: Delete historical sources only after stable focused tests pass**
 
-- [ ] **Step 1: Delete historical sources only after stable tests pass**
-
-Delete the six files listed above. Do not retain forwarding wrappers or compatibility aliases.
+Delete all six historical files above. Do not retain forwarding wrappers or aliases.
 
 - [ ] **Step 2: Tighten runtime inventory expectations**
 
-Update `dcoir_review_runtime_module_loader_selftest.py` so:
-
-- `DIRECT_IMPORT_MODULES` includes the three new stable modules;
-- production inventory contains neither v54 nor v57;
-- the max numbered production patch is 56;
-- the no-v59 guard remains intact.
-
-Keep the existing `NUMBERED_PRODUCTION_PATCH_VERSION_CEILING = 58` compatibility guard unless a separate issue explicitly changes the global guard; the exact current maximum is asserted through architecture inventory.
+Keep the global no-v59 guard `NUMBERED_PRODUCTION_PATCH_VERSION_CEILING = 58`; require actual architecture inventory `max_numbered_version <= 56`, no v54/v57 production registration, and all three stable modules in `DIRECT_IMPORT_MODULES`.
 
 - [ ] **Step 3: Update architecture documentation**
 
-Document the explicit call order:
+Document this explicit review call order:
 
 ```text
 final-adjudication projection
@@ -600,41 +537,26 @@ final-adjudication projection
 -> telemetry drain/copy
 ```
 
-Document stable ownership:
-
-- `dcoir_review.provider_review` — single `hardened.openrouter_review` owner;
-- `dcoir_review.review_telemetry` — telemetry responsibility;
-- `dcoir_review.final_adjudication_policy` — publication floor and terminal low-confidence disposition;
-- `dcoir_review.structured_result_provider` — request-boundary deterministic recovery only.
-
-State that v54/v57 production sources are retired and that literal `_dcoir_v54_*` / `_dcoir_v57_*` values remain only where compatibility/persisted output requires them.
+Document stable ownership and state that v54/v57 production sources are retired while `_dcoir_v54_*`/`_dcoir_v57_*` literal values remain only where compatibility/persisted output requires them.
 
 - [ ] **Step 4: Prove no stale production imports/storage names remain**
-
-Run:
 
 ```powershell
 git grep -n "dcoir_review_required_runtime_patch_v54\|dcoir_review_required_runtime_patch_v57" -- .github/dcoir_review/scripts .github/dcoir_review/ARCHITECTURE.md
 git grep -n "_dcoir_review_structured_result_provider_prior_openrouter_review\|_dcoir_review_v54_original_openrouter_review\|_dcoir_review_v57_original_openrouter_review" -- .github/dcoir_review/scripts
 ```
 
-Expected: no active production/test references. Historical compatibility literal values in documentation are acceptable only when explicitly described as compatibility data.
+Expected: no active source/test references. A non-zero `git grep` exit caused by zero matches is success for this step.
 
 ---
 
 ### Task 7: Run focused and full local validation, then Prog/Adva review
 
 **Files:**
-- Modify only if a valid review finding requires a test-first fix.
-- Local evidence/logs go under `.git/` or `C:\GitHub\dcoir-artifacts\`, never as source files.
-
-**Interfaces:**
-- Consumes: complete uncommitted provider-review consolidation candidate.
-- Produces: one locally validated frozen candidate ready for hosted prepublication.
+- Modify source only when a valid review finding requires a test-first fix.
+- Write transient evidence under `.git/` or `C:\GitHub\dcoir-artifacts\`, not tracked source paths.
 
 - [ ] **Step 1: Run focused stable-contract tests**
-
-Run:
 
 ```powershell
 python .github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py
@@ -647,42 +569,156 @@ python .github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.p
 python .github/dcoir_review/scripts/validate-codeql-security-workflow.py
 ```
 
-Required semantic output contains:
+Require semantic text `12 cases, 10 finding classes, 2 clean classes`. Parse precision JSON and require `false_positive_suppression_rate == 1.0`, `true_positive_retention_rate == 1.0`, and `regressions == []`.
 
-```text
-12 cases, 10 finding classes, 2 clean classes
+- [ ] **Step 2: Compile changed Python**
+
+```powershell
+$changedPython = git diff --name-only 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 -- '*.py'
+if (-not $changedPython) { throw 'no changed Python files found' }
+python -m py_compile $changedPython
+if ($LASTEXITCODE -ne 0) { throw "py_compile failed: $LASTEXITCODE" }
 ```
 
-Required precision JSON has false-positive suppression `1.0`, true-positive retention `1.0`, and `regressions: []`.
+Use `6390ab7c6b9993f8fd3b931613e90740d3cd6b15` as the source-slice parent because the intervening commits are spec/plan documentation only.
 
-- [ ] **Step 2: Compile all changed Python source**
+- [ ] **Step 3: Run native Windows PowerShell 5.1 parser validation with the governed command**
+
+```powershell
+$powershell = Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe'
+if (-not (Test-Path -LiteralPath $powershell)) { throw "native Windows PowerShell not found: $powershell" }
+$psCommand = @'
+$ErrorActionPreference='Stop';
+function Get-FileHash {
+  [CmdletBinding()]
+  param(
+    [Parameter(Mandatory=$true)][string]$LiteralPath,
+    [ValidateSet('SHA256')][string]$Algorithm='SHA256'
+  )
+  $stream=[System.IO.File]::OpenRead($LiteralPath)
+  $sha=[System.Security.Cryptography.SHA256]::Create()
+  try {
+    $hash=([BitConverter]::ToString($sha.ComputeHash($stream))).Replace('-','')
+    [pscustomobject]@{Algorithm='SHA256';Hash=$hash;Path=[System.IO.Path]::GetFullPath($LiteralPath)}
+  } finally {
+    $sha.Dispose(); $stream.Dispose()
+  }
+}
+& '.github/dcoir_review/scripts/validate-windows-powershell-51.ps1' -AllowEmpty
+'@
+& $powershell -NoProfile -ExecutionPolicy Bypass -Command $psCommand
+if ($LASTEXITCODE -ne 0) { throw "Windows PowerShell parser validation failed: $LASTEXITCODE" }
+```
+
+Require zero parser errors. Record the emitted `Validating N PowerShell file(s).` count; compare it to the prior 293-file baseline but do not hard-code 293 as a new truth if legitimate non-workflow source-file count changed elsewhere.
+
+- [ ] **Step 4: Run the complete governed deterministic registry exactly from current configuration**
+
+Create `.git\run-provider-review-registry.py` with this exact implementation:
+
+```python
+from __future__ import annotations
+
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+root = Path.cwd()
+config = root / ".github/dcoir_review/openrouter-pr-review-pareto.yml"
+commands: list[str] = []
+active = False
+for raw in config.read_text(encoding="utf-8").splitlines():
+    if raw == "validation_commands:":
+        active = True
+        continue
+    if active:
+        if raw.startswith("  - "):
+            commands.append(raw[4:].strip())
+            continue
+        if raw and not raw.startswith(" ") and not raw.startswith("#"):
+            break
+
+for key in (
+    "OPENROUTER_API_KEY", "GITHUB_TOKEN", "GH_TOKEN", "DCOIR_GITHUB_FG_TOKEN",
+    "DCOIR_GITHUB_CL_TOKEN", "DCOIR_GEMINI_API", "DCOIR_OPENAI_API_KEY",
+    "DCOIR_OPENAI_PROJECT_ID", "OPENAI_API_KEY",
+):
+    os.environ.pop(key, None)
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+
+def run(argv: list[str]) -> None:
+    print("RUN:", " ".join(argv))
+    cp = subprocess.run(argv, cwd=root, text=True)
+    if cp.returncode:
+        raise SystemExit(cp.returncode)
+
+for index, command in enumerate(commands, 1):
+    argv = shlex.split(command, posix=True)
+    if argv[0] in {"python", "python3"}:
+        argv[0] = sys.executable
+    print(f"=== YAML registry {index:02d}/{len(commands)} ===")
+    run(argv)
+
+git_exe = shutil.which("git")
+if not git_exe:
+    raise RuntimeError("git executable not found")
+bash = Path(git_exe).resolve().parent.parent / "bin" / "bash.exe"
+if not bash.is_file():
+    raise RuntimeError(f"Git-for-Windows bash not found: {bash}")
+run([str(bash), ".github/dcoir_review/scripts/validate-codex-local.sh"])
+run([sys.executable, ".github/dcoir_review/scripts/validate-codeql-security-workflow.py"])
+
+semantic = subprocess.run(
+    [sys.executable, ".github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py"],
+    cwd=root, text=True, capture_output=True,
+)
+print(semantic.stdout, end="")
+print(semantic.stderr, end="", file=sys.stderr)
+if semantic.returncode or "12 cases, 10 finding classes, 2 clean classes" not in semantic.stdout + semantic.stderr:
+    raise RuntimeError("semantic recall validation failed or summary drifted")
+
+precision_cp = subprocess.run(
+    [sys.executable, ".github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py"],
+    cwd=root, text=True, capture_output=True,
+)
+print(precision_cp.stdout, end="")
+print(precision_cp.stderr, end="", file=sys.stderr)
+if precision_cp.returncode:
+    raise RuntimeError("precision regression command failed")
+precision = json.loads(precision_cp.stdout)
+if float(precision["false_positive_suppression_rate"]) != 1.0:
+    raise RuntimeError("false-positive suppression drift")
+if float(precision["true_positive_retention_rate"]) != 1.0:
+    raise RuntimeError("true-positive retention drift")
+if precision.get("regressions"):
+    raise RuntimeError(f"precision regressions: {precision['regressions']}")
+
+print(f"YAML_VALIDATION_COMMANDS={len(commands)}")
+print(f"GOVERNED_NON_PS_COMMANDS={len(commands) + 2}")
+```
 
 Run:
 
 ```powershell
-python -m py_compile `
-  .github/dcoir_review/scripts/dcoir_review/provider_review.py `
-  .github/dcoir_review/scripts/dcoir_review/review_telemetry.py `
-  .github/dcoir_review/scripts/dcoir_review/final_adjudication_policy.py `
-  .github/dcoir_review/scripts/dcoir_review/structured_result_provider.py `
-  .github/dcoir_review/scripts/dcoir_review/review_config.py `
-  .github/dcoir_review/scripts/dcoir_review/progress_reporting.py `
-  .github/dcoir_review/scripts/dcoir_review/entrypoint.py
+python .git\run-provider-review-registry.py
+if ($LASTEXITCODE -ne 0) { throw "governed registry failed: $LASTEXITCODE" }
 ```
 
-Expected: exit 0.
-
-- [ ] **Step 3: Run native Windows PowerShell parser validation**
-
-Run the same repo-wide Windows PowerShell 5.1 parser validation used for the prior credited #550 slices and require zero parse errors. Record the exact file count; the previous exact-head baseline was 293 files.
-
-- [ ] **Step 4: Run full governed deterministic registry**
-
-Run the branch's complete governed DCOIR Review deterministic command registry, not only the focused commands above. Require every registered command to pass; the previous exact-head baseline was 61/61.
+Then run the PowerShell command from Step 3. Count the complete governed registry as the current YAML validation-command count plus `validate-codex-local.sh`, native Windows PowerShell parser validation, and `validate-codeql-security-workflow.py`. The previous credited exact-head total was 61; require the new total to equal 61 because this slice does not modify `validation_commands` or validation wiring. If the computed total differs, stop and inspect the configuration diff rather than silently accepting drift.
 
 - [ ] **Step 5: Run structural ownership readback**
 
-Use the existing architecture inventory/ownership characterization helper and require:
+```powershell
+python .github/dcoir_review/scripts/dcoir_review_architecture_inventory.py > .git\provider-review-inventory.json
+if ($LASTEXITCODE -ne 0) { throw "architecture inventory failed: $LASTEXITCODE" }
+```
+
+Then run the existing `.git\inventory_remaining_chains.py` helper from this PR continuation. Require:
 
 ```text
 hardened.openrouter_review final owner = dcoir_review.provider_review
@@ -693,56 +729,40 @@ multi-stage callable chains <= 19
 missing production modules = 0
 ```
 
-Also confirm the two-stage `hardened.write_debug_json_artifact_safely` composition remains unchanged unless independent evidence proves it is not intentional.
+Also confirm the two-stage `hardened.write_debug_json_artifact_safely` composition remains unchanged unless independent evidence proves it is chronology debt rather than intentional metadata enrichment.
 
-- [ ] **Step 6: Run independent secret and workflow-scope checks**
+- [ ] **Step 6: Run diff-scope and secret checks**
 
-Require:
+```powershell
+$paths = git diff --name-only 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 --
+if ($paths -match '^\.github/workflows/') { throw 'workflow path entered provider-review slice' }
+if ($paths -match 'dcoir_review_required_runtime_patch_v(?:59|[6-9][0-9])') { throw 'v59+ production patch detected' }
+git diff --check 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 --
+if ($LASTEXITCODE -ne 0) { throw "git diff --check failed: $LASTEXITCODE" }
+```
 
-- no secret values in the candidate diff;
-- no `.github/workflows/` path in the candidate diff;
-- no v59+ production path;
-- no #557 lifecycle/reporting change;
-- no reviewer request, Ready transition, or merge action.
+Run the same independent secret scanner implementation already used for the preceding #550 source slices against the candidate diff. Its required result is zero secret findings; do not weaken or replace its patterns during this slice.
 
 - [ ] **Step 7: Perform Prog pass**
 
-Review the implementation as the builder for:
-
-- exact approved-spec coverage;
-- explicit composition instead of hidden wrapper chronology;
-- no stale v54/v57 production imports;
-- no new stored-original review shim;
-- test coverage for success/failure/order/fail-soft behavior.
-
-Fix valid findings test-first.
+Review exact approved-spec coverage, explicit composition, stale v54/v57 imports, stored-original review shims, success/failure ordering, and fail-soft behavior. Fix every valid finding test-first and rerun affected focused tests.
 
 - [ ] **Step 8: Perform Adva adversarial pass**
 
-Review independently for:
-
-- final-policy projection occurring before telemetry stage classification;
-- structured recovery status occurring before telemetry drain;
-- shallow-copy behavior and caller-config copy-back;
-- telemetry failures never masking provider outcomes;
-- provider exceptions re-raised unchanged;
-- no transport retry/model/provider-policy drift;
-- no stale version-specific test contract forcing retired architecture;
-- no workflow/#557 contamination.
-
-Fix every valid finding test-first and rerun all affected focused tests plus the full governed registry.
+Review independently for projection-before-classification, recovery-status-before-drain, shallow-copy/copy-back correctness, telemetry failures masking provider outcomes, exact provider exception propagation, provider-transport/model-policy drift, historical-test coupling, and workflow/#557 contamination. Fix every valid finding test-first, then rerun all focused tests and the complete registry from Step 4 plus PowerShell Step 3.
 
 - [ ] **Step 9: Freeze the exact candidate**
 
-Run:
-
 ```powershell
-git diff --check
-git diff --binary > .git\provider-review-frozen.patch
-Get-FileHash .git\provider-review-frozen.patch -Algorithm SHA256
+git diff --check 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 --
+git diff --binary 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 -- > .git\provider-review-frozen.patch
+$hash = (Get-FileHash -LiteralPath .git\provider-review-frozen.patch -Algorithm SHA256).Hash.ToLowerInvariant()
+$bytes = (Get-Item -LiteralPath .git\provider-review-frozen.patch).Length
+Write-Output "PROVIDER_REVIEW_FROZEN_SHA256=$hash"
+Write-Output "PROVIDER_REVIEW_FROZEN_BYTES=$bytes"
 ```
 
-Record path count, diff byte count, SHA-256, insertion/deletion counts, structural inventory, semantic/precision results, PowerShell count, and secret-scan result in ircore and the active turnover.
+Record path count, diff bytes, SHA-256, insertion/deletion counts, structural inventory, registry count, semantic/precision results, PowerShell count, and secret-scan result in ircore and the active turnover.
 
 ---
 
@@ -750,85 +770,76 @@ Record path count, diff byte count, SHA-256, insertion/deletion counts, structur
 
 **Files:**
 - Source candidate from Tasks 1-7 only.
-- Agent-ops request/status artifacts are execution evidence and must not alter #557 lifecycle design.
-
-**Interfaces:**
-- Consumes: frozen locally validated patch.
-- Produces: one published provider-review source commit followed by exact-head GitHub/hosted evidence.
+- Agent-ops request/status artifacts are execution evidence; do not alter #557 lifecycle design.
 
 - [ ] **Step 1: Run hosted prepublication against the frozen candidate**
 
-Use the established ChatGPT Exec prepublication lane for the already-approved EPIC #550 execution goal. The validator must verify the frozen patch hash and rerun the focused/full deterministic checks without provider/model calls.
+Use the established ChatGPT Exec prepublication lane for the already-approved #550 execution goal. Stage one request whose validator first verifies the expected frozen SHA-256 and then runs the same focused tests, dynamic governed-registry algorithm, PowerShell validation, semantic/precision checks, inventory checks, secret scan, and source-scope guards from Task 7. It must not make provider/model calls.
 
-Credit the child command only when logs explicitly show:
+Credit the child command only when job logs explicitly contain:
 
 ```text
 DCOIR_EXEC_RESULT=success
 DCOIR_EXEC_EXIT_CODE=0
 ```
 
-Treat the known #557 status-report/cleanup rebase conflict separately if it recurs; do not repair #557 in PR #553.
+If the outer workflow again fails only in status-report/cleanup because of the known #557 stale-request rebase conflict, record that separately and do not repair #557 in PR #553.
 
-- [ ] **Step 2: Re-read frozen local bytes before publication**
+- [ ] **Step 2: Re-read frozen bytes before publication**
 
-Confirm the working-tree diff is byte-identical to `.git\provider-review-frozen.patch` and the SHA-256 has not changed since hosted validation.
+```powershell
+$current = git diff --binary 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 --
+[System.IO.File]::WriteAllText((Join-Path $env:TEMP 'provider-review-current.patch'), $current, [System.Text.UTF8Encoding]::new($false))
+```
+
+Compare the exact byte stream used for hosted validation to `.git\provider-review-frozen.patch`. If hashes differ, invalidate hosted prepublication and refreeze/revalidate before committing.
 
 - [ ] **Step 3: Create one coherent source commit**
 
-Stage only the provider-review implementation/test/docs slice and commit with:
+Stage only the provider-review implementation/test/docs slice. Confirm `git diff --cached --name-only` contains no workflow, agent-ops, or unrelated files. Commit:
 
 ```powershell
 git commit -m "refactor(dcoir): consolidate provider review ownership"
 ```
 
-Verify the committed binary diff hash matches the frozen candidate before push.
+Verify the committed binary diff against parent `6390ab7c6b9993f8fd3b931613e90740d3cd6b15` has the same SHA-256 as the frozen candidate after excluding the already-published spec/plan documentation commits from the source-slice comparison.
 
 - [ ] **Step 4: Push the existing PR branch**
 
-Push `refactor/issue-550-dcoir-runtime-consolidation`. Do not request review and do not change Draft status.
+```powershell
+git push origin refactor/issue-550-dcoir-runtime-consolidation
+```
 
-- [ ] **Step 5: Read back exact GitHub head and checks**
+Do not request review and do not change Draft status.
 
-Read PR #553 live and require the published head to equal the local commit SHA. Read exact-head CodeQL Security, Dependency Review, Workflow Audit, and any normal push validation attached to that SHA.
+- [ ] **Step 5: Read back exact GitHub head/checks**
+
+Read PR #553 live and require its head SHA to equal the local source commit. Read current-head CodeQL Security, Dependency Review, Workflow Audit, and any normal push validation associated with that exact SHA.
 
 - [ ] **Step 6: Run hosted exact-head deterministic validation**
 
-Run the exact-head ChatGPT Exec validator against the published commit and again require explicit `DCOIR_EXEC_RESULT=success` / `DCOIR_EXEC_EXIT_CODE=0` evidence.
+Run the exact-head ChatGPT Exec validator against the published SHA using the same deterministic contract as Task 7. Require explicit `DCOIR_EXEC_RESULT=success` and `DCOIR_EXEC_EXIT_CODE=0` in the child job logs.
 
-- [ ] **Step 7: Credit the slice only after all exact-head evidence is clean**
+- [ ] **Step 7: Credit the slice only after exact-head evidence is clean**
 
-Record GitHub/ircore readbacks showing:
+Record GitHub/ircore readbacks proving exact head, frozen/committed hash continuity, one final `dcoir_review.provider_review` owner, zero stored-original review shims, retired v54/v57 production sources, max numbered version <=56, chains <=19, full governed registry pass, semantic 12/10/2, precision 1.0/1.0 with zero regressions, PowerShell parser pass, and security/static checks pass.
 
-- exact published head SHA;
-- frozen/committed diff hash continuity;
-- one final `dcoir_review.provider_review` owner;
-- zero stored-original review shims;
-- v54/v57 production sources retired;
-- max numbered version <= 56;
-- chains <= 19;
-- full governed registry pass;
-- semantic 12/10/2;
-- precision 1.0/1.0, zero regressions;
-- PowerShell parser pass;
-- security/static checks pass.
-
-Keep PR #553 Draft. Stop before the operator-controlled GitHub Copilot independent review gate.
+Keep PR #553 Draft and stop before the operator-controlled GitHub Copilot independent-review gate.
 
 ---
 
 ## Plan Self-Review Checklist
 
-Before executing source changes, verify this plan against the approved spec:
-
 - [ ] Every approved responsibility has a stable owner.
 - [ ] No task introduces a v59+ patch or workflow change.
 - [ ] `provider_review` owns exactly one `hardened.openrouter_review` installation.
-- [ ] v57 projection precedes telemetry classification.
-- [ ] structured recovery reporting precedes telemetry drain.
-- [ ] telemetry is observational/fail-soft.
+- [ ] final-adjudication projection precedes telemetry classification.
+- [ ] structured-recovery reporting precedes telemetry drain.
+- [ ] telemetry remains observational/fail-soft.
 - [ ] provider exceptions remain exact.
 - [ ] v54/v57 production files are deleted only after parity tests pass.
 - [ ] provider-transport tests no longer depend on historical `REVIEW_STORAGE`.
-- [ ] runtime loader owns all three new stable modules.
+- [ ] runtime-loader ownership includes all three new stable modules.
 - [ ] one coherent source commit is preserved despite task-level test checkpoints.
-- [ ] no placeholder/TBD/TODO implementation instruction remains in this plan.
+- [ ] full-registry execution is derived from current `validation_commands` and includes exact Bash/PowerShell/CodeQL steps.
+- [ ] no placeholder, `TBD`, `TODO`, or unspecified implementation step remains.
