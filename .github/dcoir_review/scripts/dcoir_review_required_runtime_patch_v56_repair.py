@@ -6,6 +6,7 @@ import hashlib
 import json
 from typing import Any
 
+from dcoir_review import repair as repair_policy
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v36 as v36
@@ -113,7 +114,7 @@ def prepare_candidate(
             None,
         )
 
-    critic_config = v36._repair_critic_config(config, author_model)
+    critic_config = repair_policy.build_repair_critic_config(config, author_model)
     return None, {
         "ordinal": ordinal,
         "finding": finding,

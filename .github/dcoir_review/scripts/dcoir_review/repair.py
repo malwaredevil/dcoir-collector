@@ -17,11 +17,25 @@ FALLBACK_CRITIC_MODEL = "~anthropic/claude-sonnet-latest"
 CRITIC_SESSION_SUFFIX = "repair-critic"
 
 
-def build_repair_critic_config(config: Any) -> Any:
-    """Return an independent structured-output config for the repair critic."""
+def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
+    """Return the canonical independent structured-output critic config.
+
+    The governed direct critic stack is Terra/Sonnet. When the repair author was
+    served by an OpenAI model, reverse that stack so the first critic attempt is
+    from the other model family while retaining the same canonical two-model
+    fallback contract.
+    """
     critic_config = copy.copy(config)
-    critic_config.model = PRIMARY_CRITIC_MODEL
-    critic_config.model_stack = [PRIMARY_CRITIC_MODEL, FALLBACK_CRITIC_MODEL]
+    served_author = str(author_model or "").strip().lower()
+    if served_author.startswith("openai/"):
+        primary_model = FALLBACK_CRITIC_MODEL
+        fallback_model = PRIMARY_CRITIC_MODEL
+    else:
+        primary_model = PRIMARY_CRITIC_MODEL
+        fallback_model = FALLBACK_CRITIC_MODEL
+
+    critic_config.model = primary_model
+    critic_config.model_stack = [primary_model, fallback_model]
 
     # Keep fallback deterministic at the explicit model-stack layer. Native
     # fallback_models would make it harder to attribute which critic served.

@@ -6,6 +6,7 @@ import json
 import math
 from typing import Any
 
+from dcoir_review import repair as repair_policy
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v36 as v36
 import dcoir_review_required_runtime_patch_v56_repair as repair_stage
@@ -184,7 +185,7 @@ def run_group(
         return [], 0
     if len(group) == 1:
         item = group[0]
-        critic_config = v36._repair_critic_config(config, item["author_model"])
+        critic_config = repair_policy.build_repair_critic_config(config, item["author_model"])
         prompt = v36._repair_critic_prompt(module, item["finding"], item["author"], file_cache, config)
         try:
             raw, model, tier = module.hardened.openrouter_review(
@@ -211,7 +212,7 @@ def run_group(
         right, right_calls = run_group(module, group[midpoint:], file_cache, right_line_index, config)
         return left + right, left_calls + right_calls
 
-    critic_config = v36._repair_critic_config(config, group[0]["author_model"])
+    critic_config = repair_policy.build_repair_critic_config(config, group[0]["author_model"])
     setattr(critic_config, STAGE_LABEL_ATTR, "repair-critic")
     model = group[0]["critic_model"]
     tier = ""

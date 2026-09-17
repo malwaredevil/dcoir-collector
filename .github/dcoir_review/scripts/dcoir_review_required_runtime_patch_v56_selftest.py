@@ -7,6 +7,7 @@ import copy
 import importlib
 import re
 
+from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -114,6 +115,7 @@ def main() -> None:
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
     original_v53 = v53.synthesize_verified_repair_sets
+    original_v36_critic_config = v36._repair_critic_config
 
     calls: list[tuple[str, str, str]] = []
     debug: list[tuple[str, dict]] = []
@@ -129,6 +131,9 @@ def main() -> None:
     def fake_debug(cfg, path, payload):
         debug.append((path, dict(payload)))
 
+    def forbidden_v36_critic_config(*args, **kwargs):
+        raise AssertionError("active v56 critic routing bypassed canonical dcoir_review.repair policy")
+
     def fake_openrouter(prompt, schema, cfg, reporter=None):
         if schema is v36.REPAIR_SET_AUTHOR_SCHEMA:
             match = re.search(r"Primary finding anchor: ([^:]+):1", prompt)
@@ -142,6 +147,11 @@ def main() -> None:
             assert len(ids) >= 2, ids
             assert getattr(cfg, batch.STAGE_LABEL_ATTR, "") == "repair-critic"
             assert telemetry.classify_stage(prompt, schema, cfg) == "repair-critic"
+            assert set(cfg.model_stack) == {
+                repair_policy.PRIMARY_CRITIC_MODEL,
+                repair_policy.FALLBACK_CRITIC_MODEL,
+            }
+            assert cfg.model == cfg.model_stack[0]
             calls.append(("batch-critic", ",".join(ids), str(cfg.model)))
             return {
                 "results": [
@@ -150,6 +160,11 @@ def main() -> None:
                 ]
             }, str(cfg.model), "default"
         if schema is v36.REPAIR_SET_CRITIC_SCHEMA:
+            assert set(cfg.model_stack) == {
+                repair_policy.PRIMARY_CRITIC_MODEL,
+                repair_policy.FALLBACK_CRITIC_MODEL,
+            }
+            assert cfg.model == cfg.model_stack[0]
             calls.append(("single-critic", "", str(cfg.model)))
             return {"accepted": True, "confidence": 0.99, "reason": "safe"}, str(cfg.model), "default"
         raise AssertionError(f"unexpected schema: {schema.get('title') if isinstance(schema, dict) else schema}")
@@ -158,10 +173,11 @@ def main() -> None:
     review.hardened.openrouter_review = fake_openrouter
     review.fetch_pr_file_text = fake_fetch
     review.hardened.write_debug_json_artifact_safely = fake_debug
+    v36._repair_critic_config = forbidden_v36_critic_config
     try:
         # Three compatible authors keep three independent author calls but collapse
-        # three Sol critics into one identity-keyed batch. Reversed critic output
-        # proves mapping is by ID rather than position.
+        # three canonical Terra critics into one identity-keyed batch. Reversed
+        # critic output proves mapping is by ID rather than position.
         paths = ["a.py", "b.py", "c.py"]
         gh = FakeGH(_diff(paths))
         reporter = Reporter()
@@ -197,8 +213,9 @@ def main() -> None:
         assert batch_metrics["critic_batches"] == 1
         assert gh.diff_calls == 1
 
-        # Different author families must never share a critic request. Each one-item
-        # group uses the historical v36 critic schema and the opposite model family.
+        # Different author families remain isolated into separate critic requests.
+        # Both requests now use the canonical Terra/Sonnet pair, reversing primary
+        # order when the author was OpenAI to preserve family independence.
         paths = ["opus_author.py", "openai_author.py"]
         author_models.clear()
         author_models.update(
@@ -219,7 +236,10 @@ def main() -> None:
         )
         critics = [call for call in calls if call[0] == "single-critic"]
         assert len(critics) == 2, calls
-        assert {call[2] for call in critics} == {"openai/gpt-5.6-sol-pro", "anthropic/claude-opus-5"}
+        assert {call[2] for call in critics} == {
+            repair_policy.PRIMARY_CRITIC_MODEL,
+            repair_policy.FALLBACK_CRITIC_MODEL,
+        }
         assert all(item[repair_pipeline.REPAIR_MARKER]["critic_accepted"] is True for item in result)
 
         # The identity parser isolates malformed, missing, duplicate, and unknown
@@ -230,7 +250,7 @@ def main() -> None:
             "author": _author("a.py"),
             "author_model": "anthropic/claude-opus-5",
             "author_tier": "default",
-            "critic_model": "openai/gpt-5.6-sol-pro",
+            "critic_model": repair_policy.PRIMARY_CRITIC_MODEL,
         }
         p1 = dict(template)
         p1["critic_item_id"] = repair_stage.critic_item_id(1, p1["finding"], p1["author"])
@@ -342,6 +362,7 @@ def main() -> None:
         assert sentinel == [True]
         config.repair_critic_batching_enabled = True
     finally:
+        v36._repair_critic_config = original_v36_critic_config
         v53.synthesize_verified_repair_sets = original_v53
         v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_review
@@ -349,7 +370,7 @@ def main() -> None:
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     print(
-        "dcoir_review_required_runtime_patch_v56_selftest passed: config rollback, strict identity schema, pre-truncation splitting, publication compatibility, and cross-family fail-closed gates remain intact"
+        "dcoir_review_required_runtime_patch_v56_selftest passed: config rollback, strict identity schema, pre-truncation splitting, publication compatibility, and canonical cross-family critic gates remain intact"
     )
 
 

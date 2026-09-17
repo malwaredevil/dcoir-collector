@@ -25,12 +25,12 @@ This overlay never writes to the pull-request branch.
 from __future__ import annotations
 
 import ast
-import copy
 import json
 from pathlib import Path
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
+from dcoir_review import repair as repair_policy
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v33 as v33
@@ -242,18 +242,8 @@ def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
 
 
 def _repair_critic_config(config: Any, author_model: str) -> Any:
-    """Choose a fixed frontier critic from a different model family than the author."""
-    critic_config = copy.copy(config)
-    served_author = str(author_model or "").strip().lower()
-    if served_author.startswith("openai/"):
-        critic_model = "anthropic/claude-opus-5"
-    else:
-        critic_model = "openai/gpt-5.6-sol-pro"
-    if hasattr(critic_config, "model"):
-        critic_config.model = critic_model
-    if hasattr(critic_config, "model_stack"):
-        critic_config.model_stack = [critic_model]
-    return critic_config
+    """Compatibility delegate to the canonical repair critic policy."""
+    return repair_policy.build_repair_critic_config(config, author_model)
 
 
 def _repair_author_prompt(
