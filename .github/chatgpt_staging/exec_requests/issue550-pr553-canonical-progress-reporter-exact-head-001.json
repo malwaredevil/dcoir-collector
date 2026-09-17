@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-17T03:39:14Z",
+  "approved_command_preview": "Validate exact PR head 6390ab7c6b9993f8fd3b931613e90740d3cd6b15 and tree dd5a375f7b02ac46c3e4f9bfdcc7116a9520cb8b against parent 155237587cd8998d8ff5da8fad3daa2d7885e474; verify committed diff SHA 480971955102c3dde5651dfbc02d89dbb6c63a2ce0897f1365ada6de4330e28a, all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, canonical ProgressReporter ownership, terminal telemetry fail-soft regression, architecture ownership metrics, and independent secret scan. No PR source mutation, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, workflow source change, #557 lifecycle repair, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-canonical-progress-reporter-exact-head-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-canonical-progress-reporter-exact-head-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
