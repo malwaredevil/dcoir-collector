@@ -304,7 +304,10 @@ def _is_final_v35_semantic_adjudication_call(prompt: Any) -> bool:
             locals_map = current.f_locals
             if (
                 filename == "dcoir_review_required_runtime_patch_v35.py"
-                and function == "openrouter_review_with_hybrid_first_pass"
+                and function in (
+                    "openrouter_review_with_hybrid_first_pass",
+                    "semantic_adjudication_stage",
+                )
                 and locals_map.get("prompt") is prompt
             ):
                 return True

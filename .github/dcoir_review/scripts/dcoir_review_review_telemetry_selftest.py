@@ -412,7 +412,7 @@ def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
     exec(
         compile(
             """
-def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
+def adversarial_confirmation_stage(prompt, schema, config):
     confirmation_prompt = prompt
     return telemetry.classify_stage(prompt, schema, config)
 """,
@@ -422,14 +422,14 @@ def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
         namespace,
     )
     assert (
-        namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
+        namespace["adversarial_confirmation_stage"]("probe", review_schema(), config)
         == "independent-challenger"
     )
     namespace = {"telemetry": telemetry}
     exec(
         compile(
             """
-def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
+def semantic_adjudication_stage(wrapper_prompt, schema, config):
     prompt = wrapper_prompt
     return telemetry.classify_stage(prompt, schema, config)
 """,
@@ -439,7 +439,7 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
         namespace,
     )
     assert (
-        namespace["openrouter_review_with_hybrid_first_pass"]("probe", review_schema(), config)
+        namespace["semantic_adjudication_stage"]("probe", review_schema(), config)
         == "semantic-adjudicator"
     )
 
