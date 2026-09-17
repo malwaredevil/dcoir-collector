@@ -1,0 +1,302 @@
+from __future__ import annotations
+import base64, gzip, hashlib, json, os, re, shlex, shutil, subprocess, sys, tempfile
+from pathlib import Path
+
+SOURCE_PARENT = "e12e776ef4fc1b06bb01158b9f22d56db4a3f513"
+EXPECTED_PATCH_SHA = "7c4ad7373ceb9beb080f65db794f89b02ecd13b46e6130217ac4aa6da9b4f5cf"
+REQUEST_ID = "issue550-pr553-provider-review-ghas-followup-prepublication-001"
+TERMINAL = "ISSUE550_PR553_PROVIDER_REVIEW_GHAS_FOLLOWUP_PREPUBLICATION_001_PASS"
+EXPECTED_PATHS = ('.github/dcoir_review/scripts/dcoir_review/final_adjudication_policy.py', '.github/dcoir_review/scripts/dcoir_review/provider_review.py', '.github/dcoir_review/scripts/dcoir_review/review_telemetry.py', '.github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py', '.github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py')
+PATCH_GZIP_B64 = """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"""
+repo = Path(os.environ.get("DCOIR_REPO_ROOT") or os.environ.get("GITHUB_WORKSPACE") or ".").resolve()
+downloads = Path(os.environ.get("DCOIR_DOWNLOADS_DIR") or os.environ.get("RUNNER_TEMP") or tempfile.gettempdir()).resolve()
+worktree = downloads / f"{REQUEST_ID}-worktree"
+patch_path = downloads / f"{REQUEST_ID}.patch"
+summary_path = downloads / f"{REQUEST_ID}-summary.txt"
+for key in ("OPENROUTER_API_KEY", "GITHUB_TOKEN", "GH_TOKEN", "DCOIR_GITHUB_FG_TOKEN", "DCOIR_GITHUB_CL_TOKEN", "DCOIR_GEMINI_API", "DCOIR_OPENAI_API_KEY", "DCOIR_OPENAI_PROJECT_ID", "OPENAI_API_KEY"):
+    os.environ.pop(key, None)
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+os.environ["CODEX_BASE_REF"] = SOURCE_PARENT
+os.environ["GITHUB_REPOSITORY"] = "malwaredevil/dcoir-collector"
+
+def run(*args: str, cwd: Path | None = None, check: bool = True, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+    cp = subprocess.run(args, cwd=cwd, text=True, capture_output=True, env=env)
+    print(cp.stdout, end="")
+    print(cp.stderr, end="", file=sys.stderr)
+    if check and cp.returncode:
+        raise RuntimeError(f"command failed {cp.returncode}: {args}")
+    return cp
+
+def out(*args: str, cwd: Path | None = None) -> str:
+    return run(*args, cwd=cwd).stdout.strip()
+
+def parse_validation_commands(path: Path) -> list[str]:
+    commands, active = [], False
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        if raw == "validation_commands:": active = True; continue
+        if active:
+            if raw.startswith("  - "): commands.append(raw[4:].strip()); continue
+            if raw and not raw.startswith(" ") and not raw.startswith("#"): break
+    return commands
+
+def native_powershell(root: Path) -> str:
+    powershell = Path(os.environ.get("WINDIR", r"C:\Windows")) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    if not powershell.is_file(): raise RuntimeError(f"native Windows PowerShell missing: {powershell}")
+    downloads = Path(os.environ.get("DCOIR_DOWNLOADS_DIR", tempfile.gettempdir()))
+    downloads.mkdir(parents=True, exist_ok=True)
+    bootstrap = downloads / "dcoir_native_ps5_validation_bootstrap.ps1"
+    validator = (root / ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1").resolve()
+    bootstrap.write_text(r'''param([Parameter(Mandatory=$true)][string]$ValidatorPath)
+$ErrorActionPreference = 'Stop'
+$forceFallback = $env:DCOIR_FORCE_FILEHASH_FALLBACK -eq '1'
+if ($forceFallback -or -not (Get-Command Get-FileHash -ErrorAction SilentlyContinue)) {
+    function Get-FileHash {
+        param(
+            [Parameter(Mandatory=$true)][string]$LiteralPath,
+            [string]$Algorithm = 'SHA256'
+        )
+        if ($Algorithm -ne 'SHA256') { throw "Fallback Get-FileHash supports only SHA256, got $Algorithm" }
+        $resolved = (Resolve-Path -LiteralPath $LiteralPath).Path
+        $stream = [System.IO.File]::OpenRead($resolved)
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        try {
+            $bytes = $sha.ComputeHash($stream)
+            $hash = (($bytes | ForEach-Object { $_.ToString('x2') }) -join '')
+            [pscustomobject]@{ Algorithm = 'SHA256'; Hash = $hash; Path = $resolved }
+        }
+        finally {
+            $sha.Dispose()
+            $stream.Dispose()
+        }
+    }
+}
+& $ValidatorPath -AllowEmpty
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+''', encoding="utf-8")
+    cp = run(str(powershell), "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(bootstrap), "-ValidatorPath", str(validator), cwd=root)
+    return cp.stdout + cp.stderr
+
+def independent_secret_scan(root: Path, paths: tuple[str, ...]) -> None:
+    patterns = (
+        re.compile(r"github_pat_[A-Za-z0-9_]{20,}"),
+        re.compile(r"gh[pousr]_[A-Za-z0-9_]{20,}"),
+        re.compile(r"AKIA[0-9A-Z]{16}"),
+        re.compile(r"-----BEGIN (?:RSA|OPENSSH|EC|DSA) PRIVATE KEY-----"),
+        re.compile(r"(?i)(?:api[_-]?key|secret|token|password)\s*[:=]\s*[\"']?[A-Za-z0-9_./+=-]{16,}"),
+    )
+    required = re.compile(r"REQUIRED_TOKEN\s*=\s*['\"]APPLY_[A-Z0-9_]+['\"]")
+    symbol = re.compile(r"['\"]?[A-Z][A-Z0-9_]*(?:TOKEN|SECRET|PASSWORD|KEY)[A-Z0-9_]*['\"]?")
+    findings: list[str] = []
+    for rel in paths:
+        path = root / rel
+        if not path.is_file(): continue
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if any(pattern.search(line) for pattern in patterns) and not required.search(line) and not symbol.search(line):
+                findings.append(f"{rel}:{lineno}:{line[:220]}")
+    if findings: raise RuntimeError("independent secret scan findings: " + " | ".join(findings[:20]))
+
+patch = gzip.decompress(base64.b64decode("".join(PATCH_GZIP_B64.split())))
+if hashlib.sha256(patch).hexdigest() != EXPECTED_PATCH_SHA:
+    raise RuntimeError("embedded frozen patch SHA mismatch")
+patch_path.write_bytes(patch)
+run("git", "fetch", "--no-tags", "origin", "+refs/heads/refactor/issue-550-dcoir-runtime-consolidation:refs/remotes/origin/refactor/issue-550-dcoir-runtime-consolidation", cwd=repo)
+run("git", "cat-file", "-e", f"{SOURCE_PARENT}^{{commit}}", cwd=repo)
+if worktree.exists(): shutil.rmtree(worktree, ignore_errors=True)
+run("git", "worktree", "add", "--detach", str(worktree), SOURCE_PARENT, cwd=repo)
+try:
+    run("git", "apply", "--binary", "--whitespace=nowarn", str(patch_path), cwd=worktree)
+    existing_paths = [rel for rel in EXPECTED_PATHS if (worktree / rel).is_file()]
+    run("git", "add", "-N", "--", *existing_paths, cwd=worktree)
+    current = subprocess.check_output(["git", "diff", "--binary", SOURCE_PARENT, "--"], cwd=worktree)
+    if current != patch: raise RuntimeError("applied candidate bytes differ from frozen patch")
+    run("git", "diff", "--check", SOURCE_PARENT, "--", cwd=worktree)
+    changed = tuple(filter(None, out("git", "diff", "--name-only", SOURCE_PARENT, "--", cwd=worktree).splitlines()))
+    if changed != EXPECTED_PATHS: raise RuntimeError(f"changed-path drift: {changed!r}")
+    if any(p.startswith(".github/workflows/") or p.startswith(".github/chatgpt_staging/") for p in changed):
+        raise RuntimeError("forbidden workflow/staging path entered source slice")
+
+    if any(re.search(r"dcoir_review_required_runtime_patch_v(?:5[9-9]|[6-9][0-9])", p) for p in changed):
+        raise RuntimeError("v59+ production patch entered source slice")
+    scripts = worktree / ".github/dcoir_review/scripts"
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(scripts) + (os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else "")
+    changed_python = [p for p in changed if p.endswith(".py") and (worktree / p).is_file()]
+    if len(changed_python) != 5: raise RuntimeError(f"changed Python count drift: {len(changed_python)}")
+    run(sys.executable, "-m", "py_compile", *changed_python, cwd=worktree, env=env)
+    focused = (
+        ".github/dcoir_review/scripts/dcoir_review_provider_review_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_provider_transport_retry_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_structured_result_recovery_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_semantic_adjudication_recovery_selftest.py",
+        ".github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py",
+    )
+    for path in focused: run(sys.executable, path, cwd=worktree, env=env)
+    commands = parse_validation_commands(worktree / ".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    if len(commands) != 61: raise RuntimeError(f"governed command count drift: {len(commands)}")
+    git_exe = shutil.which("git")
+    if not git_exe: raise RuntimeError("git executable missing")
+    git_bash = Path(git_exe).resolve().parent.parent / "bin/bash.exe"
+    if not git_bash.is_file(): raise RuntimeError(f"Git Bash missing: {git_bash}")
+    parser_text = ""
+
+    for index, command in enumerate(commands, 1):
+        argv = shlex.split(command, posix=True)
+        print(f"=== Registry {index:02d}/61 {command} ===")
+        if argv[0] in {"python", "python3"}:
+            argv[0] = sys.executable
+            run(*argv, cwd=worktree, env=env)
+        elif argv[0] == "bash":
+            argv[0] = str(git_bash)
+            run(*argv, cwd=worktree, env=env)
+        elif argv[0] == "pwsh":
+            parser_text = native_powershell(worktree)
+        else:
+            run(*argv, cwd=worktree, env=env)
+    if "PowerShell version: 5.1." not in parser_text or "Validating 293 PowerShell file(s)." not in parser_text:
+        raise RuntimeError("native PowerShell validation drift")
+    if "ASSEMBLED_HARNESS_SHA256=7a7bf1b5a842c29a42ede8851cf090ab8019adf74fc2ae7a8bd305839a682d76" not in parser_text:
+        raise RuntimeError("PowerShell assembled harness SHA drift")
+    independent_secret_scan(worktree, changed)
+    recall = run(sys.executable, ".github/dcoir_review/scripts/dcoir_review_semantic_recall_corpus_selftest.py", cwd=worktree, env=env)
+    if "12 cases, 10 finding classes, 2 clean classes" not in recall.stdout + recall.stderr:
+        raise RuntimeError("semantic recall drift")
+    precision = json.loads(run(sys.executable, ".github/dcoir_review/scripts/dcoir_review_precision_regression_selftest.py", cwd=worktree, env=env).stdout)
+    if float(precision["false_positive_suppression_rate"]) != 1.0 or float(precision["true_positive_retention_rate"]) != 1.0 or precision.get("regressions"):
+        raise RuntimeError("precision regression drift")
+    inventory = json.loads(run(sys.executable, ".github/dcoir_review/scripts/dcoir_review_architecture_inventory.py", cwd=worktree, env=env).stdout)
+    if inventory.get("missing_modules") or int(inventory["production_patch_count"]) != 56 or int(inventory["max_numbered_version"]) != 56:
+        raise RuntimeError(f"architecture inventory drift: {inventory}")
+
+    sys.path.insert(0, str(scripts))
+    from dcoir_review.entrypoint import DcoirReviewEntrypoint
+    entrypoint = DcoirReviewEntrypoint()
+    module = entrypoint.import_module(entrypoint.review_module_name)
+    owners = {"review": module, "base": module.base, "hardened": module.hardened}
+    previous = {(label, name): value for label, owner in owners.items() for name, value in vars(owner).items() if callable(value)}
+    history: dict[tuple[str, str], list[str]] = {}
+    review_replacements: list[str] = []
+    groups = (
+        "patch_module_names", "terminal_patch_module_names", "post_terminal_patch_module_names",
+        "candidate_integrity_patch_module_names", "stage_local_patch_module_names",
+        "execution_policy_patch_module_names", "telemetry_patch_module_names", "post_telemetry_patch_module_names",
+    )
+    for group_name in groups:
+        for patch_name in getattr(entrypoint, group_name):
+            before_review = module.hardened.openrouter_review
+            entrypoint._apply_patch_modules(module, (patch_name,))
+            after_review = module.hardened.openrouter_review
+            if after_review is not before_review: review_replacements.append(patch_name)
+            for label, owner in owners.items():
+                for name, value in vars(owner).items():
+                    key = (label, name)
+                    if callable(value) and key in previous and previous[key] is not value:
+                        history.setdefault(key, []).append(patch_name)
+                    if callable(value): previous[key] = value
+    final_review = module.hardened.openrouter_review
+    if final_review.__module__ != "dcoir_review.provider_review":
+        raise RuntimeError(f"provider-review owner drift: {final_review.__module__}")
+    if review_replacements != ["dcoir_review.provider_review"]:
+        raise RuntimeError(f"provider-review replacement drift: {review_replacements}")
+    if callable(getattr(module, "openrouter_review", None)):
+        raise RuntimeError("unexpected module.openrouter_review alias")
+    for storage in (
+        "_dcoir_review_structured_result_provider_prior_openrouter_review",
+        "_dcoir_review_v54_original_openrouter_review",
+        "_dcoir_review_v57_original_openrouter_review",
+    ):
+        if callable(getattr(module.hardened, storage, None)): raise RuntimeError(f"historical review storage remains: {storage}")
+    multi_stage = {key: stages for key, stages in history.items() if len(stages) >= 2}
+    if len(multi_stage) != 19: raise RuntimeError(f"multi-stage chain count drift: {len(multi_stage)}")
+
+    retired = (
+        scripts / "dcoir_review_required_runtime_patch_v54.py",
+        scripts / "dcoir_review_required_runtime_patch_v57.py",
+    )
+    if any(path.exists() for path in retired): raise RuntimeError("retired v54/v57 source reappeared")
+    old_module_refs, old_review_storages = [], []
+    for path in scripts.rglob("*.py"):
+        if "selftest" in path.name: continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if "dcoir_review_required_runtime_patch_v54" in text or "dcoir_review_required_runtime_patch_v57" in text:
+            old_module_refs.append(path.relative_to(worktree).as_posix())
+        if any(name in text for name in (
+            "_dcoir_review_structured_result_provider_prior_openrouter_review",
+            "_dcoir_review_v54_original_openrouter_review",
+            "_dcoir_review_v57_original_openrouter_review",
+        )):
+            old_review_storages.append(path.relative_to(worktree).as_posix())
+    if old_module_refs: raise RuntimeError(f"production retired-module refs remain: {old_module_refs}")
+    if old_review_storages: raise RuntimeError(f"production historical review storages remain: {old_review_storages}")
+    size_paths = (
+        "dcoir_review/provider_review.py", "dcoir_review/final_adjudication_policy.py",
+        "dcoir_review/review_telemetry.py", "dcoir_review/review_telemetry_state.py",
+        "dcoir_review/review_telemetry_events.py", "dcoir_review/review_telemetry_summary.py",
+    )
+    source_sizes = {}
+    for rel in size_paths:
+        size = len((scripts / rel).read_bytes().replace(b"\r\n", b"\n"))
+        source_sizes[rel] = size
+        if size > 15000: raise RuntimeError(f"connector-safe source size exceeded: {rel}={size}")
+    final_sha = hashlib.sha256(subprocess.check_output(["git", "diff", "--binary", SOURCE_PARENT, "--"], cwd=worktree)).hexdigest()
+    if final_sha != EXPECTED_PATCH_SHA: raise RuntimeError(f"post-validation candidate SHA drift: {final_sha}")
+
+    summary_path.write_text("\n".join([
+        "result=PASS",
+        f"source_parent={SOURCE_PARENT}",
+        f"frozen_patch_sha256={final_sha}",
+        f"slice_paths={len(changed)}",
+        "changed_python=5",
+        "registry_commands=61",
+        "production_components=56",
+        "max_numbered_version=56",
+        "missing_modules=0",
+        "multi_stage_chains=19",
+        "provider_review_runtime_replacements=1",
+        "canonical_provider_review_owner=dcoir_review.provider_review",
+        "stored_original_provider_review_callables=0",
+        "retired_v54_v57_sources=true",
+        "semantic_recall=12/10/2",
+        "false_positive_suppression=1.0",
+        "true_positive_retention=1.0",
+        "precision_regressions=0",
+        "windows_powershell_files=293",
+        "independent_secret_scan=pass",
+        "workflow_paths_changed=0",
+        "v59_plus_added=false",
+        "no_provider_calls=true",
+        "dcoir_self_review_triggered=false",
+        "copilot_triggered=false",
+        "draft_to_ready=false",
+        "merge=false",
+    ]) + "\n", encoding="utf-8")
+    print(summary_path.read_text(encoding="utf-8"), end="")
+    print(TERMINAL)
+finally:
+    run("git", "worktree", "remove", "--force", str(worktree), cwd=repo, check=False)
+    shutil.rmtree(worktree, ignore_errors=True)
