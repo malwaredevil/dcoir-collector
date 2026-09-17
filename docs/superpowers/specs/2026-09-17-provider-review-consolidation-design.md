@@ -55,29 +55,28 @@ openrouter_review(prompt, schema, config, reporter=None)
 
 It must not change model stacks, retry counts, ignored-provider handling, provider transport retry behavior, return shape, or exception semantics.
 
-### 2. Stable request/run telemetry responsibility
+### 2. `dcoir_review.review_telemetry`
 
-Move v54's telemetry helpers and data structures into a stable responsibility module, expected to be `dcoir_review.review_telemetry` unless implementation evidence shows a narrower split is required.
+Move v54's telemetry helpers and data structures into the stable `dcoir_review.review_telemetry` responsibility module.
 
-This stable telemetry owner will contain the current telemetry schema/version constants, sink management, normalization, stage classification, call preparation/drain helpers, per-file telemetry copy behavior, summary/compact-summary behavior, telemetry error accounting, and terminal `emit_run_telemetry` helper.
+This stable telemetry owner contains the current telemetry schema/version constants, sink management, normalization, stage classification, call preparation/drain helpers, per-file telemetry copy behavior, summary/compact-summary behavior, telemetry error accounting, and terminal `emit_run_telemetry` helper.
 
-`dcoir_review.review_config` and `dcoir_review.progress_reporting` must import the stable telemetry owner instead of importing `dcoir_review_required_runtime_patch_v54`.
+`dcoir_review.review_config` and `dcoir_review.progress_reporting` import `dcoir_review.review_telemetry` instead of importing `dcoir_review_required_runtime_patch_v54`.
 
 Telemetry remains observational. Any telemetry preparation, drain, summary, copy, or terminal-emission failure must not change the underlying review result or mask an underlying provider failure.
 
 ### 3. `dcoir_review.final_adjudication_policy`
 
-Move the surviving v57 responsibilities into a stable policy module:
+Move the surviving v57 responsibilities into `dcoir_review.final_adjudication_policy`:
 
 - final-v35 call-site recognition;
 - publication-floor prompt injection;
 - prompt-budget enforcement and truncation marker behavior;
 - final low-confidence terminal disposition classification and recording;
+- direct installation of the terminal `split_findings_with_review_body_fallback` policy;
 - associated constants/markers that remain runtime compatibility contracts.
 
-This module must not install or wrap `hardened.openrouter_review`. Instead it exposes a helper that projects `(prompt, config)` for the final adjudication call, returning unchanged inputs for every other call.
-
-The module may continue to own the terminal `split_findings_with_review_body_fallback` policy if that remains the smallest cohesive boundary, but that responsibility must be installed directly without storing or wrapping an unrelated provider-review callable.
+This module does not install or wrap `hardened.openrouter_review`. Instead it exposes a helper that projects `(prompt, config)` for the final adjudication call, returning unchanged inputs for every other call. Its terminal split policy is installed directly as its own responsibility and does not capture or store a provider-review callable.
 
 ### 4. Structured-result provider recovery
 
@@ -142,13 +141,13 @@ Before this slice is credited, exact-head characterization must show:
 
 ## File-Level Design
 
-Expected new stable modules:
+New stable modules:
 
 - `.github/dcoir_review/scripts/dcoir_review/provider_review.py`
 - `.github/dcoir_review/scripts/dcoir_review/review_telemetry.py`
 - `.github/dcoir_review/scripts/dcoir_review/final_adjudication_policy.py`
 
-Expected modified integration surfaces:
+Modified integration surfaces:
 
 - `.github/dcoir_review/scripts/dcoir_review/entrypoint.py`
 - `.github/dcoir_review/scripts/dcoir_review/review_config.py`
@@ -158,12 +157,12 @@ Expected modified integration surfaces:
 - runtime loader/architecture inventory tests;
 - stable telemetry, structured-result, provider-transport, final-adjudication, and ownership selftests.
 
-Expected retired production sources after parity is proven:
+Retired production sources after parity is proven:
 
 - `.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v54.py`
 - `.github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v57.py`
 
-Version-specific selftests may be deleted, renamed, or split only after their surviving behavioral assertions are mapped into stable responsibility tests.
+Version-specific selftests are deleted, renamed, or split only after their surviving behavioral assertions are mapped into stable responsibility tests.
 
 ## Test Strategy
 
@@ -202,4 +201,4 @@ This slice does not:
 
 ## Rollback Boundary
 
-The slice is one coherent source commit after local validation. If parity cannot be demonstrated without changing provider semantics, retry policy, review-scope authority, or #557 workflow behavior, stop and keep the existing three-wrapper runtime rather than forcing consolidation.
+The source implementation is published as one coherent source commit after local validation. If parity cannot be demonstrated without changing provider semantics, retry policy, review-scope authority, or #557 workflow behavior, stop and keep the existing three-wrapper runtime rather than forcing consolidation.
