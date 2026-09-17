@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-17T09:34:00Z",
+  "approved_command_preview": "Validate the frozen provider-review consolidation candidate from SOURCE_PARENT ce51e10df542d7ac2cdce442988a0eebde8a7414 using patch SHA 8d9ecf0815a9fda7fb1624c76808b7e8b06540a3474ca76a3033e0ef731ea397; run focused tests, all 61 governed commands, native Windows PowerShell 5.1 via a validator-only Get-FileHash fallback when that hosted cmdlet is unavailable, semantic recall/precision, ownership/inventory/chain checks, production chronology scan, independent secret scan, and scope guards. No PR source mutation, workflow source change, provider/model calls, DCOIR self-review, Copilot trigger, Ready transition, #557 repair, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-provider-review-prepublication-006.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-provider-review-prepublication-006",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
