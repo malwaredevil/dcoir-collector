@@ -22,7 +22,7 @@ OWNER_MARKER = "_dcoir_review_progress_reporting_owner"
 def _reporter_owners(module: Any) -> tuple[Any, ...]:
     return tuple(
         owner
-        for owner in (getattr(module, "base", None), getattr(module, "hardened", None), module)
+        for owner in (getattr(module, "hardened", None), getattr(module, "base", None), module)
         if owner is not None
     )
 

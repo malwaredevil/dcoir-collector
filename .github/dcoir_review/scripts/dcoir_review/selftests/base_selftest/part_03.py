@@ -132,6 +132,11 @@ redacted_literal_braced_header = mod.redact_header_field_credentials(literal_bra
 assert "abcdefghijklmnopqrstuvwxyz" not in redacted_literal_braced_header, redacted_literal_braced_header
 assert "[redacted-secret]" in redacted_literal_braced_header, redacted_literal_braced_header
 
+literal_dollar_braced_header = 'Authorization: "Bearer ${abcdefghijklmnopqrstuvwxyz}"'
+redacted_literal_dollar_braced_header = mod.redact_header_field_credentials(literal_dollar_braced_header)
+assert "abcdefghijklmnopqrstuvwxyz" not in redacted_literal_dollar_braced_header, redacted_literal_dollar_braced_header
+assert "[redacted-secret]" in redacted_literal_dollar_braced_header, redacted_literal_dollar_braced_header
+
 fstring_braced_header = 'Authorization: f"Bearer {OPENROUTER_API_KEY}"'
 assert mod.redact_header_field_credentials(fstring_braced_header) == fstring_braced_header
 

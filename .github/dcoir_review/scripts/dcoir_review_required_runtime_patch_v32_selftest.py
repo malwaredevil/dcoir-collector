@@ -21,6 +21,7 @@ def main() -> None:
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     v32 = importlib.import_module("dcoir_review_required_runtime_patch_v32")
+    prompt_policy = importlib.import_module("dcoir_review.adversarial_prompt_policy")
 
     assert getattr(review, v32.APPLIED_MARKER, False) is True
     for required_phrase in (
@@ -152,6 +153,12 @@ def main() -> None:
     assert review.DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER in reserved_prompt
     assert v32.ADVERSARIAL_SEMANTIC_BLOCK in reserved_prompt
     assert reserved_prompt.endswith(v32.ADVERSARIAL_SEMANTIC_BLOCK)
+
+    marker = prompt_policy.ADVERSARIAL_PROMPT_TRUNCATED_MARKER
+    for tiny_budget in (0, 1, len(marker) - 1):
+        tiny_prompt = prompt_policy.append_adversarial_semantic_block("probe", tiny_budget)
+        assert len(tiny_prompt) <= tiny_budget, (tiny_budget, repr(tiny_prompt))
+        assert tiny_prompt == marker[:tiny_budget]
 
     # A non-GPT-5 OpenAI model retains the base sampling control because this
     # compatibility overlay is intentionally limited to the governed reasoning family.

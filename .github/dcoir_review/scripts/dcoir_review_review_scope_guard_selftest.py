@@ -50,6 +50,8 @@ def main() -> None:
 
     module, hardened, main_state = build_fake_module(scope_guard)
     assert getattr(module, scope_guard.APPLIED_MARKER, False) is True
+    progress_reporting = importlib.import_module("dcoir_review.progress_reporting")
+    progress_reporting.apply_pareto_context_module(module)
     config = SimpleNamespace(debug=True)
 
     previous_repo = os.environ.get("GITHUB_REPOSITORY")

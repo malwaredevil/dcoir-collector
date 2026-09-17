@@ -39,10 +39,12 @@ ADVERSARIAL_PROMPT_TRUNCATED_MARKER = "\n\n[adversarial semantic prompt truncate
 def append_adversarial_semantic_block(prompt: str, max_chars: int) -> str:
     """Append the canonical semantic policy using the historical bounded contract."""
     combined = f"{str(prompt)}\n\n{ADVERSARIAL_SEMANTIC_BLOCK}"
-    maximum = int(max_chars)
+    maximum = max(0, int(max_chars))
     if len(combined) <= maximum:
         return combined
-    keep = max(0, maximum - len(ADVERSARIAL_PROMPT_TRUNCATED_MARKER))
+    if maximum <= len(ADVERSARIAL_PROMPT_TRUNCATED_MARKER):
+        return ADVERSARIAL_PROMPT_TRUNCATED_MARKER[:maximum]
+    keep = maximum - len(ADVERSARIAL_PROMPT_TRUNCATED_MARKER)
     return combined[:keep] + ADVERSARIAL_PROMPT_TRUNCATED_MARKER
 
 __all__ = [

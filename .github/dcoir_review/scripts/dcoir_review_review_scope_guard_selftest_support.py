@@ -81,9 +81,23 @@ class FakeReporter:
             lines.extend(final_lines)
         return "\n".join(lines)
 
+    def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
+        self._record("completed", f"{model_used}:{findings_count}:{review_event}")
+
+    def _update_comment(self, body: str) -> None:
+        if self.comment_id:
+            self.gh.update_issue_comment(self.comment_id, body)
+        else:
+            comment = self.gh.create_issue_comment(self.issue_number, body)
+            self.comment_id = int(comment.get("id", 0))
+
     def fail(self, message: str) -> None:
         self.generic_failures += 1
         self._record("failed", message)
+
+
+class FakeBaseReporter(FakeReporter):
+    fail = FakeReporter.fail
 
 
 class FakeHardened:
@@ -145,7 +159,7 @@ def build_fake_module(scope_guard):
             raise exc
 
     module = FakeModule(
-        base=SimpleNamespace(GitHubClient=FakeClient),
+        base=SimpleNamespace(GitHubClient=FakeClient, ProgressReporter=FakeBaseReporter),
         hardened=hardened,
         openrouter_review_with_hybrid_first_pass=hybrid,
         main=original_main,
