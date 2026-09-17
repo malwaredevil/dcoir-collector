@@ -172,7 +172,12 @@ def redact_unquoted_header_credentials(text: str) -> str:
             continue
         scheme_match = HEADER_VALUE_SCHEME.fullmatch(value)
         secret_value = scheme_match.group("secret").strip() if scheme_match else stripped_value
-        if is_safe_header_secret_value(stripped_value) or (scheme_match and is_safe_header_secret_value(secret_value)):
+        safe_value = is_safe_header_secret_value(stripped_value) or (scheme_match and is_safe_header_secret_value(secret_value))
+        bare_brace_reference = bool(re.fullmatch(r"\{[A-Za-z_][A-Za-z0-9_.]*\}", secret_value))
+        dollar_brace_reference = bool(re.fullmatch(r"\$\{[A-Za-z_][A-Za-z0-9_.]*\}", secret_value))
+        explicit_env_reference = bool(re.fullmatch(r"\$\{[A-Z_][A-Z0-9_]*\}", secret_value))
+        needs_interpolation_context = bare_brace_reference or (dollar_brace_reference and not explicit_env_reference)
+        if safe_value and not needs_interpolation_context:
             continue
         result.append(text[cursor:value_start])
         if scheme_match:
