@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-17T08:35:00Z",
+  "approved_command_preview": "Diagnostic-only replay of provider-review prepublication validator 002. Convert the failing validator source line to the process exit code so hosted-only failure can be localized. No PR source mutation, workflow source change, provider/model calls, review trigger, Ready transition, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-provider-review-prepublication-003-diagnostic.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-provider-review-prepublication-003-diagnostic",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
