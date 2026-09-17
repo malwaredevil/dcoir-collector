@@ -532,6 +532,13 @@ def openrouter_review_with_hybrid_first_pass(wrapper_prompt, schema, config):
     assert missing["cache_write_tokens"] is None
     assert missing["cost"] is None
 
+    # Stable telemetry facade keeps request-attempt normalization available.
+    normalized_attempt = telemetry.normalize_attempt(
+        {"request_attempt_count": 2, "outcome": "retry", "requested_model": "m"}
+    )
+    assert normalized_attempt["attempt"] == 2
+    assert normalized_attempt["outcome"] == "retry"
+
     # Missing categorical response metadata is explicit, not silently filtered.
     missing_config = fake.load_pareto_context_config("unused")
     missing_sink = telemetry.ensure_sink(missing_config)

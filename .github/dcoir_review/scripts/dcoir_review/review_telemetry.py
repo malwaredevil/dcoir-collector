@@ -14,7 +14,6 @@ from typing import Any
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 from dcoir_review import structured_result_disposition as structured_disposition
 from dcoir_review.review_telemetry_state import (
-    ERROR_COUNT_ATTR,
     SCHEMA_VERSION,
     SINK_ATTR,
     STAGE_LABEL_ATTR,
@@ -24,11 +23,16 @@ from dcoir_review.review_telemetry_state import (
     note_telemetry_error,
     telemetry_error_count,
 )
-from dcoir_review.review_telemetry_events import (
-    _drain_call,
-    normalize_attempt,
-    normalize_event,
-)
+from dcoir_review import review_telemetry_events as _telemetry_events
+
+# Stable facade retained for telemetry contract tests and external diagnostic callers.
+_drain_call = _telemetry_events._drain_call
+
+def normalize_event(raw: Any, stage: str, attempt_outcome: str = "attempt_outcome_missing") -> dict[str, Any]:
+    return _telemetry_events.normalize_event(raw, stage, attempt_outcome)
+
+def normalize_attempt(raw: Any) -> dict[str, Any]:
+    return _telemetry_events.normalize_attempt(raw)
 from dcoir_review.review_telemetry_summary import compact_summary, summarize_sink
 
 

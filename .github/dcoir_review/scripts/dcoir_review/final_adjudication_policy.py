@@ -350,7 +350,8 @@ def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any
             config, PROMPT_ARTIFACT_PATH, injected
         )
     except Exception:
-        pass
+        # Debug-artifact persistence is observational and must not alter review flow.
+        return injected, staged
     return injected, staged
 
 

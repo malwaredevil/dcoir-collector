@@ -28,23 +28,24 @@ def assert_production_ownership() -> None:
 
 
 class FakeHardened:
-    def __init__(self, events: list[str], provider_error: BaseException | None = None) -> None:
+    def __init__(self, events: list[str], provider_error: Exception | None = None) -> None:
         self.events = events
         self.provider_error = provider_error
 
     def openrouter_review(self, prompt, schema, config, reporter=None):
         self.events.append("provider-call")
-        if self.provider_error is not None:
-            raise self.provider_error
+        provider_error = self.provider_error
+        if provider_error is not None:
+            raise provider_error
         return {"summary": "clean", "findings": []}, "model-a", ""
 
 
 class FakeModule:
-    def __init__(self, events: list[str], provider_error: BaseException | None = None) -> None:
+    def __init__(self, events: list[str], provider_error: Exception | None = None) -> None:
         self.hardened = FakeHardened(events, provider_error)
 
 
-def exercise_order(provider_error: BaseException | None = None) -> tuple[list[str], object | None]:
+def exercise_order(provider_error: Exception | None = None) -> tuple[list[str], object | None]:
     provider_review = importlib.import_module("dcoir_review.provider_review")
     final_policy = provider_review.final_adjudication_policy
     telemetry = provider_review.review_telemetry
@@ -88,7 +89,7 @@ def exercise_order(provider_error: BaseException | None = None) -> tuple[list[st
         config = SimpleNamespace()
         try:
             module.hardened.openrouter_review("probe", {}, config, None)
-        except BaseException as exc:  # exact identity is part of the contract.
+        except Exception as exc:  # exact identity is part of the contract.
             raised = exc
     finally:
         (

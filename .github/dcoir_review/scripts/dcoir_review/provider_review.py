@@ -20,7 +20,8 @@ def _finish_telemetry_fail_soft(state: Any, outcome: str) -> None:
             config = getattr(state, "root_config", None)
             review_telemetry.note_telemetry_error(config)
         except Exception:
-            pass
+            # Telemetry error accounting is observational and must not alter review flow.
+            return
 
 
 def apply_pareto_context_module(module: Any) -> None:
