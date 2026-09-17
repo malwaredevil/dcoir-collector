@@ -131,6 +131,8 @@ def test_completion_reporter_exposes_blocked_carried_state() -> None:
     assert "0 new inline findings" in reporter.steps[-1][1]
     assert "gate BLOCKED by 2 carried unresolved prior verified findings" in reporter.steps[-1][1]
     assert "legacy completion" not in reporter.steps[-1][1]
+    assert reporter.completed_at > 0
+    assert reporter._last_published_stage == "completed"
     assert "Verified finding gate: `BLOCKED`." in reporter.updated_bodies[-1]
     assert "Carried unresolved prior verified findings: `2`." in reporter.updated_bodies[-1]
 

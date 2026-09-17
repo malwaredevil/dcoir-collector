@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib
 from pathlib import Path
+from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
@@ -131,6 +132,26 @@ def main() -> None:
     assert regular_openai_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
     assert "temperature" not in regular_openai_payload
     assert regular_openai_payload["provider"]["require_parameters"] is True
+
+    reserved_budget_config = SimpleNamespace(**vars(config))
+    reserved_budget_config.max_prompt_chars = (
+        len(f"\n\n{v32.ADVERSARIAL_SEMANTIC_BLOCK}")
+        + len(review.DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)
+        + 48
+    )
+    reserved_prompt = review.build_per_file_review_prompt(
+        {"number": 553, "title": "Budget reservation"},
+        {"filename": "probe.py", "patch": "+print('x')"},
+        "print('x')\n" * 4000,
+        "diff --git a/probe.py b/probe.py\n+print('x')\n",
+        reserved_budget_config,
+        [],
+        "deep-forced",
+    )
+    assert len(reserved_prompt) <= reserved_budget_config.max_prompt_chars
+    assert review.DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER in reserved_prompt
+    assert v32.ADVERSARIAL_SEMANTIC_BLOCK in reserved_prompt
+    assert reserved_prompt.endswith(v32.ADVERSARIAL_SEMANTIC_BLOCK)
 
     # A non-GPT-5 OpenAI model retains the base sampling control because this
     # compatibility overlay is intentionally limited to the governed reasoning family.

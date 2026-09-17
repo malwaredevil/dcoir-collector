@@ -44,6 +44,18 @@ def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: An
 from dcoir_review import adversarial_prompt_policy as adversarial_prompt_policy
 
 
+def _truncate_prompt_preserving_adversarial_block(prompt: str, config: Any) -> str:
+    maximum = max(0, int(getattr(config, "max_prompt_chars", 120000)))
+    reserved = len(f"\n\n{adversarial_prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK}")
+    if len(prompt) <= maximum - reserved:
+        return prompt
+    available = max(0, maximum - reserved)
+    if available <= len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER):
+        return prompt[:available]
+    keep = available - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)
+    return prompt[:keep] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
+
+
 def build_per_file_review_prompt(
     pr: dict[str, Any],
     item: dict[str, Any],
@@ -99,10 +111,9 @@ Full head-file context:
 ```{language_hint(path)}
 {visible_text}
 ```
-""".strip()
+    """.strip()
     prompt = base.sanitize_text(prompt, config)
-    if len(prompt) > config.max_prompt_chars:
-        prompt = prompt[: config.max_prompt_chars - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
+    prompt = _truncate_prompt_preserving_adversarial_block(prompt, config)
     return adversarial_prompt_policy.append_adversarial_semantic_block(
         prompt, int(getattr(config, "max_prompt_chars", 120000))
     )
@@ -187,4 +198,3 @@ def compact_model_label(results: list[dict[str, Any]], fallback: str) -> str:
 
 def should_use_per_file_first_pass(review_mode: str, config: Any) -> bool:
     return bool(getattr(config, "per_file_first_pass_review", True)) and review_mode in {"first-pass-deep", "deep-forced"}
-

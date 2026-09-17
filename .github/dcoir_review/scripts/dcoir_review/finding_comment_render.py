@@ -32,14 +32,40 @@ def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, A
     return item
 
 
-def _render_legacy_base_with_safe_suggestion(base: Any, finding: dict[str, Any]) -> str:
-    rendered = str(v16._render_comment(finding) or "").rstrip()
+def _sanitize_github_output(base: Any, text: str, config: Any, *, neutralize_mentions: bool = True) -> str:
+    sanitizer = getattr(base, "sanitize_github_output", None)
+    if not callable(sanitizer):
+        return str(text or "")
+    try:
+        return sanitizer(str(text or ""), config, neutralize_mentions=neutralize_mentions)
+    except TypeError:
+        return sanitizer(str(text or ""), config)
+
+
+def _bounded_comment_body(base: Any, rendered: str) -> str:
+    bound = getattr(base, "github_safe_body", None)
+    if callable(bound):
+        return str(bound(rendered, limit=12000) or "")
+    return str(rendered or "")[:12000]
+
+
+def _render_legacy_base_with_safe_suggestion(base: Any, finding: dict[str, Any], config: Any) -> str:
+    rendered = _sanitize_github_output(base, str(v16._render_comment(finding) or ""), config).rstrip()
     if "```suggestion" in rendered:
-        return rendered
+        return _bounded_comment_body(base, rendered)
     suggestion = v20._safe_single_line_suggestion(base, finding)
     if not suggestion:
-        return rendered
-    return f"{rendered}\n\n```suggestion\n{suggestion}\n```".strip()
+        return _bounded_comment_body(base, rendered)
+    safe_suggestion = _sanitize_github_output(
+        base,
+        suggestion,
+        config,
+        neutralize_mentions=False,
+    ).rstrip()
+    return _bounded_comment_body(
+        base,
+        f"{rendered}\n\n```suggestion\n{safe_suggestion}\n```".strip(),
+    )
 
 
 def render_inline_comment(module: Any, finding: dict[str, Any], model_used: str, config: Any) -> str:
@@ -50,7 +76,7 @@ def render_inline_comment(module: Any, finding: dict[str, Any], model_used: str,
         return repair_pipeline._render_repair(module, item, config)
     if verified_finding_render._is_verified_ordinary_finding(item):
         return verified_finding_render._render_verified_ordinary(base, item, config)
-    return _render_legacy_base_with_safe_suggestion(base, item)
+    return _render_legacy_base_with_safe_suggestion(base, item, config)
 
 
 def apply_pareto_context_module(module: Any) -> None:

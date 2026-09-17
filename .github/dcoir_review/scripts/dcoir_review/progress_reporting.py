@@ -8,6 +8,7 @@ initialization so runtime ownership no longer depends on patch chronology.
 
 from __future__ import annotations
 
+import time
 from typing import Any
 
 from dcoir_review import verified_finding_gate as verified_gate
@@ -63,7 +64,9 @@ def apply_pareto_context_module(module: Any) -> None:
             if override is None:
                 return super().complete(model_used, findings_count, review_event)
             message, final_lines = override
+            self.completed_at = time.time()
             self._record("completed", message)
+            self._last_published_stage = "completed"
             self._update_comment(self._body("completed", final_lines=final_lines))
             return None
 

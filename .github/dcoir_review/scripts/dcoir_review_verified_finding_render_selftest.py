@@ -105,6 +105,26 @@ def test_unverified_ordinary_uses_canonical_legacy_fallback(review) -> None:
     assert rendered == expected, (rendered, expected)
 
 
+def test_unverified_ordinary_fallback_sanitizes_rendered_text_and_suggestion(review) -> None:
+    v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    finding = {
+        "title": "Legacy fallback mention @octocat",
+        "severity": "medium",
+        "confidence": 0.99,
+        "path": "docs/review.md",
+        "line": 5,
+        "body": "ordinary semantic text without verifier support; escalate via @octocat",
+        "suggested_replacement": "notify('@codex')",
+        "validation": "python3 -m py_compile .github/dcoir_review/evaluation/live_verifier_probe.py",
+    }
+    v20._mark_independent_synthesis_results([finding])
+    rendered = review.base.build_inline_comment(finding, "test-model", config)
+    assert "@<!-- -->octocat" in rendered
+    assert "@<!-- -->codex" in rendered
+    assert "```suggestion\nnotify('@<!-- -->codex')\n```" in rendered
+
+
 def test_stable_owner_composition() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = (
@@ -128,6 +148,7 @@ def main() -> None:
     test_model_judge_finding_preserves_verified_semantics(review)
     test_deterministic_sentinel_still_uses_canonical_renderer(review)
     test_unverified_ordinary_uses_canonical_legacy_fallback(review)
+    test_unverified_ordinary_fallback_sanitizes_rendered_text_and_suggestion(review)
     print("dcoir_review_verified_finding_render_selftest passed")
 
 
