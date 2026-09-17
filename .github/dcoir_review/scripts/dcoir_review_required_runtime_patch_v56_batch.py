@@ -8,12 +8,14 @@ from typing import Any
 
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_pipeline as repair
+from dcoir_review import review_telemetry_state
 import dcoir_review_required_runtime_patch_v36 as v36
 import dcoir_review_required_runtime_patch_v56_repair as repair_stage
 
 MAX_BATCH_ITEMS = 8
 MAX_BATCH_PROMPT_CHARS = 120000
-STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
+STAGE_LABEL_ATTR = review_telemetry_state.STAGE_LABEL_ATTR
+LEGACY_STAGE_LABEL_ATTR = review_telemetry_state.LEGACY_STAGE_LABEL_ATTR
 
 BATCH_CRITIC_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -214,6 +216,7 @@ def run_group(
 
     critic_config = repair_policy.build_repair_critic_config(config, group[0]["author_model"])
     setattr(critic_config, STAGE_LABEL_ATTR, "repair-critic")
+    setattr(critic_config, LEGACY_STAGE_LABEL_ATTR, "repair-critic")
     model = group[0]["critic_model"]
     tier = ""
     try:

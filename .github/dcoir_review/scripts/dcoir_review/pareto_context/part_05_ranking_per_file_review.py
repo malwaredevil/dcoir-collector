@@ -41,18 +41,13 @@ def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: An
     return selected
 
 
-from dcoir_review import adversarial_prompt_policy as adversarial_prompt_policy
-
-
-def _truncate_prompt_preserving_adversarial_block(prompt: str, config: Any) -> str:
+def _truncate_prompt_for_budget(prompt: str, config: Any) -> str:
     maximum = max(0, int(getattr(config, "max_prompt_chars", 120000)))
-    reserved = len(f"\n\n{adversarial_prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK}")
-    if len(prompt) <= maximum - reserved:
+    if len(prompt) <= maximum:
         return prompt
-    available = max(0, maximum - reserved)
-    if available <= len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER):
-        return prompt[:available]
-    keep = available - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)
+    if maximum <= len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER):
+        return prompt[:maximum]
+    keep = maximum - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)
     return prompt[:keep] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
 
 
@@ -113,10 +108,7 @@ Full head-file context:
 ```
     """.strip()
     prompt = base.sanitize_text(prompt, config)
-    prompt = _truncate_prompt_preserving_adversarial_block(prompt, config)
-    return adversarial_prompt_policy.append_adversarial_semantic_block(
-        prompt, int(getattr(config, "max_prompt_chars", 120000))
-    )
+    return _truncate_prompt_for_budget(prompt, config)
 
 
 def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:

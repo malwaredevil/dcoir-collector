@@ -5,10 +5,14 @@ from __future__ import annotations
 import threading
 from typing import Any
 
-SINK_ATTR = "_dcoir_v54_run_telemetry_sink"
-SUMMARY_ATTR = "_dcoir_v54_run_telemetry_summary"
-ERROR_COUNT_ATTR = "_dcoir_v54_telemetry_error_count"
-STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
+SINK_ATTR = "_dcoir_run_telemetry_sink"
+SUMMARY_ATTR = "_dcoir_run_telemetry_summary"
+ERROR_COUNT_ATTR = "_dcoir_telemetry_error_count"
+STAGE_LABEL_ATTR = "_dcoir_stage_label"
+LEGACY_SINK_ATTR = "_dcoir_v54_run_telemetry_sink"
+LEGACY_SUMMARY_ATTR = "_dcoir_v54_run_telemetry_summary"
+LEGACY_ERROR_COUNT_ATTR = "_dcoir_v54_telemetry_error_count"
+LEGACY_STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
 SCHEMA_VERSION = "dcoir_openrouter_run_telemetry_v1"
 
 class RunTelemetrySink:
@@ -51,16 +55,22 @@ class RunTelemetrySink:
 
 def ensure_sink(config: Any) -> RunTelemetrySink:
     sink = getattr(config, SINK_ATTR, None)
+    if not isinstance(sink, RunTelemetrySink):
+        sink = getattr(config, LEGACY_SINK_ATTR, None)
     if isinstance(sink, RunTelemetrySink):
+        setattr(config, SINK_ATTR, sink)
         return sink
     sink = RunTelemetrySink()
     setattr(config, SINK_ATTR, sink)
+    setattr(config, LEGACY_SINK_ATTR, sink)
     return sink
 
 
 def telemetry_error_count(config: Any) -> int:
     try:
         sink = getattr(config, SINK_ATTR, None)
+        if not isinstance(sink, RunTelemetrySink):
+            sink = getattr(config, LEGACY_SINK_ATTR, None)
     except Exception:
         sink = None
     if isinstance(sink, RunTelemetrySink):
@@ -69,7 +79,7 @@ def telemetry_error_count(config: Any) -> int:
         except Exception:
             return 0
     try:
-        value = int(getattr(config, ERROR_COUNT_ATTR, 0) or 0)
+        value = int(getattr(config, ERROR_COUNT_ATTR, getattr(config, LEGACY_ERROR_COUNT_ATTR, 0)) or 0)
     except Exception:
         return 0
     return max(0, value)
@@ -79,6 +89,8 @@ def note_telemetry_error(config: Any) -> None:
     """Best-effort shared error accounting that must never affect review behavior."""
     try:
         sink = getattr(config, SINK_ATTR, None)
+        if not isinstance(sink, RunTelemetrySink):
+            sink = getattr(config, LEGACY_SINK_ATTR, None)
     except Exception:
         sink = None
     if isinstance(sink, RunTelemetrySink):
@@ -88,7 +100,9 @@ def note_telemetry_error(config: Any) -> None:
         except Exception:
             return
     try:
-        setattr(config, ERROR_COUNT_ATTR, telemetry_error_count(config) + 1)
+        next_count = telemetry_error_count(config) + 1
+        setattr(config, ERROR_COUNT_ATTR, next_count)
+        setattr(config, LEGACY_ERROR_COUNT_ATTR, next_count)
     except Exception:
         # Error accounting is advisory; never let it alter review behavior.
         return

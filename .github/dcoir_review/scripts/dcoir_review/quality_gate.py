@@ -20,6 +20,7 @@ import re
 from typing import Any
 
 from dcoir_review import structured_result_disposition as disposition
+from dcoir_review import review_telemetry_state
 
 
 TYPED_FINDING = r"(?:(?:correctness|logic|semantic|security|functional|behavioral)\s+findings?)"
@@ -266,7 +267,8 @@ def build_quality_gate_stage(module: Any, next_review: Any) -> Any:
         )
         hardened.write_debug_text_artifact_safely(config, "prompts/02-semantic-quality-retry-prompt.txt", retry_prompt)
         retry_config = copy.copy(config)
-        setattr(retry_config, "_dcoir_v54_stage_label", "broad-quality-retry")
+        setattr(retry_config, review_telemetry_state.STAGE_LABEL_ATTR, "broad-quality-retry")
+        setattr(retry_config, review_telemetry_state.LEGACY_STAGE_LABEL_ATTR, "broad-quality-retry")
         retry_result, retry_model_used, retry_service_tier = hardened.openrouter_review(
             retry_prompt,
             schema,

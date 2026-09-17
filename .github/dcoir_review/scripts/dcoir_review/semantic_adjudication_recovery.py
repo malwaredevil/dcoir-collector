@@ -34,6 +34,7 @@ from dcoir_review import semantic_adjudication_confidence as confidence
 import dcoir_review_required_runtime_patch_v44_execution as execution
 import dcoir_review_required_runtime_patch_v44_scope as scope
 from dcoir_review import semantic_candidate_identity as candidate_identity
+from dcoir_review import review_telemetry_state
 
 
 RECOVERY_MARKER_VERSION = "v55"  # Compatibility/provenance value retained from the historical owner.
@@ -45,7 +46,9 @@ RECOVERY_REASON = "schema-incompatible-valid-json-object"
 _NORMALIZATION_SHAPE_ERROR_PREFIX = (
     "DCOIR semantic adjudicator returned neither a findings envelope nor a complete flat single finding"
 )
-_V54_STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
+_STAGE_LABEL_ATTR = review_telemetry_state.STAGE_LABEL_ATTR
+_LEGACY_STAGE_LABEL_ATTR = review_telemetry_state.LEGACY_STAGE_LABEL_ATTR
+_V54_STAGE_LABEL_ATTR = _STAGE_LABEL_ATTR
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 
 
@@ -202,7 +205,8 @@ def run_adjudicator(
     staged.model = models[0]
     # v54 is already installed before this stable owner. Give its observational
     # wrapper an explicit stage label because the callsite now lives here.
-    setattr(staged, _V54_STAGE_LABEL_ATTR, "semantic-adjudicator")
+    setattr(staged, _STAGE_LABEL_ATTR, "semantic-adjudicator")
+    setattr(staged, _LEGACY_STAGE_LABEL_ATTR, "semantic-adjudicator")
 
     max_findings = int(
         getattr(

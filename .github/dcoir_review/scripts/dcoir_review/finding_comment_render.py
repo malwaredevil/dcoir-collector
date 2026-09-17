@@ -11,22 +11,20 @@ from __future__ import annotations
 
 from typing import Any
 
+from dcoir_review import finding_comment_policy
 from dcoir_review import repair_pipeline
 from dcoir_review import verified_finding_render
-import dcoir_review_required_runtime_patch_v16 as v16
-import dcoir_review_required_runtime_patch_v20 as v20
-import dcoir_review_required_runtime_patch_v30 as v30
 
 
 APPLIED_MARKER = "_dcoir_finding_comment_render_applied"
 
 
 def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, Any]:
-    kind = v30._deterministic_sentinel_kind(finding)
+    kind = finding_comment_policy.deterministic_sentinel_kind(finding)
     if not kind:
         return finding
     item = dict(finding)
-    title, body, _notes = v20._template_for_kind(kind)
+    title, body, _notes = finding_comment_policy.template_for_kind(kind)
     item["title"] = str(title or item.get("title", "") or "DCOIR Review finding").strip()
     item["body"] = str(body or item.get("body", "") or "").strip()
     return item
@@ -50,10 +48,10 @@ def _bounded_comment_body(base: Any, rendered: str) -> str:
 
 
 def _render_legacy_base_with_safe_suggestion(base: Any, finding: dict[str, Any], config: Any) -> str:
-    rendered = _sanitize_github_output(base, str(v16._render_comment(finding) or ""), config).rstrip()
+    rendered = _sanitize_github_output(base, finding_comment_policy.render_base_comment(finding), config).rstrip()
     if "```suggestion" in rendered:
         return _bounded_comment_body(base, rendered)
-    suggestion = v20._safe_single_line_suggestion(base, finding)
+    suggestion = finding_comment_policy.safe_single_line_suggestion(base, finding)
     if not suggestion:
         return _bounded_comment_body(base, rendered)
     safe_suggestion = _sanitize_github_output(

@@ -14,6 +14,7 @@ from typing import Any
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 from dcoir_review import structured_result_disposition as structured_disposition
 from dcoir_review.review_telemetry_state import (
+    LEGACY_STAGE_LABEL_ATTR,
     SCHEMA_VERSION,
     SINK_ATTR,
     STAGE_LABEL_ATTR,
@@ -52,6 +53,8 @@ def _schema_properties(schema: Any) -> dict[str, Any]:
 
 def _explicit_stage_label(config: Any) -> str:
     value = getattr(config, STAGE_LABEL_ATTR, "")
+    if not value:
+        value = getattr(config, LEGACY_STAGE_LABEL_ATTR, "")
     return str(value or "").strip()
 
 

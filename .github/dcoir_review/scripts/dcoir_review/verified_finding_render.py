@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v20 as v20
+from dcoir_review import finding_comment_policy
 from dcoir_review import finding_verifier
 
 
@@ -60,7 +60,7 @@ def _render_verified_ordinary(base: Any, finding: dict[str, Any], config: Any) -
     if getattr(config, "include_confidence", False):
         parts.extend(["", f"Confidence: `{confidence:.2f}`"])
 
-    suggestion = v20._safe_single_line_suggestion(base, finding)
+    suggestion = finding_comment_policy.safe_single_line_suggestion(base, finding)
     if suggestion:
         safe_suggestion = base.sanitize_github_output(suggestion, config, neutralize_mentions=False)
         parts.extend(["", "Suggested fix:", "", "```suggestion", safe_suggestion, "```"])

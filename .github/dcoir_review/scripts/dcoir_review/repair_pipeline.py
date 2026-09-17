@@ -25,6 +25,7 @@ REPAIR_AUTHOR_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": [
+        "defect_present",
         "action",
         "replacement",
         "confidence",
@@ -34,6 +35,7 @@ REPAIR_AUTHOR_SCHEMA: dict[str, Any] = {
         "validation",
     ],
     "properties": {
+        "defect_present": {"type": "boolean"},
         "action": {"type": "string", "enum": ["replace_line", "no_safe_single_line_fix"]},
         "replacement": {"type": "string", "maxLength": 1200},
         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
@@ -60,27 +62,42 @@ REPAIR_CRITIC_SCHEMA: dict[str, Any] = {
 
 
 # Stable helper exports remain available to later historical overlays during
-# staged retirement.  Dynamic forwarding avoids dead forwarding assignments
-# while preserving ordinary module attribute reads and later monkey-patch writes.
+# staged retirement through explicit delegates in this canonical owner.
 _path_line = support._path_line
 _strip_legacy_model_finding_provenance = support._strip_legacy_model_finding_provenance
-_COMPAT_SUPPORT_EXPORTS = {
-    "_file_line": "_file_line",
-    "_repair_author_prompt": "_repair_author_prompt",
-    "_repair_critic_prompt": "_repair_critic_prompt",
-    "_independent_config": "_independent_config",
-    "_parse_author": "_parse_author",
-    "_parse_critic": "_parse_critic",
-    "_replacement_validation_reason": "_replacement_validation_reason",
-    "_fallback_display": "_fallback_display",
-}
 
 
-def __getattr__(name: str) -> Any:
-    support_name = _COMPAT_SUPPORT_EXPORTS.get(name)
-    if support_name is not None:
-        return getattr(support, support_name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+def _file_line(file_text: str, line_number: int) -> str:
+    return support._file_line(file_text, line_number)
+
+
+def _repair_author_prompt(module: Any, finding: dict[str, Any], path: str, line: int, current_line: str, file_text: str, config: Any) -> str:
+    return support._repair_author_prompt(module, finding, path, line, current_line, file_text, config)
+
+
+def _repair_critic_prompt(module: Any, finding: dict[str, Any], author: dict[str, Any], file_cache: dict[str, str], config: Any) -> str:
+    return support._repair_critic_prompt(module, finding, author, file_cache, config)
+
+
+def _independent_config(config: Any) -> Any:
+    return support._independent_config(config)
+
+
+def _parse_author(result: Any, finding: dict[str, Any], path: str, line: int, hardened: Any) -> dict[str, Any]:
+    del finding, path, line
+    return support._parse_author(result, hardened)
+
+
+def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
+    return support._parse_critic(result, hardened)
+
+
+def _replacement_validation_reason(module: Any, path: str, line: int, original: str, replacement: str, file_text: str) -> str:
+    return support._replacement_validation_reason(module, path, line, original, replacement, file_text)
+
+
+def _fallback_display(finding: dict[str, Any], path: str, line: int) -> tuple[str, str]:
+    return support._fallback_display(finding, path, line)
 
 
 def _verifier_evidence(finding: dict[str, Any]) -> str:

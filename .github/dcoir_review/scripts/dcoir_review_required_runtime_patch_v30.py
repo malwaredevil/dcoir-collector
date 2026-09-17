@@ -19,7 +19,6 @@ pull-request branch writes or autonomous remediation.
 
 from __future__ import annotations
 
-import copy
 import re
 from typing import Any
 
@@ -79,15 +78,8 @@ def _patch_truthy_literal_rule(module: Any) -> None:
 
 
 def _patch_author_schema() -> None:
-    schema = copy.deepcopy(repair.REPAIR_AUTHOR_SCHEMA)
-    required = list(schema.get("required") or [])
-    if "defect_present" not in required:
-        required.insert(0, "defect_present")
-    properties = dict(schema.get("properties") or {})
-    properties["defect_present"] = {"type": "boolean"}
-    schema["required"] = required
-    schema["properties"] = properties
-    repair.REPAIR_AUTHOR_SCHEMA = schema
+    # Canonical repair schema now owns defect-presence shape directly.
+    return
 
 
 def _author_prompt(original_prompt: Any, module: Any, finding: dict[str, Any], path: str, line: int, current_line: str, file_text: str, config: Any) -> str:
