@@ -14,41 +14,38 @@ from typing import Any
 
 PRIMARY_CRITIC_MODEL = "openai/gpt-5.6-terra"
 FALLBACK_CRITIC_MODEL = "~anthropic/claude-sonnet-latest"
+OPENAI_CROSS_FAMILY_CRITIC_MODEL = "openai/gpt-5.6-sol-pro"
+ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5"
 CRITIC_SESSION_SUFFIX = "repair-critic"
 
 
 def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
-    """Return the canonical independent structured-output critic config.
-
-    The governed direct critic stack is Terra/Sonnet. When the repair author was
-    served by an OpenAI model, reverse that stack so the first critic attempt is
-    from the other model family while retaining the same canonical two-model
-    fallback contract.
-    """
+    """Return the canonical critic config while preserving established routing."""
     critic_config = copy.copy(config)
     served_author = str(author_model or "").strip().lower()
-    if served_author.startswith("openai/"):
-        primary_model = FALLBACK_CRITIC_MODEL
-        fallback_model = PRIMARY_CRITIC_MODEL
-    else:
-        primary_model = PRIMARY_CRITIC_MODEL
-        fallback_model = FALLBACK_CRITIC_MODEL
+    if served_author:
+        # v36/v56 historically use one opposite-family critic. Keep that live
+        # behavior intact while moving ownership out of numbered patch modules.
+        critic_model = (
+            ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
+            if served_author.startswith("openai/")
+            else OPENAI_CROSS_FAMILY_CRITIC_MODEL
+        )
+        if hasattr(critic_config, "model"):
+            critic_config.model = critic_model
+        if hasattr(critic_config, "model_stack"):
+            critic_config.model_stack = [critic_model]
+        return critic_config
 
-    critic_config.model = primary_model
-    critic_config.model_stack = [primary_model, fallback_model]
-
-    # Keep fallback deterministic at the explicit model-stack layer. Native
-    # fallback_models would make it harder to attribute which critic served.
+    # The older no-author repair-support contract retains its governed direct
+    # Terra/Sonnet stack. Consolidation must not silently change either policy.
+    critic_config.model = PRIMARY_CRITIC_MODEL
+    critic_config.model_stack = [PRIMARY_CRITIC_MODEL, FALLBACK_CRITIC_MODEL]
     critic_config.fallback_models = []
-
-    # Direct critic models do not need Auto/Pareto router controls.
     critic_config.openrouter_route = ""
     critic_config.openrouter_service_tier = ""
-
     base_prefix = str(
         getattr(config, "openrouter_session_id_prefix", "") or "dcoir-review"
     ).strip()
-    critic_config.openrouter_session_id_prefix = (
-        f"{base_prefix}-{CRITIC_SESSION_SUFFIX}"
-    )
+    critic_config.openrouter_session_id_prefix = f"{base_prefix}-{CRITIC_SESSION_SUFFIX}"
     return critic_config

@@ -147,11 +147,8 @@ def main() -> None:
             assert len(ids) >= 2, ids
             assert getattr(cfg, batch.STAGE_LABEL_ATTR, "") == "repair-critic"
             assert telemetry.classify_stage(prompt, schema, cfg) == "repair-critic"
-            assert set(cfg.model_stack) == {
-                repair_policy.PRIMARY_CRITIC_MODEL,
-                repair_policy.FALLBACK_CRITIC_MODEL,
-            }
-            assert cfg.model == cfg.model_stack[0]
+            assert cfg.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+            assert cfg.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
             calls.append(("batch-critic", ",".join(ids), str(cfg.model)))
             return {
                 "results": [
@@ -160,11 +157,12 @@ def main() -> None:
                 ]
             }, str(cfg.model), "default"
         if schema is v36.REPAIR_SET_CRITIC_SCHEMA:
-            assert set(cfg.model_stack) == {
-                repair_policy.PRIMARY_CRITIC_MODEL,
-                repair_policy.FALLBACK_CRITIC_MODEL,
-            }
+            assert len(cfg.model_stack) == 1
             assert cfg.model == cfg.model_stack[0]
+            assert cfg.model in {
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+            }
             calls.append(("single-critic", "", str(cfg.model)))
             return {"accepted": True, "confidence": 0.99, "reason": "safe"}, str(cfg.model), "default"
         raise AssertionError(f"unexpected schema: {schema.get('title') if isinstance(schema, dict) else schema}")
@@ -176,7 +174,7 @@ def main() -> None:
     v36._repair_critic_config = forbidden_v36_critic_config
     try:
         # Three compatible authors keep three independent author calls but collapse
-        # three canonical Terra critics into one identity-keyed batch. Reversed
+        # three canonical opposite-family critics into one identity-keyed batch. Reversed
         # critic output proves mapping is by ID rather than position.
         paths = ["a.py", "b.py", "c.py"]
         gh = FakeGH(_diff(paths))
@@ -214,8 +212,8 @@ def main() -> None:
         assert gh.diff_calls == 1
 
         # Different author families remain isolated into separate critic requests.
-        # Both requests now use the canonical Terra/Sonnet pair, reversing primary
-        # order when the author was OpenAI to preserve family independence.
+        # The canonical owner preserves the historical one-model opposite-family
+        # policy while removing v36 from the active v56 routing path.
         paths = ["opus_author.py", "openai_author.py"]
         author_models.clear()
         author_models.update(
@@ -237,8 +235,8 @@ def main() -> None:
         critics = [call for call in calls if call[0] == "single-critic"]
         assert len(critics) == 2, calls
         assert {call[2] for call in critics} == {
-            repair_policy.PRIMARY_CRITIC_MODEL,
-            repair_policy.FALLBACK_CRITIC_MODEL,
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
         }
         assert all(item[repair_pipeline.REPAIR_MARKER]["critic_accepted"] is True for item in result)
 
@@ -250,7 +248,7 @@ def main() -> None:
             "author": _author("a.py"),
             "author_model": "anthropic/claude-opus-5",
             "author_tier": "default",
-            "critic_model": repair_policy.PRIMARY_CRITIC_MODEL,
+            "critic_model": repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
         }
         p1 = dict(template)
         p1["critic_item_id"] = repair_stage.critic_item_id(1, p1["finding"], p1["author"])
