@@ -48,7 +48,6 @@ _NORMALIZATION_SHAPE_ERROR_PREFIX = (
 )
 _STAGE_LABEL_ATTR = review_telemetry_state.STAGE_LABEL_ATTR
 _LEGACY_STAGE_LABEL_ATTR = review_telemetry_state.LEGACY_STAGE_LABEL_ATTR
-_V54_STAGE_LABEL_ATTR = _STAGE_LABEL_ATTR
 _VALID_SEVERITIES = {"critical", "high", "medium", "low"}
 
 
