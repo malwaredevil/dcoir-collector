@@ -150,6 +150,10 @@ def _cases(review):
             "line": 10,
             "body": "model body",
             "suggested_replacement": '    if severity == "critical" or severity == "high":',
+            "fix_guidance": {
+                "language": "python",
+                "notes": "MODEL CONTROLLED GUIDANCE MUST NOT RENDER",
+            },
             v20.SYNTHESIS_VERIFIED_MARKER: True,
             "_risk_sentinel_key": [SUGGESTION_PROBE, 10, v20.PYTHON_TRUTHY_LITERAL_BRANCH],
             "_risk_sentinel_kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
@@ -188,6 +192,8 @@ def main() -> None:
     observed = {}
     for name, finding in cases.items():
         rendered = review.base.build_inline_comment(dict(finding), "test-model", config)
+        if name == "deterministic_no_repair":
+            assert "MODEL CONTROLLED GUIDANCE MUST NOT RENDER" not in rendered, rendered
         observed[name] = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     assert observed == EXPECTED_SHA256, {"expected": EXPECTED_SHA256, "observed": observed}
     print("dcoir_review_finding_comment_render_selftest passed")
