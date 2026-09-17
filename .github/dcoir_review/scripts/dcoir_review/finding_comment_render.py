@@ -24,9 +24,12 @@ def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, A
     if not kind:
         return finding
     item = dict(finding)
-    title, body, _notes = finding_comment_policy.template_for_kind(kind)
+    title, body, notes = finding_comment_policy.template_for_kind(kind)
     item["title"] = str(title or item.get("title", "") or "DCOIR Review finding").strip()
     item["body"] = str(body or item.get("body", "") or "").strip()
+    guidance = dict(item.get("fix_guidance")) if isinstance(item.get("fix_guidance"), dict) else {}
+    guidance["notes"] = str(notes or "").strip()
+    item["fix_guidance"] = guidance
     return item
 
 
