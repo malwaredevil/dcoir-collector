@@ -1,1 +1,12 @@
-noop
+{
+  "approved_at_utc": "2026-09-17T12:45:03Z",
+  "approved_command_preview": "Validate the frozen four-file Copilot final follow-up against source parent 032192a1bbe86244383ffae7c196eb4d7117b2ec and patch SHA 3452e6d1596993e66214a824187d7f2f7a6b0ece45e64769a042e81b8a6ae4eb. Run deterministic, native Windows PowerShell, secret, architecture, recall, and precision gates. No PR source mutation, provider/model calls, DCOIR self-review, Copilot/Codex trigger, Draft-to-Ready transition, #557 repair, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-copilot-final-followup-prepublication-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-copilot-final-followup-prepublication-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
