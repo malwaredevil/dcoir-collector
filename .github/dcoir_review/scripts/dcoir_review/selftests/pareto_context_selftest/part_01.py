@@ -63,6 +63,30 @@ assert config.fix_synthesis_enabled is True
 assert config.required_finding_reserved_budget == 9
 assert config.required_finding_min_per_family == 2
 
+with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as handle:
+    handle.write(
+        "\n".join(
+            [
+                "commands:",
+                "  - /or-review",
+                "model: openrouter/auto",
+                "adversarial_confirmation_model_stack:",
+                "  - openrouter/free",
+                "smoke_test_free_model: false",
+            ]
+        )
+    )
+    free_stage_config_path = handle.name
+try:
+    try:
+        mod.load_pareto_context_config(free_stage_config_path)
+    except RuntimeError as exc:
+        assert "smoke-test only" in str(exc)
+    else:
+        raise AssertionError("free-router stage stack without smoke opt-in should fail")
+finally:
+    Path(free_stage_config_path).unlink(missing_ok=True)
+
 
 fix_synthesis_verifier_marker = "single-line-pr-head-anchor"
 fix_file_text = "def restore(raw_state):\n    state = decode_state(raw_state)\n    return state\n"

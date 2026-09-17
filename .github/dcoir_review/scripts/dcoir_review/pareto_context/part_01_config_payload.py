@@ -60,8 +60,8 @@ def load_pareto_context_config(path: str) -> Any:
     config.deep_review_max_files = int(data.get("deep_review_max_files", min(getattr(config, "max_files", 30), 8)))
     config.deep_review_max_file_chars = int(data.get("deep_review_max_file_chars", 12000))
     config.deep_review_max_total_chars = int(data.get("deep_review_max_total_chars", 24000))
-    hardened.ensure_free_models_are_opt_in(config)
     review_config.apply_review_config(config, data, hardened)
+    hardened.ensure_free_models_are_opt_in(config)
     return config
 
 
@@ -318,5 +318,4 @@ def set_python_os_alias_context(os_alias_context: dict[str, set[str]] | None) ->
         for path, aliases in (os_alias_context or {}).items()
         if aliases
     }
-
 
