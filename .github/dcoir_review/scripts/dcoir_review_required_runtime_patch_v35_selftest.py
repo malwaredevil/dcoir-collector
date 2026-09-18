@@ -202,6 +202,8 @@ def main() -> None:
         config,
     )
     assert v35.VERIFIER_FALSIFICATION_BLOCK in verifier_prompt
+    assert "directly executable defect in changed test, fixture, or benchmark code remains verifiable" in verifier_prompt
+    assert "test-fixture-only text misread as executable behavior" not in verifier_prompt
 
     # Reapplying the real v35 module must not stack wrappers.
     hybrid_before = review.openrouter_review_with_hybrid_first_pass
