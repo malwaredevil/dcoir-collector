@@ -190,8 +190,22 @@ def main() -> None:
     assert "```suggestion\n    fixed_call()\n```" in comments[0]["body"]
 
     source = Path(".github/dcoir_review/scripts/dcoir_review/repair_contract.py").read_text(encoding="utf-8")
-    for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
+    for forbidden in (
+        "git push",
+        "create_commit(",
+        "update_file(",
+        "merge_pull_request",
+        "repair_contract_original",
+        "v36._repair_author_prompt =",
+        "v36._parse_author =",
+        "v36._repair_critic_prompt =",
+        "v36._parse_critic =",
+    ):
         assert forbidden not in source
+    v36_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
+    assert "repair_contract.normalize_author_metadata" in v36_source
+    assert "repair_contract.append_author_contract" in v36_source
+    assert "repair_contract.append_critic_contract" in v36_source
 
     prompt_before = v36._repair_author_prompt
     parse_before = v36._parse_author

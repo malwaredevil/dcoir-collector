@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -36,11 +37,15 @@ def _module_returning(enriched: list[dict[str, Any]]) -> tuple[SimpleNamespace, 
     hardened = FakeHardened()
     reporter = FakeReporter()
 
-    def original(_findings, _gh, _pr, _schema, _config, _reporter):
-        return [dict(item) for item in enriched]
+    module = SimpleNamespace(hardened=hardened)
 
-    module = SimpleNamespace(hardened=hardened, synthesize_fixes_for_findings=original)
-    precision_guard.apply_pareto_context_module(module)
+    def composed(_findings, _gh, _pr, _schema, config, active_reporter):
+        repaired = [dict(item) for item in enriched]
+        return precision_guard.enforce_fix_synthesis_precision(
+            module, config, repaired, active_reporter
+        )
+
+    module.synthesize_fixes_for_findings = composed
     return module, hardened, reporter
 
 
@@ -67,9 +72,9 @@ def test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text(
         text='if severity == "critical" or "high":',
     )
 
-    module = SimpleNamespace(detect_risk_sentinels=lambda _diff: [false_python_powershell, real_powershell, generic_python])
-    precision_guard.apply_pareto_context_module(module)
-    filtered = module.detect_risk_sentinels("synthetic diff")
+    filtered = precision_guard.filter_language_scoped_sentinels(
+        [false_python_powershell, real_powershell, generic_python]
+    )
 
     assert false_python_powershell not in filtered
     assert real_powershell in filtered
@@ -215,6 +220,13 @@ def test_legacy_artifact_contract_is_preserved() -> None:
     assert precision_guard.ARTIFACT_SCHEMA_VERSION == "v19"
 
 
+def test_explicit_precision_stages_do_not_replace_shared_callables() -> None:
+    source = Path(".github/dcoir_review/scripts/dcoir_review/precision_guard.py").read_text(encoding="utf-8")
+    assert "_dcoir_precision_guard_original" not in source
+    assert ".detect_risk_sentinels =" not in source
+    assert ".synthesize_fixes_for_findings =" not in source
+
+
 def test_stable_owner_composition() -> None:
     from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
@@ -230,6 +242,7 @@ def test_stable_owner_composition() -> None:
 def main() -> None:
     test_legacy_artifact_contract_is_preserved()
     test_stable_owner_composition()
+    test_explicit_precision_stages_do_not_replace_shared_callables()
     test_language_scoped_sentinel_filter_suppresses_cross_language_fixture_text()
     test_fix_synthesis_false_positive_contradiction_fails_closed()
     test_live_no_code_modification_wording_fails_closed()

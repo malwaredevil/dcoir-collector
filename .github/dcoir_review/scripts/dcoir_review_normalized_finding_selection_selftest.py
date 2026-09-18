@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
@@ -81,6 +82,13 @@ def test_required_sentinel_keeps_priority_under_one_comment_budget(review, v20) 
 
 
 
+def test_explicit_stage_has_no_stored_original_selector() -> None:
+    source = Path(".github/dcoir_review/scripts/dcoir_review/normalized_finding_selection.py").read_text(encoding="utf-8")
+    assert "_dcoir_normalized_selection_original" not in source
+    assert "hardened.add_risk_sentinel_fallback_findings =" not in source
+    assert "hardened.enforce_risk_sentinel_findings =" not in source
+
+
 def test_stable_owner_composition() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = (
@@ -103,6 +111,7 @@ def test_stable_owner_composition() -> None:
 
 def main() -> None:
     test_stable_owner_composition()
+    test_explicit_stage_has_no_stored_original_selector()
     review, v16, v20 = patched_review_modules()
     test_ordinary_finding_survives_both_selector_passes(review, v16)
     test_required_sentinel_keeps_priority_under_one_comment_budget(review, v20)

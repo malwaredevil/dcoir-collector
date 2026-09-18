@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
@@ -38,6 +39,12 @@ def main() -> None:
     assert names.index("dcoir_review_required_runtime_patch_v36") < names.index("dcoir_review.semantic_adjudication_normalization")
     assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review_required_runtime_patch_v31")
 
+    normalization_source = Path(".github/dcoir_review/scripts/dcoir_review/semantic_adjudication_normalization.py").read_text(encoding="utf-8")
+    assert "semantic_adjudication_normalization_original" not in normalization_source
+    assert "v35._cap_adjudicated_findings =" not in normalization_source
+    v35_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v35.py").read_text(encoding="utf-8")
+    assert "semantic_adjudication_normalization.normalize_adjudicator_result" in v35_source
+
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
@@ -54,15 +61,15 @@ def main() -> None:
     )
 
     canonical = {"summary": "none", "findings": []}
-    assert normalization._normalize_adjudicator_result(fake_module, canonical) is canonical
+    assert normalization.normalize_adjudicator_result(fake_module, canonical) is canonical
 
     flat = _finding()
-    normalized = normalization._normalize_adjudicator_result(fake_module, flat)
+    normalized = normalization.normalize_adjudicator_result(fake_module, flat)
     assert len(normalized["findings"]) == 1
     assert normalized["findings"][0]["title"] == flat["title"]
     assert normalized[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
 
-    capped_flat = v35._cap_adjudicated_findings(fake_module, flat, 8)
+    capped_flat = v35._cap_adjudicated_findings(fake_module, normalization.normalize_adjudicator_result(fake_module, flat), 8)
     assert len(capped_flat["findings"]) == 1
     assert capped_flat[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
 
@@ -74,7 +81,7 @@ def main() -> None:
     malformed = _finding()
     malformed.pop("validation")
     try:
-        v35._cap_adjudicated_findings(fake_module, malformed, 8)
+        v35._cap_adjudicated_findings(fake_module, normalization.normalize_adjudicator_result(fake_module, malformed), 8)
     except RuntimeError as exc:
         assert "complete flat single finding" in str(exc)
     else:
@@ -145,10 +152,11 @@ def main() -> None:
     assert artifact["result"][normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
     assert any(stage == "semantic-adjudication" and "retained=1" in message for stage, message in reporter.events)
 
-    # Reapplying the stable owner must not stack the v35 cap wrapper.
+    # Reapplying the stable owner is registration-only and must not mutate v35.
     cap_before = v35._cap_adjudicated_findings
     normalization.apply_pareto_context_module(review)
     assert v35._cap_adjudicated_findings is cap_before
+    assert getattr(review, normalization.APPLIED_MARKER, False) is True
 
     print("dcoir_review_semantic_adjudication_normalization_selftest passed")
 

@@ -23,11 +23,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v35 as v35
-
-
 APPLIED_MARKER = "_dcoir_semantic_adjudication_normalization_applied"
-CAP_STORAGE = "_dcoir_semantic_adjudication_normalization_original_cap_adjudicated_findings"
 FLAT_SHAPE_MARKER = "_semantic_adjudication_result_shape"
 FLAT_SHAPE_VALUE = "flat-single-finding"
 
@@ -77,7 +73,7 @@ def _is_complete_flat_finding(result: dict[str, Any]) -> bool:
     return True
 
 
-def _normalize_adjudicator_result(module: Any, result: Any) -> dict[str, Any]:
+def normalize_adjudicator_result(module: Any, result: Any) -> dict[str, Any]:
     """Normalize the one safe compatibility shape without forgiving malformed output."""
 
     if not isinstance(result, dict):
@@ -103,28 +99,8 @@ def _normalize_adjudicator_result(module: Any, result: Any) -> dict[str, Any]:
     }
 
 
-def _patch_v35_adjudication_cap(module: Any) -> None:
-    original = getattr(v35, CAP_STORAGE, None)
-    if original is None:
-        original = getattr(v35, "_cap_adjudicated_findings", None)
-        if callable(original):
-            setattr(v35, CAP_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR semantic-adjudication normalizer could not locate v35 adjudication result cap")
-
-    def _cap_adjudicated_findings(active_module: Any, result: Any, limit: int) -> dict[str, Any]:
-        normalized = _normalize_adjudicator_result(active_module, result)
-        capped = original(active_module, normalized, limit)
-        if normalized.get(FLAT_SHAPE_MARKER) == FLAT_SHAPE_VALUE:
-            capped[FLAT_SHAPE_MARKER] = FLAT_SHAPE_VALUE
-        return capped
-
-    v35._cap_adjudicated_findings = _cap_adjudicated_findings
-
 
 def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, APPLIED_MARKER, False):
-        return
+    """Compatibility registration only; production composition is explicit."""
 
-    _patch_v35_adjudication_cap(module)
     setattr(module, APPLIED_MARKER, True)

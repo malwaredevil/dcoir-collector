@@ -82,25 +82,10 @@ def sentinel_matches_source_language(sentinel: Any) -> bool:
     return suffix in allowed_extensions
 
 
-def _patch_language_scoped_sentinels(owner: Any) -> None:
-    storage = "_dcoir_precision_guard_original_detect_risk_sentinels"
-    original = getattr(owner, storage, None)
-    if original is None:
-        original = getattr(owner, "detect_risk_sentinels", None)
-        if callable(original):
-            setattr(owner, storage, original)
-    if not callable(original):
-        return
+def filter_language_scoped_sentinels(sentinels: list[Any]) -> list[Any]:
+    """Filter only sentinels whose explicitly scoped language matches their file."""
 
-    def detect_risk_sentinels(diff: str, *args: Any, **kwargs: Any) -> list[Any]:
-        try:
-            sentinels = list(original(diff, *args, **kwargs))
-        except TypeError:
-            sentinels = list(original(diff))
-        return [sentinel for sentinel in sentinels if sentinel_matches_source_language(sentinel)]
-
-    owner.detect_risk_sentinels = detect_risk_sentinels
-
+    return [sentinel for sentinel in sentinels if sentinel_matches_source_language(sentinel)]
 
 def _guidance(finding: dict[str, Any]) -> dict[str, Any]:
     return finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
@@ -182,59 +167,46 @@ def _write_outcomes(module: Any, config: Any, findings: list[dict[str, Any]]) ->
         )
 
 
-def _patch_fix_synthesis_collection(module: Any) -> None:
-    storage = "_dcoir_precision_guard_original_synthesize_fixes_for_findings"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "synthesize_fixes_for_findings", None)
-        if callable(original):
-            setattr(module, storage, original)
-    if not callable(original):
-        return
+def enforce_fix_synthesis_precision(
+    module: Any,
+    config: Any,
+    enriched: list[dict[str, Any]],
+    reporter: Any,
+) -> list[dict[str, Any]]:
+    """Record repair outcomes and fail closed on repair/detector contradictions."""
 
-    def synthesize_fixes_for_findings(
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        schema: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        enriched = original(findings, gh, pr, schema, config, reporter)
-        _write_outcomes(module, config, enriched)
-        contradictions = [
-            (finding, fix_synthesis_self_disqualification_reason(finding))
-            for finding in enriched
-            if fix_synthesis_self_disqualification_reason(finding)
-        ]
-        if not contradictions:
-            return enriched
+    _write_outcomes(module, config, enriched)
+    contradictions = [
+        (finding, fix_synthesis_self_disqualification_reason(finding))
+        for finding in enriched
+        if fix_synthesis_self_disqualification_reason(finding)
+    ]
+    if not contradictions:
+        return enriched
 
-        locations = []
-        for finding, reason in contradictions[:4]:
-            path = str(finding.get("path", "") or "<missing-path>")
-            try:
-                line = int(finding.get("line", 0) or 0)
-            except (TypeError, ValueError):
-                line = 0
-            locations.append(f"{path}:{line or '<missing-line>'} ({reason})")
-        detail = "; ".join(locations)
-        update = getattr(reporter, "update", None)
-        if callable(update):
-            update("fix-synthesis", f"quality contradiction in {len(contradictions)} finding(s); refusing to publish")
-        error_type = getattr(getattr(module, "hardened", None), "ReviewQualityError", RuntimeError)
-        raise error_type(
-            "DCOIR Review quality failure: the independent fix-synthesis pass contradicted "
-            f"{len(contradictions)} detector finding(s), so the reviewer refused to publish self-contradictory findings. "
-            f"Contradictions: {detail}."
-        )
+    locations = []
+    for finding, reason in contradictions[:4]:
+        path = str(finding.get("path", "") or "<missing-path>")
+        try:
+            line = int(finding.get("line", 0) or 0)
+        except (TypeError, ValueError):
+            line = 0
+        locations.append(f"{path}:{line or '<missing-line>'} ({reason})")
+    detail = "; ".join(locations)
+    update = getattr(reporter, "update", None)
+    if callable(update):
+        update("fix-synthesis", f"quality contradiction in {len(contradictions)} finding(s); refusing to publish")
+    error_type = getattr(getattr(module, "hardened", None), "ReviewQualityError", RuntimeError)
+    raise error_type(
+        "DCOIR Review quality failure: the independent fix-synthesis pass contradicted "
+        f"{len(contradictions)} detector finding(s), so the reviewer refused to publish self-contradictory findings. "
+        f"Contradictions: {detail}."
+    )
 
-    module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
+APPLIED_MARKER = "_dcoir_precision_guard_applied"
 
 
 def apply_pareto_context_module(module: Any) -> None:
-    _patch_language_scoped_sentinels(module)
-    hardened = getattr(module, "hardened", None)
-    if hardened is not None:
-        _patch_language_scoped_sentinels(hardened)
-    _patch_fix_synthesis_collection(module)
+    """Compatibility registration only; production composition is explicit."""
+
+    setattr(module, APPLIED_MARKER, True)

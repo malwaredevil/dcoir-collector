@@ -290,6 +290,9 @@ def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
             prompt, schema, adjudication_config, reporter
         )
         provider_result_keys = tuple(sorted(adjudicated.keys())) if isinstance(adjudicated, dict) else ()
+        from dcoir_review import semantic_adjudication_normalization
+
+        adjudicated = semantic_adjudication_normalization.normalize_adjudicator_result(module, adjudicated)
         adjudicated = _cap_adjudicated_findings(module, adjudicated, max_findings)
         adjudicated[PROVIDER_RESULT_KEYS_ATTR] = provider_result_keys
         adjudicated["_semantic_adjudication_attempted"] = True

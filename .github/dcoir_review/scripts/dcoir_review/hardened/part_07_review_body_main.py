@@ -137,6 +137,8 @@ def main() -> None:
         diff = gh.get_pr_diff(pr_number)
         reporter.update("github", "fetching changed file list")
         files = gh.list_files(pr_number)
+        from dcoir_review import normalized_finding_selection
+
         risk_sentinels = detect_risk_sentinels(diff, getattr(config, "risk_sentinel_max_anchors", 12))
         if risk_sentinels and getattr(config, "risk_sentinel_quality_gate", True):
             reporter.update("risk-sentinel", f"detected {len(risk_sentinels)} high-risk changed-line signals: {risk_sentinel_digest(risk_sentinels)}")
@@ -146,8 +148,15 @@ def main() -> None:
         result, model_used, service_tier = openrouter_review_with_quality_retry(prompt, schema, config, reporter, risk_sentinels, line_index)
         reporter.update("normalize", "mapping model findings to changed diff lines")
         findings, unanchored_findings = split_findings(result, config, line_index)
+        normalized_candidates = [dict(item) for item in findings if isinstance(item, dict)]
         findings = add_risk_sentinel_fallback_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, sys.modules[__name__]
+        )
         enforce_risk_sentinel_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, sys.modules[__name__]
+        )
 
         comments: list[dict[str, Any]] = []
         for finding in findings:

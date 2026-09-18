@@ -222,7 +222,10 @@ def apply_pareto_context_module(module: Any) -> None:
         reporter: Any,
     ) -> list[dict[str, Any]]:
         try:
-            return synthesize_verified_repairs(module, findings, gh, pr, schema, config, reporter)
+            repaired = synthesize_verified_repairs(module, findings, gh, pr, schema, config, reporter)
+            from dcoir_review import precision_guard
+
+            return precision_guard.enforce_fix_synthesis_precision(module, config, repaired, reporter)
         except Exception as exc:
             # Preserve the terminal reliability diagnostic formerly installed by
             # historical v28 without wrapping this permanent owner at runtime.

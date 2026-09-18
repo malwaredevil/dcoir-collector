@@ -106,6 +106,8 @@ def main() -> None:
             reporter.update("review-assist-context", f"injected {len(review_assist_ctx)} chars of PSScriptAnalyzer context")
         safe_context_summary = sanitize_context_summary(context_summary, config)
         reporter.update("context", safe_context_summary)
+        from dcoir_review import normalized_finding_selection
+
         risk_sentinels = hardened.detect_risk_sentinels(diff, getattr(config, "risk_sentinel_max_anchors", 12))
         if risk_sentinels and getattr(config, "risk_sentinel_quality_gate", True):
             reporter.update("risk-sentinel", f"detected {len(risk_sentinels)} high-risk changed-line signals: {hardened.risk_sentinel_digest(risk_sentinels)}")
@@ -162,8 +164,15 @@ def main() -> None:
         )
         reporter.update("normalize", "mapping model findings to changed diff lines")
         findings, unanchored_findings = split_findings_with_review_body_fallback(result, config, line_index, diff, risk_sentinels)
+        normalized_candidates = [dict(item) for item in findings if isinstance(item, dict)]
         findings = hardened.add_risk_sentinel_fallback_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, hardened
+        )
         hardened.enforce_risk_sentinel_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, hardened
+        )
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
 
         comments: list[dict[str, Any]] = []

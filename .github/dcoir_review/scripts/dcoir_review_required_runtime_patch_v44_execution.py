@@ -120,7 +120,7 @@ def run_adjudicator(
     raw, model, tier = module.hardened.openrouter_review(
         prompt, schema, staged, reporter
     )
-    normalized = normalization._normalize_adjudicator_result(module, raw)
+    normalized = normalization.normalize_adjudicator_result(module, raw)
     capped = v35._cap_adjudicated_findings(module, normalized, max_findings)
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model

@@ -31,6 +31,7 @@ from typing import Any
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_contract
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v33 as v33
@@ -46,8 +47,8 @@ MAX_EDIT_TEXT_CHARS = 12000
 MAX_TOTAL_REPLACEMENT_CHARS = 24000
 MAX_DIFF_CONTEXT_CHARS = 60000
 MAX_CRITIC_CONTEXT_CHARS = 70000
-AUTHOR_MIN_CONFIDENCE = 0.90
-CRITIC_MIN_CONFIDENCE = 0.90
+AUTHOR_MIN_CONFIDENCE = repair_contract.AUTHOR_MIN_CONFIDENCE
+CRITIC_MIN_CONFIDENCE = repair_contract.CRITIC_MIN_CONFIDENCE
 
 
 REPAIR_SET_AUTHOR_SCHEMA: dict[str, Any] = {
@@ -162,6 +163,7 @@ def _validate_edit_shape(edit: dict[str, Any]) -> str:
 
 
 def _parse_author(result: Any, finding: dict[str, Any], hardened: Any) -> dict[str, Any]:
+    result = repair_contract.normalize_author_metadata(result, finding)
     if not isinstance(result, dict):
         raise hardened.ReviewQualityError("DCOIR repair-set author returned a non-object result")
     if not isinstance(result.get("defect_present"), bool):
@@ -231,10 +233,7 @@ def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
     accepted = result.get("accepted")
     if not isinstance(accepted, bool):
         raise hardened.ReviewQualityError("DCOIR repair-set critic returned invalid accepted value")
-    try:
-        confidence = float(result.get("confidence", 0) or 0)
-    except (TypeError, ValueError) as exc:
-        raise hardened.ReviewQualityError("DCOIR repair-set critic returned invalid confidence") from exc
+    confidence = repair_contract.validated_critic_confidence(result, hardened)
     reason = str(result.get("reason", "") or "").strip()
     if accepted and confidence < CRITIC_MIN_CONFIDENCE:
         return False, confidence, reason or "Repair-set critic confidence was below threshold."
@@ -322,7 +321,7 @@ Changed PR diff/context (may include other files needed by the same repair):
 {visible_diff}
 ```
 """.strip()
-    return repair._sanitize_prompt(module, prompt, config)
+    return repair_contract.append_author_contract(repair._sanitize_prompt(module, prompt, config))
 
 
 def _critic_context(module: Any, file_cache: dict[str, str], edits: list[dict[str, Any]], config: Any) -> str:
@@ -396,7 +395,7 @@ Candidate repair set:
 Exact head-file context for proposed target files:
 {context}
 """.strip()
-    return repair._sanitize_prompt(module, prompt, config)
+    return repair_contract.append_critic_contract(repair._sanitize_prompt(module, prompt, config))
 
 
 def _apply_edits_to_files(file_cache: dict[str, str], edits: list[dict[str, Any]]) -> tuple[dict[str, str], str]:

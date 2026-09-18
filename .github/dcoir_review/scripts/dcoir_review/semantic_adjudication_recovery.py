@@ -248,7 +248,7 @@ def run_adjudicator(
     raw, model, tier = module.hardened.openrouter_review(prompt, schema, staged, reporter)
     recovered_shape = False
     try:
-        normalized = normalization._normalize_adjudicator_result(module, raw)
+        normalized = normalization.normalize_adjudicator_result(module, raw)
     except module.hardened.ReviewQualityError as exc:
         if not _recoverable_shape_failure(raw, exc):
             raise
