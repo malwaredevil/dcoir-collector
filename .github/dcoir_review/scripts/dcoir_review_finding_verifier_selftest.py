@@ -125,6 +125,51 @@ def test_supported_model_candidate_retains_concrete_evidence(review, verifier) -
     assert "value % 2" in marker["evidence"]
 
 
+def test_verifier_capacity_is_independent_from_repair_budget(review, verifier) -> None:
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    config.max_inline_comments = 10
+    config.fix_synthesis_max_findings = 3
+    config.dcoir_v32_verifier_repair_limit = 3
+
+    source = "\n".join(f"value_{index} = {index}" for index in range(1, 11)) + "\n"
+    findings = [
+        {
+            "title": f"candidate-{index}",
+            "severity": "medium",
+            "confidence": 0.91,
+            "path": ORDINARY_PATH,
+            "line": index,
+            "body": "Synthetic ordinary candidate for verifier-budget separation.",
+            "validation": "focused regression",
+        }
+        for index in range(1, 10)
+    ]
+
+    review.fetch_pr_file_text = lambda _gh, path, _sha: source if path == ORDINARY_PATH else ""
+    original = review.hardened.openrouter_review
+    calls = {"count": 0}
+
+    def reject_candidate(*_args, **_kwargs):
+        calls["count"] += 1
+        return (
+            {"supported": False, "confidence": 0.99, "evidence": "", "reason": "synthetic rejection"},
+            "verifier-model",
+            "default",
+        )
+
+    review.hardened.openrouter_review = reject_candidate
+    try:
+        verified = verifier.verify_findings_for_publication(
+            review, findings, object(), pr(), config, Reporter()
+        )
+    finally:
+        review.hardened.openrouter_review = original
+
+    assert verified == []
+    assert calls["count"] == 9
+    assert verifier.verifier_candidate_limit(config) == 10
+
+
 def test_ambiguous_verifier_output_fails_closed(review, verifier) -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     review.fetch_pr_file_text = lambda _gh, path, _sha: ORDINARY_SOURCE if path == ORDINARY_PATH else ""
@@ -166,8 +211,20 @@ def test_stable_owner_composition() -> None:
 
     assert verifier.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
     assert config.dcoir_v32_verifier_repair_limit == 8
-    assert verifier.verifier_candidate_limit(config) == config.dcoir_v32_verifier_repair_limit
+    assert verifier.verifier_candidate_limit(config) == 12
     assert v33.verifier_candidate_limit(config) == verifier.verifier_candidate_limit(config)
+
+    # Verification capacity follows the publication surface, not the more
+    # expensive repair-synthesis budget. Non-default limits must stay separated.
+    config.max_inline_comments = 10
+    config.fix_synthesis_max_findings = 3
+    config.dcoir_v32_verifier_repair_limit = 3
+    assert verifier.verifier_candidate_limit(config) == 10
+    assert v33.verifier_candidate_limit(config) == 10
+    assert v33.repair_synthesis_budget(config) == 3
+
+    config.max_inline_comments = 20
+    assert verifier.verifier_candidate_limit(config) == verifier.VERIFIER_CANDIDATE_HARD_CAP
     assert not hasattr(v33, "VERIFIER_STORAGE")
     assert not hasattr(semantic, "VERIFIER_STORAGE")
     assert not hasattr(publication, "_VERIFIER_STORAGE")
@@ -179,6 +236,7 @@ def main() -> None:
     test_deterministic_core_sentinel_is_evidence_verified_without_model(review, v20, verifier)
     test_unsupported_model_candidate_is_suppressed(review, verifier)
     test_supported_model_candidate_retains_concrete_evidence(review, verifier)
+    test_verifier_capacity_is_independent_from_repair_budget(review, verifier)
     test_ambiguous_verifier_output_fails_closed(review, verifier)
     print("dcoir_review_finding_verifier_selftest passed")
 
