@@ -76,7 +76,12 @@ def _repair_author_prompt(module: Any, finding: dict[str, Any], path: str, line:
 
 
 def _repair_critic_prompt(module: Any, finding: dict[str, Any], author: dict[str, Any], file_cache: dict[str, str], config: Any) -> str:
-    return support._repair_critic_prompt(module, finding, author, file_cache, config)
+    path, line = support._path_line(finding)
+    file_text = str(file_cache.get(path, "") or "")
+    current_line = support._file_line(file_text, line)
+    return support._repair_critic_prompt(
+        module, finding, author, path, line, current_line, file_text, config
+    )
 
 
 def _independent_config(config: Any) -> Any:

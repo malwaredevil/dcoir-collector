@@ -137,6 +137,9 @@ def test_author_no_safe_fix(repair, review) -> None:
             "rationale": "Needs a broader change.",
             "validation": "",
         },
+        {},
+        PATH,
+        LINE,
         review.hardened,
     )
     assert parsed["action"] == "no_safe_single_line_fix"

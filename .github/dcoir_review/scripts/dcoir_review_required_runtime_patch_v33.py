@@ -28,22 +28,15 @@ from pathlib import Path
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
+from dcoir_review import repair as repair_policy
 from dcoir_review import repair_pipeline as repair
 
 
 VERSION = "v33"
 APPLIED_MARKER = "_dcoir_review_v33_applied"
-VERIFIER_CANDIDATE_HARD_CAP = 12
 REPAIR_STORAGE = "_dcoir_review_v33_original_synthesize_verified_repairs"
 DEFERRED_OUTCOME = "verified-repair-budget-deferred"
 
-
-def _positive_int(value: Any, fallback: int) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        parsed = fallback
-    return max(0, parsed)
 
 
 def verifier_candidate_limit(config: Any) -> int:
@@ -53,13 +46,8 @@ def verifier_candidate_limit(config: Any) -> int:
 
 
 def repair_synthesis_budget(config: Any) -> int:
-    """Return how many verified findings may enter one-click repair synthesis."""
-
-    if not bool(getattr(config, "fix_synthesis_enabled", True)):
-        return 0
-    inline_limit = _positive_int(getattr(config, "max_inline_comments", VERIFIER_CANDIDATE_HARD_CAP), VERIFIER_CANDIDATE_HARD_CAP)
-    configured = _positive_int(getattr(config, "fix_synthesis_max_findings", 0), 0)
-    return min(configured, inline_limit)
+    """Compatibility delegate to the canonical repair policy owner."""
+    return repair_policy.repair_synthesis_budget(config)
 
 
 def _deferred_verified_finding(raw: dict[str, Any], ordinal: int) -> dict[str, Any]:

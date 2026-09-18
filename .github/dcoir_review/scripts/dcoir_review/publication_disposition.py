@@ -12,14 +12,15 @@ from __future__ import annotations
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v16 as v16
-from dcoir_review import finding_verifier as v21
+from dcoir_review import finding_verifier_contract as verifier_contract
+from dcoir_review import publication_contract as contract
 
 
 VERSION = "v45"  # Compatibility/provenance value retained from the historical owner.
-SCHEMA_VERSION = "dcoir_review_final_publication_disposition_v1"
-_APPLIED_ATTR = "_dcoir_review_publication_disposition_applied"
-_DISPOSITION_ATTR = "_dcoir_review_publication_disposition"
-ARTIFACT_PATH = "metadata/final-publication-disposition-v45.json"
+SCHEMA_VERSION = contract.SCHEMA_VERSION
+_APPLIED_ATTR = contract.APPLIED_ATTR
+_DISPOSITION_ATTR = contract.DISPOSITION_ATTR
+ARTIFACT_PATH = contract.ARTIFACT_PATH
 
 
 def _head_sha(pr: Any) -> str:
@@ -58,7 +59,7 @@ def capture_verifier_disposition(
 
 
 def _verified_for_head(finding: dict[str, Any], reviewed_commit: str) -> bool:
-    verifier = finding.get(v21.VERIFIER_MARKER)
+    verifier = finding.get(verifier_contract.VERIFIER_MARKER)
     return bool(
         isinstance(verifier, dict)
         and verifier.get("supported") is True

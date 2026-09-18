@@ -17,6 +17,27 @@ FALLBACK_CRITIC_MODEL = "~anthropic/claude-sonnet-latest"
 OPENAI_CROSS_FAMILY_CRITIC_MODEL = "openai/gpt-5.6-sol-pro"
 ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5"
 CRITIC_SESSION_SUFFIX = "repair-critic"
+REPAIR_CANDIDATE_HARD_CAP = 12
+
+
+def _positive_int(value: Any, fallback: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = fallback
+    return max(0, parsed)
+
+
+def repair_synthesis_budget(config: Any) -> int:
+    """Return how many verified findings may enter repair synthesis."""
+    if not bool(getattr(config, "fix_synthesis_enabled", True)):
+        return 0
+    inline_limit = _positive_int(
+        getattr(config, "max_inline_comments", REPAIR_CANDIDATE_HARD_CAP),
+        REPAIR_CANDIDATE_HARD_CAP,
+    )
+    configured = _positive_int(getattr(config, "fix_synthesis_max_findings", 0), 0)
+    return min(configured, inline_limit)
 
 
 def build_repair_critic_config(config: Any, author_model: str = "") -> Any:

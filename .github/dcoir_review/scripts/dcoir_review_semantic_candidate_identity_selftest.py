@@ -211,32 +211,17 @@ def test_unsupported_deterministic_hypothesis_can_still_be_suppressed(review) ->
             )
         )
     )
-    original_verify = v21.verify_findings_for_publication
-    stored = getattr(v21, candidate_identity_hooks._VERIFIER_STORAGE, None)
-    had_stored = hasattr(v21, candidate_identity_hooks._VERIFIER_STORAGE)
-    try:
-        v21.verify_findings_for_publication = (
-            lambda _module, items, _gh, _pr, _cfg, _reporter: [
-                item for item in items if item.get(candidate_identity.SEMANTIC_KEY_FIELD)
-            ]
-        )
-        if hasattr(v21, candidate_identity_hooks._VERIFIER_STORAGE):
-            delattr(v21, candidate_identity_hooks._VERIFIER_STORAGE)
-        candidate_identity_hooks._patch_verifier_debug(fake_module)
-        verified = v21.verify_findings_for_publication(
-            fake_module,
-            [semantic, deterministic],
-            object(),
-            {"head": {"sha": "c" * 40}},
-            cfg,
-            None,
-        )
-    finally:
-        v21.verify_findings_for_publication = original_verify
-        if had_stored:
-            setattr(v21, candidate_identity_hooks._VERIFIER_STORAGE, stored)
-        elif hasattr(v21, candidate_identity_hooks._VERIFIER_STORAGE):
-            delattr(v21, candidate_identity_hooks._VERIFIER_STORAGE)
+    candidate_identity_hooks.record_verifier_candidates(
+        fake_module,
+        [semantic, deterministic],
+        {"head": {"sha": "c" * 40}},
+        cfg,
+    )
+    verified = [
+        item
+        for item in [semantic, deterministic]
+        if item.get(candidate_identity.SEMANTIC_KEY_FIELD)
+    ]
 
     assert [item[candidate_identity.CANDIDATE_ID_FIELD] for item in verified] == [
         semantic[candidate_identity.CANDIDATE_ID_FIELD]

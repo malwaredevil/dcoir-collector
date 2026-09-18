@@ -5,8 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from dcoir_review import finding_verifier as v21
-from dcoir_review import publication_disposition as publication
+from dcoir_review import publication_contract as publication
 from dcoir_review import verified_finding_gate_prior as gate_prior
 from dcoir_review import verified_finding_gate_state as gate_state
 
@@ -68,7 +67,7 @@ def capture_prior_gate_context(
         return
     prior = gate_prior.load_prior_gate_context(review_module, gh, pr)
     setattr(review_module, _PRIOR_ATTR, prior)
-    disposition = getattr(review_module, publication._DISPOSITION_ATTR, None)
+    disposition = getattr(review_module, publication.DISPOSITION_ATTR, None)
     if not isinstance(disposition, dict):
         raise review_module.hardened.ReviewQualityError(
             "DCOIR verified-finding gate is missing the v45 exact-head verifier disposition"

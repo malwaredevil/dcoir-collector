@@ -40,7 +40,7 @@ class Hardened:
 
     def openrouter_review(self, _prompt, _schema, config, _reporter=None):
         self.calls += 1
-        self.stage_labels.append(str(getattr(config, recovery._V54_STAGE_LABEL_ATTR, "") or ""))
+        self.stage_labels.append(str(getattr(config, recovery._STAGE_LABEL_ATTR, "") or ""))
         return self.raw, "adjudicator-model", "default"
 
     @staticmethod

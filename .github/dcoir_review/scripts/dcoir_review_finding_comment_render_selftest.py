@@ -13,10 +13,10 @@ PROBE = ".github/dcoir_review/evaluation/live_verifier_probe.py"
 SUGGESTION_PROBE = ".github/dcoir_review/evaluation/live_suggestion_probe.py"
 EXPECTED_SHA256 = {
     "verified_ordinary": "e79fa4331b2c598766f341ebf5c03e24b0bc810828d65eebdf3a5ab3795fb0ad",
-    "deterministic_repair": "bfe735f9d43f282151462df4a9df3f006a5bf19390dc85be7905446aa1078be4",
+    "deterministic_repair": "e169e713ad2e4ca9607229c640fc9e77cc7479b0d8e9060856d350994bed0a7f",
     "repair_native": "21709e01b45ce59a0581c8e6aa921552ebb26e0add941208bd802dc5d346e581",
     "repair_fallback": "75beb87ecc18f7914d022d5d444e803bbe6b47f39fc0b0e570d63a5e8d833ac2",
-    "unverified_ordinary": "eccde95a51d886006697364bbb213b13216647e21360173e1c926b243719802c",
+    "unverified_ordinary": "326e95f6333543744d865435f5927083c2f7103235a2710f831b8406ec50258b",
     "yaml_fallback": "a081f84c530797cb2267bc9a2a810702c94c9ecc4035091ea3ea6193c4af22a7",
 }
 

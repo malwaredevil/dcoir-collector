@@ -6,7 +6,6 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from dcoir_review import finding_verifier as v21
 from dcoir_review import publication_disposition as publication
 from dcoir_review import progress_reporting
 from dcoir_review import verified_finding_gate as verified_gate

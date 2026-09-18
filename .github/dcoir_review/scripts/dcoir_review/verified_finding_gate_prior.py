@@ -12,7 +12,7 @@ from typing import Any
 from dcoir_review import incremental_review_state as v41_state
 from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review.semantic_result_reuse_support as v43_reuse
-from dcoir_review import publication_disposition as publication
+from dcoir_review import publication_contract as publication
 from dcoir_review import verified_finding_gate_state as state
 
 

@@ -151,8 +151,7 @@ def main() -> None:
     )
     assert len(reserved_prompt) <= reserved_budget_config.max_prompt_chars
     assert review.DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER in reserved_prompt
-    assert v32.ADVERSARIAL_SEMANTIC_BLOCK in reserved_prompt
-    assert reserved_prompt.endswith(v32.ADVERSARIAL_SEMANTIC_BLOCK)
+    assert v32.ADVERSARIAL_SEMANTIC_BLOCK not in reserved_prompt
 
     marker = prompt_policy.ADVERSARIAL_PROMPT_TRUNCATED_MARKER
     for tiny_budget in (0, 1, len(marker) - 1):

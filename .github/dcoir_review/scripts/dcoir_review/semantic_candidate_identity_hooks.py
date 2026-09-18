@@ -4,16 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from dcoir_review import finding_verifier as v21
 import dcoir_review_required_runtime_patch_v16 as v16
 
 
 identity: Any = None
 _SELECTION_STORAGE = (
     "_dcoir_review_semantic_candidate_identity_original_add_risk_sentinel_fallback_findings"
-)
-_VERIFIER_STORAGE = (
-    "_dcoir_review_semantic_candidate_identity_original_verify_findings_for_publication"
 )
 
 
@@ -149,43 +145,34 @@ def _patch_required_selection(module: Any) -> None:
     hardened.enforce_risk_sentinel_findings = enforce_risk_sentinel_findings
 
 
-def _patch_verifier_debug(module: Any) -> None:
-    original = getattr(v21, _VERIFIER_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "verify_findings_for_publication", None)
-        if callable(original):
-            setattr(v21, _VERIFIER_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR semantic-candidate identity hooks could not locate the publication verifier")
-
-    def verify_findings_for_publication(
-        review_module: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        if bool(getattr(config, "semantic_candidate_identity_review", False)):
-            writer = getattr(review_module.hardened, "write_debug_json_artifact_safely", None)
-            if callable(writer):
-                writer(
-                    config,
-                    identity.VERIFIER_ARTIFACT_PATH,
-                    {
-                        "schema_version": "dcoir_review_v51_verifier_candidate_provenance_v1",
-                        "head_sha": str(pr.get("head", {}).get("sha", "") or "").strip(),
-                        "candidate_count": len(findings),
-                        "candidates": [identity._snapshot_candidate(item) for item in findings if isinstance(item, dict)],
-                    },
-                )
-        return original(review_module, findings, gh, pr, config, reporter)
-
-    v21.verify_findings_for_publication = verify_findings_for_publication
+def record_verifier_candidates(
+    review_module: Any,
+    findings: list[dict[str, Any]],
+    pr: dict[str, Any],
+    config: Any,
+) -> None:
+    """Record semantic candidate provenance without replacing the verifier owner."""
+    if identity is None or not bool(getattr(config, "semantic_candidate_identity_review", False)):
+        return
+    writer = getattr(review_module.hardened, "write_debug_json_artifact_safely", None)
+    if callable(writer):
+        writer(
+            config,
+            identity.VERIFIER_ARTIFACT_PATH,
+            {
+                "schema_version": "dcoir_review_v51_verifier_candidate_provenance_v1",
+                "head_sha": str(pr.get("head", {}).get("sha", "") or "").strip(),
+                "candidate_count": len(findings),
+                "candidates": [
+                    identity._snapshot_candidate(item)
+                    for item in findings
+                    if isinstance(item, dict)
+                ],
+            },
+        )
 
 
 def apply_pareto_context_module(module: Any, identity_module: Any) -> None:
     global identity
     identity = identity_module
     _patch_required_selection(module)
-    _patch_verifier_debug(module)

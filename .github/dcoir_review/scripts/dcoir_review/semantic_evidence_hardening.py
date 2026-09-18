@@ -21,12 +21,12 @@ from __future__ import annotations
 from typing import Any
 
 from dcoir_review import adversarial_prompt_policy as prompt_policy
-from dcoir_review import finding_verifier as v21
-import dcoir_review_required_runtime_patch_v33 as v33
+from dcoir_review import finding_verifier_contract as verifier_contract
+from dcoir_review import repair as repair_policy
 
 
 APPLIED_MARKER = "_dcoir_review_semantic_evidence_hardening_applied"
-BLANK_LINE_NOTATION = v21.BLANK_LINE_NOTATION
+BLANK_LINE_NOTATION = verifier_contract.BLANK_LINE_NOTATION
 
 PREDICATE_AUDIT_BLOCK = prompt_policy.PREDICATE_AUDIT_BLOCK
 
@@ -65,8 +65,8 @@ def record_verifier_input(
             "schema_version": "dcoir_review_v34_verifier_input_v1",
             "head_sha": head_sha,
             "candidate_count": len(findings),
-            "verification_limit": v21.verifier_candidate_limit(config),
-            "repair_budget": v33.repair_synthesis_budget(config),
+            "verification_limit": verifier_contract.verifier_candidate_limit(config),
+            "repair_budget": repair_policy.repair_synthesis_budget(config),
             "candidates": [_snapshot_finding(item) for item in findings],
         },
     )

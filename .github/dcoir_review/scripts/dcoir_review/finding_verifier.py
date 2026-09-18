@@ -16,13 +16,14 @@ import json
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v16 as v16
+from dcoir_review import finding_verifier_contract as verifier_contract
 
 
-VERIFIER_MAX_MODEL_FINDINGS = 6
-VERIFIER_CANDIDATE_HARD_CAP = 12
-VERIFIER_MIN_SUPPORT_CONFIDENCE = 0.80
-VERIFIER_MARKER = "_dcoir_verifier_v21"
-BLANK_LINE_NOTATION = "[DCOIR anchor is an intentionally blank changed line]"
+VERIFIER_MAX_MODEL_FINDINGS = verifier_contract.VERIFIER_MAX_MODEL_FINDINGS
+VERIFIER_CANDIDATE_HARD_CAP = verifier_contract.VERIFIER_CANDIDATE_HARD_CAP
+VERIFIER_MIN_SUPPORT_CONFIDENCE = verifier_contract.VERIFIER_MIN_SUPPORT_CONFIDENCE
+VERIFIER_MARKER = verifier_contract.VERIFIER_MARKER
+BLANK_LINE_NOTATION = verifier_contract.BLANK_LINE_NOTATION
 
 VERIFIER_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -48,12 +49,8 @@ def _file_line_text(file_text: str, line_number: int) -> str:
 
 
 def verifier_candidate_limit(config: Any) -> int:
-    """Return the stable bounded verifier candidate ceiling."""
-    try:
-        inline_limit = int(getattr(config, "max_inline_comments", VERIFIER_MAX_MODEL_FINDINGS))
-    except (TypeError, ValueError):
-        inline_limit = VERIFIER_MAX_MODEL_FINDINGS
-    return max(1, min(inline_limit, VERIFIER_CANDIDATE_HARD_CAP))
+    """Compatibility delegate to the dependency-leaf verifier contract."""
+    return verifier_contract.verifier_candidate_limit(config)
 
 
 def _finding_path_line(finding: dict[str, Any]) -> tuple[str, int]:
@@ -269,8 +266,11 @@ def verify_findings_for_publication(
     """Run the explicit verification/publication stage composition."""
 
     from dcoir_review import publication_disposition as publication
+    from dcoir_review import semantic_candidate_identity_hooks as semantic_identity
     from dcoir_review import semantic_evidence_hardening as semantic_evidence
     from dcoir_review import verified_finding_gate as verified_gate
+
+    semantic_identity.record_verifier_candidates(module, findings, pr, config)
 
     if getattr(module, semantic_evidence.APPLIED_MARKER, False):
         semantic_evidence.record_verifier_input(module, findings, pr, config)

@@ -40,8 +40,10 @@ DIRECT_IMPORT_MODULES = (
     "entrypoint.py",
     "final_adjudication_policy.py",
     "finding_family.py",
+    "finding_comment_policy.py",
     "finding_comment_render.py",
     "finding_verifier.py",
+    "finding_verifier_contract.py",
     "incremental_review_frontier.py",
     "incremental_review_frontier_hooks.py",
     "incremental_review_scope.py",
@@ -70,6 +72,7 @@ DIRECT_IMPORT_MODULES = (
     "provider_transport_retry.py",
     "precision_guard.py",
     "progress_reporting.py",
+    "publication_contract.py",
     "publication_disposition.py",
     "quality_gate.py",
     "repair.py",
@@ -548,10 +551,9 @@ def assert_canonical_per_file_prompt_ownership() -> None:
         [],
         "deep-forced",
     )
-    assert "Adversarial semantic falsification requirements:" in prompt
-    assert "minimal counterexamples" in prompt
-    assert "Predicate and call-site audit requirements:" in prompt
-    assert "four semantic placements" in prompt
+    assert "Adversarial semantic falsification requirements:" not in prompt
+    assert "Predicate and call-site audit requirements:" not in prompt
+    assert len(prompt) <= int(getattr(config, "max_prompt_chars", 120000))
 
     replacements = []
     for group_name in PRODUCTION_PATCH_GROUPS:

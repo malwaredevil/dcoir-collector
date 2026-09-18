@@ -88,7 +88,7 @@ def test_deterministic_sentinel_still_uses_canonical_renderer(review) -> None:
 
 
 def test_unverified_ordinary_uses_canonical_legacy_fallback(review) -> None:
-    v16 = importlib.import_module("dcoir_review_required_runtime_patch_v16")
+    policy = importlib.import_module("dcoir_review.finding_comment_policy")
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     finding = {
         "title": "Unverified ordinary probe",
@@ -101,7 +101,7 @@ def test_unverified_ordinary_uses_canonical_legacy_fallback(review) -> None:
         "validation": "python3 -m py_compile .github/dcoir_review/evaluation/live_verifier_probe.py",
     }
     rendered = review.base.build_inline_comment(finding, "test-model", config)
-    expected = v16._render_comment(finding)
+    expected = policy.render_base_comment(finding)
     assert rendered == expected, (rendered, expected)
 
 

@@ -252,7 +252,9 @@ def build_repair_for_finding(
         _persist_final(module, config, ordinal, item)
         return item
 
-    critic_prompt = repair._repair_critic_prompt(module, finding, author, path, line, original, file_text, config)
+    critic_prompt = repair._repair_critic_prompt(
+        module, finding, author, {path: file_text}, config
+    )
     critic_config = repair._independent_config(config)
     try:
         critic_raw, critic_model, critic_tier = hardened.openrouter_review(
