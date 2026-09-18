@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib
 
 from dcoir_review import repair as repair_policy
@@ -31,6 +32,23 @@ def main() -> None:
         ".github/dcoir_review/openrouter-pr-review-pareto.yml"
     )
     original_stack = list(base_config.model_stack)
+
+    contaminated = copy.copy(base_config)
+    contaminated.fallback_models = ["legacy/fallback"]
+    contaminated.openrouter_route = "auto"
+    contaminated.openrouter_service_tier = "priority"
+    author_critic = repair_policy.build_repair_critic_config(
+        contaminated, "anthropic/claude-opus-5"
+    )
+    assert author_critic.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
+    assert author_critic.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+    assert author_critic.fallback_models == []
+    assert author_critic.openrouter_route == ""
+    assert author_critic.openrouter_service_tier == ""
+    assert contaminated.fallback_models == ["legacy/fallback"]
+    assert contaminated.openrouter_route == "auto"
+    assert contaminated.openrouter_service_tier == "priority"
+
     critic = repair_pipeline._independent_config(base_config)
 
     assert base_config.model_stack == original_stack, (

@@ -35,6 +35,12 @@ def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
             critic_config.model = critic_model
         if hasattr(critic_config, "model_stack"):
             critic_config.model_stack = [critic_model]
+        if hasattr(critic_config, "fallback_models"):
+            critic_config.fallback_models = []
+        if hasattr(critic_config, "openrouter_route"):
+            critic_config.openrouter_route = ""
+        if hasattr(critic_config, "openrouter_service_tier"):
+            critic_config.openrouter_service_tier = ""
         return critic_config
 
     # The older no-author repair-support contract retains its governed direct

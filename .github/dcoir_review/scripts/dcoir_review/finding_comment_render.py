@@ -50,11 +50,29 @@ def _bounded_comment_body(base: Any, rendered: str) -> str:
     return str(rendered or "")[:12000]
 
 
+def _with_deterministic_validation(base: Any, finding: dict[str, Any]) -> dict[str, Any]:
+    if not finding_comment_policy.deterministic_sentinel_kind(finding):
+        return finding
+    guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
+    if str(finding.get("validation", "") or guidance.get("validation", "") or "").strip():
+        return finding
+    validator = getattr(base, "validation_text_for_finding", None)
+    if not callable(validator):
+        return finding
+    validation = str(validator(finding) or "").strip()
+    if not validation:
+        return finding
+    item = dict(finding)
+    item["validation"] = validation
+    return item
+
+
 def _render_legacy_base_with_safe_suggestion(base: Any, finding: dict[str, Any], config: Any) -> str:
-    rendered = _sanitize_github_output(base, finding_comment_policy.render_base_comment(finding), config).rstrip()
+    item = _with_deterministic_validation(base, finding)
+    rendered = _sanitize_github_output(base, finding_comment_policy.render_base_comment(item), config).rstrip()
     if "```suggestion" in rendered:
         return _bounded_comment_body(base, rendered)
-    suggestion = finding_comment_policy.safe_single_line_suggestion(base, finding)
+    suggestion = finding_comment_policy.safe_single_line_suggestion(base, item)
     if not suggestion:
         return _bounded_comment_body(base, rendered)
     safe_suggestion = _sanitize_github_output(

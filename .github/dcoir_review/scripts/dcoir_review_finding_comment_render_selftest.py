@@ -17,7 +17,6 @@ EXPECTED_SHA256 = {
     "repair_native": "21709e01b45ce59a0581c8e6aa921552ebb26e0add941208bd802dc5d346e581",
     "repair_fallback": "75beb87ecc18f7914d022d5d444e803bbe6b47f39fc0b0e570d63a5e8d833ac2",
     "unverified_ordinary": "eccde95a51d886006697364bbb213b13216647e21360173e1c926b243719802c",
-    "deterministic_no_repair": "64e82092e329d486fc2c8c0c920480ea7f8c2a21a21c4fbb6bc481346c70d907",
     "yaml_fallback": "a081f84c530797cb2267bc9a2a810702c94c9ecc4035091ea3ea6193c4af22a7",
 }
 
@@ -194,6 +193,10 @@ def main() -> None:
         rendered = review.base.build_inline_comment(dict(finding), "test-model", config)
         if name == "deterministic_no_repair":
             assert "MODEL CONTROLLED GUIDANCE MUST NOT RENDER" not in rendered, rendered
+            assert "**Validation:**" in rendered, rendered
+            assert f"python3 -m py_compile {SUGGESTION_PROBE}" in rendered, rendered
+            assert f"bandit -r {SUGGESTION_PROBE}" in rendered, rendered
+            continue
         observed[name] = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     assert observed == EXPECTED_SHA256, {"expected": EXPECTED_SHA256, "observed": observed}
     print("dcoir_review_finding_comment_render_selftest passed")
