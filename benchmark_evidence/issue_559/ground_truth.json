@@ -1,0 +1,98 @@
+{
+  "schema_version": "dcoir_review_issue559_ground_truth_v1",
+  "issue": 559,
+  "purpose": "Blind pre/post reviewer parity oracle for PR #553 architecture migration",
+  "baseline_main_sha": "ce19ee412534baf6df7cb7501a01f8b972ccaa3e",
+  "review_command_planned": "/dcoir-review",
+  "review_mode_expected_for_first_run": "first-pass-deep",
+  "blinding_rule": "Do not copy this ground truth into benchmark PR branches, PR bodies, or DCOIR Review comments before scoring.",
+  "cases": [
+    {
+      "case_id": "01",
+      "language": "Python",
+      "baseline_pr": 561,
+      "postmerge_pr": 562,
+      "fixture_commit": "24183294b1e051a53dbb0fa9f765dc065f1f8fab",
+      "fixture_sha256": "76f2ee82c6ef1bb3a71c889bbc56fdeb1e62c490628db3c870a87a18dc5e1b1a",
+      "path": "benchmark_fixtures/dcoir_review_parity/issue_559/case01_python/fixture.py",
+      "seeds": [
+        {"id":"PY-001","category":"security/data-flow","lines":[9,11],"anchor_lines":[10,11],"rationale":"Untrusted username is interpolated into SQL text instead of bound as a parameter."},
+        {"id":"PY-002","category":"logic/error-handling","lines":[35,39],"anchor_lines":[36,38],"rationale":"A delete affecting zero rows is reported as success because rowcount >= 0 accepts zero."}
+      ],
+      "clean_regions": [
+        {"id":"PY-CLEAN-01","lines":[14,18],"rationale":"Leaf-name normalization and fixed-root check before reading."},
+        {"id":"PY-CLEAN-02","lines":[21,24],"rationale":"Bounded retry delay calculation."},
+        {"id":"PY-CLEAN-03","lines":[27,32],"rationale":"Typed settings parse with bounded fallback."}
+      ]
+    },
+    {
+      "case_id": "02",
+      "language": "PowerShell",
+      "baseline_pr": 563,
+      "postmerge_pr": 564,
+      "fixture_commit": "02aa6e615d21fcc53090def09dc0d42932b708ef",
+      "fixture_sha256": "eeb217f063611de7b5811ccdeb141a0f343b6253d20946094a89ae0887857f47",
+      "path": "benchmark_fixtures/dcoir_review_parity/issue_559/case02_powershell/fixture.ps1",
+      "seeds": [
+        {"id":"PS-001","category":"security/command-injection","lines":[2,5],"anchor_lines":[4,4],"rationale":"Caller-controlled command text is executed with Invoke-Expression."},
+        {"id":"PS-002","category":"security/secret-handling","lines":[7,11],"anchor_lines":[9,10],"rationale":"API token is written in plaintext to a log entry."},
+        {"id":"PS-003","category":"logic/error-handling","lines":[18,22],"anchor_lines":[20,21],"rationale":"Copy errors are suppressed and the function always returns success."}
+      ],
+      "clean_regions": [
+        {"id":"PS-CLEAN-01","lines":[13,16],"rationale":"Path leaf-name extraction only."},
+        {"id":"PS-CLEAN-02","lines":[24,31],"rationale":"Positive integer parser with fallback."}
+      ]
+    },
+    {
+      "case_id": "03",
+      "language": "TypeScript",
+      "baseline_pr": 565,
+      "postmerge_pr": 566,
+      "fixture_commit": "0fbe6b78579d633f34d28c0e2a2491a35af93aa3",
+      "fixture_sha256": "bf51ee41fcc8ac7f0729891f6147ca1f71fd57c5ccab4768da7b43a938d607e1",
+      "path": "benchmark_fixtures/dcoir_review_parity/issue_559/case03_typescript/fixture.ts",
+      "seeds": [
+        {"id":"TS-001","category":"authorization","lines":[7,12],"anchor_lines":[7,11],"rationale":"The actor is never checked before modifying an arbitrary target user."},
+        {"id":"TS-002","category":"async/control-flow","lines":[18,24],"anchor_lines":[23,24],"rationale":"Audit persistence is started without await, so failure is not propagated and completion is not guaranteed before return."}
+      ],
+      "clean_regions": [
+        {"id":"TS-CLEAN-01","lines":[14,16],"rationale":"Awaited helper implementation."},
+        {"id":"TS-CLEAN-02","lines":[27,31],"rationale":"Bounded page-size parser."}
+      ]
+    },
+    {
+      "case_id": "04",
+      "language": "Go",
+      "baseline_pr": 567,
+      "postmerge_pr": 568,
+      "fixture_commit": "e3f228f5f8861735dcc0c245158f7c77c18f8bb2",
+      "fixture_sha256": "6e956719be5d770001d5c2cb645b3c9bb742116ade6513bcaca6c7ac2adfcf0f",
+      "path": "benchmark_fixtures/dcoir_review_parity/issue_559/case04_go/fixture.go",
+      "seeds": [
+        {"id":"GO-001","category":"error/resource-handling","lines":[10,12],"anchor_lines":[11,12],"rationale":"os.Open error is ignored and Close is deferred on a possibly nil file handle."},
+        {"id":"GO-002","category":"error-handling","lines":[20,21],"anchor_lines":[20,21],"rationale":"io.Copy error is discarded and success is returned unconditionally."},
+        {"id":"GO-003","category":"error-handling","lines":[28,37],"anchor_lines":[35,37],"rationale":"Read errors are ignored, potentially returning partial data as successful."}
+      ],
+      "clean_regions": [
+        {"id":"GO-CLEAN-01","lines":[24,26],"rationale":"Pure label normalization."}
+      ]
+    },
+    {
+      "case_id": "05",
+      "language": "C#",
+      "baseline_pr": 569,
+      "postmerge_pr": 570,
+      "fixture_commit": "9c2d27b717f438a923e551a32d9072e0dfb65850",
+      "fixture_sha256": "1688aa521e1106e3d358bc602b782489414768a35a6313635318c08b9c0db1b3",
+      "path": "benchmark_fixtures/dcoir_review_parity/issue_559/case05_csharp/fixture.cs",
+      "seeds": [
+        {"id":"CS-001","category":"security/query-injection","lines":[16,21],"anchor_lines":[19,20],"rationale":"Caller-controlled userName is concatenated into SQL text."},
+        {"id":"CS-002","category":"null/control-flow","lines":[29,32],"anchor_lines":[29,31],"rationale":"Nullable account is dereferenced without a null check."}
+      ],
+      "clean_regions": [
+        {"id":"CS-CLEAN-01","lines":[24,27],"rationale":"Bounded numeric parser."},
+        {"id":"CS-CLEAN-02","lines":[35,38],"rationale":"Simple non-null default property declaration."}
+      ]
+    }
+  ]
+}

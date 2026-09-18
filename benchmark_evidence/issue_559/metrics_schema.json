@@ -1,0 +1,48 @@
+{
+  "schema_version": "dcoir_review_issue559_metrics_v1",
+  "unit": "one DCOIR Review run on one benchmark PR",
+  "required_run_identity": [
+    "round", "case_id", "pr_number", "reviewed_head_sha", "base_main_sha",
+    "fixture_sha256", "command_comment_id", "workflow_run_id", "review_id",
+    "review_mode", "context_mode", "served_model_stack", "run_status"
+  ],
+  "quality_metrics": {
+    "seeded_defect_recall": "matched seeded defect IDs / total seeded defect IDs",
+    "seeded_precision": "findings matched to seeded defects / total findings after adjudicating legitimate extra true positives",
+    "clean_region_false_positive_count": "findings whose anchor/rationale targets an intentionally clean region",
+    "clean_region_false_positive_rate": "clean regions with >=1 unjustified finding / total clean regions",
+    "extra_true_positive_count": "legitimate non-seeded defects found and manually adjudicated true",
+    "missed_seed_ids": "seed IDs with no materially matching finding",
+    "exact_anchor_rate": "matched seed findings anchored inside the oracle anchor_lines / matched seed findings",
+    "near_anchor_rate": "matched seed findings outside anchor_lines but within the same seeded function/region / matched seed findings",
+    "wrong_anchor_count": "findings matched semantically to a seed but anchored to an unrelated region",
+    "severity_distribution": "count by reviewer severity for matched seeds",
+    "severity_delta_by_seed": "baseline vs post-merge severity category for each matched seed",
+    "actionability_score": "0=no usable remediation, 1=directionally useful but incomplete, 2=specific and implementable",
+    "duplicate_finding_count": "findings materially duplicating another finding for the same root cause",
+    "duplicate_rate": "duplicate findings / total findings"
+  },
+  "reliability_and_efficiency_metrics": {
+    "review_completed": "boolean: workflow and review output completed successfully",
+    "usable_evidence": "boolean: enough artifacts/comments exist to score the run",
+    "run_duration_seconds": "workflow completed_at - started_at",
+    "openrouter_request_count": "capture when exposed by debug/telemetry artifacts",
+    "prompt_tokens": "capture when exposed",
+    "completion_tokens": "capture when exposed",
+    "total_tokens": "capture when exposed",
+    "estimated_or_reported_cost": "capture when exposed; otherwise null",
+    "retry_count": "provider/runtime retries when exposed",
+    "reuse_or_carry_forward_count": "semantic reuse/carry-forward telemetry when exposed",
+    "review_failure_stage": "null on success; otherwise terminal stage/error class"
+  },
+  "comparison_rules": {
+    "payload_equivalence": "paired A/B fixture SHA-256 must match exactly",
+    "recall_regression": "post-merge misses any seed detected by baseline without explicit justified policy reason",
+    "false_positive_regression": "post-merge adds unjustified findings in oracle clean regions",
+    "anchor_regression": "post-merge materially worsens anchor accuracy for the same seed",
+    "actionability_regression": "post-merge actionability score decreases for the same seed",
+    "duplicate_regression": "post-merge duplicate rate materially increases",
+    "reliability_regression": "post-merge run fails or loses usable evidence when baseline succeeded",
+    "efficiency_note": "compare duration/request/token/cost metrics when both rounds expose them; do not treat unavailable baseline telemetry as zero"
+  }
+}
