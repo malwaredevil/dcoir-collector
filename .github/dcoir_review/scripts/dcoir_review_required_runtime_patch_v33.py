@@ -34,7 +34,6 @@ from dcoir_review import repair_pipeline as repair
 VERSION = "v33"
 APPLIED_MARKER = "_dcoir_review_v33_applied"
 VERIFIER_CANDIDATE_HARD_CAP = 12
-VERIFIER_STORAGE = "_dcoir_review_v33_original_verify_findings_for_publication"
 REPAIR_STORAGE = "_dcoir_review_v33_original_synthesize_verified_repairs"
 DEFERRED_OUTCOME = "verified-repair-budget-deferred"
 
@@ -48,10 +47,9 @@ def _positive_int(value: Any, fallback: int) -> int:
 
 
 def verifier_candidate_limit(config: Any) -> int:
-    """Bound pre-publication evidence verification independently of repair cost."""
+    """Compatibility delegate to the canonical finding-verifier policy."""
 
-    inline_limit = _positive_int(getattr(config, "max_inline_comments", VERIFIER_CANDIDATE_HARD_CAP), VERIFIER_CANDIDATE_HARD_CAP)
-    return max(1, min(inline_limit, VERIFIER_CANDIDATE_HARD_CAP))
+    return v21.verifier_candidate_limit(config)
 
 
 def repair_synthesis_budget(config: Any) -> int:
@@ -62,37 +60,6 @@ def repair_synthesis_budget(config: Any) -> int:
     inline_limit = _positive_int(getattr(config, "max_inline_comments", VERIFIER_CANDIDATE_HARD_CAP), VERIFIER_CANDIDATE_HARD_CAP)
     configured = _positive_int(getattr(config, "fix_synthesis_max_findings", 0), 0)
     return min(configured, inline_limit)
-
-
-def _patch_verifier_candidate_limit() -> None:
-    original = getattr(v21, VERIFIER_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "verify_findings_for_publication", None)
-        if callable(original):
-            setattr(v21, VERIFIER_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v33 could not locate v21 finding verifier")
-
-    def verify_findings_for_publication(
-        module: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        # Normalization already bounds actionable inline candidates.  Temporarily
-        # give v21 the corresponding verification ceiling, then restore the
-        # historical constant so unrelated compatibility tests remain stable.
-        previous = v21.VERIFIER_MAX_MODEL_FINDINGS
-        v21.VERIFIER_MAX_MODEL_FINDINGS = verifier_candidate_limit(config)
-        try:
-            verifier = getattr(v21, VERIFIER_STORAGE)
-            return verifier(module, findings, gh, pr, config, reporter)
-        finally:
-            v21.VERIFIER_MAX_MODEL_FINDINGS = previous
-
-    v21.verify_findings_for_publication = verify_findings_for_publication
 
 
 def _deferred_verified_finding(raw: dict[str, Any], ordinal: int) -> dict[str, Any]:
@@ -233,6 +200,5 @@ def _patch_verified_repair_budget(module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_verifier_candidate_limit()
     _patch_verified_repair_budget(module)
     setattr(module, APPLIED_MARKER, True)

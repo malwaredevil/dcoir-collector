@@ -26,35 +26,9 @@ import dcoir_review_required_runtime_patch_v33 as v33
 
 
 APPLIED_MARKER = "_dcoir_review_semantic_evidence_hardening_applied"
-LINE_TEXT_STORAGE = "_dcoir_review_semantic_evidence_hardening_original_file_line_text"
-VERIFIER_STORAGE = "_dcoir_review_semantic_evidence_hardening_original_verify_findings_for_publication"
-BLANK_LINE_NOTATION = "[DCOIR anchor is an intentionally blank changed line]"
+BLANK_LINE_NOTATION = v21.BLANK_LINE_NOTATION
 
 PREDICATE_AUDIT_BLOCK = prompt_policy.PREDICATE_AUDIT_BLOCK
-
-
-def _patch_blank_anchor_readback() -> None:
-    original = getattr(v21, LINE_TEXT_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "_file_line_text", None)
-        if callable(original):
-            setattr(v21, LINE_TEXT_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR semantic-evidence hardening could not locate the line-evidence reader")
-
-    def _file_line_text(file_text: str, line_number: int) -> str:
-        lines = file_text.splitlines()
-        if line_number <= 0 or line_number > len(lines):
-            return ""
-        value = str(original(file_text, line_number))
-        if value == "":
-            # Preserve the distinction between an in-range blank changed line
-            # and missing/out-of-range evidence. The verifier still receives
-            # full head-file context and must independently support the claim.
-            return BLANK_LINE_NOTATION
-        return value
-
-    v21._file_line_text = _file_line_text
 
 
 def _snapshot_finding(finding: dict[str, Any]) -> dict[str, Any]:
@@ -77,55 +51,47 @@ def _snapshot_finding(finding: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _patch_verifier_lifecycle_debug() -> None:
-    original = getattr(v21, VERIFIER_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "verify_findings_for_publication", None)
-        if callable(original):
-            setattr(v21, VERIFIER_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR semantic-evidence hardening could not locate the active finding verifier")
+def record_verifier_input(
+    module: Any,
+    findings: list[dict[str, Any]],
+    pr: dict[str, Any],
+    config: Any,
+) -> None:
+    head_sha = str(pr.get("head", {}).get("sha", "") or "").strip()
+    module.hardened.write_debug_json_artifact_safely(
+        config,
+        "metadata/v34-verifier-input.json",
+        {
+            "schema_version": "dcoir_review_v34_verifier_input_v1",
+            "head_sha": head_sha,
+            "candidate_count": len(findings),
+            "verification_limit": v21.verifier_candidate_limit(config),
+            "repair_budget": v33.repair_synthesis_budget(config),
+            "candidates": [_snapshot_finding(item) for item in findings],
+        },
+    )
 
-    def verify_findings_for_publication(
-        module: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        head_sha = str(pr.get("head", {}).get("sha", "") or "").strip()
-        module.hardened.write_debug_json_artifact_safely(
-            config,
-            "metadata/v34-verifier-input.json",
-            {
-                "schema_version": "dcoir_review_v34_verifier_input_v1",
-                "head_sha": head_sha,
-                "candidate_count": len(findings),
-                "verification_limit": v33.verifier_candidate_limit(config),
-                "repair_budget": v33.repair_synthesis_budget(config),
-                "candidates": [_snapshot_finding(item) for item in findings],
-            },
-        )
-        verified = original(module, findings, gh, pr, config, reporter)
-        module.hardened.write_debug_json_artifact_safely(
-            config,
-            "responses/v34-verifier-output.json",
-            {
-                "schema_version": "dcoir_review_v34_verifier_output_v1",
-                "head_sha": head_sha,
-                "verified_count": len(verified),
-                "verified": [_snapshot_finding(item) for item in verified],
-            },
-        )
-        return verified
 
-    v21.verify_findings_for_publication = verify_findings_for_publication
+def record_verifier_output(
+    module: Any,
+    verified: list[dict[str, Any]],
+    pr: dict[str, Any],
+    config: Any,
+) -> None:
+    head_sha = str(pr.get("head", {}).get("sha", "") or "").strip()
+    module.hardened.write_debug_json_artifact_safely(
+        config,
+        "responses/v34-verifier-output.json",
+        {
+            "schema_version": "dcoir_review_v34_verifier_output_v1",
+            "head_sha": head_sha,
+            "verified_count": len(verified),
+            "verified": [_snapshot_finding(item) for item in verified],
+        },
+    )
 
 
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_blank_anchor_readback()
-    _patch_verifier_lifecycle_debug()
     setattr(module, APPLIED_MARKER, True)

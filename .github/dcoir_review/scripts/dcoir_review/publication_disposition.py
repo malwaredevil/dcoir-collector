@@ -18,8 +18,6 @@ from dcoir_review import finding_verifier as v21
 VERSION = "v45"  # Compatibility/provenance value retained from the historical owner.
 SCHEMA_VERSION = "dcoir_review_final_publication_disposition_v1"
 _APPLIED_ATTR = "_dcoir_review_publication_disposition_applied"
-_BODY_STORAGE = "_dcoir_review_publication_disposition_original_build_review_body_with_unanchored"
-_VERIFIER_STORAGE = "_dcoir_review_publication_disposition_original_verify_findings_for_publication"
 _DISPOSITION_ATTR = "_dcoir_review_publication_disposition"
 ARTIFACT_PATH = "metadata/final-publication-disposition-v45.json"
 
@@ -37,7 +35,7 @@ def _dict_findings(value: Any) -> list[dict[str, Any]]:
     return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
 
 
-def _capture_verifier_disposition(
+def capture_verifier_disposition(
     module: Any,
     candidates: list[dict[str, Any]],
     verified: list[dict[str, Any]],
@@ -57,30 +55,6 @@ def _capture_verifier_disposition(
     )
     setattr(module, _DISPOSITION_ATTR, disposition)
     return disposition
-
-
-def _patch_verifier(module: Any) -> None:
-    original = getattr(v21, _VERIFIER_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "verify_findings_for_publication", None)
-        if callable(original):
-            setattr(v21, _VERIFIER_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR publication disposition could not locate the v21 publication verifier")
-
-    def verify_findings_for_publication(
-        review_module: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        verified = original(review_module, findings, gh, pr, config, reporter)
-        _capture_verifier_disposition(review_module, findings, verified, pr)
-        return verified
-
-    v21.verify_findings_for_publication = verify_findings_for_publication
 
 
 def _verified_for_head(finding: dict[str, Any], reviewed_commit: str) -> bool:
@@ -203,11 +177,7 @@ def _render_body(module: Any, disposition: dict[str, Any], reviewed_commit: str)
 
 
 def _patch_review_body(module: Any) -> None:
-    original = getattr(module, _BODY_STORAGE, None)
-    if original is None:
-        original = getattr(module.hardened, "build_review_body_with_unanchored", None)
-        if callable(original):
-            setattr(module, _BODY_STORAGE, original)
+    original = getattr(module.hardened, "build_review_body_with_unanchored", None)
     if not callable(original):
         raise RuntimeError("DCOIR publication disposition could not locate the final review-body builder")
 
@@ -220,7 +190,7 @@ def _patch_review_body(module: Any) -> None:
         reviewed_commit: str = "",
     ) -> str:
         if not bool(getattr(config, "verifier_authoritative_publication_review", False)):
-            return original(
+            body = original(
                 result,
                 findings,
                 unanchored_findings,
@@ -228,13 +198,22 @@ def _patch_review_body(module: Any) -> None:
                 config,
                 reviewed_commit,
             )
-        disposition = _final_disposition(
-            module, result, findings, unanchored_findings, reviewed_commit
-        )
-        module.hardened.write_debug_json_artifact_safely(
-            config, ARTIFACT_PATH, disposition
-        )
-        return _render_body(module, disposition, reviewed_commit)
+        else:
+            disposition = _final_disposition(
+                module, result, findings, unanchored_findings, reviewed_commit
+            )
+            module.hardened.write_debug_json_artifact_safely(
+                config, ARTIFACT_PATH, disposition
+            )
+            body = _render_body(module, disposition, reviewed_commit)
+
+        from dcoir_review import verified_finding_gate as verified_gate
+
+        if getattr(module, verified_gate._APPLIED_ATTR, False):
+            body = verified_gate.apply_gate_to_review_body(
+                module, body, findings, config, reviewed_commit
+            )
+        return body
 
     module.hardened.build_review_body_with_unanchored = build_review_body_with_unanchored
 
@@ -242,6 +221,5 @@ def _patch_review_body(module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    _patch_verifier(module)
     _patch_review_body(module)
     setattr(module, _APPLIED_ATTR, True)

@@ -19,8 +19,10 @@ import dcoir_review_required_runtime_patch_v16 as v16
 
 
 VERIFIER_MAX_MODEL_FINDINGS = 6
+VERIFIER_CANDIDATE_HARD_CAP = 12
 VERIFIER_MIN_SUPPORT_CONFIDENCE = 0.80
 VERIFIER_MARKER = "_dcoir_verifier_v21"
+BLANK_LINE_NOTATION = "[DCOIR anchor is an intentionally blank changed line]"
 
 VERIFIER_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -41,7 +43,17 @@ def _file_line_text(file_text: str, line_number: int) -> str:
     lines = file_text.splitlines()
     if line_number <= 0 or line_number > len(lines):
         return ""
-    return lines[line_number - 1]
+    value = lines[line_number - 1]
+    return BLANK_LINE_NOTATION if value == "" else value
+
+
+def verifier_candidate_limit(config: Any) -> int:
+    """Return the stable bounded verifier candidate ceiling."""
+    try:
+        inline_limit = int(getattr(config, "max_inline_comments", VERIFIER_MAX_MODEL_FINDINGS))
+    except (TypeError, ValueError):
+        inline_limit = VERIFIER_MAX_MODEL_FINDINGS
+    return max(1, min(inline_limit, VERIFIER_CANDIDATE_HARD_CAP))
 
 
 def _finding_path_line(finding: dict[str, Any]) -> tuple[str, int]:
@@ -134,7 +146,7 @@ def _parse_verifier_result(result: Any, hardened: Any) -> tuple[bool, float, str
     return supported, confidence, evidence, reason
 
 
-def verify_findings_for_publication(
+def _verify_findings_core(
     module: Any,
     findings: list[dict[str, Any]],
     gh: Any,
@@ -181,9 +193,10 @@ def verify_findings_for_publication(
             continue
         model_candidates.append((finding, path, line, line_text, file_text))
 
-    if len(model_candidates) > VERIFIER_MAX_MODEL_FINDINGS:
+    verification_limit = verifier_candidate_limit(config)
+    if len(model_candidates) > verification_limit:
         raise hardened.ReviewQualityError(
-            f"DCOIR Review verifier candidate count {len(model_candidates)} exceeds bounded limit {VERIFIER_MAX_MODEL_FINDINGS}; refusing to publish unverified overflow"
+            f"DCOIR Review verifier candidate count {len(model_candidates)} exceeds bounded limit {verification_limit}; refusing to publish unverified overflow"
         )
 
     suppressed = 0
@@ -242,6 +255,35 @@ def verify_findings_for_publication(
             "unsupported_suppressed": suppressed,
         },
     )
+    return verified
+
+
+def verify_findings_for_publication(
+    module: Any,
+    findings: list[dict[str, Any]],
+    gh: Any,
+    pr: dict[str, Any],
+    config: Any,
+    reporter: Any,
+) -> list[dict[str, Any]]:
+    """Run the explicit verification/publication stage composition."""
+
+    from dcoir_review import publication_disposition as publication
+    from dcoir_review import semantic_evidence_hardening as semantic_evidence
+    from dcoir_review import verified_finding_gate as verified_gate
+
+    if getattr(module, semantic_evidence.APPLIED_MARKER, False):
+        semantic_evidence.record_verifier_input(module, findings, pr, config)
+
+    verified = _verify_findings_core(module, findings, gh, pr, config, reporter)
+
+    if getattr(module, semantic_evidence.APPLIED_MARKER, False):
+        semantic_evidence.record_verifier_output(module, verified, pr, config)
+    if getattr(module, publication._APPLIED_ATTR, False):
+        publication.capture_verifier_disposition(module, findings, verified, pr)
+    if getattr(module, verified_gate._APPLIED_ATTR, False):
+        verified_gate.capture_prior_gate_context(module, gh, pr, config, reporter)
+
     return verified
 
 

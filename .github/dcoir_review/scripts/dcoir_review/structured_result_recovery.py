@@ -10,7 +10,6 @@ from typing import Any
 
 from dcoir_review import structured_result_provider as provider
 
-VERSION = "v52"
 APPLIED_MARKER = "_dcoir_review_structured_result_recovery_applied"
 
 

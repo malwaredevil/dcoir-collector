@@ -12,62 +12,8 @@ from dcoir_review import verified_finding_gate_state as gate_state
 
 VERSION = "v50"
 _APPLIED_ATTR = "_dcoir_review_verified_finding_gate_applied"
-_VERIFIER_STORAGE = "_dcoir_review_verified_finding_gate_original_verify_findings_for_publication"
-_BODY_STORAGE = "_dcoir_review_verified_finding_gate_original_build_review_body_with_unanchored"
 _PRIOR_ATTR = "_dcoir_review_verified_finding_gate_prior_context"
 _STATE_ATTR = "_dcoir_review_verified_finding_gate_state"
-
-
-def _patch_verifier(module: Any) -> None:
-    original = getattr(v21, _VERIFIER_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "verify_findings_for_publication", None)
-        if callable(original):
-            setattr(v21, _VERIFIER_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR verified-finding gate could not locate the active publication verifier")
-
-    def verify_findings_for_publication(
-        review_module: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        verified = original(review_module, findings, gh, pr, config, reporter)
-        if not bool(getattr(config, "verified_finding_gate_state_review", False)):
-            return verified
-        prior = gate_prior.load_prior_gate_context(review_module, gh, pr)
-        setattr(review_module, _PRIOR_ATTR, prior)
-        disposition = getattr(review_module, publication._DISPOSITION_ATTR, None)
-        if not isinstance(disposition, dict):
-            raise review_module.hardened.ReviewQualityError(
-                "DCOIR verified-finding gate is missing the v45 exact-head verifier disposition"
-            )
-        carried = len(
-            [item for item in prior.get("carried_records", []) if isinstance(item, dict)]
-        )
-        disposition["carried_unresolved_count"] = carried
-        disposition["prior_gate_status"] = str(prior.get("status", "") or "")
-        disposition["prior_gate_state_source"] = str(prior.get("source", "") or "")
-        disposition["prior_gate_state_reason"] = str(prior.get("reason", "") or "")
-        disposition["incremental_gate_indeterminate"] = (
-            str(prior.get("status", "") or "") == "indeterminate"
-        )
-        update = getattr(reporter, "update", None)
-        if callable(update):
-            update(
-                "verified-gate-state",
-                (
-                    f"prior={disposition['prior_gate_state_source'] or 'none'}; "
-                    f"carried_unresolved={carried}; "
-                    f"indeterminate={str(disposition['incremental_gate_indeterminate']).lower()}"
-                ),
-            )
-        return verified
-
-    v21.verify_findings_for_publication = verify_findings_for_publication
 
 
 def _render_gate_section(module: Any, state: dict[str, Any]) -> str:
@@ -111,67 +57,85 @@ def _render_gate_section(module: Any, state: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _patch_review_body(module: Any) -> None:
-    original = getattr(module, _BODY_STORAGE, None)
-    if original is None:
-        original = getattr(module.hardened, "build_review_body_with_unanchored", None)
-        if callable(original):
-            setattr(module, _BODY_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR verified-finding gate could not locate the final review-body builder")
+def capture_prior_gate_context(
+    review_module: Any,
+    gh: Any,
+    pr: dict[str, Any],
+    config: Any,
+    reporter: Any,
+) -> None:
+    if not bool(getattr(config, "verified_finding_gate_state_review", False)):
+        return
+    prior = gate_prior.load_prior_gate_context(review_module, gh, pr)
+    setattr(review_module, _PRIOR_ATTR, prior)
+    disposition = getattr(review_module, publication._DISPOSITION_ATTR, None)
+    if not isinstance(disposition, dict):
+        raise review_module.hardened.ReviewQualityError(
+            "DCOIR verified-finding gate is missing the v45 exact-head verifier disposition"
+        )
+    carried = len(
+        [item for item in prior.get("carried_records", []) if isinstance(item, dict)]
+    )
+    disposition["carried_unresolved_count"] = carried
+    disposition["prior_gate_status"] = str(prior.get("status", "") or "")
+    disposition["prior_gate_state_source"] = str(prior.get("source", "") or "")
+    disposition["prior_gate_state_reason"] = str(prior.get("reason", "") or "")
+    disposition["incremental_gate_indeterminate"] = (
+        str(prior.get("status", "") or "") == "indeterminate"
+    )
+    update = getattr(reporter, "update", None)
+    if callable(update):
+        update(
+            "verified-gate-state",
+            (
+                f"prior={disposition['prior_gate_state_source'] or 'none'}; "
+                f"carried_unresolved={carried}; "
+                f"indeterminate={str(disposition['incremental_gate_indeterminate']).lower()}"
+            ),
+        )
 
-    def build_review_body_with_unanchored(
-        result: dict[str, Any],
-        findings: list[dict[str, Any]],
-        unanchored_findings: list[dict[str, Any]],
-        model_used: str,
-        config: Any,
-        reviewed_commit: str = "",
-    ) -> str:
-        body = original(
-            result,
-            findings,
-            unanchored_findings,
-            model_used,
-            config,
-            reviewed_commit,
-        )
-        if not bool(getattr(config, "verified_finding_gate_state_review", False)):
-            return body
-        prior = getattr(module, _PRIOR_ATTR, None)
-        if not isinstance(prior, dict):
-            raise module.hardened.ReviewQualityError(
-                "DCOIR verified-finding gate publication is missing prior verified-finding gate context"
-            )
-        if not reviewed_commit:
-            raise module.hardened.ReviewQualityError(
-                "DCOIR verified-finding gate publication could not determine the reviewed PR head SHA"
-            )
-        state = gate_state.compose_state(
-            [item for item in findings if isinstance(item, dict)],
-            prior,
-            reviewed_commit,
-            str(os.environ.get("GITHUB_RUN_ID", "") or ""),
-        )
-        if not gate_prior.persist_gate_state(module, config, state):
-            raise module.hardened.ReviewQualityError(
-                "DCOIR verified-finding gate could not persist exact-head verified-finding gate state"
-            )
-        setattr(module, _STATE_ATTR, state)
-        final = gate_state.final_disposition(state)
-        module.hardened.write_debug_json_artifact_safely(
-            config, gate_state.FINAL_ARTIFACT_PATH, final
-        )
-        section = _render_gate_section(module, state)
-        if not section:
-            return body
-        reserve = len(section) + 1
-        prefix = body.rstrip()
-        if len(prefix) + reserve > 12000:
-            prefix = prefix[: max(0, 12000 - reserve)].rstrip()
-        return module.base.github_safe_body(f"{prefix}\n{section}", limit=12000)
 
-    module.hardened.build_review_body_with_unanchored = build_review_body_with_unanchored
+def apply_gate_to_review_body(
+    module: Any,
+    body: str,
+    findings: list[dict[str, Any]],
+    config: Any,
+    reviewed_commit: str,
+) -> str:
+    if not bool(getattr(config, "verified_finding_gate_state_review", False)):
+        return body
+    prior = getattr(module, _PRIOR_ATTR, None)
+    if not isinstance(prior, dict):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR verified-finding gate publication is missing prior verified-finding gate context"
+        )
+    if not reviewed_commit:
+        raise module.hardened.ReviewQualityError(
+            "DCOIR verified-finding gate publication could not determine the reviewed PR head SHA"
+        )
+    state = gate_state.compose_state(
+        [item for item in findings if isinstance(item, dict)],
+        prior,
+        reviewed_commit,
+        str(os.environ.get("GITHUB_RUN_ID", "") or ""),
+    )
+    if not gate_prior.persist_gate_state(module, config, state):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR verified-finding gate could not persist exact-head verified-finding gate state"
+        )
+    setattr(module, _STATE_ATTR, state)
+    final = gate_state.final_disposition(state)
+    module.hardened.write_debug_json_artifact_safely(
+        config, gate_state.FINAL_ARTIFACT_PATH, final
+    )
+    section = _render_gate_section(module, state)
+    if not section:
+        return body
+    reserve = len(section) + 1
+    prefix = body.rstrip()
+    if len(prefix) + reserve > 12000:
+        prefix = prefix[: max(0, 12000 - reserve)].rstrip()
+    return module.base.github_safe_body(f"{prefix}\n{section}", limit=12000)
 
 
 def progress_completion_override(
@@ -227,7 +191,5 @@ def progress_completion_override(
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    _patch_verifier(module)
-    _patch_review_body(module)
     module.DCOIR_VERIFIED_FINDING_GATE_CONTRACT = gate_state.STATE_CONTRACT
     setattr(module, _APPLIED_ATTR, True)
