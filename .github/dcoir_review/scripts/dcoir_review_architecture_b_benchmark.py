@@ -382,7 +382,7 @@ def _calibration_report(manifest: dict[str, Any]) -> dict[str, Any]:
     candidates = [{"id": index} for index in range(candidate_count)]
     supported = candidates[:supported_count]
     module = SimpleNamespace()
-    disposition = publication._capture_verifier_disposition(
+    disposition = publication.capture_verifier_disposition(
         module,
         candidates,
         supported,
