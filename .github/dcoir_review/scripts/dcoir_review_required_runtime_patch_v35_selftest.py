@@ -42,6 +42,15 @@ def main() -> None:
     assert "MAY add a high-confidence defect" in v35.ADJUDICATION_BLOCK
     assert "first try to prove it false" in v35.VERIFIER_FALSIFICATION_BLOCK
 
+    # Directly demonstrated defects in changed executable fixture/test/benchmark
+    # code remain reviewable. Consuming evidence is required only when the claim
+    # reaches beyond the supplied code into loader/scoring/downstream behavior.
+    assert "does not require a separate production consumer" in semantic_evidence.PREDICATE_AUDIT_BLOCK
+    assert "directly demonstrated defect in changed executable fixture, test, or benchmark" in v35.ADJUDICATION_BLOCK
+    assert "Do not reject a defect solely because the changed file is labeled test, fixture, benchmark, or non-production" in v35.VERIFIER_FALSIFICATION_BLOCK
+    assert "For fixture-only findings, report only when" not in semantic_evidence.PREDICATE_AUDIT_BLOCK
+    assert "fixture or documentation finding is publishable only when" not in v35.ADJUDICATION_BLOCK
+
     digest, count = v35._candidate_digest(
         {
             "findings": [
