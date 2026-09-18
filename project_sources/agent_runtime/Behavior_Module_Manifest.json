@@ -458,12 +458,12 @@
       "kind": "specialist",
       "order": 11,
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.11.md",
-      "sha256": "26573b6a7398f395530a3373b18342d5bf9c155e3440933cc51cab273376183a",
+      "sha256": "4a238b6d5f12ff4d63bb495bf741854de4533a77b7e6024b90085eca48c8f66f",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_11_USB_Violations_Report_Composer.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "26573b6a7398f395530a3373b18342d5bf9c155e3440933cc51cab273376183a"
+          "sha256": "4a238b6d5f12ff4d63bb495bf741854de4533a77b7e6024b90085eca48c8f66f"
         }
       }
     }

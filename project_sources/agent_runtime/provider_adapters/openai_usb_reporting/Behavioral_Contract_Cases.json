@@ -73,7 +73,7 @@
       "id": "incident_timestamp_and_notes",
       "scenario": "The operator provides a report-ready USB incident row containing a UTC timestamp and Notes value.",
       "expected_behavior": "Preserve the incident time in Zulu format and include the Notes field in the final incident detail block.",
-      "required_markers": ["Date w/Time in Z", "MM/DD/YYYY HHMMZ", "Notes: [Notes]"]
+      "required_markers": ["Date w/Time in Z", "MM/DD/YYYY HHMMZ", "Notes: [Notes]", "omit the Notes line when absent or blank"]
     },
     {
       "id": "nipr_sipr_email_contract",

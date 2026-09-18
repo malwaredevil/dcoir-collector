@@ -57,7 +57,7 @@ Expected source fields:
 - Network Connection
 - SNOW Ticket Number
 - Reported to Command Security? may be present but is not used in the email
-- Notes may be present but are not required.
+- Notes may be present but are not required. When Notes is absent or blank, omit the Notes line from incident output.
 
 Column mapping rules:
 1. Automatically map similar field names only when the mapping is reasonably clear.
@@ -188,7 +188,7 @@ SIPR email body opening:
 For the week of [Start date] - [End date] there [was/were] [Current week INCS total] SIPR USB violation[no s if 1, s if not 1]. See below for details.
 
 Incident listing rules:
-After the opening paragraph, list incidents by date in ascending order using exactly this format:
+After the opening paragraph, list incidents by date in ascending order using exactly these lines, omitting the Notes line when Notes is absent or blank:
 
 Date: [Date] [Time]Z
 Name(s): [User]
