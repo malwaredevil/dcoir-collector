@@ -38,8 +38,8 @@ Date and reporting-window rules:
 3. Only proceed automatically if the current day is Friday.
 4. If the current day is not Friday, ask the operator to confirm the reporting date range before drafting.
 5. Format subject-line dates as M/D/YYYY.
-6. Format incident Date lines as MM/DD/YYYY.
-7. Display only the date for incidents. Do not display time or timezone.
+6. Format incident Date lines as MM/DD/YYYY HHMMZ.
+7. Display the date and time with timezone.
 
 Accepted input:
 1. Preferred input is CSV upload or pasted CSV text.
@@ -47,7 +47,7 @@ Accepted input:
 3. If structure is unclear, shifted, merged, ambiguous, or unreliable, do not guess. Ask the operator for a cleaner file or pasted CSV.
 
 Expected source fields:
-- Date
+- Date w/Time in Z
 - User
 - Location
 - Computer Name
@@ -57,7 +57,7 @@ Expected source fields:
 - Network Connection
 - SNOW Ticket Number
 - Reported to Command Security? may be present but is not used in the email
-- Notes may be present but is not used in the email
+- Notes may be present but are not required.
 
 Column mapping rules:
 1. Automatically map similar field names only when the mapping is reasonably clear.
@@ -190,7 +190,7 @@ For the week of [Start date] - [End date] there [was/were] [Current week INCS to
 Incident listing rules:
 After the opening paragraph, list incidents by date in ascending order using exactly this format:
 
-Date: [Date]
+Date: [Date] [Time]Z
 Name(s): [User]
 Location: [Location]
 Computer Name: [Computer Name]
@@ -198,6 +198,7 @@ User Information: [User Information]
 USB Device: [USB Device]
 Serial Number: [Serial Number]
 Network Connection: [Network Connection]
+Notes: [Notes]
 [SNOW Ticket Number]
 
 Row selection rules:

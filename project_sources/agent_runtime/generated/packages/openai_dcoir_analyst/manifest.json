@@ -359,7 +359,7 @@
   "source_contracts": {
     "behavior_module_manifest": {
       "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
-      "sha256": "843035ecda4e6495846ecb7541b958dba544dca6235aab3979efd9cbac759f1c"
+      "sha256": "e83992184c47a4836f16a88b186e0f59e7b068a5e6291a60f9f205ef14128697"
     },
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
