@@ -8,7 +8,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v5 as v5
-from dcoir_review import finding_verifier as v21
 from dcoir_review import semantic_candidate_identity as candidate_identity
 from dcoir_review import semantic_candidate_identity_hooks as candidate_identity_hooks
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
