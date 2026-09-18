@@ -1,0 +1,12 @@
+{
+  "approved_at_utc": "2026-09-18T03:30:00Z",
+  "approved_command_preview": "Validate frozen 21-path GHAS follow-up against exact PR parent 237c071cffb071c08774c2e6a17abac94ab31296 using patch SHA 2e7f09f111eb330d9c0c762eb900a0cc0da2dd0f46fe1166b726271949683dbc; run all 61 governed commands, native Windows PowerShell 5.1, semantic recall/precision, architecture ownership checks, independent secret scan, and immutable patch readback. No PR source mutation, provider/model calls, DCOIR self-review, Copilot/Codex trigger, Ready transition, workflow source change, #557 lifecycle repair, or merge.",
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "command": "python .github/chatgpt_staging/exec_scripts/issue550-pr553-ghas-followup-prepublication-001.py",
+  "operator_approved": true,
+  "request_id": "issue550-pr553-ghas-followup-prepublication-001",
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "shell": "powershell_5",
+  "timeout_seconds": 600
+}
