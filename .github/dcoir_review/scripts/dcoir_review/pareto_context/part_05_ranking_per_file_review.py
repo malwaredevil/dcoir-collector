@@ -41,6 +41,16 @@ def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: An
     return selected
 
 
+def _truncate_prompt_for_budget(prompt: str, config: Any) -> str:
+    maximum = max(0, int(getattr(config, "max_prompt_chars", 120000)))
+    if len(prompt) <= maximum:
+        return prompt
+    if maximum <= len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER):
+        return prompt[:maximum]
+    keep = maximum - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)
+    return prompt[:keep] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
+
+
 def build_per_file_review_prompt(
     pr: dict[str, Any],
     item: dict[str, Any],
@@ -96,11 +106,9 @@ Full head-file context:
 ```{language_hint(path)}
 {visible_text}
 ```
-""".strip()
+    """.strip()
     prompt = base.sanitize_text(prompt, config)
-    if len(prompt) > config.max_prompt_chars:
-        prompt = prompt[: config.max_prompt_chars - len(DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER)] + DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER
-    return prompt
+    return _truncate_prompt_for_budget(prompt, config)
 
 
 def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
@@ -182,4 +190,3 @@ def compact_model_label(results: list[dict[str, Any]], fallback: str) -> str:
 
 def should_use_per_file_first_pass(review_mode: str, config: Any) -> bool:
     return bool(getattr(config, "per_file_first_pass_review", True)) and review_mode in {"first-pass-deep", "deep-forced"}
-

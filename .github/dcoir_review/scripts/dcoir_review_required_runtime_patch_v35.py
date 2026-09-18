@@ -26,14 +26,12 @@ import copy
 import json
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v34 as v34
+from dcoir_review import finding_verifier as v21
+from dcoir_review import semantic_evidence_hardening as semantic_evidence
 
 
 VERSION = "v35"
 APPLIED_MARKER = "_dcoir_review_v35_applied"
-CONFIG_STORAGE = "_dcoir_review_v35_original_load_pareto_context_config"
-HYBRID_STORAGE = "_dcoir_review_v35_original_hybrid_first_pass"
 VERIFIER_PROMPT_STORAGE = "_dcoir_review_v35_original_verifier_prompt"
 FINAL_ADJUDICATION_COMPLETION_ATTR = "_semantic_adjudication_completion_token"
 FINAL_ADJUDICATION_COMPLETION_TOKEN = object()
@@ -85,7 +83,7 @@ Publication-quality rules:
   fewer is better when those are the only demonstrable defects.
 
 Required adversarial method:
-{v34.PREDICATE_AUDIT_BLOCK}
+{semantic_evidence.PREDICATE_AUDIT_BLOCK}
 
 For each retained finding, use the normal review fields. Put the concrete
 counterexample and code-path explanation in the finding body/validation text so
@@ -110,47 +108,6 @@ def _as_string_list(value: Any, fallback: tuple[str, ...]) -> list[str]:
     if isinstance(value, str) and value.strip():
         return [value.strip()]
     return list(fallback)
-
-
-def _positive_int(value: Any, fallback: int) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        parsed = fallback
-    return max(1, parsed)
-
-
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, CONFIG_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, CONFIG_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v35 could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.semantic_adjudication_review = module.hardened.bool_value(
-            data, "semantic_adjudication_review", True
-        )
-        config.semantic_adjudication_model_stack = _as_string_list(
-            data.get("semantic_adjudication_model_stack"), DEFAULT_ADJUDICATION_MODELS
-        )
-        configured_max = _positive_int(
-            data.get("semantic_adjudication_max_findings", DEFAULT_ADJUDICATION_MAX_FINDINGS),
-            DEFAULT_ADJUDICATION_MAX_FINDINGS,
-        )
-        inline_max = _positive_int(getattr(config, "max_inline_comments", configured_max), configured_max)
-        config.semantic_adjudication_max_findings = min(configured_max, inline_max)
-        config.semantic_adjudication_candidate_digest_chars = _positive_int(
-            data.get("semantic_adjudication_candidate_digest_chars", DEFAULT_CANDIDATE_DIGEST_CHARS),
-            DEFAULT_CANDIDATE_DIGEST_CHARS,
-        )
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
 
 
 def _compact_candidate(
@@ -240,16 +197,12 @@ def _cap_adjudicated_findings(module: Any, result: dict[str, Any], limit: int) -
     return capped
 
 
-def _patch_semantic_adjudication(module: Any) -> None:
-    original = getattr(module, HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, HYBRID_STORAGE, original)
+def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR v35 could not locate active hybrid review function")
+        raise RuntimeError("DCOIR v35 requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def semantic_adjudication_stage(
         pr,
         files,
         diff,
@@ -337,6 +290,9 @@ def _patch_semantic_adjudication(module: Any) -> None:
             prompt, schema, adjudication_config, reporter
         )
         provider_result_keys = tuple(sorted(adjudicated.keys())) if isinstance(adjudicated, dict) else ()
+        from dcoir_review import semantic_adjudication_normalization
+
+        adjudicated = semantic_adjudication_normalization.normalize_adjudicator_result(module, adjudicated)
         adjudicated = _cap_adjudicated_findings(module, adjudicated, max_findings)
         adjudicated[PROVIDER_RESULT_KEYS_ATTR] = provider_result_keys
         adjudicated["_semantic_adjudication_attempted"] = True
@@ -371,7 +327,7 @@ def _patch_semantic_adjudication(module: Any) -> None:
         tier_label = ", ".join(item for item in tier_parts if item)
         return adjudicated, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return semantic_adjudication_stage
 
 
 def _patch_verifier_prompt() -> None:
@@ -394,7 +350,5 @@ def _patch_verifier_prompt() -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_config_loader(module)
-    _patch_semantic_adjudication(module)
     _patch_verifier_prompt()
     setattr(module, APPLIED_MARKER, True)

@@ -27,77 +27,32 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import finding_verifier as v21
+from dcoir_review import repair as repair_policy
+from dcoir_review import repair_pipeline as repair
 
 
 VERSION = "v33"
 APPLIED_MARKER = "_dcoir_review_v33_applied"
-VERIFIER_CANDIDATE_HARD_CAP = 12
-VERIFIER_STORAGE = "_dcoir_review_v33_original_verify_findings_for_publication"
 REPAIR_STORAGE = "_dcoir_review_v33_original_synthesize_verified_repairs"
 DEFERRED_OUTCOME = "verified-repair-budget-deferred"
 
 
-def _positive_int(value: Any, fallback: int) -> int:
-    try:
-        parsed = int(value)
-    except (TypeError, ValueError):
-        parsed = fallback
-    return max(0, parsed)
-
 
 def verifier_candidate_limit(config: Any) -> int:
-    """Bound pre-publication evidence verification independently of repair cost."""
+    """Compatibility delegate to the canonical finding-verifier policy."""
 
-    inline_limit = _positive_int(getattr(config, "max_inline_comments", VERIFIER_CANDIDATE_HARD_CAP), VERIFIER_CANDIDATE_HARD_CAP)
-    return max(1, min(inline_limit, VERIFIER_CANDIDATE_HARD_CAP))
+    return v21.verifier_candidate_limit(config)
 
 
 def repair_synthesis_budget(config: Any) -> int:
-    """Return how many verified findings may enter one-click repair synthesis."""
-
-    if not bool(getattr(config, "fix_synthesis_enabled", True)):
-        return 0
-    inline_limit = _positive_int(getattr(config, "max_inline_comments", VERIFIER_CANDIDATE_HARD_CAP), VERIFIER_CANDIDATE_HARD_CAP)
-    configured = _positive_int(getattr(config, "fix_synthesis_max_findings", 0), 0)
-    return min(configured, inline_limit)
-
-
-def _patch_verifier_candidate_limit() -> None:
-    original = getattr(v21, VERIFIER_STORAGE, None)
-    if original is None:
-        original = getattr(v21, "verify_findings_for_publication", None)
-        if callable(original):
-            setattr(v21, VERIFIER_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v33 could not locate v21 finding verifier")
-
-    def verify_findings_for_publication(
-        module: Any,
-        findings: list[dict[str, Any]],
-        gh: Any,
-        pr: dict[str, Any],
-        config: Any,
-        reporter: Any,
-    ) -> list[dict[str, Any]]:
-        # Normalization already bounds actionable inline candidates.  Temporarily
-        # give v21 the corresponding verification ceiling, then restore the
-        # historical constant so unrelated compatibility tests remain stable.
-        previous = v21.VERIFIER_MAX_MODEL_FINDINGS
-        v21.VERIFIER_MAX_MODEL_FINDINGS = verifier_candidate_limit(config)
-        try:
-            verifier = getattr(v21, VERIFIER_STORAGE)
-            return verifier(module, findings, gh, pr, config, reporter)
-        finally:
-            v21.VERIFIER_MAX_MODEL_FINDINGS = previous
-
-    v21.verify_findings_for_publication = verify_findings_for_publication
+    """Compatibility delegate to the canonical repair policy owner."""
+    return repair_policy.repair_synthesis_budget(config)
 
 
 def _deferred_verified_finding(raw: dict[str, Any], ordinal: int) -> dict[str, Any]:
-    finding = v25._strip_legacy_model_finding_provenance(raw)
-    path, line = v25._path_line(finding)
+    finding = repair._strip_legacy_model_finding_provenance(raw)
+    path, line = repair._path_line(finding)
     finding["suggested_replacement"] = ""
     finding["fix_guidance"] = {
         "language": Path(path).suffix.lstrip(".") or "text",
@@ -106,7 +61,7 @@ def _deferred_verified_finding(raw: dict[str, Any], ordinal: int) -> dict[str, A
             "because the configured repair budget was exhausted."
         ),
     }
-    finding[v25.REPAIR_MARKER] = {
+    finding[repair.REPAIR_MARKER] = {
         "version": VERSION,
         "outcome": DEFERRED_OUTCOME,
         "path": path,
@@ -118,13 +73,13 @@ def _deferred_verified_finding(raw: dict[str, Any], ordinal: int) -> dict[str, A
 
 
 def _patch_verified_repair_budget(module: Any) -> None:
-    original = getattr(v25, REPAIR_STORAGE, None)
+    original = getattr(repair, REPAIR_STORAGE, None)
     if original is None:
-        original = getattr(v25, "synthesize_verified_repairs", None)
+        original = getattr(repair, "synthesize_verified_repairs", None)
         if callable(original):
-            setattr(v25, REPAIR_STORAGE, original)
+            setattr(repair, REPAIR_STORAGE, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v33 could not locate v25 verified repair pipeline")
+        raise RuntimeError("DCOIR v33 could not locate the canonical verified repair pipeline")
 
     def synthesize_verified_repairs(
         mod: Any,
@@ -166,19 +121,19 @@ def _patch_verified_repair_budget(module: Any) -> None:
                 repaired.append(_deferred_verified_finding(raw, ordinal))
                 continue
 
-            finding = v25._strip_legacy_model_finding_provenance(raw)
-            path, _line = v25._path_line(finding)
+            finding = repair._strip_legacy_model_finding_provenance(raw)
+            path, _line = repair._path_line(finding)
             if path not in file_cache:
                 file_cache[path] = mod.fetch_pr_file_text(gh, path, head_sha)
             try:
-                item = v25._build_repair_for_finding(mod, ordinal, finding, file_cache[path], config)
+                item = repair._build_repair_for_finding(mod, ordinal, finding, file_cache[path], config)
             except Exception as exc:
-                # Match v25's fail-closed repair behavior: preserve the verified
+                # Match the canonical repair pipeline's fail-closed repair behavior: preserve the verified
                 # finding while withholding a suggestion when repair generation
                 # itself fails.
                 item = finding
-                path, line = v25._path_line(item)
-                title, body = v25._fallback_display(item, path, line)
+                path, line = repair._path_line(item)
+                title, body = repair._fallback_display(item, path, line)
                 item["title"] = title
                 item["body"] = body
                 item["suggested_replacement"] = ""
@@ -186,7 +141,7 @@ def _patch_verified_repair_budget(module: Any) -> None:
                     "language": Path(path).suffix.lstrip(".") or "text",
                     "notes": "Verified finding; one-click repair was withheld because the repair pipeline failed closed.",
                 }
-                item[v25.REPAIR_MARKER] = {
+                item[repair.REPAIR_MARKER] = {
                     "version": VERSION,
                     "outcome": "repair-stage-failed-closed",
                     "path": path,
@@ -194,7 +149,7 @@ def _patch_verified_repair_budget(module: Any) -> None:
                     "reason": str(exc)[:600],
                 }
 
-            if item.get(v25.REPAIR_MARKER, {}).get("outcome") == "native-suggestion":
+            if item.get(repair.REPAIR_MARKER, {}).get("outcome") == "native-suggestion":
                 native += 1
             else:
                 declined += 1
@@ -223,16 +178,15 @@ def _patch_verified_repair_budget(module: Any) -> None:
         )
         return repaired
 
-    # v25's module-level synthesize_fixes_for_findings resolves this symbol at
+    # repair's module-level synthesize_fixes_for_findings resolves this symbol at
     # call time.  v30's later publication-suppression wrapper therefore still
     # surrounds this replacement and can suppress explicit defect-absent repair
     # attestations exactly as before.
-    v25.synthesize_verified_repairs = synthesize_verified_repairs
+    repair.synthesize_verified_repairs = synthesize_verified_repairs
 
 
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_verifier_candidate_limit()
     _patch_verified_repair_budget(module)
     setattr(module, APPLIED_MARKER, True)

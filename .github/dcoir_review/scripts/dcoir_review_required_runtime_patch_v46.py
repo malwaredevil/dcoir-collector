@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review_required_runtime_patch_v46_budget as budgets
 import dcoir_review_required_runtime_patch_v46_context as context
 from dcoir_review_required_runtime_patch_v46_contract import (
@@ -18,43 +18,9 @@ from dcoir_review_required_runtime_patch_v46_contract import (
 )
 
 
-_CONFIG_STORAGE = "_dcoir_v46_original_load_pareto_context_config"
-_HYBRID_STORAGE = "_dcoir_v46_original_hybrid_first_pass"
 _FILE_CONTEXT_STORAGE = "_dcoir_v46_original_build_file_contexts"
 _FILE_PROMPT_STORAGE = "_dcoir_v46_original_build_per_file_review_prompt"
 _BROAD_PROMPT_STORAGE = "_dcoir_v46_original_build_prompt"
-
-
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, _CONFIG_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, _CONFIG_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v46 could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.canonical_semantic_context_review = module.hardened.bool_value(
-            data, "canonical_semantic_context_review", True
-        )
-        config.adaptive_semantic_budgets_review = module.hardened.bool_value(
-            data, "adaptive_semantic_budgets_review", True
-        )
-        defaults = {
-            "adaptive_semantic_min_prompt_chars": 48000,
-            "adaptive_semantic_small_delta_prompt_chars": 60000,
-            "adaptive_semantic_small_delta_max_files": 4,
-            "adaptive_semantic_small_delta_max_diff_chars": 20000,
-            "adaptive_semantic_small_delta_max_context_chars": 30000,
-        }
-        for key, fallback in defaults.items():
-            setattr(config, key, positive_int(data.get(key, fallback), fallback))
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
 
 
 def _runtime(module: Any, config: Any | None = None) -> dict[str, Any] | None:
@@ -231,16 +197,17 @@ def _write_state(
         )
 
 
-def _patch_hybrid(module: Any, original_contexts: Any) -> None:
-    original = getattr(module, _HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, _HYBRID_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v46 could not locate active hybrid review function")
+def build_canonical_semantic_context_stage(module: Any, next_review: Any) -> Any:
+    """Build the canonical semantic-context/budget lifecycle around ``next_review``."""
 
-    def openrouter_review_with_hybrid_first_pass(
+    original = next_review
+    original_contexts = getattr(module, _FILE_CONTEXT_STORAGE, None)
+    if not callable(original):
+        raise RuntimeError("DCOIR v46 requires a callable hybrid review stage")
+    if not callable(original_contexts):
+        raise RuntimeError("DCOIR v46 could not locate the original file-context builder")
+
+    def canonical_semantic_context_stage(
         pr,
         files,
         diff,
@@ -326,7 +293,7 @@ def _patch_hybrid(module: Any, original_contexts: Any) -> None:
         final["_adaptive_semantic_budget_mode"] = plan["mode"]
         return final, model, tier
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return canonical_semantic_context_stage
 
 
 def semantic_context_package_for_client(gh: Any) -> dict[str, Any]:
@@ -337,9 +304,7 @@ def semantic_context_package_for_client(gh: Any) -> dict[str, Any]:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_ATTR, False):
         return
-    _patch_config_loader(module)
-    original_contexts, _file_prompt, _broad_prompt = _patch_context_projections(module)
-    _patch_hybrid(module, original_contexts)
+    _patch_context_projections(module)
     module.semantic_context_package_for_client = semantic_context_package_for_client
     module.DCOIR_SEMANTIC_CONTEXT_PACKAGE_CONTRACT = CONTEXT_PACKAGE_CONTRACT
     module.DCOIR_ADAPTIVE_SEMANTIC_BUDGET_CONTRACT = BUDGET_CONTRACT
@@ -348,5 +313,6 @@ def apply_pareto_context_module(module: Any) -> None:
 
 __all__ = [
     "apply_pareto_context_module",
+    "build_canonical_semantic_context_stage",
     "semantic_context_package_for_client",
 ]

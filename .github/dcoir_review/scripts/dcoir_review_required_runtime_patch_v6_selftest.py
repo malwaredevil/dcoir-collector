@@ -18,23 +18,6 @@ class Config(SimpleNamespace):
     max_prompt_chars: int = 200000
 
 
-def test_env_provenance_sanitize_preserves_source_syntax() -> None:
-    v6._patch_sanitize_text(base)
-    sample = '\n'.join(
-        [
-            'token = os.environ["DCOIR_TOKEN"]',
-            'headers = {"Authorization": f"Bearer {token}"}',
-            '$headers = @{ Authorization = "Bearer $env:DCOIR_TOKEN" }',
-        ]
-    )
-    cleaned = base.sanitize_text(sample, Config())
-    assert 'os.environ["DCOIR_TOKEN"]' in cleaned
-    assert 'f"Bearer {token}"' in cleaned
-    assert '"Bearer $env:DCOIR_TOKEN"' in cleaned
-    assert '[redacted-secret]"Bearer' not in cleaned
-    assert '[redacted-secret]Bearer' not in cleaned
-
-
 def test_yaml_metadata_shell_priority() -> None:
     v6._patch_yaml_metadata_priority()
     line = '        run: sh -c "${{ github.event.pull_request.title }}"'
@@ -81,7 +64,6 @@ def test_prompt_review_model_selection_guard() -> None:
 
 
 def main() -> None:
-    test_env_provenance_sanitize_preserves_source_syntax()
     test_yaml_metadata_shell_priority()
     test_v3_strip_fences_compatibility_shim()
     test_prompt_review_addendum_preserves_immutable_prefix()

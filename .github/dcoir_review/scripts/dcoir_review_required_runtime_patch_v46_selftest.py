@@ -7,11 +7,12 @@ import copy
 from pathlib import Path
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
+from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review_required_runtime_patch_v46 as v46
 import dcoir_review_required_runtime_patch_v46_budget as budget
 import dcoir_review_required_runtime_patch_v46_context as context
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import review_config
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -255,9 +256,17 @@ def invoke(module, cfg=None, *, diff="diff", mode="first-pass-deep", gh=None):
     return result, target, reporter
 
 
+def apply_v46_with_hybrid_stage(module) -> None:
+    base_hybrid = module.openrouter_review_with_hybrid_first_pass
+    v46.apply_pareto_context_module(module)
+    module.openrouter_review_with_hybrid_first_pass = v46.build_canonical_semantic_context_stage(
+        module, base_hybrid
+    )
+
+
 def test_composed_context_reuse_and_artifacts() -> None:
     module, artifacts, calls = make_review_module()
-    v46.apply_pareto_context_module(module)
+    apply_v46_with_hybrid_stage(module)
     (result, model, tier), gh, reporter = invoke(module)
     assert result["_semantic_context_package_id"]
     assert result["_adaptive_semantic_budget_mode"] == "full-quality-floor"
@@ -296,14 +305,14 @@ def test_composed_context_reuse_and_artifacts() -> None:
 
 def test_incremental_budget_and_rollback() -> None:
     module, _artifacts, calls = make_review_module()
-    v46.apply_pareto_context_module(module)
+    apply_v46_with_hybrid_stage(module)
     gh = invoke(module, diff="tiny", mode="diff", cfg=config(), gh=SimpleNamespace())[1]
     package = module.semantic_context_package_for_client(gh)
     assert package["budget_plan"]["mode"] == "small-incremental-delta"
     assert package["budget_plan"]["selected"]["max_prompt_chars"] == 60000
 
     rollback, _rollback_artifacts, rollback_calls = make_review_module()
-    v46.apply_pareto_context_module(rollback)
+    apply_v46_with_hybrid_stage(rollback)
     invoke(rollback, cfg=config(canonical_semantic_context_review=False))
     assert rollback_calls["hybrid"] == 1
     assert not hasattr(rollback, v46.RUNTIME_ATTR)
@@ -312,8 +321,8 @@ def test_incremental_budget_and_rollback() -> None:
 
 def test_config_and_production_registration() -> None:
     module, _artifacts, _calls = make_review_module()
-    v46._patch_config_loader(module)
     loaded = module.load_pareto_context_config("unused.yml")
+    review_config.apply_review_config(loaded, module.hardened.parse_yaml_like_data("unused.yml"), module.hardened)
     assert loaded.canonical_semantic_context_review is True
     assert loaded.adaptive_semantic_budgets_review is True
     assert loaded.adaptive_semantic_small_delta_prompt_chars == 60000
@@ -321,7 +330,7 @@ def test_config_and_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names[-2:] == (
         "dcoir_review_required_runtime_patch_v46",
-        "dcoir_review_required_runtime_patch_v50",
+        "dcoir_review.verified_finding_gate",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")
     assert "canonical_semantic_context_review: true" in production

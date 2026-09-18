@@ -26,7 +26,6 @@ import dcoir_review_required_runtime_patch_v11 as v11
 import dcoir_review_required_runtime_patch_v12 as v12
 import dcoir_review_required_runtime_patch_v13 as v13
 import dcoir_review_required_runtime_patch_v14 as v14
-import dcoir_review_required_runtime_patch_v15 as v15
 
 SentinelKey = tuple[str, int, str]
 

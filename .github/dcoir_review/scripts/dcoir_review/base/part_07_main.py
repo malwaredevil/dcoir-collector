@@ -42,6 +42,10 @@ def main() -> None:
         reporter.start()
         reporter.update("github", "fetching PR metadata")
         pr = gh.get_pr(pr_number)
+        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
+        set_reviewed_commit = getattr(reporter, "set_reviewed_commit", None)
+        if callable(set_reviewed_commit):
+            set_reviewed_commit(reviewed_commit)
         reporter.update("github", "fetching PR diff")
         diff = gh.get_pr_diff(pr_number)
         reporter.update("github", "fetching changed file list")
@@ -60,26 +64,16 @@ def main() -> None:
             comments.append({"path": path, "line": line, "side": "RIGHT", "body": build_inline_comment(finding, model_used, config)})
 
         event = "REQUEST_CHANGES" if comments and config.request_changes_on_findings else "COMMENT"
-        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
         review_body = build_review_body(result, findings, model_used, config, reviewed_commit)
         reporter.update("github-review", f"posting GitHub review with {len(comments)} inline comments")
-        gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        review = gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        set_formal_review = getattr(reporter, "set_formal_review", None)
+        if callable(set_formal_review):
+            set_formal_review(review)
         reporter.complete(model_used, len(comments), event)
     except Exception as exc:
         safe_error = sanitize_github_output(str(exc), config)
         reporter.fail(safe_error)
-        if not config.post_progress_comment:
-            error_body = f"""{MARKER}
-{REVIEW_DISPLAY_NAME} failed.
-
-```text
-{safe_error[:4000]}
-```
-""".strip()
-            try:
-                gh.create_issue_comment(pr_number, error_body)
-            except Exception as comment_exc:
-                print(f"WARN: unable to post failure comment: {comment_exc}", file=sys.stderr, flush=True)
         raise
     finally:
         if config.script_timeout_seconds > 0 and hasattr(signal, "SIGALRM"):

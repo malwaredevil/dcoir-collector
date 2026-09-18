@@ -81,6 +81,10 @@ def main() -> None:
         reporter.update("reaction", f"eyes add: {reaction_status['added']}")
         reporter.update("github", "fetching PR metadata")
         pr = gh.get_pr(pr_number)
+        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
+        set_reviewed_commit = getattr(reporter, "set_reviewed_commit", None)
+        if callable(set_reviewed_commit):
+            set_reviewed_commit(reviewed_commit)
         reporter.update("github", "fetching PR diff")
         diff = gh.get_pr_diff(pr_number)
         reporter.update("github", "fetching changed file list")
@@ -102,6 +106,8 @@ def main() -> None:
             reporter.update("review-assist-context", f"injected {len(review_assist_ctx)} chars of PSScriptAnalyzer context")
         safe_context_summary = sanitize_context_summary(context_summary, config)
         reporter.update("context", safe_context_summary)
+        from dcoir_review import normalized_finding_selection
+
         risk_sentinels = hardened.detect_risk_sentinels(diff, getattr(config, "risk_sentinel_max_anchors", 12))
         if risk_sentinels and getattr(config, "risk_sentinel_quality_gate", True):
             reporter.update("risk-sentinel", f"detected {len(risk_sentinels)} high-risk changed-line signals: {hardened.risk_sentinel_digest(risk_sentinels)}")
@@ -113,7 +119,7 @@ def main() -> None:
             "metadata/review-context.json",
             {
                 "pr_number": pr_number,
-                "reviewed_head_sha": str(pr.get("head", {}).get("sha", "") or ""),
+                "reviewed_head_sha": reviewed_commit,
                 "command": command,
                 "debug": bool(getattr(config, "debug", False)),
                 "workflow_run_id": base.workflow_run_id() if hasattr(base, "workflow_run_id") else os.environ.get("GITHUB_RUN_ID", ""),
@@ -158,8 +164,15 @@ def main() -> None:
         )
         reporter.update("normalize", "mapping model findings to changed diff lines")
         findings, unanchored_findings = split_findings_with_review_body_fallback(result, config, line_index, diff, risk_sentinels)
+        normalized_candidates = [dict(item) for item in findings if isinstance(item, dict)]
         findings = hardened.add_risk_sentinel_fallback_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, hardened
+        )
         hardened.enforce_risk_sentinel_findings(findings, risk_sentinels, config, unanchored_findings)
+        findings = normalized_finding_selection.restore_dropped_normalized(
+            findings, normalized_candidates, config, hardened
+        )
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
 
         comments: list[dict[str, Any]] = []
@@ -167,7 +180,6 @@ def main() -> None:
             comments.extend(build_review_comments_for_finding(finding, model_used, config))
 
         event = "REQUEST_CHANGES" if comments and config.request_changes_on_findings else "COMMENT"
-        reviewed_commit = str(pr.get("head", {}).get("sha", "") or "")
         review_body = append_context_to_review_body(
             hardened.build_review_body_with_unanchored(result, findings, unanchored_findings, model_used, config, reviewed_commit),
             review_mode,
@@ -176,7 +188,10 @@ def main() -> None:
         )
         unanchored_note = f" and {len(unanchored_findings)} unanchored review-body findings" if unanchored_findings else ""
         reporter.update("github-review", f"posting GitHub review with {len(comments)} inline comments{unanchored_note}")
-        gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        review = gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
+        set_formal_review = getattr(reporter, "set_formal_review", None)
+        if callable(set_formal_review):
+            set_formal_review(review)
         hardened.remove_eyes_reaction(gh, trigger_comment_id, reaction_id, reaction_status)
         tier_note = f"; service_tier={service_tier}" if service_tier else ""
         reporter.update("reaction", f"eyes add: {reaction_status['added']}; eyes remove: {reaction_status['removed']}")

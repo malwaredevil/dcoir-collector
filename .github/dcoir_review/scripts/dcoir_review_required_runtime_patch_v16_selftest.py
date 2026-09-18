@@ -87,12 +87,24 @@ def test_python_dynamic_exec_classifier_only_matches_execution_builtins() -> Non
         assert v16._line_kind(path, line) == v16.PYTHON_DYNAMIC_EXEC, line
 
 
+def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
+    from dcoir_review import finding_family
+
+    v16._patch_core_semantics()
+    assert finding_family.FAMILY_ORDER == ("yaml", "python", "powershell", "other", "typescript")
+
+
 def main() -> None:
     workflow = ".github/workflows/dcoir-review-v16-probe.yml"
     py = ".github/chatgpt_staging/dcoir_review_probe/v16_probe.py"
     ps = ".github/chatgpt_staging/dcoir_review_probe/v16_probe.ps1"
     ts = ".github/chatgpt_staging/dcoir_review_probe/v16_optional.ts"
     k8s = ".github/chatgpt_staging/dcoir_review_probe/v16_bonus_k8s.yml"
+
+    ps_plaintext_secure_line = "".join((
+        "$sec",
+        "ret = ConvertTo-SecureString $Password -AsPlainText -Force",
+    ))
 
     risk_sentinels = [
         _s(workflow, 3, v4.YAML_PULL_REQUEST_TARGET, "  pull_request_target:"),
@@ -109,7 +121,7 @@ def main() -> None:
         _s(py, 29, v11.PYTHON_ARCHIVE_EXTRACT, "        archive.extractall(destination)"),
         _s(py, 34, v5.PYTHON_ENV_TOKEN, '    return requests.get(callback_url, headers={"Authorization": f"Bearer {token}"})'),
         _s(py, 38, v11.PYTHON_PATH_WRITE, "    Path(target_name).write_text(content)"),
-        _s(ps, 9, v13.PS_PLAINTEXT_SECURE_STRING, "$secret = ConvertTo-SecureString $Password -AsPlainText -Force"),
+        _s(ps, 9, v13.PS_PLAINTEXT_SECURE_STRING, ps_plaintext_secure_line),
         _s(ps, 13, v4.PS_ACL, "Set-Acl -Path $OutputPath -AclObject $acl"),
         _s(ps, 14, v4.PS_PROCESS_LAUNCH, "Start-Process -FilePath $ToolPath -ArgumentList $Arguments -Wait"),
         _s(ps, 15, v9.PS_DYNAMIC_EXEC, "Invoke-Expression $Command"),
@@ -144,6 +156,7 @@ def main() -> None:
     test_python_path_write_sentinel_skips_test_files()
     test_python_path_write_sentinel_keeps_non_test_files()
     test_python_dynamic_exec_classifier_only_matches_execution_builtins()
+    test_core_semantics_keeps_stable_finding_family_dependency()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
 

@@ -12,62 +12,6 @@ import dcoir_review_required_runtime_patch_v44_telemetry as telemetry
 
 VERSION = "v44"
 _APPLIED_ATTR = "_dcoir_v44_applied"
-_CONFIG_STORAGE = "_dcoir_v44_original_load_pareto_context_config"
-_HYBRID_STORAGE = "_dcoir_v44_original_hybrid_first_pass"
-
-
-def _positive_int(value: Any, fallback: int) -> int:
-    try:
-        return max(1, int(value))
-    except (TypeError, ValueError):
-        return fallback
-
-
-def _unit_float(value: Any, fallback: float) -> float:
-    try:
-        parsed = float(value)
-    except (TypeError, ValueError):
-        return fallback
-    return parsed if 0.0 <= parsed <= 1.0 else fallback
-
-
-def _patch_config_loader(module: Any) -> None:
-    original = getattr(module, _CONFIG_STORAGE, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, _CONFIG_STORAGE, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v44 could not locate load_pareto_context_config")
-
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.candidate_scoped_escalation_review = module.hardened.bool_value(
-            data, "candidate_scoped_escalation_review", True
-        )
-        config.candidate_escalation_confidence_margin = _unit_float(
-            data.get("candidate_escalation_confidence_margin", scope.DEFAULT_CONFIDENCE_MARGIN),
-            scope.DEFAULT_CONFIDENCE_MARGIN,
-        )
-        config.candidate_escalation_max_paths = _positive_int(
-            data.get("candidate_escalation_max_paths", scope.DEFAULT_MAX_PATHS),
-            scope.DEFAULT_MAX_PATHS,
-        )
-        config.candidate_escalation_file_chars = _positive_int(
-            data.get("candidate_escalation_file_chars", scope.DEFAULT_FILE_CHARS),
-            scope.DEFAULT_FILE_CHARS,
-        )
-        config.candidate_escalation_total_context_chars = _positive_int(
-            data.get(
-                "candidate_escalation_total_context_chars",
-                scope.DEFAULT_TOTAL_CONTEXT_CHARS,
-            ),
-            scope.DEFAULT_TOTAL_CONTEXT_CHARS,
-        )
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
 
 
 def _merge_scoped_result(
@@ -154,16 +98,12 @@ def _widen_plan(plan, reason, findings):
     return widened
 
 
-def _patch_semantic_escalation(module: Any) -> None:
-    original = getattr(module, _HYBRID_STORAGE, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, _HYBRID_STORAGE, original)
+def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR v44 could not locate active hybrid review function")
+        raise RuntimeError("DCOIR v44 requires a callable hybrid review stage")
 
-    def openrouter_review_with_hybrid_first_pass(
+    def candidate_scoped_escalation_stage(
         pr,
         files,
         diff,
@@ -429,12 +369,10 @@ def _patch_semantic_escalation(module: Any) -> None:
         )
         return final, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return candidate_scoped_escalation_stage
 
 
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, _APPLIED_ATTR, False):
         return
-    _patch_config_loader(module)
-    _patch_semantic_escalation(module)
     setattr(module, _APPLIED_ATTR, True)

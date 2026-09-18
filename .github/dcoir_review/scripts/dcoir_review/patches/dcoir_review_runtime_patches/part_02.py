@@ -102,19 +102,6 @@ def _strict_fix_guidance_from_result(result: dict[str, Any], finding: dict[str, 
     return _normalize_fix_guidance(synthetic)
 
 
-def _patch_base_formatter_module(module: Any) -> None:
-    module.guidance_value_looks_like_code = patched_guidance_value_looks_like_code
-    original = getattr(module, "_dcoir_original_build_inline_comment", None)
-    if original is None and hasattr(module, "build_inline_comment"):
-        original = module.build_inline_comment
-        module._dcoir_original_build_inline_comment = original
-    if callable(original):
-
-        def patched_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-            return original(_normalize_finding_for_comment(finding), model_used, config)
-
-        module.build_inline_comment = patched_build_inline_comment
-
 
 def _patched_dynamic_exec_scope(finding: dict[str, Any], path: str, line_text: str) -> bool:
     if Path(path).suffix.lower() != ".py":

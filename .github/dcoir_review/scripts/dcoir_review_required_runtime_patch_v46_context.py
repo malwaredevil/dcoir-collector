@@ -5,9 +5,9 @@ from __future__ import annotations
 import copy
 from typing import Any, Callable
 
-import dcoir_review_required_runtime_patch_v41_scope as v41_scope
-import dcoir_review_required_runtime_patch_v42_fingerprints as fingerprints
-import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
+from dcoir_review import incremental_review_scope as v41_scope
+import dcoir_review.semantic_review_ledger_fingerprints as fingerprints
+import dcoir_review.semantic_result_reuse_support as v43_reuse
 from dcoir_review_required_runtime_patch_v46_contract import (
     CONTEXT_PACKAGE_CONTRACT,
     VERSION,

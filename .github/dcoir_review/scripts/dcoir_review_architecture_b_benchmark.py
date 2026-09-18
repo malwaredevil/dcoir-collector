@@ -19,10 +19,10 @@ from types import SimpleNamespace
 from typing import Any
 
 import dcoir_review_precision_regression_selftest as precision_selftest
-import dcoir_review_required_runtime_patch_v42_fingerprints as v42_fp
-import dcoir_review_required_runtime_patch_v43_reuse as v43_reuse
+import dcoir_review.semantic_review_ledger_fingerprints as v42_fp
+import dcoir_review.semantic_result_reuse_support as v43_reuse
 import dcoir_review_required_runtime_patch_v44_scope as v44_scope
-import dcoir_review_required_runtime_patch_v45 as v45
+from dcoir_review import publication_disposition as publication
 import dcoir_review_required_runtime_patch_v46_budget as v46_budget
 import dcoir_review_required_runtime_patch_v46_context as v46_context
 import dcoir_review_semantic_recall_corpus_selftest as semantic_recall_selftest
@@ -382,7 +382,7 @@ def _calibration_report(manifest: dict[str, Any]) -> dict[str, Any]:
     candidates = [{"id": index} for index in range(candidate_count)]
     supported = candidates[:supported_count]
     module = SimpleNamespace()
-    disposition = v45._capture_verifier_disposition(
+    disposition = publication.capture_verifier_disposition(
         module,
         candidates,
         supported,

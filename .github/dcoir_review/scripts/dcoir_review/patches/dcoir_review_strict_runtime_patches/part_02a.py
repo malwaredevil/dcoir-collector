@@ -3,19 +3,6 @@
 def apply_pareto_context_module(module: Any) -> None:
     base = getattr(module, "base", None)
     hardened = getattr(module, "hardened", None)
-    if base is not None:
-        original = getattr(base, "_dcoir_strict_original_build_inline_comment", None)
-        if original is None:
-            original = getattr(base, "_dcoir_original_build_inline_comment", getattr(base, "build_inline_comment", None))
-            base._dcoir_strict_original_build_inline_comment = original
-        if callable(original):
-
-            def strict_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-                return original(_strict_normalize_finding_for_comment(finding), model_used, config)
-
-            base.build_inline_comment = strict_build_inline_comment
-        base.guidance_value_looks_like_code = _strict_code_value_is_valid
-
     if hardened is not None:
         original_is_required = getattr(hardened, "is_required_risk_sentinel", None)
 

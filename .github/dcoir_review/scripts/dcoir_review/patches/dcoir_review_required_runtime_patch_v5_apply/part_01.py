@@ -167,13 +167,6 @@ def apply_pareto_context_module(module: Any) -> None:
         original_synthesize = getattr(module, "synthesize_fix_for_finding", None)
         module._dcoir_required_v5_original_synthesize_fix_for_finding = original_synthesize
 
-    original_build = None
-    if base is not None and callable(getattr(base, "build_inline_comment", None)):
-        original_build = getattr(base, "_dcoir_required_v5_original_build_inline_comment", None)
-        if original_build is None:
-            original_build = base.build_inline_comment
-            base._dcoir_required_v5_original_build_inline_comment = original_build
-
     if callable(original_detect):
         def required_v5_detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[Any]:
             try:
@@ -214,18 +207,3 @@ def apply_pareto_context_module(module: Any) -> None:
 
     if callable(original_synthesize):
         module.synthesize_fix_for_finding = lambda index, finding, file_text, schema, config: v5._normalize_comment_finding(original_synthesize(index, finding, file_text, schema, config))
-
-    if base is not None and callable(original_build):
-        def required_v5_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-            normalized = v5._normalize_comment_finding(finding)
-            kind = v5._semantic_kind(normalized)
-            if kind in v5.REQUIRED_KIND_TITLES:
-                try:
-                    if callable(getattr(base, "emit_status", None)):
-                        base.emit_status("required-v5-deterministic-comment", f"{normalized.get('path')}:{normalized.get('line')} {kind}")
-                except Exception:
-                    pass
-                return v5.final_rendered_scrub(v5.v4._render_deterministic_comment(normalized, model_used), normalized)
-            return v5.final_rendered_scrub(original_build(normalized, model_used, config), normalized)
-
-        base.build_inline_comment = required_v5_build_inline_comment

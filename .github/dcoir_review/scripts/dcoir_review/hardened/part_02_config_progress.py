@@ -62,7 +62,21 @@ def is_free_model(model: str) -> bool:
 
 
 def ensure_free_models_are_opt_in(config: Any) -> None:
-    models = [config.model, *getattr(config, "model_stack", []), *getattr(config, "fallback_models", [])]
+    def model_values(value: Any) -> list[str]:
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value]
+        return []
+
+    models = [
+        config.model,
+        *model_values(getattr(config, "model_stack", [])),
+        *model_values(getattr(config, "fallback_models", [])),
+        *model_values(getattr(config, "adversarial_confirmation_model_stack", [])),
+        *model_values(getattr(config, "semantic_adjudication_model_stack", [])),
+        *model_values(getattr(config, "per_file_review_model_stack", [])),
+    ]
     if any(is_free_model(model) for model in models) and not getattr(config, "smoke_test_free_model", False):
         raise RuntimeError(
             "OpenRouter free-router models are smoke-test only. Set smoke_test_free_model: true "
@@ -217,5 +231,4 @@ def session_id(config: Any) -> str:
         return ""
     raw = f"{prefix}:{os.environ.get('GITHUB_REPOSITORY', 'repo')}:pr-{os.environ.get('PR_NUMBER', 'unknown')}"
     return re.sub(r"[^A-Za-z0-9_.:-]+", "-", raw)[:256]
-
 

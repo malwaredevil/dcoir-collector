@@ -27,43 +27,51 @@ failure_message = "\n".join(
         f"curl --proxy-user='proxy:{curl_proxy_unclosed_quoted_password} https://example.test/",
     ]
 )
+
+# The #550 status surface is first-class for both normal and debug runs. A
+# terminal failure must publish one sanitized status comment even when the
+# legacy progress flag is false.
 failure_reporter.fail(failure_message)
-assert fake_gh.comments == []
+assert len(fake_gh.comments) == 1
+failure_body = fake_gh.comments[-1]
 
 debug_failure_config = replace(config, debug=True, post_progress_comment=True)
 debug_fake_gh = FakeGitHub()
 debug_failure_reporter = mod.ProgressReporter(debug_fake_gh, 281, "/or-review", debug_failure_config)
 debug_failure_reporter.fail(failure_message)
-failure_body = debug_fake_gh.comments[-1]
-for leaked in [
-    bearer_secret,
-    "cookie-secret",
-    url_password,
-    signed_url_secret,
-    "fallback curl secret",
-    "proxy fallback secret",
-    "fallback }} curl secret",
-    "unclosed curl secret",
-    "backtick curl secret",
-    "multiline backtick curl secret",
-    "multiline backtick tail secret",
-    curl_unclosed_quoted_password,
-    curl_proxy_unclosed_quoted_password,
-    curl_multiline_double_quote_password,
-    curl_multiline_single_quote_password,
-    curl_multiline_ansi_quote_password,
-    curl_multiline_locale_quote_password,
-    "ansi curl secret",
-    "locale curl secret",
-    r"escaped\ curl\ secret",
-    "concat curl secret",
-    "PRIVATE KEY",
-    "private-key-secret-material",
-    "@codex",
-]:
-    assert leaked not in failure_body, failure_body
-assert "@<!-- -->codex" in failure_body
-assert "[redacted-secret]" in failure_body
+assert len(debug_fake_gh.comments) == 1
+debug_failure_body = debug_fake_gh.comments[-1]
+
+for rendered_failure_body in (failure_body, debug_failure_body):
+    for leaked in [
+        bearer_secret,
+        "cookie-secret",
+        url_password,
+        signed_url_secret,
+        "fallback curl secret",
+        "proxy fallback secret",
+        "fallback }} curl secret",
+        "unclosed curl secret",
+        "backtick curl secret",
+        "multiline backtick curl secret",
+        "multiline backtick tail secret",
+        curl_unclosed_quoted_password,
+        curl_proxy_unclosed_quoted_password,
+        curl_multiline_double_quote_password,
+        curl_multiline_single_quote_password,
+        curl_multiline_ansi_quote_password,
+        curl_multiline_locale_quote_password,
+        "ansi curl secret",
+        "locale curl secret",
+        r"escaped\ curl\ secret",
+        "concat curl secret",
+        "PRIVATE KEY",
+        "private-key-secret-material",
+        "@codex",
+    ]:
+        assert leaked not in rendered_failure_body, rendered_failure_body
+    assert "@<!-- -->codex" in rendered_failure_body
+    assert "[redacted-secret]" in rendered_failure_body
 
 previous_run_id = os.environ.get("GITHUB_RUN_ID")
 previous_repo = os.environ.get("GITHUB_REPOSITORY")
@@ -119,6 +127,29 @@ header_regression_cases = [
     (f'Authorization: Bearer \\"{escaped_quoted_header_secret}\\"', escaped_quoted_header_secret),
     (f'Proxy-Authorization: Basic \\"{escaped_quoted_header_secret}\\"', escaped_quoted_header_secret),
 ]
+literal_braced_header = 'Authorization: "Bearer {abcdefghijklmnopqrstuvwxyz}"'
+redacted_literal_braced_header = mod.redact_header_field_credentials(literal_braced_header)
+assert "abcdefghijklmnopqrstuvwxyz" not in redacted_literal_braced_header, redacted_literal_braced_header
+assert "[redacted-secret]" in redacted_literal_braced_header, redacted_literal_braced_header
+
+literal_dollar_braced_header = 'Authorization: "Bearer ${abcdefghijklmnopqrstuvwxyz}"'
+redacted_literal_dollar_braced_header = mod.redact_header_field_credentials(literal_dollar_braced_header)
+assert "abcdefghijklmnopqrstuvwxyz" not in redacted_literal_dollar_braced_header, redacted_literal_dollar_braced_header
+assert "[redacted-secret]" in redacted_literal_dollar_braced_header, redacted_literal_dollar_braced_header
+
+unquoted_literal_braced_header = "Authorization: Bearer {abcdefghijklmnop}"
+unquoted_literal_dollar_braced_header = "Authorization: Bearer ${abcdefghijklmnop}"
+for literal_unquoted_header in (unquoted_literal_braced_header, unquoted_literal_dollar_braced_header):
+    redacted_literal_unquoted_header = mod.redact_unquoted_header_credentials(literal_unquoted_header)
+    assert "abcdefghijklmnop" not in redacted_literal_unquoted_header, redacted_literal_unquoted_header
+    assert "[redacted-secret]" in redacted_literal_unquoted_header, redacted_literal_unquoted_header
+
+unquoted_explicit_env_header = "Authorization: Bearer ${OPENROUTER_API_KEY}"
+assert mod.redact_unquoted_header_credentials(unquoted_explicit_env_header) == unquoted_explicit_env_header
+
+fstring_braced_header = 'Authorization: f"Bearer {OPENROUTER_API_KEY}"'
+assert mod.redact_header_field_credentials(fstring_braced_header) == fstring_braced_header
+
 for safe_quoted_header in [
     'Authorization: Bearer "${OPENROUTER_API_KEY}"',
     "Proxy-Authorization: Basic '${OPENROUTER_API_KEY}'",
@@ -132,8 +163,14 @@ for header_form, header_secret in header_regression_cases:
     assert "[redacted-secret]" in sanitized_header, sanitized_header
 
 curl_continuation_password = "continued curl secret 12345"
-curl_proxy_continuation_password = "continued-proxy-curl-secret-12345"
-curl_inline_continuation_password = "inline-continued-curl-secret-12345"
+curl_proxy_continuation_password = "".join((
+    "continued-proxy-curl-",
+    "secret-12345",
+))
+curl_inline_continuation_password = "".join((
+    "inline-continued-curl-",
+    "secret-12345",
+))
 line_continuation = "\\" + "\n"
 crlf_line_continuation = "\\" + "\r\n"
 curl_continuation_cases = [

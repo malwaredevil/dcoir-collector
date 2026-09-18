@@ -1,6 +1,6 @@
 """DCOIR Review v36 coordinated verified repair sets.
 
-v25-v30 deliberately restricted native GitHub suggestions to an exact single
+repair-v30 deliberately restricted native GitHub suggestions to an exact single
 source line. That was a useful safety bootstrap, but it prevents verified defects
 from receiving Copilot-class repairs when the smallest correct fix spans a
 contiguous block, multiple ranges, or multiple files.
@@ -25,13 +25,14 @@ This overlay never writes to the pull-request branch.
 from __future__ import annotations
 
 import ast
-import copy
 import json
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import finding_verifier as v21
+from dcoir_review import repair as repair_policy
+from dcoir_review import repair_contract
+from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v33 as v33
 
@@ -46,8 +47,8 @@ MAX_EDIT_TEXT_CHARS = 12000
 MAX_TOTAL_REPLACEMENT_CHARS = 24000
 MAX_DIFF_CONTEXT_CHARS = 60000
 MAX_CRITIC_CONTEXT_CHARS = 70000
-AUTHOR_MIN_CONFIDENCE = 0.90
-CRITIC_MIN_CONFIDENCE = 0.90
+AUTHOR_MIN_CONFIDENCE = repair_contract.AUTHOR_MIN_CONFIDENCE
+CRITIC_MIN_CONFIDENCE = repair_contract.CRITIC_MIN_CONFIDENCE
 
 
 REPAIR_SET_AUTHOR_SCHEMA: dict[str, Any] = {
@@ -116,7 +117,7 @@ def _bounded(text: Any, limit: int) -> str:
 
 
 def _path_line(finding: dict[str, Any]) -> tuple[str, int]:
-    return v25._path_line(finding)
+    return repair._path_line(finding)
 
 
 def _file_block(file_text: str, start_line: int, end_line: int) -> str:
@@ -162,6 +163,7 @@ def _validate_edit_shape(edit: dict[str, Any]) -> str:
 
 
 def _parse_author(result: Any, finding: dict[str, Any], hardened: Any) -> dict[str, Any]:
+    result = repair_contract.normalize_author_metadata(result, finding)
     if not isinstance(result, dict):
         raise hardened.ReviewQualityError("DCOIR repair-set author returned a non-object result")
     if not isinstance(result.get("defect_present"), bool):
@@ -180,7 +182,7 @@ def _parse_author(result: Any, finding: dict[str, Any], hardened: Any) -> dict[s
         raise hardened.ReviewQualityError("DCOIR repair-set author exceeded the edit-count limit")
 
     fallback_path, fallback_line = _path_line(finding)
-    fallback_title, fallback_body = v25._fallback_display(finding, fallback_path, fallback_line)
+    fallback_title, fallback_body = repair._fallback_display(finding, fallback_path, fallback_line)
     parsed_edits: list[dict[str, Any]] = []
     for raw in raw_edits:
         if not isinstance(raw, dict):
@@ -231,10 +233,7 @@ def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
     accepted = result.get("accepted")
     if not isinstance(accepted, bool):
         raise hardened.ReviewQualityError("DCOIR repair-set critic returned invalid accepted value")
-    try:
-        confidence = float(result.get("confidence", 0) or 0)
-    except (TypeError, ValueError) as exc:
-        raise hardened.ReviewQualityError("DCOIR repair-set critic returned invalid confidence") from exc
+    confidence = repair_contract.validated_critic_confidence(result, hardened)
     reason = str(result.get("reason", "") or "").strip()
     if accepted and confidence < CRITIC_MIN_CONFIDENCE:
         return False, confidence, reason or "Repair-set critic confidence was below threshold."
@@ -242,18 +241,8 @@ def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
 
 
 def _repair_critic_config(config: Any, author_model: str) -> Any:
-    """Choose a fixed frontier critic from a different model family than the author."""
-    critic_config = copy.copy(config)
-    served_author = str(author_model or "").strip().lower()
-    if served_author.startswith("openai/"):
-        critic_model = "anthropic/claude-opus-5"
-    else:
-        critic_model = "openai/gpt-5.6-sol-pro"
-    if hasattr(critic_config, "model"):
-        critic_config.model = critic_model
-    if hasattr(critic_config, "model_stack"):
-        critic_config.model_stack = [critic_model]
-    return critic_config
+    """Compatibility delegate to the canonical repair critic policy."""
+    return repair_policy.build_repair_critic_config(config, author_model)
 
 
 def _repair_author_prompt(
@@ -332,7 +321,7 @@ Changed PR diff/context (may include other files needed by the same repair):
 {visible_diff}
 ```
 """.strip()
-    return v25._sanitize_prompt(module, prompt, config)
+    return repair_contract.append_author_contract(repair._sanitize_prompt(module, prompt, config))
 
 
 def _critic_context(module: Any, file_cache: dict[str, str], edits: list[dict[str, Any]], config: Any) -> str:
@@ -371,7 +360,7 @@ def _repair_critic_prompt(
                 "path": finding.get("path", ""),
                 "line": finding.get("line", 0),
                 "title": finding.get("title", ""),
-                "verifier_evidence": v25._verifier_evidence(finding),
+                "verifier_evidence": repair._verifier_evidence(finding),
             },
             "repair_set": author,
         },
@@ -406,7 +395,7 @@ Candidate repair set:
 Exact head-file context for proposed target files:
 {context}
 """.strip()
-    return v25._sanitize_prompt(module, prompt, config)
+    return repair_contract.append_critic_contract(repair._sanitize_prompt(module, prompt, config))
 
 
 def _apply_edits_to_files(file_cache: dict[str, str], edits: list[dict[str, Any]]) -> tuple[dict[str, str], str]:
@@ -483,9 +472,9 @@ def _declined_item(
     author_model: str = "",
     author_tier: str = "",
 ) -> dict[str, Any]:
-    item = v25._strip_legacy_model_finding_provenance(finding)
+    item = repair._strip_legacy_model_finding_provenance(finding)
     path, line = _path_line(item)
-    title, body = v25._fallback_display(item, path, line)
+    title, body = repair._fallback_display(item, path, line)
     if author and author.get("defect_present") is not False:
         title = str(author.get("display_title", "") or title)[:160]
         body = str(author.get("display_body", "") or body)[:2200]
@@ -500,7 +489,7 @@ def _declined_item(
             + "."
         )[:1600],
     }
-    item[v25.REPAIR_MARKER] = {
+    item[repair.REPAIR_MARKER] = {
         "version": VERSION,
         "outcome": outcome,
         "path": path,
@@ -511,14 +500,14 @@ def _declined_item(
         "reason": reason[:800],
     }
     if author and author.get("defect_present") is False:
-        item[v25.REPAIR_MARKER].update(
+        item[repair.REPAIR_MARKER].update(
             {
                 "defect_present": False,
                 "defect_presence_confidence": float(author.get("confidence", 0) or 0),
             }
         )
         if float(author.get("confidence", 0) or 0) >= v30.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE:
-            item[v25.REPAIR_MARKER]["outcome"] = v30.SUPPRESSED_OUTCOME
+            item[repair.REPAIR_MARKER]["outcome"] = v30.SUPPRESSED_OUTCOME
     return item
 
 
@@ -611,7 +600,7 @@ def _build_repair_set_for_finding(
             author_model=author_model,
             author_tier=author_tier,
         )
-        item[v25.REPAIR_MARKER].update(
+        item[repair.REPAIR_MARKER].update(
             {"critic_model": critic_model, "critic_service_tier": critic_tier, "critic_confidence": critic_confidence}
         )
         return item
@@ -625,7 +614,7 @@ def _build_repair_set_for_finding(
             author_model=author_model,
             author_tier=author_tier,
         )
-        item[v25.REPAIR_MARKER].update(
+        item[repair.REPAIR_MARKER].update(
             {
                 "critic_model": critic_model,
                 "critic_service_tier": critic_tier,
@@ -637,14 +626,14 @@ def _build_repair_set_for_finding(
 
     edits = _annotate_native_eligibility(author["edits"], right_line_index)
     native_count = sum(1 for edit in edits if edit["native_suggestion"])
-    item = v25._strip_legacy_model_finding_provenance(finding)
+    item = repair._strip_legacy_model_finding_provenance(finding)
     item["title"] = author["display_title"]
     item["body"] = author["display_body"]
     item["suggested_replacement"] = ""
     item.pop("fix_guidance", None)
     if author["validation"]:
         item["validation"] = author["validation"]
-    item[v25.REPAIR_MARKER] = {
+    item[repair.REPAIR_MARKER] = {
         "version": VERSION,
         "outcome": REPAIR_SET_OUTCOME,
         "repair_set_id": f"R{ordinal:02d}",
@@ -666,7 +655,7 @@ def _build_repair_set_for_finding(
     module.hardened.write_debug_json_artifact_safely(
         config,
         f"responses/repair-v36/{ordinal:02d}-final.json",
-        dict(item[v25.REPAIR_MARKER]),
+        dict(item[repair.REPAIR_MARKER]),
     )
     return item
 
@@ -712,7 +701,7 @@ def synthesize_verified_repair_sets(
         if ordinal > repair_count:
             repaired.append(v33._deferred_verified_finding(raw, ordinal))
             continue
-        finding = v25._strip_legacy_model_finding_provenance(raw)
+        finding = repair._strip_legacy_model_finding_provenance(raw)
         try:
             item = _build_repair_set_for_finding(
                 module,
@@ -727,7 +716,7 @@ def synthesize_verified_repair_sets(
             )
         except Exception as exc:
             item = _declined_item(finding, None, f"repair-set stage failed closed: {type(exc).__name__}: {str(exc)[:500]}")
-        marker = item.get(v25.REPAIR_MARKER) if isinstance(item.get(v25.REPAIR_MARKER), dict) else {}
+        marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
         if marker.get("outcome") == REPAIR_SET_OUTCOME:
             repair_sets += 1
             native_blocks += int(marker.get("native_suggestion_count", 0) or 0)
@@ -832,7 +821,7 @@ def build_review_comments_for_finding(
     model_used: str,
     config: Any,
 ) -> list[dict[str, Any]]:
-    marker = finding.get(v25.REPAIR_MARKER) if isinstance(finding.get(v25.REPAIR_MARKER), dict) else {}
+    marker = finding.get(repair.REPAIR_MARKER) if isinstance(finding.get(repair.REPAIR_MARKER), dict) else {}
     if marker.get("version") != VERSION or marker.get("outcome") != REPAIR_SET_OUTCOME:
         path, line = _path_line(finding)
         return [{"path": path, "line": line, "side": "RIGHT", "body": module.base.build_inline_comment(finding, model_used, config)}]
@@ -901,10 +890,10 @@ def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
 
-    # v25's public synthesis wrapper resolves this symbol dynamically; v30's
+    # the canonical repair pipeline's public synthesis wrapper resolves this symbol dynamically; v30's
     # defect-absence suppression wrapper remains outside it and therefore keeps
     # its publication semantics.
-    v25.synthesize_verified_repairs = lambda mod, findings, gh, pr, schema, config, reporter: synthesize_verified_repair_sets(
+    repair.synthesize_verified_repairs = lambda mod, findings, gh, pr, schema, config, reporter: synthesize_verified_repair_sets(
         mod, findings, gh, pr, schema, config, reporter
     )
 

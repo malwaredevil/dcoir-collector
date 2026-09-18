@@ -63,21 +63,6 @@ def _patch_required_selection(module: Any, hardened: Any) -> None:
     module.rank_findings_for_required_budget = lambda findings, config: sorted([_integrity_finding(v5._normalize_comment_finding(item)) for item in findings if isinstance(item, dict)], key=_spare_priority)[: max(0, int(getattr(config, "max_inline_comments", 12)))]
 
 
-def _patch_final_rendering(base: Any) -> None:
-    original = getattr(base, "_dcoir_v13_original_build_inline_comment", None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        base._dcoir_v13_original_build_inline_comment = original
-    if not callable(original):
-        return
-    def v13_build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        del model_used
-        item = _integrity_finding(finding, _postable_key(finding), force_template=True)
-        rendered = original(item, "", config)
-        return _sanitize_rendered_inline_comment(rendered, item)
-    base.build_inline_comment = v13_build_inline_comment
-
-
 def _patch_review_body_overflow(hardened: Any) -> None:
     original = getattr(hardened, "_dcoir_v13_original_build_review_body_with_unanchored", None)
     if original is None:
@@ -132,8 +117,6 @@ def apply_pareto_context_module(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
     _patch_core_semantics()
     _patch_detect(module, hardened)
-    if base is not None:
-        _patch_final_rendering(base)
     if hardened is not None:
         _patch_detect(hardened)
         _patch_required_selection(module, hardened)

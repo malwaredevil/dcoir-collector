@@ -120,32 +120,6 @@ def _patch_synthesis_provenance(module: Any) -> None:
     module.synthesize_fixes_for_findings = synthesize_fixes_for_findings
 
 
-def _patch_native_suggestion_renderer(module: Any) -> None:
-    base = getattr(module, "base", None)
-    if base is None:
-        return
-    storage = "_dcoir_required_v20_original_build_inline_comment"
-    original = getattr(base, storage, None)
-    if original is None:
-        original = getattr(base, "build_inline_comment", None)
-        if callable(original):
-            setattr(base, storage, original)
-    if not callable(original):
-        return
-
-    def build_inline_comment(finding: dict[str, Any], model_used: str, config: Any) -> str:
-        rendered = str(original(finding, model_used, config) or "").rstrip()
-        if "```suggestion" in rendered:
-            return rendered
-        suggestion = _safe_single_line_suggestion(base, finding)
-        if not suggestion:
-            return rendered
-        return f"{rendered}\n\n```suggestion\n{suggestion}\n```".strip()
-
-    base.build_inline_comment = build_inline_comment
-
-
 def apply_pareto_context_module(module: Any) -> None:
     _patch_v16_selection_registry()
     _patch_synthesis_provenance(module)
-    _patch_native_suggestion_renderer(module)

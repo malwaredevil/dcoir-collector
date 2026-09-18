@@ -41,8 +41,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v21 as v21
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import adversarial_prompt_policy as prompt_policy
+
 
 
 VERSION = "v32"
@@ -51,24 +51,8 @@ DEFAULT_CONFIRMATION_MODELS = ("openai/gpt-5.6-sol-pro",)
 DEFAULT_REASONING_EFFORT = "xhigh"
 DEFAULT_VERIFIER_REPAIR_LIMIT = 8
 
-ADVERSARIAL_SEMANTIC_BLOCK = """
-Adversarial semantic falsification requirements:
-- For every changed validator, scorer, parser, normalizer, router, policy gate, selector, or acceptance helper, state the intended accept/reject invariant from the supplied code, tests, PR description, and repository guidance, then actively try to falsify it.
-- Construct minimal counterexamples that should be rejected but might pass, and valid examples that should pass but might be rejected. Report only counterexamples you can validate against the supplied implementation.
-- Probe semantic scope binding: a required token/action in the wrong clause, lane, object, branch, phase, or namespace must not satisfy the intended requirement.
-- Probe assertion polarity and discourse: negation, rejection of a quoted/mentioned claim, postposed prohibition/unavailability, disclaimers, and statements such as 'wrong to say X' must not be mistaken for affirmative evidence of X.
-- Probe representation variants when matching text or structure: numbered/inline headings, punctuation, normalization, snake_case versus spaced keys, serialization/JSON forms, quoting, repeated blocks, and duplicate procedures.
-- Probe helper consistency: if one path uses stronger negation/scope/rejection handling than a sibling path for the same semantic concept, attempt the weaker-path bypass.
-- Treat passing tests as evidence, not proof. Inspect whether the negative controls actually isolate the changed invariant and whether an untested neighboring variant can bypass it.
-- Prefer a concrete reproducible counterexample over a general warning. If no counterexample or other actionable defect survives inspection, return a clean result.
-""".strip()
-
-INDEPENDENT_CONFIRMATION_BLOCK = """
-Independent adversarial confirmation pass:
-The preceding detector pass is untrusted evidence, not a conclusion. Review the supplied PR independently and try to disprove its changed correctness/validation contracts before accepting a clean result. In particular, apply the adversarial semantic falsification requirements below. Do not merely restate tests or the PR description, and do not assume an existing detector would have caught the defect.
-
-""" + ADVERSARIAL_SEMANTIC_BLOCK
-
+ADVERSARIAL_SEMANTIC_BLOCK = prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK
+INDEPENDENT_CONFIRMATION_BLOCK = prompt_policy.INDEPENDENT_CONFIRMATION_BLOCK
 
 def _as_string_list(value: Any, fallback: tuple[str, ...]) -> list[str]:
     if isinstance(value, list):
@@ -101,138 +85,52 @@ def _model_uses_openai_gpt5_reasoning(model: Any) -> bool:
     return model_id.startswith("gpt-5")
 
 
-def _configured_verifier_repair_limit(config: Any) -> int:
-    """Return the shared bounded verifier/repair ceiling for the loaded config."""
+def apply_reasoning_payload_policy(
+    payload: dict[str, Any],
+    config: Any,
+    model: Any,
+) -> dict[str, Any]:
+    """Apply the v32 reasoning compatibility contract to an explicit payload.
 
-    try:
-        configured = int(getattr(config, "fix_synthesis_max_findings", DEFAULT_VERIFIER_REPAIR_LIMIT))
-    except (TypeError, ValueError):
-        configured = DEFAULT_VERIFIER_REPAIR_LIMIT
-    try:
-        inline_limit = int(getattr(config, "max_inline_comments", configured))
-    except (TypeError, ValueError):
-        inline_limit = configured
-    return max(1, min(configured, inline_limit))
+    Runtime ownership now lives in ``dcoir_review.per_file_routing``.  v32
+    contributes this pure transformation instead of replacing the shared
+    payload builder and retaining a stored-original shim.
+    """
 
+    effort = str(
+        getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or ""
+    ).strip()
 
-def _patch_config_loader(module: Any) -> None:
-    storage = "_dcoir_review_v32_original_load_pareto_context_config"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "load_pareto_context_config", None)
-        if callable(original):
-            setattr(module, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate load_pareto_context_config")
+    # GPT-5 reasoning requests do not use sampling temperature when reasoning
+    # is enabled. Strip the base reviewer's generic sampling control while
+    # preserving provider.require_parameters=true as the compatibility gate.
+    if _model_uses_openai_gpt5_reasoning(model) and (
+        _model_owns_fixed_pro_reasoning(model)
+        or (effort and effort.lower() != "none")
+    ):
+        payload.pop("temperature", None)
 
-    def load_pareto_context_config(path: str):
-        config = original(path)
-        data = module.hardened.parse_yaml_like_data(path)
-        config.adversarial_confirmation_review = module.hardened.bool_value(
-            data, "adversarial_confirmation_review", True
-        )
-        config.adversarial_confirmation_model_stack = _as_string_list(
-            data.get("adversarial_confirmation_model_stack"), DEFAULT_CONFIRMATION_MODELS
-        )
-        config.review_reasoning_effort = str(
-            data.get("review_reasoning_effort", DEFAULT_REASONING_EFFORT) or DEFAULT_REASONING_EFFORT
-        ).strip()
-
-        # v21/v25 predate the v32 two-reviewer union and historically hard-coded
-        # a six-candidate ceiling.  Keep their fail-closed bounds, but align them
-        # to the already-governed configured finding budget so a seventh valid
-        # candidate is verified instead of causing terminal overflow.
-        verifier_repair_limit = _configured_verifier_repair_limit(config)
-        v21.VERIFIER_MAX_MODEL_FINDINGS = verifier_repair_limit
-        v25.MAX_REPAIR_CANDIDATES = verifier_repair_limit
-        config.dcoir_v32_verifier_repair_limit = verifier_repair_limit
-        return config
-
-    module.load_pareto_context_config = load_pareto_context_config
-
-
-def _patch_reasoning_payload(module: Any) -> None:
-    hardened = module.hardened
-    storage = "_dcoir_review_v32_original_build_openrouter_payload"
-    original = getattr(hardened, storage, None)
-    if original is None:
-        original = getattr(hardened, "build_openrouter_payload", None)
-        if callable(original):
-            setattr(hardened, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate hardened build_openrouter_payload")
-
-    def build_openrouter_payload(prompt, schema, config, ignored_providers, model):
-        payload = original(prompt, schema, config, ignored_providers, model)
-        effort = str(getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or "").strip()
-
-        # GPT-5 reasoning requests do not use sampling temperature when reasoning
-        # is enabled.  Strip the base reviewer's generic sampling control while
-        # preserving provider.require_parameters=true as the compatibility gate.
-        if _model_uses_openai_gpt5_reasoning(model) and (
-            _model_owns_fixed_pro_reasoning(model)
-            or (effort and effort.lower() != "none")
-        ):
-            payload.pop("temperature", None)
-
-        if _model_owns_fixed_pro_reasoning(model):
-            # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.
-            # Do not add or retain a second reasoning selector that can make the
-            # otherwise available Pro endpoint ineligible.
-            payload.pop("reasoning", None)
-            return payload
-
-        if effort and effort.lower() != "none":
-            payload["reasoning"] = {
-                "enabled": True,
-                "effort": effort,
-                "exclude": True,
-            }
+    if _model_owns_fixed_pro_reasoning(model):
+        # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.
+        # Do not add or retain a second reasoning selector that can make the
+        # otherwise available Pro endpoint ineligible.
+        payload.pop("reasoning", None)
         return payload
 
-    hardened.build_openrouter_payload = build_openrouter_payload
-    # Some compatibility surfaces re-export the payload builder directly.
-    if hasattr(module, "build_openrouter_payload"):
-        module.build_openrouter_payload = build_openrouter_payload
+    if effort and effort.lower() != "none":
+        payload["reasoning"] = {
+            "enabled": True,
+            "effort": effort,
+            "exclude": True,
+        }
+    return payload
 
-
-def _patch_per_file_prompt(module: Any) -> None:
-    storage = "_dcoir_review_v32_original_build_per_file_review_prompt"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "build_per_file_review_prompt", None)
-        if callable(original):
-            setattr(module, storage, original)
+def build_adversarial_confirmation_stage(module: Any, next_review: Any) -> Any:
+    original = next_review
     if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate build_per_file_review_prompt")
+        raise RuntimeError("DCOIR v32 requires a callable hybrid review stage")
 
-    def build_per_file_review_prompt(*args, **kwargs):
-        prompt = str(original(*args, **kwargs))
-        config = kwargs.get("config")
-        if config is None and len(args) >= 5:
-            config = args[4]
-        max_chars = int(getattr(config, "max_prompt_chars", 120000)) if config is not None else 120000
-        combined = f"{prompt}\n\n{ADVERSARIAL_SEMANTIC_BLOCK}"
-        marker = "\n\n[adversarial semantic prompt truncated by reviewer]"
-        if len(combined) > max_chars:
-            keep = max(0, max_chars - len(marker))
-            combined = combined[:keep] + marker
-        return combined
-
-    module.build_per_file_review_prompt = build_per_file_review_prompt
-
-
-def _patch_hybrid_confirmation(module: Any) -> None:
-    storage = "_dcoir_review_v32_original_hybrid_first_pass"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "openrouter_review_with_hybrid_first_pass", None)
-        if callable(original):
-            setattr(module, storage, original)
-    if not callable(original):
-        raise RuntimeError("DCOIR v32 could not locate openrouter_review_with_hybrid_first_pass")
-
-    def openrouter_review_with_hybrid_first_pass(
+    def adversarial_confirmation_stage(
         pr,
         files,
         diff,
@@ -246,7 +144,7 @@ def _patch_hybrid_confirmation(module: Any) -> None:
         context_summary,
         gh,
     ):
-        first_result, first_model, first_tier = getattr(module, storage)(
+        first_result, first_model, first_tier = original(
             pr,
             files,
             diff,
@@ -336,14 +234,10 @@ def _patch_hybrid_confirmation(module: Any) -> None:
         tier_label = ", ".join(item for item in tier_parts if item)
         return merged, model_label, tier_label
 
-    module.openrouter_review_with_hybrid_first_pass = openrouter_review_with_hybrid_first_pass
+    return adversarial_confirmation_stage
 
 
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    _patch_config_loader(module)
-    _patch_reasoning_payload(module)
-    _patch_per_file_prompt(module)
-    _patch_hybrid_confirmation(module)
     setattr(module, APPLIED_MARKER, True)

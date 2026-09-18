@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-import dcoir_review_required_runtime_patch_v42_hooks as v42_hooks
-import dcoir_review_required_runtime_patch_v43 as v43
+import dcoir_review.semantic_review_ledger_hooks as v42_hooks
+import dcoir_review.semantic_result_reuse as v43
 import dcoir_review_required_runtime_patch_v44_telemetry as v44_telemetry
 
 

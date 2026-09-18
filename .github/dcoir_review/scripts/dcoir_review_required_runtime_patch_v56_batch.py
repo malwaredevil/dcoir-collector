@@ -6,13 +6,16 @@ import json
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v25 as v25
+from dcoir_review import repair as repair_policy
+from dcoir_review import repair_pipeline as repair
+from dcoir_review import review_telemetry_state
 import dcoir_review_required_runtime_patch_v36 as v36
-import dcoir_review_required_runtime_patch_v56_repair as repair
+import dcoir_review_required_runtime_patch_v56_repair as repair_stage
 
 MAX_BATCH_ITEMS = 8
 MAX_BATCH_PROMPT_CHARS = 120000
-STAGE_LABEL_ATTR = "_dcoir_v54_stage_label"
+STAGE_LABEL_ATTR = review_telemetry_state.STAGE_LABEL_ATTR
+LEGACY_STAGE_LABEL_ATTR = review_telemetry_state.LEGACY_STAGE_LABEL_ATTR
 
 BATCH_CRITIC_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -62,7 +65,7 @@ def batch_prompt(module: Any, pending: list[dict[str, Any]], file_cache: dict[st
                 "path": finding.get("path", ""),
                 "line": finding.get("line", 0),
                 "title": finding.get("title", ""),
-                "verifier_evidence": v25._verifier_evidence(finding),
+                "verifier_evidence": repair._verifier_evidence(finding),
             },
             "repair_set": author,
         }
@@ -184,7 +187,7 @@ def run_group(
         return [], 0
     if len(group) == 1:
         item = group[0]
-        critic_config = v36._repair_critic_config(config, item["author_model"])
+        critic_config = repair_policy.build_repair_critic_config(config, item["author_model"])
         prompt = v36._repair_critic_prompt(module, item["finding"], item["author"], file_cache, config)
         try:
             raw, model, tier = module.hardened.openrouter_review(
@@ -199,7 +202,7 @@ def run_group(
             f"responses/repair-v36/{item['ordinal']:02d}-critic.json",
             {"path": item["finding"].get("path", ""), "line": item["finding"].get("line", 0), "model": model, "service_tier": tier, "result": raw},
         )
-        final = repair.finalize_candidate(
+        final = repair_stage.finalize_candidate(
             module, item, decision, model, tier, right_line_index, file_cache, config, 1
         )
         return [(item["ordinal"], final)], 1
@@ -211,8 +214,9 @@ def run_group(
         right, right_calls = run_group(module, group[midpoint:], file_cache, right_line_index, config)
         return left + right, left_calls + right_calls
 
-    critic_config = v36._repair_critic_config(config, group[0]["author_model"])
+    critic_config = repair_policy.build_repair_critic_config(config, group[0]["author_model"])
     setattr(critic_config, STAGE_LABEL_ATTR, "repair-critic")
+    setattr(critic_config, LEGACY_STAGE_LABEL_ATTR, "repair-critic")
     model = group[0]["critic_model"]
     tier = ""
     try:
@@ -244,7 +248,7 @@ def run_group(
             f"responses/repair-v36/{item['ordinal']:02d}-critic.json",
             {"path": item["finding"].get("path", ""), "line": item["finding"].get("line", 0), "model": model, "service_tier": tier, "critic_item_id": item["critic_item_id"], "batch_size": len(group), "decision": decision},
         )
-        final = repair.finalize_candidate(
+        final = repair_stage.finalize_candidate(
             module, item, decision, model, tier, right_line_index, file_cache, config, len(group)
         )
         results.append((item["ordinal"], final))
