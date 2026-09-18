@@ -27,6 +27,7 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
+    semantic_evidence = importlib.import_module("dcoir_review.semantic_evidence_hardening")
     v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
 
     assert getattr(review, v35.APPLIED_MARKER, False) is True
@@ -41,6 +42,15 @@ def main() -> None:
     assert "Collapse multiple manifestations" in v35.ADJUDICATION_BLOCK
     assert "MAY add a high-confidence defect" in v35.ADJUDICATION_BLOCK
     assert "first try to prove it false" in v35.VERIFIER_FALSIFICATION_BLOCK
+
+    # Directly demonstrated defects in changed executable fixture/test/benchmark
+    # code remain reviewable. Consuming evidence is required only when the claim
+    # reaches beyond the supplied code into loader/scoring/downstream behavior.
+    assert "does not require a separate production consumer" in semantic_evidence.PREDICATE_AUDIT_BLOCK
+    assert "directly demonstrated defect in changed executable fixture, test, or benchmark" in v35.ADJUDICATION_BLOCK
+    assert "Do not reject a defect solely because the changed file is labeled test, fixture, benchmark, or non-production" in v35.VERIFIER_FALSIFICATION_BLOCK
+    assert "For fixture-only findings, report only when" not in semantic_evidence.PREDICATE_AUDIT_BLOCK
+    assert "fixture or documentation finding is publishable only when" not in v35.ADJUDICATION_BLOCK
 
     digest, count = v35._candidate_digest(
         {
@@ -193,6 +203,8 @@ def main() -> None:
         config,
     )
     assert v35.VERIFIER_FALSIFICATION_BLOCK in verifier_prompt
+    assert "directly executable defect in changed test, fixture, or benchmark code remains verifiable" in verifier_prompt
+    assert "test-fixture-only text misread as executable behavior" not in verifier_prompt
 
     # Reapplying the real v35 module must not stack wrappers.
     hybrid_before = review.openrouter_review_with_hybrid_first_pass

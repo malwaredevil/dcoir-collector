@@ -73,8 +73,12 @@ Publication-quality rules:
   cause. Keep separate findings only when they require materially different code
   changes.
 - Prefer executable changed code over fixture/documentation speculation. A
-  fixture or documentation finding is publishable only when supplied consuming
-  code or test wiring demonstrates the concrete misbehavior.
+  directly demonstrated defect in changed executable fixture, test, or benchmark
+  code is publishable based on that code alone. Require consuming code or test
+  wiring only when a claim depends on how the fixture is loaded, scored, or
+  propagated, or on downstream production impact; documentation-only claims
+  still require supplied evidence that the documented contract materially
+  affects behavior.
 - Anchor to the most relevant added executable/configuration line. Do not choose
   a blank or comment-only line when a relevant nonblank changed line exists.
 - Preserve real Medium correctness findings; do not crowd them out merely
@@ -95,7 +99,8 @@ Falsification-first verification requirements:
 - Treat the candidate as an adversarial hypothesis and first try to prove it false.
 - Set supported=true only when the supplied exact-head code permits a concrete minimal input/counterexample that triggers the claimed bad behavior.
 - Your evidence must identify the relevant predicate/control-flow path and explain why surrounding guards in the supplied file do not block that counterexample.
-- If the claim depends on an unseen loader, another unseen file, an assumed runtime convention, or fixture semantics not demonstrated by supplied consuming code, set supported=false.
+- If the claim depends on an unseen loader, another unseen file, an assumed runtime convention, or external/downstream impact not shown by supplied evidence, set supported=false.
+- Do not reject a defect solely because the changed file is labeled test, fixture, benchmark, or non-production. If the bad behavior is directly executable or demonstrable within the supplied changed code, verify that local defect on its proven scope; require consuming evidence only for claims beyond that scope.
 - Do not support a finding merely because the proposed fix would be reasonable; verify defect presence, not fix desirability.
 """.strip()
 
