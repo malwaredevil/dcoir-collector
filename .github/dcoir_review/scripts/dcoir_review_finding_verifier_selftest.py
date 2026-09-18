@@ -147,12 +147,30 @@ def test_ambiguous_verifier_output_fails_closed(review, verifier) -> None:
 
 
 def test_stable_owner_composition() -> None:
-    names = DcoirReviewEntrypoint().patch_module_names
+    entrypoint = DcoirReviewEntrypoint()
+    names = entrypoint.patch_module_names
     assert "dcoir_review.finding_verifier" in names, names
     assert "dcoir_review_required_runtime_patch_v21" not in names, names
     index = names.index("dcoir_review.finding_verifier")
     assert names[index - 1] == "dcoir_review_required_runtime_patch_v20", names[max(0, index - 2):index + 4]
     assert names[index + 1] == "dcoir_review.quality_gate", names[max(0, index - 2):index + 4]
+
+    review = importlib.import_module("openrouter_pr_review_pareto_context")
+    entrypoint.apply_runtime_patches(review)
+    verifier = importlib.import_module("dcoir_review.finding_verifier")
+    v33 = importlib.import_module("dcoir_review_required_runtime_patch_v33")
+    semantic = importlib.import_module("dcoir_review.semantic_evidence_hardening")
+    publication = importlib.import_module("dcoir_review.publication_disposition")
+    gate = importlib.import_module("dcoir_review.verified_finding_gate")
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+
+    assert verifier.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
+    assert verifier.verifier_candidate_limit(config) == 12
+    assert v33.verifier_candidate_limit(config) == verifier.verifier_candidate_limit(config)
+    assert not hasattr(v33, "VERIFIER_STORAGE")
+    assert not hasattr(semantic, "VERIFIER_STORAGE")
+    assert not hasattr(publication, "_VERIFIER_STORAGE")
+    assert not hasattr(gate, "_VERIFIER_STORAGE")
 
 def main() -> None:
     test_stable_owner_composition()

@@ -30,6 +30,9 @@ def main() -> None:
     semantic_evidence = importlib.import_module("dcoir_review.semantic_evidence_hardening")
 
     assert getattr(review, semantic_evidence.APPLIED_MARKER, False) is True
+    assert v21.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
+    assert not hasattr(semantic_evidence, "VERIFIER_STORAGE")
+    assert not hasattr(semantic_evidence, "LINE_TEXT_STORAGE")
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
 
@@ -104,7 +107,8 @@ def main() -> None:
     assert debug_payloads["metadata/v34-verifier-input.json"]["candidates"][0]["line"] == 2
     assert debug_payloads["responses/v34-verifier-output.json"]["verified_count"] == 1
 
-    # Re-applying the stable owner is a no-op; wrappers and prompt blocks must not stack.
+    # Re-applying the stable stage owner is a no-op; canonical verifier ownership
+    # and prompt blocks must remain stable.
     verifier_before = v21.verify_findings_for_publication
     semantic_before = v32.ADVERSARIAL_SEMANTIC_BLOCK
     confirmation_before = v32.INDEPENDENT_CONFIRMATION_BLOCK

@@ -72,6 +72,7 @@ def main() -> None:
     provider = importlib.import_module("dcoir_review.structured_result_provider")
     disposition = importlib.import_module("dcoir_review.structured_result_disposition")
     assert getattr(review, recovery.APPLIED_MARKER, False) is True
+    assert not hasattr(recovery, "VERSION")
     assert getattr(review, orchestration.APPLIED_MARKER, False) is True
     assert review.openrouter_review_with_hybrid_first_pass.__module__ == "dcoir_review.review_orchestration"
     assert tuple(review.DCOIR_REVIEW_ORCHESTRATION_STAGE_ORDER) == orchestration.STAGE_ORDER

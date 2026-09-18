@@ -59,7 +59,7 @@ def config(enabled: bool = True):
 
 
 def capture(module, candidates, verified, head=HEAD):
-    return publication._capture_verifier_disposition(
+    return publication.capture_verifier_disposition(
         module, candidates, verified, {"head": {"sha": head}}
     )
 
@@ -171,33 +171,17 @@ def test_rollback_delegates_to_prior_body() -> None:
     )
 
 
-def test_verifier_wrapper_and_config() -> None:
+def test_disposition_stage_and_config() -> None:
     module = review_module()
-    original = v21.verify_findings_for_publication
-    stored = getattr(v21, publication._VERIFIER_STORAGE, None)
-    had_stored = hasattr(v21, publication._VERIFIER_STORAGE)
-    try:
-        v21.verify_findings_for_publication = (
-            lambda _module, items, _gh, _pr, _cfg, _reporter: items[:1]
-        )
-        if hasattr(v21, publication._VERIFIER_STORAGE):
-            delattr(v21, publication._VERIFIER_STORAGE)
-        publication._patch_verifier(module)
-        items = [finding("First"), finding("Second")]
-        verified = v21.verify_findings_for_publication(
-            module, items, SimpleNamespace(), {"head": {"sha": HEAD}}, config(), None
-        )
-        assert len(verified) == 1
-        disposition = getattr(module, publication._DISPOSITION_ATTR)
-        assert disposition["verifier_candidate_count"] == 2
-        assert disposition["verifier_supported_count"] == 1
-        assert disposition["verifier_suppressed_count"] == 1
-    finally:
-        v21.verify_findings_for_publication = original
-        if had_stored:
-            setattr(v21, publication._VERIFIER_STORAGE, stored)
-        elif hasattr(v21, publication._VERIFIER_STORAGE):
-            delattr(v21, publication._VERIFIER_STORAGE)
+    items = [finding("First"), finding("Second")]
+    publication.capture_verifier_disposition(
+        module, items, items[:1], {"head": {"sha": HEAD}}
+    )
+    disposition = getattr(module, publication._DISPOSITION_ATTR)
+    assert disposition["verifier_candidate_count"] == 2
+    assert disposition["verifier_supported_count"] == 1
+    assert disposition["verifier_suppressed_count"] == 1
+    assert not hasattr(publication, "_VERIFIER_STORAGE")
 
     loaded = module.load_pareto_context_config("unused.yml")
     review_config.apply_review_config(loaded, module.hardened.parse_yaml_like_data("unused.yml"), module.hardened)
@@ -222,6 +206,8 @@ def test_production_registration() -> None:
     )
     assert loaded.verifier_authoritative_publication_review is True
     assert getattr(review, publication._APPLIED_ATTR) is True
+    assert v21.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
+    assert review.hardened.build_review_body_with_unanchored.__module__ == "dcoir_review.publication_disposition"
 
 
 def main() -> None:
@@ -230,7 +216,7 @@ def main() -> None:
     test_unanchored_and_overflow_are_not_rendered()
     test_missing_or_stale_verifier_evidence_fails_closed()
     test_rollback_delegates_to_prior_body()
-    test_verifier_wrapper_and_config()
+    test_disposition_stage_and_config()
     test_production_registration()
     print("dcoir_review_publication_disposition_selftest passed")
 

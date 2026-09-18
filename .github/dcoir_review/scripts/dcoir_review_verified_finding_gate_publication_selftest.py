@@ -24,9 +24,8 @@ def test_body_blocks_false_clean_without_duplicate_inline_publication() -> None:
     original_persist = prior_io.persist_gate_state
     try:
         prior_io.persist_gate_state = lambda *_args: True
-        verified_gate._patch_review_body(module)
-        body = module.hardened.build_review_body_with_unanchored(
-            {"summary": ""}, [], [], "model", core.config(), core.NEW_HEAD
+        body = verified_gate.apply_gate_to_review_body(
+            module, "v45 exact-head body", [], core.config(), core.NEW_HEAD
         )
     finally:
         prior_io.persist_gate_state = original_persist
@@ -48,10 +47,9 @@ def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
     original_persist = prior_io.persist_gate_state
     try:
         prior_io.persist_gate_state = lambda *_args: False
-        verified_gate._patch_review_body(module)
         try:
-            module.hardened.build_review_body_with_unanchored(
-                {"summary": ""}, [], [], "model", core.config(), core.NEW_HEAD
+            verified_gate.apply_gate_to_review_body(
+                module, "v45 exact-head body", [], core.config(), core.NEW_HEAD
             )
         except core.ReviewQualityError as exc:
             assert "could not persist exact-head verified-finding gate state" in str(exc)
@@ -62,56 +60,36 @@ def test_body_fails_closed_when_gate_state_cannot_persist() -> None:
     assert not hasattr(module, verified_gate._STATE_ATTR)
 
 
-def test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_telemetry() -> None:
+def test_gate_stage_preserves_publication_disposition_and_adds_gate_telemetry() -> None:
     module = core.review_module()
-    original = v21.verify_findings_for_publication
-    stored = getattr(v21, verified_gate._VERIFIER_STORAGE, None)
-    had_stored = hasattr(v21, verified_gate._VERIFIER_STORAGE)
     original_loader = prior_io.load_prior_gate_context
     updates: list[tuple[str, str]] = []
+    item = core.current_finding("src/a.py", 10, "Current")
+    publication.capture_verifier_disposition(
+        module,
+        [item],
+        [item],
+        {"head": {"sha": core.NEW_HEAD}},
+    )
     try:
-        def prior_verifier(review_module, items, _gh, pr, _cfg, _reporter):
-            setattr(
-                review_module,
-                publication._DISPOSITION_ATTR,
-                {
-                    "reviewed_head_sha": pr["head"]["sha"],
-                    "verifier_candidate_count": len(items),
-                    "verifier_supported_count": len(items),
-                    "verifier_suppressed_count": 0,
-                },
-            )
-            return items
-
-        v21.verify_findings_for_publication = prior_verifier
-        if hasattr(v21, verified_gate._VERIFIER_STORAGE):
-            delattr(v21, verified_gate._VERIFIER_STORAGE)
         prior_io.load_prior_gate_context = lambda *_args: core.blocked_prior()
-        verified_gate._patch_verifier(module)
         reporter = SimpleNamespace(update=lambda kind, text: updates.append((kind, text)))
-        item = core.current_finding("src/a.py", 10, "Current")
-        verified = v21.verify_findings_for_publication(
+        verified_gate.capture_prior_gate_context(
             module,
-            [item],
             SimpleNamespace(),
             {"head": {"sha": core.NEW_HEAD}},
             core.config(),
             reporter,
         )
-        assert verified == [item]
         disposition = getattr(module, publication._DISPOSITION_ATTR)
         assert disposition["carried_unresolved_count"] == 1
         assert disposition["prior_gate_status"] == "blocked"
         assert disposition["incremental_gate_indeterminate"] is False
         assert updates and updates[-1][0] == "verified-gate-state"
+        assert not hasattr(verified_gate, "_VERIFIER_STORAGE")
+        assert not hasattr(verified_gate, "_BODY_STORAGE")
     finally:
-        v21.verify_findings_for_publication = original
         prior_io.load_prior_gate_context = original_loader
-        if had_stored:
-            setattr(v21, verified_gate._VERIFIER_STORAGE, stored)
-        elif hasattr(v21, verified_gate._VERIFIER_STORAGE):
-            delattr(v21, verified_gate._VERIFIER_STORAGE)
-
 
 def test_completion_reporter_exposes_blocked_carried_state() -> None:
     module = core.review_module()
@@ -207,7 +185,7 @@ def test_production_registration() -> None:
 def main() -> None:
     test_body_blocks_false_clean_without_duplicate_inline_publication()
     test_body_fails_closed_when_gate_state_cannot_persist()
-    test_verifier_wrapper_preserves_publication_disposition_and_adds_gate_telemetry()
+    test_gate_stage_preserves_publication_disposition_and_adds_gate_telemetry()
     test_completion_reporter_exposes_blocked_carried_state()
     test_completion_reporter_exposes_indeterminate_gate()
     test_completion_reporter_delegates_when_gate_is_clear()

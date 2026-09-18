@@ -32,18 +32,16 @@ def main() -> None:
     assert getattr(review, v33.APPLIED_MARKER, False) is True
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
 
-    # v32's compatibility constants remain at the governed repair budget outside
-    # an active verifier call. v33 widens only the verifier's temporary ceiling.
+    # v32's compatibility constants remain at the governed repair budget, while
+    # the canonical verifier owns the separate 12-candidate verification ceiling.
     assert v21.VERIFIER_MAX_MODEL_FINDINGS == 8
     assert repair.MAX_REPAIR_CANDIDATES == 8
+    assert v21.verifier_candidate_limit(config) == 12
     assert v33.verifier_candidate_limit(config) == 12
     assert v33.repair_synthesis_budget(config) == 8
+    assert v21.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
+    assert not hasattr(v33, "VERIFIER_STORAGE")
 
-    # Prove that a nine-candidate review enters the v21 verifier under the
-    # separate 12-candidate verification ceiling and restores the historical
-    # constant afterward.
-    verifier_storage = getattr(v21, v33.VERIFIER_STORAGE)
-    observed: dict[str, int] = {}
     candidates = [
         {
             "title": f"candidate-{index}",
@@ -56,28 +54,6 @@ def main() -> None:
         }
         for index in range(1, 10)
     ]
-
-    def fake_verifier(module: Any, findings: list[dict[str, Any]], gh: Any, pr: dict[str, Any], cfg: Any, reporter: Any):
-        observed["limit"] = v21.VERIFIER_MAX_MODEL_FINDINGS
-        assert len(findings) == 9
-        return [dict(item) for item in findings]
-
-    setattr(v21, v33.VERIFIER_STORAGE, fake_verifier)
-    try:
-        verified = v21.verify_findings_for_publication(
-            review,
-            candidates,
-            object(),
-            {"head": {"sha": "deadbeef"}},
-            config,
-            _Reporter(),
-        )
-    finally:
-        setattr(v21, v33.VERIFIER_STORAGE, verifier_storage)
-
-    assert len(verified) == 9
-    assert observed["limit"] == 12
-    assert v21.VERIFIER_MAX_MODEL_FINDINGS == 8
 
     # Prove v33's own budget-separation contract in isolation. Later repair
     # overlays (currently v36 coordinated repair sets) legitimately require
