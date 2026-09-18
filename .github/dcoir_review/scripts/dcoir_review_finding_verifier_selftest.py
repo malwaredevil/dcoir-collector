@@ -165,7 +165,8 @@ def test_stable_owner_composition() -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
 
     assert verifier.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
-    assert verifier.verifier_candidate_limit(config) == 12
+    assert config.dcoir_v32_verifier_repair_limit == 8
+    assert verifier.verifier_candidate_limit(config) == config.dcoir_v32_verifier_repair_limit
     assert v33.verifier_candidate_limit(config) == verifier.verifier_candidate_limit(config)
     assert not hasattr(v33, "VERIFIER_STORAGE")
     assert not hasattr(semantic, "VERIFIER_STORAGE")

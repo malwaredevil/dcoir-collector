@@ -15,9 +15,17 @@ BLANK_LINE_NOTATION = "[DCOIR anchor is an intentionally blank changed line]"
 def verifier_candidate_limit(config: Any) -> int:
     """Return the stable bounded verifier candidate ceiling."""
     try:
-        inline_limit = int(
-            getattr(config, "max_inline_comments", VERIFIER_MAX_MODEL_FINDINGS)
+        configured_limit = int(
+            getattr(
+                config,
+                "dcoir_v32_verifier_repair_limit",
+                getattr(config, "fix_synthesis_max_findings", VERIFIER_MAX_MODEL_FINDINGS),
+            )
         )
     except (TypeError, ValueError):
-        inline_limit = VERIFIER_MAX_MODEL_FINDINGS
-    return max(1, min(inline_limit, VERIFIER_CANDIDATE_HARD_CAP))
+        configured_limit = VERIFIER_MAX_MODEL_FINDINGS
+    try:
+        inline_limit = int(getattr(config, "max_inline_comments", configured_limit))
+    except (TypeError, ValueError):
+        inline_limit = configured_limit
+    return max(1, min(configured_limit, inline_limit, VERIFIER_CANDIDATE_HARD_CAP))
