@@ -90,6 +90,7 @@ DIRECT_IMPORT_MODULES = (
     "sentinel_selection.py",
     "status.py",
     "status_overview.py",
+    "status_overview_support.py",
     "status_snapshot.py",
     "structured_result_disposition.py",
     "structured_result_provider.py",
