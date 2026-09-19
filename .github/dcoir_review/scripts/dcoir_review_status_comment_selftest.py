@@ -611,6 +611,27 @@ def test_repair_comment_anchor_maps_to_inline_conversation() -> None:
     assert "review_anchors" not in linked[0]
 
 
+def test_formal_review_fallback_is_labeled_correctly() -> None:
+    gh = FakeGitHub()
+    reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
+    reporter.start()
+    reporter.set_reviewed_commit("5" * 40)
+    reporter.set_findings(
+        [{"title": "Fallback issue", "severity": "medium", "path": "src/app.py", "line": 12}]
+    )
+    gh.review_comments[705] = []
+    reporter.set_formal_review(
+        {
+            "id": 705,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-705",
+        }
+    )
+    reporter.complete("test/model", 1, "COMMENT")
+    body = str(gh.comments[0]["body"])
+    assert "[open formal review]" in body
+    assert "[open review comment]" not in body
+
+
 def test_carried_fallback_sanitizes_path_and_preserves_prior_state() -> None:
     def redact(value: str) -> str:
         return str(value).replace("SECRET-123", "[redacted-secret]")
@@ -883,6 +904,66 @@ def test_large_provenance_fields_are_trimmed_before_findings() -> None:
     assert parsed.get("workflow_run_url") == oversized["workflow_run_url"][:240]
 
 
+def test_large_noncompleted_metadata_retains_prior_rerun_state_and_provenance() -> None:
+    identities = [f"finding-id:{hashlib.sha256(f'prior-{index}'.encode()).hexdigest()[:24]}" for index in range(20)]
+    gate_map = {
+        hashlib.sha256(f"gate-{index}".encode()).hexdigest(): [
+            f"finding-digest:{hashlib.sha256(f'finding-{index}'.encode()).hexdigest()[:32]}"
+        ]
+        for index in range(20)
+    }
+    high_entropy_files = [
+        {
+            "path": "src/" + hashlib.sha256(f"path-{index}".encode()).hexdigest() + ".py",
+            "status": "modified",
+            "additions": index,
+            "deletions": 1,
+        }
+        for index in range(240)
+    ]
+    metadata = {
+        "schema": "dcoir_review_status_overview_v1",
+        "state": "failed",
+        "pr_number": 55,
+        "command": "/dcoir-review debug",
+        "context_mode": "deep-forced",
+        "model_outcome": "provider/model",
+        "review_event": "COMMENT",
+        "reviewed_head_sha": "b" * 40,
+        "workflow_run_id": "12345",
+        "workflow_run_url": "https://github.com/example/dcoir/actions/runs/12345",
+        "formal_review_id": 706,
+        "formal_review_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-706",
+        "gate_status": "blocked",
+        "finding_count": 0,
+        "changed_files": high_entropy_files,
+        "previous_completed": {
+            "schema": "dcoir_review_status_overview_v1",
+            "state": "completed",
+            "pr_number": 55,
+            "reviewed_head_sha": "a" * 40,
+            "gate_status": "blocked",
+            "finding_count": 20,
+            "finding_identity_index_complete": True,
+            "open_finding_identities": identities,
+            "finding_gate_identity_map_complete": True,
+            "open_finding_gate_identities": gate_map,
+        },
+    }
+    parsed = parse_status_metadata(encode_status_metadata(metadata))
+    assert parsed["command"] == "/dcoir-review debug"
+    assert parsed["context_mode"] == "deep-forced"
+    assert parsed["model_outcome"] == "provider/model"
+    assert parsed["review_event"] == "COMMENT"
+    prior = parsed.get("previous_completed")
+    assert isinstance(prior, dict)
+    assert prior["reviewed_head_sha"] == "a" * 40
+    assert prior["finding_identity_index_complete"] is True
+    assert prior["open_finding_identities"] == identities
+    assert prior["finding_gate_identity_map_complete"] is True
+    assert prior["open_finding_gate_identities"] == gate_map
+
+
 def test_spoofed_user_marker_is_not_reused() -> None:
     gh = FakeGitHub()
     gh.comments.append(
@@ -951,12 +1032,14 @@ def main() -> None:
     test_prestart_failure_preserves_prior_completed_metadata()
     test_debug_terminal_status_preserves_prior_completed_metadata()
     test_repair_comment_anchor_maps_to_inline_conversation()
+    test_formal_review_fallback_is_labeled_correctly()
     test_carried_fallback_sanitizes_path_and_preserves_prior_state()
     test_truncated_carried_findings_do_not_claim_resolution()
     test_metadata_stays_bounded_and_review_link_falls_back()
     test_metadata_encoder_has_hard_size_fallback()
     test_compacted_metadata_keeps_canonical_finding_identity()
     test_large_provenance_fields_are_trimmed_before_findings()
+    test_large_noncompleted_metadata_retains_prior_rerun_state_and_provenance()
     test_spoofed_user_marker_is_not_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()

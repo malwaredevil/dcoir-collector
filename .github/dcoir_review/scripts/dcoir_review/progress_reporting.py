@@ -59,8 +59,13 @@ def apply_pareto_context_module(module: Any) -> None:
             set_gate_state = getattr(self, "set_gate_state", None)
             if callable(set_gate_state) and isinstance(active_gate_state, dict):
                 set_gate_state(active_gate_state)
-            self.model_used = str(model_used or "")
-            self.review_event = str(review_event or "")
+            sanitize = getattr(self, "_sanitize", None)
+            if callable(sanitize):
+                self.model_used = sanitize(str(model_used or ""))
+                self.review_event = sanitize(str(review_event or ""))
+            else:
+                self.model_used = str(model_used or "")
+                self.review_event = str(review_event or "")
             override = verified_gate.progress_completion_override(
                 module,
                 getattr(self, "config", None),

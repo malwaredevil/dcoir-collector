@@ -77,6 +77,7 @@ def normalize_findings(findings: Any, sanitize: Sanitizer) -> list[dict[str, Any
             "path": sanitize(str(finding.get("path", "") or ""))[:500],
             "line": line,
             "url": "",
+            "url_kind": "",
         }
         item["identity"] = _stable_finding_identity(finding)
         item["gate_fingerprint"] = gate_state.finding_fingerprint(finding)
@@ -127,11 +128,18 @@ def attach_review_comment_urls(
         match = next((item for item in unused if matches(item)), None)
         if match is None:
             continue
-        match["url"] = str(comment.get("html_url", "") or fallback_url).strip()
+        comment_url = str(comment.get("html_url", "") or "").strip()
+        if comment_url:
+            match["url"] = comment_url
+            match["url_kind"] = "review_comment"
+        elif fallback_url:
+            match["url"] = fallback_url
+            match["url_kind"] = "formal_review"
         unused.remove(match)
     for item in normalized:
-        if not item.get("url"):
+        if not item.get("url") and fallback_url:
             item["url"] = fallback_url
+            item["url_kind"] = "formal_review"
         item.pop("review_anchors", None)
     return normalized
 
@@ -215,6 +223,7 @@ def merge_open_findings(
                 "path": safe_path,
                 "line": line,
                 "url": prior_review_url,
+                "url_kind": "formal_review" if prior_review_url else "",
                 "carried": True,
                 "identity": mapped_identity,
                 "gate_fingerprint": fingerprint,
@@ -232,6 +241,7 @@ def merge_open_findings(
             "path": safe_path,
             "line": line,
             "url": prior_review_url,
+            "url_kind": "formal_review" if prior_review_url else "",
             "carried": True,
             "gate_fingerprint": fingerprint,
         }

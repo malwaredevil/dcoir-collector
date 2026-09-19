@@ -15,6 +15,10 @@ MINIMAL_METADATA_KEYS = (
     "schema",
     "state",
     "pr_number",
+    "command",
+    "context_mode",
+    "model_outcome",
+    "review_event",
     "reviewed_head_sha",
     "workflow_run_id",
     "workflow_run_url",
@@ -26,6 +30,7 @@ MINIMAL_METADATA_KEYS = (
     "open_finding_identities",
     "finding_gate_identity_map_complete",
     "open_finding_gate_identities",
+    "previous_completed",
 )
 
 
@@ -229,6 +234,7 @@ def compact_metadata_finding(item: Any, normalize_severity: Any) -> dict[str, An
         "path": str(finding.get("path", "") or "")[:160],
         "line": _finding_line(finding.get("line", 0)),
         "url": str(finding.get("url", "") or "")[:240],
+        "url_kind": str(finding.get("url_kind", "") or "")[:32],
         "carried": bool(finding.get("carried", False)),
     }
 
@@ -241,6 +247,7 @@ def _compact_metadata_scalars(metadata: dict[str, Any]) -> None:
         "workflow_run_id": 64,
         "model_outcome": 120,
         "context_mode": 64,
+        "review_event": 64,
     }
     for key, limit in limits.items():
         value = metadata.get(key)
@@ -293,18 +300,16 @@ def encode_status_metadata(metadata: dict[str, Any], normalize_severity: Any) ->
         bounded["open_finding_identities"] = []
         bounded["finding_gate_identity_map_complete"] = False
         bounded["open_finding_gate_identities"] = {}
-        previous = bounded.get("previous_completed")
-        if isinstance(previous, dict):
-            previous = dict(previous)
-            previous["finding_identity_index_complete"] = False
-            previous["open_finding_identities"] = []
-            previous["finding_gate_identity_map_complete"] = False
-            previous["open_finding_gate_identities"] = {}
-            bounded["previous_completed"] = previous
         bounded["finding_identity_index_truncated"] = True
         encoded_metadata = _encode_metadata_payload(bounded)
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
-        bounded.pop("previous_completed", None)
+        previous = bounded.get("previous_completed")
+        if isinstance(previous, dict):
+            bounded["previous_completed"] = {
+                key: previous.get(key)
+                for key in MINIMAL_METADATA_KEYS
+                if key != "previous_completed" and key in previous
+            }
         bounded["metadata_truncated"] = True
         encoded_metadata = _encode_metadata_payload(bounded)
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:

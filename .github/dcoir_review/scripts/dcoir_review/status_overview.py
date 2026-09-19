@@ -67,12 +67,18 @@ def _render_finding(finding: dict[str, Any]) -> str:
     severity = normalize_severity(finding.get("severity")).upper()
     location = _finding_location(finding)
     url = str(finding.get("url", "") or "").strip()
+    url_kind = str(finding.get("url_kind", "") or "").strip()
+    if not url_kind and url:
+        url_kind = "review_comment" if "#discussion_r" in url else "formal_review"
     carried = " — carried from the prior review" if finding.get("carried") else ""
     label = (
         f"- **{severity}** {support.safe_inline_text(title)}"
         f" — {support.safe_inline_code(location)}{carried}"
     )
-    return f"{label} ([open review comment]({url}))" if url else label
+    if not url:
+        return label
+    link_label = "open review comment" if url_kind == "review_comment" else "open formal review"
+    return f"{label} ([{link_label}]({url}))"
 
 
 def _render_changed_file(item: dict[str, Any]) -> str:
