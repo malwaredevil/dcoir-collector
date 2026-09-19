@@ -24,7 +24,7 @@ EXPECTED_INSTRUCTION_CHARACTER_CEILING = 8000
 EXPECTED_DESCRIPTION_CHARACTER_CEILING = 300
 EXPECTED_KNOWLEDGE_FILES = 2
 EXPECTED_BEHAVIOR_ITEMS = 11
-EXPECTED_CASES = 11
+EXPECTED_CASES = 13
 EXPECTED_PATHS = {
     'source_contract': 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
     'behavior_module_manifest': 'project_sources/agent_runtime/Behavior_Module_Manifest.json',
