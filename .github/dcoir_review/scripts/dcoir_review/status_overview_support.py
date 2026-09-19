@@ -116,7 +116,7 @@ def compact_metadata_finding(item: Any, normalize_severity: Any) -> dict[str, An
         "title": str(finding.get("title", "") or "")[:120],
         "severity": normalize_severity(finding.get("severity")),
         "path": str(finding.get("path", "") or "")[:160],
-        "line": int(finding.get("line", 0) or 0),
+        "line": _finding_line(finding.get("line", 0)),
         "url": str(finding.get("url", "") or "")[:240],
         "carried": bool(finding.get("carried", False)),
     }
