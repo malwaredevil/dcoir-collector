@@ -522,7 +522,8 @@ def test_metadata_encoder_has_hard_size_fallback() -> None:
     parsed = parse_status_metadata(encoded)
     assert parsed["finding_count"] == 40
     assert "reviewed_head_sha" in parsed
-    assert parsed.get("metadata_truncated") is True
+    assert parsed.get("provenance_truncated") is True
+    assert len(parsed["open_findings"]) == 6
 
 
 def test_compacted_metadata_keeps_canonical_finding_identity() -> None:
@@ -554,6 +555,37 @@ def test_compacted_metadata_keeps_canonical_finding_identity() -> None:
     parsed = parse_status_metadata(encode_status_metadata(oversized))
     assert parsed["open_findings"][0]["identity"] == live_identity
     assert live_identity.startswith("finding-digest:")
+
+
+def test_large_provenance_fields_are_trimmed_before_findings() -> None:
+    normalized = status_snapshot.normalize_findings(
+        [
+            {
+                "title": "Small finding",
+                "severity": "medium",
+                "path": "src/app.py",
+                "line": 9,
+            }
+        ],
+        lambda value: str(value),
+    )
+    oversized = {
+        "schema": "dcoir_review_status_overview_v1",
+        "state": "completed",
+        "pr_number": 55,
+        "command": "/dcoir-review " + ("z" * 16000),
+        "reviewed_head_sha": "f" * 40,
+        "workflow_run_id": "12345",
+        "workflow_run_url": "https://github.com/example/dcoir/actions/runs/" + ("w" * 16000),
+        "context_mode": "deep-forced",
+        "model_outcome": "test/model",
+        "finding_count": 1,
+        "open_findings": normalized,
+    }
+    parsed = parse_status_metadata(encode_status_metadata(oversized))
+    assert parsed["open_findings"][0]["identity"] == normalized[0]["identity"]
+    assert parsed.get("command") == oversized["command"][:512]
+    assert parsed.get("workflow_run_url") == oversized["workflow_run_url"][:240]
 
 
 def test_spoofed_user_marker_is_not_reused() -> None:

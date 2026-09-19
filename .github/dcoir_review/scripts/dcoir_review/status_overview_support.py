@@ -122,11 +122,39 @@ def compact_metadata_finding(item: Any, normalize_severity: Any) -> dict[str, An
     }
 
 
+def _compact_metadata_scalars(metadata: dict[str, Any]) -> None:
+    limits = {
+        "command": 512,
+        "workflow_run_url": 240,
+        "formal_review_url": 240,
+        "workflow_run_id": 64,
+        "model_outcome": 120,
+        "context_mode": 64,
+    }
+    for key, limit in limits.items():
+        value = metadata.get(key)
+        if value is None:
+            continue
+        metadata[key] = str(value or "")[:limit]
+    previous = metadata.get("previous_completed")
+    if isinstance(previous, dict):
+        bounded_previous = dict(previous)
+        for key, limit in limits.items():
+            value = bounded_previous.get(key)
+            if value is None:
+                continue
+            bounded_previous[key] = str(value or "")[:limit]
+        metadata["previous_completed"] = bounded_previous
+
+
 def encode_status_metadata(metadata: dict[str, Any], normalize_severity: Any) -> str:
     bounded = dict(metadata)
     encoded_metadata = _encode_metadata_payload(bounded)
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
         bounded["provenance_truncated"] = True
+        _compact_metadata_scalars(bounded)
+        encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
         bounded["open_findings"] = [
             compact_metadata_finding(item, normalize_severity)
             for item in bounded.get("open_findings", [])[:6]
