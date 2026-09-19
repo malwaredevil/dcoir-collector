@@ -55,8 +55,9 @@ progress_reporter.fail("Review quality failure: no actionable primary findings s
 assert len(progress_gh.created) == 1
 assert len(progress_gh.updated) == 2
 terminal_body = progress_gh.updated[-1][1]
-assert "review failed before a usable PR review could be posted" in terminal_body
-assert "no actionable primary findings survived normalization" in terminal_body
+assert "🔴 Review failed" in terminal_body
+assert "Use the workflow run for detailed diagnostics." in terminal_body
+assert "no actionable primary findings survived normalization" not in terminal_body
 
 # The legacy flag no longer changes status-comment existence semantics. The
 # enabled case also creates one comment and mutates that same comment on failure.

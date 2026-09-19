@@ -30,10 +30,13 @@ class MutableReviewStatusComment:
         self.issue_number = int(issue_number)
         self.comment_id = 0
         self.last_body = ""
+        self.last_discovered_body = ""
         self.last_error = ""
+        self._body_by_id: dict[int, str] = {}
 
     def _canonical_comment_ids(self) -> list[int]:
         matches: list[int] = []
+        self._body_by_id = {}
         try:
             repo = str(getattr(self.gh, "repo", "") or "").strip()
             if not repo:
@@ -57,6 +60,7 @@ class MutableReviewStatusComment:
                         comment_id = 0
                     if comment_id > 0:
                         matches.append(comment_id)
+                        self._body_by_id[comment_id] = body
                 if len(batch) < 100:
                     break
         except Exception as exc:
@@ -70,6 +74,7 @@ class MutableReviewStatusComment:
         if not matches:
             return 0
         self.comment_id = matches[0]
+        self.last_discovered_body = self._body_by_id.get(self.comment_id, "")
         return self.comment_id
 
     def _reconcile_created_comment(self) -> None:
@@ -78,6 +83,7 @@ class MutableReviewStatusComment:
             return
         canonical_id = matches[0]
         self.comment_id = canonical_id
+        self.last_discovered_body = self._body_by_id.get(canonical_id, "")
         repo = str(getattr(self.gh, "repo", "") or "").strip()
         if not repo:
             return

@@ -114,6 +114,29 @@ def test_completion_reporter_exposes_blocked_carried_state() -> None:
     assert "Carried unresolved prior verified findings: `2`." in reporter.updated_bodies[-1]
 
 
+def test_gate_override_sanitizes_provider_controlled_terminal_metadata() -> None:
+    module = core.review_module()
+    progress_reporting.apply_pareto_context_module(module)
+    setattr(
+        module,
+        verified_gate._STATE_ATTR,
+        {
+            "gate_status": "blocked",
+            "carried_unresolved_count": 1,
+            "indeterminate_prior_count": 0,
+        },
+    )
+    reporter = module.ProgressReporter(core.config())
+    reporter._sanitize = lambda value: str(value).replace(
+        "SECRET-123", "[redacted-secret]"
+    ).replace("@", "@<!-- -->")
+    reporter.complete("provider@attacker SECRET-123", 0, "COMMENT@attacker")
+    assert reporter.model_used == "provider@<!-- -->attacker [redacted-secret]"
+    assert reporter.review_event == "COMMENT@<!-- -->attacker"
+    assert "COMMENT@<!-- -->attacker" in reporter.updated_bodies[-1]
+    assert "COMMENT@attacker" not in reporter.updated_bodies[-1]
+
+
 def test_completion_reporter_exposes_indeterminate_gate() -> None:
     module = core.review_module()
     progress_reporting.apply_pareto_context_module(module)
@@ -186,6 +209,7 @@ def main() -> None:
     test_body_fails_closed_when_gate_state_cannot_persist()
     test_gate_stage_preserves_publication_disposition_and_adds_gate_telemetry()
     test_completion_reporter_exposes_blocked_carried_state()
+    test_gate_override_sanitizes_provider_controlled_terminal_metadata()
     test_completion_reporter_exposes_indeterminate_gate()
     test_completion_reporter_delegates_when_gate_is_clear()
     test_completion_reporter_patches_production_owner_aliases()
