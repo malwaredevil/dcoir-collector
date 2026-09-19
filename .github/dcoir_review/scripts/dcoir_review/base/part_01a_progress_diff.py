@@ -153,14 +153,14 @@ class ProgressReporter:
         self.steps.append((stage, safe_message))
         emit_status(stage, safe_message)
 
-    def _status_snapshot_helpers.prior_completed(self) -> dict[str, Any]:
+    def _prior_completed(self) -> dict[str, Any]:
         return status_snapshot_helpers.prior_completed(self._previous_status_metadata)
 
     def _open_findings(self) -> list[dict[str, Any]]:
         return status_snapshot_helpers.merge_open_findings(
             self.findings,
             self.gate_state,
-            self._status_snapshot_helpers.prior_completed(),
+            self._prior_completed(),
             self.formal_review_url,
         )
 
@@ -190,7 +190,7 @@ class ProgressReporter:
     def _body(self, state: str, final_lines: list[str] | None = None) -> str:
         if bool(getattr(self.config, "debug", False)):
             return self._debug_body(state, final_lines=final_lines)
-        return status_overview_helpers.render_status_overview(self._snapshot(state), self._status_snapshot_helpers.prior_completed())
+        return status_overview_helpers.render_status_overview(self._snapshot(state), self._prior_completed())
 
     def _debug_body(self, state: str, final_lines: list[str] | None = None) -> str:
         normalized = str(state or "").strip().lower()
