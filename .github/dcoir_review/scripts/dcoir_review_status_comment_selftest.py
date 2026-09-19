@@ -791,10 +791,16 @@ def test_large_provenance_fields_are_trimmed_before_findings() -> None:
         "schema": "dcoir_review_status_overview_v1",
         "state": "completed",
         "pr_number": 55,
-        "command": "/dcoir-review " + ("z" * 16000),
+        "command": "/dcoir-review " + "".join(
+            hashlib.sha256(f"large-command-{index}".encode()).hexdigest()
+            for index in range(300)
+        ),
         "reviewed_head_sha": "f" * 40,
         "workflow_run_id": "12345",
-        "workflow_run_url": "https://github.com/example/dcoir/actions/runs/" + ("w" * 16000),
+        "workflow_run_url": "https://github.com/example/dcoir/actions/runs/" + "".join(
+            hashlib.sha256(f"large-run-url-{index}".encode()).hexdigest()
+            for index in range(300)
+        ),
         "context_mode": "deep-forced",
         "model_outcome": "test/model",
         "finding_count": 1,
