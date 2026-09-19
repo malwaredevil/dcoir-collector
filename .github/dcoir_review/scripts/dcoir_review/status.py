@@ -41,8 +41,8 @@ def finding_identity(finding: Any) -> str:
 
 def encode_status_metadata(metadata: dict[str, Any]) -> str:
     payload = json.dumps(metadata, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
-    token = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
-    return f"{STATUS_METADATA_PREFIX}{token}{STATUS_METADATA_SUFFIX}"
+    encoded_metadata = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+    return f"{STATUS_METADATA_PREFIX}{encoded_metadata}{STATUS_METADATA_SUFFIX}"
 
 
 def parse_status_metadata(body: str) -> dict[str, Any]:
@@ -54,12 +54,12 @@ def parse_status_metadata(body: str) -> dict[str, Any]:
     end = text.find(STATUS_METADATA_SUFFIX, start)
     if end < 0:
         return {}
-    token = text[start:end].strip()
-    if not token:
+    encoded_metadata = text[start:end].strip()
+    if not encoded_metadata:
         return {}
     try:
-        padding = "=" * ((4 - len(token) % 4) % 4)
-        decoded = base64.urlsafe_b64decode((token + padding).encode("ascii")).decode("utf-8")
+        padding = "=" * ((4 - len(encoded_metadata) % 4) % 4)
+        decoded = base64.urlsafe_b64decode((encoded_metadata + padding).encode("ascii")).decode("utf-8")
         value = json.loads(decoded)
     except Exception:
         return {}
