@@ -536,7 +536,7 @@ def test_compacted_metadata_keeps_canonical_finding_identity() -> None:
                 "line": 9,
             }
         ],
-        lambda value: str(value),
+        str,
     )
     live_identity = normalized[0]["identity"]
     oversized = {
@@ -567,7 +567,7 @@ def test_large_provenance_fields_are_trimmed_before_findings() -> None:
                 "line": 9,
             }
         ],
-        lambda value: str(value),
+        str,
     )
     oversized = {
         "schema": "dcoir_review_status_overview_v1",
