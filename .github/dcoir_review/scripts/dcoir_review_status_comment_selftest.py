@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import sys
 
 ROOT = Path(__file__).resolve().parent
@@ -327,9 +328,15 @@ def test_metadata_encoder_has_hard_size_fallback() -> None:
         "finding_count": 40,
         "open_findings": [
             {
-                "title": f"finding-{index}-" + "".join(chr(33 + ((index * 17 + n) % 80)) for n in range(500)),
+                "title": f"finding-{index}-" + "".join(
+                    hashlib.sha256(f"title-{index}-{n}".encode()).hexdigest()
+                    for n in range(12)
+                ),
                 "severity": "medium",
-                "path": f"src/{index}/" + "".join(chr(33 + ((index * 31 + n) % 70)) for n in range(1500)),
+                "path": f"src/{index}/" + "".join(
+                    hashlib.sha256(f"path-{index}-{n}".encode()).hexdigest()
+                    for n in range(32)
+                ),
                 "line": index + 1,
                 "url": "https://github.com/example/dcoir/pull/55#discussion_r" + str(1000 + index),
             }
