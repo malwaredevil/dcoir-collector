@@ -457,6 +457,37 @@ def test_indeterminate_gate_does_not_claim_resolution() -> None:
     assert "🔵 Needs a closer look" in body
     assert "Resolved since last review" not in body
 
+    findings_gh = FakeGitHub()
+    findings_reporter = base.ProgressReporter(
+        findings_gh, 55, "/dcoir-review", config()
+    )
+    findings_reporter.start()
+    findings_reporter.set_reviewed_commit("9" * 40)
+    findings_reporter.set_context_mode("diff")
+    findings_reporter.set_findings(
+        [
+            {
+                "title": "Current issue",
+                "severity": "high",
+                "path": "src/current.py",
+                "line": 11,
+            }
+        ]
+    )
+    findings_reporter.set_gate_state({"gate_status": "indeterminate"})
+    findings_reporter.set_formal_review(
+        {
+            "id": 652,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-652",
+        }
+    )
+    findings_reporter.complete("test/model", 1, "COMMENT")
+    findings_body = str(findings_gh.comments[0]["body"])
+    assert "🔵 Needs a closer look" in findings_body
+    assert "🟡 Changes recommended" not in findings_body
+    assert "Open (1)" in findings_body
+    assert "prior verified-finding state could not be confirmed safely" in findings_body
+
 
 def test_failure_is_concise_and_debug_is_verbose() -> None:
     gh = FakeGitHub()
@@ -483,6 +514,32 @@ def test_failure_is_concise_and_debug_is_verbose() -> None:
     assert "provider telemetry retained for debug" in debug_body
     assert "synthetic debug failure detail" in debug_body
     assert "Context mode: `deep-forced`" in debug_body
+
+
+def test_prestart_failure_preserves_prior_completed_metadata() -> None:
+    gh = FakeGitHub()
+    prepare_completed_review(
+        gh,
+        head="6" * 40,
+        findings=[
+            {
+                "title": "Prior issue",
+                "severity": "high",
+                "path": "src/app.py",
+                "line": 7,
+            }
+        ],
+        review_id=680,
+    )
+
+    reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
+    reporter.fail("synthetic failure before start")
+
+    failed_metadata = parse_status_metadata(str(gh.comments[0]["body"]))
+    prior = status_snapshot.prior_completed(failed_metadata)
+    assert prior["reviewed_head_sha"] == "6" * 40
+    assert prior["formal_review_id"] == 680
+    assert len(prior["open_findings"]) == 1
 
 
 def test_debug_terminal_status_preserves_prior_completed_metadata() -> None:
@@ -813,11 +870,14 @@ def main() -> None:
     test_resolved_since_last_review()
     test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()
+    test_prestart_failure_preserves_prior_completed_metadata()
     test_debug_terminal_status_preserves_prior_completed_metadata()
     test_repair_comment_anchor_maps_to_inline_conversation()
     test_carried_fallback_sanitizes_path_and_preserves_prior_state()
     test_metadata_stays_bounded_and_review_link_falls_back()
     test_metadata_encoder_has_hard_size_fallback()
+    test_compacted_metadata_keeps_canonical_finding_identity()
+    test_large_provenance_fields_are_trimmed_before_findings()
     test_spoofed_user_marker_is_not_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()

@@ -29,13 +29,19 @@ class ProgressReporter:
     def _sanitize(self, value: str) -> str:
         return sanitize_github_output(str(value or ""), self.config)
 
-    def start(self) -> None:
+    def _load_previous_status_metadata(self) -> None:
+        if self._previous_status_metadata:
+            return
         discovered = self._status_comment.discover()
-        if discovered:
-            self.comment_id = discovered
-            self._previous_status_metadata = status_overview_helpers.parse_status_metadata(
-                self._status_comment.last_discovered_body
-            )
+        if not discovered:
+            return
+        self.comment_id = discovered
+        self._previous_status_metadata = status_overview_helpers.parse_status_metadata(
+            self._status_comment.last_discovered_body
+        )
+
+    def start(self) -> None:
+        self._load_previous_status_metadata()
         self.public_progress = "Queued for review"
         self._record("queued", "accepted operator review command and queued review execution")
         self._last_published_stage = "queued"
@@ -133,6 +139,7 @@ class ProgressReporter:
         )
 
     def fail(self, message: str) -> None:
+        self._load_previous_status_metadata()
         safe_message = self._sanitize(message)
         self.completed_at = time.time()
         self.public_progress = "Review failed"

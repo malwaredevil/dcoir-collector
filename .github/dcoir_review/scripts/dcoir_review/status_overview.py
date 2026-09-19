@@ -253,13 +253,22 @@ def render_status_overview(
             item for key, item in current_by_id.items() if key not in prior_identity_set
         ]
 
-    if findings:
+    if gate_status == "indeterminate":
+        headline = "🔵 Needs a closer look"
+        if findings:
+            plural = "s" if len(findings) != 1 else ""
+            summary = (
+                f"{len(findings)} open verifier-supported finding{plural} require attention, "
+                "but prior verified-finding state could not be confirmed safely."
+            )
+        else:
+            summary = (
+                "The review completed, but prior verified-finding state could not be confirmed safely."
+            )
+    elif findings:
         headline = "🟡 Changes recommended"
         plural = "s" if len(findings) != 1 else ""
         summary = f"{len(findings)} open verifier-supported finding{plural} require attention."
-    elif gate_status == "indeterminate":
-        headline = "🔵 Needs a closer look"
-        summary = "The review completed, but prior verified-finding state could not be confirmed safely."
     else:
         headline = "🟢 Clean"
         summary = "No verifier-supported findings were published for this pull request."
