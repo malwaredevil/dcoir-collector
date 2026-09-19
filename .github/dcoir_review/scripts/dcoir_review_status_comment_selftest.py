@@ -209,6 +209,34 @@ def test_resolved_since_last_review() -> None:
     assert "Still open" in body
 
 
+def test_indeterminate_gate_does_not_claim_resolution() -> None:
+    gh = FakeGitHub()
+    old = [
+        {"title": "Prior issue", "severity": "medium", "path": "src/app.py", "line": 7},
+    ]
+    prepare_completed_review(gh, head="7" * 40, findings=old, review_id=650)
+
+    reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
+    reporter.start()
+    reporter.set_reviewed_commit("8" * 40)
+    reporter.set_context_mode("diff")
+    reporter.set_changed_files(
+        [{"filename": "src/app.py", "status": "modified", "additions": 1, "deletions": 1}]
+    )
+    reporter.set_findings([])
+    reporter.set_gate_state({"gate_status": "indeterminate"})
+    reporter.set_formal_review(
+        {
+            "id": 651,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-651",
+        }
+    )
+    reporter.complete("test/model", 0, "COMMENT")
+    body = str(gh.comments[0]["body"])
+    assert "🔵 Needs a closer look" in body
+    assert "Resolved since last review" not in body
+
+
 def test_failure_is_concise_and_debug_is_verbose() -> None:
     gh = FakeGitHub()
     reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
@@ -256,11 +284,12 @@ def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
     reporter.set_findings(
         [
             {
-                "title": "Fallback-linked issue",
+                "title": f"Fallback-linked issue {index} " + ("x" * 160),
                 "severity": "medium",
-                "path": "src/app.py",
-                "line": 11,
+                "path": f"src/very/long/finding/path_{index:02d}_" + ("y" * 300) + ".py",
+                "line": 11 + index,
             }
+            for index in range(20)
         ]
     )
     gh.review_comments[700] = []
@@ -275,9 +304,11 @@ def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
     assert len(body) <= 12000
     assert "pullrequestreview-700" in body
     metadata = parse_status_metadata(body)
-    assert metadata["finding_count"] == 1
+    assert metadata["finding_count"] == 20
     assert "changed_files" not in metadata
-    assert len(metadata["open_findings"]) == 1
+    assert len(metadata["open_findings"]) == 12
+    metadata_line = body.splitlines()[1]
+    assert "--" not in metadata_line[len("<!-- dcoir-review-status-meta:v1:"):-4]
 
 
 def test_spoofed_user_marker_is_not_reused() -> None:
@@ -338,6 +369,7 @@ def main() -> None:
     test_single_mutable_comment_and_clean_overview()
     test_finding_links_severity_and_previously_missed()
     test_resolved_since_last_review()
+    test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()
     test_metadata_stays_bounded_and_review_link_falls_back()
     test_spoofed_user_marker_is_not_reused()

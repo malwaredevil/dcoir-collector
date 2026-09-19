@@ -45,7 +45,8 @@ def encode_status_metadata(metadata: dict[str, Any]) -> str:
         separators=(",", ":"),
         ensure_ascii=True,
     ).encode("utf-8")
-    encoded_metadata = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+    compressed = zlib.compress(payload, level=9)
+    encoded_metadata = base64.b64encode(compressed).decode("ascii").rstrip("=")
     return f"{STATUS_METADATA_PREFIX}{encoded_metadata}{STATUS_METADATA_SUFFIX}"
 
 
@@ -63,9 +64,13 @@ def parse_status_metadata(body: str) -> dict[str, Any]:
         return {}
     try:
         padding = "=" * ((4 - len(encoded_metadata) % 4) % 4)
-        decoded = base64.urlsafe_b64decode(
+        raw = base64.b64decode(
             (encoded_metadata + padding).encode("ascii")
-        ).decode("utf-8")
+        )
+        try:
+            decoded = zlib.decompress(raw).decode("utf-8")
+        except zlib.error:
+            decoded = raw.decode("utf-8")
         value = json.loads(decoded)
     except Exception:
         return {}
@@ -179,7 +184,7 @@ def render_status_overview(
         "finding_count",
     )
     metadata = {key: snapshot.get(key) for key in metadata_keys}
-    metadata["open_findings"] = findings[:24]
+    metadata["open_findings"] = findings[:12]
     if state != "completed" and previous:
         metadata["previous_completed"] = {
             key: previous.get(key)
@@ -254,7 +259,7 @@ def render_status_overview(
         and str(previous.get("reviewed_head_sha", "") or "").strip() == reviewed_head
     )
     resolved = []
-    if previous and not same_head:
+    if previous and not same_head and gate_status != "indeterminate":
         resolved = [item for key, item in prior_by_id.items() if key not in current_by_id]
     previously_missed = []
     if same_head:

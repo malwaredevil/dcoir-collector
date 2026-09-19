@@ -44,9 +44,9 @@ def normalize_findings(findings: Any, sanitize: Sanitizer) -> list[dict[str, Any
         item = {
             "title": sanitize(
                 str(finding.get("title", "") or "DCOIR Review finding")
-            )[:300],
+            )[:200],
             "severity": normalize_severity(finding.get("severity")),
-            "path": sanitize(str(finding.get("path", "") or ""))[:1000],
+            "path": sanitize(str(finding.get("path", "") or ""))[:500],
             "line": line,
             "url": "",
         }
