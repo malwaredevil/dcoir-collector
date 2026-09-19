@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+import zlib
 from typing import Any
 
 from dcoir_review.status import STATUS_MARKER
