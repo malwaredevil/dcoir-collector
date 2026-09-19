@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openrouter_pr_review as base
+from dcoir_review import status_snapshot
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
 from dcoir_review.status_overview import (
     MAX_STATUS_METADATA_ENCODED_CHARS,
@@ -264,6 +265,55 @@ def test_same_head_semantic_candidates_keep_distinct_status_identity() -> None:
     assert "<summary><strong>Open (2)</strong></summary>" in body
 
 
+def test_blocked_gate_carries_distinct_semantic_candidates() -> None:
+    carried = status_snapshot.merge_open_findings(
+        [
+            {
+                "title": "Semantic issue",
+                "severity": "medium",
+                "path": "src/app.py",
+                "line": 12,
+                "identity": "candidate-id:candidate-a",
+            }
+        ],
+        {
+            "gate_status": "blocked",
+            "unresolved_findings": [
+                {
+                    "path": "src/app.py",
+                    "line": 12,
+                    "status": "carried-unresolved",
+                }
+            ],
+        },
+        {
+            "open_findings": [
+                {
+                    "title": "Semantic issue",
+                    "severity": "medium",
+                    "path": "src/app.py",
+                    "line": 12,
+                    "identity": "candidate-id:candidate-a",
+                },
+                {
+                    "title": "Semantic issue",
+                    "severity": "medium",
+                    "path": "src/app.py",
+                    "line": 12,
+                    "identity": "candidate-id:candidate-b",
+                },
+            ]
+        },
+        "https://github.com/example/dcoir/pull/55#pullrequestreview-570",
+    )
+    identities = [str(item.get("identity", "")) for item in carried]
+    assert identities == [
+        "candidate-id:candidate-a",
+        "candidate-id:candidate-b",
+    ]
+    assert carried[1]["carried"] is True
+
+
 def test_resolved_since_last_review() -> None:
     gh = FakeGitHub()
     old_findings = [
@@ -480,6 +530,7 @@ def main() -> None:
     test_finding_links_severity_and_previously_missed()
     test_untrusted_markdown_is_rendered_safely()
     test_same_head_semantic_candidates_keep_distinct_status_identity()
+    test_blocked_gate_carries_distinct_semantic_candidates()
     test_resolved_since_last_review()
     test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()

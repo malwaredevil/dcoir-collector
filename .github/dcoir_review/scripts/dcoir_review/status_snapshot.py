@@ -121,9 +121,9 @@ def merge_open_findings(
 ) -> list[dict[str, Any]]:
     current = [dict(item) for item in findings]
     known = {
-        finding_identity(item)
+        _stable_finding_identity(item)
         for item in current
-        if finding_identity(item)
+        if _stable_finding_identity(item)
     }
     state = gate_state if isinstance(gate_state, dict) else {}
     if str(state.get("gate_status", "") or "") != "blocked":
@@ -133,10 +133,10 @@ def merge_open_findings(
         for item in previous_completed.get("open_findings", [])
         if isinstance(item, dict)
     ]
-    by_location = {
-        (str(item.get("path", "") or ""), int(item.get("line", 0) or 0)): item
-        for item in prior_findings
-    }
+    by_location: dict[tuple[str, int], list[dict[str, Any]]] = {}
+    for item in prior_findings:
+        key = (str(item.get("path", "") or ""), int(item.get("line", 0) or 0))
+        by_location.setdefault(key, []).append(item)
     for record in state.get("unresolved_findings", []) or []:
         if not isinstance(record, dict) or record.get("status") != "carried-unresolved":
             continue
@@ -145,17 +145,28 @@ def merge_open_findings(
             line = int(record.get("line", 0) or 0)
         except (TypeError, ValueError):
             line = 0
-        item = dict(by_location.get((path, line), {}))
-        if not item:
-            item = {
-                "title": "Prior verifier-supported finding remains unresolved",
-                "severity": "medium",
-                "path": path,
-                "line": line,
-                "url": formal_review_url,
-            }
-        item["carried"] = True
-        identity = finding_identity(item)
+        matched = False
+        for prior_item in by_location.get((path, line), []):
+            item = dict(prior_item)
+            item["carried"] = True
+            identity = _stable_finding_identity(item)
+            if identity and identity in known:
+                continue
+            if identity:
+                known.add(identity)
+            current.append(item)
+            matched = True
+        if matched:
+            continue
+        item = {
+            "title": "Prior verifier-supported finding remains unresolved",
+            "severity": "medium",
+            "path": path,
+            "line": line,
+            "url": formal_review_url,
+            "carried": True,
+        }
+        identity = _stable_finding_identity(item)
         if identity and identity in known:
             continue
         if identity:
