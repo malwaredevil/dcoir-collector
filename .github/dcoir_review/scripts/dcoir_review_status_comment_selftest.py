@@ -436,12 +436,22 @@ def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
 
 
 def test_metadata_encoder_has_hard_size_fallback() -> None:
+    large_command = "/dcoir-review " + "".join(
+        hashlib.sha256(f"command-{index}".encode()).hexdigest()
+        for index in range(800)
+    )
+    large_run_url = "https://github.com/example/dcoir/actions/runs/" + "".join(
+        hashlib.sha256(f"run-{index}".encode()).hexdigest()
+        for index in range(400)
+    )
     oversized = {
         "schema": "dcoir_review_status_overview_v1",
         "state": "completed",
         "pr_number": 55,
+        "command": large_command,
         "reviewed_head_sha": "f" * 40,
         "workflow_run_id": "12345",
+        "workflow_run_url": large_run_url,
         "context_mode": "deep-forced",
         "model_outcome": "test/model",
         "finding_count": 40,
@@ -461,14 +471,30 @@ def test_metadata_encoder_has_hard_size_fallback() -> None:
             }
             for index in range(40)
         ],
+        "previous_completed": {
+            "schema": "dcoir_review_status_overview_v1",
+            "state": "completed",
+            "pr_number": 54,
+            "reviewed_head_sha": "e" * 40,
+            "open_findings": [
+                {
+                    "title": f"prior-{index}-" + ("z" * 500),
+                    "severity": "medium",
+                    "path": f"prior/{index}/" + ("q" * 800),
+                    "line": index + 1,
+                    "url": "https://github.com/example/dcoir/pull/54#discussion_r" + str(2000 + index),
+                }
+                for index in range(40)
+            ],
+        },
     }
     encoded = encode_status_metadata(oversized)
     encoded_payload = encoded[len("<!-- dcoir-review-status-meta:v1:"):-4]
     assert len(encoded_payload) <= MAX_STATUS_METADATA_ENCODED_CHARS
     parsed = parse_status_metadata(encoded)
     assert parsed["finding_count"] == 40
-    assert parsed.get("provenance_truncated") is True
     assert "reviewed_head_sha" in parsed
+    assert parsed.get("metadata_truncated") is True
 
 
 def test_spoofed_user_marker_is_not_reused() -> None:

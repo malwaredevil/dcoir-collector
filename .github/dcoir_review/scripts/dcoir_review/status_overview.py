@@ -12,6 +12,18 @@ STATUS_METADATA_PREFIX = "<!-- dcoir-review-status-meta:v1:"
 STATUS_METADATA_SUFFIX = " -->"
 SEVERITY_ORDER = ("critical", "high", "medium", "low")
 MAX_STATUS_METADATA_ENCODED_CHARS = 6000
+MINIMAL_METADATA_KEYS = (
+    "schema",
+    "state",
+    "pr_number",
+    "reviewed_head_sha",
+    "workflow_run_id",
+    "workflow_run_url",
+    "formal_review_id",
+    "formal_review_url",
+    "gate_status",
+    "finding_count",
+)
 
 
 def normalize_severity(value: Any) -> str:
@@ -94,6 +106,28 @@ def encode_status_metadata(metadata: dict[str, Any]) -> str:
             previous["open_findings"] = []
             bounded["previous_completed"] = previous
         bounded["finding_detail_truncated"] = True
+        encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        bounded.pop("previous_completed", None)
+        bounded["metadata_truncated"] = True
+        encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        bounded = {
+            key: bounded.get(key)
+            for key in MINIMAL_METADATA_KEYS
+            if key in bounded
+        }
+        bounded["metadata_truncated"] = True
+        encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        bounded = {
+            "schema": str(metadata.get("schema", "") or "")[:120],
+            "state": str(metadata.get("state", "") or "")[:32],
+            "pr_number": int(metadata.get("pr_number", 0) or 0),
+            "reviewed_head_sha": str(metadata.get("reviewed_head_sha", "") or "")[:64],
+            "finding_count": int(metadata.get("finding_count", 0) or 0),
+            "metadata_truncated": True,
+        }
         encoded_metadata = _encode_metadata_payload(bounded)
     return f"{STATUS_METADATA_PREFIX}{encoded_metadata}{STATUS_METADATA_SUFFIX}"
 
