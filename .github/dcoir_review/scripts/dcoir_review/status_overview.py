@@ -129,6 +129,8 @@ def encode_status_metadata(metadata: dict[str, Any]) -> str:
             "metadata_truncated": True,
         }
         encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        encoded_metadata = _encode_metadata_payload({"metadata_truncated": True})
     return f"{STATUS_METADATA_PREFIX}{encoded_metadata}{STATUS_METADATA_SUFFIX}"
 
 
