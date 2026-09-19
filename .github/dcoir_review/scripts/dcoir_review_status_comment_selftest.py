@@ -195,6 +195,75 @@ def test_finding_links_severity_and_previously_missed() -> None:
     assert "**Findings:** 1 high, 1 medium" in body
 
 
+def test_untrusted_markdown_is_rendered_safely() -> None:
+    gh = FakeGitHub()
+    prepare_completed_review(
+        gh,
+        head="1" * 40,
+        findings=[
+            {
+                "title": "Heading `\n\n### forged",
+                "severity": "high",
+                "path": "src/weird`\n\n### forged.py",
+                "line": 7,
+            },
+        ],
+        review_id=550,
+        changed_files=[
+            {
+                "filename": "docs/guide`\n\n### forged.md",
+                "status": "modified",
+                "additions": 3,
+                "deletions": 1,
+            }
+        ],
+    )
+    body = str(gh.comments[0]["body"])
+    assert "<span>Heading `\n\n### forged</span>" not in body
+    assert "<span>Heading `\\n\\n### forged</span>" in body
+    assert "<code>src/weird`\\n\\n### forged.py:7</code>" in body
+    assert "<code>docs/guide`\\n\\n### forged.md</code>" in body
+    assert "- [`" not in body
+
+
+def test_same_head_semantic_candidates_keep_distinct_status_identity() -> None:
+    gh = FakeGitHub()
+    head = "2" * 40
+    shared = {
+        "title": "Semantic issue",
+        "severity": "medium",
+        "path": "src/app.py",
+        "line": 12,
+    }
+    first = [
+        {
+            **shared,
+            "_dcoir_v51_candidate_id": "candidate-a",
+            "_dcoir_v51_semantic_candidate_key": [
+                "src/app.py",
+                12,
+                "semantic_candidate:candidate-a",
+            ],
+        }
+    ]
+    prepare_completed_review(gh, head=head, findings=first, review_id=560)
+    second = first + [
+        {
+            **shared,
+            "_dcoir_v51_candidate_id": "candidate-b",
+            "_dcoir_v51_semantic_candidate_key": [
+                "src/app.py",
+                12,
+                "semantic_candidate:candidate-b",
+            ],
+        }
+    ]
+    prepare_completed_review(gh, head=head, findings=second, review_id=561)
+    body = str(gh.comments[0]["body"])
+    assert "Previously missed (1)" in body
+    assert "<summary><strong>Open (2)</strong></summary>" in body
+
+
 def test_resolved_since_last_review() -> None:
     gh = FakeGitHub()
     old_findings = [
@@ -409,6 +478,8 @@ def test_status_write_failures_are_observational() -> None:
 def main() -> None:
     test_single_mutable_comment_and_clean_overview()
     test_finding_links_severity_and_previously_missed()
+    test_untrusted_markdown_is_rendered_safely()
+    test_same_head_semantic_candidates_keep_distinct_status_identity()
     test_resolved_since_last_review()
     test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()

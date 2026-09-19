@@ -182,7 +182,7 @@ def main() -> None:
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
         set_findings = getattr(reporter, "set_findings", None)
         if callable(set_findings):
-            set_findings([*findings, *unanchored_findings])
+            set_findings(findings)
 
         comments: list[dict[str, Any]] = []
         for finding in findings:

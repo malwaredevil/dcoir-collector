@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from dcoir_review import semantic_candidate_identity as candidate_identity
 from dcoir_review.status_overview import (
     completed_status_metadata,
     finding_identity,
@@ -10,6 +11,19 @@ from dcoir_review.status_overview import (
 
 
 Sanitizer = Callable[[str], str]
+
+
+def _stable_finding_identity(finding: dict[str, Any]) -> str:
+    semantic_key = candidate_identity._raw_key(
+        finding.get(candidate_identity.SEMANTIC_KEY_FIELD)
+    )
+    if semantic_key is not None:
+        path, line, kind = semantic_key
+        return f"semantic-key:{path}:{line}:{kind}"
+    candidate_id = str(finding.get(candidate_identity.CANDIDATE_ID_FIELD, "") or "").strip()
+    if candidate_id:
+        return f"candidate-id:{candidate_id}"
+    return finding_identity(finding)
 
 
 def normalize_changed_files(files: Any, sanitize: Sanitizer) -> list[dict[str, Any]]:
@@ -50,7 +64,7 @@ def normalize_findings(findings: Any, sanitize: Sanitizer) -> list[dict[str, Any
             "line": line,
             "url": "",
         }
-        item["identity"] = finding_identity(item)
+        item["identity"] = _stable_finding_identity(finding)
         normalized.append(item)
     return normalized
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import html
 import json
 import zlib
 from typing import Any
@@ -29,6 +30,9 @@ def normalize_severity(value: Any) -> str:
 def finding_identity(finding: Any) -> str:
     if not isinstance(finding, dict):
         return ""
+    existing = str(finding.get("identity", "") or "").strip()
+    if existing:
+        return existing
     path = str(finding.get("path", "") or "").strip()
     title = str(finding.get("title", "") or "").strip().casefold()
     try:
@@ -54,6 +58,7 @@ def _encode_metadata_payload(metadata: dict[str, Any]) -> str:
 def _compact_metadata_finding(item: Any) -> dict[str, Any]:
     finding = item if isinstance(item, dict) else {}
     return {
+        "identity": str(finding.get("identity", "") or "")[:240],
         "title": str(finding.get("title", "") or "")[:120],
         "severity": normalize_severity(finding.get("severity")),
         "path": str(finding.get("path", "") or "")[:160],
@@ -153,14 +158,44 @@ def _finding_location(finding: dict[str, Any]) -> str:
     return path or "review conversation"
 
 
+def _visible_text(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    rendered: list[str] = []
+    for char in text:
+        if char == "\n":
+            rendered.append("\\n")
+        elif char == "\r":
+            rendered.append("\\r")
+        elif char == "\t":
+            rendered.append("\\t")
+        elif ord(char) < 32 or ord(char) == 127:
+            rendered.append(f"\\x{ord(char):02x}")
+        else:
+            rendered.append(char)
+    return "".join(rendered)
+
+
+def _safe_inline_text(value: Any) -> str:
+    return f"<span>{html.escape(_visible_text(value), quote=False)}</span>"
+
+
+def _safe_inline_code(value: Any) -> str:
+    return f"<code>{html.escape(_visible_text(value), quote=False)}</code>"
+
+
 def _render_finding(finding: dict[str, Any]) -> str:
     title = str(finding.get("title", "") or "DCOIR Review finding").strip()
     severity = normalize_severity(finding.get("severity")).upper()
     location = _finding_location(finding)
     url = str(finding.get("url", "") or "").strip()
     carried = " — carried from the prior review" if finding.get("carried") else ""
-    label = f"**{severity}** {title} — `{location}`{carried}"
-    return f"- [{label}]({url})" if url else f"- {label}"
+    label = (
+        f"- **{severity}** {_safe_inline_text(title)}"
+        f" — {_safe_inline_code(location)}{carried}"
+    )
+    return f"{label} ([open review comment]({url}))" if url else label
 
 
 def _render_changed_file(item: dict[str, Any]) -> str:
@@ -168,7 +203,10 @@ def _render_changed_file(item: dict[str, Any]) -> str:
     status = str(item.get("status", "") or "modified").strip()
     additions = item.get("additions", 0)
     deletions = item.get("deletions", 0)
-    return f"- `{path}` — {status}, +{additions}/-{deletions}"
+    return (
+        f"- {_safe_inline_code(path)}"
+        f" — {_safe_inline_text(status)}, +{additions}/-{deletions}"
+    )
 
 
 def _review_effort(snapshot: dict[str, Any]) -> str:
