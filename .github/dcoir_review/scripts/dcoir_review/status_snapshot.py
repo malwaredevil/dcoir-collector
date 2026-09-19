@@ -7,6 +7,8 @@ from dcoir_review.status_overview import (
     finding_identity,
     normalize_severity,
 )
+from dcoir_review import status_overview_support as support
+from dcoir_review import verified_finding_gate_state as gate_state
 
 
 Sanitizer = Callable[[str], str]
@@ -77,6 +79,7 @@ def normalize_findings(findings: Any, sanitize: Sanitizer) -> list[dict[str, Any
             "url": "",
         }
         item["identity"] = _stable_finding_identity(finding)
+        item["gate_fingerprint"] = gate_state.finding_fingerprint(finding)
         anchors = _review_anchors(finding, sanitize)
         if anchors:
             item["review_anchors"] = anchors
@@ -164,6 +167,7 @@ def merge_open_findings(
         key = (str(item.get("path", "") or ""), int(item.get("line", 0) or 0))
         by_location.setdefault(key, []).append(item)
     prior_review_url = str(previous_completed.get("formal_review_url", "") or "").strip()
+    prior_gate_identities, _ = support.metadata_gate_identity_state(previous_completed)
 
     for record in state.get("unresolved_findings", []) or []:
         if not isinstance(record, dict) or record.get("status") != "carried-unresolved":
@@ -174,6 +178,7 @@ def merge_open_findings(
             line = int(record.get("line", 0) or 0)
         except (TypeError, ValueError):
             line = 0
+        fingerprint = str(record.get("fingerprint", "") or "").strip().lower()
 
         location_keys = [(raw_path, line)]
         if safe_path != raw_path:
@@ -186,6 +191,7 @@ def merge_open_findings(
         seen_prior_ids: set[str] = set()
         for prior_item in matched_items:
             item = dict(prior_item)
+            item["gate_fingerprint"] = fingerprint
             identity = _stable_finding_identity(item)
             if identity and identity in seen_prior_ids:
                 continue
@@ -196,6 +202,24 @@ def merge_open_findings(
                 continue
             if identity:
                 known.add(identity)
+            current.append(item)
+            matched = True
+
+        mapped_identities = prior_gate_identities.get(fingerprint, [])
+        for mapped_identity in mapped_identities:
+            if mapped_identity in seen_prior_ids or mapped_identity in known:
+                continue
+            item = {
+                "title": "Prior verifier-supported finding remains unresolved",
+                "severity": normalize_severity(record.get("severity") or "medium"),
+                "path": safe_path,
+                "line": line,
+                "url": prior_review_url,
+                "carried": True,
+                "identity": mapped_identity,
+                "gate_fingerprint": fingerprint,
+            }
+            known.add(mapped_identity)
             current.append(item)
             matched = True
         if matched:
@@ -209,10 +233,11 @@ def merge_open_findings(
             "line": line,
             "url": prior_review_url,
             "carried": True,
+            "gate_fingerprint": fingerprint,
         }
-        fingerprint = str(record.get("fingerprint", "") or "").strip().lower()
         if len(fingerprint) == 64 and all(char in "0123456789abcdef" for char in fingerprint):
             item["identity"] = f"finding-digest:{fingerprint[:32]}"
+        item["identity_unmatched"] = True
         identity = _stable_finding_identity(item)
         if identity and identity in known:
             continue

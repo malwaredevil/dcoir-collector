@@ -4,6 +4,7 @@ import base64
 import hashlib
 import html
 import json
+import string
 import zlib
 from typing import Any
 
@@ -23,6 +24,8 @@ MINIMAL_METADATA_KEYS = (
     "finding_count",
     "finding_identity_index_complete",
     "open_finding_identities",
+    "finding_gate_identity_map_complete",
+    "open_finding_gate_identities",
 )
 
 
@@ -120,6 +123,68 @@ def finding_identity_index(findings: Any) -> list[str]:
         seen.add(identity)
         identities.append(identity)
     return identities
+
+
+def finding_gate_identity_map(findings: Any) -> dict[str, list[str]]:
+    if not isinstance(findings, list):
+        return {}
+    identities: dict[str, list[str]] = {}
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        fingerprint = str(finding.get("gate_fingerprint", "") or "").strip().lower()
+        identity = canonical_finding_identity(finding)
+        if (
+            len(fingerprint) != 64
+            or any(char not in "0123456789abcdef" for char in fingerprint)
+            or not identity
+        ):
+            continue
+        values = identities.setdefault(fingerprint, [])
+        if identity not in values:
+            values.append(identity)
+    return identities
+
+
+def finding_gate_identity_map_complete(findings: Any) -> bool:
+    if not isinstance(findings, list):
+        return False
+    mapping = finding_gate_identity_map(findings)
+    for finding in findings:
+        if not isinstance(finding, dict):
+            continue
+        identity = canonical_finding_identity(finding)
+        if not identity:
+            continue
+        fingerprint = str(finding.get("gate_fingerprint", "") or "").strip().lower()
+        if identity not in mapping.get(fingerprint, []):
+            return False
+    return True
+
+
+def metadata_gate_identity_state(metadata: Any) -> tuple[dict[str, list[str]], bool]:
+    if not isinstance(metadata, dict):
+        return {}, False
+    raw_mapping = metadata.get("open_finding_gate_identities")
+    if not isinstance(raw_mapping, dict):
+        return {}, False
+    mapping: dict[str, list[str]] = {}
+    for raw_fingerprint, raw_identities in raw_mapping.items():
+        fingerprint = str(raw_fingerprint or "").strip().lower()
+        if (
+            len(fingerprint) != 64
+            or any(char not in "0123456789abcdef" for char in fingerprint)
+            or not isinstance(raw_identities, list)
+        ):
+            continue
+        identities = [
+            identity
+            for value in raw_identities
+            if (identity := _existing_identity(value))
+        ]
+        if identities:
+            mapping[fingerprint] = list(dict.fromkeys(identities))
+    return mapping, bool(metadata.get("finding_gate_identity_map_complete", False))
 
 
 def metadata_finding_identity_state(metadata: Any) -> tuple[list[str], bool]:
@@ -226,11 +291,15 @@ def encode_status_metadata(metadata: dict[str, Any], normalize_severity: Any) ->
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
         bounded["finding_identity_index_complete"] = False
         bounded["open_finding_identities"] = []
+        bounded["finding_gate_identity_map_complete"] = False
+        bounded["open_finding_gate_identities"] = {}
         previous = bounded.get("previous_completed")
         if isinstance(previous, dict):
             previous = dict(previous)
             previous["finding_identity_index_complete"] = False
             previous["open_finding_identities"] = []
+            previous["finding_gate_identity_map_complete"] = False
+            previous["open_finding_gate_identities"] = {}
             bounded["previous_completed"] = previous
         bounded["finding_identity_index_truncated"] = True
         encoded_metadata = _encode_metadata_payload(bounded)
@@ -314,9 +383,17 @@ def visible_text(value: Any) -> str:
     return "".join(rendered)
 
 
+def _html_markdown_literal(value: Any) -> str:
+    text = visible_text(value)
+    return "".join(
+        f"&#{ord(char)};" if char in string.punctuation else html.escape(char, quote=False)
+        for char in text
+    )
+
+
 def safe_inline_text(value: Any) -> str:
-    return f"<span>{html.escape(visible_text(value), quote=False)}</span>"
+    return f"<span>{_html_markdown_literal(value)}</span>"
 
 
 def safe_inline_code(value: Any) -> str:
-    return f"<code>{html.escape(visible_text(value), quote=False)}</code>"
+    return f"<code>{_html_markdown_literal(value)}</code>"

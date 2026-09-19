@@ -145,6 +145,10 @@ def render_status_overview(
     metadata["open_findings"] = findings[:12]
     metadata["open_finding_identities"] = support.finding_identity_index(findings)
     metadata["finding_identity_index_complete"] = True
+    metadata["open_finding_gate_identities"] = support.finding_gate_identity_map(findings)
+    metadata["finding_gate_identity_map_complete"] = (
+        support.finding_gate_identity_map_complete(findings)
+    )
     if state != "completed" and previous:
         prior_identities, prior_identity_complete = support.metadata_finding_identity_state(
             previous
@@ -160,6 +164,15 @@ def render_status_overview(
         metadata["previous_completed"]["open_finding_identities"] = prior_identities
         metadata["previous_completed"]["finding_identity_index_complete"] = (
             prior_identity_complete
+        )
+        prior_gate_identities, prior_gate_identity_complete = (
+            support.metadata_gate_identity_state(previous)
+        )
+        metadata["previous_completed"]["open_finding_gate_identities"] = (
+            prior_gate_identities
+        )
+        metadata["previous_completed"]["finding_gate_identity_map_complete"] = (
+            prior_gate_identity_complete
         )
     lines = [STATUS_MARKER, encode_status_metadata(metadata), ""]
 
@@ -235,6 +248,7 @@ def render_status_overview(
         and not same_head
         and gate_status != "indeterminate"
         and prior_identity_complete
+        and not any(item.get("identity_unmatched") for item in findings)
     ):
         resolved_ids = [
             identity

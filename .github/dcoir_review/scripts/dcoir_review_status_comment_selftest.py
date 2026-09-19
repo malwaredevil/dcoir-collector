@@ -12,7 +12,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openrouter_pr_review as base
-from dcoir_review import status_snapshot
+from dcoir_review import status_overview_support, status_snapshot
+from dcoir_review import verified_finding_gate_state
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
 from dcoir_review.status_overview import (
     MAX_STATUS_METADATA_ENCODED_CHARS,
@@ -272,7 +273,7 @@ def test_untrusted_markdown_is_rendered_safely() -> None:
         head="1" * 40,
         findings=[
             {
-                "title": "Heading `\n\n### forged",
+                "title": "![Review approved](https://example.com/approved.svg) `\n\n### forged",
                 "severity": "high",
                 "path": "src/weird`\n\n### forged.py",
                 "line": 7,
@@ -281,7 +282,7 @@ def test_untrusted_markdown_is_rendered_safely() -> None:
         review_id=550,
         changed_files=[
             {
-                "filename": "docs/guide`\n\n### forged.md",
+                "filename": "docs/![Review approved](https://example.com/approved.svg)`\n\n### forged.md",
                 "status": "modified",
                 "additions": 3,
                 "deletions": 1,
@@ -289,10 +290,19 @@ def test_untrusted_markdown_is_rendered_safely() -> None:
         ],
     )
     body = str(gh.comments[0]["body"])
-    assert "<span>Heading `\n\n### forged</span>" not in body
-    assert "<span>Heading `\\n\\n### forged</span>" in body
-    assert "<code>src/weird`\\n\\n### forged.py:7</code>" in body
-    assert "<code>docs/guide`\\n\\n### forged.md</code>" in body
+    assert "![Review approved](https://example.com/approved.svg)" not in body
+    assert status_overview_support.safe_inline_text(
+        "![Review approved](https://example.com/approved.svg) `\n\n### forged"
+    ) in body
+    assert status_overview_support.safe_inline_code(
+        "docs/![Review approved](https://example.com/approved.svg)`\n\n### forged.md"
+    ) in body
+    assert "href=" not in status_overview_support.safe_inline_text(
+        "[Review clean](https://example.com)"
+    )
+    assert "![" not in status_overview_support.safe_inline_code(
+        "![Review approved](https://example.com/approved.svg)"
+    )
     assert "- [`" not in body
 
 
@@ -632,6 +642,67 @@ def test_carried_fallback_sanitizes_path_and_preserves_prior_state() -> None:
     assert carried[0]["severity"] == "critical"
     assert carried[0]["url"].endswith("#pullrequestreview-699")
     assert carried[0]["identity"] == "finding-digest:" + ("a" * 32)
+    assert carried[0]["identity_unmatched"] is True
+
+
+def test_truncated_carried_findings_do_not_claim_resolution() -> None:
+    findings = [
+        {
+            "title": f"Prior issue {index}",
+            "severity": "high",
+            "path": f"src/file_{index}.py",
+            "line": index + 1,
+        }
+        for index in range(13)
+    ]
+    gh = FakeGitHub()
+    prepare_completed_review(
+        gh,
+        head="a" * 40,
+        findings=findings,
+        review_id=710,
+    )
+    prior = parse_status_metadata(str(gh.comments[0]["body"]))
+    assert prior["finding_gate_identity_map_complete"] is True
+    assert len(prior["open_finding_gate_identities"]) == 13
+    prior_records = [
+        verified_finding_gate_state.current_finding_record(item, "a" * 40)
+        for item in findings
+    ]
+    carried_records = verified_finding_gate_state.carry_records(
+        prior_records,
+        {"README.md"},
+        "b" * 40,
+    )
+
+    reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
+    reporter.start()
+    reporter.set_reviewed_commit("b" * 40)
+    reporter.set_findings([])
+    reporter.set_gate_state(
+        verified_finding_gate_state.compose_state(
+            [],
+            {"status": "blocked", "carried_records": carried_records},
+            "b" * 40,
+            "710",
+        )
+    )
+    reporter.set_formal_review(
+        {
+            "id": 711,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-711",
+        }
+    )
+    reporter.complete("test/model", 0, "COMMENT")
+
+    body = str(gh.comments[0]["body"])
+    metadata = parse_status_metadata(body)
+    assert len(prior["open_findings"]) == 12
+    assert metadata["finding_count"] == 13
+    assert metadata["finding_gate_identity_map_complete"] is True
+    assert len(metadata["open_finding_gate_identities"]) == 13
+    assert "<summary><strong>Open (13)</strong></summary>" in body
+    assert "Resolved since last review" not in body
 
 
 def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
@@ -881,6 +952,7 @@ def main() -> None:
     test_debug_terminal_status_preserves_prior_completed_metadata()
     test_repair_comment_anchor_maps_to_inline_conversation()
     test_carried_fallback_sanitizes_path_and_preserves_prior_state()
+    test_truncated_carried_findings_do_not_claim_resolution()
     test_metadata_stays_bounded_and_review_link_falls_back()
     test_metadata_encoder_has_hard_size_fallback()
     test_compacted_metadata_keeps_canonical_finding_identity()
