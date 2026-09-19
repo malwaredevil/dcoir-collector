@@ -79,7 +79,7 @@
       "id": "nipr_sipr_email_contract",
       "scenario": "The final weekly dataset contains both INCN and INCS incidents.",
       "expected_behavior": "Split the final email drafting into NIPR and SIPR outputs using the governed recipients, subject pattern, and transfer instructions.",
-      "required_markers": ["africom.stuttgart.acj6.list.africom-usb-violations@mail.mil", "africom.stuttgart.acj6.list.africom-usb-violations@mail.smil.mil", "Each Recipient, Subject, and Message Draft section must be followed by one plaintext code block", "SIPR Transfer Instructions must remain outside those code blocks", "copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document and move that text document to SIPR using Intelink iSafe", "Weekly USB Violations [M/D/YYYY Start date] - [M/D/YYYY End date]", "https://isafe.intelink.gov/"]
+      "required_markers": ["africom.stuttgart.acj6.list.africom-usb-violations@mail.mil", "africom.stuttgart.acj6.list.africom-usb-violations@mail.smil.mil", "include all incidents in NIPR", "include only INCN incidents in NIPR and only INCS incidents in SIPR", "Follow each Recipient, Subject, and Message Draft with one plaintext code block", "keep SIPR Transfer Instructions outside code blocks", "copy SIPR recipient, SIPR subject, and SIPR message draft into a document and move it to SIPR using Intelink iSafe", "Weekly USB Violations [M/D/YYYY Start date] - [M/D/YYYY End date]", "https://isafe.intelink.gov/"]
     }
   ]
 }
