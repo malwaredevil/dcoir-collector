@@ -143,7 +143,12 @@ def render_status_overview(
     )
     metadata = {key: snapshot.get(key) for key in metadata_keys}
     metadata["open_findings"] = findings[:12]
+    metadata["open_finding_identities"] = support.finding_identity_index(findings)
+    metadata["finding_identity_index_complete"] = True
     if state != "completed" and previous:
+        prior_identities, prior_identity_complete = support.metadata_finding_identity_state(
+            previous
+        )
         metadata["previous_completed"] = {
             key: previous.get(key)
             for key in metadata_keys
@@ -152,6 +157,10 @@ def render_status_overview(
         metadata["previous_completed"]["open_findings"] = _finding_list(
             previous.get("open_findings")
         )[:24]
+        metadata["previous_completed"]["open_finding_identities"] = prior_identities
+        metadata["previous_completed"]["finding_identity_index_complete"] = (
+            prior_identity_complete
+        )
     lines = [STATUS_MARKER, encode_status_metadata(metadata), ""]
 
     if state in {"queued", "running"}:
@@ -202,27 +211,46 @@ def render_status_overview(
 
     prior_findings = _finding_list(previous.get("open_findings"))
     current_by_id = {
-        finding_identity(item): item
+        support.finding_identity_token(item): item
         for item in findings
-        if finding_identity(item)
+        if support.finding_identity_token(item)
     }
-    prior_by_id = {
-        finding_identity(item): item
+    prior_identities, prior_identity_complete = support.metadata_finding_identity_state(
+        previous
+    )
+    prior_identity_set = set(prior_identities)
+    prior_detail_by_id = {
+        support.finding_identity_token(item): item
         for item in prior_findings
-        if finding_identity(item)
+        if support.finding_identity_token(item)
     }
     same_head = bool(
         previous
         and str(previous.get("reviewed_head_sha", "") or "").strip()
         and str(previous.get("reviewed_head_sha", "") or "").strip() == reviewed_head
     )
-    resolved = []
-    if previous and not same_head and gate_status != "indeterminate":
-        resolved = [item for key, item in prior_by_id.items() if key not in current_by_id]
+    resolved_ids: list[str] = []
+    if (
+        previous
+        and not same_head
+        and gate_status != "indeterminate"
+        and prior_identity_complete
+    ):
+        resolved_ids = [
+            identity
+            for identity in prior_identities
+            if identity not in current_by_id
+        ]
+    resolved = [
+        prior_detail_by_id[identity]
+        for identity in resolved_ids
+        if identity in prior_detail_by_id
+    ]
+    resolved_detail_omitted = max(0, len(resolved_ids) - len(resolved))
     previously_missed = []
-    if same_head:
+    if same_head and prior_identity_complete:
         previously_missed = [
-            item for key, item in current_by_id.items() if key not in prior_by_id
+            item for key, item in current_by_id.items() if key not in prior_identity_set
         ]
 
     if findings:
@@ -272,16 +300,23 @@ def render_status_overview(
             lines.append(_render_finding(item))
         lines.extend(["", "</details>"])
 
-    if resolved:
+    resolved_count = len(resolved) + resolved_detail_omitted
+    if resolved_count:
         lines.extend(
             [
                 "",
                 "<details>",
-                f"<summary><strong>Resolved since last review ({len(resolved)})</strong></summary>",
+                f"<summary><strong>Resolved since last review ({resolved_count})</strong></summary>",
                 "",
             ]
         )
         lines.extend(_render_finding(item) for item in resolved)
+        if resolved_detail_omitted:
+            noun = "finding" if resolved_detail_omitted == 1 else "findings"
+            lines.append(
+                f"- {resolved_detail_omitted} additional resolved {noun}; "
+                "details were omitted from bounded prior-run provenance."
+            )
         lines.extend(["", "</details>"])
 
     if previously_missed:

@@ -196,6 +196,75 @@ def test_finding_links_severity_and_previously_missed() -> None:
     assert "**Findings:** 1 high, 1 medium" in body
 
 
+def test_large_reruns_keep_complete_identity_index() -> None:
+    findings = [
+        {
+            "title": f"Finding {index}",
+            "severity": "medium",
+            "path": f"src/module_{index:02d}.py",
+            "line": index + 1,
+        }
+        for index in range(20)
+    ]
+
+    same_head_gh = FakeGitHub()
+    prepare_completed_review(
+        same_head_gh,
+        head="3" * 40,
+        findings=findings,
+        review_id=540,
+    )
+    first_body = str(same_head_gh.comments[0]["body"])
+    first_metadata = parse_status_metadata(first_body)
+    assert len(first_metadata["open_findings"]) == 12
+    assert len(first_metadata["open_finding_identities"]) == 20
+    assert first_metadata["finding_identity_index_complete"] is True
+
+    prepare_completed_review(
+        same_head_gh,
+        head="3" * 40,
+        findings=findings,
+        review_id=541,
+    )
+    unchanged_body = str(same_head_gh.comments[0]["body"])
+    assert "Previously missed" not in unchanged_body
+
+    prepare_completed_review(
+        same_head_gh,
+        head="3" * 40,
+        findings=[
+            *findings,
+            {
+                "title": "New finding",
+                "severity": "high",
+                "path": "src/new.py",
+                "line": 99,
+            },
+        ],
+        review_id=542,
+    )
+    new_body = str(same_head_gh.comments[0]["body"])
+    assert "Previously missed (1)" in new_body
+    assert "New finding" in new_body
+
+    changed_head_gh = FakeGitHub()
+    prepare_completed_review(
+        changed_head_gh,
+        head="4" * 40,
+        findings=findings,
+        review_id=543,
+    )
+    prepare_completed_review(
+        changed_head_gh,
+        head="5" * 40,
+        findings=findings[:-1],
+        review_id=544,
+    )
+    changed_body = str(changed_head_gh.comments[0]["body"])
+    assert "Resolved since last review (1)" in changed_body
+    assert "1 additional resolved finding" in changed_body
+
+
 def test_untrusted_markdown_is_rendered_safely() -> None:
     gh = FakeGitHub()
     prepare_completed_review(
@@ -645,6 +714,7 @@ def test_status_write_failures_are_observational() -> None:
 def main() -> None:
     test_single_mutable_comment_and_clean_overview()
     test_finding_links_severity_and_previously_missed()
+    test_large_reruns_keep_complete_identity_index()
     test_untrusted_markdown_is_rendered_safely()
     test_same_head_semantic_candidates_keep_distinct_status_identity()
     test_blocked_gate_carries_distinct_semantic_candidates()

@@ -21,6 +21,8 @@ MINIMAL_METADATA_KEYS = (
     "formal_review_url",
     "gate_status",
     "finding_count",
+    "finding_identity_index_complete",
+    "open_finding_identities",
 )
 
 
@@ -96,6 +98,50 @@ def canonical_finding_identity(finding: Any) -> str:
         line=finding.get("line", 0),
         title=finding.get("title", ""),
     )
+
+
+def finding_identity_token(finding: Any) -> str:
+    identity = canonical_finding_identity(finding)
+    if not identity:
+        return ""
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    return f"finding-id:{digest[:24]}"
+
+
+def finding_identity_index(findings: Any) -> list[str]:
+    if not isinstance(findings, list):
+        return []
+    identities: list[str] = []
+    seen: set[str] = set()
+    for finding in findings:
+        identity = finding_identity_token(finding)
+        if not identity or identity in seen:
+            continue
+        seen.add(identity)
+        identities.append(identity)
+    return identities
+
+
+def metadata_finding_identity_state(metadata: Any) -> tuple[list[str], bool]:
+    if not isinstance(metadata, dict):
+        return [], False
+    raw_identities = metadata.get("open_finding_identities")
+    if isinstance(raw_identities, list):
+        identities = [
+            str(value or "").strip()
+            for value in raw_identities
+            if str(value or "").strip()
+        ]
+        return identities, bool(metadata.get("finding_identity_index_complete", False))
+
+    findings = metadata.get("open_findings")
+    detail_findings = findings if isinstance(findings, list) else []
+    identities = finding_identity_index(detail_findings)
+    try:
+        finding_count = int(metadata.get("finding_count", len(detail_findings)) or 0)
+    except (TypeError, ValueError):
+        finding_count = len(detail_findings)
+    return identities, finding_count == len(detail_findings)
 
 
 def _encode_metadata_payload(metadata: dict[str, Any]) -> str:
@@ -176,6 +222,17 @@ def encode_status_metadata(metadata: dict[str, Any], normalize_severity: Any) ->
             previous["open_findings"] = []
             bounded["previous_completed"] = previous
         bounded["finding_detail_truncated"] = True
+        encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        bounded["finding_identity_index_complete"] = False
+        bounded["open_finding_identities"] = []
+        previous = bounded.get("previous_completed")
+        if isinstance(previous, dict):
+            previous = dict(previous)
+            previous["finding_identity_index_complete"] = False
+            previous["open_finding_identities"] = []
+            bounded["previous_completed"] = previous
+        bounded["finding_identity_index_truncated"] = True
         encoded_metadata = _encode_metadata_payload(bounded)
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
         bounded.pop("previous_completed", None)
