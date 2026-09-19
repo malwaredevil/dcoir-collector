@@ -966,6 +966,54 @@ def test_large_noncompleted_metadata_retains_prior_rerun_state_and_provenance() 
     assert prior["open_finding_gate_identities"] == gate_map
 
 
+def test_extreme_prior_identity_state_degrades_without_losing_provenance() -> None:
+    identities = [
+        f"finding-id:{hashlib.sha256(f'extreme-prior-{index}'.encode()).hexdigest()[:24]}"
+        for index in range(500)
+    ]
+    gate_map = {
+        hashlib.sha256(f"extreme-gate-{index}".encode()).hexdigest(): [
+            f"finding-digest:{hashlib.sha256(f'extreme-finding-{index}'.encode()).hexdigest()[:32]}"
+        ]
+        for index in range(500)
+    }
+    metadata = {
+        "schema": "dcoir_review_status_overview_v1",
+        "state": "failed",
+        "pr_number": 55,
+        "command": "/dcoir-review debug",
+        "context_mode": "deep-forced",
+        "model_outcome": "provider/model",
+        "review_event": "COMMENT",
+        "reviewed_head_sha": "b" * 40,
+        "workflow_run_id": "12345",
+        "workflow_run_url": "https://github.com/example/dcoir/actions/runs/12345",
+        "gate_status": "blocked",
+        "finding_count": 0,
+        "previous_completed": {
+            "state": "completed",
+            "reviewed_head_sha": "a" * 40,
+            "finding_identity_index_complete": True,
+            "open_finding_identities": identities,
+            "finding_gate_identity_map_complete": True,
+            "open_finding_gate_identities": gate_map,
+        },
+    }
+    parsed = parse_status_metadata(encode_status_metadata(metadata))
+    assert parsed.get("metadata_truncated") is True
+    assert parsed["command"] == "/dcoir-review debug"
+    assert parsed["context_mode"] == "deep-forced"
+    assert parsed["model_outcome"] == "provider/model"
+    assert parsed["review_event"] == "COMMENT"
+    prior = parsed.get("previous_completed")
+    assert isinstance(prior, dict)
+    assert prior["reviewed_head_sha"] == "a" * 40
+    assert prior["finding_identity_index_complete"] is False
+    assert prior["finding_gate_identity_map_complete"] is False
+    assert "open_finding_identities" not in prior
+    assert "open_finding_gate_identities" not in prior
+
+
 def test_spoofed_user_marker_is_not_reused() -> None:
     gh = FakeGitHub()
     gh.comments.append(
@@ -1042,6 +1090,7 @@ def main() -> None:
     test_compacted_metadata_keeps_canonical_finding_identity()
     test_large_provenance_fields_are_trimmed_before_findings()
     test_large_noncompleted_metadata_retains_prior_rerun_state_and_provenance()
+    test_extreme_prior_identity_state_degrades_without_losing_provenance()
     test_spoofed_user_marker_is_not_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()

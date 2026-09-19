@@ -321,14 +321,20 @@ def encode_status_metadata(metadata: dict[str, Any], normalize_severity: Any) ->
         bounded["metadata_truncated"] = True
         encoded_metadata = _encode_metadata_payload(bounded)
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        previous = bounded.get("previous_completed")
         bounded = {
-            "schema": str(metadata.get("schema", "") or "")[:120],
-            "state": str(metadata.get("state", "") or "")[:32],
-            "pr_number": int(metadata.get("pr_number", 0) or 0),
-            "reviewed_head_sha": str(metadata.get("reviewed_head_sha", "") or "")[:64],
-            "finding_count": int(metadata.get("finding_count", 0) or 0),
-            "metadata_truncated": True,
+            key: bounded.get(key)
+            for key in MINIMAL_METADATA_KEYS
+            if key in bounded
+            and key not in ("open_finding_identities", "open_finding_gate_identities", "previous_completed")
         }
+        if isinstance(previous, dict):
+            bounded["previous_completed"] = {
+                "reviewed_head_sha": str(previous.get("reviewed_head_sha", "") or "")[:64],
+                "finding_identity_index_complete": False,
+                "finding_gate_identity_map_complete": False,
+            }
+        bounded["metadata_truncated"] = True
         encoded_metadata = _encode_metadata_payload(bounded)
     if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
         encoded_metadata = _encode_metadata_payload({"metadata_truncated": True})
