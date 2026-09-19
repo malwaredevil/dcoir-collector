@@ -11,11 +11,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openrouter_pr_review as base
-from dcoir_review.status import (
-    MutableReviewStatusComment,
-    STATUS_MARKER,
-    parse_status_metadata,
-)
+from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
+from dcoir_review.status_overview import parse_status_metadata
 
 
 class FakeGitHub:
