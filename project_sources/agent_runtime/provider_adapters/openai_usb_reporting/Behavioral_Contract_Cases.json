@@ -18,8 +18,8 @@
     {
       "id": "missing_data_readiness",
       "scenario": "The operator asks for a final USB report but provides only a policy name and no source rows.",
-      "expected_behavior": "Decline final drafting, label unavailable evidence, explicitly request current-week USB source data when absent, and ask for the smallest USB evidence prerequisite.",
-      "required_markers": ["unavailable or unverified source state", "smallest missing prerequisite", "final USB report drafting", "If current-week USB source data is absent, ask for it before proceeding"]
+      "expected_behavior": "Decline final drafting, label unavailable evidence, explicitly request current-week USB source data and last week's overall USB violation count when absent, and ask for the smallest USB evidence prerequisite.",
+      "required_markers": ["unavailable or unverified source state", "smallest missing prerequisite", "final USB report drafting", "If current-week USB source data or last week's overall USB violation count is absent, ask for it before proceeding"]
     },
     {
       "id": "query_without_execution",
