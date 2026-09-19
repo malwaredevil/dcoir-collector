@@ -77,7 +77,7 @@ Check source coverage, capability truthfulness, behavioral markers, Knowledge bi
 python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check
 ```
 
-The 11 offline cases validate the static USB Reporting instruction contract only. They do not prove live GPT-5.4 behavior, WebUI upload success, live Elastic access, or final USB report correctness.
+The 13 offline cases validate the static USB Reporting instruction contract only. They do not prove live GPT-5.4 behavior, WebUI upload success, live Elastic access, or final USB report correctness.
 
 ## Knowledge Projection
 
