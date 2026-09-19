@@ -10,6 +10,7 @@ from dcoir_review.status import STATUS_MARKER
 STATUS_METADATA_PREFIX = "<!-- dcoir-review-status-meta:v1:"
 STATUS_METADATA_SUFFIX = " -->"
 SEVERITY_ORDER = ("critical", "high", "medium", "low")
+MAX_STATUS_METADATA_ENCODED_CHARS = 6000
 
 
 def normalize_severity(value: Any) -> str:
@@ -39,7 +40,7 @@ def finding_identity(finding: Any) -> str:
     return f"{path}:{line}:{title}"
 
 
-def encode_status_metadata(metadata: dict[str, Any]) -> str:
+def _encode_metadata_payload(metadata: dict[str, Any]) -> str:
     payload = json.dumps(
         metadata,
         sort_keys=True,
@@ -47,7 +48,48 @@ def encode_status_metadata(metadata: dict[str, Any]) -> str:
         ensure_ascii=True,
     ).encode("utf-8")
     compressed = zlib.compress(payload, level=9)
-    encoded_metadata = base64.b64encode(compressed).decode("ascii").rstrip("=")
+    return base64.b64encode(compressed).decode("ascii").rstrip("=")
+
+
+def _compact_metadata_finding(item: Any) -> dict[str, Any]:
+    finding = item if isinstance(item, dict) else {}
+    return {
+        "title": str(finding.get("title", "") or "")[:120],
+        "severity": normalize_severity(finding.get("severity")),
+        "path": str(finding.get("path", "") or "")[:160],
+        "line": int(finding.get("line", 0) or 0),
+        "url": str(finding.get("url", "") or "")[:240],
+        "carried": bool(finding.get("carried", False)),
+    }
+
+
+def encode_status_metadata(metadata: dict[str, Any]) -> str:
+    bounded = dict(metadata)
+    encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        bounded["provenance_truncated"] = True
+        bounded["open_findings"] = [
+            _compact_metadata_finding(item)
+            for item in bounded.get("open_findings", [])[:6]
+        ]
+        previous = bounded.get("previous_completed")
+        if isinstance(previous, dict):
+            bounded_previous = dict(previous)
+            bounded_previous["open_findings"] = [
+                _compact_metadata_finding(item)
+                for item in bounded_previous.get("open_findings", [])[:6]
+            ]
+            bounded["previous_completed"] = bounded_previous
+        encoded_metadata = _encode_metadata_payload(bounded)
+    if len(encoded_metadata) > MAX_STATUS_METADATA_ENCODED_CHARS:
+        bounded["open_findings"] = []
+        previous = bounded.get("previous_completed")
+        if isinstance(previous, dict):
+            previous = dict(previous)
+            previous["open_findings"] = []
+            bounded["previous_completed"] = previous
+        bounded["finding_detail_truncated"] = True
+        encoded_metadata = _encode_metadata_payload(bounded)
     return f"{STATUS_METADATA_PREFIX}{encoded_metadata}{STATUS_METADATA_SUFFIX}"
 
 

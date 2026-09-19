@@ -12,7 +12,11 @@ if str(ROOT) not in sys.path:
 
 import openrouter_pr_review as base
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
-from dcoir_review.status_overview import parse_status_metadata
+from dcoir_review.status_overview import (
+    MAX_STATUS_METADATA_ENCODED_CHARS,
+    encode_status_metadata,
+    parse_status_metadata,
+)
 
 
 class FakeGitHub:
@@ -311,6 +315,36 @@ def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
     assert "--" not in metadata_line[len("<!-- dcoir-review-status-meta:v1:"):-4]
 
 
+def test_metadata_encoder_has_hard_size_fallback() -> None:
+    oversized = {
+        "schema": "dcoir_review_status_overview_v1",
+        "state": "completed",
+        "pr_number": 55,
+        "reviewed_head_sha": "f" * 40,
+        "workflow_run_id": "12345",
+        "context_mode": "deep-forced",
+        "model_outcome": "test/model",
+        "finding_count": 40,
+        "open_findings": [
+            {
+                "title": f"finding-{index}-" + "".join(chr(33 + ((index * 17 + n) % 80)) for n in range(500)),
+                "severity": "medium",
+                "path": f"src/{index}/" + "".join(chr(33 + ((index * 31 + n) % 70)) for n in range(1500)),
+                "line": index + 1,
+                "url": "https://github.com/example/dcoir/pull/55#discussion_r" + str(1000 + index),
+            }
+            for index in range(40)
+        ],
+    }
+    encoded = encode_status_metadata(oversized)
+    encoded_payload = encoded[len("<!-- dcoir-review-status-meta:v1:"):-4]
+    assert len(encoded_payload) <= MAX_STATUS_METADATA_ENCODED_CHARS
+    parsed = parse_status_metadata(encoded)
+    assert parsed["finding_count"] == 40
+    assert parsed.get("provenance_truncated") is True
+    assert "reviewed_head_sha" in parsed
+
+
 def test_spoofed_user_marker_is_not_reused() -> None:
     gh = FakeGitHub()
     gh.comments.append(
@@ -372,6 +406,7 @@ def main() -> None:
     test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()
     test_metadata_stays_bounded_and_review_link_falls_back()
+    test_metadata_encoder_has_hard_size_fallback()
     test_spoofed_user_marker_is_not_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()
