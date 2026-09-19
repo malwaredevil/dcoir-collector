@@ -1,18 +1,6 @@
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
-from dcoir_review.status_overview import (
-    encode_status_metadata,
-    parse_status_metadata,
-    render_status_overview,
-)
-from dcoir_review.status_snapshot import (
-    attach_review_comment_urls,
-    merge_open_findings,
-    normalize_changed_files,
-    normalize_findings,
-    prior_completed,
-    public_progress_for_stage,
-)
-
+from dcoir_review import status_overview as status_overview_helpers
+from dcoir_review import status_snapshot as status_snapshot_helpers
 
 class ProgressReporter:
     def __init__(self, gh: GitHubClient, issue_number: int, command: str, config: Config) -> None:
@@ -45,7 +33,7 @@ class ProgressReporter:
         discovered = self._status_comment.discover()
         if discovered:
             self.comment_id = discovered
-            self._previous_status_metadata = parse_status_metadata(
+            self._previous_status_metadata = status_overview_helpers.parse_status_metadata(
                 self._status_comment.last_discovered_body
             )
         self.public_progress = "Queued for review"
@@ -65,10 +53,10 @@ class ProgressReporter:
         self.context_mode = self._sanitize(str(context_mode or "").strip())
 
     def set_changed_files(self, files: Any) -> None:
-        self.changed_files = normalize_changed_files(files, self._sanitize)
+        self.changed_files = status_snapshot_helpers.normalize_changed_files(files, self._sanitize)
 
     def set_findings(self, findings: Any) -> None:
-        self.findings = normalize_findings(findings, self._sanitize)
+        self.findings = status_snapshot_helpers.normalize_findings(findings, self._sanitize)
 
     def set_gate_state(self, state: Any) -> None:
         self.gate_state = dict(state) if isinstance(state, dict) else {}
@@ -95,7 +83,7 @@ class ProgressReporter:
                 f"/repos/{repo}/pulls/{self.issue_number}/reviews/"
                 f"{self.formal_review_id}/comments?per_page=100",
             )
-            self.findings = attach_review_comment_urls(
+            self.findings = status_snapshot_helpers.attach_review_comment_urls(
                 self.findings,
                 comments,
                 self.formal_review_url,
@@ -110,7 +98,7 @@ class ProgressReporter:
     def update(self, stage: str, message: str) -> None:
         self._record(stage, message)
         normalized_stage = sanitize_public_identity(str(stage or "").strip())
-        self.public_progress = public_progress_for_stage(normalized_stage)
+        self.public_progress = status_snapshot_helpers.public_progress_for_stage(normalized_stage)
         if normalized_stage == self._last_published_stage:
             return
         self._last_published_stage = normalized_stage
@@ -165,14 +153,14 @@ class ProgressReporter:
         self.steps.append((stage, safe_message))
         emit_status(stage, safe_message)
 
-    def _prior_completed(self) -> dict[str, Any]:
-        return prior_completed(self._previous_status_metadata)
+    def _status_snapshot_helpers.prior_completed(self) -> dict[str, Any]:
+        return status_snapshot_helpers.prior_completed(self._previous_status_metadata)
 
     def _open_findings(self) -> list[dict[str, Any]]:
-        return merge_open_findings(
+        return status_snapshot_helpers.merge_open_findings(
             self.findings,
             self.gate_state,
-            self._prior_completed(),
+            self._status_snapshot_helpers.prior_completed(),
             self.formal_review_url,
         )
 
@@ -202,7 +190,7 @@ class ProgressReporter:
     def _body(self, state: str, final_lines: list[str] | None = None) -> str:
         if bool(getattr(self.config, "debug", False)):
             return self._debug_body(state, final_lines=final_lines)
-        return render_status_overview(self._snapshot(state), self._prior_completed())
+        return status_overview_helpers.render_status_overview(self._snapshot(state), self._status_snapshot_helpers.prior_completed())
 
     def _debug_body(self, state: str, final_lines: list[str] | None = None) -> str:
         normalized = str(state or "").strip().lower()
@@ -221,7 +209,7 @@ class ProgressReporter:
         command = self._sanitize(self.command)
         lines = [
             STATUS_MARKER,
-            encode_status_metadata(self._snapshot(state)),
+            status_overview_helpers.encode_status_metadata(self._snapshot(state)),
             f"## {REVIEW_DISPLAY_NAME} — {state_label}",
             "",
             f"- Exact reviewed commit: `{commit}`.",
