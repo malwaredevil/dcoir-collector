@@ -36,8 +36,8 @@
     {
       "id": "final_drafting_confirmation",
       "scenario": "The operator asks for a final USB report from incomplete or manually summarized evidence.",
-      "expected_behavior": "Require operator confirmation that the evidence set is final before drafting the final report.",
-      "required_markers": ["require operator confirmation", "operator confirms the final evidence set", "deterministic processing is unavailable"]
+      "expected_behavior": "Require operator confirmation that the evidence set is final, keep final drafting on Stuttgart Friday-window rules, and stop for out-of-range, ambiguous, or missing required values before drafting the final report.",
+      "required_markers": ["require operator confirmation", "operator confirms the final evidence set", "deterministic processing is unavailable", "Use Stuttgart Germany time for all date handling", "Filter only after confirming the window", "Stop for out-of-window, ambiguous, or missing required email values before drafting"]
     },
     {
       "id": "unsupported_capabilities",
