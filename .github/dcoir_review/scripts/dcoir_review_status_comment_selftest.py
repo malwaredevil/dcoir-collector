@@ -236,6 +236,50 @@ def test_failure_is_concise_and_debug_is_verbose() -> None:
     assert "Context mode: `deep-forced`" in debug_body
 
 
+def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
+    gh = FakeGitHub()
+    reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
+    reporter.start()
+    reporter.set_reviewed_commit("9" * 40)
+    reporter.set_context_mode("deep-forced")
+    reporter.set_changed_files(
+        [
+            {
+                "filename": f"src/very/long/path/component_{index:03d}.py",
+                "status": "modified",
+                "additions": index,
+                "deletions": 1,
+            }
+            for index in range(200)
+        ]
+    )
+    reporter.set_findings(
+        [
+            {
+                "title": "Fallback-linked issue",
+                "severity": "medium",
+                "path": "src/app.py",
+                "line": 11,
+            }
+        ]
+    )
+    gh.review_comments[700] = []
+    reporter.set_formal_review(
+        {
+            "id": 700,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-700",
+        }
+    )
+    reporter.complete("test/model", 1, "COMMENT")
+    body = str(gh.comments[0]["body"])
+    assert len(body) <= 12000
+    assert "pullrequestreview-700" in body
+    metadata = parse_status_metadata(body)
+    assert metadata["finding_count"] == 1
+    assert "changed_files" not in metadata
+    assert len(metadata["open_findings"]) == 1
+
+
 def test_spoofed_user_marker_is_not_reused() -> None:
     gh = FakeGitHub()
     gh.comments.append(
@@ -295,6 +339,7 @@ def main() -> None:
     test_finding_links_severity_and_previously_missed()
     test_resolved_since_last_review()
     test_failure_is_concise_and_debug_is_verbose()
+    test_metadata_stays_bounded_and_review_link_falls_back()
     test_spoofed_user_marker_is_not_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()

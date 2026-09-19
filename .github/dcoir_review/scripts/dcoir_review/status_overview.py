@@ -162,10 +162,33 @@ def render_status_overview(
     review_url = str(snapshot.get("formal_review_url", "") or "").strip()
     gate_status = str(snapshot.get("gate_status", "") or "").strip().lower()
 
-    metadata = dict(snapshot)
-    metadata["open_findings"] = findings
+    metadata_keys = (
+        "schema",
+        "state",
+        "pr_number",
+        "command",
+        "workflow_run_id",
+        "workflow_run_url",
+        "reviewed_head_sha",
+        "context_mode",
+        "model_outcome",
+        "review_event",
+        "formal_review_id",
+        "formal_review_url",
+        "gate_status",
+        "finding_count",
+    )
+    metadata = {key: snapshot.get(key) for key in metadata_keys}
+    metadata["open_findings"] = findings[:24]
     if state != "completed" and previous:
-        metadata["previous_completed"] = previous
+        metadata["previous_completed"] = {
+            key: previous.get(key)
+            for key in metadata_keys
+            if key in previous
+        }
+        metadata["previous_completed"]["open_findings"] = _finding_list(
+            previous.get("open_findings")
+        )[:24]
     lines = [STATUS_MARKER, encode_status_metadata(metadata), ""]
 
     if state in {"queued", "running"}:

@@ -89,6 +89,11 @@ class ProgressReporter:
                 self.formal_review_url,
             )
         except Exception as exc:
+            self.findings = status_snapshot_helpers.attach_review_comment_urls(
+                self.findings,
+                [],
+                self.formal_review_url,
+            )
             print(
                 f"WARN: unable to read back formal review comments for status overview: {exc}",
                 file=sys.stderr,
