@@ -265,6 +265,34 @@ def test_same_head_semantic_candidates_keep_distinct_status_identity() -> None:
     assert "<summary><strong>Open (2)</strong></summary>" in body
 
 
+def test_metadata_uses_safe_candidate_identity() -> None:
+    gh = FakeGitHub()
+    prepare_completed_review(
+        gh,
+        head="3" * 40,
+        findings=[
+            {
+                "title": "api_key=SECRET-123",
+                "severity": "medium",
+                "path": "src/app.py",
+                "line": 12,
+                "_dcoir_v51_candidate_id": "candidate-a",
+                "_dcoir_v51_semantic_candidate_key": [
+                    "src/app.py",
+                    12,
+                    "semantic_candidate:candidate-a",
+                ],
+            }
+        ],
+        review_id=562,
+    )
+    metadata = parse_status_metadata(str(gh.comments[0]["body"]))
+    identity = metadata["open_findings"][0]["identity"]
+    assert identity == "candidate-id:candidate-a"
+    assert "SECRET-123" not in identity
+    assert "semantic-key:" not in identity
+
+
 def test_blocked_gate_carries_distinct_semantic_candidates() -> None:
     carried = status_snapshot.merge_open_findings(
         [
@@ -495,6 +523,37 @@ def test_metadata_encoder_has_hard_size_fallback() -> None:
     assert parsed["finding_count"] == 40
     assert "reviewed_head_sha" in parsed
     assert parsed.get("metadata_truncated") is True
+
+
+def test_compacted_metadata_keeps_canonical_finding_identity() -> None:
+    normalized = status_snapshot.normalize_findings(
+        [
+            {
+                "title": "Finding " + ("x" * 600),
+                "severity": "medium",
+                "path": "src/" + ("y" * 1200) + ".py",
+                "line": 9,
+            }
+        ],
+        lambda value: str(value),
+    )
+    live_identity = normalized[0]["identity"]
+    oversized = {
+        "schema": "dcoir_review_status_overview_v1",
+        "state": "completed",
+        "pr_number": 55,
+        "command": "/dcoir-review " + ("z" * 4000),
+        "reviewed_head_sha": "f" * 40,
+        "workflow_run_id": "12345",
+        "workflow_run_url": "https://github.com/example/dcoir/actions/runs/" + ("w" * 4000),
+        "context_mode": "deep-forced",
+        "model_outcome": "test/model",
+        "finding_count": 40,
+        "open_findings": normalized * 40,
+    }
+    parsed = parse_status_metadata(encode_status_metadata(oversized))
+    assert parsed["open_findings"][0]["identity"] == live_identity
+    assert live_identity.startswith("finding-digest:")
 
 
 def test_spoofed_user_marker_is_not_reused() -> None:

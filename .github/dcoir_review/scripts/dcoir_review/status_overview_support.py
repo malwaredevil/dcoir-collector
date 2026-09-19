@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import html
 import json
 import zlib
@@ -23,6 +24,80 @@ MINIMAL_METADATA_KEYS = (
 )
 
 
+def _finding_line(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _digest_identity(*, path: Any, line: Any, title: Any, kind: Any = "") -> str:
+    payload = {
+        "kind": visible_text(kind).casefold()[:240],
+        "line": _finding_line(line),
+        "path": visible_text(path)[:500],
+        "title": visible_text(title).casefold()[:200],
+    }
+    if not payload["path"] and not payload["title"] and not payload["kind"]:
+        return ""
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode(
+            "utf-8"
+        )
+    ).hexdigest()
+    return f"finding-digest:{digest[:32]}"
+
+
+def _semantic_key_identity(value: Any) -> str:
+    if not isinstance(value, (list, tuple)) or len(value) != 3:
+        return ""
+    path = str(value[0] or "").strip()
+    line = _finding_line(value[1])
+    kind = str(value[2] or "").strip()
+    if kind.startswith("semantic_candidate:"):
+        candidate_id = kind.split("semantic_candidate:", 1)[1].strip()
+        if candidate_id:
+            return f"candidate-id:{candidate_id}"
+    return _digest_identity(path=path, line=line, title="", kind=kind)
+
+
+def _existing_identity(value: Any) -> str:
+    identity = str(value or "").strip()
+    if identity.startswith(("candidate-id:", "finding-digest:")):
+        return identity
+    if not identity.startswith("semantic-key:"):
+        return ""
+    payload = identity.split("semantic-key:", 1)[1]
+    try:
+        path, line_text, kind = payload.rsplit(":", 2)
+    except ValueError:
+        return ""
+    if kind.startswith("semantic_candidate:"):
+        candidate_id = kind.split("semantic_candidate:", 1)[1].strip()
+        if candidate_id:
+            return f"candidate-id:{candidate_id}"
+    return _digest_identity(path=path, line=line_text, title="", kind=kind)
+
+
+def canonical_finding_identity(finding: Any) -> str:
+    if not isinstance(finding, dict):
+        return ""
+    existing = _existing_identity(finding.get("identity"))
+    if existing:
+        return existing
+    candidate_id = str(finding.get("_dcoir_v51_candidate_id", "") or "").strip()
+    if candidate_id:
+        return f"candidate-id:{candidate_id}"
+    semantic_key = _semantic_key_identity(finding.get("_dcoir_v51_semantic_candidate_key"))
+    if semantic_key:
+        return semantic_key
+    return _digest_identity(
+        path=finding.get("path", ""),
+        line=finding.get("line", 0),
+        title=finding.get("title", ""),
+    )
+
+
 def _encode_metadata_payload(metadata: dict[str, Any]) -> str:
     payload = json.dumps(
         metadata,
@@ -37,7 +112,7 @@ def _encode_metadata_payload(metadata: dict[str, Any]) -> str:
 def compact_metadata_finding(item: Any, normalize_severity: Any) -> dict[str, Any]:
     finding = item if isinstance(item, dict) else {}
     return {
-        "identity": str(finding.get("identity", "") or "")[:240],
+        "identity": canonical_finding_identity(finding),
         "title": str(finding.get("title", "") or "")[:120],
         "severity": normalize_severity(finding.get("severity")),
         "path": str(finding.get("path", "") or "")[:160],

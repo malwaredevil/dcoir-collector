@@ -23,20 +23,7 @@ def normalize_severity(value: Any) -> str:
 
 
 def finding_identity(finding: Any) -> str:
-    if not isinstance(finding, dict):
-        return ""
-    existing = str(finding.get("identity", "") or "").strip()
-    if existing:
-        return existing
-    path = str(finding.get("path", "") or "").strip()
-    title = str(finding.get("title", "") or "").strip().casefold()
-    try:
-        line = int(finding.get("line", 0) or 0)
-    except (TypeError, ValueError):
-        line = 0
-    if not path and not title:
-        return ""
-    return f"{path}:{line}:{title}"
+    return support.canonical_finding_identity(finding)
 
 
 def encode_status_metadata(metadata: dict[str, Any]) -> str:
