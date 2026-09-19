@@ -485,6 +485,98 @@ def test_failure_is_concise_and_debug_is_verbose() -> None:
     assert "Context mode: `deep-forced`" in debug_body
 
 
+def test_debug_terminal_status_preserves_prior_completed_metadata() -> None:
+    gh = FakeGitHub()
+    first = base.ProgressReporter(gh, 55, "/dcoir-review", config(debug=True))
+    first.start()
+    first.set_reviewed_commit("a" * 40)
+    first.set_context_mode("deep-forced")
+    first.set_findings(
+        [{"title": "Prior issue", "severity": "high", "path": "src/app.py", "line": 7}]
+    )
+    first.set_formal_review(
+        {
+            "id": 690,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-690",
+        }
+    )
+    first.complete("test/model", 1, "COMMENT")
+
+    second = base.ProgressReporter(gh, 55, "/dcoir-review", config(debug=True))
+    second.start()
+    second.set_reviewed_commit("b" * 40)
+    second.fail("synthetic debug failure")
+    failed_metadata = parse_status_metadata(str(gh.comments[0]["body"]))
+    prior = status_snapshot.prior_completed(failed_metadata)
+    assert prior["reviewed_head_sha"] == "a" * 40
+    assert prior["formal_review_id"] == 690
+    assert len(prior["open_findings"]) == 1
+
+
+def test_repair_comment_anchor_maps_to_inline_conversation() -> None:
+    normalized = status_snapshot.normalize_findings(
+        [
+            {
+                "title": "Repair issue",
+                "severity": "high",
+                "path": "src/original.py",
+                "line": 10,
+                "_dcoir_status_review_anchors": [
+                    {"path": "src/repair.py", "line": 25},
+                    {"path": "src/other.py", "line": 40},
+                ],
+            }
+        ],
+        str,
+    )
+    linked = status_snapshot.attach_review_comment_urls(
+        normalized,
+        [
+            {
+                "path": "src/repair.py",
+                "line": 25,
+                "html_url": "https://github.com/example/dcoir/pull/55#discussion_r7001",
+            }
+        ],
+        "https://github.com/example/dcoir/pull/55#pullrequestreview-700",
+    )
+    assert linked[0]["url"].endswith("#discussion_r7001")
+    assert "review_anchors" not in linked[0]
+
+
+def test_carried_fallback_sanitizes_path_and_preserves_prior_state() -> None:
+    def redact(value: str) -> str:
+        return str(value).replace("SECRET-123", "[redacted-secret]")
+
+    carried = status_snapshot.merge_open_findings(
+        [],
+        {
+            "gate_status": "blocked",
+            "unresolved_findings": [
+                {
+                    "fingerprint": "a" * 64,
+                    "path": "src/api_key=SECRET-123.py",
+                    "line": 9,
+                    "severity": "critical",
+                    "status": "carried-unresolved",
+                }
+            ],
+        },
+        {
+            "formal_review_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-699",
+            "open_findings": [],
+        },
+        "https://github.com/example/dcoir/pull/55#pullrequestreview-700",
+        redact,
+    )
+    assert len(carried) == 1
+    assert carried[0]["path"] == "src/api_key=[redacted-secret].py"
+    assert "SECRET-123" not in carried[0]["path"]
+    assert carried[0]["severity"] == "critical"
+    assert carried[0]["url"].endswith("#pullrequestreview-699")
+    assert carried[0]["identity"] == "finding-digest:" + ("a" * 32)
+
+
 def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
     gh = FakeGitHub()
     reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
@@ -721,6 +813,9 @@ def main() -> None:
     test_resolved_since_last_review()
     test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()
+    test_debug_terminal_status_preserves_prior_completed_metadata()
+    test_repair_comment_anchor_maps_to_inline_conversation()
+    test_carried_fallback_sanitizes_path_and_preserves_prior_state()
     test_metadata_stays_bounded_and_review_link_falls_back()
     test_metadata_encoder_has_hard_size_fallback()
     test_spoofed_user_marker_is_not_reused()

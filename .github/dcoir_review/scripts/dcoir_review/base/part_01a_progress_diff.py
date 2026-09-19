@@ -167,6 +167,7 @@ class ProgressReporter:
             self.gate_state,
             self._prior_completed(),
             self.formal_review_url,
+            self._sanitize,
         )
 
     def _snapshot(self, state: str) -> dict[str, Any]:
@@ -212,9 +213,14 @@ class ProgressReporter:
         started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.started_at))
         commit = self._sanitize(self.reviewed_commit or "pending")
         command = self._sanitize(self.command)
+        debug_snapshot = self._snapshot(state)
+        if normalized != "completed":
+            prior_completed = self._prior_completed()
+            if prior_completed:
+                debug_snapshot["previous_completed"] = prior_completed
         lines = [
             STATUS_MARKER,
-            status_overview_helpers.encode_status_metadata(self._snapshot(state)),
+            status_overview_helpers.encode_status_metadata(debug_snapshot),
             f"## {REVIEW_DISPLAY_NAME} — {state_label}",
             "",
             f"- Exact reviewed commit: `{commit}`.",

@@ -34,6 +34,28 @@ def normalize_changed_files(files: Any, sanitize: Sanitizer) -> list[dict[str, A
     return normalized
 
 
+def _plain_text(value: str) -> str:
+    return str(value or "")
+
+
+def _review_anchors(finding: dict[str, Any], sanitize: Sanitizer) -> list[dict[str, Any]]:
+    anchors: list[dict[str, Any]] = []
+    raw_anchors = finding.get("_dcoir_status_review_anchors")
+    if not isinstance(raw_anchors, list):
+        return anchors
+    for anchor in raw_anchors[:6]:
+        if not isinstance(anchor, dict):
+            continue
+        path = sanitize(str(anchor.get("path", "") or ""))[:500]
+        try:
+            line = int(anchor.get("line", 0) or 0)
+        except (TypeError, ValueError):
+            line = 0
+        if path and line > 0:
+            anchors.append({"path": path, "line": line})
+    return anchors
+
+
 def normalize_findings(findings: Any, sanitize: Sanitizer) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     if not isinstance(findings, list):
@@ -55,6 +77,9 @@ def normalize_findings(findings: Any, sanitize: Sanitizer) -> list[dict[str, Any
             "url": "",
         }
         item["identity"] = _stable_finding_identity(finding)
+        anchors = _review_anchors(finding, sanitize)
+        if anchors:
+            item["review_anchors"] = anchors
         normalized.append(item)
     return normalized
 
@@ -65,10 +90,9 @@ def attach_review_comment_urls(
     fallback_url: str,
 ) -> list[dict[str, Any]]:
     normalized = [dict(item) for item in findings]
-    if not isinstance(comments, list):
-        return normalized
+    review_comments = comments if isinstance(comments, list) else []
     unused = list(normalized)
-    for comment in comments:
+    for comment in review_comments:
         if not isinstance(comment, dict):
             continue
         path = str(comment.get("path", "") or "").strip()
@@ -80,24 +104,33 @@ def attach_review_comment_urls(
             )
         except (TypeError, ValueError):
             line = 0
-        match = next(
-            (
-                item
-                for item in unused
-                if str(item.get("path", "") or "") == path
+
+        def matches(item: dict[str, Any]) -> bool:
+            anchors = item.get("review_anchors")
+            if isinstance(anchors, list):
+                for anchor in anchors:
+                    if not isinstance(anchor, dict):
+                        continue
+                    if (
+                        str(anchor.get("path", "") or "") == path
+                        and int(anchor.get("line", 0) or 0) == line
+                    ):
+                        return True
+            return (
+                str(item.get("path", "") or "") == path
                 and int(item.get("line", 0) or 0) == line
-            ),
-            None,
-        )
+            )
+
+        match = next((item for item in unused if matches(item)), None)
         if match is None:
             continue
         match["url"] = str(comment.get("html_url", "") or fallback_url).strip()
         unused.remove(match)
-    for item in unused:
+    for item in normalized:
         if not item.get("url"):
             item["url"] = fallback_url
+        item.pop("review_anchors", None)
     return normalized
-
 
 def prior_completed(metadata: Any) -> dict[str, Any]:
     return completed_status_metadata(metadata)
@@ -108,7 +141,10 @@ def merge_open_findings(
     gate_state: Any,
     previous_completed: dict[str, Any],
     formal_review_url: str,
+    sanitize: Sanitizer | None = None,
 ) -> list[dict[str, Any]]:
+    del formal_review_url
+    sanitize_value = sanitize if callable(sanitize) else _plain_text
     current = [dict(item) for item in findings]
     known = {
         _stable_finding_identity(item)
@@ -127,19 +163,35 @@ def merge_open_findings(
     for item in prior_findings:
         key = (str(item.get("path", "") or ""), int(item.get("line", 0) or 0))
         by_location.setdefault(key, []).append(item)
+    prior_review_url = str(previous_completed.get("formal_review_url", "") or "").strip()
+
     for record in state.get("unresolved_findings", []) or []:
         if not isinstance(record, dict) or record.get("status") != "carried-unresolved":
             continue
-        path = str(record.get("path", "") or "")
+        raw_path = str(record.get("path", "") or "")
+        safe_path = sanitize_value(raw_path)[:500]
         try:
             line = int(record.get("line", 0) or 0)
         except (TypeError, ValueError):
             line = 0
+
+        location_keys = [(raw_path, line)]
+        if safe_path != raw_path:
+            location_keys.append((safe_path, line))
+        matched_items: list[dict[str, Any]] = []
+        for key in location_keys:
+            matched_items.extend(by_location.get(key, []))
+
         matched = False
-        for prior_item in by_location.get((path, line), []):
+        seen_prior_ids: set[str] = set()
+        for prior_item in matched_items:
             item = dict(prior_item)
-            item["carried"] = True
             identity = _stable_finding_identity(item)
+            if identity and identity in seen_prior_ids:
+                continue
+            if identity:
+                seen_prior_ids.add(identity)
+            item["carried"] = True
             if identity and identity in known:
                 continue
             if identity:
@@ -148,14 +200,19 @@ def merge_open_findings(
             matched = True
         if matched:
             continue
+
+        severity = normalize_severity(record.get("severity") or "medium")
         item = {
             "title": "Prior verifier-supported finding remains unresolved",
-            "severity": "medium",
-            "path": path,
+            "severity": severity,
+            "path": safe_path,
             "line": line,
-            "url": formal_review_url,
+            "url": prior_review_url,
             "carried": True,
         }
+        fingerprint = str(record.get("fingerprint", "") or "").strip().lower()
+        if len(fingerprint) == 64 and all(char in "0123456789abcdef" for char in fingerprint):
+            item["identity"] = f"finding-digest:{fingerprint[:32]}"
         identity = _stable_finding_identity(item)
         if identity and identity in known:
             continue
@@ -163,7 +220,6 @@ def merge_open_findings(
             known.add(identity)
         current.append(item)
     return current
-
 
 def public_progress_for_stage(stage: str) -> str:
     value = str(stage or "").lower()

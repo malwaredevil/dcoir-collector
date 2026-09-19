@@ -180,13 +180,35 @@ def main() -> None:
             findings, normalized_candidates, config, hardened
         )
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
-        set_findings = getattr(reporter, "set_findings", None)
-        if callable(set_findings):
-            set_findings(findings)
 
         comments: list[dict[str, Any]] = []
+        status_findings: list[dict[str, Any]] = []
         for finding in findings:
-            comments.extend(build_review_comments_for_finding(finding, model_used, config))
+            finding_comments = build_review_comments_for_finding(finding, model_used, config)
+            status_finding = dict(finding)
+            review_anchors: list[dict[str, Any]] = []
+            for comment in finding_comments:
+                if not isinstance(comment, dict):
+                    continue
+                path = str(comment.get("path", "") or "").strip()
+                try:
+                    line = int(
+                        comment.get("line", 0)
+                        or comment.get("original_line", 0)
+                        or 0
+                    )
+                except (TypeError, ValueError):
+                    line = 0
+                if path and line > 0:
+                    review_anchors.append({"path": path, "line": line})
+            if review_anchors:
+                status_finding["_dcoir_status_review_anchors"] = review_anchors[:6]
+            status_findings.append(status_finding)
+            comments.extend(finding_comments)
+
+        set_findings = getattr(reporter, "set_findings", None)
+        if callable(set_findings):
+            set_findings(status_findings)
 
         event = "REQUEST_CHANGES" if comments and config.request_changes_on_findings else "COMMENT"
         review_body = append_context_to_review_body(
