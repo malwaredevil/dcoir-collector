@@ -37,7 +37,7 @@
       "id": "final_drafting_confirmation",
       "scenario": "The operator asks for a final USB report from incomplete or manually summarized evidence.",
       "expected_behavior": "Require operator confirmation that the evidence set is final, parse accepted structured inputs conservatively, validate required fields and row counts, keep Stuttgart Friday-window rules, and stop for out-of-range, ambiguous, or missing required values before drafting.",
-      "required_markers": ["require operator confirmation", "operator confirms the final evidence set", "deterministic processing is unavailable", "Accept CSV/pasted CSV and reliably parsed XLSX/tabular/copied rows", "Required email fields: Date w/Time in Z", "never shift/infer adjacent values", "Count only in-window data rows, not headers", "Use Stuttgart Germany time for all date handling", "Filter only after confirming the window", "Stop for out-of-window, ambiguous, or missing required email values before drafting"]
+      "required_markers": ["require operator confirmation", "operator confirms the final evidence set", "deterministic processing is unavailable", "Accept CSV/pasted CSV and reliably parsed XLSX/tabular/copied rows", "Required email fields: Date w/Time in Z", "never shift/infer adjacent values", "Count only in-window data rows, not headers", "Use Stuttgart Germany time for all date handling", "The intended reporting window is last Friday through this Friday", "Only proceed automatically if the current day is Friday", "ask the operator to confirm the reporting date range before drafting", "Filter only after confirming the window", "Stop for out-of-window, ambiguous, or missing required email values before drafting"]
     },
     {
       "id": "unsupported_capabilities",
@@ -73,7 +73,7 @@
       "id": "incident_timestamp_and_notes",
       "scenario": "The operator provides a report-ready USB incident row containing a UTC timestamp and Notes value.",
       "expected_behavior": "Preserve Zulu time and optional Notes in the canonical newline-separated incident detail block.",
-      "required_markers": ["Date w/Time in Z", "MM/DD/YYYY HHMMZ", "Notes: [Notes]", "omit the Notes line when absent or blank", "List incidents in ascending date order using exactly these lines", "Date: [Date] [Time]Z\nName(s): [User]\nLocation: [Location]"]
+      "required_markers": ["Date w/Time in Z", "Preserve Date w/Time in Z as UTC", "do not convert incident timestamps to Stuttgart time", "MM/DD/YYYY HHMMZ", "Notes: [Notes]", "omit the Notes line when absent or blank", "List incidents in ascending date order using exactly these lines", "Date: [Date] [Time]Z\nName(s): [User]\nLocation: [Location]"]
     },
     {
       "id": "nipr_sipr_email_contract",
