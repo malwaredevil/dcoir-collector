@@ -55,6 +55,12 @@ def apply_pareto_context_module(module: Any) -> None:
                 telemetry.emit_run_telemetry(module, self)
             except Exception:
                 telemetry.note_telemetry_error(getattr(self, "config", None))
+            active_gate_state = getattr(module, verified_gate._STATE_ATTR, None)
+            set_gate_state = getattr(self, "set_gate_state", None)
+            if callable(set_gate_state) and isinstance(active_gate_state, dict):
+                set_gate_state(active_gate_state)
+            self.model_used = str(model_used or "")
+            self.review_event = str(review_event or "")
             override = verified_gate.progress_completion_override(
                 module,
                 getattr(self, "config", None),

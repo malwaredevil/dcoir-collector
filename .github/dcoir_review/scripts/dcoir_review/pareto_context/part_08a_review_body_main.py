@@ -89,6 +89,9 @@ def main() -> None:
         diff = gh.get_pr_diff(pr_number)
         reporter.update("github", "fetching changed file list")
         files = gh.list_files(pr_number)
+        set_changed_files = getattr(reporter, "set_changed_files", None)
+        if callable(set_changed_files):
+            set_changed_files(files)
         set_python_path_alias_context(build_python_path_alias_context(gh, pr, files))
         set_python_os_alias_context(build_python_os_alias_context(gh, pr, files))
         try:
@@ -98,6 +101,9 @@ def main() -> None:
             prior_successful_review = False
             reporter.update("review-mode", f"prior context review readback failed; using first-pass posture: {str(exc)[:240]}")
         review_mode = review_mode_for_command(comment_body, command, config, prior_successful_review)
+        set_context_mode = getattr(reporter, "set_context_mode", None)
+        if callable(set_context_mode):
+            set_context_mode(review_mode)
         deep_context_block, context_summary = build_deep_context_block(gh, pr, files, config, review_mode)
         review_assist_ctx = load_review_assist_context(config)
         if review_assist_ctx:
@@ -174,6 +180,9 @@ def main() -> None:
             findings, normalized_candidates, config, hardened
         )
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
+        set_findings = getattr(reporter, "set_findings", None)
+        if callable(set_findings):
+            set_findings(findings)
 
         comments: list[dict[str, Any]] = []
         for finding in findings:
