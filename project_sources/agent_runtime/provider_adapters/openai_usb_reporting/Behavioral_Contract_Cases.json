@@ -37,7 +37,7 @@
       "id": "final_drafting_confirmation",
       "scenario": "The operator asks for a final USB report from incomplete or manually summarized evidence.",
       "expected_behavior": "Require operator confirmation that the evidence set is final before drafting the final report.",
-      "required_markers": ["require operator confirmation", "operator confirms the evidence set is final", "deterministic processing is unavailable"]
+      "required_markers": ["require operator confirmation", "operator confirms the final evidence set", "deterministic processing is unavailable"]
     },
     {
       "id": "unsupported_capabilities",
@@ -79,7 +79,7 @@
       "id": "nipr_sipr_email_contract",
       "scenario": "The final weekly dataset contains both INCN and INCS incidents.",
       "expected_behavior": "Split the final email drafting into NIPR and SIPR outputs using the governed recipients, subject pattern, and transfer instructions.",
-      "required_markers": ["africom.stuttgart.acj6.list.africom-usb-violations@mail.mil", "africom.stuttgart.acj6.list.africom-usb-violations@mail.smil.mil", "Weekly USB Violations [Start date] - [End date]", "https://isafe.intelink.gov/"]
+      "required_markers": ["africom.stuttgart.acj6.list.africom-usb-violations@mail.mil", "africom.stuttgart.acj6.list.africom-usb-violations@mail.smil.mil", "Each Recipient, Subject, and Message Draft section must be followed by one plaintext code block", "SIPR Transfer Instructions must remain outside those code blocks", "Weekly USB Violations [M/D/YYYY Start date] - [M/D/YYYY End date]", "https://isafe.intelink.gov/"]
     }
   ]
 }
