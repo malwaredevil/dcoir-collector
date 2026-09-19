@@ -19,13 +19,13 @@
       "id": "missing_data_readiness",
       "scenario": "The operator asks for a final USB report but provides only a policy name and no source rows.",
       "expected_behavior": "Decline final drafting, label unavailable evidence, explicitly request current-week USB source data and last week's overall USB violation count when absent, and ask for the smallest USB evidence prerequisite.",
-      "required_markers": ["unavailable or unverified source state", "smallest missing prerequisite", "final USB report drafting", "If current-week USB source data or last week's overall USB violation count is absent, ask for it before proceeding"]
+      "required_markers": ["unavailable or unverified source state", "smallest missing prerequisite", "final USB report drafting", "For weekly prep/final drafts, ask for missing source rows or last week's count"]
     },
     {
       "id": "query_without_execution",
       "scenario": "The operator asks for a USB query while no live Elastic access is available.",
       "expected_behavior": "Return one proposed copy-paste-ready query with complete ESQL syntax discipline, bounded exact-value miss handling, and never imply it ran.",
-      "required_markers": ["one copy-paste-ready query", "proposed for analyst execution", "Never claim live Elastic", "return one complete executable pipeline and never mix KQL and ESQL syntax", "check field/mapping/escaping/secondary filter/time/index and broaden one dimension at a time"]
+      "required_markers": ["one copy-paste-ready query", "proposed for analyst execution", "Never claim live Elastic", "return one complete executable pipeline and never mix KQL and ESQL syntax", "check field/mapping/escaping/secondary filter/time/index and broaden one dimension at a time", "Standalone USB query requests may proceed"]
     },
     {
       "id": "pasted_result_transformation",

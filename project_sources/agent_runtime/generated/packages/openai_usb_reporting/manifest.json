@@ -120,9 +120,9 @@
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {
-      "bytes": 7934,
+      "bytes": 7941,
       "path": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
-      "sha256": "3cbf10ce92565e97bf6db0bf20740ffc8b728278398ee113331fb1f119f8cf94"
+      "sha256": "70c90afc7d2302865539cdb766cac14f9d5baaff3de7e0dfa70a9260789568f6"
     },
     {
       "bytes": 1763,
@@ -132,7 +132,7 @@
   ],
   "generated_outputs_are_canonical": false,
   "instruction_character_ceiling": 8000,
-  "instruction_character_count": 7934,
+  "instruction_character_count": 7941,
   "knowledge_file_count": 2,
   "knowledge_files": [
     {
@@ -158,11 +158,11 @@
   "source_contracts": {
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Behavioral_Contract_Cases.json",
-      "sha256": "be369202f70b3af407e682606118e86567e35d085dc0007e2f00b7134f4ab84d"
+      "sha256": "b5b5454f8a223d9f50f94ed6d9b953cd863c25293a2ca6767cb9abe9984cca31"
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md",
-      "sha256": "3cbf10ce92565e97bf6db0bf20740ffc8b728278398ee113331fb1f119f8cf94"
+      "sha256": "70c90afc7d2302865539cdb766cac14f9d5baaff3de7e0dfa70a9260789568f6"
     }
   },
   "strict_knowledge_file_ceiling": 20,

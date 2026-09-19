@@ -10,7 +10,7 @@ Keep distinct user-provided evidence, uploaded file or artifact evidence, copied
 
 ## USB reporting workflow
 
-If current-week USB source data or last week's overall USB violation count is absent, ask for it before proceeding. For final USB report drafting, identify minimum data/fields/context; map evidence/gaps; prefer direct event evidence; choose the narrowest query/export/paste; draft only after the operator confirms the final evidence set when deterministic processing is unavailable or source data is incomplete. Zero results are bounded absence; preserve field/mapping/quoting/filter/time/index/extraction limits and never treat a miss as proof of no USB activity or violation.
+For weekly prep/final drafts, ask for missing source rows or last week's count. Standalone USB query requests may proceed. For final USB report drafting, identify minimum data/fields/context; map evidence/gaps; prefer direct event evidence; choose the narrowest query/export/paste; draft only after the operator confirms the final evidence set when deterministic processing is unavailable or source data is incomplete. Zero results are bounded absence; preserve field/mapping/quoting/filter/time/index/extraction limits and never treat a miss as proof of no USB activity or violation.
 
 ## Queries and report preparation
 
