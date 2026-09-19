@@ -1,12 +1,16 @@
-from dcoir_review.status import (
-    MutableReviewStatusComment,
-    STATUS_MARKER,
-    completed_status_metadata,
+from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
+from dcoir_review.status_overview import (
     encode_status_metadata,
-    finding_identity,
-    normalize_severity,
     parse_status_metadata,
     render_status_overview,
+)
+from dcoir_review.status_snapshot import (
+    attach_review_comment_urls,
+    merge_open_findings,
+    normalize_changed_files,
+    normalize_findings,
+    prior_completed,
+    public_progress_for_stage,
 )
 
 
@@ -34,6 +38,9 @@ class ProgressReporter:
         self._status_comment = MutableReviewStatusComment(gh, issue_number)
         self._previous_status_metadata: dict[str, Any] = {}
 
+    def _sanitize(self, value: str) -> str:
+        return sanitize_github_output(str(value or ""), self.config)
+
     def start(self) -> None:
         discovered = self._status_comment.discover()
         if discovered:
@@ -55,47 +62,13 @@ class ProgressReporter:
             self._update_comment(self._body("running"), create_if_missing=True, force=True)
 
     def set_context_mode(self, context_mode: str) -> None:
-        self.context_mode = sanitize_github_output(str(context_mode or "").strip(), self.config)
+        self.context_mode = self._sanitize(str(context_mode or "").strip())
 
     def set_changed_files(self, files: Any) -> None:
-        normalized: list[dict[str, Any]] = []
-        if isinstance(files, list):
-            for item in files:
-                if not isinstance(item, dict):
-                    continue
-                normalized.append(
-                    {
-                        "path": sanitize_github_output(str(item.get("filename", "") or ""), self.config),
-                        "status": sanitize_github_output(str(item.get("status", "") or "modified"), self.config),
-                        "additions": int(item.get("additions", 0) or 0),
-                        "deletions": int(item.get("deletions", 0) or 0),
-                    }
-                )
-        self.changed_files = normalized
+        self.changed_files = normalize_changed_files(files, self._sanitize)
 
     def set_findings(self, findings: Any) -> None:
-        normalized: list[dict[str, Any]] = []
-        if isinstance(findings, list):
-            for finding in findings:
-                if not isinstance(finding, dict):
-                    continue
-                try:
-                    line = int(finding.get("line", 0) or 0)
-                except (TypeError, ValueError):
-                    line = 0
-                item = {
-                    "title": sanitize_github_output(
-                        str(finding.get("title", "") or "DCOIR Review finding"),
-                        self.config,
-                    ),
-                    "severity": normalize_severity(finding.get("severity")),
-                    "path": sanitize_github_output(str(finding.get("path", "") or ""), self.config),
-                    "line": line,
-                    "url": "",
-                }
-                item["identity"] = finding_identity(item)
-                normalized.append(item)
-        self.findings = normalized
+        self.findings = normalize_findings(findings, self._sanitize)
 
     def set_gate_state(self, state: Any) -> None:
         self.gate_state = dict(state) if isinstance(state, dict) else {}
@@ -119,7 +92,13 @@ class ProgressReporter:
         try:
             comments = self.gh.request(
                 "GET",
-                f"/repos/{repo}/pulls/{self.issue_number}/reviews/{self.formal_review_id}/comments?per_page=100",
+                f"/repos/{repo}/pulls/{self.issue_number}/reviews/"
+                f"{self.formal_review_id}/comments?per_page=100",
+            )
+            self.findings = attach_review_comment_urls(
+                self.findings,
+                comments,
+                self.formal_review_url,
             )
         except Exception as exc:
             print(
@@ -127,51 +106,26 @@ class ProgressReporter:
                 file=sys.stderr,
                 flush=True,
             )
-            return
-        if not isinstance(comments, list):
-            return
-        unused = list(self.findings)
-        for comment in comments:
-            if not isinstance(comment, dict):
-                continue
-            path = str(comment.get("path", "") or "").strip()
-            try:
-                line = int(comment.get("line", 0) or comment.get("original_line", 0) or 0)
-            except (TypeError, ValueError):
-                line = 0
-            match = next(
-                (
-                    item
-                    for item in unused
-                    if str(item.get("path", "") or "") == path
-                    and int(item.get("line", 0) or 0) == line
-                ),
-                None,
-            )
-            if match is None:
-                continue
-            match["url"] = str(comment.get("html_url", "") or self.formal_review_url).strip()
-            unused.remove(match)
-        for item in unused:
-            if not item.get("url"):
-                item["url"] = self.formal_review_url
 
     def update(self, stage: str, message: str) -> None:
         self._record(stage, message)
         normalized_stage = sanitize_public_identity(str(stage or "").strip())
-        self.public_progress = self._public_progress_for_stage(normalized_stage)
+        self.public_progress = public_progress_for_stage(normalized_stage)
         if normalized_stage == self._last_published_stage:
             return
         self._last_published_stage = normalized_stage
         self._update_comment(self._body("running"))
 
     def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
-        self.model_used = sanitize_github_output(str(model_used or ""), self.config)
-        self.review_event = sanitize_github_output(str(review_event or ""), self.config)
+        self.model_used = self._sanitize(str(model_used or ""))
+        self.review_event = self._sanitize(str(review_event or ""))
         plural = "finding" if findings_count == 1 else "findings"
         self.completed_at = time.time()
         self.public_progress = "Review completed"
-        self._record("completed", f"posted GitHub review; {findings_count} inline {plural}; event={review_event}")
+        self._record(
+            "completed",
+            f"posted GitHub review; {findings_count} inline {plural}; event={review_event}",
+        )
         self._last_published_stage = "completed"
         self._update_comment(
             self._body(
@@ -186,7 +140,7 @@ class ProgressReporter:
         )
 
     def fail(self, message: str) -> None:
-        safe_message = sanitize_github_output(message, self.config)
+        safe_message = self._sanitize(message)
         self.completed_at = time.time()
         self.public_progress = "Review failed"
         self._record("failed", safe_message[:500])
@@ -207,86 +161,42 @@ class ProgressReporter:
         )
 
     def _record(self, stage: str, message: str) -> None:
-        safe_message = sanitize_github_output(message, self.config)
+        safe_message = self._sanitize(message)
         self.steps.append((stage, safe_message))
         emit_status(stage, safe_message)
 
-    def _public_progress_for_stage(self, stage: str) -> str:
-        value = str(stage or "").lower()
-        if "github-review" in value or "publish" in value:
-            return "Publishing the GitHub review"
-        if any(token in value for token in ("normalize", "verif", "repair", "adjudication", "gate")):
-            return "Validating review findings"
-        if any(token in value for token in ("provider", "prompt", "semantic", "risk", "per-file", "review-mode")):
-            return "Reviewing changed code"
-        if any(token in value for token in ("github", "context", "assist", "reaction")):
-            return "Preparing review context"
-        return "Review in progress"
-
     def _prior_completed(self) -> dict[str, Any]:
-        return completed_status_metadata(self._previous_status_metadata)
+        return prior_completed(self._previous_status_metadata)
 
     def _open_findings(self) -> list[dict[str, Any]]:
-        current = [dict(item) for item in self.findings]
-        known = {finding_identity(item) for item in current if finding_identity(item)}
-        state = self.gate_state if isinstance(self.gate_state, dict) else {}
-        if str(state.get("gate_status", "") or "") != "blocked":
-            return current
-        prior = self._prior_completed()
-        prior_findings = [
-            dict(item)
-            for item in prior.get("open_findings", [])
-            if isinstance(item, dict)
-        ]
-        by_location = {
-            (str(item.get("path", "") or ""), int(item.get("line", 0) or 0)): item
-            for item in prior_findings
-        }
-        for record in state.get("unresolved_findings", []) or []:
-            if not isinstance(record, dict) or record.get("status") != "carried-unresolved":
-                continue
-            path = str(record.get("path", "") or "")
-            try:
-                line = int(record.get("line", 0) or 0)
-            except (TypeError, ValueError):
-                line = 0
-            item = dict(by_location.get((path, line), {}))
-            if not item:
-                item = {
-                    "title": "Prior verifier-supported finding remains unresolved",
-                    "severity": "medium",
-                    "path": path,
-                    "line": line,
-                    "url": self.formal_review_url,
-                }
-            item["carried"] = True
-            identity = finding_identity(item)
-            if identity and identity in known:
-                continue
-            if identity:
-                known.add(identity)
-            current.append(item)
-        return current
+        return merge_open_findings(
+            self.findings,
+            self.gate_state,
+            self._prior_completed(),
+            self.formal_review_url,
+        )
 
     def _snapshot(self, state: str) -> dict[str, Any]:
         return {
             "schema": "dcoir_review_status_overview_v1",
             "state": str(state or "").strip().lower(),
             "pr_number": int(self.issue_number),
-            "command": sanitize_github_output(self.command, self.config),
-            "workflow_run_id": sanitize_github_output(workflow_run_id(), self.config),
-            "workflow_run_url": sanitize_github_output(workflow_run_url(), self.config),
-            "reviewed_head_sha": sanitize_github_output(self.reviewed_commit or "pending", self.config),
+            "command": self._sanitize(self.command),
+            "workflow_run_id": self._sanitize(workflow_run_id()),
+            "workflow_run_url": self._sanitize(workflow_run_url()),
+            "reviewed_head_sha": self._sanitize(self.reviewed_commit or "pending"),
             "context_mode": self.context_mode,
             "model_outcome": self.model_used,
             "review_event": self.review_event,
             "formal_review_id": int(self.formal_review_id or 0),
-            "formal_review_url": sanitize_github_output(self.formal_review_url, self.config),
-            "gate_status": sanitize_github_output(str(self.gate_state.get("gate_status", "") or ""), self.config),
+            "formal_review_url": self._sanitize(self.formal_review_url),
+            "gate_status": self._sanitize(
+                str(self.gate_state.get("gate_status", "") or "")
+            ),
             "finding_count": len(self._open_findings()),
             "open_findings": self._open_findings(),
             "changed_files": [dict(item) for item in self.changed_files],
-            "progress": sanitize_github_output(self.public_progress, self.config),
+            "progress": self._sanitize(self.public_progress),
         }
 
     def _body(self, state: str, final_lines: list[str] | None = None) -> str:
@@ -307,8 +217,8 @@ class ProgressReporter:
         now = self.completed_at or time.time()
         elapsed = max(0, int(now - self.started_at))
         started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.started_at))
-        commit = sanitize_github_output(self.reviewed_commit or "pending", self.config)
-        command = sanitize_github_output(self.command, self.config)
+        commit = self._sanitize(self.reviewed_commit or "pending")
+        command = self._sanitize(self.command)
         lines = [
             STATUS_MARKER,
             encode_status_metadata(self._snapshot(state)),
@@ -321,11 +231,16 @@ class ProgressReporter:
             *workflow_run_status_lines(self.config),
         ]
         if self.formal_review_url:
-            safe_url = sanitize_github_output(self.formal_review_url, self.config)
+            safe_url = self._sanitize(self.formal_review_url)
             review_label = str(self.formal_review_id or "review")
-            lines.append(f"- Formal GitHub review: [`{review_label}`]({safe_url}) — authoritative review artifact.")
+            lines.append(
+                f"- Formal GitHub review: [`{review_label}`]({safe_url}) "
+                "— authoritative review artifact."
+            )
         else:
-            lines.append("- Formal GitHub review: pending; the status comment is progress-only.")
+            lines.append(
+                "- Formal GitHub review: pending; the status comment is progress-only."
+            )
         if self.model_used:
             lines.append(f"- Provider/model outcome: `{self.model_used}`.")
         if self.context_mode:
@@ -333,15 +248,33 @@ class ProgressReporter:
         if final_lines:
             lines.extend(["", *final_lines])
         if self.steps:
-            lines.extend(["", "<details open>", "<summary>Detailed progress and diagnostics</summary>", ""])
+            lines.extend(
+                [
+                    "",
+                    "<details open>",
+                    "<summary>Detailed progress and diagnostics</summary>",
+                    "",
+                ]
+            )
             for stage, message in self.steps:
                 lines.append(f"- `{sanitize_public_identity(stage)}`: {message}")
             lines.extend(["", "</details>"])
         return github_safe_body("\n".join(lines), limit=12000)
 
-    def _update_comment(self, body: str, create_if_missing: bool = True, force: bool = False) -> None:
-        self._status_comment.comment_id = int(self.comment_id or self._status_comment.comment_id or 0)
-        self._status_comment.publish(body, create_if_missing=create_if_missing, force=force)
+    def _update_comment(
+        self,
+        body: str,
+        create_if_missing: bool = True,
+        force: bool = False,
+    ) -> None:
+        self._status_comment.comment_id = int(
+            self.comment_id or self._status_comment.comment_id or 0
+        )
+        self._status_comment.publish(
+            body,
+            create_if_missing=create_if_missing,
+            force=force,
+        )
         self.comment_id = int(self._status_comment.comment_id or 0)
 
 
