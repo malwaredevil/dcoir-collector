@@ -177,8 +177,8 @@ class ProgressReporter:
             self._body(
                 "completed",
                 final_lines=[
-                    f"- Result: GitHub review posted with \`{findings_count}\` inline {plural}.",
-                    f"- Review event: \`{review_event}\`.",
+                    f"- Result: GitHub review posted with `{findings_count}` inline {plural}.",
+                    f"- Review event: `{review_event}`.",
                 ],
             ),
             create_if_missing=True,
@@ -197,9 +197,9 @@ class ProgressReporter:
                 final_lines=[
                     "- Result: review failed before a usable PR review could be posted.",
                     "",
-                    "\`\`\`text",
+                    "```text",
                     safe_message[:4000],
-                    "\`\`\`",
+                    "```",
                 ],
             ),
             create_if_missing=True,
@@ -314,28 +314,28 @@ class ProgressReporter:
             encode_status_metadata(self._snapshot(state)),
             f"## {REVIEW_DISPLAY_NAME} — {state_label}",
             "",
-            f"- Exact reviewed commit: \`{commit}\`.",
-            f"- Trigger: \`{command}\`.",
-            f"- Started: \`{started}\`.",
-            f"- Elapsed: \`{elapsed}s\`.",
+            f"- Exact reviewed commit: `{commit}`.",
+            f"- Trigger: `{command}`.",
+            f"- Started: `{started}`.",
+            f"- Elapsed: `{elapsed}s`.",
             *workflow_run_status_lines(self.config),
         ]
         if self.formal_review_url:
             safe_url = sanitize_github_output(self.formal_review_url, self.config)
             review_label = str(self.formal_review_id or "review")
-            lines.append(f"- Formal GitHub review: [\`{review_label}\`]({safe_url}) — authoritative review artifact.")
+            lines.append(f"- Formal GitHub review: [`{review_label}`]({safe_url}) — authoritative review artifact.")
         else:
             lines.append("- Formal GitHub review: pending; the status comment is progress-only.")
         if self.model_used:
-            lines.append(f"- Provider/model outcome: \`{self.model_used}\`.")
+            lines.append(f"- Provider/model outcome: `{self.model_used}`.")
         if self.context_mode:
-            lines.append(f"- Context mode: \`{self.context_mode}\`.")
+            lines.append(f"- Context mode: `{self.context_mode}`.")
         if final_lines:
             lines.extend(["", *final_lines])
         if self.steps:
             lines.extend(["", "<details open>", "<summary>Detailed progress and diagnostics</summary>", ""])
             for stage, message in self.steps:
-                lines.append(f"- \`{sanitize_public_identity(stage)}\`: {message}")
+                lines.append(f"- `{sanitize_public_identity(stage)}`: {message}")
             lines.extend(["", "</details>"])
         return github_safe_body("\n".join(lines), limit=12000)
 

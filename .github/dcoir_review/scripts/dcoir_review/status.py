@@ -103,7 +103,7 @@ def _render_finding(finding: dict[str, Any]) -> str:
     location = _finding_location(finding)
     url = str(finding.get("url", "") or "").strip()
     carried = " — carried from the prior review" if finding.get("carried") else ""
-    label = f"**{severity}** {title} — \`{location}\`{carried}"
+    label = f"**{severity}** {title} — `{location}`{carried}"
     return f"- [{label}]({url})" if url else f"- {label}"
 
 
@@ -112,7 +112,7 @@ def _render_changed_file(item: dict[str, Any]) -> str:
     status = str(item.get("status", "") or "modified").strip()
     additions = item.get("additions", 0)
     deletions = item.get("deletions", 0)
-    return f"- \`{path}\` — {status}, +{additions}/-{deletions}"
+    return f"- `{path}` — {status}, +{additions}/-{deletions}"
 
 
 def _review_effort(snapshot: dict[str, Any]) -> str:
@@ -171,8 +171,8 @@ def render_status_overview(
                 f"### {icon} Review {label.lower()}",
                 "",
                 f"**Status:** {label}  ",
-                f"**Reviewed commit:** \`{reviewed_head}\`  ",
-                f"**Trigger:** \`{command}\`  ",
+                f"**Reviewed commit:** `{reviewed_head}`  ",
+                f"**Trigger:** `{command}`  ",
                 f"**Progress:** {progress}",
             ]
         )
@@ -199,8 +199,8 @@ def render_status_overview(
                 "",
                 summary,
                 "",
-                f"**Reviewed commit:** \`{reviewed_head}\`  ",
-                f"**Trigger:** \`{command}\`",
+                f"**Reviewed commit:** `{reviewed_head}`  ",
+                f"**Trigger:** `{command}`",
             ]
         )
         if run_url:
@@ -242,8 +242,8 @@ def render_status_overview(
             "",
             f"**Review effort:** {_review_effort(snapshot)}  ",
             f"**Findings:** {_severity_summary(findings)}  ",
-            f"**Reviewed commit:** \`{reviewed_head}\`  ",
-            f"**Trigger:** \`{command}\`",
+            f"**Reviewed commit:** `{reviewed_head}`  ",
+            f"**Trigger:** `{command}`",
         ]
     )
     if review_url:
