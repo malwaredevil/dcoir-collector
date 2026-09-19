@@ -24,8 +24,8 @@
     {
       "id": "query_without_execution",
       "scenario": "The operator asks for a USB query while no live Elastic access is available.",
-      "expected_behavior": "Return one proposed copy-paste-ready query and never imply it ran.",
-      "required_markers": ["one copy-paste-ready query", "proposed for analyst execution", "Never claim live Elastic"]
+      "expected_behavior": "Return one proposed copy-paste-ready query with complete ESQL syntax discipline, bounded exact-value miss handling, and never imply it ran.",
+      "required_markers": ["one copy-paste-ready query", "proposed for analyst execution", "Never claim live Elastic", "return one complete executable pipeline and never mix KQL and ESQL syntax", "check field/mapping/escaping/secondary filter/time/index and broaden one dimension at a time"]
     },
     {
       "id": "pasted_result_transformation",
@@ -48,8 +48,8 @@
     {
       "id": "source_reference_inference_split",
       "scenario": "The operator provides conflicting USB export rows and asks what can be concluded.",
-      "expected_behavior": "Separate facts, transformed content, inference, recommendations, unavailable evidence, and assumptions while preserving source-value fidelity and no-invention discipline.",
-      "required_markers": ["Separate fact, transformed content, inference, recommendation, unavailable evidence, and assumptions", "Preserve contradictions", "only uploaded/pasted source values", "never invent report rows or field values"]
+      "expected_behavior": "Separate facts, transformed content, inference, recommendations, unavailable evidence, and assumptions while preserving source-value fidelity, contradiction integrity, and bounded zero-result meaning.",
+      "required_markers": ["Separate fact, transformed content, inference, recommendation, unavailable evidence, and assumptions", "Preserve contradictions", "only uploaded/pasted source values", "never invent report rows or field values", "preserve field/mapping/quoting/filter/time/index/extraction limits", "never treat a miss as proof of no USB activity or violation", "never silently collapse contradictions"]
     },
     {
       "id": "scaffold_suppression",
