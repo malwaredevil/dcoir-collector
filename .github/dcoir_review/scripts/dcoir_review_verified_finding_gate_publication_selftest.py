@@ -133,6 +133,8 @@ def test_gate_override_sanitizes_provider_controlled_terminal_metadata() -> None
     reporter.complete("provider@attacker SECRET-123", 0, "COMMENT@attacker")
     assert reporter.model_used == "provider@<!-- -->attacker [redacted-secret]"
     assert reporter.review_event == "COMMENT@<!-- -->attacker"
+    assert "COMMENT@<!-- -->attacker" in reporter.updated_bodies[-1]
+    assert "COMMENT@attacker" not in reporter.updated_bodies[-1]
 
 
 def test_completion_reporter_exposes_indeterminate_gate() -> None:

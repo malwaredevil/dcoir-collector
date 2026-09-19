@@ -70,7 +70,7 @@ def apply_pareto_context_module(module: Any) -> None:
                 module,
                 getattr(self, "config", None),
                 findings_count,
-                review_event,
+                self.review_event,
             )
             if override is None:
                 return super().complete(model_used, findings_count, review_event)
