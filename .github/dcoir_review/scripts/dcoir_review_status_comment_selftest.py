@@ -951,6 +951,8 @@ def test_large_noncompleted_metadata_retains_prior_rerun_state_and_provenance() 
         },
     }
     parsed = parse_status_metadata(encode_status_metadata(metadata))
+    assert parsed.get("metadata_truncated") is True
+    assert "changed_files" not in parsed
     assert parsed["command"] == "/dcoir-review debug"
     assert parsed["context_mode"] == "deep-forced"
     assert parsed["model_outcome"] == "provider/model"
