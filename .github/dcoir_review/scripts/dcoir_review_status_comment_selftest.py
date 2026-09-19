@@ -872,6 +872,7 @@ def main() -> None:
     test_large_reruns_keep_complete_identity_index()
     test_untrusted_markdown_is_rendered_safely()
     test_same_head_semantic_candidates_keep_distinct_status_identity()
+    test_metadata_uses_safe_candidate_identity()
     test_blocked_gate_carries_distinct_semantic_candidates()
     test_resolved_since_last_review()
     test_indeterminate_gate_does_not_claim_resolution()
