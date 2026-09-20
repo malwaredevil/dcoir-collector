@@ -175,6 +175,22 @@ def test_single_mutable_comment_and_clean_overview() -> None:
     assert rerun.comment_id == 1001
 
 
+def test_first_pass_deep_reports_deep_effort() -> None:
+    body = status_overview.render_status_overview(
+        {
+            "state": "completed",
+            "pr_number": 55,
+            "reviewed_head_sha": "d" * 40,
+            "command": "/dcoir-review",
+            "context_mode": "first-pass-deep",
+            "finding_count": 0,
+            "open_findings": [],
+        },
+        {},
+    )
+    assert "**Review effort:** Deep" in body
+
+
 def test_finding_links_severity_and_previously_missed() -> None:
     gh = FakeGitHub()
     head = "b" * 40
@@ -1352,6 +1368,7 @@ def test_status_write_failures_are_observational() -> None:
 
 def main() -> None:
     test_single_mutable_comment_and_clean_overview()
+    test_first_pass_deep_reports_deep_effort()
     test_finding_links_severity_and_previously_missed()
     test_large_reruns_keep_complete_identity_index()
     test_untrusted_markdown_is_rendered_safely()

@@ -94,7 +94,7 @@ def _render_changed_file(item: dict[str, Any]) -> str:
 
 def _review_effort(snapshot: dict[str, Any]) -> str:
     context_mode = str(snapshot.get("context_mode", "") or "").strip().lower()
-    if context_mode.startswith("deep"):
+    if context_mode.startswith("deep") or context_mode == "first-pass-deep":
         return "Deep"
     count = len(snapshot.get("changed_files", []) or [])
     if count <= 4:
@@ -140,20 +140,9 @@ def render_status_overview(
     current_pr = str(snapshot.get("pr_number", "") or "").strip()
 
     metadata_keys = (
-        "schema",
-        "state",
-        "pr_number",
-        "command",
-        "workflow_run_id",
-        "workflow_run_url",
-        "reviewed_head_sha",
-        "context_mode",
-        "model_outcome",
-        "review_event",
-        "formal_review_id",
-        "formal_review_url",
-        "gate_status",
-        "finding_count",
+        "schema", "state", "pr_number", "command", "workflow_run_id", "workflow_run_url",
+        "reviewed_head_sha", "context_mode", "model_outcome", "review_event",
+        "formal_review_id", "formal_review_url", "gate_status", "finding_count",
     )
     metadata = {key: snapshot.get(key) for key in metadata_keys}
     finding_identity_tokens = [
@@ -164,11 +153,7 @@ def render_status_overview(
         len(finding_identity_tokens) == len(findings)
         and all(finding_identity_tokens)
         and len(indexed_finding_identities) == len(findings)
-        and not any(
-            bool(item.get("identity_unmatched"))
-            for item in findings
-            if isinstance(item, dict)
-        )
+        and not any(item.get("identity_unmatched") for item in findings if isinstance(item, dict))
     )
     metadata["open_findings"] = findings[:12]
     metadata["open_finding_identities"] = indexed_finding_identities
@@ -176,37 +161,23 @@ def render_status_overview(
     metadata["open_finding_gate_identities"] = support.finding_gate_identity_map(findings)
     metadata["finding_gate_identity_map_complete"] = (
         support.finding_gate_identity_map_complete(findings)
-        and not any(
-            bool(item.get("identity_unmatched"))
-            for item in findings
-            if isinstance(item, dict)
-        )
+        and not any(item.get("identity_unmatched") for item in findings if isinstance(item, dict))
     )
     if state != "completed" and previous:
         prior_identities, prior_identity_complete = support.metadata_finding_identity_state(
             previous
         )
         metadata["previous_completed"] = {
-            key: previous.get(key)
-            for key in metadata_keys
-            if key in previous
+            key: previous.get(key) for key in metadata_keys if key in previous
         }
         metadata["previous_completed"]["open_findings"] = _finding_list(
             previous.get("open_findings")
         )[:24]
         metadata["previous_completed"]["open_finding_identities"] = prior_identities
-        metadata["previous_completed"]["finding_identity_index_complete"] = (
-            prior_identity_complete
-        )
-        prior_gate_identities, prior_gate_identity_complete = (
-            support.metadata_gate_identity_state(previous)
-        )
-        metadata["previous_completed"]["open_finding_gate_identities"] = (
-            prior_gate_identities
-        )
-        metadata["previous_completed"]["finding_gate_identity_map_complete"] = (
-            prior_gate_identity_complete
-        )
+        metadata["previous_completed"]["finding_identity_index_complete"] = prior_identity_complete
+        prior_gate_identities, prior_gate_identity_complete = support.metadata_gate_identity_state(previous)
+        metadata["previous_completed"]["open_finding_gate_identities"] = prior_gate_identities
+        metadata["previous_completed"]["finding_gate_identity_map_complete"] = prior_gate_identity_complete
     lines = [STATUS_MARKER, encode_status_metadata(metadata), ""]
 
     if state in {"queued", "running"}:
@@ -277,16 +248,10 @@ def render_status_overview(
     identity_unmatched_present = any(item.get("identity_unmatched") for item in findings) or any(
         item.get("identity_unmatched") for item in prior_findings
     )
-    same_pr = bool(
-        previous
-        and current_pr
-        and str(previous.get("pr_number", "") or "").strip() == current_pr
-    )
-    same_head = bool(
-        same_pr
-        and str(previous.get("reviewed_head_sha", "") or "").strip()
-        and str(previous.get("reviewed_head_sha", "") or "").strip() == reviewed_head
-    )
+    previous_pr = str(previous.get("pr_number", "") or "").strip()
+    previous_head = str(previous.get("reviewed_head_sha", "") or "").strip()
+    same_pr = bool(previous and current_pr and previous_pr == current_pr)
+    same_head = bool(same_pr and previous_head and previous_head == reviewed_head)
     resolved_ids: list[str] = []
     if (
         same_pr
