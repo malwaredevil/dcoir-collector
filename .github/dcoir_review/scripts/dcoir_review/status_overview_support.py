@@ -236,6 +236,7 @@ def compact_metadata_finding(item: Any, normalize_severity: Any) -> dict[str, An
         "url": str(finding.get("url", "") or "")[:240],
         "url_kind": str(finding.get("url_kind", "") or "")[:32],
         "carried": bool(finding.get("carried", False)),
+        "identity_unmatched": bool(finding.get("identity_unmatched", False)),
     }
 
 

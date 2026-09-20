@@ -243,6 +243,9 @@ def render_status_overview(
         for item in prior_findings
         if support.finding_identity_token(item)
     }
+    identity_unmatched_present = any(item.get("identity_unmatched") for item in findings) or any(
+        item.get("identity_unmatched") for item in prior_findings
+    )
     same_head = bool(
         previous
         and str(previous.get("reviewed_head_sha", "") or "").strip()
@@ -254,7 +257,7 @@ def render_status_overview(
         and not same_head
         and gate_status != "indeterminate"
         and prior_identity_complete
-        and not any(item.get("identity_unmatched") for item in findings)
+        and not identity_unmatched_present
     ):
         resolved_ids = [
             identity

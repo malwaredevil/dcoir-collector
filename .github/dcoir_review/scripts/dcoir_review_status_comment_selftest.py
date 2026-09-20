@@ -12,7 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openrouter_pr_review as base
-from dcoir_review import status_overview_support, status_snapshot
+from dcoir_review import status_overview, status_overview_support, status_snapshot
 from dcoir_review import verified_finding_gate_state
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
 from dcoir_review.status_overview import (
@@ -724,6 +724,48 @@ def test_truncated_carried_findings_do_not_claim_resolution() -> None:
     assert len(metadata["open_finding_gate_identities"]) == 13
     assert "<summary><strong>Open (13)</strong></summary>" in body
     assert "Resolved since last review" not in body
+
+
+def test_prior_unmatched_identity_suppresses_resolved_claims() -> None:
+    prior_finding = {
+        "title": "Prior verifier-supported finding remains unresolved",
+        "severity": "high",
+        "path": "src/left_scope.py",
+        "line": 31,
+        "identity": "finding-digest:" + ("c" * 32),
+        "identity_unmatched": True,
+    }
+    prior_identity = status_overview_support.finding_identity_token(prior_finding)
+    previous_completed = {
+        "reviewed_head_sha": "a" * 40,
+        "open_findings": [prior_finding],
+        "open_finding_identities": [prior_identity],
+        "finding_identity_index_complete": True,
+    }
+    snapshot = {
+        "state": "completed",
+        "reviewed_head_sha": "b" * 40,
+        "command": "/dcoir-review",
+        "gate_status": "blocked",
+        "open_findings": [],
+    }
+    body = status_overview.render_status_overview(snapshot, previous_completed)
+    assert "Resolved since last review" not in body
+
+
+def test_compacted_finding_metadata_keeps_identity_unmatched_marker() -> None:
+    compacted = status_overview_support.compact_metadata_finding(
+        {
+            "title": "Prior verifier-supported finding remains unresolved",
+            "severity": "high",
+            "path": "src/left_scope.py",
+            "line": 31,
+            "identity": "finding-digest:" + ("c" * 32),
+            "identity_unmatched": True,
+        },
+        status_overview.normalize_severity,
+    )
+    assert compacted["identity_unmatched"] is True
 
 
 def test_metadata_stays_bounded_and_review_link_falls_back() -> None:
