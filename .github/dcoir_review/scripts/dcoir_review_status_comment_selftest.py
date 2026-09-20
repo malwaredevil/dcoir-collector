@@ -1058,18 +1058,42 @@ def test_extreme_prior_identity_state_degrades_without_losing_provenance() -> No
 
 def test_spoofed_user_marker_is_not_reused() -> None:
     gh = FakeGitHub()
-    gh.comments.append(
-        {
-            "id": 9999,
-            "body": f"{STATUS_MARKER}\nspoof",
-            "user": {"login": "ordinary-user", "type": "User"},
-        }
+    gh.comments.extend(
+        [
+            {
+                "id": 9998,
+                "body": f"{STATUS_MARKER}\nuser spoof",
+                "user": {"login": "ordinary-user", "type": "User"},
+            },
+            {
+                "id": 9999,
+                "body": f"{STATUS_MARKER}\nbot spoof",
+                "user": {"login": "unrelated-app[bot]", "type": "Bot"},
+            },
+        ]
     )
     publisher = MutableReviewStatusComment(gh, 55)
     assert publisher.discover() == 0
     assert publisher.publish(f"{STATUS_MARKER}\nreal") is True
-    assert publisher.comment_id != 9999
+    assert publisher.comment_id not in {9998, 9999}
     assert gh.create_count == 1
+
+
+def test_trusted_status_author_is_reused() -> None:
+    gh = FakeGitHub()
+    gh.comments.append(
+        {
+            "id": 10001,
+            "body": f"{STATUS_MARKER}\ntrusted",
+            "user": {"login": "github-actions[bot]", "type": "Bot"},
+        }
+    )
+    publisher = MutableReviewStatusComment(gh, 55)
+    assert publisher.discover() == 10001
+    assert publisher.last_discovered_body.endswith("trusted")
+    assert publisher.publish(f"{STATUS_MARKER}\nupdated") is True
+    assert publisher.comment_id == 10001
+    assert gh.create_count == 0
 
 
 class RacingGitHub(FakeGitHub):
@@ -1136,6 +1160,7 @@ def main() -> None:
     test_large_noncompleted_metadata_retains_prior_rerun_state_and_provenance()
     test_extreme_prior_identity_state_degrades_without_losing_provenance()
     test_spoofed_user_marker_is_not_reused()
+    test_trusted_status_author_is_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()
     print("DCOIR Copilot-style mutable status comment self-test passed")

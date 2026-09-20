@@ -5,9 +5,10 @@ from typing import Any
 
 STATUS_MARKER = "<!-- dcoir-review-status:v1 -->"
 MAX_COMMENT_PAGES = 20
+TRUSTED_STATUS_AUTHOR = "github-actions[bot]"
 
 
-def _is_bot_authored(comment: Any) -> bool:
+def _is_trusted_status_author(comment: Any) -> bool:
     if not isinstance(comment, dict):
         return False
     user = comment.get("user")
@@ -15,7 +16,7 @@ def _is_bot_authored(comment: Any) -> bool:
         return False
     login = str(user.get("login", "") or "").strip().lower()
     account_type = str(user.get("type", "") or "").strip().lower()
-    return account_type == "bot" or login.endswith("[bot]")
+    return account_type == "bot" and login == TRUSTED_STATUS_AUTHOR
 
 
 class MutableReviewStatusComment:
@@ -49,7 +50,7 @@ class MutableReviewStatusComment:
                 if not isinstance(batch, list) or not batch:
                     break
                 for comment in batch:
-                    if not _is_bot_authored(comment):
+                    if not _is_trusted_status_author(comment):
                         continue
                     body = str(comment.get("body", "") or "")
                     if STATUS_MARKER not in body:
@@ -69,7 +70,7 @@ class MutableReviewStatusComment:
         return sorted(set(matches))
 
     def discover(self) -> int:
-        """Reuse the earliest bot-authored canonical status comment on this PR."""
+        """Reuse the earliest trusted-publisher canonical status comment on this PR."""
         matches = self._canonical_comment_ids()
         if not matches:
             return 0
