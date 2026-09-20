@@ -1127,6 +1127,8 @@ def main() -> None:
     test_formal_review_fallback_is_labeled_correctly()
     test_carried_fallback_sanitizes_path_and_preserves_prior_state()
     test_truncated_carried_findings_do_not_claim_resolution()
+    test_prior_unmatched_identity_suppresses_resolved_claims()
+    test_compacted_finding_metadata_keeps_identity_unmatched_marker()
     test_metadata_stays_bounded_and_review_link_falls_back()
     test_metadata_encoder_has_hard_size_fallback()
     test_compacted_metadata_keeps_canonical_finding_identity()

@@ -150,7 +150,9 @@ def render_status_overview(
     metadata = {key: snapshot.get(key) for key in metadata_keys}
     metadata["open_findings"] = findings[:12]
     metadata["open_finding_identities"] = support.finding_identity_index(findings)
-    metadata["finding_identity_index_complete"] = True
+    metadata["finding_identity_index_complete"] = not any(
+        bool(item.get("identity_unmatched")) for item in findings if isinstance(item, dict)
+    )
     metadata["open_finding_gate_identities"] = support.finding_gate_identity_map(findings)
     metadata["finding_gate_identity_map_complete"] = (
         support.finding_gate_identity_map_complete(findings)
