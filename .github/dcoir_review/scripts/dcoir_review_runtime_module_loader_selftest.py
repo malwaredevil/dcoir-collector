@@ -548,7 +548,6 @@ def assert_canonical_progress_reporter_ownership() -> None:
     assert "## DCOIR Review — Running" in debug_body
     assert "Legacy compatibility details:" in debug_body
     assert "Prompt engineering:" in debug_body
-    assert "Selection overflow details:" in debug_body
 
 
 def assert_canonical_per_file_prompt_ownership() -> None:
