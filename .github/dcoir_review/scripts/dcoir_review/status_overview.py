@@ -84,12 +84,8 @@ def _render_finding(finding: dict[str, Any]) -> str:
 def _render_changed_file(item: dict[str, Any]) -> str:
     path = str(item.get("path", "") or "").strip()
     status = str(item.get("status", "") or "modified").strip()
-    additions = item.get("additions", 0)
-    deletions = item.get("deletions", 0)
-    return (
-        f"- {support.safe_inline_code(path)}"
-        f" — {support.safe_inline_text(status)}, +{additions}/-{deletions}"
-    )
+    additions, deletions = item.get("additions", 0), item.get("deletions", 0)
+    return f"- {support.safe_inline_code(path)} — {support.safe_inline_text(status)}, +{additions}/-{deletions}"
 
 
 def _review_effort(snapshot: dict[str, Any]) -> str:
