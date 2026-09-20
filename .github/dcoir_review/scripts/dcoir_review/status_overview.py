@@ -106,8 +106,7 @@ def _review_effort(snapshot: dict[str, Any]) -> str:
 
 def _severity_summary(findings: list[dict[str, Any]]) -> str:
     counts = _severity_counts(findings)
-    parts = [f"{counts[name]} {name}" for name in SEVERITY_ORDER if counts[name]]
-    return ", ".join(parts) if parts else "0"
+    return ", ".join(f"{counts[name]} {name}" for name in SEVERITY_ORDER if counts[name]) or "0"
 
 
 def _bounded(text: str, limit: int = 12000) -> str:
