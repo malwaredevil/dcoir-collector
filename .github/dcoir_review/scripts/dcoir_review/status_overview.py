@@ -110,9 +110,7 @@ def _severity_summary(findings: list[dict[str, Any]]) -> str:
 
 
 def _bounded(text: str, limit: int = 12000) -> str:
-    if len(text) <= limit:
-        return text
-    return text[: limit - 120] + "\n\n[truncated by DCOIR Review]"
+    return text if len(text) <= limit else text[: limit - 120] + "\n\n[truncated by DCOIR Review]"
 
 
 def _terminal_lines(value: Any) -> list[str]:
