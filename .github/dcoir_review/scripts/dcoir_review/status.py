@@ -6,6 +6,7 @@ from typing import Any
 STATUS_MARKER = "<!-- dcoir-review-status:v1 -->"
 MAX_COMMENT_PAGES = 20
 TRUSTED_STATUS_AUTHOR = "github-actions[bot]"
+TRUSTED_STATUS_AUTHOR_CANONICAL = TRUSTED_STATUS_AUTHOR.strip().lower()
 
 
 def _is_trusted_status_author(comment: Any) -> bool:
@@ -16,7 +17,7 @@ def _is_trusted_status_author(comment: Any) -> bool:
         return False
     login = str(user.get("login", "") or "").strip().lower()
     account_type = str(user.get("type", "") or "").strip().lower()
-    return account_type == "bot" and login == TRUSTED_STATUS_AUTHOR
+    return account_type == "bot" and login == TRUSTED_STATUS_AUTHOR_CANONICAL
 
 
 class MutableReviewStatusComment:

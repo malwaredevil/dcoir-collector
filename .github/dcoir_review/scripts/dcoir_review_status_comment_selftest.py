@@ -6,12 +6,14 @@ from __future__ import annotations
 from pathlib import Path
 import hashlib
 import sys
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import openrouter_pr_review as base
+from dcoir_review import status as status_module
 from dcoir_review import status_overview, status_overview_support, status_snapshot
 from dcoir_review import verified_finding_gate_state
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
@@ -1185,6 +1187,25 @@ def test_trusted_status_author_is_reused() -> None:
     assert gh.create_count == 0
 
 
+def test_trusted_status_author_constant_is_normalized() -> None:
+    gh = FakeGitHub()
+    gh.comments.append(
+        {
+            "id": 10002,
+            "body": f"{STATUS_MARKER}\ntrusted",
+            "user": {"login": "github-actions[bot]", "type": "Bot"},
+        }
+    )
+    with patch.object(status_module, "TRUSTED_STATUS_AUTHOR", "GitHub-Actions[Bot]"), patch.object(
+        status_module, "TRUSTED_STATUS_AUTHOR_CANONICAL", "GitHub-Actions[Bot]".strip().lower()
+    ):
+        publisher = MutableReviewStatusComment(gh, 55)
+        assert publisher.discover() == 10002
+        assert publisher.publish(f"{STATUS_MARKER}\nupdated") is True
+        assert publisher.comment_id == 10002
+        assert gh.create_count == 0
+
+
 class RacingGitHub(FakeGitHub):
     def create_issue_comment(self, number: int, body: str):
         if not self.comments:
@@ -1253,6 +1274,7 @@ def main() -> None:
     test_extreme_prior_identity_state_degrades_without_losing_provenance()
     test_spoofed_user_marker_is_not_reused()
     test_trusted_status_author_is_reused()
+    test_trusted_status_author_constant_is_normalized()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()
     print("DCOIR Copilot-style mutable status comment self-test passed")
