@@ -844,6 +844,34 @@ def test_prior_unmatched_identity_suppresses_resolved_claims() -> None:
     assert "Resolved since last review" not in body
 
 
+def test_previous_completed_from_other_pr_is_not_used_for_resolution_diff() -> None:
+    prior_finding = {
+        "title": "Prior verifier-supported finding remains unresolved",
+        "severity": "high",
+        "path": "src/left_scope.py",
+        "line": 31,
+        "identity": "finding-digest:" + ("d" * 32),
+    }
+    prior_identity = status_overview_support.finding_identity_token(prior_finding)
+    previous_completed = {
+        "pr_number": 54,
+        "reviewed_head_sha": "a" * 40,
+        "open_findings": [prior_finding],
+        "open_finding_identities": [prior_identity],
+        "finding_identity_index_complete": True,
+    }
+    snapshot = {
+        "state": "completed",
+        "pr_number": 55,
+        "reviewed_head_sha": "b" * 40,
+        "command": "/dcoir-review",
+        "gate_status": "blocked",
+        "open_findings": [],
+    }
+    body = status_overview.render_status_overview(snapshot, previous_completed)
+    assert "Resolved since last review" not in body
+
+
 def test_compacted_finding_metadata_keeps_identity_unmatched_marker() -> None:
     compacted = status_overview_support.compact_metadata_finding(
         {
@@ -1292,6 +1320,7 @@ def main() -> None:
     test_trusted_status_author_is_reused()
     test_trusted_status_author_constant_is_normalized()
     test_trusted_status_author_app_login_is_reused()
+    test_previous_completed_from_other_pr_is_not_used_for_resolution_diff()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()
     print("DCOIR Copilot-style mutable status comment self-test passed")

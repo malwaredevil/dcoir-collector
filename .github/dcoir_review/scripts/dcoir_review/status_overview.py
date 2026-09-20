@@ -137,6 +137,7 @@ def render_status_overview(
     review_url = str(snapshot.get("formal_review_url", "") or "").strip()
     gate_status = str(snapshot.get("gate_status", "") or "").strip().lower()
     terminal_lines = _terminal_lines(snapshot.get("terminal_lines"))
+    current_pr = str(snapshot.get("pr_number", "") or "").strip()
 
     metadata_keys = (
         "schema",
@@ -276,14 +277,19 @@ def render_status_overview(
     identity_unmatched_present = any(item.get("identity_unmatched") for item in findings) or any(
         item.get("identity_unmatched") for item in prior_findings
     )
-    same_head = bool(
+    same_pr = bool(
         previous
+        and current_pr
+        and str(previous.get("pr_number", "") or "").strip() == current_pr
+    )
+    same_head = bool(
+        same_pr
         and str(previous.get("reviewed_head_sha", "") or "").strip()
         and str(previous.get("reviewed_head_sha", "") or "").strip() == reviewed_head
     )
     resolved_ids: list[str] = []
     if (
-        previous
+        same_pr
         and not same_head
         and gate_status != "indeterminate"
         and prior_identity_complete
