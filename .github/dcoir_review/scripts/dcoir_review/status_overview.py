@@ -114,9 +114,7 @@ def _bounded(text: str, limit: int = 12000) -> str:
 
 
 def _terminal_lines(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        return []
-    return [str(item) for item in value if str(item or "").strip()]
+    return [str(item) for item in value if str(item or "").strip()] if isinstance(value, list) else []
 
 
 def render_status_overview(
