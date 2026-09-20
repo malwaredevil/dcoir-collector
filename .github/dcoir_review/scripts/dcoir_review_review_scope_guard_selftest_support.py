@@ -42,7 +42,14 @@ class FakeClient:
         self.review_posts += 1
         if callable(self.on_review):
             self.on_review()
-        return {"id": self.review_posts, "commit_id": commit_id}
+        return {
+            "id": self.review_posts,
+            "commit_id": commit_id,
+            "html_url": (
+                f"https://github.com/{self.repo}/pull/{number}"
+                f"#pullrequestreview-{self.review_posts}"
+            ),
+        }
 
 
 class FakeCommentGitHub:
@@ -71,15 +78,27 @@ class FakeReporter:
         self.comment_id = 0
         self.steps: list[tuple[str, str]] = []
         self.generic_failures = 0
+        self.formal_review_id = 0
+        self.formal_review_url = ""
 
     def _record(self, stage: str, message: str) -> None:
         self.steps.append((stage, message))
 
     def _body(self, state: str, final_lines=None) -> str:
         lines = [f"DCOIR Review {state}."]
+        if self.formal_review_id:
+            lines.append(f"Formal review ID: {self.formal_review_id}")
+        if self.formal_review_url:
+            lines.append(f"Formal review URL: {self.formal_review_url}")
         if final_lines:
             lines.extend(final_lines)
         return "\n".join(lines)
+
+    def set_formal_review(self, review) -> None:
+        if not isinstance(review, dict):
+            return
+        self.formal_review_id = int(review.get("id", 0) or 0)
+        self.formal_review_url = str(review.get("html_url", "") or "").strip()
 
     def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
         self._record("completed", f"{model_used}:{findings_count}:{review_event}")
