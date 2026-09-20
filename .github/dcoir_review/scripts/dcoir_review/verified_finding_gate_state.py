@@ -31,12 +31,20 @@ def _finding_fingerprint(path: str, line: int, title: str) -> str:
     return _sha(f"{path}\0{line}\0{title.strip()}")
 
 
-def current_finding_record(finding: dict[str, Any], reviewed_head: str) -> dict[str, Any]:
+def finding_fingerprint(finding: dict[str, Any]) -> str:
+    """Return the stable opaque identity used by the verified-finding gate."""
+
     path = _clean_path(finding.get("path"))
     line = _line_number(finding.get("line"))
     title = str(finding.get("title", "") or "").strip()
+    return _finding_fingerprint(path, line, title)
+
+
+def current_finding_record(finding: dict[str, Any], reviewed_head: str) -> dict[str, Any]:
+    path = _clean_path(finding.get("path"))
+    line = _line_number(finding.get("line"))
     return {
-        "fingerprint": _finding_fingerprint(path, line, title),
+        "fingerprint": finding_fingerprint(finding),
         "path": path,
         "line": line,
         "severity": str(finding.get("severity", "") or "").strip().lower(),

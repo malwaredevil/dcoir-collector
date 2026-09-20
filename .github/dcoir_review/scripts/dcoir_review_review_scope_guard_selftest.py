@@ -219,9 +219,14 @@ def main() -> None:
         )
         assert scope_guard.SUPERSEDED_PREFIX in str(publication_race)
         assert client.review_posts == 1
-        race_terminal = getattr(module, scope_guard.GUARD_ATTR)["terminal"]
+        race_context = getattr(module, scope_guard.GUARD_ATTR)
+        race_terminal = race_context["terminal"]
         assert race_terminal["kind"] == "superseded"
         assert race_terminal["stage"] == "GitHub review publication completion"
+        published_review = race_context["published_review"]
+        assert published_review["id"] == 1
+        assert published_review["commit_id"] == HEAD
+        assert published_review["html_url"].endswith("#pullrequestreview-1")
 
         # Post-write supersession must say the old-head review was accepted but is
         # not current evidence; it must not claim publication was blocked.
@@ -236,6 +241,11 @@ def main() -> None:
         assert race_reporter.generic_failures == 0
         race_body = race_comment_gh.comments[race_reporter.comment_id]
         assert "DCOIR Review superseded." in race_body
+        assert race_reporter.formal_review_id == 1
+        assert race_reporter.formal_review_url.endswith("#pullrequestreview-1")
+        assert "Formal review ID: 1" in race_body
+        assert "Formal review URL:" in race_body
+        assert "#pullrequestreview-1" in race_body
         assert "GitHub accepted the review before the post-write scope change was detected" in race_body
         assert "review remains anchored to the captured old commit" in race_body
         assert "GitHub review publication after supersession detection: blocked." not in race_body

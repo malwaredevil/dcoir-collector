@@ -19,3 +19,16 @@ if spec is None or spec.loader is None:
 mod = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = mod
 spec.loader.exec_module(mod)
+
+review_body_main = (
+    ROOT
+    / "scripts"
+    / "dcoir_review"
+    / "pareto_context"
+    / "part_08a_review_body_main.py"
+).read_text(encoding="utf-8")
+create_review_index = review_body_main.index("review = gh.create_review(")
+set_findings_index = review_body_main.index("set_findings(status_findings)")
+set_formal_review_index = review_body_main.index("set_formal_review(review)")
+assert set_findings_index > create_review_index
+assert set_formal_review_index > set_findings_index

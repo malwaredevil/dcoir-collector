@@ -68,22 +68,19 @@ def _patch_progress_body(base: Any) -> None:
         return
 
     def required_v8_body(self: Any, state: str, final_lines: list[str] | None = None) -> str:
+        rendered = original(self, state, final_lines)
+        if not getattr(self.config, "debug", False):
+            return rendered
         lines = [
-            base.MARKER,
-            f"{base.REVIEW_DISPLAY_NAME} {state}.",
             "",
-            f"- Command: `{self.command}`.",
-            f"- Debug progress: `{str(getattr(self.config, 'debug', False)).lower()}`.",
-            *base.workflow_run_status_lines(self.config),
+            "Legacy compatibility details:",
             "- Branch changes: none; this workflow only posts review output.",
             "- Gate role: internal review-assist signal before any separately approved external review request.",
         ]
-        if final_lines:
-            lines.extend(["", *final_lines])
-        lines.extend(["", "Progress:"])
-        for stage, message in self.steps[-30:]:
-            lines.append(f"- `{base.sanitize_public_identity(stage)}`: {message}")
-        return base.github_safe_body("\n".join(lines), limit=18000)
+        return base.github_safe_body(
+            f"{rendered.rstrip()}\n" + "\n".join(lines),
+            limit=18000,
+        )
 
     base.ProgressReporter._body = required_v8_body
 

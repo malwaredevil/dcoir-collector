@@ -129,6 +129,10 @@ def _patch_review_publication(module: Any) -> None:
 
         result = original(self, number, body, event, comments, commit_id)
 
+        if guarded and isinstance(result, dict):
+            with scope._context_lock(context):
+                context["published_review"] = dict(result)
+
         if guarded:
             # GitHub does not offer one atomic operation that both verifies the
             # mutable PR head and posts a review. Re-read immediately after the
@@ -173,6 +177,21 @@ def _patch_progress_reporter(module: Any) -> None:
         context = scope._guard(module) or {}
         terminal = context.get("terminal") if isinstance(context.get("terminal"), dict) else {}
         terminal_stage = str(terminal.get("stage", "") or "")
+        published_review = context.get("published_review")
+        if (
+            terminal_stage == "GitHub review publication completion"
+            and isinstance(published_review, dict)
+        ):
+            set_formal_review = getattr(self, "set_formal_review", None)
+            if callable(set_formal_review):
+                try:
+                    set_formal_review(published_review)
+                except Exception as exc:
+                    print(
+                        f"WARN: unable to preserve formal review linkage in terminal status: {exc}",
+                        file=sys.stderr,
+                        flush=True,
+                    )
         final_lines = []
         if superseded:
             final_lines.append(

@@ -5,9 +5,16 @@ from typing import Any
 
 STATUS_MARKER = "<!-- dcoir-review-status:v1 -->"
 MAX_COMMENT_PAGES = 20
+TRUSTED_STATUS_AUTHOR = "github-actions[bot]"
+TRUSTED_STATUS_AUTHORS = frozenset(
+    {
+        "github-actions",
+        TRUSTED_STATUS_AUTHOR.strip().lower(),
+    }
+)
 
 
-def _is_bot_authored(comment: Any) -> bool:
+def _is_trusted_status_author(comment: Any) -> bool:
     if not isinstance(comment, dict):
         return False
     user = comment.get("user")
@@ -15,7 +22,7 @@ def _is_bot_authored(comment: Any) -> bool:
         return False
     login = str(user.get("login", "") or "").strip().lower()
     account_type = str(user.get("type", "") or "").strip().lower()
-    return account_type == "bot" or login.endswith("[bot]")
+    return account_type == "bot" and login in TRUSTED_STATUS_AUTHORS
 
 
 class MutableReviewStatusComment:
@@ -30,10 +37,13 @@ class MutableReviewStatusComment:
         self.issue_number = int(issue_number)
         self.comment_id = 0
         self.last_body = ""
+        self.last_discovered_body = ""
         self.last_error = ""
+        self._body_by_id: dict[int, str] = {}
 
     def _canonical_comment_ids(self) -> list[int]:
         matches: list[int] = []
+        self._body_by_id = {}
         try:
             repo = str(getattr(self.gh, "repo", "") or "").strip()
             if not repo:
@@ -46,7 +56,7 @@ class MutableReviewStatusComment:
                 if not isinstance(batch, list) or not batch:
                     break
                 for comment in batch:
-                    if not _is_bot_authored(comment):
+                    if not _is_trusted_status_author(comment):
                         continue
                     body = str(comment.get("body", "") or "")
                     if STATUS_MARKER not in body:
@@ -57,6 +67,7 @@ class MutableReviewStatusComment:
                         comment_id = 0
                     if comment_id > 0:
                         matches.append(comment_id)
+                        self._body_by_id[comment_id] = body
                 if len(batch) < 100:
                     break
         except Exception as exc:
@@ -65,11 +76,12 @@ class MutableReviewStatusComment:
         return sorted(set(matches))
 
     def discover(self) -> int:
-        """Reuse the earliest bot-authored canonical status comment on this PR."""
+        """Reuse the earliest trusted-publisher canonical status comment on this PR."""
         matches = self._canonical_comment_ids()
         if not matches:
             return 0
         self.comment_id = matches[0]
+        self.last_discovered_body = self._body_by_id.get(self.comment_id, "")
         return self.comment_id
 
     def _reconcile_created_comment(self) -> None:
@@ -78,6 +90,7 @@ class MutableReviewStatusComment:
             return
         canonical_id = matches[0]
         self.comment_id = canonical_id
+        self.last_discovered_body = self._body_by_id.get(canonical_id, "")
         repo = str(getattr(self.gh, "repo", "") or "").strip()
         if not repo:
             return

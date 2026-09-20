@@ -1,5 +1,6 @@
 from dcoir_review.status import MutableReviewStatusComment, STATUS_MARKER
-
+from dcoir_review import status_overview as status_overview_helpers
+from dcoir_review import status_snapshot as status_snapshot_helpers
 
 class ProgressReporter:
     def __init__(self, gh: GitHubClient, issue_number: int, command: str, config: Config) -> None:
@@ -12,12 +13,36 @@ class ProgressReporter:
         self.reviewed_commit = ""
         self.formal_review_id = 0
         self.formal_review_url = ""
+        self.context_mode = ""
+        self.changed_files: list[dict[str, Any]] = []
+        self.findings: list[dict[str, Any]] = []
+        self.gate_state: dict[str, Any] = {}
+        self.model_used = ""
+        self.review_event = ""
+        self.public_progress = "Waiting to start"
         self.started_at = time.time()
         self.completed_at = 0.0
         self._last_published_stage = ""
         self._status_comment = MutableReviewStatusComment(gh, issue_number)
+        self._previous_status_metadata: dict[str, Any] = {}
+
+    def _sanitize(self, value: str) -> str:
+        return sanitize_github_output(str(value or ""), self.config)
+
+    def _load_previous_status_metadata(self) -> None:
+        if self._previous_status_metadata:
+            return
+        discovered = self._status_comment.discover()
+        if not discovered:
+            return
+        self.comment_id = discovered
+        self._previous_status_metadata = status_overview_helpers.parse_status_metadata(
+            self._status_comment.last_discovered_body
+        )
 
     def start(self) -> None:
+        self._load_previous_status_metadata()
+        self.public_progress = "Queued for review"
         self._record("queued", "accepted operator review command and queued review execution")
         self._last_published_stage = "queued"
         self._update_comment(self._body("queued"), create_if_missing=True, force=True)
@@ -30,6 +55,18 @@ class ProgressReporter:
         if self.comment_id or self._status_comment.comment_id:
             self._update_comment(self._body("running"), create_if_missing=True, force=True)
 
+    def set_context_mode(self, context_mode: str) -> None:
+        self.context_mode = self._sanitize(str(context_mode or "").strip())
+
+    def set_changed_files(self, files: Any) -> None:
+        self.changed_files = status_snapshot_helpers.normalize_changed_files(files, self._sanitize)
+
+    def set_findings(self, findings: Any) -> None:
+        self.findings = status_snapshot_helpers.normalize_findings(findings, self._sanitize)
+
+    def set_gate_state(self, state: Any) -> None:
+        self.gate_state = dict(state) if isinstance(state, dict) else {}
+
     def set_formal_review(self, review: Any) -> None:
         if not isinstance(review, dict):
             return
@@ -38,26 +75,56 @@ class ProgressReporter:
         except (TypeError, ValueError):
             self.formal_review_id = 0
         self.formal_review_url = str(review.get("html_url", "") or "").strip()
-        if not self.formal_review_url and self.formal_review_id:
-            repo = str(getattr(self.gh, "repo", "") or "").strip()
-            if repo:
-                self.formal_review_url = (
-                    f"https://github.com/{repo}/pull/{self.issue_number}"
-                    f"#pullrequestreview-{self.formal_review_id}"
-                )
+        repo = str(getattr(self.gh, "repo", "") or "").strip()
+        if not self.formal_review_url and self.formal_review_id and repo:
+            self.formal_review_url = (
+                f"https://github.com/{repo}/pull/{self.issue_number}"
+                f"#pullrequestreview-{self.formal_review_id}"
+            )
+        if not self.formal_review_id or not repo or not self.findings:
+            return
+        try:
+            comments = self.gh.request(
+                "GET",
+                f"/repos/{repo}/pulls/{self.issue_number}/reviews/"
+                f"{self.formal_review_id}/comments?per_page=100",
+            )
+            self.findings = status_snapshot_helpers.attach_review_comment_urls(
+                self.findings,
+                comments,
+                self.formal_review_url,
+            )
+        except Exception as exc:
+            self.findings = status_snapshot_helpers.attach_review_comment_urls(
+                self.findings,
+                [],
+                self.formal_review_url,
+            )
+            print(
+                f"WARN: unable to read back formal review comments for status overview: {exc}",
+                file=sys.stderr,
+                flush=True,
+            )
 
     def update(self, stage: str, message: str) -> None:
         self._record(stage, message)
         normalized_stage = sanitize_public_identity(str(stage or "").strip())
+        self.public_progress = status_snapshot_helpers.public_progress_for_stage(normalized_stage)
         if normalized_stage == self._last_published_stage:
             return
         self._last_published_stage = normalized_stage
         self._update_comment(self._body("running"))
 
     def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
+        self.model_used = self._sanitize(str(model_used or ""))
+        self.review_event = self._sanitize(str(review_event or ""))
         plural = "finding" if findings_count == 1 else "findings"
         self.completed_at = time.time()
-        self._record("completed", f"posted GitHub review; {findings_count} inline {plural}; event={review_event}")
+        self.public_progress = "Review completed"
+        self._record(
+            "completed",
+            f"posted GitHub review; {findings_count} inline {plural}; event={review_event}",
+        )
         self._last_published_stage = "completed"
         self._update_comment(
             self._body(
@@ -72,8 +139,10 @@ class ProgressReporter:
         )
 
     def fail(self, message: str) -> None:
-        safe_message = sanitize_github_output(message, self.config)
+        self._load_previous_status_metadata()
+        safe_message = self._sanitize(message)
         self.completed_at = time.time()
+        self.public_progress = "Review failed"
         self._record("failed", safe_message[:500])
         self._last_published_stage = "failed"
         self._update_comment(
@@ -92,25 +161,99 @@ class ProgressReporter:
         )
 
     def _record(self, stage: str, message: str) -> None:
-        safe_message = sanitize_github_output(message, self.config)
+        safe_message = self._sanitize(message)
         self.steps.append((stage, safe_message))
         emit_status(stage, safe_message)
 
+    def _prior_completed(self) -> dict[str, Any]:
+        return status_snapshot_helpers.prior_completed(self._previous_status_metadata)
+
+    def _open_findings(self) -> list[dict[str, Any]]:
+        return status_snapshot_helpers.merge_open_findings(
+            self.findings,
+            self.gate_state,
+            self._prior_completed(),
+            self.formal_review_url,
+            self._sanitize,
+        )
+
+    def _public_terminal_lines(self, final_lines: list[str] | None) -> list[str]:
+        if not final_lines:
+            return []
+        rendered: list[str] = []
+        for item in final_lines:
+            line = self._sanitize(str(item or "").strip())
+            if not line:
+                continue
+            if line.startswith("```"):
+                break
+            if line.startswith("- Expected ") or line.startswith("- Observed "):
+                continue
+            rendered.append(line)
+            if len(rendered) >= 4:
+                break
+        return rendered
+
+    def _snapshot(
+        self,
+        state: str,
+        terminal_lines: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return {
+            "schema": "dcoir_review_status_overview_v1",
+            "state": str(state or "").strip().lower(),
+            "pr_number": int(self.issue_number),
+            "command": self._sanitize(self.command),
+            "workflow_run_id": self._sanitize(workflow_run_id()),
+            "workflow_run_url": self._sanitize(workflow_run_url()),
+            "reviewed_head_sha": self._sanitize(self.reviewed_commit or "pending"),
+            "context_mode": self.context_mode,
+            "model_outcome": self.model_used,
+            "review_event": self.review_event,
+            "formal_review_id": int(self.formal_review_id or 0),
+            "formal_review_url": self._sanitize(self.formal_review_url),
+            "gate_status": self._sanitize(
+                str(self.gate_state.get("gate_status", "") or "")
+            ),
+            "finding_count": len(self._open_findings()),
+            "open_findings": self._open_findings(),
+            "changed_files": [dict(item) for item in self.changed_files],
+            "progress": self._sanitize(self.public_progress),
+            "terminal_lines": [str(item) for item in (terminal_lines or []) if str(item or "").strip()],
+        }
+
     def _body(self, state: str, final_lines: list[str] | None = None) -> str:
+        if bool(getattr(self.config, "debug", False)):
+            return self._debug_body(state, final_lines=final_lines)
+        terminal_lines = self._public_terminal_lines(final_lines)
+        return status_overview_helpers.render_status_overview(
+            self._snapshot(state, terminal_lines=terminal_lines),
+            self._prior_completed(),
+        )
+
+    def _debug_body(self, state: str, final_lines: list[str] | None = None) -> str:
         normalized = str(state or "").strip().lower()
         state_label = {
             "queued": "Queued",
             "running": "Running",
             "completed": "Completed",
             "failed": "Failed",
+            "superseded": "Superseded",
+            "stopped": "Stopped",
         }.get(normalized, "Failed")
         now = self.completed_at or time.time()
         elapsed = max(0, int(now - self.started_at))
         started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self.started_at))
-        commit = sanitize_github_output(self.reviewed_commit or "pending", self.config)
-        command = sanitize_github_output(self.command, self.config)
+        commit = self._sanitize(self.reviewed_commit or "pending")
+        command = self._sanitize(self.command)
+        debug_snapshot = self._snapshot(state)
+        if normalized != "completed":
+            prior_completed = self._prior_completed()
+            if prior_completed:
+                debug_snapshot["previous_completed"] = prior_completed
         lines = [
             STATUS_MARKER,
+            status_overview_helpers.encode_status_metadata(debug_snapshot),
             f"## {REVIEW_DISPLAY_NAME} — {state_label}",
             "",
             f"- Exact reviewed commit: `{commit}`.",
@@ -120,23 +263,50 @@ class ProgressReporter:
             *workflow_run_status_lines(self.config),
         ]
         if self.formal_review_url:
-            safe_url = sanitize_github_output(self.formal_review_url, self.config)
+            safe_url = self._sanitize(self.formal_review_url)
             review_label = str(self.formal_review_id or "review")
-            lines.append(f"- Formal GitHub review: [`{review_label}`]({safe_url}) — authoritative review artifact.")
+            lines.append(
+                f"- Formal GitHub review: [`{review_label}`]({safe_url}) "
+                "— authoritative review artifact."
+            )
         else:
-            lines.append("- Formal GitHub review: pending; the status comment is progress-only.")
+            lines.append(
+                "- Formal GitHub review: pending; the status comment is progress-only."
+            )
+        if self.model_used:
+            lines.append(f"- Provider/model outcome: `{self.model_used}`.")
+        if self.context_mode:
+            lines.append(f"- Context mode: `{self.context_mode}`.")
         if final_lines:
             lines.extend(["", *final_lines])
         if self.steps:
-            lines.extend(["", "<details>", "<summary>Recent progress</summary>", ""])
-            for stage, message in self.steps[-8:]:
+            lines.extend(
+                [
+                    "",
+                    "<details open>",
+                    "<summary>Detailed progress and diagnostics</summary>",
+                    "",
+                ]
+            )
+            for stage, message in self.steps:
                 lines.append(f"- `{sanitize_public_identity(stage)}`: {message}")
             lines.extend(["", "</details>"])
         return github_safe_body("\n".join(lines), limit=12000)
 
-    def _update_comment(self, body: str, create_if_missing: bool = True, force: bool = False) -> None:
-        self._status_comment.comment_id = int(self.comment_id or self._status_comment.comment_id or 0)
-        self._status_comment.publish(body, create_if_missing=create_if_missing, force=force)
+    def _update_comment(
+        self,
+        body: str,
+        create_if_missing: bool = True,
+        force: bool = False,
+    ) -> None:
+        self._status_comment.comment_id = int(
+            self.comment_id or self._status_comment.comment_id or 0
+        )
+        self._status_comment.publish(
+            body,
+            create_if_missing=create_if_missing,
+            force=force,
+        )
         self.comment_id = int(self._status_comment.comment_id or 0)
 
 
