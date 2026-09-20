@@ -526,6 +526,38 @@ def test_failure_is_concise_and_debug_is_verbose() -> None:
     assert "Context mode: `deep-forced`" in debug_body
 
 
+def test_terminal_summary_is_preserved_in_normal_overview() -> None:
+    gh = FakeGitHub()
+    reporter = base.ProgressReporter(gh, 55, "/dcoir-review", config())
+    reporter.start()
+    reporter.set_reviewed_commit("1" * 40)
+    reporter.set_formal_review(
+        {
+            "id": 711,
+            "html_url": "https://github.com/example/dcoir/pull/55#pullrequestreview-711",
+        }
+    )
+    body = reporter._body(
+        "superseded",
+        final_lines=[
+            "- Result: review superseded because the live PR review scope changed during execution.",
+            "- GitHub accepted the review before the post-write scope change was detected; the review remains anchored to the captured old commit and is not current-head evidence.",
+            "- Expected head: `aaaaaaaa`.",
+            "- Observed head: `bbbbbbbb`.",
+            "",
+            "```text",
+            "debug detail must stay hidden",
+            "```",
+        ],
+    )
+    assert "review superseded because the live PR review scope changed during execution" in body
+    assert "GitHub accepted the review before the post-write scope change was detected" in body
+    assert "- Expected head: `aaaaaaaa`." not in body
+    assert "- Observed head: `bbbbbbbb`." not in body
+    assert "debug detail must stay hidden" not in body
+    assert "[Open formal review](https://github.com/example/dcoir/pull/55#pullrequestreview-711)" in body
+
+
 def test_prestart_failure_preserves_prior_completed_metadata() -> None:
     gh = FakeGitHub()
     prepare_completed_review(
@@ -1202,6 +1234,7 @@ def main() -> None:
     test_resolved_since_last_review()
     test_indeterminate_gate_does_not_claim_resolution()
     test_failure_is_concise_and_debug_is_verbose()
+    test_terminal_summary_is_preserved_in_normal_overview()
     test_prestart_failure_preserves_prior_completed_metadata()
     test_debug_terminal_status_preserves_prior_completed_metadata()
     test_repair_comment_anchor_maps_to_inline_conversation()

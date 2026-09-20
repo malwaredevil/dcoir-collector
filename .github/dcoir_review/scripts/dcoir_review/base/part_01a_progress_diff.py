@@ -177,7 +177,28 @@ class ProgressReporter:
             self._sanitize,
         )
 
-    def _snapshot(self, state: str) -> dict[str, Any]:
+    def _public_terminal_lines(self, final_lines: list[str] | None) -> list[str]:
+        if not final_lines:
+            return []
+        rendered: list[str] = []
+        for item in final_lines:
+            line = self._sanitize(str(item or "").strip())
+            if not line:
+                continue
+            if line.startswith("```"):
+                break
+            if line.startswith("- Expected ") or line.startswith("- Observed "):
+                continue
+            rendered.append(line)
+            if len(rendered) >= 4:
+                break
+        return rendered
+
+    def _snapshot(
+        self,
+        state: str,
+        terminal_lines: list[str] | None = None,
+    ) -> dict[str, Any]:
         return {
             "schema": "dcoir_review_status_overview_v1",
             "state": str(state or "").strip().lower(),
@@ -198,12 +219,17 @@ class ProgressReporter:
             "open_findings": self._open_findings(),
             "changed_files": [dict(item) for item in self.changed_files],
             "progress": self._sanitize(self.public_progress),
+            "terminal_lines": [str(item) for item in (terminal_lines or []) if str(item or "").strip()],
         }
 
     def _body(self, state: str, final_lines: list[str] | None = None) -> str:
         if bool(getattr(self.config, "debug", False)):
             return self._debug_body(state, final_lines=final_lines)
-        return status_overview_helpers.render_status_overview(self._snapshot(state), self._prior_completed())
+        terminal_lines = self._public_terminal_lines(final_lines)
+        return status_overview_helpers.render_status_overview(
+            self._snapshot(state, terminal_lines=terminal_lines),
+            self._prior_completed(),
+        )
 
     def _debug_body(self, state: str, final_lines: list[str] | None = None) -> str:
         normalized = str(state or "").strip().lower()

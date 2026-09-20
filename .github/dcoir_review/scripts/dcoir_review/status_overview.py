@@ -116,6 +116,12 @@ def _bounded(text: str, limit: int = 12000) -> str:
     return text[: limit - 120] + "\n\n[truncated by DCOIR Review]"
 
 
+def _terminal_lines(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if str(item or "").strip()]
+
+
 def render_status_overview(
     snapshot: dict[str, Any],
     previous_completed: dict[str, Any] | None = None,
@@ -130,6 +136,7 @@ def render_status_overview(
     run_url = str(snapshot.get("workflow_run_url", "") or "").strip()
     review_url = str(snapshot.get("formal_review_url", "") or "").strip()
     gate_status = str(snapshot.get("gate_status", "") or "").strip().lower()
+    terminal_lines = _terminal_lines(snapshot.get("terminal_lines"))
 
     metadata_keys = (
         "schema",
@@ -243,6 +250,10 @@ def render_status_overview(
                 f"**Trigger:** `{command}`",
             ]
         )
+        if terminal_lines:
+            lines.extend(["", *terminal_lines])
+        if review_url:
+            lines.extend(["", f"[Open formal review]({review_url})"])
         if run_url:
             lines.extend(["", f"[Open workflow run {run_id or 'details'}]({run_url})"])
         return _bounded("\n".join(lines).strip())
