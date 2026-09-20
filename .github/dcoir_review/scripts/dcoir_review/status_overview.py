@@ -151,9 +151,11 @@ def render_status_overview(
     finding_identity_tokens = [
         support.finding_identity_token(item) for item in findings if isinstance(item, dict)
     ]
+    indexed_finding_identities = support.finding_identity_index(findings)
     finding_identity_index_complete = (
         len(finding_identity_tokens) == len(findings)
         and all(finding_identity_tokens)
+        and len(indexed_finding_identities) == len(findings)
         and not any(
             bool(item.get("identity_unmatched"))
             for item in findings
@@ -161,7 +163,7 @@ def render_status_overview(
         )
     )
     metadata["open_findings"] = findings[:12]
-    metadata["open_finding_identities"] = support.finding_identity_index(findings)
+    metadata["open_finding_identities"] = indexed_finding_identities
     metadata["finding_identity_index_complete"] = finding_identity_index_complete
     metadata["open_finding_gate_identities"] = support.finding_gate_identity_map(findings)
     metadata["finding_gate_identity_map_complete"] = (
