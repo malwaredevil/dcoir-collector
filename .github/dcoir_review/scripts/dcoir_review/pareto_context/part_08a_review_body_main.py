@@ -216,12 +216,12 @@ def main() -> None:
         unanchored_note = f" and {len(unanchored_findings)} unanchored review-body findings" if unanchored_findings else ""
         reporter.update("github-review", f"posting GitHub review with {len(comments)} inline comments{unanchored_note}")
         review = gh.create_review(pr_number, review_body, event, comments, reviewed_commit)
-        set_formal_review = getattr(reporter, "set_formal_review", None)
-        if callable(set_formal_review):
-            set_formal_review(review)
         set_findings = getattr(reporter, "set_findings", None)
         if callable(set_findings):
             set_findings(status_findings)
+        set_formal_review = getattr(reporter, "set_formal_review", None)
+        if callable(set_formal_review):
+            set_formal_review(review)
         hardened.remove_eyes_reaction(gh, trigger_comment_id, reaction_id, reaction_status)
         tier_note = f"; service_tier={service_tier}" if service_tier else ""
         reporter.update("reaction", f"eyes add: {reaction_status['added']}; eyes remove: {reaction_status['removed']}")

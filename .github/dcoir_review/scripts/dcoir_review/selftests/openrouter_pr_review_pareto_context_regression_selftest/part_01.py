@@ -29,4 +29,6 @@ review_body_main = (
 ).read_text(encoding="utf-8")
 create_review_index = review_body_main.index("review = gh.create_review(")
 set_findings_index = review_body_main.index("set_findings(status_findings)")
+set_formal_review_index = review_body_main.index("set_formal_review(review)")
 assert set_findings_index > create_review_index
+assert set_formal_review_index > set_findings_index
