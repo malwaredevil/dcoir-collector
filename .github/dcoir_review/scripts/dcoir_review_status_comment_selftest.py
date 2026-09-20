@@ -1197,13 +1197,29 @@ def test_trusted_status_author_constant_is_normalized() -> None:
         }
     )
     with patch.object(status_module, "TRUSTED_STATUS_AUTHOR", "GitHub-Actions[Bot]"), patch.object(
-        status_module, "TRUSTED_STATUS_AUTHOR_CANONICAL", "GitHub-Actions[Bot]".strip().lower()
+        status_module, "TRUSTED_STATUS_AUTHORS", frozenset({"github-actions", "GitHub-Actions[Bot]".strip().lower()})
     ):
         publisher = MutableReviewStatusComment(gh, 55)
         assert publisher.discover() == 10002
         assert publisher.publish(f"{STATUS_MARKER}\nupdated") is True
         assert publisher.comment_id == 10002
         assert gh.create_count == 0
+
+
+def test_trusted_status_author_app_login_is_reused() -> None:
+    gh = FakeGitHub()
+    gh.comments.append(
+        {
+            "id": 10003,
+            "body": f"{STATUS_MARKER}\ntrusted",
+            "user": {"login": "github-actions", "type": "Bot"},
+        }
+    )
+    publisher = MutableReviewStatusComment(gh, 55)
+    assert publisher.discover() == 10003
+    assert publisher.publish(f"{STATUS_MARKER}\nupdated") is True
+    assert publisher.comment_id == 10003
+    assert gh.create_count == 0
 
 
 class RacingGitHub(FakeGitHub):
@@ -1275,6 +1291,7 @@ def main() -> None:
     test_spoofed_user_marker_is_not_reused()
     test_trusted_status_author_is_reused()
     test_trusted_status_author_constant_is_normalized()
+    test_trusted_status_author_app_login_is_reused()
     test_concurrent_creation_reconciles_to_earliest_comment()
     test_status_write_failures_are_observational()
     print("DCOIR Copilot-style mutable status comment self-test passed")
