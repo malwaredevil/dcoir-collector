@@ -206,10 +206,6 @@ def main() -> None:
             status_findings.append(status_finding)
             comments.extend(finding_comments)
 
-        set_findings = getattr(reporter, "set_findings", None)
-        if callable(set_findings):
-            set_findings(status_findings)
-
         event = "REQUEST_CHANGES" if comments and config.request_changes_on_findings else "COMMENT"
         review_body = append_context_to_review_body(
             hardened.build_review_body_with_unanchored(result, findings, unanchored_findings, model_used, config, reviewed_commit),
@@ -223,6 +219,9 @@ def main() -> None:
         set_formal_review = getattr(reporter, "set_formal_review", None)
         if callable(set_formal_review):
             set_formal_review(review)
+        set_findings = getattr(reporter, "set_findings", None)
+        if callable(set_findings):
+            set_findings(status_findings)
         hardened.remove_eyes_reaction(gh, trigger_comment_id, reaction_id, reaction_status)
         tier_note = f"; service_tier={service_tier}" if service_tier else ""
         reporter.update("reaction", f"eyes add: {reaction_status['added']}; eyes remove: {reaction_status['removed']}")
