@@ -700,6 +700,68 @@ def test_carried_fallback_sanitizes_path_and_preserves_prior_state() -> None:
     assert carried[0]["identity_unmatched"] is True
 
 
+def test_known_carried_finding_counts_as_matched() -> None:
+    fingerprint = "1" * 64
+    identity = "finding-digest:" + ("2" * 32)
+    current = [
+        {
+            "title": "Already reported",
+            "severity": "medium",
+            "path": "src/already.py",
+            "line": 14,
+            "identity": identity,
+        }
+    ]
+    state = {
+        "gate_status": "blocked",
+        "unresolved_findings": [
+            {
+                "fingerprint": fingerprint,
+                "path": "src/already.py",
+                "line": 14,
+                "severity": "medium",
+                "status": "carried-unresolved",
+            }
+        ],
+    }
+
+    from_prior_detail = status_snapshot.merge_open_findings(
+        current,
+        state,
+        {
+            "open_findings": [
+                {
+                    "title": "Already reported",
+                    "severity": "medium",
+                    "path": "src/already.py",
+                    "line": 14,
+                    "identity": identity,
+                }
+            ],
+        },
+        "",
+        str,
+    )
+    assert len(from_prior_detail) == 1
+    assert from_prior_detail[0]["identity"] == identity
+    assert not from_prior_detail[0].get("identity_unmatched")
+
+    from_gate_map = status_snapshot.merge_open_findings(
+        current,
+        state,
+        {
+            "open_findings": [],
+            "open_finding_gate_identities": {fingerprint: [identity]},
+            "finding_gate_identity_map_complete": True,
+        },
+        "",
+        str,
+    )
+    assert len(from_gate_map) == 1
+    assert from_gate_map[0]["identity"] == identity
+    assert not from_gate_map[0].get("identity_unmatched")
+
+
 def test_incomplete_gate_map_does_not_reconstruct_carried_identity() -> None:
     fingerprint = "a" * 64
     mapped_identity = "finding-digest:" + ("b" * 32)
@@ -1305,6 +1367,7 @@ def main() -> None:
     test_repair_comment_anchor_maps_to_inline_conversation()
     test_formal_review_fallback_is_labeled_correctly()
     test_carried_fallback_sanitizes_path_and_preserves_prior_state()
+    test_known_carried_finding_counts_as_matched()
     test_incomplete_gate_map_does_not_reconstruct_carried_identity()
     test_unmatched_finding_marks_gate_identity_map_incomplete()
     test_truncated_carried_findings_do_not_claim_resolution()

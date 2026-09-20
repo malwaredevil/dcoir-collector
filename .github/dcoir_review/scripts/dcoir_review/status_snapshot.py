@@ -209,6 +209,7 @@ def merge_open_findings(
                 seen_prior_ids.add(identity)
             item["carried"] = True
             if identity and identity in known:
+                matched = True
                 continue
             if identity:
                 known.add(identity)
@@ -222,6 +223,7 @@ def merge_open_findings(
         )
         for mapped_identity in mapped_identities:
             if mapped_identity in seen_prior_ids or mapped_identity in known:
+                matched = True
                 continue
             item = {
                 "title": "Prior verifier-supported finding remains unresolved",
