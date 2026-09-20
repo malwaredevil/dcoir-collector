@@ -7,6 +7,7 @@ import importlib
 import re
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
@@ -522,6 +523,32 @@ def assert_canonical_progress_reporter_ownership() -> None:
     assert module.base.ProgressReporter is final
     assert not callable(getattr(module, "_dcoir_review_verified_finding_gate_original_progress_reporter", None))
     assert not callable(getattr(module.hardened, "_dcoir_review_v54_original_progress_reporter", None))
+
+    class ProbeGitHub:
+        repo = "malwaredevil/dcoir-collector"
+
+    config = module.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
+    config.debug = False
+    reporter = final(ProbeGitHub(), 579, "/dcoir-review", config)
+    reporter.set_reviewed_commit("a" * 40)
+    normal_body = reporter._body("running")
+    assert normal_body.startswith("<!-- dcoir-review-status:v1 -->\n")
+    assert "<!-- dcoir-review-status-meta:v1:" in normal_body
+    assert "## DCOIR Review" in normal_body
+    assert "Branch changes: none; this workflow only posts review output." not in normal_body
+
+    debug_config = module.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
+    debug_config.debug = True
+    debug_reporter = final(ProbeGitHub(), 579, "/dcoir-review debug", debug_config)
+    debug_reporter.set_reviewed_commit("b" * 40)
+    debug_reporter._record("probe", "debug ownership")
+    debug_body = debug_reporter._body("running")
+    assert debug_body.startswith("<!-- dcoir-review-status:v1 -->\n")
+    assert "<!-- dcoir-review-status-meta:v1:" in debug_body
+    assert "## DCOIR Review — Running" in debug_body
+    assert "Legacy compatibility details:" in debug_body
+    assert "Prompt engineering:" in debug_body
+    assert "Selection overflow details:" in debug_body
 
 
 def assert_canonical_per_file_prompt_ownership() -> None:
