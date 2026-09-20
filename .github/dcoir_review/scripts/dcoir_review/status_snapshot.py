@@ -175,7 +175,9 @@ def merge_open_findings(
         key = (str(item.get("path", "") or ""), int(item.get("line", 0) or 0))
         by_location.setdefault(key, []).append(item)
     prior_review_url = str(previous_completed.get("formal_review_url", "") or "").strip()
-    prior_gate_identities, _ = support.metadata_gate_identity_state(previous_completed)
+    prior_gate_identities, prior_gate_identity_complete = support.metadata_gate_identity_state(
+        previous_completed
+    )
 
     for record in state.get("unresolved_findings", []) or []:
         if not isinstance(record, dict) or record.get("status") != "carried-unresolved":
@@ -213,7 +215,11 @@ def merge_open_findings(
             current.append(item)
             matched = True
 
-        mapped_identities = prior_gate_identities.get(fingerprint, [])
+        mapped_identities = (
+            prior_gate_identities.get(fingerprint, [])
+            if prior_gate_identity_complete
+            else []
+        )
         for mapped_identity in mapped_identities:
             if mapped_identity in seen_prior_ids or mapped_identity in known:
                 continue

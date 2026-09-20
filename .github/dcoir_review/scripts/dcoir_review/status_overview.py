@@ -168,6 +168,11 @@ def render_status_overview(
     metadata["open_finding_gate_identities"] = support.finding_gate_identity_map(findings)
     metadata["finding_gate_identity_map_complete"] = (
         support.finding_gate_identity_map_complete(findings)
+        and not any(
+            bool(item.get("identity_unmatched"))
+            for item in findings
+            if isinstance(item, dict)
+        )
     )
     if state != "completed" and previous:
         prior_identities, prior_identity_complete = support.metadata_finding_identity_state(

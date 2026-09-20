@@ -666,6 +666,63 @@ def test_carried_fallback_sanitizes_path_and_preserves_prior_state() -> None:
     assert carried[0]["identity_unmatched"] is True
 
 
+def test_incomplete_gate_map_does_not_reconstruct_carried_identity() -> None:
+    fingerprint = "a" * 64
+    mapped_identity = "finding-digest:" + ("b" * 32)
+    carried = status_snapshot.merge_open_findings(
+        [],
+        {
+            "gate_status": "blocked",
+            "unresolved_findings": [
+                {
+                    "fingerprint": fingerprint,
+                    "path": "src/left_scope.py",
+                    "line": 31,
+                    "severity": "high",
+                    "status": "carried-unresolved",
+                }
+            ],
+        },
+        {
+            "open_findings": [],
+            "open_finding_gate_identities": {fingerprint: [mapped_identity]},
+            "finding_gate_identity_map_complete": False,
+        },
+        "",
+        str,
+    )
+    assert len(carried) == 1
+    assert carried[0]["identity_unmatched"] is True
+    assert carried[0]["identity"] == "finding-digest:" + ("a" * 32)
+    assert carried[0]["identity"] != mapped_identity
+
+
+def test_unmatched_finding_marks_gate_identity_map_incomplete() -> None:
+    finding = {
+        "title": "Prior verifier-supported finding remains unresolved",
+        "severity": "high",
+        "path": "src/left_scope.py",
+        "line": 31,
+        "identity": "finding-digest:" + ("c" * 32),
+        "gate_fingerprint": "d" * 64,
+        "identity_unmatched": True,
+    }
+    body = status_overview.render_status_overview(
+        {
+            "state": "completed",
+            "reviewed_head_sha": "b" * 40,
+            "command": "/dcoir-review",
+            "gate_status": "blocked",
+            "open_findings": [finding],
+        },
+        {},
+    )
+    metadata = parse_status_metadata(body)
+    assert metadata["finding_identity_index_complete"] is False
+    assert metadata["finding_gate_identity_map_complete"] is False
+    assert metadata["open_finding_gate_identities"]
+
+
 def test_truncated_carried_findings_do_not_claim_resolution() -> None:
     findings = [
         {
@@ -1150,6 +1207,8 @@ def main() -> None:
     test_repair_comment_anchor_maps_to_inline_conversation()
     test_formal_review_fallback_is_labeled_correctly()
     test_carried_fallback_sanitizes_path_and_preserves_prior_state()
+    test_incomplete_gate_map_does_not_reconstruct_carried_identity()
+    test_unmatched_finding_marks_gate_identity_map_incomplete()
     test_truncated_carried_findings_do_not_claim_resolution()
     test_prior_unmatched_identity_suppresses_resolved_claims()
     test_compacted_finding_metadata_keeps_identity_unmatched_marker()
