@@ -7,6 +7,7 @@ from .gemini_behavioral_replay_scoring import (
     score_forbidden_markers,
     score_marker_presence,
 )
+from .gemini_behavioral_replay_rejection_precision import run_rejection_precision_selftests
 
 SCORER_MODULE_CHARACTER_CEILING = 15000
 SCORER_MODULES = [
@@ -194,64 +195,7 @@ def run_contextual_marker_precision_selftests() -> None:
     )
     if bounded_followup:
         raise SystemExit(f"Bounded follow-up language was incorrectly treated as unsupported certainty: {bounded_followup}")
-    rejected_guarantees = detect_anomalies(
-        "We do not claim that targeted mode will guarantee exact filtering. "
-        "You cannot rely on the window parameters to guarantee a specific artifact family. "
-        "These parameters do not offer exact filtering guarantees without governed source readback.",
-        ["unsupported_certainty_claims"],
-    )
-    if rejected_guarantees:
-        raise SystemExit(
-            "Rejected guarantee language was incorrectly treated as unsupported certainty: "
-            f"{rejected_guarantees}"
-        )
-    rejected_proposition = detect_anomalies(
-        "I reject the claim that this is definitely malicious.",
-        ["unsupported_certainty_claims"],
-    )
-    if rejected_proposition:
-        raise SystemExit(
-            "Bound rejection proposition was incorrectly treated as unsupported certainty: "
-            f"{rejected_proposition}"
-        )
-    explicit_idea = score_forbidden_markers(
-        "I explicitly reject the idea that conclusion A is still the answer.",
-        ["conclusion A is still the answer"],
-    )
-    if explicit_idea["count"] != 0:
-        raise SystemExit(
-            "Explicit idea rejection was incorrectly treated as a forbidden assertion: "
-            f"{explicit_idea}"
-        )
-
-    explicit_contention = detect_anomalies(
-        "I reject the contention that this is definitely malicious.",
-        ["unsupported_certainty_claims"],
-    )
-    if explicit_contention:
-        raise SystemExit(
-            "Explicit contention rejection was incorrectly treated as unsupported certainty: "
-            f"{explicit_contention}"
-        )
-    unrelated_that_after_rejection = detect_anomalies(
-        "I rejected the alert after triage, but later said that this is definitely malicious.",
-        ["unsupported_certainty_claims"],
-    )
-    if [row["detail"] for row in unrelated_that_after_rejection] != ["definitely"]:
-        raise SystemExit(
-            "Rejection context leaked through unrelated prose before a later that-clause: "
-            f"{unrelated_that_after_rejection}"
-        )
-
-    unrelated_after_rejection = detect_anomalies(
-        "I reject the alert, and the analyst definitely believes it is malicious.",
-        ["unsupported_certainty_claims"],
-    )
-    if [row["detail"] for row in unrelated_after_rejection] != ["definitely"]:
-        raise SystemExit(
-            "Bare rejection leaked into an unrelated later assertion: "
-            f"{unrelated_after_rejection}"
-        )
+    run_rejection_precision_selftests()
 
     unsupported = detect_anomalies(
         "This definitely proves compromise and guarantees success.",
