@@ -45,4 +45,3 @@ POST_MARKER_REJECTION_PATTERN = re.compile(
 POST_ACTION_REJECTION_PATTERN = re.compile(
     r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:that|this|it|which|they)\s+)?(?:is|are|was|were)\s+(?:unavailable|prohibited)\b"
 )
-
