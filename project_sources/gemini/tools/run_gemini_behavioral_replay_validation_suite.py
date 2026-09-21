@@ -249,6 +249,20 @@ def run_contextual_marker_precision_selftests() -> None:
     if required["matched"] != ["preserve the exact value"]:
         raise SystemExit(f"Inter-value prose was incorrectly treated as quoted: {required}")
 
+    quoted_identifier = score_marker_presence(
+        'Run field-agnostic KQL for `"abc123-unique-process-entity"` in the same window.',
+        ["abc123-unique-process-entity"],
+    )
+    if quoted_identifier["matched"] != ["abc123-unique-process-entity"]:
+        raise SystemExit(f"Quoted literal identifier was not preserved as required evidence: {quoted_identifier}")
+
+    quoted_behavior_phrase = score_marker_presence(
+        'Do not merely quote "preserve the exact value" as a behavioral promise.',
+        ["preserve the exact value"],
+    )
+    if quoted_behavior_phrase["matched"]:
+        raise SystemExit(f"Quoted multiword behavior phrase incorrectly satisfied a required marker: {quoted_behavior_phrase}")
+
     supported_confirmation = detect_anomalies(
         "We checked the supplied evidence and confirmed the vulnerable driver is present.",
         ["unsupported_certainty_claims"],

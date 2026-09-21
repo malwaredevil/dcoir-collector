@@ -190,12 +190,15 @@ def _find_contextual_term_hits(
     *,
     skip_negated: bool = False,
     skip_quoted: bool = False,
+    allow_quoted_single_tokens: bool = False,
 ) -> List[str]:
     hits: List[str] = []
     for term in terms:
         for match in _iter_term_occurrences(text, term):
-            if skip_quoted and _occurrence_is_quoted(text, match.start(), match.end()):
-                continue
+            quoted = _occurrence_is_quoted(text, match.start(), match.end())
+            if skip_quoted and quoted:
+                if not (allow_quoted_single_tokens and not re.search(r"\s", normalize_text(term))):
+                    continue
             if skip_negated and (
                 _occurrence_is_negated(text, match.start())
                 or _occurrence_is_rejected_before(text, match.start())

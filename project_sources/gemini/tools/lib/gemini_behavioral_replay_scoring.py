@@ -20,7 +20,13 @@ from .behavioral_replay_collector_scoring import collector_procedure_actionabili
 
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
-    matched = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
+    matched = _find_contextual_term_hits(
+        lowered,
+        markers,
+        skip_negated=True,
+        skip_quoted=True,
+        allow_quoted_single_tokens=True,
+    )
     invalidated = []
     for marker in markers:
         if marker in matched:
