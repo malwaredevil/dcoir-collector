@@ -30,7 +30,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
     rf"|nor\s+will\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:tell|instruct|claim|state|assert)\b"
-    rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing|recommending)\b"
+    rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing|recommending|advising)\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?"
     rf"(?:claim|assertion|contention|conclusion|premise|assumption|proposition|statement|idea|notion|framing|classification|expectation)(?:s)?\s+that\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?(?:recommendation|instruction|request|attempt)\s+to\b"

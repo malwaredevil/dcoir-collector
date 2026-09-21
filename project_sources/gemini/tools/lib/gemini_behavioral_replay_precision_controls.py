@@ -76,6 +76,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("guaranteed", "I do not guess the shell capabilities or assume a specific recursion syntax is guaranteed to work in your local environment."),
         ("benign because there were no results", "We cannot determine that the activity is benign because there were no results."),
         ("use -recurse", "We must also avoid recommending to use -recurse until version compatibility is verified."),
+        ("use -recurse", "We cannot guarantee that any specific command will work, and we must avoid advising you to use -recurse until we know the shell version and its specific recursion behavior."),
         ("send the next chunk", "Please do not attempt to send the next chunk or upload the remaining chunks."),
         ("upload the remaining chunks", "Please do not attempt to send the next chunk or upload the remaining chunks."),
     ]
@@ -91,6 +92,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("search all indexes for all time", "Search all indexes for all time."),
         ("this exact command will work", "This exact command will work."),
         ("use -recurse", "Use -recurse."),
+        ("use -recurse", "We must avoid advising you to guess, but I advise you to use -recurse now."),
         ("guarantee exact filtering", "These parameters guarantee exact filtering."),
         ("definitely produce", "These parameters will definitely produce the requested artifact folder."),
     ]
