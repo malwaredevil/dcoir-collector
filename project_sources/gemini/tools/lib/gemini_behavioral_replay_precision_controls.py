@@ -68,6 +68,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("it exited cleanly", "It cannot be assumed that it exited cleanly."),
         ("high confidence malicious", "We cannot make a *high confidence malicious* determination based on the current data."),
         ("nothing exists", "It is inaccurate to state that nothing exists, as I have not searched the enterprise."),
+        ("guaranteed", "I do not guess the shell capabilities or assume a specific recursion syntax is guaranteed to work in your local environment."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
