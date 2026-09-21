@@ -13,7 +13,9 @@ REJECTED_ASSERTION_PATTERN = re.compile(
 )
 
 
-PRE_MARKER_REJECTION_PATTERN = re.compile(
+REJECTION_SCOPE_LIMIT = 180
+
+PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"(?:"
     rf"(?:do not|don't|dont|does not|doesn't|doesnt|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+can\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:{REJECTED_ACTION_VERBS})\b"
@@ -33,7 +35,7 @@ PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"(?:claim|assertion|contention|conclusion|premise|assumption|proposition|statement|idea|notion|framing|classification|expectation)(?:s)?\s+that\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?(?:recommendation|instruction|request|attempt)\s+to\b"
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
-    rf")[^.!?;]{{0,180}}$"
+    rf")"
 )
 
 POST_MARKER_REJECTION_PATTERN = re.compile(

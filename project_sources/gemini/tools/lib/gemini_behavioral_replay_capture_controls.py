@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
 from .gemini_behavioral_replay_capture_paths import (
+    PrivateCaptureRoot,
     allocate_private_capture_root,
     assert_private_capture_root,
     capture_path,
+    cleanup_private_capture_root,
     open_capture_text_exclusive,
 )
 from .gemini_behavioral_replay_selection import resolve_fixtures
@@ -212,7 +213,7 @@ def _run(
     args: list[str],
     *,
     stdout_name: str,
-    private_root: Path,
+    private_root: PrivateCaptureRoot,
     expect_success: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     with open_capture_text_exclusive(private_root, stdout_name) as fh:
@@ -220,7 +221,7 @@ def _run(
     if expect_success and result.returncode != 0:
         raise SystemExit(result.returncode)
     if not expect_success and result.returncode == 0:
-        raise SystemExit("Command unexpectedly succeeded: " + " ".join(args))
+        raise SystemExit("Unexpected success: " + " ".join(args))
     return result
 
 
@@ -230,7 +231,7 @@ def _write_capture_mode_variant(
     mode: str,
     model_name: str,
     *,
-    private_root: Path,
+    private_root: PrivateCaptureRoot,
 ) -> Path:
     payload = json.loads(source.read_text(encoding="utf-8"))
     payload["mode"] = mode
@@ -302,5 +303,11 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
             if payload.get("success") is not False:
                 raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
             assert_isolated_control_reason(label, payload)
-    finally:
-        shutil.rmtree(private_root)
+    except BaseException as scoring_error:
+        try:
+            cleanup_private_capture_root(private_root)
+        except BaseException as cleanup_error:
+            raise scoring_error.with_traceback(scoring_error.__traceback__) from cleanup_error
+        raise
+    else:
+        cleanup_private_capture_root(private_root)

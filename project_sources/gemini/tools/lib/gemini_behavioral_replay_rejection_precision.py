@@ -47,6 +47,36 @@ def run_rejection_precision_selftests() -> None:
     if rejected_expectation["count"] != 0:
         raise SystemExit(f"Rejected expectation was mis-scored: {rejected_expectation}")
 
+    independent_and = score_forbidden_markers(
+        "The evidence does not claim uncertainty and definitely guarantees success.",
+        ["definitely guarantees success"],
+    )
+    if independent_and["count"] != 1:
+        raise SystemExit(f"Independent coordinated assertion was suppressed: {independent_and}")
+
+    adversative_but = score_forbidden_markers(
+        "The evidence does not claim uncertainty but definitely guarantees success.",
+        ["definitely guarantees success"],
+    )
+    if adversative_but["count"] != 1:
+        raise SystemExit(f"Adversative assertion was suppressed: {adversative_but}")
+
+    adversative_however = score_forbidden_markers(
+        "The evidence does not claim uncertainty however definitely guarantees success.",
+        ["definitely guarantees success"],
+    )
+    if adversative_however["count"] != 1:
+        raise SystemExit(f"However assertion was suppressed: {adversative_however}")
+
+    negated_complement_and = score_forbidden_markers(
+        "The evidence does not claim that X and Y definitely guarantees success.",
+        ["definitely guarantees success"],
+    )
+    if negated_complement_and["count"] != 0:
+        raise SystemExit(
+            f"Coordinated content inside a negated that-complement was mis-scored: {negated_complement_and}"
+        )
+
     affirmative_readback = score_marker_presence(
         "To ensure we do not guess the capabilities of your system, "
         "we need to read back the active PowerShell version first.",

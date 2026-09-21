@@ -8,8 +8,9 @@ from .gemini_behavioral_replay_rejection_patterns import (
     NEGATION_PATTERN,
     POST_ACTION_REJECTION_PATTERN,
     POST_MARKER_REJECTION_PATTERN,
-    PRE_MARKER_REJECTION_PATTERN,
+    PRE_MARKER_REJECTION_FRAME_PATTERN,
     REJECTED_ASSERTION_PATTERN,
+    REJECTION_SCOPE_LIMIT,
 )
 
 # Generic certainty checks intentionally exclude "confirmed": evidence-backed states such as
@@ -145,6 +146,54 @@ def _occurrence_is_negated(text: str, start: int) -> bool:
     return bool(NEGATION_PATTERN.search(context) or REJECTED_ASSERTION_PATTERN.search(context))
 
 
+_COORDINATED_AFFIRMATIVE_PREDICATE = re.compile(
+    r"^(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
+    r"(?:guarantees?|guaranteed|confirms|confirmed|claims|claimed|states|stated|asserts|asserted|"
+    r"concludes|concluded|proves|proved|establishes|established|shows|showed|indicates|indicated|"
+    r"means|meant|recommends|recommended|requires|required|needs|needed|believes|believed|"
+    r"will|would|can|could|must|should|is|are|was|were|has|have|does|do)\b"
+)
+
+_COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE = re.compile(
+    r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
+    r"the(?:\s+[a-z0-9_-]+){1,3}|[a-z0-9_-]+)\s+"
+    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
+    r"(?:guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
+    r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?|"
+    r"mean(?:s|t)?|recommend(?:s|ed)?|require(?:s|d)?|need(?:s|ed)?|believe(?:s|d)?|"
+    r"will|would|can|could|must|should|is|are|was|were|has|have|does|do)\b"
+)
+
+
+def _rejection_frame_governs_marker(context: str, marker_tail: str) -> bool:
+    frames = list(PRE_MARKER_REJECTION_FRAME_PATTERN.finditer(context))
+    if not frames:
+        return False
+    frame = frames[-1]
+    tail = context[frame.end():]
+    if len(tail) > REJECTION_SCOPE_LIMIT:
+        return False
+
+    frame_text = normalize_text(frame.group(0))
+    frame_opens_that_complement = bool(re.search(r"\bthat\s*$", frame_text))
+    coordinators = list(re.finditer(r"\b(?:and|or)\b", tail))
+    for coordinator in reversed(coordinators):
+        suffix = normalize_text(tail[coordinator.end():] + " " + marker_tail)
+        if not suffix:
+            continue
+        prefix = tail[:coordinator.start()]
+        has_that_complement = frame_opens_that_complement or bool(
+            re.search(r"\bthat\b", prefix)
+        )
+        independently_predicated = bool(
+            _COORDINATED_AFFIRMATIVE_PREDICATE.match(suffix)
+            or _COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE.match(suffix)
+        )
+        if independently_predicated and not has_that_complement:
+            return False
+    return True
+
+
 def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     # Broad assertion rejection is intentionally separate from the narrow
     # negation helper because execution-lane scoring has relationship-specific
@@ -163,9 +212,10 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     if contrasts:
         context = context[contrasts[-1].end():]
 
-    tail = normalize_text(text[start:start + 48])
-    if re.search(r"\b(?:and|or)\s*[`]*$", context) and re.match(
-        r"^(?:not|do not|does not|did not|will not|would not|cannot|can't|must not|should not)\b", tail
+    marker_tail = normalize_text(text[start:start + 96])
+    if re.search(r"\b(?:and|or)\s*[\x60]*$", context) and re.match(
+        r"^(?:not|do not|does not|did not|will not|would not|cannot|can't|must not|should not)\b",
+        marker_tail,
     ):
         context = ""
 
@@ -186,8 +236,8 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         if comma_clause.search(suffix):
             context = suffix
             break
-    return bool(PRE_MARKER_REJECTION_PATTERN.search(context))
 
+    return _rejection_frame_governs_marker(context, marker_tail)
 
 def _occurrence_is_rejected_after(text: str, end: int) -> bool:
     paragraph_end = text.find("\n", end)
