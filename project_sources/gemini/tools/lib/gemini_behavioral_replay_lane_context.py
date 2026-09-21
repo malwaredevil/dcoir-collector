@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Iterable, List
 
-from .behavioral_replay_text_scoring import (
+from .gemini_behavioral_replay_text_scoring import (
     _iter_term_occurrences,
     _occurrence_is_negated,
     _occurrence_is_quoted,

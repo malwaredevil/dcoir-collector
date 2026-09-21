@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from .behavioral_replay_text_scoring import (
+from .gemini_behavioral_replay_text_scoring import (
     CONTRADICTION_PAIRS,
     INVENTED_TOOL_TERMS,
     UNSUPPORTED_CERTAINTY_TERMS,
@@ -15,8 +15,8 @@ from .behavioral_replay_text_scoring import (
     duplicate_final_sections,
     normalize_text,
 )
-from .behavioral_replay_lane_scoring import has_execution_lane_separation
-from .behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
+from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
+from .gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)

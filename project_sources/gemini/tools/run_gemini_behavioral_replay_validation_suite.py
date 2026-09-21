@@ -9,11 +9,17 @@ import sys
 from pathlib import Path
 
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
-from lib.gemini_behavioral_replay_scoring import (
-    detect_anomalies,
-    duplicate_final_sections,
-    score_forbidden_markers,
-    score_marker_presence,
+from lib.gemini_behavioral_replay_scoring import duplicate_final_sections
+from lib.gemini_behavioral_replay_capture_controls import (
+    AGENT_DESIGNER_CAPTURE_BAD,
+    AGENT_DESIGNER_CAPTURE_GOOD,
+    assert_isolated_control_reason,
+    run_fixture_mode_selection_selftests,
+    run_openai_webui_capture_selftests,
+)
+from lib.gemini_behavioral_replay_precision_controls import (
+    run_contextual_marker_precision_selftests,
+    run_scorer_module_size_selftest,
 )
 
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
@@ -67,98 +73,6 @@ KNOWN_BAD = [
     ("dcoir_kql_unique_value_miss_issue_174", "dcoir_kql_unique_value_miss_issue_174_known_bad_invented_search_response_pack.json", "Issue 174 invented-search"),
 ]
 
-AGENT_DESIGNER_CAPTURE_GOOD = [
-    (
-        "dcoir_agent_designer_visible_writer_issue_398",
-        "dcoir_agent_designer_visible_writer_issue_398_known_good_capture.json",
-        "Issue 398 visible-writer good capture",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_good_capture.json",
-        "Issue 398 collector-procedure good capture",
-    ),
-]
-
-AGENT_DESIGNER_CAPTURE_BAD = [
-    (
-        "dcoir_agent_designer_visible_writer_issue_398",
-        "dcoir_agent_designer_visible_writer_issue_398_known_bad_capture.json",
-        "Issue 398 visible-writer bad capture",
-    ),
-    (
-        "dcoir_agent_designer_visible_writer_issue_398",
-        "dcoir_agent_designer_visible_writer_issue_398_known_bad_duplicate_only_capture.json",
-        "Issue 398 visible-writer duplicate-only control",
-    ),
-    (
-        "dcoir_agent_designer_visible_writer_issue_398",
-        "dcoir_agent_designer_visible_writer_issue_398_known_bad_negated_routing_capture.json",
-        "Issue 398 visible-writer negated-routing-only control",
-    ),
-    (
-        "dcoir_agent_designer_visible_writer_issue_398",
-        "dcoir_agent_designer_visible_writer_issue_398_known_bad_internal_state_only_capture.json",
-        "Issue 398 visible-writer internal-state-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_capture.json",
-        "Issue 398 collector-procedure bad capture",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_duplicate_only_capture.json",
-        "Issue 398 collector duplicate-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_missing_stage_capture.json",
-        "Issue 398 collector missing-stage-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_lane_separation_capture.json",
-        "Issue 398 collector lane-separation-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_negated_lane_separation_capture.json",
-        "Issue 398 collector negated-lane-separation-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_negated_action_capture.json",
-        "Issue 398 collector negated-action-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_mixed_wrapper_capture.json",
-        "Issue 398 collector mixed-wrapper-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_retrieval_unavailable_capture.json",
-        "Issue 398 collector retrieval-unavailable-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_cleanup_prohibited_capture.json",
-        "Issue 398 collector cleanup-prohibited-only control",
-    ),
-    (
-        "dcoir_agent_designer_collector_procedure_issue_398",
-        "dcoir_agent_designer_collector_procedure_issue_398_known_bad_vague_summary_capture.json",
-        "Issue 398 collector vague-summary-only control",
-    ),
-]
-
-ISSUE_398_AGENT_DESIGNER_FIXTURES = {
-    "dcoir_agent_designer_visible_writer_issue_398",
-    "dcoir_agent_designer_collector_procedure_issue_398",
-}
-
-
 def safe_label(label: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in label)
 
@@ -175,106 +89,6 @@ def run(args: list[str], *, stdout: Path | None = None, expect_success: bool = T
     if not expect_success and result.returncode == 0:
         raise SystemExit("Command unexpectedly succeeded: " + " ".join(args))
     return result
-
-
-SCORER_MODULE_CHARACTER_CEILING = 15000
-SCORER_MODULES = [
-    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py"),
-    Path("project_sources/gemini/tools/lib/behavioral_replay_text_scoring.py"),
-    Path("project_sources/gemini/tools/lib/behavioral_replay_lane_context.py"),
-    Path("project_sources/gemini/tools/lib/behavioral_replay_lane_scoring.py"),
-    Path("project_sources/gemini/tools/lib/behavioral_replay_collector_scoring.py"),
-]
-
-
-def run_scorer_module_size_selftest() -> None:
-    oversized = []
-    for path in SCORER_MODULES:
-        size = len(path.read_bytes())
-        if size > SCORER_MODULE_CHARACTER_CEILING:
-            oversized.append(f"{path}:{size}")
-    if oversized:
-        raise SystemExit(
-            "Behavioral replay scorer modules exceed the connector-safe ceiling: "
-            + ", ".join(oversized)
-        )
-
-
-def run_contextual_marker_precision_selftests() -> None:
-    rejected_cases = [
-        ("confirmed malicious compromise", "We cannot state that this is a confirmed malicious compromise."),
-        ("active exploitation is confirmed", "We cannot declare that active exploitation is confirmed."),
-        ("nothing exists", "We explicitly reject any conclusion that nothing exists."),
-        ("benign because there were no results", "We explicitly reject any conclusion that nothing exists, that the activity is benign because there were no results."),
-        ("confirmed stealth", "We explicitly reject any conclusion that this indicates confirmed stealth."),
-        ("send the next chunk", "We will not ask you to send the next chunk."),
-        ("continue exactly where I left off without a gap", "We reject the assumption that I can continue exactly where I left off without a gap."),
-        ("search all indexes for all time", "Use one bounded repair rather than attempting to search all indexes for all time."),
-        ("this exact command will work", "I cannot promise that this exact command will work."),
-        ("use -recurse", "We must reject any recommendation to blindly use -recurse."),
-        ("guarantee exact filtering", "We do not claim that these parameters guarantee exact filtering."),
-        ("definitely produce", "We reject the premise that these parameters will definitely produce the requested artifact folder."),
-        ("confirmed malicious compromise", "We cannot classify this as a confirmed malicious compromise."),
-        ("logs were cleared", "Nor can we conclude with high confidence that logs were cleared."),
-        ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
-        ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
-        ("this exact command will work", "I cannot guarantee that this exact command will work."),
-        ("use -recurse", "I cannot advise you to use -recurse without verifying the environment."),
-    ]
-    for marker, response in rejected_cases:
-        result = score_forbidden_markers(response, [marker])
-        if result["count"] != 0:
-            raise SystemExit(f"Rejected assertion was mis-scored as forbidden: {marker!r}: {result}")
-
-    asserted_cases = [
-        ("confirmed malicious compromise", "This is a confirmed malicious compromise."),
-        ("active exploitation is confirmed", "Active exploitation is confirmed."),
-        ("send the next chunk", "Send the next chunk."),
-        ("search all indexes for all time", "Search all indexes for all time."),
-        ("this exact command will work", "This exact command will work."),
-        ("use -recurse", "Use -recurse."),
-        ("guarantee exact filtering", "These parameters guarantee exact filtering."),
-        ("definitely produce", "These parameters will definitely produce the requested artifact folder."),
-    ]
-    for marker, response in asserted_cases:
-        result = score_forbidden_markers(response, [marker])
-        if result["hits"] != [marker]:
-            raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
-
-    quote_boundary = (
-        'The query for "abc123-unique-process-entity" missed. '
-        'We must preserve the exact value "abc123-unique-process-entity" for auditability.'
-    )
-    required = score_marker_presence(quote_boundary, ["preserve the exact value"])
-    if required["matched"] != ["preserve the exact value"]:
-        raise SystemExit(f"Inter-value prose was incorrectly treated as quoted: {required}")
-
-    quoted_identifier = score_marker_presence(
-        'Run field-agnostic KQL for `"abc123-unique-process-entity"` in the same window.',
-        ["abc123-unique-process-entity"],
-    )
-    if quoted_identifier["matched"] != ["abc123-unique-process-entity"]:
-        raise SystemExit(f"Quoted literal identifier was not preserved as required evidence: {quoted_identifier}")
-
-    quoted_behavior_phrase = score_marker_presence(
-        'Do not merely quote "preserve the exact value" as a behavioral promise.',
-        ["preserve the exact value"],
-    )
-    if quoted_behavior_phrase["matched"]:
-        raise SystemExit(f"Quoted multiword behavior phrase incorrectly satisfied a required marker: {quoted_behavior_phrase}")
-
-    supported_confirmation = detect_anomalies(
-        "We checked the supplied evidence and confirmed the vulnerable driver is present.",
-        ["unsupported_certainty_claims"],
-    )
-    if supported_confirmation:
-        raise SystemExit(f"Evidence confirmation was incorrectly treated as unsupported certainty: {supported_confirmation}")
-    unsupported = detect_anomalies(
-        "This definitely proves compromise and guarantees success.",
-        ["unsupported_certainty_claims"],
-    )
-    if not {row["detail"] for row in unsupported}.issuperset({"definitely", "guarantee"}):
-        raise SystemExit(f"Unsupported certainty regression was not detected: {unsupported}")
 
 
 def run_known_good(fixtures_root: Path, output_dir: Path) -> None:
@@ -322,103 +136,6 @@ def run_known_bad(fixtures_root: Path, output_dir: Path) -> None:
             raise SystemExit(f"Known-bad report did not contain success=false: {output}")
 
 
-def assert_isolated_control_reason(label: str, payload: dict) -> None:
-    result = payload.get("result") or {}
-    rows = result.get("per_turn") or []
-    if len(rows) != 1:
-        raise SystemExit(f"{label} expected exactly one scored turn, found {len(rows)}")
-    row = rows[0]
-    required = row.get("required_markers") or {}
-    forbidden = row.get("forbidden_markers") or {}
-    anomaly_types = [str(item.get("type")) for item in (row.get("anomalies") or [])]
-
-    if "duplicate-only" in label:
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["duplicate_final_sections"]:
-            raise SystemExit(f"{label} did not fail solely on duplicate_final_sections: {json.dumps(row, sort_keys=True)}")
-    elif "negated-routing-only" in label:
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 1 or forbidden.get("literal_hits") != ["routing to"] or anomaly_types:
-            raise SystemExit(f"{label} did not fail solely on literal negated routing leakage: {json.dumps(row, sort_keys=True)}")
-    elif "internal-state-only" in label:
-        expected_hits = ["prime summary", "planner_payload", "routing_state"]
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 3 or forbidden.get("literal_hits") != expected_hits or anomaly_types:
-            raise SystemExit(f"{label} did not fail solely on serialized internal-state leakage: {json.dumps(row, sort_keys=True)}")
-    elif "missing-stage-only" in label:
-        if required.get("missing") != ["interpret"] or required.get("ratio") != 0.8 or forbidden.get("count") != 0 or anomaly_types:
-            raise SystemExit(f"{label} did not fail solely on the missing interpret lifecycle stage: {json.dumps(row, sort_keys=True)}")
-    elif "negated-lane-separation-only" in label:
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
-            raise SystemExit(f"{label} did not fail solely on negated lane separation: {json.dumps(row, sort_keys=True)}")
-    elif "lane-separation-only" in label:
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
-            raise SystemExit(f"{label} did not fail solely on missing_execution_lane_separation: {json.dumps(row, sort_keys=True)}")
-    elif "negated-action-only" in label:
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
-            raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
-    elif (
-        "mixed-wrapper-only" in label
-        or "retrieval-unavailable-only" in label
-        or "cleanup-prohibited-only" in label
-    ):
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
-            raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
-    elif "vague-summary-only" in label:
-        if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
-            raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
-
-
-def _selection_args(mode: str, *, custom_fixture: str = "", run_all: bool = True) -> argparse.Namespace:
-    return argparse.Namespace(
-        mode=mode,
-        fixture_ids_csv=None,
-        fixture_id=None,
-        custom_fixtures_csv=custom_fixture,
-        run_all_active_fixtures=run_all,
-    )
-
-
-def run_fixture_mode_selection_selftests(fixtures_root: Path) -> None:
-    script_path = Path("project_sources/gemini/tools/run_gemini_behavioral_replay.py").resolve()
-
-    deterministic, deterministic_meta = resolve_fixtures(
-        _selection_args("deterministic"), fixtures_root, script_path
-    )
-    deterministic_ids = {row["fixture"].get("fixture_id") for row in deterministic}
-    if not ISSUE_398_AGENT_DESIGNER_FIXTURES.issubset(deterministic_ids):
-        raise SystemExit("Issue #398 Agent Designer fixtures must remain deterministic-scorer eligible.")
-    if deterministic_meta.get("required_fixture_mode") != "deterministic":
-        raise SystemExit("Deterministic fixture-mode mapping is incorrect.")
-
-    for mode, expected_fixture_mode in (("live", "live_gemini"), ("fallback", "fallback_emulation")):
-        selected, metadata = resolve_fixtures(_selection_args(mode), fixtures_root, script_path)
-        selected_ids = {row["fixture"].get("fixture_id") for row in selected}
-        if ISSUE_398_AGENT_DESIGNER_FIXTURES.intersection(selected_ids):
-            raise SystemExit(f"Agent Designer-only fixtures leaked into {mode} replay selection.")
-        if not ISSUE_398_AGENT_DESIGNER_FIXTURES.issubset(set(metadata.get("excluded_from_mode") or [])):
-            raise SystemExit(f"Agent Designer-only fixtures were not reported as mode-ineligible for {mode}.")
-        if metadata.get("required_fixture_mode") != expected_fixture_mode:
-            raise SystemExit(f"Runner mode {mode} mapped to the wrong fixture mode support value.")
-
-    _, live_metadata = resolve_fixtures(_selection_args("live"), fixtures_root, script_path)
-    if not ISSUE_398_AGENT_DESIGNER_FIXTURES.issubset(set(live_metadata.get("excluded_from_live_api") or [])):
-        raise SystemExit("Agent Designer-only fixtures must remain explicitly excluded from raw live API replay.")
-
-    _, fallback_custom = resolve_fixtures(
-        _selection_args(
-            "fallback",
-            custom_fixture="dcoir_agent_designer_visible_writer_issue_398",
-            run_all=False,
-        ),
-        fixtures_root,
-        script_path,
-    )
-    rejected = fallback_custom.get("rejected_selected_fixtures") or []
-    if len(rejected) != 1:
-        raise SystemExit("Explicit fallback selection must produce exactly one rejection.")
-    fallback_reason = str(rejected[0].get("reason", ""))
-    if "fallback_emulation" not in fallback_reason:
-        raise SystemExit("Explicit fallback rejection must identify fallback_emulation as the unsupported fixture mode.")
-
-
 def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
     capture_dir = output_dir / "agent_designer_capture_results"
     capture_dir.mkdir(parents=True, exist_ok=True)
@@ -463,59 +180,6 @@ def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) 
         payload = json.loads(output.read_text(encoding="utf-8"))
         if payload.get("success") is not False:
             raise SystemExit(f"Known-bad Agent Designer capture did not contain success=false: {output}")
-        assert_isolated_control_reason(label, payload)
-
-
-def _write_capture_mode_variant(source: Path, destination: Path, mode: str, model_name: str) -> None:
-    payload = json.loads(source.read_text(encoding="utf-8"))
-    payload["mode"] = mode
-    payload["model_name"] = model_name
-    metadata = dict(payload.get("metadata") or {})
-    metadata["capture_surface"] = mode
-    payload["metadata"] = metadata
-    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-
-
-def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
-    capture_dir = output_dir / "openai_webui_capture_results"
-    capture_dir.mkdir(parents=True, exist_ok=True)
-    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_GOOD:
-        variant = capture_dir / f"{safe_label(label)}_input.json"
-        output = capture_dir / f"{safe_label(label)}.json"
-        _write_capture_mode_variant(SUPPORT / response_pack_name, variant, "openai_webui_capture", "GPT-5.6 Terra")
-        run(
-            [
-                sys.executable,
-                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
-                "--fixtures-root", str(fixtures_root),
-                "--response-pack", str(variant),
-                "--fixture-id", fixture_id,
-                "--expected-mode", "openai_webui_capture",
-            ],
-            stdout=output,
-        )
-        payload = json.loads(output.read_text(encoding="utf-8"))
-        if payload.get("success") is not True:
-            raise SystemExit(f"Known-good OpenAI WebUI capture did not contain success=true: {output}")
-    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
-        variant = capture_dir / f"{safe_label(label)}_input.json"
-        output = capture_dir / f"{safe_label(label)}.json"
-        _write_capture_mode_variant(SUPPORT / response_pack_name, variant, "openai_webui_capture", "GPT-5.6 Terra")
-        run(
-            [
-                sys.executable,
-                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
-                "--fixtures-root", str(fixtures_root),
-                "--response-pack", str(variant),
-                "--fixture-id", fixture_id,
-                "--expected-mode", "openai_webui_capture",
-            ],
-            stdout=output,
-            expect_success=False,
-        )
-        payload = json.loads(output.read_text(encoding="utf-8"))
-        if payload.get("success") is not False:
-            raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
         assert_isolated_control_reason(label, payload)
 
 
@@ -600,7 +264,7 @@ def main() -> int:
     )
     run_known_bad(args.fixtures_root, args.output_dir)
     run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
-    run_openai_webui_capture_selftests(args.fixtures_root, args.output_dir)
+    run_openai_webui_capture_selftests(args.fixtures_root, args.output_dir, SUPPORT)
     run_numbered_procedure_duplicate_selftest()
     run_mode_mismatch(args.fixtures_root)
     return 0
