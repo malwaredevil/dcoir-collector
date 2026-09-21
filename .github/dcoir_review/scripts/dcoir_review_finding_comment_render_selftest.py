@@ -141,6 +141,35 @@ def _cases(review):
             "suggested_replacement": "",
             "validation": f"python3 -m py_compile {PROBE}",
         },
+        "deterministic_declined": {
+            "title": "model wording",
+            "severity": "high",
+            "confidence": 0.99,
+            "path": SUGGESTION_PROBE,
+            "line": 10,
+            "body": "model body",
+            "suggested_replacement": "",
+            "fix_guidance": {
+                "language": "python",
+                "notes": "MODEL REPAIR RATIONALE MUST NOT RENDER",
+            },
+            "_risk_sentinel_key": [SUGGESTION_PROBE, 10, v20.PYTHON_TRUTHY_LITERAL_BRANCH],
+            "_risk_sentinel_kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+            v21.VERIFIER_MARKER: {
+                "mode": "deterministic-core-sentinel",
+                "supported": True,
+                "kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+                "head_sha": "probe-head",
+                "line": 10,
+            },
+            repair.REPAIR_MARKER: {
+                "version": "v36",
+                "outcome": "verified-no-safe-repair-set",
+                "path": SUGGESTION_PROBE,
+                "line": 10,
+                "reason": "MODEL REPAIR RATIONALE MUST NOT RENDER",
+            },
+        },
         "deterministic_no_repair": {
             "title": "model wording",
             "severity": "high",
@@ -188,6 +217,18 @@ def main() -> None:
     assert stored == [], stored
 
     config, cases = _cases(review)
+    renderer = importlib.import_module("dcoir_review.finding_comment_render")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
+    for outcome, expected in (
+        ("repair-stage-failed-closed", "failed closed"),
+        ("verified-repair-budget-deferred", "repair budget was exhausted"),
+        ("verified-repair-confidence-deferred", "repair-confidence floor"),
+    ):
+        disposition = renderer._deterministic_repair_disposition(
+            {repair.REPAIR_MARKER: {"outcome": outcome, "reason": "MODEL TEXT"}}
+        )
+        assert expected in disposition
+        assert "MODEL TEXT" not in disposition
     observed = {}
     for name, finding in cases.items():
         rendered = review.base.build_inline_comment(dict(finding), "test-model", config)
@@ -196,6 +237,10 @@ def main() -> None:
             assert "**Validation:**" in rendered, rendered
             assert f"python3 -m py_compile {SUGGESTION_PROBE}" in rendered, rendered
             assert f"bandit -r {SUGGESTION_PROBE}" in rendered, rendered
+            continue
+        if name == "deterministic_declined":
+            assert "MODEL REPAIR RATIONALE MUST NOT RENDER" not in rendered, rendered
+            assert "Repair synthesis was attempted, but no independently accepted complete repair set was available." in rendered, rendered
             continue
         observed[name] = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     assert observed == EXPECTED_SHA256, {"expected": EXPECTED_SHA256, "observed": observed}

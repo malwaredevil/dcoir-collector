@@ -51,7 +51,7 @@ def load_pareto_context_config(path: str) -> Any:
     config.per_file_review_max_files = int(data.get("per_file_review_max_files", data.get("deep_review_max_files", 8)))
     config.per_file_review_max_file_chars = int(data.get("per_file_review_max_file_chars", data.get("deep_review_max_file_chars", 12000)))
     config.fix_synthesis_enabled = hardened.bool_value(data, "fix_synthesis_enabled", True)
-    config.fix_synthesis_max_findings = int(data.get("fix_synthesis_max_findings", 8))
+    config.fix_synthesis_max_findings = int(data.get("fix_synthesis_max_findings", 12))
     config.fix_synthesis_min_confidence = float(data.get("fix_synthesis_min_confidence", 0.80))
     config.required_finding_reserved_budget = int(
         data.get("required_finding_reserved_budget", min(getattr(config, "max_inline_comments", 12), 9))

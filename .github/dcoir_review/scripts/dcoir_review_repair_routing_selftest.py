@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 import copy
+from email.message import Message
 import importlib
+import io
+import json
+import urllib.error
 
 from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
@@ -41,13 +45,73 @@ def main() -> None:
         contaminated, "anthropic/claude-opus-5"
     )
     assert author_critic.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
-    assert author_critic.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+    assert author_critic.model_stack == [
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
     assert author_critic.fallback_models == []
     assert author_critic.openrouter_route == ""
     assert author_critic.openrouter_service_tier == ""
     assert contaminated.fallback_models == ["legacy/fallback"]
     assert contaminated.openrouter_route == "auto"
     assert contaminated.openrouter_service_tier == "priority"
+
+    # Issue #582 regression: the 2026-09-21 review run showed every Opus 5
+    # request falling through while Sol Pro succeeded. A Sol-authored repair
+    # must therefore retain an Anthropic-only fallback rather than turning the
+    # first non-retryable 404 into a terminal repair-critic failure.
+    sol_author_critic = repair_policy.build_repair_critic_config(
+        base_config, "openai/gpt-5.6-sol-pro"
+    )
+    assert sol_author_critic.model_stack == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert all(
+        not str(model).removeprefix("~").startswith("openai/")
+        for model in sol_author_critic.model_stack
+    )
+
+    attempted_models: list[str] = []
+    original_request_once = review.hardened.openrouter_request_once
+    empty_headers = Message()
+
+    def fake_repair_critic_request(_prompt, _schema, _config, _ignored, model):
+        attempted_models.append(model)
+        if model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL:
+            body = json.dumps(
+                {"error": {"message": "No endpoints found that can handle the requested parameters."}}
+            ).encode("utf-8")
+            raise urllib.error.HTTPError(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                code=404,
+                msg="No endpoints found",
+                hdrs=empty_headers,
+                fp=io.BytesIO(body),
+            )
+        return (
+            {"accepted": True, "confidence": 0.99, "reason": "fallback critic accepted"},
+            model,
+            "",
+        )
+
+    review.hardened.openrouter_request_once = fake_repair_critic_request
+    try:
+        regression_result, regression_model, _regression_tier = review.hardened.openrouter_review(
+            "critic probe",
+            repair_pipeline.REPAIR_CRITIC_SCHEMA,
+            sol_author_critic,
+            reporter=None,
+        )
+    finally:
+        review.hardened.openrouter_request_once = original_request_once
+
+    assert attempted_models == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert regression_model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL
+    assert regression_result["accepted"] is True
 
     critic = repair_pipeline._independent_config(base_config)
 

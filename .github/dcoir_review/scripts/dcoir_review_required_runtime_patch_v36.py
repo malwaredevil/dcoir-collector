@@ -296,6 +296,10 @@ Rules:
   speculative tests. Every edit must be necessary for the verified root cause.
 - A coordinated repair MAY include a focused regression test when it is necessary
   to prevent this exact defect class from recurring, but keep it minimal.
+- When regression coverage is required, inspect the supplied primary file and PR
+  diff for existing self-test/assertion surfaces, including tests colocated with
+  implementation code. Do not assume a separate test file is required merely
+  because one was not supplied as a standalone context block.
 - Prefer edit ranges visible in the supplied PR diff when possible because those
   can become native GitHub suggestions. If a necessary edit is outside the diff,
   still include it accurately; DCOIR will publish it as coordinated guidance.

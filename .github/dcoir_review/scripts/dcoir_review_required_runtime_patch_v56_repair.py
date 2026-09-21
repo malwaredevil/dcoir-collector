@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
+from pathlib import Path
 from typing import Any
 
 from dcoir_review import repair as repair_policy
@@ -12,6 +14,90 @@ import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v36 as v36
 
 VERSION = "v56"
+MAX_ANCHOR_RECOVERY_LINE_DRIFT = 12
+
+
+def _exact_original_locations(file_text: str, original: str) -> list[tuple[int, int]]:
+    original = v36._normalized_newlines(original)
+    original_lines = original.splitlines()
+    if not original_lines or len(original_lines) > v36.MAX_EDIT_RANGE_LINES:
+        return []
+    canonical_original = "\n".join(original_lines)
+    lines = v36._normalized_newlines(file_text).splitlines()
+    width = len(original_lines)
+    matches: list[tuple[int, int]] = []
+    for offset in range(0, len(lines) - width + 1):
+        if "\n".join(lines[offset : offset + width]) == canonical_original:
+            matches.append((offset + 1, offset + width))
+    return matches
+
+
+def recover_author_edit_anchors(
+    module: Any,
+    raw: Any,
+    gh: Any,
+    head_sha: str,
+    file_cache: dict[str, str],
+) -> tuple[Any, list[dict[str, Any]]]:
+    """Repair only exact-head line metadata; never invent edit semantics."""
+
+    if not isinstance(raw, dict) or not isinstance(raw.get("edits"), list):
+        return raw, []
+    recovered = copy.deepcopy(raw)
+    changes: list[dict[str, Any]] = []
+    for edit in recovered["edits"]:
+        if not isinstance(edit, dict):
+            continue
+        path = str(edit.get("path", "") or "").strip()
+        original = v36._normalized_newlines(str(edit.get("original", "") or ""))
+        if (
+            not path
+            or path.startswith("/")
+            or ".." in Path(path).parts
+            or not original
+            or len(original) > v36.MAX_EDIT_TEXT_CHARS
+            or any(token in original for token in ("```", "~~~", "\x00"))
+        ):
+            continue
+        if path not in file_cache:
+            try:
+                file_cache[path] = module.fetch_pr_file_text(gh, path, head_sha)
+            except Exception:
+                continue
+        matches = _exact_original_locations(file_cache[path], original)
+        if not matches:
+            continue
+        try:
+            declared_start = int(edit.get("start_line", 0) or 0)
+        except (TypeError, ValueError):
+            declared_start = 0
+        original_line_count = len(original.splitlines())
+        derived = (declared_start, declared_start + original_line_count - 1)
+        selected: tuple[int, int] | None = None
+        if declared_start > 0 and derived in matches:
+            selected = derived
+        elif (
+            declared_start > 0
+            and len(matches) == 1
+            and abs(matches[0][0] - declared_start) <= MAX_ANCHOR_RECOVERY_LINE_DRIFT
+        ):
+            selected = matches[0]
+        if selected is None:
+            continue
+        old_start = edit.get("start_line")
+        old_end = edit.get("end_line")
+        if old_start == selected[0] and old_end == selected[1]:
+            continue
+        edit["start_line"], edit["end_line"] = selected
+        changes.append(
+            {
+                "path": path,
+                "from": [old_start, old_end],
+                "to": [selected[0], selected[1]],
+                "basis": "exact reviewed-head original block",
+            }
+        )
+    return recovered, changes
 
 
 def critic_item_id(ordinal: int, finding: dict[str, Any], author: dict[str, Any]) -> str:
@@ -57,7 +143,16 @@ def prepare_candidate(
         f"responses/repair-v36/{ordinal:02d}-author.json",
         {"path": path, "line": line, "model": author_model, "service_tier": author_tier, "result": raw},
     )
-    author = v36._parse_author(raw, finding, module.hardened)
+    normalized_raw, anchor_changes = recover_author_edit_anchors(
+        module, raw, gh, head_sha, file_cache
+    )
+    if anchor_changes:
+        module.hardened.write_debug_json_artifact_safely(
+            config,
+            f"responses/repair-v56/{ordinal:02d}-author-anchor-recovery.json",
+            {"changes": anchor_changes},
+        )
+    author = v36._parse_author(normalized_raw, finding, module.hardened)
 
     if author["defect_present"] is False:
         outcome = (

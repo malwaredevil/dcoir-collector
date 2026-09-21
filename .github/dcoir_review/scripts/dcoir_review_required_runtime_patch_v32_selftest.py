@@ -52,7 +52,7 @@ def main() -> None:
     # verifier and verified-repair stages fail-closed, but bind both to the
     # configured output budget rather than v21/repair's historical six-item cap.
     expected_limit = min(config.fix_synthesis_max_findings, config.max_inline_comments)
-    assert expected_limit == 8
+    assert expected_limit == 12
     assert config.dcoir_v32_verifier_repair_limit == expected_limit
     assert v21.VERIFIER_MAX_MODEL_FINDINGS == expected_limit
     assert repair.MAX_REPAIR_CANDIDATES == expected_limit

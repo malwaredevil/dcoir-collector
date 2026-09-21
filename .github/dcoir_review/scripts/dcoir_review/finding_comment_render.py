@@ -19,6 +19,27 @@ from dcoir_review import verified_finding_render
 APPLIED_MARKER = "_dcoir_finding_comment_render_applied"
 
 
+def _deterministic_repair_disposition(finding: dict[str, Any]) -> str:
+    marker = (
+        finding.get(repair_pipeline.REPAIR_MARKER)
+        if isinstance(finding.get(repair_pipeline.REPAIR_MARKER), dict)
+        else {}
+    )
+    outcome = str(marker.get("outcome", "") or "").strip()
+    if outcome in {"verified-no-safe-repair-set", "no-safe-single-line-fix"}:
+        return (
+            "Repair synthesis was attempted, but no independently accepted complete "
+            "repair set was available."
+        )
+    if outcome == "repair-stage-failed-closed":
+        return "Repair synthesis was attempted and failed closed before an applyable repair was published."
+    if outcome == "verified-repair-budget-deferred":
+        return "Repair synthesis was not attempted because the configured repair budget was exhausted."
+    if outcome == "verified-repair-confidence-deferred":
+        return "Repair synthesis was not attempted because the finding was below the configured repair-confidence floor."
+    return ""
+
+
 def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, Any]:
     kind = finding_comment_policy.deterministic_sentinel_kind(finding)
     if not kind:
@@ -28,7 +49,9 @@ def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, A
     item["title"] = str(title or item.get("title", "") or "DCOIR Review finding").strip()
     item["body"] = str(body or item.get("body", "") or "").strip()
     guidance = dict(item.get("fix_guidance")) if isinstance(item.get("fix_guidance"), dict) else {}
-    guidance["notes"] = str(notes or "").strip()
+    canonical_notes = str(notes or "").strip()
+    disposition = _deterministic_repair_disposition(item)
+    guidance["notes"] = "\n\n".join(part for part in (canonical_notes, disposition) if part)
     item["fix_guidance"] = guidance
     return item
 

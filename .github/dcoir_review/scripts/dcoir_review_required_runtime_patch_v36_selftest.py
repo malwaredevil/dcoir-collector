@@ -41,14 +41,20 @@ def main() -> None:
     assert set(v36.REPAIR_SET_AUTHOR_SCHEMA["properties"]["action"]["enum"]) == {"repair_set", "no_safe_repair"}
     assert v36.REPAIR_SET_AUTHOR_SCHEMA["properties"]["edits"]["maxItems"] >= 3
     critic_after_opus = v36._repair_critic_config(config, "anthropic/claude-opus-5")
-    assert critic_after_opus.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+    assert critic_after_opus.model_stack == [
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
     assert critic_after_opus.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
     critic_after_sol = v36._repair_critic_config(config, "openai/gpt-5.6-sol-pro")
-    assert critic_after_sol.model_stack == [repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL]
+    assert critic_after_sol.model_stack == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
     assert critic_after_sol.model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
     assert config.model_stack[0] == "anthropic/claude-opus-5"  # shared config was not mutated
     source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
-    for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text"):
+    for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text", "tests colocated with"):
         assert phrase in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
@@ -211,7 +217,10 @@ def main() -> None:
                 "tier-author",
             )
         if title == "DCOIR Verified Repair Set Critic":
-            assert config_arg.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+            assert config_arg.model_stack == [
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            ]
             return (
                 {"accepted": True, "confidence": 0.99, "reason": "Complete and minimal coordinated repair."},
                 repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
@@ -252,7 +261,10 @@ def main() -> None:
     assert model_calls[0][0] == "DCOIR Verified Repair Set Author"
     assert model_calls[1] == (
         "DCOIR Verified Repair Set Critic",
-        [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL],
+        [
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ],
     )
     pipeline_comments = review.build_review_comments_for_finding(pipeline_result[0], "model", config)
     assert len(pipeline_comments) == 1
