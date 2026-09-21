@@ -303,6 +303,7 @@ def open_capture_text_exclusive(private_root: PrivateCaptureRoot, filename: str)
             try:
                 os.unlink(filename, dir_fd=root.dir_fd)
             except FileNotFoundError:
+                # Failure cleanup may race with prior removal; preserve the primary error.
                 pass
         raise
 

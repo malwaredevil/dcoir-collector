@@ -254,7 +254,6 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 private_root=private_root,
             )
             output_name = f"{stem}.json"
-            output = output_name
             _run(
                 [
                     sys.executable,
@@ -280,7 +279,6 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 private_root=private_root,
             )
             output_name = f"{stem}.json"
-            output = output_name
             _run(
                 [
                     sys.executable,
