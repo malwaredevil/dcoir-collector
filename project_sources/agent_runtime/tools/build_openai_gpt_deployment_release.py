@@ -425,7 +425,7 @@ def _validate_and_copy_target(
         errors.append(f"{target['target_id']} package manifest target_id drift")
     if config.get("name") != target["webui_name"]:
         errors.append(f"{target['target_id']} WebUI name drift")
-    if config.get("runtime_model") != "GPT-5.4":
+    if config.get("runtime_model") != "GPT-5.6 Terra":
         errors.append(f"{target['target_id']} runtime model drift")
 
     expected_instructions = (target["package_root"] / "Instructions.md").as_posix()

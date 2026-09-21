@@ -125,9 +125,9 @@
       "sha256": "da4a320728391ca62d1fa2217d7c669f03de99dcbd152af8ee2e5c6753f0eb34"
     },
     {
-      "bytes": 1763,
+      "bytes": 1769,
       "path": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/GPT_Configuration.json",
-      "sha256": "400de41d491610b7dee16030a7e0bc25cd4c8560a2b1dc93738f0bfc15fcc13c"
+      "sha256": "11b9334e42b49ed17b87306d15e0b102b5637c2d104f0bd8dd5cedb7627574c2"
     }
   ],
   "generated_outputs_are_canonical": false,
@@ -154,7 +154,7 @@
   "manual_deployment_required": true,
   "schema": "dcoir.agent_runtime.openai_usb_reporting_package.v1",
   "source_base_commit": "3f98f43000a6cf0707e330fba4eb94d35a937bd2",
-  "source_contract_sha256": "80cd4ea44efe2a773b815b79633df244161d3eda104cdcde941a9053b34f8b5a",
+  "source_contract_sha256": "631e7d3d85fec36c00e6a2b99c27773cb7d7a79dba9ccd7df8fa24889a097753",
   "source_contracts": {
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Behavioral_Contract_Cases.json",

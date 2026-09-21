@@ -64,7 +64,7 @@ def _stage_target(
         "schema": "dcoir.agent_runtime.openai_webui_configuration.v1",
         "target_id": target_id,
         "name": webui_name,
-        "runtime_model": "GPT-5.4",
+        "runtime_model": "GPT-5.6 Terra",
         "instructions_file": (Path(package_dir) / "Instructions.md").as_posix(),
         "knowledge_files": knowledge_files,
         "capabilities": {"web_search": False, "image_generation": True},
