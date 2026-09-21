@@ -93,7 +93,7 @@ PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"|nor\s+will\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:tell|instruct|claim|state|assert)\b"
     rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing|recommending)\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?"
-    rf"(?:claim|assertion|contention|conclusion|premise|assumption|proposition|statement|framing|classification)\s+that\b"
+    rf"(?:claim|assertion|contention|conclusion|premise|assumption|proposition|statement|idea|notion|framing|classification)\s+that\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?recommendation\s+to\b"
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
     rf")[^.!?;]{{0,180}}$"

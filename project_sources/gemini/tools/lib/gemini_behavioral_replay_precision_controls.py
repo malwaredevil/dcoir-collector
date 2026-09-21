@@ -214,6 +214,16 @@ def run_contextual_marker_precision_selftests() -> None:
             "Bound rejection proposition was incorrectly treated as unsupported certainty: "
             f"{rejected_proposition}"
         )
+    explicit_idea = score_forbidden_markers(
+        "I explicitly reject the idea that conclusion A is still the answer.",
+        ["conclusion A is still the answer"],
+    )
+    if explicit_idea["count"] != 0:
+        raise SystemExit(
+            "Explicit idea rejection was incorrectly treated as a forbidden assertion: "
+            f"{explicit_idea}"
+        )
+
     explicit_contention = detect_anomalies(
         "I reject the contention that this is definitely malicious.",
         ["unsupported_certainty_claims"],
