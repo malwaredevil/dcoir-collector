@@ -83,6 +83,8 @@ PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"
+    rf"|(?:it\s+is|it's)?\s*(?:wrong|incorrect|inaccurate|misleading)\s+to\s+(?:say|state|claim|assert)\b"
+    rf"|(?:cannot|can't|can not)\s+make\s+(?:an?\s+)?"
     rf"|(?:cannot|can't|can not)\s+(?:determine|confirm|establish|verify)\s+(?:if|whether)\b"
     rf"|(?:cannot|can't|can not|must not|should not)\s+be\s+(?:assumed|claimed|stated|asserted|concluded)\s+that\b"
     rf"|(?:(?:i|we)\s+)?(?:(?:am|are)\s+)?not\s+(?:asking|requesting|instructing|telling)(?:\s+you)?\s+to\b"
@@ -188,6 +190,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         text.rfind("\n", 0, start),
     )
     context = text[max(clause_start + 1, start - 220):start]
+    context = re.sub(r"[*_]+", "", context)
     contrasts = list(re.finditer(r"\b(?:but|however|yet|nevertheless|instead)\b", context))
     if contrasts:
         context = context[contrasts[-1].end():]
@@ -198,8 +201,8 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     # starts a new subject + predicate assertion.
     comma_clause = re.compile(
         r"^\s*(?:(?:and|or|but)\s+)?"
-        r"(?:i|we|you|they|it|this|these|those)\s+"
-        r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|recommend|suggest)\b"
+        r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2})\s+"
+        r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|remain|remains|stay|stays|recommend|suggest)\b"
     )
     comma_positions = [match.end() for match in re.finditer(r",", context)]
     for comma_end in reversed(comma_positions):

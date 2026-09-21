@@ -66,6 +66,8 @@ def run_contextual_marker_precision_selftests() -> None:
         ("search all indexes for all time", "We should not arbitrarily search all indexes for all time."),
         ("this exact command will work", "I will not provide a full search string and claim that this exact command will work."),
         ("it exited cleanly", "It cannot be assumed that it exited cleanly."),
+        ("high confidence malicious", "We cannot make a *high confidence malicious* determination based on the current data."),
+        ("nothing exists", "It is inaccurate to state that nothing exists, as I have not searched the enterprise."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
@@ -86,6 +88,16 @@ def run_contextual_marker_precision_selftests() -> None:
         result = score_forbidden_markers(response, [marker])
         if result["hits"] != [marker]:
             raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
+
+    comma_state_required = score_marker_presence(
+        "Because we cannot confirm execution or compromise, this case remains unresolved due to evidence gaps.",
+        ["unresolved due to evidence gaps"],
+    )
+    if comma_state_required["matched"] != ["unresolved due to evidence gaps"]:
+        raise SystemExit(
+            "Earlier rejection leaked across an independent state clause: "
+            f"{comma_state_required}"
+        )
 
     independent_clause_required = score_marker_presence(
         "Rather than concluding that nothing exists, we should execute one controlled repair step.",
