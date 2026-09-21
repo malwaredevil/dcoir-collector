@@ -162,7 +162,7 @@
         "do_not_request_unconfirmed_chunks"
       ],
       "required_markers": [
-        "additional chunks",
+        "partial artifact bundle",
         "smallest recovery artifact"
       ],
       "forbidden_markers": [
@@ -227,7 +227,7 @@
     "one best next move",
     "do not guess",
     "governed source",
-    "additional chunks",
+    "partial artifact bundle",
     "smallest recovery artifact"
   ],
   "forbidden_markers": [

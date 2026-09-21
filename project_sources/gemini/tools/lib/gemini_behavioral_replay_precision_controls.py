@@ -58,6 +58,10 @@ def run_contextual_marker_precision_selftests() -> None:
         ("use -recurse", "Nor will I simply tell you to use -recurse."),
         ("this exact command will work", "We must explicitly avoid claiming that this exact command will work."),
         ("use -recurse", "We must explicitly avoid claiming this exact command will work or instructing you to use -recurse."),
+        ("conclusion A is still the answer", "It is false that conclusion A is still the answer."),
+        ("it exited cleanly", "Without those files, I cannot determine if it exited cleanly."),
+        ("send the next chunk", "I am not asking you to send the next chunk or upload the remaining chunks."),
+        ("upload the remaining chunks", "I am not asking you to send the next chunk or upload the remaining chunks."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
