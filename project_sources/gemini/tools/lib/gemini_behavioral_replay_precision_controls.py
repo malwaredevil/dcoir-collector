@@ -39,6 +39,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("benign because there were no results", "We explicitly reject any conclusion that nothing exists, that the activity is benign because there were no results."),
         ("confirmed stealth", "We explicitly reject any conclusion that this indicates confirmed stealth."),
         ("send the next chunk", "We will not ask you to send the next chunk."),
+        ("send the next chunk", "I do not expect you to send the next chunk."),
         ("continue exactly where I left off without a gap", "We reject the assumption that I can continue exactly where I left off without a gap."),
         ("search all indexes for all time", "Use one bounded repair rather than attempting to search all indexes for all time."),
         ("this exact command will work", "I cannot promise that this exact command will work."),
@@ -71,6 +72,26 @@ def run_contextual_marker_precision_selftests() -> None:
         result = score_forbidden_markers(response, [marker])
         if result["hits"] != [marker]:
             raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
+
+    independent_clause_required = score_marker_presence(
+        "Rather than concluding that nothing exists, we should execute one controlled repair step.",
+        ["one controlled repair step"],
+    )
+    if independent_clause_required["matched"] != ["one controlled repair step"]:
+        raise SystemExit(
+            "Earlier rejection leaked across an independent comma clause: "
+            f"{independent_clause_required}"
+        )
+
+    continuity_required = score_marker_presence(
+        "I explicitly reject the claim that conclusion A is still the answer, and I will not replay conclusion A.",
+        ["not replay conclusion A"],
+    )
+    if continuity_required["matched"] != ["not replay conclusion A"]:
+        raise SystemExit(
+            "Earlier rejection leaked into the continuity assertion: "
+            f"{continuity_required}"
+        )
 
     quote_boundary = (
         'The query for "abc123-unique-process-entity" missed. '

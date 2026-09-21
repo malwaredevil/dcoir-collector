@@ -82,6 +82,7 @@ PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"|nor\s+can\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate)\b"
+    rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\b"
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
     rf")[^.!?;]{{0,180}}$"
@@ -182,6 +183,22 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     contrasts = list(re.finditer(r"\b(?:but|however|yet|nevertheless|instead)\b", context))
     if contrasts:
         context = context[contrasts[-1].end():]
+
+    # A rejection frame earlier in the sentence must not bleed across a comma
+    # into a new independent clause. Preserve comma-linked subordinate rejection
+    # lists such as "reject X, that Y" by resetting only when the suffix clearly
+    # starts a new subject + predicate assertion.
+    comma_clause = re.compile(
+        r"^\s*(?:(?:and|or|but)\s+)?"
+        r"(?:i|we|you|they|it|this|these|those)\s+"
+        r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|recommend|suggest)\b"
+    )
+    comma_positions = [match.end() for match in re.finditer(r",", context)]
+    for comma_end in reversed(comma_positions):
+        suffix = context[comma_end:]
+        if comma_clause.search(suffix):
+            context = suffix
+            break
     return bool(PRE_MARKER_REJECTION_PATTERN.search(context))
 
 
