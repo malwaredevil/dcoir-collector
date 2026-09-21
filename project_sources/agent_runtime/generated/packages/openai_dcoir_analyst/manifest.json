@@ -259,7 +259,7 @@
   ],
   "behavior_coverage_count": 30,
   "behavior_source_snapshot_sha256": "13229b83255e43ec4a141c2f856d1ef3ae8c26baa32b29d89d27af697dcfd7ab",
-  "behavioral_case_count": 21,
+  "behavioral_case_count": 22,
   "behavioral_case_ids": [
     "elastic_alert_triage",
     "missing_evidence_readiness",
@@ -281,16 +281,17 @@
     "continue_response_schema",
     "benign_conclusion_schema",
     "malicious_conclusion_schema",
-    "unresolved_conclusion_schema"
+    "unresolved_conclusion_schema",
+    "complete_collector_operator_procedure"
   ],
   "description_character_ceiling": 300,
   "description_character_count": 188,
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {
-      "bytes": 7810,
+      "bytes": 7967,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
-      "sha256": "b4d59e706c75e38b581d23b69ce3fa64eea3eef6580752c9a1cf36b225cb7f57"
+      "sha256": "4eeabd4423a320ecf07d10adab7ca882d4e099c7935265195c40a9d6ec3efe1b"
     },
     {
       "bytes": 3218,
@@ -300,7 +301,7 @@
   ],
   "generated_outputs_are_canonical": false,
   "instruction_character_ceiling": 8000,
-  "instruction_character_count": 7810,
+  "instruction_character_count": 7967,
   "knowledge_file_count": 7,
   "knowledge_files": [
     {
@@ -363,11 +364,11 @@
     },
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
-      "sha256": "8989f44db7f45224c8b04aebea5abc292fb5b1cd67d86d71335bddf4974b5381"
+      "sha256": "bd0d49180b98a1d853261355d2a82628b3cdf9477b25937992c93a82990a7a99"
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Instructions.md",
-      "sha256": "b4d59e706c75e38b581d23b69ce3fa64eea3eef6580752c9a1cf36b225cb7f57"
+      "sha256": "4eeabd4423a320ecf07d10adab7ca882d4e099c7935265195c40a9d6ec3efe1b"
     },
     "knowledge_projection_manifest": {
       "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",

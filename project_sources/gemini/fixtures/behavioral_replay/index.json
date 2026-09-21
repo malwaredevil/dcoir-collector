@@ -51,7 +51,8 @@
       "source_issue_numbers": [398, 184],
       "status": "active",
       "live_api_eligible": false,
-      "mode_support": ["deterministic", "agent_designer_capture"]
+      "mode_support": ["deterministic", "agent_designer_capture", "openai_webui_capture"],
+      "capture_targets": ["gemini_agent_designer", "openai_dcoir_analyst"]
     },
     {
       "fixture_id": "dcoir_agent_designer_collector_procedure_issue_398",
@@ -59,7 +60,14 @@
       "source_issue_numbers": [398, 184],
       "status": "active",
       "live_api_eligible": false,
-      "mode_support": ["deterministic", "agent_designer_capture"]
+      "mode_support": ["deterministic", "agent_designer_capture", "openai_webui_capture"],
+      "capture_targets": ["gemini_agent_designer", "openai_dcoir_analyst"]
     }
-  ]
+  ],
+  "openai_webui_capture_profile": {
+    "production_model": "GPT-5.6 Terra",
+    "target": "AFRICOM DCOIR Analyst",
+    "governing_issue": 398,
+    "note": "OpenAI WebUI captures score operator-visible behavior only. They do not imply Gemini Prime/sub-agent execution or live tool access."
+  }
 }

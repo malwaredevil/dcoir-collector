@@ -9,7 +9,12 @@ import sys
 from pathlib import Path
 
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
-from lib.gemini_behavioral_replay_scoring import duplicate_final_sections
+from lib.gemini_behavioral_replay_scoring import (
+    detect_anomalies,
+    duplicate_final_sections,
+    score_forbidden_markers,
+    score_marker_presence,
+)
 
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
 
@@ -170,6 +175,86 @@ def run(args: list[str], *, stdout: Path | None = None, expect_success: bool = T
     if not expect_success and result.returncode == 0:
         raise SystemExit("Command unexpectedly succeeded: " + " ".join(args))
     return result
+
+
+SCORER_MODULE_CHARACTER_CEILING = 15000
+SCORER_MODULES = [
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py"),
+    Path("project_sources/gemini/tools/lib/behavioral_replay_text_scoring.py"),
+    Path("project_sources/gemini/tools/lib/behavioral_replay_lane_context.py"),
+    Path("project_sources/gemini/tools/lib/behavioral_replay_lane_scoring.py"),
+    Path("project_sources/gemini/tools/lib/behavioral_replay_collector_scoring.py"),
+]
+
+
+def run_scorer_module_size_selftest() -> None:
+    oversized = []
+    for path in SCORER_MODULES:
+        size = len(path.read_bytes())
+        if size > SCORER_MODULE_CHARACTER_CEILING:
+            oversized.append(f"{path}:{size}")
+    if oversized:
+        raise SystemExit(
+            "Behavioral replay scorer modules exceed the connector-safe ceiling: "
+            + ", ".join(oversized)
+        )
+
+
+def run_contextual_marker_precision_selftests() -> None:
+    rejected_cases = [
+        ("confirmed malicious compromise", "We cannot state that this is a confirmed malicious compromise."),
+        ("active exploitation is confirmed", "We cannot declare that active exploitation is confirmed."),
+        ("nothing exists", "We explicitly reject any conclusion that nothing exists."),
+        ("benign because there were no results", "We explicitly reject any conclusion that nothing exists, that the activity is benign because there were no results."),
+        ("confirmed stealth", "We explicitly reject any conclusion that this indicates confirmed stealth."),
+        ("send the next chunk", "We will not ask you to send the next chunk."),
+        ("continue exactly where I left off without a gap", "We reject the assumption that I can continue exactly where I left off without a gap."),
+        ("search all indexes for all time", "Use one bounded repair rather than attempting to search all indexes for all time."),
+        ("this exact command will work", "I cannot promise that this exact command will work."),
+        ("use -recurse", "We must reject any recommendation to blindly use -recurse."),
+        ("guarantee exact filtering", "We do not claim that these parameters guarantee exact filtering."),
+        ("definitely produce", "We reject the premise that these parameters will definitely produce the requested artifact folder."),
+    ]
+    for marker, response in rejected_cases:
+        result = score_forbidden_markers(response, [marker])
+        if result["count"] != 0:
+            raise SystemExit(f"Rejected assertion was mis-scored as forbidden: {marker!r}: {result}")
+
+    asserted_cases = [
+        ("confirmed malicious compromise", "This is a confirmed malicious compromise."),
+        ("active exploitation is confirmed", "Active exploitation is confirmed."),
+        ("send the next chunk", "Send the next chunk."),
+        ("search all indexes for all time", "Search all indexes for all time."),
+        ("this exact command will work", "This exact command will work."),
+        ("use -recurse", "Use -recurse."),
+        ("guarantee exact filtering", "These parameters guarantee exact filtering."),
+        ("definitely produce", "These parameters will definitely produce the requested artifact folder."),
+    ]
+    for marker, response in asserted_cases:
+        result = score_forbidden_markers(response, [marker])
+        if result["hits"] != [marker]:
+            raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
+
+    quote_boundary = (
+        'The query for "abc123-unique-process-entity" missed. '
+        'We must preserve the exact value "abc123-unique-process-entity" for auditability.'
+    )
+    required = score_marker_presence(quote_boundary, ["preserve the exact value"])
+    if required["matched"] != ["preserve the exact value"]:
+        raise SystemExit(f"Inter-value prose was incorrectly treated as quoted: {required}")
+
+    supported_confirmation = detect_anomalies(
+        "The supplied evidence confirms the vulnerable driver is present.",
+        ["unsupported_certainty_claims"],
+    )
+    if supported_confirmation:
+        raise SystemExit(f"Evidence confirmation was incorrectly treated as unsupported certainty: {supported_confirmation}")
+    unsupported = detect_anomalies(
+        "This definitely proves compromise and guarantees success.",
+        ["unsupported_certainty_claims"],
+    )
+    if not {row["detail"] for row in unsupported}.issuperset({"definitely", "guarantee"}):
+        raise SystemExit(f"Unsupported certainty regression was not detected: {unsupported}")
 
 
 def run_known_good(fixtures_root: Path, output_dir: Path) -> None:
@@ -361,6 +446,59 @@ def run_agent_designer_capture_selftests(fixtures_root: Path, output_dir: Path) 
         assert_isolated_control_reason(label, payload)
 
 
+def _write_capture_mode_variant(source: Path, destination: Path, mode: str, model_name: str) -> None:
+    payload = json.loads(source.read_text(encoding="utf-8"))
+    payload["mode"] = mode
+    payload["model_name"] = model_name
+    metadata = dict(payload.get("metadata") or {})
+    metadata["capture_surface"] = mode
+    payload["metadata"] = metadata
+    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path) -> None:
+    capture_dir = output_dir / "openai_webui_capture_results"
+    capture_dir.mkdir(parents=True, exist_ok=True)
+    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_GOOD:
+        variant = capture_dir / f"{safe_label(label)}_input.json"
+        output = capture_dir / f"{safe_label(label)}.json"
+        _write_capture_mode_variant(SUPPORT / response_pack_name, variant, "openai_webui_capture", "GPT-5.6 Terra")
+        run(
+            [
+                sys.executable,
+                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
+                "--fixtures-root", str(fixtures_root),
+                "--response-pack", str(variant),
+                "--fixture-id", fixture_id,
+                "--expected-mode", "openai_webui_capture",
+            ],
+            stdout=output,
+        )
+        payload = json.loads(output.read_text(encoding="utf-8"))
+        if payload.get("success") is not True:
+            raise SystemExit(f"Known-good OpenAI WebUI capture did not contain success=true: {output}")
+    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
+        variant = capture_dir / f"{safe_label(label)}_input.json"
+        output = capture_dir / f"{safe_label(label)}.json"
+        _write_capture_mode_variant(SUPPORT / response_pack_name, variant, "openai_webui_capture", "GPT-5.6 Terra")
+        run(
+            [
+                sys.executable,
+                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
+                "--fixtures-root", str(fixtures_root),
+                "--response-pack", str(variant),
+                "--fixture-id", fixture_id,
+                "--expected-mode", "openai_webui_capture",
+            ],
+            stdout=output,
+            expect_success=False,
+        )
+        payload = json.loads(output.read_text(encoding="utf-8"))
+        if payload.get("success") is not False:
+            raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
+        assert_isolated_control_reason(label, payload)
+
+
 def run_numbered_procedure_duplicate_selftest() -> None:
     response = """\
 1. Package/deployment: stage the collector package.
@@ -426,7 +564,9 @@ def main() -> int:
         ]
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
+    run_scorer_module_size_selftest()
     run_lane_separation_scoring_selftests()
+    run_contextual_marker_precision_selftests()
     run_known_good(args.fixtures_root, args.output_dir)
     run(
         [
@@ -440,6 +580,7 @@ def main() -> int:
     )
     run_known_bad(args.fixtures_root, args.output_dir)
     run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
+    run_openai_webui_capture_selftests(args.fixtures_root, args.output_dir)
     run_numbered_procedure_duplicate_selftest()
     run_mode_mismatch(args.fixtures_root)
     return 0

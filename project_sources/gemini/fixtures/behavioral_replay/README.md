@@ -32,6 +32,8 @@ Those identifiers describe the existing API replay harness, not the current depl
 
 Issue `#398` adds `agent_designer_capture` for responses copied from the actual deployed DCOIR Agent in Gemini Enterprise Agent Designer.
 
+The same shared operator-visible #398 semantics can also be scored from the AFRICOM DCOIR Analyst custom GPT by using response-pack mode `openai_webui_capture`. This mode is for manually copied ChatGPT WebUI output from the governed GPT-5.6 Terra target; it does not imply Gemini sub-agent execution, live Elastic access, or any other capability not visibly returned by that GPT.
+
 Current operator-confirmed deployed baseline:
 
 - model: **Gemini 3.1 Pro**
@@ -134,12 +136,13 @@ Allowed replay/capture modes are:
 - `live_gemini`
 - `fallback_emulation`
 - `agent_designer_capture`
+- `openai_webui_capture`
 
 ## Supporting artifacts
 
 This fixture family may include governed supporting artifacts alongside the fixtures themselves.
 
-Deterministic validation uses known-good response packs that must pass and known-bad response packs that must fail, including targeted regression cases for scorer edge conditions. Agent Designer capture scorer self-tests may also use synthetic `agent_designer_capture` packs, but those synthetic packs are validation artifacts only and are never live runtime evidence.
+Deterministic validation uses known-good response packs that must pass and known-bad response packs that must fail, including targeted regression cases for scorer edge conditions. Capture scorer self-tests may also use synthetic `agent_designer_capture` or `openai_webui_capture` packs, but those synthetic packs are validation artifacts only and are never live runtime evidence.
 
 Keep supporting artifacts behaviorally faithful to the governed scenario rather than turning them into synthetic filler.
 

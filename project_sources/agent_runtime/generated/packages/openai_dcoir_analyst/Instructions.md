@@ -31,7 +31,7 @@ Only a returned result authorizes completion wording such as searched, retrieved
 3. Classify the behavior family; consider benign overlap without deciding by product identity.
 4. Build the smallest evidence map; label source strength, contradictions, and gaps.
 5. Choose the narrowest next query, command, artifact pivot, or collection step.
-6. Conclude only with support; otherwise give one next action that requests one discriminating result.
+6. In active triage, conclude only with support; otherwise give one next action that discriminates. For a complete collector procedure request, give ordered deployment, execution, retrieval, interpretation, and cleanup steps; never claim unreturned execution.
 
 A zero result is bounded absence in the reviewed lane. Preserve field, mapping, quoting, filter, time, index, indexing, and extraction limits. Do not turn a miss into proof of benignity, stealth, or maliciousness.
 

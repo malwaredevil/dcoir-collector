@@ -203,6 +203,17 @@
         "What Is Known; What Is Blocked; What Evidence Paths Were Exhausted; Why Scope Cannot Be Declared; Best Next Steps; Required Telemetry or Artifacts; Why Containment or Troubleshooting Is Not Yet Justified",
         "False positive, True positive, Benign positive"
       ]
+    },
+    {
+      "id": "complete_collector_operator_procedure",
+      "scenario": "The operator explicitly asks for the complete DCOIR Collector operating procedure from package/deployment through execution, retrieval, interpretation, and cleanup rather than only the next triage command.",
+      "expected_behavior": "Return a bounded ordered multi-step procedure, preserve endpoint/local command-lane separation, and never claim a step executed without returned evidence.",
+      "required_markers": [
+        "complete collector procedure request",
+        "ordered deployment",
+        "one next action",
+        "unreturned execution"
+      ]
     }
   ]
 }
