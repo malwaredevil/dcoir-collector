@@ -66,10 +66,10 @@ FINAL_SECTION_HEADERS = [
 AMBIGUOUS_LIST_SECTION_HEADERS = {"retrieve", "interpret", "cleanup"}
 
 NEGATION_PATTERN = re.compile(
-    r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+(?:the\s+|an?\s+)?)?$"
+    r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+[a-z0-9_-]+ly){0,2}(?:\s+(?:the\s+|an?\s+)?)?$"
 )
 
-REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|promise|recommend|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
+REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|promise|recommend|provide|search|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
 
 REJECTED_ASSERTION_PATTERN = re.compile(
     rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){{0,6}}$"
@@ -78,12 +78,13 @@ REJECTED_ASSERTION_PATTERN = re.compile(
 
 PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"(?:"
-    rf"(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:explicitly|blindly)\s+)?(?:{REJECTED_ACTION_VERBS})\b"
+    rf"(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+can\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"
     rf"|(?:cannot|can't|can not)\s+(?:determine|confirm|establish|verify)\s+(?:if|whether)\b"
+    rf"|(?:cannot|can't|can not|must not|should not)\s+be\s+(?:assumed|claimed|stated|asserted|concluded)\s+that\b"
     rf"|(?:(?:i|we)\s+)?(?:(?:am|are)\s+)?not\s+(?:asking|requesting|instructing|telling)(?:\s+you)?\s+to\b"
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
