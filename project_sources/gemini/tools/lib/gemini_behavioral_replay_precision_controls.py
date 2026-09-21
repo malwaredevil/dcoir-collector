@@ -49,6 +49,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("confirmed malicious compromise", "We cannot classify this as a confirmed malicious compromise."),
         ("logs were cleared", "Nor can we conclude with high confidence that logs were cleared."),
         ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
+        ("high confidence malicious", "Without additional telemetry, we cannot label this high confidence malicious."),
         ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
         ("this exact command will work", "I cannot guarantee that this exact command will work."),
         ("use -recurse", "I cannot advise you to use -recurse without verifying the environment."),
