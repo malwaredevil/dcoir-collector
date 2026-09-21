@@ -205,6 +205,25 @@ def run_contextual_marker_precision_selftests() -> None:
             "Rejected guarantee language was incorrectly treated as unsupported certainty: "
             f"{rejected_guarantees}"
         )
+    rejected_proposition = detect_anomalies(
+        "I reject the claim that this is definitely malicious.",
+        ["unsupported_certainty_claims"],
+    )
+    if rejected_proposition:
+        raise SystemExit(
+            "Bound rejection proposition was incorrectly treated as unsupported certainty: "
+            f"{rejected_proposition}"
+        )
+    unrelated_after_rejection = detect_anomalies(
+        "I reject the alert, and the analyst definitely believes it is malicious.",
+        ["unsupported_certainty_claims"],
+    )
+    if [row["detail"] for row in unrelated_after_rejection] != ["definitely"]:
+        raise SystemExit(
+            "Bare rejection leaked into an unrelated later assertion: "
+            f"{unrelated_after_rejection}"
+        )
+
     unsupported = detect_anomalies(
         "This definitely proves compromise and guarantees success.",
         ["unsupported_certainty_claims"],

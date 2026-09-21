@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
+import subprocess  # nosec B404
 import sys
+import tempfile
 from pathlib import Path
 
 from .gemini_behavioral_replay_selection import resolve_fixtures
@@ -201,10 +202,34 @@ def _safe_label(label: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in label)
 
 
-def _run(args: list[str], *, stdout: Path, expect_success: bool = True) -> subprocess.CompletedProcess[str]:
-    stdout.parent.mkdir(parents=True, exist_ok=True)
-    with stdout.open("w", encoding="utf-8") as fh:
-        result = subprocess.run(args, text=True, stdout=fh, check=False)
+def _approved_capture_output_root(output_dir: Path) -> Path:
+    candidate = output_dir.resolve()
+    roots = (Path("project_sources/validation").resolve(), Path(tempfile.gettempdir()).resolve())
+    if not any(candidate == root or candidate.is_relative_to(root) for root in roots):
+        raise SystemExit(f"Bad: {candidate}")
+    candidate.mkdir(parents=True, exist_ok=True)
+    return candidate
+
+
+def _bounded_capture_path(governed_root: Path, candidate: Path) -> Path:
+    root = governed_root.resolve()
+    resolved = candidate.resolve()
+    if resolved == root or not resolved.is_relative_to(root):
+        raise SystemExit(f"Escape: {resolved}")
+    return resolved
+
+
+def _run(
+    args: list[str],
+    *,
+    stdout: Path,
+    governed_root: Path,
+    expect_success: bool = True,
+) -> subprocess.CompletedProcess[str]:
+    safe_stdout = _bounded_capture_path(governed_root, stdout)
+    safe_stdout.parent.mkdir(parents=True, exist_ok=True)
+    with safe_stdout.open("w", encoding="utf-8") as fh:
+        result = subprocess.run(args, text=True, stdout=fh, check=False)  # nosec B603
     if expect_success and result.returncode != 0:
         raise SystemExit(result.returncode)
     if not expect_success and result.returncode == 0:
@@ -212,23 +237,38 @@ def _run(args: list[str], *, stdout: Path, expect_success: bool = True) -> subpr
     return result
 
 
-def _write_capture_mode_variant(source: Path, destination: Path, mode: str, model_name: str) -> None:
+def _write_capture_mode_variant(
+    source: Path,
+    destination: Path,
+    mode: str,
+    model_name: str,
+    *,
+    governed_root: Path,
+) -> None:
     payload = json.loads(source.read_text(encoding="utf-8"))
     payload["mode"] = mode
     payload["model_name"] = model_name
     metadata = dict(payload.get("metadata") or {})
     metadata["capture_surface"] = mode
     payload["metadata"] = metadata
-    destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    safe_destination = _bounded_capture_path(governed_root, destination)
+    safe_destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
 def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, support: Path) -> None:
-    capture_dir = output_dir / "openai_webui_capture_results"
+    governed_root = _approved_capture_output_root(output_dir)
+    capture_dir = _bounded_capture_path(governed_root, governed_root / "openai_webui_capture_results")
     capture_dir.mkdir(parents=True, exist_ok=True)
     for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_GOOD:
         variant = capture_dir / f"{_safe_label(label)}_input.json"
         output = capture_dir / f"{_safe_label(label)}.json"
-        _write_capture_mode_variant(support / response_pack_name, variant, "openai_webui_capture", "GPT-5.6 Terra")
+        _write_capture_mode_variant(
+            support / response_pack_name,
+            variant,
+            "openai_webui_capture",
+            "GPT-5.6 Terra",
+            governed_root=governed_root,
+        )
         _run(
             [
                 sys.executable,
@@ -239,6 +279,7 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 "--expected-mode", "openai_webui_capture",
             ],
             stdout=output,
+            governed_root=governed_root,
         )
         payload = json.loads(output.read_text(encoding="utf-8"))
         if payload.get("success") is not True:
@@ -246,7 +287,13 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
     for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
         variant = capture_dir / f"{_safe_label(label)}_input.json"
         output = capture_dir / f"{_safe_label(label)}.json"
-        _write_capture_mode_variant(support / response_pack_name, variant, "openai_webui_capture", "GPT-5.6 Terra")
+        _write_capture_mode_variant(
+            support / response_pack_name,
+            variant,
+            "openai_webui_capture",
+            "GPT-5.6 Terra",
+            governed_root=governed_root,
+        )
         _run(
             [
                 sys.executable,
@@ -257,6 +304,7 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 "--expected-mode", "openai_webui_capture",
             ],
             stdout=output,
+            governed_root=governed_root,
             expect_success=False,
         )
         payload = json.loads(output.read_text(encoding="utf-8"))
