@@ -69,7 +69,7 @@ NEGATION_PATTERN = re.compile(
     r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+[a-z0-9_-]+ly){0,2}(?:\s+(?:the\s+|an?\s+)?)?$"
 )
 
-REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|guess|determine|evaluate|attempt|promise|recommend|provide|offer|search|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
+REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|guess|determine|evaluate|assess|attempt|promise|recommend|provide|offer|search|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
 
 REJECTED_ASSERTION_PATTERN = re.compile(
     rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){{0,6}}$"
@@ -207,7 +207,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     # starts a new subject + predicate assertion.
     comma_clause = re.compile(
         r"^\s*(?:(?:and|or|but)\s+)?"
-        r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2})\s+"
+        r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,3})\s+"
         r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|remain|remains|stay|stays|recommend|suggest)\b"
     )
     comma_positions = [match.end() for match in re.finditer(r",", context)]

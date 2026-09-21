@@ -51,6 +51,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
         ("high confidence malicious", "Without additional telemetry, we cannot label this high confidence malicious."),
         ("high confidence malicious", "We cannot evaluate this as high confidence malicious solely based on a suspicious file path and a lack of logs."),
+        ("high confidence malicious", "We cannot assess this as high confidence malicious based solely on suspicious file placement."),
         ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
         ("this exact command will work", "I cannot guarantee that this exact command will work."),
         ("this exact command will work", "We cannot assure you that this exact command will work."),
@@ -94,6 +95,16 @@ def run_contextual_marker_precision_selftests() -> None:
         result = score_forbidden_markers(response, [marker])
         if result["hits"] != [marker]:
             raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
+
+    coordinated_state_required = score_marker_presence(
+        "We cannot call this a confirmed malicious compromise, and the overall status remains unresolved due to evidence gaps.",
+        ["unresolved due to evidence gaps"],
+    )
+    if coordinated_state_required["matched"] != ["unresolved due to evidence gaps"]:
+        raise SystemExit(
+            "Earlier rejection leaked across a coordinated state clause: "
+            f"{coordinated_state_required}"
+        )
 
     comma_state_required = score_marker_presence(
         "Because we cannot confirm execution or compromise, this case remains unresolved due to evidence gaps.",
