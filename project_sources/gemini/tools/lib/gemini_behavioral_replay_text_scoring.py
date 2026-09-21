@@ -176,7 +176,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     comma_clause = re.compile(
         r"^\s*(?:(?:and|or|but)\s+)?(?:"
         r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,3})\s+"
-        r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|remain|remains|stay|stays|recommend|suggest)\b"
+        r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays|recommend|suggest)\b"
         r"|(?:please\s+)?(?:provide|send|run|execute|read|retrieve|upload|review|collect|use|check|verify|focus)\b"
         r")"
     )
