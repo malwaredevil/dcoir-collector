@@ -29,14 +29,6 @@ def _clause_has_local_lane(clause: str) -> bool:
 _REFERENTIAL_LANES_PATTERN = (
     r"(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)"
 )
-_SHARED_CONTEXT_TERMS = (
-    "same shell",
-    "single shell",
-    "one shell",
-    "same command",
-    "single command",
-    "same lane",
-)
 _LANE_TARGET_HEAD_BLOCKERS = frozenset(
     {
         "and",
