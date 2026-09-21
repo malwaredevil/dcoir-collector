@@ -147,7 +147,10 @@ def main() -> None:
             assert len(ids) >= 2, ids
             assert getattr(cfg, batch.STAGE_LABEL_ATTR, "") == "repair-critic"
             assert telemetry.classify_stage(prompt, schema, cfg) == "repair-critic"
-            assert cfg.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+            assert cfg.model_stack == [
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            ]
             assert cfg.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
             calls.append(("batch-critic", ",".join(ids), str(cfg.model)))
             return {
@@ -157,7 +160,7 @@ def main() -> None:
                 ]
             }, str(cfg.model), "default"
         if schema is v36.REPAIR_SET_CRITIC_SCHEMA:
-            assert len(cfg.model_stack) == 1
+            assert len(cfg.model_stack) == 2
             assert cfg.model == cfg.model_stack[0]
             assert cfg.model in {
                 repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,

@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
+from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -146,7 +147,10 @@ def main() -> None:
         if title == "DCOIR Verified Repair Set Author":
             return (dict(live_shape), "anthropic/claude-opus-5", "tier-author")
         if title == "DCOIR Verified Repair Set Critic":
-            assert config_arg.model_stack == ["openai/gpt-5.6-sol-pro"]
+            assert config_arg.model_stack == [
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            ]
             return (
                 {"accepted": True, "confidence": 0.99, "reason": "Exact, complete, and minimal."},
                 "openai/gpt-5.6-sol-pro",
@@ -184,7 +188,13 @@ def main() -> None:
     assert marker["critic_confidence"] == 0.99
     assert marker["native_suggestion_count"] == 1
     assert model_calls[0][0] == "DCOIR Verified Repair Set Author"
-    assert model_calls[1] == ("DCOIR Verified Repair Set Critic", ["openai/gpt-5.6-sol-pro"])
+    assert model_calls[1] == (
+        "DCOIR Verified Repair Set Critic",
+        [
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ],
+    )
     comments = review.build_review_comments_for_finding(result[0], "model", config)
     assert len(comments) == 1
     assert "```suggestion\n    fixed_call()\n```" in comments[0]["body"]

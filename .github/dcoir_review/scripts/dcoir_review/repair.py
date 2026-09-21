@@ -15,7 +15,9 @@ from typing import Any
 PRIMARY_CRITIC_MODEL = "openai/gpt-5.6-terra"
 FALLBACK_CRITIC_MODEL = "~anthropic/claude-sonnet-latest"
 OPENAI_CROSS_FAMILY_CRITIC_MODEL = "openai/gpt-5.6-sol-pro"
+OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = PRIMARY_CRITIC_MODEL
 ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5"
+ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = FALLBACK_CRITIC_MODEL
 CRITIC_SESSION_SUFFIX = "repair-critic"
 REPAIR_CANDIDATE_HARD_CAP = 12
 
@@ -45,17 +47,24 @@ def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
     critic_config = copy.copy(config)
     served_author = str(author_model or "").strip().lower()
     if served_author:
-        # v36/v56 historically use one opposite-family critic. Keep that live
-        # behavior intact while moving ownership out of numbered patch modules.
-        critic_model = (
-            ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
-            if served_author.startswith("openai/")
-            else OPENAI_CROSS_FAMILY_CRITIC_MODEL
-        )
+        # Keep critic independence by staying entirely in the opposite model
+        # family, but do not make one provider/model endpoint a single point of
+        # failure. The ordered fallback remains cross-family relative to the
+        # served repair author and therefore preserves the independent gate.
+        if served_author.startswith("openai/"):
+            critic_models = [
+                ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+                ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            ]
+        else:
+            critic_models = [
+                OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            ]
         if hasattr(critic_config, "model"):
-            critic_config.model = critic_model
+            critic_config.model = critic_models[0]
         if hasattr(critic_config, "model_stack"):
-            critic_config.model_stack = [critic_model]
+            critic_config.model_stack = critic_models
         if hasattr(critic_config, "fallback_models"):
             critic_config.fallback_models = []
         if hasattr(critic_config, "openrouter_route"):
