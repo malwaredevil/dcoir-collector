@@ -54,7 +54,7 @@ def main() -> None:
     assert critic_after_sol.model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
     assert config.model_stack[0] == "anthropic/claude-opus-5"  # shared config was not mutated
     source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
-    for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text"):
+    for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text", "tests colocated with"):
         assert phrase in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source

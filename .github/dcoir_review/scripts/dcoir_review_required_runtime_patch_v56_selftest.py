@@ -102,7 +102,86 @@ def main() -> None:
     repair_stage = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
     assert getattr(review, v56.APPLIED_MARKER, False) is True
 
+    class _RecoveryModule:
+        fetch_pr_file_text = staticmethod(
+            lambda gh, path, head_sha: "header = 0\nvalue = 1\nother = 2\n"
+        )
+
+    recovered, changes = repair_stage.recover_author_edit_anchors(
+        _RecoveryModule(),
+        {
+            "edits": [
+                {
+                    "path": "probe.py",
+                    "start_line": 1,
+                    "end_line": 1,
+                    "original": "value = 1\nother = 2",
+                    "replacement": "value = 2\nother = 3",
+                    "purpose": "repair exact block",
+                }
+            ]
+        },
+        object(),
+        "deadbeef",
+        {},
+    )
+    assert recovered["edits"][0]["start_line"] == 2
+    assert recovered["edits"][0]["end_line"] == 3
+    assert len(changes) == 1
+
+    ambiguous, ambiguous_changes = repair_stage.recover_author_edit_anchors(
+        type(
+            "_AmbiguousModule",
+            (),
+            {"fetch_pr_file_text": staticmethod(lambda gh, path, head_sha: "value = 1\nvalue = 1\n")},
+        )(),
+        {
+            "edits": [
+                {
+                    "path": "probe.py",
+                    "start_line": 3,
+                    "end_line": 3,
+                    "original": "value = 1",
+                    "replacement": "value = 2",
+                    "purpose": "ambiguous probe",
+                }
+            ]
+        },
+        object(),
+        "deadbeef",
+        {},
+    )
+    assert ambiguous["edits"][0]["start_line"] == 3
+    assert ambiguous_changes == []
+
+    far_text = "\n".join([f"line_{index} = {index}" for index in range(1, 30)]) + "\ntarget = 1\n"
+    far, far_changes = repair_stage.recover_author_edit_anchors(
+        type(
+            "_FarModule",
+            (),
+            {"fetch_pr_file_text": staticmethod(lambda gh, path, head_sha: far_text)},
+        )(),
+        {
+            "edits": [
+                {
+                    "path": "probe.py",
+                    "start_line": 1,
+                    "end_line": 1,
+                    "original": "target = 1",
+                    "replacement": "target = 2",
+                    "purpose": "far drift probe",
+                }
+            ]
+        },
+        object(),
+        "deadbeef",
+        {},
+    )
+    assert far["edits"][0]["start_line"] == 1
+    assert far_changes == []
+
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    assert config.fix_synthesis_max_findings == 12
     config.fix_synthesis_min_confidence = 0.80
     config.fix_synthesis_max_findings = 8
     config.fix_synthesis_enabled = True
