@@ -6,7 +6,6 @@ from typing import Iterable, List
 
 from .gemini_behavioral_replay_rejection_patterns import (
     NEGATION_PATTERN,
-    POST_ACTION_REJECTION_PATTERN,
     POST_MARKER_REJECTION_PATTERN,
     PRE_MARKER_REJECTION_FRAME_PATTERN,
     REJECTED_ASSERTION_PATTERN,

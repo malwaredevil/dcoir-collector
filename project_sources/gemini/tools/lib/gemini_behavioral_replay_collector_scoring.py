@@ -3,8 +3,8 @@ from __future__ import annotations
 import re
 from typing import List
 
+from .gemini_behavioral_replay_rejection_patterns import POST_ACTION_REJECTION_PATTERN
 from .gemini_behavioral_replay_text_scoring import (
-    POST_ACTION_REJECTION_PATTERN,
     _iter_clauses,
     _iter_term_occurrences,
     _occurrence_is_negated,

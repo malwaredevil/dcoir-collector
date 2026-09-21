@@ -207,6 +207,7 @@ def allocate_private_capture_root(requested_output_dir: Path) -> PrivateCaptureR
                 if stat.S_ISDIR(current.st_mode) and _identity(current) == root_identity:
                     shutil.rmtree(private_root_path.name, dir_fd=parent_fd)
             except (FileNotFoundError, OSError):
+                # Best-effort rollback must not replace the original allocation failure.
                 pass
         os.close(parent_fd)
         raise
@@ -245,9 +246,7 @@ def open_capture_text_exclusive(
         if stat.S_IMODE(file_stat.st_mode) != 0o600:
             raise SystemExit("Capture destination did not retain mode 0600.")
         _validate_root_identity(root)
-        stream = os.fdopen(fd, "w", encoding="utf-8")
-        fd = None
-        return stream
+        return os.fdopen(fd, "w", encoding="utf-8")
     except BaseException:
         if fd is not None:
             os.close(fd)
@@ -255,6 +254,7 @@ def open_capture_text_exclusive(
             try:
                 os.unlink(filename, dir_fd=root.dir_fd)
             except FileNotFoundError:
+                # The failed open path may already have been removed; preserve the primary error.
                 pass
         raise
 
