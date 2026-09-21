@@ -59,7 +59,7 @@
       "id": "openai_dcoir_analyst",
       "output_owner": "project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py",
       "provider": "openai_webui_bedrock_hosted",
-      "runtime_model": "GPT-5.4",
+      "runtime_model": "GPT-5.6 Terra",
       "instruction_mode": "static_instructions",
       "knowledge_mode": "static_knowledge",
       "capabilities": {
@@ -91,7 +91,7 @@
       "id": "openai_usb_reporting",
       "output_owner": "project_sources/agent_runtime/tools/build_openai_usb_reporting.py",
       "provider": "openai_webui_bedrock_hosted",
-      "runtime_model": "GPT-5.4",
+      "runtime_model": "GPT-5.6 Terra",
       "instruction_mode": "static_instructions",
       "knowledge_mode": "static_knowledge",
       "capabilities": {

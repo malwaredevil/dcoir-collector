@@ -293,9 +293,9 @@
       "sha256": "b4d59e706c75e38b581d23b69ce3fa64eea3eef6580752c9a1cf36b225cb7f57"
     },
     {
-      "bytes": 3212,
+      "bytes": 3218,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json",
-      "sha256": "e23e424dccddfff47b1aa4d79b0a991796df32b91a69bde60b892c05c44fcca3"
+      "sha256": "2f9e1d44aa5e9c03c36610012109f015700d38825ccaa8bcaf7a77c9fb149698"
     }
   ],
   "generated_outputs_are_canonical": false,
@@ -375,11 +375,11 @@
     },
     "knowledge_target_manifest": {
       "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/manifest.json",
-      "sha256": "dcaa0b91f0d9f7ca20a03dbcc6ca35372ade6f94b74d74f94af2e6ba9ea67f34"
+      "sha256": "f1ba23dc463ae17f92bde60bd675b6fe3e96b43c378420fa0e6c7b062a077320"
     },
     "source_contract": {
       "path": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-      "sha256": "80cd4ea44efe2a773b815b79633df244161d3eda104cdcde941a9053b34f8b5a"
+      "sha256": "631e7d3d85fec36c00e6a2b99c27773cb7d7a79dba9ccd7df8fa24889a097753"
     }
   },
   "strict_knowledge_file_ceiling": 20,

@@ -22,8 +22,8 @@ The extraction deliberately preserves the accepted Gemini prompt text byte-for-b
 | Target id | Product shape | Current instruction and knowledge surface |
 | --- | --- | --- |
 | `gemini_dcoir_agent` | Gemini Prime orchestrator plus eleven specialists | Existing stored-source Gemini compile lane and direct canonical knowledge attachments |
-| `openai_dcoir_analyst` | AFRICOM DCOIR Analyst custom GPT | Hosted GPT-5.4 with static Instructions and static Knowledge |
-| `openai_usb_reporting` | AFRICOM USB Reporting custom GPT | Hosted GPT-5.4 with static Instructions and static Knowledge |
+| `openai_dcoir_analyst` | AFRICOM DCOIR Analyst custom GPT | Hosted GPT-5.6 Terra with static Instructions and static Knowledge |
+| `openai_usb_reporting` | AFRICOM USB Reporting custom GPT | Hosted GPT-5.6 Terra with static Instructions and static Knowledge |
 
 The OpenAI targets currently have no web search, Code Interpreter/Data Analysis, Canvas, image generation, Apps, Actions, live Elastic access, live collector execution, GitHub/Supabase connector access, or persistent cross-conversation memory. A later optional lookup capability may be enabled only after operator evidence changes the target contract. Generated instructions must not claim it exists today.
 
@@ -59,7 +59,7 @@ Check source coverage, capability truthfulness, behavioral markers, Knowledge bi
 python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check
 ```
 
-The 21 offline cases validate the static instruction contract only. They do not prove live GPT-5.4 behavior or WebUI upload success.
+The 21 offline cases validate the static instruction contract only. They do not prove live GPT-5.6 Terra behavior or WebUI upload success.
 
 ## OpenAI USB Reporting Package
 
@@ -77,7 +77,7 @@ Check source coverage, capability truthfulness, behavioral markers, Knowledge bi
 python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check
 ```
 
-The 13 offline cases validate the static USB Reporting instruction contract only. They do not prove live GPT-5.4 behavior, WebUI upload success, live Elastic access, or final USB report correctness.
+The 13 offline cases validate the static USB Reporting instruction contract only. They do not prove live GPT-5.6 Terra behavior, WebUI upload success, live Elastic access, or final USB report correctness.
 
 ## Knowledge Projection
 
@@ -149,7 +149,7 @@ The operator-facing workflow `.github/workflows/manual-openai-gpt-deployment-pac
 
 The direct artifact expands the production ZIP so the operator can open one download and find `AFRICOM_DCOIR_Analyst/` and `AFRICOM_USB_Reporting/` beneath `OpenAI_GPT_Deployment_Packages/`. Each target folder contains one human-facing `GPT_WebUI_Configuration.md` sheet, the machine-readable `GPT_Configuration.json`, `manifest.json`, and a `Knowledge/` folder containing exactly the governed seven or two files. The sheet is generated from the same JSON configuration values plus the exact Instructions bytes, so the normal operator lane is one copy/paste document plus Knowledge uploads rather than raw-JSON interpretation. The release build enforces the 8,000-character Instructions ceiling and the operator-approved 300-character Description ceiling. The package root also carries the deployment/readback guide, release/parity JSON and Markdown, and delivery manifests.
 
-The workflow fails closed on source/package drift, Knowledge hash/count drift, blocking static parity gaps, source-commit mismatch, unsafe output paths, or release-builder self-test failure. Its successful output is still static deployment material only: it does not create or modify either hosted GPT and does not prove live GPT-5.4 behavior. Manual WebUI deployment and live readback remain governed by `docs/Release_Parity_Deployment_Readback.md`.
+The workflow fails closed on source/package drift, Knowledge hash/count drift, blocking static parity gaps, source-commit mismatch, unsafe output paths, or release-builder self-test failure. Its successful output is still static deployment material only: it does not create or modify either hosted GPT and does not prove live GPT-5.6 Terra behavior. Manual WebUI deployment and live readback remain governed by `docs/Release_Parity_Deployment_Readback.md`.
 
 Run it from GitHub Actions when an operator-ready package is needed. For local or runner-side release proof, the underlying deterministic builder is:
 

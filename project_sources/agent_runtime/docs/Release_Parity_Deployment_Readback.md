@@ -16,7 +16,7 @@ python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.
 python project_sources/agent_runtime/tools/report_agent_release_parity.py
 ```
 
-The unified report is a static-repository release gate. It records the source/review commit, hashes the three source-contract manifests, inventories the three governed targets, reuses the existing target checkers for drift truth, classifies provider-specific differences separately from blocking gaps, and records any live/manual evidence that is still pending. A static pass does **not** prove that either OpenAI GPT was updated successfully or that live GPT-5.4 behavior matches the package.
+The unified report is a static-repository release gate. It records the source/review commit, hashes the three source-contract manifests, inventories the three governed targets, reuses the existing target checkers for drift truth, classifies provider-specific differences separately from blocking gaps, and records any live/manual evidence that is still pending. A static pass does **not** prove that either OpenAI GPT was updated successfully or that live GPT-5.6 Terra behavior matches the package.
 
 Before deployment, archive the JSON and Markdown report from the applicable validation output directory with the GitHub run/readback evidence for the reviewed commit. Do not continue to manual deployment while the report contains a blocking static parity gap.
 
