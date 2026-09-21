@@ -23,7 +23,7 @@ The extraction deliberately preserves the accepted Gemini prompt text byte-for-b
 | --- | --- | --- |
 | `gemini_dcoir_agent` | Gemini Prime orchestrator plus eleven specialists | Existing stored-source Gemini compile lane and direct canonical knowledge attachments |
 | `openai_dcoir_analyst` | AFRICOM DCOIR Analyst custom GPT | Hosted GPT-5.6 Terra with static Instructions and static Knowledge |
-| `openai_usb_reporting` | AFRICOM USB Reporting custom GPT | Hosted GPT-5.6 Terra with static Instructions and static Knowledge |
+| `openai_usb_reporting` | AFRICOM USB Reporting custom GPT | Deployment package targets GPT-5.6 Terra with static Instructions and static Knowledge; live WebUI deployment/readback pending |
 
 The OpenAI targets currently have no web search, Code Interpreter/Data Analysis, Canvas, image generation, Apps, Actions, live Elastic access, live collector execution, GitHub/Supabase connector access, or persistent cross-conversation memory. A later optional lookup capability may be enabled only after operator evidence changes the target contract. Generated instructions must not claim it exists today.
 
