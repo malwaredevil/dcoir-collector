@@ -195,6 +195,12 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     if contrasts:
         context = context[contrasts[-1].end():]
 
+    tail = normalize_text(text[start:start + 48])
+    if re.search(r"\b(?:and|or)\s*[`]*$", context) and re.match(
+        r"^(?:not|do not|does not|did not|will not|would not|cannot|can't|must not|should not)\b", tail
+    ):
+        context = ""
+
     # A rejection frame earlier in the sentence must not bleed across a comma
     # into a new independent clause. Preserve comma-linked subordinate rejection
     # lists such as "reject X, that Y" by resetting only when the suffix clearly

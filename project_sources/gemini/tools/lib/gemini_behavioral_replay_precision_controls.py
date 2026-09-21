@@ -110,6 +110,16 @@ def run_contextual_marker_precision_selftests() -> None:
             f"{independent_clause_required}"
         )
 
+    coordinated_negative_required = score_marker_presence(
+        "I will reject the stale assumption and `not replay conclusion A`.",
+        ["not replay conclusion A"],
+    )
+    if coordinated_negative_required["matched"] != ["not replay conclusion A"]:
+        raise SystemExit(
+            "Earlier rejection leaked across a coordinated negative action: "
+            f"{coordinated_negative_required}"
+        )
+
     continuity_required = score_marker_presence(
         "I explicitly reject the claim that conclusion A is still the answer, and I will not replay conclusion A.",
         ["not replay conclusion A"],
