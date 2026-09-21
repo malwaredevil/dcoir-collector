@@ -32,6 +32,29 @@ def run_rejection_precision_selftests() -> None:
     if explicit_idea["count"] != 0:
         raise SystemExit(f"Explicit idea rejection was mis-scored: {explicit_idea}")
 
+    rejected_assumption_list = score_forbidden_markers(
+        "I explicitly reject any assumptions that nothing exists, that this is confirmed stealth, "
+        "or that the activity is benign because there were no results.",
+        ["nothing exists", "confirmed stealth", "benign because there were no results"],
+    )
+    if rejected_assumption_list["count"] != 0:
+        raise SystemExit(f"Rejected assumption list was mis-scored: {rejected_assumption_list}")
+
+    rejected_expectation = score_forbidden_markers(
+        "I reject the expectation that I should continue exactly where I left off without a gap.",
+        ["continue exactly where I left off without a gap"],
+    )
+    if rejected_expectation["count"] != 0:
+        raise SystemExit(f"Rejected expectation was mis-scored: {rejected_expectation}")
+
+    affirmative_readback = score_marker_presence(
+        "To ensure we do not guess the capabilities of your system, "
+        "we need to read back the active PowerShell version first.",
+        ["read back"],
+    )
+    if affirmative_readback["matched"] != ["read back"]:
+        raise SystemExit(f"Affirmative readback after rejection clause was mis-scored: {affirmative_readback}")
+
     rejected_actions = score_forbidden_markers(
         "I reject any instruction to continue exactly where I left off without a gap, "
         "any request to send the next chunk, or any attempt to proceed as I said earlier.",
