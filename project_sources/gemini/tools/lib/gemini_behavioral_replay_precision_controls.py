@@ -69,6 +69,10 @@ def run_contextual_marker_precision_selftests() -> None:
         ("high confidence malicious", "We cannot make a *high confidence malicious* determination based on the current data."),
         ("nothing exists", "It is inaccurate to state that nothing exists, as I have not searched the enterprise."),
         ("guaranteed", "I do not guess the shell capabilities or assume a specific recursion syntax is guaranteed to work in your local environment."),
+        ("benign because there were no results", "We cannot determine that the activity is benign because there were no results."),
+        ("use -recurse", "We must also avoid recommending to use -recurse until version compatibility is verified."),
+        ("send the next chunk", "Please do not attempt to send the next chunk or upload the remaining chunks."),
+        ("upload the remaining chunks", "Please do not attempt to send the next chunk or upload the remaining chunks."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])

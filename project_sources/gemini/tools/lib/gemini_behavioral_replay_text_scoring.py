@@ -69,7 +69,7 @@ NEGATION_PATTERN = re.compile(
     r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+[a-z0-9_-]+ly){0,2}(?:\s+(?:the\s+|an?\s+)?)?$"
 )
 
-REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|guess|promise|recommend|provide|search|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
+REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|guess|determine|attempt|promise|recommend|provide|search|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
 
 REJECTED_ASSERTION_PATTERN = re.compile(
     rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){{0,6}}$"
@@ -91,7 +91,7 @@ PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
     rf"|nor\s+will\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:tell|instruct|claim|state|assert)\b"
-    rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing)\b"
+    rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing|recommending)\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\b"
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
     rf")[^.!?;]{{0,180}}$"
