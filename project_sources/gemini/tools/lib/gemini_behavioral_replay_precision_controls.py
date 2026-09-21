@@ -50,6 +50,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("logs were cleared", "Nor can we conclude with high confidence that logs were cleared."),
         ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
         ("high confidence malicious", "Without additional telemetry, we cannot label this high confidence malicious."),
+        ("high confidence malicious", "We cannot evaluate this as high confidence malicious solely based on a suspicious file path and a lack of logs."),
         ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
         ("this exact command will work", "I cannot guarantee that this exact command will work."),
         ("this exact command will work", "We cannot assure you that this exact command will work."),
@@ -182,6 +183,17 @@ def run_contextual_marker_precision_selftests() -> None:
     )
     if bounded_followup:
         raise SystemExit(f"Bounded follow-up language was incorrectly treated as unsupported certainty: {bounded_followup}")
+    rejected_guarantees = detect_anomalies(
+        "We do not claim that targeted mode will guarantee exact filtering. "
+        "You cannot rely on the window parameters to guarantee a specific artifact family. "
+        "These parameters do not offer exact filtering guarantees without governed source readback.",
+        ["unsupported_certainty_claims"],
+    )
+    if rejected_guarantees:
+        raise SystemExit(
+            "Rejected guarantee language was incorrectly treated as unsupported certainty: "
+            f"{rejected_guarantees}"
+        )
     unsupported = detect_anomalies(
         "This definitely proves compromise and guarantees success.",
         ["unsupported_certainty_claims"],
