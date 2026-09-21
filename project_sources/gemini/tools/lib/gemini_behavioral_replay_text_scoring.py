@@ -12,7 +12,6 @@ UNSUPPORTED_CERTAINTY_TERMS = [
     "guarantee",
     "guaranteed",
     "guarantees",
-    "certainly",
 ]
 
 INVENTED_TOOL_TERMS = [
@@ -151,6 +150,17 @@ def _occurrence_is_quoted(text: str, start: int, end: int) -> bool:
     return False
 
 
+def _occurrence_is_backtick_wrapped(text: str, start: int, end: int) -> bool:
+    if start > 0 and end < len(text) and text[start - 1] == "`" and text[end] == "`":
+        return True
+    positions = [index for index, char in enumerate(text) if char == "`"]
+    for offset in range(0, len(positions) - 1, 2):
+        opener, closer = positions[offset], positions[offset + 1]
+        if opener < start and end <= closer:
+            return True
+    return False
+
+
 def _occurrence_is_negated(text: str, start: int) -> bool:
     context = text[max(0, start - 40):start]
     return bool(NEGATION_PATTERN.search(context) or REJECTED_ASSERTION_PATTERN.search(context))
@@ -191,13 +201,24 @@ def _find_contextual_term_hits(
     skip_negated: bool = False,
     skip_quoted: bool = False,
     allow_quoted_single_tokens: bool = False,
+    allow_markdown_code: bool = False,
 ) -> List[str]:
     hits: List[str] = []
     for term in terms:
         for match in _iter_term_occurrences(text, term):
             quoted = _occurrence_is_quoted(text, match.start(), match.end())
             if skip_quoted and quoted:
-                if not (allow_quoted_single_tokens and not re.search(r"\s", normalize_text(term))):
+                allowed_single_token = (
+                    allow_quoted_single_tokens
+                    and not re.search(r"\s", normalize_text(term))
+                )
+                allowed_markdown = (
+                    allow_markdown_code
+                    and _occurrence_is_backtick_wrapped(
+                        text, match.start(), match.end()
+                    )
+                )
+                if not (allowed_single_token or allowed_markdown):
                     continue
             if skip_negated and (
                 _occurrence_is_negated(text, match.start())

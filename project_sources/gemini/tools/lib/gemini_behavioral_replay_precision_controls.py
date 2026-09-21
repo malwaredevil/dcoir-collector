@@ -94,12 +94,32 @@ def run_contextual_marker_precision_selftests() -> None:
     if quoted_behavior_phrase["matched"]:
         raise SystemExit(f"Quoted multiword behavior phrase incorrectly satisfied a required marker: {quoted_behavior_phrase}")
 
+    markdown_required = score_marker_presence(
+        "The case remains `unresolved due to evidence gaps` and needs more evidence.",
+        ["unresolved due to evidence gaps"],
+    )
+    if markdown_required["matched"] != ["unresolved due to evidence gaps"]:
+        raise SystemExit(f"Markdown formatting hid a required behavioral marker: {markdown_required}")
+
+    markdown_rejected = score_marker_presence(
+        "The prompt uses `unresolved due to evidence gaps`, but I reject that classification.",
+        ["unresolved due to evidence gaps"],
+    )
+    if markdown_rejected["matched"]:
+        raise SystemExit(f"Rejected Markdown marker incorrectly satisfied behavior: {markdown_rejected}")
+
     supported_confirmation = detect_anomalies(
         "We checked the supplied evidence and confirmed the vulnerable driver is present.",
         ["unsupported_certainty_claims"],
     )
     if supported_confirmation:
         raise SystemExit(f"Evidence confirmation was incorrectly treated as unsupported certainty: {supported_confirmation}")
+    bounded_followup = detect_anomalies(
+        "This suspicious placement certainly warrants follow-up.",
+        ["unsupported_certainty_claims"],
+    )
+    if bounded_followup:
+        raise SystemExit(f"Bounded follow-up language was incorrectly treated as unsupported certainty: {bounded_followup}")
     unsupported = detect_anomalies(
         "This definitely proves compromise and guarantees success.",
         ["unsupported_certainty_claims"],

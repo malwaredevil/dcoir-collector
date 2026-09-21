@@ -26,6 +26,7 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
         skip_negated=True,
         skip_quoted=True,
         allow_quoted_single_tokens=True,
+        allow_markdown_code=True,
     )
     invalidated = []
     for marker in markers:
