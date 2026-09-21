@@ -153,5 +153,3 @@ def run_contextual_marker_precision_selftests() -> None:
     )
     if not {row["detail"] for row in unsupported}.issuperset({"definitely", "guarantee"}):
         raise SystemExit(f"Unsupported certainty regression was not detected: {unsupported}")
-
-

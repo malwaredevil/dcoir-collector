@@ -110,5 +110,3 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         gaps.append("cleanup")
 
     return gaps
-
-

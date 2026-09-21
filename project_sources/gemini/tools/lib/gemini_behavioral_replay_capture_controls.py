@@ -263,5 +263,3 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
         if payload.get("success") is not False:
             raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
         assert_isolated_control_reason(label, payload)
-
-

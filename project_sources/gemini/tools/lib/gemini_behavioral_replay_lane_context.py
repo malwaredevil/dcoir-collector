@@ -317,5 +317,3 @@ def _occurrence_has_local_mix_rejection(text: str, start: int) -> bool:
         match
         and not _repudiation_frame_is_negated(prefix, match.start())
     )
-
-
