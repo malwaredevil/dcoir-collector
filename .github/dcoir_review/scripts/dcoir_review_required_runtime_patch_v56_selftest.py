@@ -129,6 +129,28 @@ def main() -> None:
     assert recovered["edits"][0]["end_line"] == 3
     assert len(changes) == 1
 
+    trailing_newline, trailing_newline_changes = repair_stage.recover_author_edit_anchors(
+        _RecoveryModule(),
+        {
+            "edits": [
+                {
+                    "path": "probe.py",
+                    "start_line": 1,
+                    "end_line": 1,
+                    "original": "value = 1\nother = 2\n",
+                    "replacement": "value = 2\nother = 3\n",
+                    "purpose": "repair exact block with trailing newline",
+                }
+            ]
+        },
+        object(),
+        "deadbeef",
+        {},
+    )
+    assert trailing_newline["edits"][0]["start_line"] == 2
+    assert trailing_newline["edits"][0]["end_line"] == 3
+    assert len(trailing_newline_changes) == 1
+
     ambiguous, ambiguous_changes = repair_stage.recover_author_edit_anchors(
         type(
             "_AmbiguousModule",

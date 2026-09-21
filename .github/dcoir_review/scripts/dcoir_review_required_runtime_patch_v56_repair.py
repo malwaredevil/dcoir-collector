@@ -22,11 +22,12 @@ def _exact_original_locations(file_text: str, original: str) -> list[tuple[int, 
     original_lines = original.splitlines()
     if not original_lines or len(original_lines) > v36.MAX_EDIT_RANGE_LINES:
         return []
+    canonical_original = "\n".join(original_lines)
     lines = v36._normalized_newlines(file_text).splitlines()
     width = len(original_lines)
     matches: list[tuple[int, int]] = []
     for offset in range(0, len(lines) - width + 1):
-        if "\n".join(lines[offset : offset + width]) == original:
+        if "\n".join(lines[offset : offset + width]) == canonical_original:
             matches.append((offset + 1, offset + width))
     return matches
 
