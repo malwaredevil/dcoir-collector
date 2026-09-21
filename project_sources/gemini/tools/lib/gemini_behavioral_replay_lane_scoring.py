@@ -13,7 +13,6 @@ from .gemini_behavioral_replay_text_scoring import (
 )
 from .gemini_behavioral_replay_lane_context import (
     _REFERENTIAL_LANES_PATTERN,
-    _SHARED_CONTEXT_TERMS,
     _assertive_phrase_occurrences,
     _clause_has_endpoint_lane,
     _clause_has_local_lane,
@@ -23,6 +22,15 @@ from .gemini_behavioral_replay_lane_context import (
     _occurrence_has_local_mix_rejection,
     _repudiation_frame_is_negated,
     _segment_has_lane_relation_scope,
+)
+
+_SHARED_CONTEXT_TERMS = (
+    "same shell",
+    "single shell",
+    "one shell",
+    "same command",
+    "single command",
+    "same lane",
 )
 
 _NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(
