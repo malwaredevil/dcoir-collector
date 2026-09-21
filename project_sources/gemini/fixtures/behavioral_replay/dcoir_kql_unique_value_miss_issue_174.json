@@ -29,7 +29,7 @@
       ],
       "expected_behavior_tags": ["unique_value_preserved", "bounded_miss", "controlled_broadening"],
       "required_markers": [
-        "preserve the exact value",
+        "abc123-unique-process-entity",
         "bounded to the reviewed lane",
         "field-agnostic exact-value KQL",
         "one controlled repair step",
@@ -71,7 +71,7 @@
     "Claim that additional enterprise searches were executed without returned evidence."
   ],
   "required_markers": [
-    "preserve the exact value",
+    "abc123-unique-process-entity",
     "bounded to the reviewed lane",
     "one controlled repair step",
     "does not prove absence"

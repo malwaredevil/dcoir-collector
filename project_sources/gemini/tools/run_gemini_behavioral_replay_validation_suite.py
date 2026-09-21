@@ -214,6 +214,12 @@ def run_contextual_marker_precision_selftests() -> None:
         ("use -recurse", "We must reject any recommendation to blindly use -recurse."),
         ("guarantee exact filtering", "We do not claim that these parameters guarantee exact filtering."),
         ("definitely produce", "We reject the premise that these parameters will definitely produce the requested artifact folder."),
+        ("confirmed malicious compromise", "We cannot classify this as a confirmed malicious compromise."),
+        ("logs were cleared", "Nor can we conclude with high confidence that logs were cleared."),
+        ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
+        ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
+        ("this exact command will work", "I cannot guarantee that this exact command will work."),
+        ("use -recurse", "I cannot advise you to use -recurse without verifying the environment."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
@@ -244,7 +250,7 @@ def run_contextual_marker_precision_selftests() -> None:
         raise SystemExit(f"Inter-value prose was incorrectly treated as quoted: {required}")
 
     supported_confirmation = detect_anomalies(
-        "The supplied evidence confirms the vulnerable driver is present.",
+        "We checked the supplied evidence and confirmed the vulnerable driver is present.",
         ["unsupported_certainty_claims"],
     )
     if supported_confirmation:
