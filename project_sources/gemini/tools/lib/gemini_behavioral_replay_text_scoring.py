@@ -83,6 +83,9 @@ PRE_MARKER_REJECTION_PATTERN = re.compile(
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate)\b"
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
+    rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
+    rf"|nor\s+will\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:tell|instruct|claim|state|assert)\b"
+    rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing)\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\b"
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
     rf")[^.!?;]{{0,180}}$"
@@ -164,6 +167,7 @@ def _occurrence_is_backtick_wrapped(text: str, start: int, end: int) -> bool:
 
 def _occurrence_is_negated(text: str, start: int) -> bool:
     context = text[max(0, start - 40):start]
+    context = re.sub(r"[*_]+", "", context)
     return bool(NEGATION_PATTERN.search(context) or REJECTED_ASSERTION_PATTERN.search(context))
 
 

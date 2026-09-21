@@ -53,6 +53,11 @@ def run_contextual_marker_precision_selftests() -> None:
         ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
         ("this exact command will work", "I cannot guarantee that this exact command will work."),
         ("use -recurse", "I cannot advise you to use -recurse without verifying the environment."),
+        ("safe to clean up now", "Because the outcome is unknown, it is not **safe to clean up now**."),
+        ("this exact command will work", "I cannot provide a finalized search string and claim this exact command will work."),
+        ("use -recurse", "Nor will I simply tell you to use -recurse."),
+        ("this exact command will work", "We must explicitly avoid claiming that this exact command will work."),
+        ("use -recurse", "We must explicitly avoid claiming this exact command will work or instructing you to use -recurse."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
