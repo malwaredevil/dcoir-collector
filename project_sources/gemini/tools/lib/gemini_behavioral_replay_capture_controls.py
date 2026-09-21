@@ -6,13 +6,14 @@ import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
+from .gemini_behavioral_replay_capture_adversarial import assert_private_capture_root
 from .gemini_behavioral_replay_capture_paths import (
     PrivateCaptureRoot,
     allocate_private_capture_root,
-    assert_private_capture_root,
-    capture_path,
+    capture_process_path,
     cleanup_private_capture_root,
     open_capture_text_exclusive,
+    read_capture_text,
 )
 from .gemini_behavioral_replay_selection import resolve_fixtures
 
@@ -107,7 +108,6 @@ ISSUE_398_AGENT_DESIGNER_FIXTURES = {
     "dcoir_agent_designer_collector_procedure_issue_398",
 }
 
-
 def assert_isolated_control_reason(label: str, payload: dict) -> None:
     result = payload.get("result") or {}
     rows = result.get("per_turn") or []
@@ -151,7 +151,6 @@ def assert_isolated_control_reason(label: str, payload: dict) -> None:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["incomplete_collector_procedure_actionability"]:
             raise SystemExit(f"{label} did not fail solely on incomplete collector procedure actionability: {json.dumps(row, sort_keys=True)}")
 
-
 def _selection_args(mode: str, *, custom_fixture: str = "", run_all: bool = True) -> argparse.Namespace:
     return argparse.Namespace(
         mode=mode,
@@ -160,7 +159,6 @@ def _selection_args(mode: str, *, custom_fixture: str = "", run_all: bool = True
         custom_fixtures_csv=custom_fixture,
         run_all_active_fixtures=run_all,
     )
-
 
 def run_fixture_mode_selection_selftests(fixtures_root: Path) -> None:
     script_path = Path("project_sources/gemini/tools/run_gemini_behavioral_replay.py").resolve()
@@ -204,10 +202,8 @@ def run_fixture_mode_selection_selftests(fixtures_root: Path) -> None:
     if "fallback_emulation" not in fallback_reason:
         raise SystemExit("Explicit fallback rejection must identify fallback_emulation as the unsupported fixture mode.")
 
-
 def _safe_label(label: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in label)
-
 
 def _run(
     args: list[str],
@@ -217,13 +213,14 @@ def _run(
     expect_success: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     with open_capture_text_exclusive(private_root, stdout_name) as fh:
-        result = subprocess.run(args, text=True, stdout=fh, check=False)  # nosec B603
-    if expect_success and result.returncode != 0:
+        result = subprocess.run(
+            args, text=True, stdout=fh, check=False, pass_fds=(private_root.dir_fd,)
+        )  # nosec B603
+    if expect_success and result.returncode:
         raise SystemExit(result.returncode)
-    if not expect_success and result.returncode == 0:
-        raise SystemExit("Unexpected success: " + " ".join(args))
+    if not expect_success and not result.returncode:
+        raise SystemExit("Unexpected pass: " + " ".join(args))
     return result
-
 
 def _write_capture_mode_variant(
     source: Path,
@@ -232,7 +229,7 @@ def _write_capture_mode_variant(
     model_name: str,
     *,
     private_root: PrivateCaptureRoot,
-) -> Path:
+) -> str:
     payload = json.loads(source.read_text(encoding="utf-8"))
     payload["mode"] = mode
     payload["model_name"] = model_name
@@ -241,9 +238,7 @@ def _write_capture_mode_variant(
     payload["metadata"] = metadata
     with open_capture_text_exclusive(private_root, destination_name) as fh:
         fh.write(json.dumps(payload, indent=2) + "\n")
-    return capture_path(private_root, destination_name)
-
-
+    return capture_process_path(private_root, destination_name)
 
 def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, support: Path) -> None:
     private_root = allocate_private_capture_root(output_dir)
@@ -259,7 +254,7 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 private_root=private_root,
             )
             output_name = f"{stem}.json"
-            output = capture_path(private_root, output_name)
+            output = output_name
             _run(
                 [
                     sys.executable,
@@ -272,9 +267,9 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 stdout_name=output_name,
                 private_root=private_root,
             )
-            payload = json.loads(output.read_text(encoding="utf-8"))
+            payload = json.loads(read_capture_text(private_root, output_name))
             if payload.get("success") is not True:
-                raise SystemExit(f"Known-good OpenAI WebUI capture did not contain success=true: {output}")
+                raise SystemExit(f"Good failed: {output_name}")
         for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
             stem = _safe_label(label)
             variant = _write_capture_mode_variant(
@@ -285,7 +280,7 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 private_root=private_root,
             )
             output_name = f"{stem}.json"
-            output = capture_path(private_root, output_name)
+            output = output_name
             _run(
                 [
                     sys.executable,
@@ -299,9 +294,9 @@ def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, su
                 private_root=private_root,
                 expect_success=False,
             )
-            payload = json.loads(output.read_text(encoding="utf-8"))
+            payload = json.loads(read_capture_text(private_root, output_name))
             if payload.get("success") is not False:
-                raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
+                raise SystemExit(f"Bad: {output_name}")
             assert_isolated_control_reason(label, payload)
     except BaseException as scoring_error:
         try:
