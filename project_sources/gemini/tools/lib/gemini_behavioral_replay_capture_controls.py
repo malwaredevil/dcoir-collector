@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess  # nosec B404
 import sys
-import tempfile
 from pathlib import Path
 
+from .gemini_behavioral_replay_capture_paths import (
+    allocate_private_capture_root,
+    assert_private_capture_root,
+    capture_path,
+    open_capture_text_exclusive,
+)
 from .gemini_behavioral_replay_selection import resolve_fixtures
 
 AGENT_DESIGNER_CAPTURE_GOOD = [
@@ -202,33 +208,14 @@ def _safe_label(label: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "_.-" else "_" for ch in label)
 
 
-def _approved_capture_output_root(output_dir: Path) -> Path:
-    candidate = output_dir.resolve()
-    roots = (Path("project_sources/validation").resolve(), Path(tempfile.gettempdir()).resolve())
-    if not any(candidate == root or candidate.is_relative_to(root) for root in roots):
-        raise SystemExit(f"Bad: {candidate}")
-    candidate.mkdir(parents=True, exist_ok=True)
-    return candidate
-
-
-def _bounded_capture_path(governed_root: Path, candidate: Path) -> Path:
-    root = governed_root.resolve()
-    resolved = candidate.resolve()
-    if resolved == root or not resolved.is_relative_to(root):
-        raise SystemExit(f"Escape: {resolved}")
-    return resolved
-
-
 def _run(
     args: list[str],
     *,
-    stdout: Path,
-    governed_root: Path,
+    stdout_name: str,
+    private_root: Path,
     expect_success: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    safe_stdout = _bounded_capture_path(governed_root, stdout)
-    safe_stdout.parent.mkdir(parents=True, exist_ok=True)
-    with safe_stdout.open("w", encoding="utf-8") as fh:
+    with open_capture_text_exclusive(private_root, stdout_name) as fh:
         result = subprocess.run(args, text=True, stdout=fh, check=False)  # nosec B603
     if expect_success and result.returncode != 0:
         raise SystemExit(result.returncode)
@@ -239,75 +226,81 @@ def _run(
 
 def _write_capture_mode_variant(
     source: Path,
-    destination: Path,
+    destination_name: str,
     mode: str,
     model_name: str,
     *,
-    governed_root: Path,
-) -> None:
+    private_root: Path,
+) -> Path:
     payload = json.loads(source.read_text(encoding="utf-8"))
     payload["mode"] = mode
     payload["model_name"] = model_name
     metadata = dict(payload.get("metadata") or {})
     metadata["capture_surface"] = mode
     payload["metadata"] = metadata
-    safe_destination = _bounded_capture_path(governed_root, destination)
-    safe_destination.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    with open_capture_text_exclusive(private_root, destination_name) as fh:
+        fh.write(json.dumps(payload, indent=2) + "\n")
+    return capture_path(private_root, destination_name)
+
 
 
 def run_openai_webui_capture_selftests(fixtures_root: Path, output_dir: Path, support: Path) -> None:
-    governed_root = _approved_capture_output_root(output_dir)
-    capture_dir = _bounded_capture_path(governed_root, governed_root / "openai_webui_capture_results")
-    capture_dir.mkdir(parents=True, exist_ok=True)
-    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_GOOD:
-        variant = capture_dir / f"{_safe_label(label)}_input.json"
-        output = capture_dir / f"{_safe_label(label)}.json"
-        _write_capture_mode_variant(
-            support / response_pack_name,
-            variant,
-            "openai_webui_capture",
-            "GPT-5.6 Terra",
-            governed_root=governed_root,
-        )
-        _run(
-            [
-                sys.executable,
-                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
-                "--fixtures-root", str(fixtures_root),
-                "--response-pack", str(variant),
-                "--fixture-id", fixture_id,
-                "--expected-mode", "openai_webui_capture",
-            ],
-            stdout=output,
-            governed_root=governed_root,
-        )
-        payload = json.loads(output.read_text(encoding="utf-8"))
-        if payload.get("success") is not True:
-            raise SystemExit(f"Known-good OpenAI WebUI capture did not contain success=true: {output}")
-    for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
-        variant = capture_dir / f"{_safe_label(label)}_input.json"
-        output = capture_dir / f"{_safe_label(label)}.json"
-        _write_capture_mode_variant(
-            support / response_pack_name,
-            variant,
-            "openai_webui_capture",
-            "GPT-5.6 Terra",
-            governed_root=governed_root,
-        )
-        _run(
-            [
-                sys.executable,
-                "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
-                "--fixtures-root", str(fixtures_root),
-                "--response-pack", str(variant),
-                "--fixture-id", fixture_id,
-                "--expected-mode", "openai_webui_capture",
-            ],
-            stdout=output,
-            governed_root=governed_root,
-            expect_success=False,
-        )
-        payload = json.loads(output.read_text(encoding="utf-8"))
-        if payload.get("success") is not False:
-            raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
-        assert_isolated_control_reason(label, payload)
+    private_root = allocate_private_capture_root(output_dir)
+    try:
+        assert_private_capture_root(private_root)
+        for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_GOOD:
+            stem = _safe_label(label)
+            variant = _write_capture_mode_variant(
+                support / response_pack_name,
+                f"{stem}_input.json",
+                "openai_webui_capture",
+                "GPT-5.6 Terra",
+                private_root=private_root,
+            )
+            output_name = f"{stem}.json"
+            output = capture_path(private_root, output_name)
+            _run(
+                [
+                    sys.executable,
+                    "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
+                    "--fixtures-root", str(fixtures_root),
+                    "--response-pack", str(variant),
+                    "--fixture-id", fixture_id,
+                    "--expected-mode", "openai_webui_capture",
+                ],
+                stdout_name=output_name,
+                private_root=private_root,
+            )
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            if payload.get("success") is not True:
+                raise SystemExit(f"Known-good OpenAI WebUI capture did not contain success=true: {output}")
+        for fixture_id, response_pack_name, label in AGENT_DESIGNER_CAPTURE_BAD:
+            stem = _safe_label(label)
+            variant = _write_capture_mode_variant(
+                support / response_pack_name,
+                f"{stem}_input.json",
+                "openai_webui_capture",
+                "GPT-5.6 Terra",
+                private_root=private_root,
+            )
+            output_name = f"{stem}.json"
+            output = capture_path(private_root, output_name)
+            _run(
+                [
+                    sys.executable,
+                    "project_sources/gemini/tools/score_gemini_behavioral_replay.py",
+                    "--fixtures-root", str(fixtures_root),
+                    "--response-pack", str(variant),
+                    "--fixture-id", fixture_id,
+                    "--expected-mode", "openai_webui_capture",
+                ],
+                stdout_name=output_name,
+                private_root=private_root,
+                expect_success=False,
+            )
+            payload = json.loads(output.read_text(encoding="utf-8"))
+            if payload.get("success") is not False:
+                raise SystemExit(f"Known-bad OpenAI WebUI capture did not contain success=false: {output}")
+            assert_isolated_control_reason(label, payload)
+    finally:
+        shutil.rmtree(private_root)

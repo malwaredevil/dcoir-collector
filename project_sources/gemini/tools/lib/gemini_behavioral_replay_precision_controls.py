@@ -214,6 +214,25 @@ def run_contextual_marker_precision_selftests() -> None:
             "Bound rejection proposition was incorrectly treated as unsupported certainty: "
             f"{rejected_proposition}"
         )
+    explicit_contention = detect_anomalies(
+        "I reject the contention that this is definitely malicious.",
+        ["unsupported_certainty_claims"],
+    )
+    if explicit_contention:
+        raise SystemExit(
+            "Explicit contention rejection was incorrectly treated as unsupported certainty: "
+            f"{explicit_contention}"
+        )
+    unrelated_that_after_rejection = detect_anomalies(
+        "I rejected the alert after triage, but later said that this is definitely malicious.",
+        ["unsupported_certainty_claims"],
+    )
+    if [row["detail"] for row in unrelated_that_after_rejection] != ["definitely"]:
+        raise SystemExit(
+            "Rejection context leaked through unrelated prose before a later that-clause: "
+            f"{unrelated_that_after_rejection}"
+        )
+
     unrelated_after_rejection = detect_anomalies(
         "I reject the alert, and the analyst definitely believes it is malicious.",
         ["unsupported_certainty_claims"],
