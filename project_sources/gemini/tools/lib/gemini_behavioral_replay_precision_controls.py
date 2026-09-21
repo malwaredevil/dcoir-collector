@@ -13,6 +13,8 @@ SCORER_MODULE_CHARACTER_CEILING = 15000
 SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_text_scoring.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_rejection_patterns.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_rejection_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_context.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_collector_scoring.py"),
