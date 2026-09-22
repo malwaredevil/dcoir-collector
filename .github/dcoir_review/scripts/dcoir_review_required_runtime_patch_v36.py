@@ -47,6 +47,7 @@ MAX_EDIT_TEXT_CHARS = 12000
 MAX_TOTAL_REPLACEMENT_CHARS = 24000
 MAX_DIFF_CONTEXT_CHARS = 60000
 MAX_CRITIC_CONTEXT_CHARS = 70000
+MAX_REPAIR_STATUS_NOTE_CHARS = 4000
 AUTHOR_MIN_CONFIDENCE = repair_contract.AUTHOR_MIN_CONFIDENCE
 CRITIC_MIN_CONFIDENCE = repair_contract.CRITIC_MIN_CONFIDENCE
 
@@ -485,13 +486,14 @@ def _declined_item(
     item["title"] = title
     item["body"] = body
     item["suggested_replacement"] = ""
+    status_note = (
+        "DCOIR Review verified the finding. A native coordinated repair was not published because "
+        + (reason or "the repair-set pipeline could not prove a safe complete repair")
+        + "."
+    )
     item["fix_guidance"] = {
         "language": Path(path).suffix.lstrip(".") or "text",
-        "notes": (
-            "DCOIR Review verified the finding. A native coordinated repair was not published because "
-            + (reason or "the repair-set pipeline could not prove a safe complete repair")
-            + "."
-        )[:1600],
+        "notes": _bounded(status_note, MAX_REPAIR_STATUS_NOTE_CHARS),
     }
     item[repair.REPAIR_MARKER] = {
         "version": VERSION,

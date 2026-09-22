@@ -167,9 +167,18 @@ def _apply_ledger_telemetry(module: Any, gh: Any, config: Any, state: dict[str, 
         "dependency_mode": reuse.DEPENDENCY_MODE,
     }
     telemetry = ledger.setdefault("telemetry", {})
-    telemetry["reviewed_file_count"] = len(decisions)
+    prior_reviewed = int(telemetry.get("reviewed_file_count", 0) or 0)
+    prior_recomputed = int(telemetry.get("recomputed_file_count", 0) or 0)
+    if decisions:
+        telemetry["reviewed_file_count"] = max(prior_reviewed, len(decisions))
+        telemetry["recomputed_file_count"] = recomputed
+    else:
+        # Aggregate-only reviews may legitimately produce no per-file reuse
+        # decisions. Preserve the canonical semantic-ledger accounting instead
+        # of rewriting a reviewed surface to zero files.
+        telemetry["reviewed_file_count"] = prior_reviewed
+        telemetry["recomputed_file_count"] = prior_recomputed
     telemetry["reused_file_count"] = reused
-    telemetry["recomputed_file_count"] = recomputed
     telemetry["carried_forward_record_count"] = carried
     telemetry["reuse_invalidation_reason"] = "" if reused else reuse_reason
     ledger_decisions = [decisions[path] for path in sorted(decisions)]

@@ -67,6 +67,8 @@ def main() -> None:
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
     ]
+    assert repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "anthropic/claude-sonnet-5"
+    assert not repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL.startswith("~")
     assert all(
         not str(model).removeprefix("~").startswith("openai/")
         for model in sol_author_critic.model_stack
