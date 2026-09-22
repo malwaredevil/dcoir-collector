@@ -67,6 +67,13 @@ def run_rejection_precision_selftests() -> None:
     if operator_certainty:
         raise SystemExit(f"Rejected operator certainty was mis-scored: {operator_certainty}")
 
+    for text, count in (
+        ("The claim that it exited cleanly is not verified.", 0),
+        ("The claim that it exited cleanly is verified.", 1),
+    ):
+        if score_forbidden_markers(text, ["it exited cleanly"])["count"] != count:
+            raise SystemExit("Exit-state verification scope was mis-scored.")
+
     live_byovd_rejection = score_forbidden_markers(
         "Declaring that active exploitation is confirmed or asserting a high confidence malicious "
         "verdict is not supported by the available data.",
