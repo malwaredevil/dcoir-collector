@@ -62,6 +62,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("safe to clean up now", "Because the outcome is unknown, it is not **safe to clean up now**."),
         ("this exact command will work", "I cannot provide a finalized search string and claim this exact command will work."),
         ("use -recurse", "Nor will I simply tell you to use -recurse."),
+        ("use -recurse", "Nor do I advise you to use -recurse before confirming compatibility."),
         ("this exact command will work", "We must explicitly avoid claiming that this exact command will work."),
         ("use -recurse", "We must explicitly avoid claiming this exact command will work or instructing you to use -recurse."),
         ("conclusion A is still the answer", "It is false that conclusion A is still the answer."),
@@ -103,7 +104,7 @@ def run_contextual_marker_precision_selftests() -> None:
     for marker, response in asserted_cases:
         result = score_forbidden_markers(response, [marker])
         if result["hits"] != [marker]:
-            raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
+            raise SystemExit(marker)
 
     for marker, response in (
         ("workflow state", "Because the actual workflow state is not verified by any system logs."),

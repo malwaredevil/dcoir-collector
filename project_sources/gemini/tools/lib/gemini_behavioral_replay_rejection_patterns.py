@@ -27,6 +27,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:do|does|did|should|must|will|would|can|could)\s+(?:(?:also|still|simply|just|really|only)\s+){{1,2}}not\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+(?:can|should|must|would|will|could)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:(?:{REJECTED_ACTION_VERBS})\b|$)"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
+    rf"|nor\s+do\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:advise|recommend|tell|instruct|ask)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"
     rf"|(?:it\s+is|it's)?\s*(?:wrong|incorrect|inaccurate|misleading)\s+to\s+(?:say|state|claim|assert)\b"
