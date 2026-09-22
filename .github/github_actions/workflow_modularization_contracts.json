@@ -250,14 +250,14 @@
       "target_architecture": "Gemini production-like harness reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
     },
     {
-      "acceptance_evidence": "Happy/failure evidence and API fallback handling.",
+      "acceptance_evidence": "Happy/failure Gemini evidence, API fallback handling, and explicit opt-in exact-head OpenAI DCOIR Terra bridge evidence.",
       "contract_family": "gemini-behavioral-replay",
       "family": "Gemini live/manual replay",
       "file": ".github/workflows/run-gemini-behavioral-replay-manual.yml",
       "migration_status": "active",
       "risk": "medium",
       "rollback": "Restore prior inline live replay workflow body.",
-      "target_architecture": "Gemini live/manual replay reusable workflow with live API fallback evidence contract. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+      "target_architecture": "Default-branch operator replay entry: Gemini remains the default lane; an explicit run_openai_dcoir_replay dispatch flag routes exclusively to the governed OpenAI DCOIR GPT-5.6 Terra reusable workflow using the dispatched github.sha as an exact-head guard. Shared setup, artifact upload, validation, packaging, and report mechanics remain in repo-local reusable/composite modules."
     },
     {
       "acceptance_evidence": "Workflow action-version audit, consistency drift audit, inventory check, contract audit, and report section.",

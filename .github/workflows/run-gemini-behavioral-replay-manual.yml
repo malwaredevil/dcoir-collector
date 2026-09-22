@@ -2,7 +2,7 @@
 # Workflow key:
 # - workflow-manual-run-gemini-behavioral-replay-manual-0002
 # Purpose:
-# - Run the governed Gemini behavioral replay harness against selected live Gemini API model and fixture combinations, or produce a diagnostic/fallback report when live evidence cannot be collected.
+# - Run the governed Gemini behavioral replay harness, with an explicit opt-in bridge to the OpenAI DCOIR GPT-5.6 Terra reusable replay lane for pre-merge/operator evidence.
 # Use when:
 # - Use when Gemini-governance work needs live model behavior evidence, model comparison, or live replay reporting evidence rather than deterministic response-pack evidence only.
 # Do not use when:
@@ -14,7 +14,7 @@
 # Required inputs:
 # - model selection, custom_models_csv, baseline_model, fixture selection, and replay controls defined in the workflow_dispatch block.
 # Required secrets/config:
-# - Uses DCOIR_GEMINI_API when live model replay is requested; do not place secret values in reports, logs, or artifacts.
+# - Uses DCOIR_GEMINI_API for Gemini replay; the opt-in OpenAI bridge uses DCOIR_OPENAI_API_KEY or OPENAI_API_KEY and optional DCOIR_OPENAI_PROJECT_ID. Never place secret values in reports, logs, or artifacts.
 # Runtime dependencies:
 # - Uses Gemini behavioral replay Python tools, fixture catalogs, live API configuration, and replay report renderers.
 # Expected outputs/readback:
@@ -123,6 +123,21 @@ on:
         required: true
         default: false
         type: boolean
+      run_openai_dcoir_replay:
+        description: Run the GPT-5.6 Terra OpenAI DCOIR replay lane instead of the Gemini lane
+        required: true
+        default: false
+        type: boolean
+      openai_reasoning_effort:
+        description: OpenAI replay reasoning effort when run_openai_dcoir_replay is true
+        required: true
+        default: "medium"
+        type: string
+      openai_max_output_tokens:
+        description: OpenAI replay max output tokens when run_openai_dcoir_replay is true
+        required: true
+        default: "8192"
+        type: string
       temperature:
         description: Live replay temperature
         required: true
@@ -138,6 +153,7 @@ concurrency:
 
 jobs:
   live_replay:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_openai_dcoir_replay != true }}
     uses: ./.github/workflows/reusable-run-gemini-behavioral-replay-manual.yml
     permissions:
       contents: read
@@ -164,3 +180,19 @@ jobs:
       temperature: ${{ inputs.temperature || '1.0' }}
     secrets:
       DCOIR_GEMINI_API: ${{ secrets.DCOIR_GEMINI_API }}
+
+  openai_dcoir_replay:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_openai_dcoir_replay }}
+    uses: ./.github/workflows/reusable-run-openai-dcoir-behavioral-replay-manual.yml
+    permissions:
+      contents: read
+    with:
+      expected_head_sha: ${{ github.sha }}
+      run_all_active_fixtures: ${{ github.event_name != 'workflow_dispatch' || inputs.run_all_active_fixtures }}
+      custom_fixtures_csv: ${{ inputs.custom_fixtures_csv || '' }}
+      reasoning_effort: ${{ inputs.openai_reasoning_effort || 'medium' }}
+      max_output_tokens: ${{ inputs.openai_max_output_tokens || '8192' }}
+    secrets:
+      DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DCOIR_OPENAI_PROJECT_ID: ${{ secrets.DCOIR_OPENAI_PROJECT_ID }}

@@ -5,7 +5,7 @@
 - primary_workflow_count: `31`
 - reusable_workflow_count: `30`
 - composite_action_count: `19`
-- local_reusable_workflow_calls: `35`
+- local_reusable_workflow_calls: `36`
 - local_composite_action_calls: `130`
 - contract_registry: `.github/github_actions/workflow_modularization_contracts.json`
 
@@ -36,7 +36,7 @@ Regenerate it after workflow, reusable workflow, composite action, report, or wo
 | `.github/workflows/openrouter-pr-review.yml` | 28 Review - DCOIR Review | issue_comment | actions:read, contents:read, issues:write, pull-requests:write | 1 | chatgpt-workflow-report-section, dcoir-review-debug-${{ github.event.issue.number }}-${{ github.run_id }} | chatgpt workflow report section | openrouter-pr-review | active | high |
 | `.github/workflows/ops-apply-patch.yml` | 64 Ops - Apply Patch Request | push, workflow_dispatch | contents:write | 0 | ops-apply-patch-${{ github.run_id }} | standalone workflow report | ops-apply-patch | active | high |
 | `.github/workflows/publish_knowledge_to_wiki.yml` | 20 Operator - Publish Knowledge to Wiki | push, workflow_dispatch | contents:read | 1 | none | none declared | wiki-publish | active | high |
-| `.github/workflows/run-gemini-behavioral-replay-manual.yml` | 06 Operator - Gemini Behavioral Replay | workflow_dispatch | contents:read | 1 | chatgpt-workflow-report-section, run-gemini-behavioral-replay-manual-results | chatgpt workflow report section | gemini-behavioral-replay | active | medium |
+| `.github/workflows/run-gemini-behavioral-replay-manual.yml` | 06 Operator - Gemini Behavioral Replay | workflow_dispatch | contents:read | 4 | chatgpt-workflow-report-section, run-gemini-behavioral-replay-manual-results, run-openai-dcoir-behavioral-replay-manual-results | chatgpt workflow report section | gemini-behavioral-replay | active | medium |
 | `.github/workflows/run-openai-dcoir-behavioral-replay-manual.yml` | 07 Operator - OpenAI DCOIR Behavioral Replay | workflow_dispatch | contents:read | 3 | chatgpt-workflow-report-section, run-openai-dcoir-behavioral-replay-manual-results | chatgpt workflow report section | openai-dcoir-behavioral-replay | active | medium |
 | `.github/workflows/scheduled-health-check.yml` | 30 Maintenance - Scheduled Health Check | schedule, workflow_dispatch | contents:read | 0 | ${{ inputs.artifact_name }}, chatgpt-workflow-report-section | chatgpt workflow report section | required-surfaces | active | medium |
 | `.github/workflows/validate-gemini-behavioral-replay.yml` | 22 Validation - Gemini Behavioral Replay | pull_request, push, workflow_dispatch | contents:read | 0 | ${{ inputs.report_artifact_name }}, validate-gemini-behavioral-replay-results | chatgpt workflow report section | gemini-behavioral-replay | active | medium |
