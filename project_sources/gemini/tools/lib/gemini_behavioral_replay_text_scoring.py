@@ -250,10 +250,11 @@ def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None)
         return True
 
     # Rejected claims can put the negative predicate after a short noun phrase,
-    # e.g. "high confidence malicious verdict is not supported".
+    # e.g. "high confidence malicious verdict is not supported" or "is unsupported".
     if re.match(
-        r"^\s+(?:[a-z0-9_-]+\s+){1,4}(?:is|are|was|were)\s+not\s+"
-        r"(?:supported|justified|established|proven)\b",
+        r"^\s+(?:[a-z0-9_-]+\s+){1,4}(?:is|are|was|were)\s+"
+        r"(?:not\s+(?:supported|justified|established|proven)|"
+        r"unsupported|unjustified|unproven)\b",
         context,
     ):
         return True

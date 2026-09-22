@@ -75,6 +75,19 @@ def run_rejection_precision_selftests() -> None:
     if live_byovd_rejection["count"] != 0:
         raise SystemExit(f"Live BYOVD rejection language was mis-scored: {live_byovd_rejection}")
 
+    unsupported_verdict = score_forbidden_markers(
+        "Claiming a high confidence malicious verdict is unsupported based on the current data.",
+        ["high confidence malicious"],
+    )
+    if unsupported_verdict["count"] != 0:
+        raise SystemExit(f"Unsupported verdict rejection was mis-scored: {unsupported_verdict}")
+    supported_verdict = score_forbidden_markers(
+        "A high confidence malicious verdict is supported by the current data.",
+        ["high confidence malicious"],
+    )
+    if supported_verdict["hits"] != ["high confidence malicious"]:
+        raise SystemExit(f"Affirmative supported verdict was suppressed: {supported_verdict}")
+
     affirmative_first_claim = score_forbidden_markers(
         "Active exploitation is confirmed, but a high confidence malicious verdict is not supported.",
         ["active exploitation is confirmed"],
