@@ -173,7 +173,7 @@ def _assert_descriptor_bound_allocation() -> None:
             raise SystemExit(
                 "Capture root was not created beneath the validated sandbox descriptor."
             )
-    except BaseException as exc:
+    except (Exception, SystemExit) as exc:
         failure = exc
     finally:
         capture_paths.uuid.uuid4 = real_uuid4
@@ -181,7 +181,7 @@ def _assert_descriptor_bound_allocation() -> None:
         if private_root is not None and not private_root.closed:
             try:
                 cleanup_private_capture_root(private_root)
-            except BaseException as exc:
+            except (Exception, SystemExit) as exc:
                 cleanup_error = exc
         try:
             if swapped:
@@ -248,7 +248,7 @@ def _assert_descriptor_bound_allocation() -> None:
                         f"Allocation sandbox retained cleanup residue: {sandbox}"
                     )
                 _rmdir_if_identity(container_fd, sandbox_name, sandbox_identity)
-        except BaseException as exc:
+        except (Exception, SystemExit) as exc:
             restore_error = exc
         finally:
             os.close(container_fd)
