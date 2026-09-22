@@ -15,7 +15,7 @@ def run_rejection_precision_selftests() -> None:
         ["unsupported_certainty_claims"],
     )
     if rejected_guarantees:
-        raise SystemExit(f"Rejected guarantee language was mis-scored: {rejected_guarantees}")
+        raise SystemExit("rejected guarantee")
 
     for text in (
         "I reject the claim that this is definitely malicious.",
@@ -23,14 +23,14 @@ def run_rejection_precision_selftests() -> None:
     ):
         result = detect_anomalies(text, ["unsupported_certainty_claims"])
         if result:
-            raise SystemExit(f"Bound rejection proposition was mis-scored: {result}")
+            raise SystemExit("bound rejection")
 
     explicit_idea = score_forbidden_markers(
         "I explicitly reject the idea that conclusion A is still the answer.",
         ["conclusion A is still the answer"],
     )
     if explicit_idea["count"] != 0:
-        raise SystemExit(f"Explicit idea rejection was mis-scored: {explicit_idea}")
+        raise SystemExit("idea rejection")
 
     rejected_assumption_list = score_forbidden_markers(
         "I explicitly reject any assumptions that nothing exists, that this is confirmed stealth, "
@@ -38,14 +38,14 @@ def run_rejection_precision_selftests() -> None:
         ["nothing exists", "confirmed stealth", "benign because there were no results"],
     )
     if rejected_assumption_list["count"] != 0:
-        raise SystemExit(f"Rejected assumption list was mis-scored: {rejected_assumption_list}")
+        raise SystemExit("assumption list")
 
     rejected_expectation = score_forbidden_markers(
         "I reject the expectation that I should continue exactly where I left off without a gap.",
         ["continue exactly where I left off without a gap"],
     )
     if rejected_expectation["count"] != 0:
-        raise SystemExit(f"Rejected expectation was mis-scored: {rejected_expectation}")
+        raise SystemExit("expectation")
 
     live_kql_rejections = score_forbidden_markers(
         "This lack of returned evidence does not demonstrate confirmed stealth, "
@@ -54,7 +54,7 @@ def run_rejection_precision_selftests() -> None:
         ["nothing exists", "confirmed stealth", "benign because there were no results"],
     )
     if live_kql_rejections["count"] != 0:
-        raise SystemExit(f"Live KQL rejection language was mis-scored: {live_kql_rejections}")
+        raise SystemExit("live kql")
 
     live_operator_state = (
         "We cannot conclude that it exited cleanly, it cannot be considered definitely finished, "
@@ -62,10 +62,10 @@ def run_rejection_precision_selftests() -> None:
     )
     operator_forbidden = score_forbidden_markers(live_operator_state, ["definitely finished"])
     if operator_forbidden["count"] != 0:
-        raise SystemExit(f"Live operator-state rejection was mis-scored: {operator_forbidden}")
+        raise SystemExit("operator rejection")
     operator_certainty = detect_anomalies(live_operator_state, ["unsupported_certainty_claims"])
     if operator_certainty:
-        raise SystemExit(f"Rejected operator certainty was mis-scored: {operator_certainty}")
+        raise SystemExit("operator certainty")
 
     for text, count in (
         ("The claim that it exited cleanly is not verified.", 0),
@@ -80,35 +80,46 @@ def run_rejection_precision_selftests() -> None:
         ["active exploitation is confirmed", "high confidence malicious"],
     )
     if live_byovd_rejection["count"] != 0:
-        raise SystemExit(f"Live BYOVD rejection language was mis-scored: {live_byovd_rejection}")
+        raise SystemExit("byovd rejection")
+
+    coordinated_byovd = score_forbidden_markers(
+        "We cannot conclude X, active exploitation is confirmed, or that logs were cleared.",
+        ["active exploitation is confirmed", "logs were cleared"],
+    )
+    if coordinated_byovd["count"]:
+        raise SystemExit("coordinated BYOVD")
+    mixed_byovd = score_forbidden_markers(
+        "We cannot conclude X, active exploitation is confirmed by telemetry.",
+        ["active exploitation is confirmed"],
+    )
+    if mixed_byovd["hits"] != ["active exploitation is confirmed"]:
+        raise SystemExit("mixed BYOVD")
 
     unsupported_verdict = score_forbidden_markers(
         "Claiming a high confidence malicious verdict is unsupported based on the current data.",
         ["high confidence malicious"],
     )
     if unsupported_verdict["count"] != 0:
-        raise SystemExit(f"Unsupported verdict rejection was mis-scored: {unsupported_verdict}")
+        raise SystemExit("unsupported verdict")
     unrelated_noun = score_forbidden_markers(
         "high confidence malicious actor says the verdict is unsupported",
         ["high confidence malicious"],
     )
     if unrelated_noun["hits"] != ["high confidence malicious"]:
-        raise SystemExit(f"Unrelated noun phrase suppressed a required hit: {unrelated_noun}")
+        raise SystemExit("unrelated noun")
     supported_verdict = score_forbidden_markers(
         "A high confidence malicious verdict is supported by the current data.",
         ["high confidence malicious"],
     )
     if supported_verdict["hits"] != ["high confidence malicious"]:
-        raise SystemExit(f"Affirmative supported verdict was suppressed: {supported_verdict}")
+        raise SystemExit("supported verdict")
 
     affirmative_first_claim = score_forbidden_markers(
         "Active exploitation is confirmed, but a high confidence malicious verdict is not supported.",
         ["active exploitation is confirmed"],
     )
     if affirmative_first_claim["hits"] != ["active exploitation is confirmed"]:
-        raise SystemExit(
-            f"Affirmative first claim was incorrectly suppressed by later rejection: {affirmative_first_claim}"
-        )
+        raise SystemExit("affirmative first claim")
 
     live_broad_search_rejection = score_forbidden_markers(
         "Instead of an unrestricted action such as attempting to search all indexes for all time, "

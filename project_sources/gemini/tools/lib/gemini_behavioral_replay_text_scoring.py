@@ -229,10 +229,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     ):
         context = ""
 
-    # A rejection frame earlier in the sentence must not bleed across a comma
-    # or colon into a new independent clause. Preserve subordinate rejection
-    # lists by resetting only when the suffix clearly starts a new subject,
-    # predicate assertion, or imperative.
+    # Reset rejection scope only at clear independent clause boundaries.
     clause_boundary = re.compile(
         r"^\s*(?:(?:and|or|but|so)\s+)?(?:"
         r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,5})\s+"
@@ -244,7 +241,13 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     boundary_positions = [match.end() for match in re.finditer(r"[:,]", context)]
     for boundary_end in reversed(boundary_positions):
         suffix = context[boundary_end:]
-        if clause_boundary.search(suffix + " " + marker_tail):
+        candidate = suffix + " " + marker_tail
+        if (
+            re.search(r"\b(?:cannot|can't|can not)\s+conclude\b", context[:boundary_end])
+            and re.search(r",\s*(?:and|or)\s+that\b", candidate)
+        ):
+            continue
+        if clause_boundary.search(candidate):
             context = suffix
             break
 
