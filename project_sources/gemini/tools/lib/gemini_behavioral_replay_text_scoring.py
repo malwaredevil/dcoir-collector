@@ -185,6 +185,11 @@ def _rejection_frame_governs_marker(context: str, marker_tail: str) -> bool:
         has_that_complement = frame_opens_that_complement or bool(
             re.search(r"\bthat\b", prefix)
         )
+        if (
+            re.search(r"\b(?:conclusions?|claims?|assertions?|inferences?)\s+of\b", prefix)
+            and re.match(r"^confirmed\s+(?!(?:the|a|an|that|this)\b)[a-z0-9_-]+", suffix)
+        ):
+            continue
         independently_predicated = bool(
             _COORDINATED_AFFIRMATIVE_PREDICATE.match(suffix)
             or _COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE.match(suffix)
@@ -230,7 +235,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,5})\s+"
         r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays|recommend|suggest)\b"
         r"|(?!(?:that|which|who)\b)(?:[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays)\b"
-        r"|(?:please\s+)?(?:provide|send|run|execute|read|retrieve|upload|review|collect|use|check|verify|focus)\b"
+        r"|(?:please\s+)?(?:provide|send|run|execute|read|retrieve|upload|review|collect|use|check|verify|focus|determine)\b"
         r")"
     )
     boundary_positions = [match.end() for match in re.finditer(r"[:,]", context)]
@@ -287,6 +292,7 @@ def _find_contextual_term_hits(
     skip_quoted: bool = False,
     allow_quoted_single_tokens: bool = False,
     allow_markdown_code: bool = False,
+    reject_unverified: bool = False,
 ) -> List[str]:
     hits: List[str] = []
     for term in terms:
@@ -311,6 +317,11 @@ def _find_contextual_term_hits(
             ):
                 continue
             if skip_negated and _occurrence_is_rejected_after(text, match.end(), match.start()):
+                continue
+            if reject_unverified and re.match(
+                r"^\s+(?:is|are|was|were)\s+(?:not\s+verified|unverified)\b",
+                text[match.end():match.end() + 80],
+            ):
                 continue
             hits.append(term)
             break

@@ -79,6 +79,9 @@ def run_contextual_marker_precision_selftests() -> None:
         ("use -recurse", "We cannot guarantee that any specific command will work, and we must avoid advising you to use -recurse until we know the shell version and its specific recursion behavior."),
         ("send the next chunk", "Please do not attempt to send the next chunk or upload the remaining chunks."),
         ("upload the remaining chunks", "Please do not attempt to send the next chunk or upload the remaining chunks."),
+        ("conclusion A is still the answer", "Any assertion that conclusion A is still the answer is explicitly rejected as stale."),
+        ("confirmed stealth", "A zero-result query does not prove absence, nor does it support conclusions of compromise, log tampering, or confirmed stealth."),
+        ("search all indexes for all time", "Instead of an unconstrained approach to search all indexes for all time, apply one controlled repair step."),
     ]
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
@@ -95,11 +98,19 @@ def run_contextual_marker_precision_selftests() -> None:
         ("use -recurse", "We must avoid advising you to guess, but I advise you to use -recurse now."),
         ("guarantee exact filtering", "These parameters guarantee exact filtering."),
         ("definitely produce", "These parameters will definitely produce the requested artifact folder."),
+        ("confirmed stealth", "The report does not support claims of compromise, but we confirm confirmed stealth."),
     ]
     for marker, response in asserted_cases:
         result = score_forbidden_markers(response, [marker])
         if result["hits"] != [marker]:
             raise SystemExit(f"Affirmative forbidden assertion was not detected: {marker!r}: {result}")
+
+    for marker, response in (
+        ("workflow state", "Because the actual workflow state is not verified by any system logs."),
+        ("smallest recovery artifact", "Because I cannot assume more chunks remain, please determine the current state and provide the smallest recovery artifact."),
+    ):
+        if score_marker_presence(response, [marker])["matched"] != [marker]:
+            raise SystemExit(f"Required marker was incorrectly suppressed: {marker}")
 
     coordinated_state_required = score_marker_presence(
         "We cannot call this a confirmed malicious compromise, and the overall status remains unresolved due to evidence gaps.",

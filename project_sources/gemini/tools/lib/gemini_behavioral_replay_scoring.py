@@ -58,7 +58,13 @@ def score_forbidden_markers(
     literal_markers: List[str] | None = None,
 ) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
-    contextual_hits = _find_contextual_term_hits(lowered, markers, skip_negated=True, skip_quoted=True)
+    contextual_hits = _find_contextual_term_hits(
+        lowered,
+        markers,
+        skip_negated=True,
+        skip_quoted=True,
+        reject_unverified=True,
+    )
     literal_hits = _find_contextual_term_hits(lowered, literal_markers or [])
     hits = list(dict.fromkeys(contextual_hits + literal_hits))
     return {
