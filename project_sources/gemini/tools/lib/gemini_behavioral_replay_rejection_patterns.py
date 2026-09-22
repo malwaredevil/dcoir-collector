@@ -17,7 +17,7 @@ REJECTION_SCOPE_LIMIT = 180
 
 POST_MARKER_REJECTION_NOUN_PHRASE = (
     r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
-    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|outcome|result|guarantee|generation))"
+    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|guarantee|generation))"
 )
 
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
@@ -28,6 +28,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|nor\s+(?:can|should|must|would|will|could)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:(?:{REJECTED_ACTION_VERBS})\b|$)"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|nor\s+do\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:advise|recommend|tell|instruct|ask)\b"
+    rf"|nor\s+do\s+(?:[a-z0-9_-]+\s+){{1,4}}(?:ensure|guarantee|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"
     rf"|(?:it\s+is|it's)?\s*(?:wrong|incorrect|inaccurate|misleading)\s+to\s+(?:say|state|claim|assert)\b"

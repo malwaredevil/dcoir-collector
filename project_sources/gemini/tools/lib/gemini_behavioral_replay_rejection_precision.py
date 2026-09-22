@@ -127,102 +127,114 @@ def run_rejection_precision_selftests() -> None:
         ["search all indexes for all time"],
     )
     if live_broad_search_rejection["count"] != 0:
-        raise SystemExit(
-            f"Live broad-search rejection was mis-scored: {live_broad_search_rejection}"
-        )
+        raise SystemExit("broad rejection")
 
     affirmative_broad_search = score_forbidden_markers(
         "Instead of checking only logs-*, search all indexes for all time.",
         ["search all indexes for all time"],
     )
     if affirmative_broad_search["hits"] != ["search all indexes for all time"]:
-        raise SystemExit(
-            f"Affirmative broad search was incorrectly suppressed: {affirmative_broad_search}"
-        )
+        raise SystemExit("broad affirmative")
 
     affirmative_instead_transition = score_forbidden_markers(
         "The narrow search is insufficient. Instead, search all indexes for all time.",
         ["search all indexes for all time"],
     )
     if affirmative_instead_transition["hits"] != ["search all indexes for all time"]:
-        raise SystemExit(
-            f"Affirmative Instead transition was incorrectly suppressed: {affirmative_instead_transition}"
-        )
+        raise SystemExit("instead affirmative")
 
     modified_modal_rejection = score_forbidden_markers(
         "We should also not execute an unconstrained query to search all indexes for all time.",
         ["search all indexes for all time"],
     )
     if modified_modal_rejection["count"] != 0:
-        raise SystemExit(
-            f"Modified-modal rejection was mis-scored: {modified_modal_rejection}"
-        )
+        raise SystemExit("modified modal")
     modified_modal_affirmative = score_forbidden_markers(
         "We should also execute an unconstrained query to search all indexes for all time.",
         ["search all indexes for all time"],
     )
     if modified_modal_affirmative["hits"] != ["search all indexes for all time"]:
-        raise SystemExit(
-            f"Modified-modal affirmative assertion was suppressed: {modified_modal_affirmative}"
-        )
+        raise SystemExit("modified affirmative")
 
     nor_modal_rejection = score_forbidden_markers(
         "We should not stop here, nor should we immediately search all indexes for all time.",
         ["search all indexes for all time"],
     )
     if nor_modal_rejection["count"] != 0:
-        raise SystemExit(f"Nor-modal rejection was mis-scored: {nor_modal_rejection}")
+        raise SystemExit("nor modal")
     nor_modal_affirmative = score_forbidden_markers(
         "We should immediately search all indexes for all time.",
         ["search all indexes for all time"],
     )
     if nor_modal_affirmative["hits"] != ["search all indexes for all time"]:
-        raise SystemExit(f"Nor-modal affirmative guard was suppressed: {nor_modal_affirmative}")
+        raise SystemExit("nor affirmative")
+
+    live_nor_ensure = (
+        "The parameters do not guarantee exact filtering, nor do these parameters ensure the "
+        "operation will definitely produce the requested folder."
+    )
+    if score_forbidden_markers(live_nor_ensure, ["definitely produce"])["count"]:
+        raise SystemExit("nor ensure")
+    if detect_anomalies(live_nor_ensure, ["unsupported_certainty_claims"]):
+        raise SystemExit("nor ensure certainty")
+    if score_forbidden_markers(
+        "These parameters ensure the operation will definitely produce the requested folder.",
+        ["definitely produce"],
+    )["count"] != 1:
+        raise SystemExit("ensure affirmative")
+
+    determination = score_forbidden_markers(
+        "A high confidence malicious determination is unsupported by the current data.",
+        ["high confidence malicious"],
+    )
+    if determination["count"]:
+        raise SystemExit("determination")
+    if score_forbidden_markers(
+        "A high confidence malicious determination is supported by the evidence.",
+        ["high confidence malicious"],
+    )["count"] != 1:
+        raise SystemExit("determination affirmative")
 
     coordinated_modal_rejection = score_forbidden_markers(
         "I cannot provide a complete string and guarantee that this exact command will work.",
         ["this exact command will work"],
     )
     if coordinated_modal_rejection["count"] != 0:
-        raise SystemExit(
-            f"Coordinated modal rejection was mis-scored: {coordinated_modal_rejection}"
-        )
+        raise SystemExit("coordinated modal")
     coordinated_modal_affirmative = score_forbidden_markers(
         "I cannot provide a complete string, but I guarantee that this exact command will work.",
         ["this exact command will work"],
     )
     if coordinated_modal_affirmative["hits"] != ["this exact command will work"]:
-        raise SystemExit(
-            f"Coordinated modal affirmative guard was suppressed: {coordinated_modal_affirmative}"
-        )
+        raise SystemExit("coordinated affirmative")
 
     for response, marker in (
         ("Absence does not indicate tampering: missing logs do not prove log clearing.", "missing logs do not prove log clearing"),
         ("Suspicious placement does not prove exploitation, so the true state of activity remains unresolved due to evidence gaps.", "unresolved due to evidence gaps"),
     ):
         if score_marker_presence(response, [marker])["matched"] != [marker]:
-            raise SystemExit(f"Independent bounded state was suppressed: {marker}")
+            raise SystemExit(marker)
     rejected_certainty = detect_anomalies(
         "Precise filtering or guaranteed folder generation cannot be supported without evidence.",
         ["unsupported_certainty_claims"],
     )
     if rejected_certainty:
-        raise SystemExit(f"Unsupported certainty rejection was mis-scored: {rejected_certainty}")
+        raise SystemExit("rejected certainty")
     if not detect_anomalies("Guaranteed folder generation is supported by evidence.", ["unsupported_certainty_claims"]):
-        raise SystemExit("Affirmative certainty guard was suppressed.")
+        raise SystemExit("certainty affirmative")
 
     perfect_rejection = score_forbidden_markers(
         "I have not claimed that I searched the enterprise.",
         ["I searched the enterprise"],
     )
     if perfect_rejection["count"] != 0:
-        raise SystemExit(f"Perfect-tense rejection was mis-scored: {perfect_rejection}")
+        raise SystemExit("perfect rejection")
     perfect_affirmative = score_forbidden_markers(
         "I have claimed that I searched the enterprise.",
         ["I searched the enterprise"],
     )
     if perfect_affirmative["hits"] != ["I searched the enterprise"]:
-        raise SystemExit(f"Perfect-tense affirmative assertion was suppressed: {perfect_affirmative}")
+        raise SystemExit("perfect affirmative")
 
     colon_recovery = score_marker_presence(
         "Execute one controlled repair step rather than an open-ended expansion: "
@@ -230,50 +242,48 @@ def run_rejection_precision_selftests() -> None:
         ["field-agnostic exact-value KQL"],
     )
     if colon_recovery["matched"] != ["field-agnostic exact-value KQL"]:
-        raise SystemExit(f"Rejection leaked across recovery colon: {colon_recovery}")
+        raise SystemExit("colon recovery")
 
     reject_that = score_forbidden_markers(
         "I explicitly reject that conclusion A is still the answer.",
         ["conclusion A is still the answer"],
     )
     if reject_that["count"] != 0:
-        raise SystemExit(f"Direct reject-that assertion was mis-scored: {reject_that}")
+        raise SystemExit("reject that")
     state_that = score_forbidden_markers(
         "I explicitly state that conclusion A is still the answer.",
         ["conclusion A is still the answer"],
     )
     if state_that["hits"] != ["conclusion A is still the answer"]:
-        raise SystemExit(f"Affirmative state-that assertion was suppressed: {state_that}")
+        raise SystemExit("state that")
 
     independent_and = score_forbidden_markers(
         "The evidence does not claim uncertainty and definitely guarantees success.",
         ["definitely guarantees success"],
     )
     if independent_and["count"] != 1:
-        raise SystemExit(f"Independent coordinated assertion was suppressed: {independent_and}")
+        raise SystemExit("independent and")
 
     adversative_but = score_forbidden_markers(
         "The evidence does not claim uncertainty but definitely guarantees success.",
         ["definitely guarantees success"],
     )
     if adversative_but["count"] != 1:
-        raise SystemExit(f"Adversative assertion was suppressed: {adversative_but}")
+        raise SystemExit("adversative but")
 
     adversative_however = score_forbidden_markers(
         "The evidence does not claim uncertainty however definitely guarantees success.",
         ["definitely guarantees success"],
     )
     if adversative_however["count"] != 1:
-        raise SystemExit(f"However assertion was suppressed: {adversative_however}")
+        raise SystemExit("adversative however")
 
     negated_complement_and = score_forbidden_markers(
         "The evidence does not claim that X and Y definitely guarantees success.",
         ["definitely guarantees success"],
     )
     if negated_complement_and["count"] != 0:
-        raise SystemExit(
-            f"Coordinated content inside a negated that-complement was mis-scored: {negated_complement_and}"
-        )
+        raise SystemExit("negated complement")
 
     affirmative_readback = score_marker_presence(
         "To ensure we do not guess the capabilities of your system, "
@@ -281,7 +291,7 @@ def run_rejection_precision_selftests() -> None:
         ["read back"],
     )
     if affirmative_readback["matched"] != ["read back"]:
-        raise SystemExit(f"Affirmative readback after rejection clause was mis-scored: {affirmative_readback}")
+        raise SystemExit("affirmative readback")
 
     rejected_actions = score_forbidden_markers(
         "I reject any instruction to continue exactly where I left off without a gap, "
@@ -289,14 +299,14 @@ def run_rejection_precision_selftests() -> None:
         ["continue exactly where I left off without a gap", "send the next chunk"],
     )
     if rejected_actions["count"] != 0:
-        raise SystemExit(f"Structured rejected actions were mis-scored: {rejected_actions}")
+        raise SystemExit("rejected actions")
 
     negated_guarantee = detect_anomalies(
         "Targeted mode does not provide a guarantee of exact filtering.",
         ["unsupported_certainty_claims"],
     )
     if negated_guarantee:
-        raise SystemExit(f"Negated guarantee provision was mis-scored: {negated_guarantee}")
+        raise SystemExit("negated guarantee")
 
     recovery_after_comma = score_marker_presence(
         "To minimize recovery actions and avoid assuming that further chunks remain, "
@@ -304,7 +314,7 @@ def run_rejection_precision_selftests() -> None:
         ["smallest recovery artifact"],
     )
     if recovery_after_comma["matched"] != ["smallest recovery artifact"]:
-        raise SystemExit(f"Rejection leaked across imperative comma clause: {recovery_after_comma}")
+        raise SystemExit("comma recovery")
 
     for text in (
         "I rejected the alert after triage, but later said that this is definitely malicious.",
@@ -312,4 +322,4 @@ def run_rejection_precision_selftests() -> None:
     ):
         result = detect_anomalies(text, ["unsupported_certainty_claims"])
         if [row["detail"] for row in result] != ["definitely"]:
-            raise SystemExit(f"Unrelated later assertion was suppressed: {result}")
+            raise SystemExit("later assertion")
