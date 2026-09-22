@@ -264,6 +264,7 @@ def main() -> int:
     )
     run_known_bad(args.fixtures_root, args.output_dir)
     run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
+    run([sys.executable, "project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py"])
     run_openai_webui_capture_selftests(args.fixtures_root, args.output_dir, SUPPORT)
     run_numbered_procedure_duplicate_selftest()
     run_mode_mismatch(args.fixtures_root)

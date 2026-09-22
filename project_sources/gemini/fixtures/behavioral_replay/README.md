@@ -34,6 +34,8 @@ Issue `#398` adds `agent_designer_capture` for responses copied from the actual 
 
 The same shared operator-visible #398 semantics can also be scored from the AFRICOM DCOIR Analyst custom GPT by using response-pack mode `openai_webui_capture`. This mode is for manually copied ChatGPT WebUI output from the governed GPT-5.6 Terra target; it does not imply Gemini sub-agent execution, live Elastic access, or any other capability not visibly returned by that GPT.
 
+Routine OpenAI runtime evidence is automated through response-pack mode `live_openai_api`. That lane calls the real `gpt-5.6-terra` model through the Responses API with the exact generated AFRICOM DCOIR Analyst Instructions and all seven governed Knowledge projections, with tools disabled to match the package capability contract. It is the durable regression lane and does not require an operator to copy/paste WebUI conversations. It intentionally does **not** claim that the Responses API reproduces the proprietary Custom GPT WebUI host or Knowledge-retrieval implementation; `openai_webui_capture` remains available for targeted diagnostics when an operator independently observes a WebUI-only issue.
+
 Current operator-confirmed deployed baseline:
 
 - model: **Gemini 3.1 Pro**
@@ -137,6 +139,7 @@ Allowed replay/capture modes are:
 - `fallback_emulation`
 - `agent_designer_capture`
 - `openai_webui_capture`
+- `live_openai_api`
 
 ## Supporting artifacts
 

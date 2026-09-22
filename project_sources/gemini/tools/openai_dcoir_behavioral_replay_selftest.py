@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture_index, repo_root_from_script
+from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
+from lib.gemini_behavioral_replay_scoring import score_response_pack
+from lib.gemini_behavioral_replay_selection import resolve_fixtures
+from lib.openai_dcoir_replay_live import build_request_body, extract_text, make_pack
+from lib.openai_dcoir_replay_package import OPENAI_MODEL_ID, load_governed_openai_package
+
+FIXTURES_ROOT = Path("project_sources/gemini/fixtures/behavioral_replay")
+SUPPORT = FIXTURES_ROOT / "supporting_artifacts"
+GOOD_PACKS = {
+    "dcoir_operator_state_first_issue_124": "dcoir_operator_state_first_issue_124_known_good_response_pack.json",
+    "dcoir_byovd_evidence_discipline_issue_122": "dcoir_byovd_evidence_discipline_issue_122_known_good_response_pack.json",
+    "dcoir_long_transcript_continuity_issue_123": "dcoir_long_transcript_continuity_issue_123_known_good_response_pack.json",
+    "dcoir_kql_unique_value_miss_issue_174": "dcoir_kql_unique_value_miss_issue_174_known_good_response_pack.json",
+    "dcoir_agent_designer_visible_writer_issue_398": "dcoir_agent_designer_visible_writer_issue_398_known_good_capture.json",
+    "dcoir_agent_designer_collector_procedure_issue_398": "dcoir_agent_designer_collector_procedure_issue_398_known_good_capture.json",
+}
+
+
+def _args() -> argparse.Namespace:
+    return argparse.Namespace(
+        mode="openai_live",
+        fixture_ids_csv=None,
+        fixture_id=None,
+        custom_fixtures_csv="",
+        run_all_active_fixtures=True,
+        reasoning_effort="medium",
+        max_output_tokens=8192,
+        max_retries=1,
+        retry_base_seconds=0.0,
+        api_base="https://api.openai.com/v1/responses",
+    )
+
+
+def main() -> int:
+    repo_root = repo_root_from_script(Path(__file__))
+    package = load_governed_openai_package(repo_root)
+    if package["model_id"] != OPENAI_MODEL_ID or len(package["knowledge_files"]) != 7:
+        raise SystemExit("Governed Terra package identity or Knowledge count is incorrect.")
+
+    args = _args()
+    selected, meta = resolve_fixtures(args, FIXTURES_ROOT.resolve(), Path(__file__))
+    selected_ids = {row["fixture"]["fixture_id"] for row in selected}
+    if selected_ids != set(GOOD_PACKS):
+        raise SystemExit(f"live_openai_api fixture set drifted: {sorted(selected_ids)}")
+    if meta.get("required_fixture_mode") != "live_openai_api" or meta.get("excluded_from_live_api"):
+        raise SystemExit(f"OpenAI fixture-mode selection metadata is incorrect: {meta}")
+
+    first_fixture = selected[0]["fixture"]
+    first_turn = first_fixture["turns"][0]
+    body = build_request_body(package, first_fixture, first_turn, [], args)
+    if body.get("model") != OPENAI_MODEL_ID or body.get("store") is not False or body.get("reasoning") != {"effort": "medium"}:
+        raise SystemExit("OpenAI request contract drifted.")
+    if "tools" in body or body.get("instructions") != package["instructions"]:
+        raise SystemExit("OpenAI request must preserve exact Instructions and must not enable tools.")
+    if not body.get("input") or body["input"][0].get("role") != "developer" or "GOVERNED_KNOWLEDGE_FILE" not in body["input"][0].get("content", ""):
+        raise SystemExit("OpenAI request is missing the governed Knowledge context.")
+
+    sample = {"output": [{"type": "message", "content": [{"type": "output_text", "text": "sample answer"}]}]}
+    if extract_text(sample) != "sample answer":
+        raise SystemExit("Responses API text extraction failed.")
+
+    entries = {entry["fixture_id"]: entry for entry in load_fixture_index(FIXTURES_ROOT).get("fixtures", [])}
+    for fixture_id, pack_name in GOOD_PACKS.items():
+        fixture = load_fixture_entry(repo_root, entries[fixture_id])["fixture"]
+        pack = json.loads((SUPPORT / pack_name).read_text(encoding="utf-8"))
+        pack["mode"] = "live_openai_api"
+        pack["model_name"] = OPENAI_MODEL_ID
+        messages = validate_response_pack_shape(pack, fixture)
+        if any(message.level == "error" for message in messages):
+            raise SystemExit(f"Synthetic live OpenAI pack failed schema validation for {fixture_id}: {messages}")
+        result = score_response_pack(fixture, pack)
+        if not result.get("success"):
+            raise SystemExit(f"Known-good response did not pass shared scorer in live_openai_api mode: {fixture_id}")
+
+    fake_responses = {turn["turn_id"]: "not verified workflow state read back one best next move do not guess governed source partial artifact bundle smallest recovery artifact" for turn in first_fixture["turns"]}
+    history_lengths = []
+    def fake_call(api_key, project_id, run_args, governed_package, fixture, turn, history):
+        history_lengths.append(len(history))
+        return {"ok": True, "attempts": [{"attempt": 1, "status_code": 200}], "response_text": fake_responses[turn["turn_id"]], "response_id": "resp_test"}
+    generated = make_pack(first_fixture, args, package, "test-key", "", caller=fake_call)
+    if generated.get("mode") != "live_openai_api" or history_lengths != [0, 2, 4, 6]:
+        raise SystemExit(f"OpenAI multi-turn local-history contract failed: {history_lengths}")
+
+    print(json.dumps({"success": True, "model": OPENAI_MODEL_ID, "fixture_count": len(selected_ids), "knowledge_file_count": len(package["knowledge_files"])}, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

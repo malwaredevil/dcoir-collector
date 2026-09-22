@@ -1,0 +1,82 @@
+# DCOIR WORKFLOW OPERATOR NOTES
+# Workflow key:
+# - workflow-manual-run-openai-dcoir-behavioral-replay-manual-0001
+# Purpose:
+# - Run automated live behavioral replay against GPT-5.6 Terra using the exact governed AFRICOM DCOIR Analyst package and shared scorer.
+# Use when:
+# - Use when OpenAI AI-augmentation work needs repeatable live Terra behavior evidence without manual Custom GPT WebUI copy/paste.
+# Do not use when:
+# - Do not claim this proves proprietary Custom GPT WebUI host or Knowledge-retrieval parity; use targeted WebUI capture only for independently observed WebUI-only defects.
+# Result semantics:
+# - A successful workflow means exact-head package validation and live API execution produced trustworthy artifacts. Scorer failures remain visible in the matrix for diagnosis.
+# Trigger model:
+# - workflow_dispatch with an exact expected head SHA and replay controls.
+# Required inputs:
+# - expected_head_sha, fixture selection, reasoning_effort, and max_output_tokens.
+# Required secrets/config:
+# - Uses DCOIR_OPENAI_API_KEY or OPENAI_API_KEY; optionally DCOIR_OPENAI_PROJECT_ID. Never print secret values.
+# Runtime dependencies:
+# - Uses the governed OpenAI DCOIR package, Responses API runner, shared behavioral fixtures/scorer, and report renderer.
+# Expected outputs/readback:
+# - Live Terra response packs, JSON/Markdown summary, chatgpt-workflow-report-section artifact, and repo-workflows report.
+# Safety notes:
+# - Tools remain disabled to match the governed AFRICOM DCOIR Analyst capability contract; exact package hashes are verified before live calls.
+# Maintenance notes:
+# - Keep model identity, package paths, fixture support, artifacts, and reporting aligned with issue #398 and the OpenAI package builder.
+# Authority routing:
+# - GitHub is canonical for workflow/source truth and this header owns workflow-specific execution guidance.
+# - Supabase `ircore` owns operational routing, validation rules, reusable lessons, and active state.
+name: 07 Operator - OpenAI DCOIR Behavioral Replay
+run-name: OpenAI DCOIR Behavioral Replay | gpt-5.6-terra | #${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_head_sha:
+        description: Exact commit SHA that this evidence must execute against
+        required: true
+        type: string
+      run_all_active_fixtures:
+        description: Run every active live_openai_api fixture
+        required: true
+        default: true
+        type: boolean
+      custom_fixtures_csv:
+        description: Optional comma-separated live_openai_api fixture IDs; ignored when run_all_active_fixtures is true
+        required: false
+        default: ""
+        type: string
+      reasoning_effort:
+        description: GPT-5.6 Terra reasoning effort
+        required: true
+        default: medium
+        type: choice
+        options: [none, low, medium, high, xhigh, max]
+      max_output_tokens:
+        description: Maximum output tokens per Terra response
+        required: true
+        default: "8192"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: run-openai-dcoir-behavioral-replay-manual-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  live_replay:
+    uses: ./.github/workflows/reusable-run-openai-dcoir-behavioral-replay-manual.yml
+    permissions:
+      contents: read
+    with:
+      expected_head_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_head_sha || '' }}
+      run_all_active_fixtures: ${{ github.event_name == 'workflow_dispatch' && inputs.run_all_active_fixtures || false }}
+      custom_fixtures_csv: ${{ github.event_name == 'workflow_dispatch' && inputs.custom_fixtures_csv || '' }}
+      reasoning_effort: ${{ github.event_name == 'workflow_dispatch' && inputs.reasoning_effort || 'medium' }}
+      max_output_tokens: ${{ github.event_name == 'workflow_dispatch' && inputs.max_output_tokens || '8192' }}
+    secrets:
+      DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DCOIR_OPENAI_PROJECT_ID: ${{ secrets.DCOIR_OPENAI_PROJECT_ID }}

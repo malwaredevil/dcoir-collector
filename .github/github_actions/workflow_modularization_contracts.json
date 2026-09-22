@@ -1,13 +1,13 @@
 {
   "composite_action_count": 19,
-  "existing_workflow_count": 30,
+  "existing_workflow_count": 31,
   "governing_issue": 194,
   "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
   "inventory_outputs": {
     "json": ".github/github_actions/workflow_inventory.json",
     "markdown": ".github/github_actions/workflow_inventory.md"
   },
-  "primary_workflow_count": 30,
+  "primary_workflow_count": 31,
   "required_contract_families": [
     "static-validation",
     "required-surfaces",
@@ -33,9 +33,10 @@
     "maintenance-audit",
     "windows-powershell-51",
     "codeql-security",
-    "openrouter-pr-review"
+    "openrouter-pr-review",
+    "openai-dcoir-behavioral-replay"
   ],
-  "reusable_workflow_count": 29,
+  "reusable_workflow_count": 30,
   "schema_version": "dcoir_workflow_modularization_contracts_v1",
   "workflow_contracts": [
     {
@@ -337,6 +338,16 @@
       "risk": "high",
       "rollback": "Restore the prior inline DCOIR Review workflow body and remove reusable-openrouter-pr-review.yml if the reusable module breaks trusted comment-triggered review behavior.",
       "target_architecture": "Thin comment-triggered entry workflow plus reusable DCOIR Review module. The entry workflow keeps the issue_comment trigger, concurrency, operator guard, explicit permissions, and explicit secret forwarding visible; reusable-openrouter-pr-review.yml owns the trusted default-branch checkout, static context readback, progress/status comments, model-stack config, debug artifacts, and script invocation."
+    },
+    {
+      "acceptance_evidence": "Exact-head guard, package selftests, live API artifact matrix, scorer results, and fail-closed API errors.",
+      "contract_family": "openai-dcoir-behavioral-replay",
+      "family": "OpenAI DCOIR live/manual replay",
+      "file": ".github/workflows/run-openai-dcoir-behavioral-replay-manual.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Restore prior static and targeted capture evidence posture.",
+      "target_architecture": "Exact-head GPT-5.6 Terra replay with reusable workflow, governed package validation, shared behavioral scoring, and durable artifact reporting."
     }
   ]
 }

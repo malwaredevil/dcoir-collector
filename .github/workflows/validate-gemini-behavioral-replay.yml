@@ -32,23 +32,33 @@ on:
   push:
     paths:
       - 'project_sources/gemini/tools/run_gemini_behavioral_replay.py'
+      - 'project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py'
+      - 'project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py'
       - 'project_sources/gemini/tools/score_gemini_behavioral_replay.py'
       - 'project_sources/gemini/tools/render_gemini_behavioral_replay_report.py'
       - 'project_sources/gemini/tools/validate_gemini_behavioral_replay_fixtures.py'
       - 'project_sources/gemini/tools/lib/gemini_behavioral_replay_*.py'
+      - 'project_sources/gemini/tools/lib/openai_dcoir_replay_*.py'
       - 'project_sources/gemini/fixtures/behavioral_replay/**'
       - '.github/workflows/validate-gemini-behavioral-replay.yml'
       - '.github/workflows/run-gemini-behavioral-replay-manual.yml'
+      - '.github/workflows/run-openai-dcoir-behavioral-replay-manual.yml'
+      - '.github/workflows/reusable-run-openai-dcoir-behavioral-replay-manual.yml'
   pull_request:
     paths:
       - 'project_sources/gemini/tools/run_gemini_behavioral_replay.py'
+      - 'project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py'
+      - 'project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py'
       - 'project_sources/gemini/tools/score_gemini_behavioral_replay.py'
       - 'project_sources/gemini/tools/render_gemini_behavioral_replay_report.py'
       - 'project_sources/gemini/tools/validate_gemini_behavioral_replay_fixtures.py'
       - 'project_sources/gemini/tools/lib/gemini_behavioral_replay_*.py'
+      - 'project_sources/gemini/tools/lib/openai_dcoir_replay_*.py'
       - 'project_sources/gemini/fixtures/behavioral_replay/**'
       - '.github/workflows/validate-gemini-behavioral-replay.yml'
       - '.github/workflows/run-gemini-behavioral-replay-manual.yml'
+      - '.github/workflows/run-openai-dcoir-behavioral-replay-manual.yml'
+      - '.github/workflows/reusable-run-openai-dcoir-behavioral-replay-manual.yml'
   workflow_dispatch:
 
 permissions:

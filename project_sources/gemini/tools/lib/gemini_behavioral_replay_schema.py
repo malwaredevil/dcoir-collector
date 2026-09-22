@@ -56,6 +56,7 @@ ALLOWED_RESPONSE_MODES = {
     "fallback_emulation",
     "agent_designer_capture",
     "openai_webui_capture",
+    "live_openai_api",
 }
 
 EXPECTED_RESPONSE_PACK_SCHEMA_VERSION = "gemini_behavioral_replay_response_pack_v1"
