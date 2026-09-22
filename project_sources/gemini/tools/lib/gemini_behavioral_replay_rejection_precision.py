@@ -69,7 +69,9 @@ def run_rejection_precision_selftests() -> None:
 
     for text, count in (
         ("The claim that it exited cleanly is not verified.", 0),
+        ("There is no evidence that it exited cleanly.", 0),
         ("The claim that it exited cleanly is verified.", 1),
+        ("The evidence shows that it exited cleanly.", 1),
     ):
         if score_forbidden_markers(text, ["it exited cleanly"])["count"] != count:
             raise SystemExit("Exit-state verification scope was mis-scored.")
