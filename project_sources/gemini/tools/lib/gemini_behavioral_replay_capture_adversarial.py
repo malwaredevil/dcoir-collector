@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -15,6 +16,7 @@ from .gemini_behavioral_replay_capture_paths import (
     _rmdir_if_identity,
     _validate_visible_root,
     capture_process_path,
+    cleanup_private_capture_root,
     open_capture_text_exclusive,
     read_capture_text,
 )
@@ -82,6 +84,61 @@ def _assert_identity_bound_final_remove(private_root: PrivateCaptureRoot) -> Non
 
 
 
+def _assert_descriptor_bound_allocation() -> None:
+    validation_root = Path("project_sources/validation").resolve()
+    validation_root.mkdir(parents=True, exist_ok=True)
+    displaced = validation_root.with_name(
+        f"{validation_root.name}.dcoir-allocation-test-{uuid.uuid4().hex}"
+    )
+    if displaced.exists():
+        raise SystemExit("Descriptor-allocation test displacement path already exists.")
+
+    real_uuid4 = capture_paths.uuid.uuid4
+    private_root: PrivateCaptureRoot | None = None
+    swapped = False
+    replacement_created = False
+
+    def swap_visible_parent_then_uuid():
+        nonlocal swapped, replacement_created
+        if not swapped:
+            validation_root.rename(displaced)
+            swapped = True
+            validation_root.mkdir(mode=0o700)
+            replacement_created = True
+        return real_uuid4()
+
+    replacement_had_residue = False
+    capture_paths.uuid.uuid4 = swap_visible_parent_then_uuid
+    try:
+        private_root = capture_paths.allocate_private_capture_root(validation_root)
+        if not swapped:
+            raise SystemExit("Descriptor-allocation test did not swap the visible parent.")
+        replacement_had_residue = any(validation_root.iterdir())
+        if replacement_had_residue:
+            raise SystemExit("Capture allocation touched the replacement visible parent.")
+        displaced_stat = os.stat(displaced, follow_symlinks=False)
+        if _identity(displaced_stat) != (private_root.parent_dev, private_root.parent_ino):
+            raise SystemExit("Capture parent capability did not remain bound to the displaced directory.")
+        root_stat = os.stat(
+            private_root.basename,
+            dir_fd=private_root.parent_fd,
+            follow_symlinks=False,
+        )
+        if _identity(root_stat) != (private_root.dev, private_root.ino):
+            raise SystemExit("Capture root was not created beneath the validated parent descriptor.")
+    finally:
+        capture_paths.uuid.uuid4 = real_uuid4
+        if private_root is not None and not private_root.closed:
+            cleanup_private_capture_root(private_root)
+        if replacement_created and validation_root.exists():
+            replacement_had_residue = replacement_had_residue or any(validation_root.iterdir())
+            shutil.rmtree(validation_root)
+        if swapped and displaced.exists():
+            displaced.rename(validation_root)
+        if replacement_had_residue:
+            raise SystemExit("Replacement visible parent gained unexpected allocation residue.")
+
+
 def _assert_rollback_failure_chaining() -> None:
     real_cleanup = capture_paths._quarantine_and_cleanup
     real_fchmod = capture_paths.os.fchmod
@@ -132,4 +189,5 @@ def assert_private_capture_root(private_root: PrivateCaptureRoot) -> None:
         raise SystemExit("Arbitrary Path bypassed the capture capability requirement.")
     _assert_replaced_root_is_rejected(root)
     _assert_identity_bound_final_remove(root)
+    _assert_descriptor_bound_allocation()
     _assert_rollback_failure_chaining()

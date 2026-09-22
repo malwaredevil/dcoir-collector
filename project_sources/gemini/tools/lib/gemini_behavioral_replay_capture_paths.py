@@ -212,8 +212,15 @@ def allocate_private_capture_root(requested_output_dir: Path) -> PrivateCaptureR
         parent_fd_stat = os.fstat(parent_fd)
         if _identity(parent_fd_stat) != _identity(parent_path_stat):
             raise SystemExit("Approved capture parent changed while being opened.")
-        private_root_path = Path(tempfile.mkdtemp(prefix="dcoir-openai-capture-", dir=str(parent)))
-        root_name = private_root_path.name
+        for _ in range(128):
+            root_name = f"dcoir-openai-capture-{uuid.uuid4().hex}"
+            try:
+                os.mkdir(root_name, 0o700, dir_fd=parent_fd)
+            except FileExistsError:
+                continue
+            break
+        else:
+            raise SystemExit("Unable to allocate a unique private capture root.")
         root_path_stat = os.stat(root_name, dir_fd=parent_fd, follow_symlinks=False)
         if not stat.S_ISDIR(root_path_stat.st_mode):
             raise SystemExit("Allocated capture root is not a real directory.")
