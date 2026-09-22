@@ -42,7 +42,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("benign because there were no results", "We explicitly reject any conclusion that nothing exists, that the activity is benign because there were no results."),
         ("confirmed stealth", "We explicitly reject any conclusion that this indicates confirmed stealth."),
         ("send the next chunk", "We will not ask you to send the next chunk."),
-        ("send the next chunk", "I do not expect you to send the next chunk."),
+        ("send the next chunk", "There is no requirement to send the next chunk."),
         ("continue exactly where I left off without a gap", "We reject the assumption that I can continue exactly where I left off without a gap."),
         ("search all indexes for all time", "Use one bounded repair rather than attempting to search all indexes for all time."),
         ("this exact command will work", "I cannot promise that this exact command will work."),
