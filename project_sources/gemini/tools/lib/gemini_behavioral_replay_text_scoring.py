@@ -221,20 +221,20 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         context = ""
 
     # A rejection frame earlier in the sentence must not bleed across a comma
-    # into a new independent clause. Preserve comma-linked subordinate rejection
-    # lists such as "reject X, that Y" by resetting only when the suffix clearly
-    # starts a new subject + predicate assertion.
-    comma_clause = re.compile(
+    # or colon into a new independent clause. Preserve subordinate rejection
+    # lists by resetting only when the suffix clearly starts a new subject,
+    # predicate assertion, or imperative.
+    clause_boundary = re.compile(
         r"^\s*(?:(?:and|or|but)\s+)?(?:"
         r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,3})\s+"
         r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays|recommend|suggest)\b"
         r"|(?:please\s+)?(?:provide|send|run|execute|read|retrieve|upload|review|collect|use|check|verify|focus)\b"
         r")"
     )
-    comma_positions = [match.end() for match in re.finditer(r",", context)]
-    for comma_end in reversed(comma_positions):
-        suffix = context[comma_end:]
-        if comma_clause.search(suffix):
+    boundary_positions = [match.end() for match in re.finditer(r"[:,]", context)]
+    for boundary_end in reversed(boundary_positions):
+        suffix = context[boundary_end:]
+        if clause_boundary.search(suffix):
             context = suffix
             break
 

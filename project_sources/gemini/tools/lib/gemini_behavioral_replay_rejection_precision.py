@@ -112,6 +112,57 @@ def run_rejection_precision_selftests() -> None:
             f"Affirmative Instead transition was incorrectly suppressed: {affirmative_instead_transition}"
         )
 
+    modified_modal_rejection = score_forbidden_markers(
+        "We should also not execute an unconstrained query to search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if modified_modal_rejection["count"] != 0:
+        raise SystemExit(
+            f"Modified-modal rejection was mis-scored: {modified_modal_rejection}"
+        )
+    modified_modal_affirmative = score_forbidden_markers(
+        "We should also execute an unconstrained query to search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if modified_modal_affirmative["hits"] != ["search all indexes for all time"]:
+        raise SystemExit(
+            f"Modified-modal affirmative assertion was suppressed: {modified_modal_affirmative}"
+        )
+
+    perfect_rejection = score_forbidden_markers(
+        "I have not claimed that I searched the enterprise.",
+        ["I searched the enterprise"],
+    )
+    if perfect_rejection["count"] != 0:
+        raise SystemExit(f"Perfect-tense rejection was mis-scored: {perfect_rejection}")
+    perfect_affirmative = score_forbidden_markers(
+        "I have claimed that I searched the enterprise.",
+        ["I searched the enterprise"],
+    )
+    if perfect_affirmative["hits"] != ["I searched the enterprise"]:
+        raise SystemExit(f"Perfect-tense affirmative assertion was suppressed: {perfect_affirmative}")
+
+    colon_recovery = score_marker_presence(
+        "Execute one controlled repair step rather than an open-ended expansion: "
+        "run a field-agnostic exact-value KQL query for the identifier.",
+        ["field-agnostic exact-value KQL"],
+    )
+    if colon_recovery["matched"] != ["field-agnostic exact-value KQL"]:
+        raise SystemExit(f"Rejection leaked across recovery colon: {colon_recovery}")
+
+    reject_that = score_forbidden_markers(
+        "I explicitly reject that conclusion A is still the answer.",
+        ["conclusion A is still the answer"],
+    )
+    if reject_that["count"] != 0:
+        raise SystemExit(f"Direct reject-that assertion was mis-scored: {reject_that}")
+    state_that = score_forbidden_markers(
+        "I explicitly state that conclusion A is still the answer.",
+        ["conclusion A is still the answer"],
+    )
+    if state_that["hits"] != ["conclusion A is still the answer"]:
+        raise SystemExit(f"Affirmative state-that assertion was suppressed: {state_that}")
+
     independent_and = score_forbidden_markers(
         "The evidence does not claim uncertainty and definitely guarantees success.",
         ["definitely guarantees success"],

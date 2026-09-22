@@ -18,6 +18,7 @@ REJECTION_SCOPE_LIMIT = 180
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"(?:"
     rf"(?:do not|don't|dont|does not|doesn't|doesnt|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
+    rf"|(?:do|does|did|should|must|will|would|can|could)\s+(?:(?:also|still|simply|just|really|only)\s+){{1,2}}not\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+can\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
@@ -27,6 +28,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:cannot|can't|can not)\s+(?:determine|confirm|establish|verify)\s+(?:if|whether)\b"
     rf"|(?:cannot|can't|can not|must not|should not)\s+be\s+(?:assumed|claimed|stated|asserted|concluded)\s+that\b"
     rf"|(?:cannot|can't|can not|must not|should not)\s+be\s+(?:considered|treated|regarded|viewed|deemed)\b"
+    rf"|(?:have|has|had)\s+(?:(?:also|still|simply|just|really|only)\s+)?not\s+(?:claimed|stated|asserted|said|concluded)\s+that\b"
     rf"|(?:(?:i|we)\s+)?(?:(?:am|are)\s+)?not\s+(?:asking|requesting|instructing|telling)(?:\s+you)?\s+to\b"
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
@@ -35,6 +37,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?"
     rf"(?:claim|assertion|contention|conclusion|premise|assumption|proposition|statement|idea|notion|framing|classification|expectation)(?:s)?\s+that\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?(?:recommendation|instruction|request|attempt)\s+to\b"
+    rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+that\b"
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
     rf"|instead\s+of\s+(?:(?:an?|the)\s+)?(?:[a-z0-9_-]+\s+){{0,3}}(?:such\s+as\s+)?(?:attempting|trying)\s+to\s+"
     rf")"
