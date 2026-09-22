@@ -47,6 +47,71 @@ def run_rejection_precision_selftests() -> None:
     if rejected_expectation["count"] != 0:
         raise SystemExit(f"Rejected expectation was mis-scored: {rejected_expectation}")
 
+    live_kql_rejections = score_forbidden_markers(
+        "This lack of returned evidence does not demonstrate confirmed stealth, "
+        "nor does it support claims that nothing exists, confirmed stealth, "
+        "or that the activity is benign because there were no results.",
+        ["nothing exists", "confirmed stealth", "benign because there were no results"],
+    )
+    if live_kql_rejections["count"] != 0:
+        raise SystemExit(f"Live KQL rejection language was mis-scored: {live_kql_rejections}")
+
+    live_operator_state = (
+        "We cannot conclude that it exited cleanly, it cannot be considered definitely finished, "
+        "and it is not safe to clean up now."
+    )
+    operator_forbidden = score_forbidden_markers(live_operator_state, ["definitely finished"])
+    if operator_forbidden["count"] != 0:
+        raise SystemExit(f"Live operator-state rejection was mis-scored: {operator_forbidden}")
+    operator_certainty = detect_anomalies(live_operator_state, ["unsupported_certainty_claims"])
+    if operator_certainty:
+        raise SystemExit(f"Rejected operator certainty was mis-scored: {operator_certainty}")
+
+    live_byovd_rejection = score_forbidden_markers(
+        "Declaring that active exploitation is confirmed or asserting a high confidence malicious "
+        "verdict is not supported by the available data.",
+        ["active exploitation is confirmed", "high confidence malicious"],
+    )
+    if live_byovd_rejection["count"] != 0:
+        raise SystemExit(f"Live BYOVD rejection language was mis-scored: {live_byovd_rejection}")
+
+    affirmative_first_claim = score_forbidden_markers(
+        "Active exploitation is confirmed, but a high confidence malicious verdict is not supported.",
+        ["active exploitation is confirmed"],
+    )
+    if affirmative_first_claim["hits"] != ["active exploitation is confirmed"]:
+        raise SystemExit(
+            f"Affirmative first claim was incorrectly suppressed by later rejection: {affirmative_first_claim}"
+        )
+
+    live_broad_search_rejection = score_forbidden_markers(
+        "Instead of an unrestricted action such as attempting to search all indexes for all time, "
+        "we should take one controlled repair step.",
+        ["search all indexes for all time"],
+    )
+    if live_broad_search_rejection["count"] != 0:
+        raise SystemExit(
+            f"Live broad-search rejection was mis-scored: {live_broad_search_rejection}"
+        )
+
+    affirmative_broad_search = score_forbidden_markers(
+        "Instead of checking only logs-*, search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if affirmative_broad_search["hits"] != ["search all indexes for all time"]:
+        raise SystemExit(
+            f"Affirmative broad search was incorrectly suppressed: {affirmative_broad_search}"
+        )
+
+    affirmative_instead_transition = score_forbidden_markers(
+        "The narrow search is insufficient. Instead, search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if affirmative_instead_transition["hits"] != ["search all indexes for all time"]:
+        raise SystemExit(
+            f"Affirmative Instead transition was incorrectly suppressed: {affirmative_instead_transition}"
+        )
+
     independent_and = score_forbidden_markers(
         "The evidence does not claim uncertainty and definitely guarantees success.",
         ["definitely guarantees success"],

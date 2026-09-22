@@ -207,7 +207,9 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     )
     context = text[max(clause_start + 1, start - 220):start]
     context = re.sub(r"[*_]+", "", context)
-    contrasts = list(re.finditer(r"\b(?:but|however|yet|nevertheless|instead)\b", context))
+    contrasts = list(
+        re.finditer(r"\b(?:but|however|yet|nevertheless|instead(?!\s+of\b))\b", context)
+    )
     if contrasts:
         context = context[contrasts[-1].end():]
 
@@ -238,13 +240,39 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
 
     return _rejection_frame_governs_marker(context, marker_tail)
 
-def _occurrence_is_rejected_after(text: str, end: int) -> bool:
+def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None) -> bool:
     paragraph_end = text.find("\n", end)
     limit = min(len(text), end + 240)
     if paragraph_end != -1:
         limit = min(limit, paragraph_end)
     context = text[end:limit]
-    return bool(POST_MARKER_REJECTION_PATTERN.search(context))
+    if POST_MARKER_REJECTION_PATTERN.search(context):
+        return True
+
+    # Rejected claims can put the negative predicate after a short noun phrase,
+    # e.g. "high confidence malicious verdict is not supported".
+    if re.match(
+        r"^\s+(?:[a-z0-9_-]+\s+){1,4}(?:is|are|was|were)\s+not\s+"
+        r"(?:supported|justified|established|proven)\b",
+        context,
+    ):
+        return True
+
+    # Coordinated gerund subjects can defer one rejection predicate across both
+    # claims: "Declaring that X or asserting Y is not supported."
+    if start is not None:
+        before = text[max(0, start - 96):start]
+        if re.search(
+            r"\b(?:declaring|asserting|claiming|stating|concluding)\s+that\s*$",
+            before,
+        ) and re.match(
+            r"^\s+(?:or|and)\s+(?:asserting|declaring|claiming|stating|concluding)\b"
+            r"[^.!?;]{0,160}\b(?:is|are|was|were)\s+not\s+"
+            r"(?:supported|justified|established|proven)\b",
+            context,
+        ):
+            return True
+    return False
 
 
 def _find_contextual_term_hits(
@@ -278,7 +306,7 @@ def _find_contextual_term_hits(
                 or _occurrence_is_rejected_before(text, match.start())
             ):
                 continue
-            if skip_negated and _occurrence_is_rejected_after(text, match.end()):
+            if skip_negated and _occurrence_is_rejected_after(text, match.end(), match.start()):
                 continue
             hits.append(term)
             break
