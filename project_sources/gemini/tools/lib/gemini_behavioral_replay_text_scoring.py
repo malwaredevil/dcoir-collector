@@ -190,7 +190,10 @@ def _rejection_frame_governs_marker(context: str, marker_tail: str) -> bool:
             suffix,
         ) and (
             re.search(r"\b(?:conclusions?|claims?|assertions?|inferences?)\s+of\b", prefix)
-            or ("does not prove" in frame_text and "," in prefix)
+            or (
+                re.search(r"\b(?:prove|indicate|show|establish|demonstrate|support)\b", frame_text)
+                and "," in prefix
+            )
         ):
             continue
         independently_predicated = bool(

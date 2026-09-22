@@ -15,7 +15,7 @@ def run_rejection_precision_selftests() -> None:
         ["unsupported_certainty_claims"],
     )
     if rejected_guarantees:
-        raise SystemExit("rejected guarantee")
+        raise SystemExit()
 
     for text in (
         "I reject the claim that this is definitely malicious.",
@@ -23,14 +23,14 @@ def run_rejection_precision_selftests() -> None:
     ):
         result = detect_anomalies(text, ["unsupported_certainty_claims"])
         if result:
-            raise SystemExit("bound rejection")
+            raise SystemExit()
 
     explicit_idea = score_forbidden_markers(
         "I explicitly reject the idea that conclusion A is still the answer.",
         ["conclusion A is still the answer"],
     )
     if explicit_idea["count"] != 0:
-        raise SystemExit("idea rejection")
+        raise SystemExit()
 
     rejected_assumption_list = score_forbidden_markers(
         "I explicitly reject any assumptions that nothing exists, that this is confirmed stealth, "
@@ -38,14 +38,14 @@ def run_rejection_precision_selftests() -> None:
         ["nothing exists", "confirmed stealth", "benign because there were no results"],
     )
     if rejected_assumption_list["count"] != 0:
-        raise SystemExit("assumption list")
+        raise SystemExit()
 
     rejected_expectation = score_forbidden_markers(
         "I reject the expectation that I should continue exactly where I left off without a gap.",
         ["continue exactly where I left off without a gap"],
     )
     if rejected_expectation["count"] != 0:
-        raise SystemExit("expectation")
+        raise SystemExit()
 
     live_kql_rejections = score_forbidden_markers(
         "This lack of returned evidence does not demonstrate confirmed stealth, "
@@ -54,7 +54,7 @@ def run_rejection_precision_selftests() -> None:
         ["nothing exists", "confirmed stealth", "benign because there were no results"],
     )
     if live_kql_rejections["count"] != 0:
-        raise SystemExit("live kql")
+        raise SystemExit()
 
     live_operator_state = (
         "We cannot conclude that it exited cleanly, it cannot be considered definitely finished, "
@@ -62,10 +62,10 @@ def run_rejection_precision_selftests() -> None:
     )
     operator_forbidden = score_forbidden_markers(live_operator_state, ["definitely finished"])
     if operator_forbidden["count"] != 0:
-        raise SystemExit("operator rejection")
+        raise SystemExit()
     operator_certainty = detect_anomalies(live_operator_state, ["unsupported_certainty_claims"])
     if operator_certainty:
-        raise SystemExit("operator certainty")
+        raise SystemExit()
 
     for text, count in (
         ("The claim that it exited cleanly is not verified.", 0),
@@ -74,7 +74,16 @@ def run_rejection_precision_selftests() -> None:
         ("The evidence shows that it exited cleanly.", 1),
     ):
         if score_forbidden_markers(text, ["it exited cleanly"])["count"] != count:
-            raise SystemExit("Exit-state verification scope was mis-scored.")
+            raise SystemExit()
+
+    for response, marker, count in (
+        ("We cannot categorize this as high confidence malicious.", "high confidence malicious", 0),
+        ("We categorize this as high confidence malicious.", "high confidence malicious", 1),
+        ("This does not prove absence, nor does it indicate benignity, compromise, or confirmed stealth.", "confirmed stealth", 0),
+        ("This indicates confirmed stealth.", "confirmed stealth", 1),
+    ):
+        if score_forbidden_markers(response, [marker])["count"] != count:
+            raise SystemExit()
 
     live_byovd_rejection = score_forbidden_markers(
         "Declaring that active exploitation is confirmed or asserting a high confidence malicious "
