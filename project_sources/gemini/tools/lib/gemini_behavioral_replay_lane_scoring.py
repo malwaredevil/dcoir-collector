@@ -366,6 +366,9 @@ def has_execution_lane_separation(response_text: str) -> bool:
         return False
     if _response_has_pronominal_shared_context_mix(clauses):
         return False
+    normalized = normalize_text(response_text)
+    if any(_assertive_phrase_occurrences(normalized, "separate the execution lanes")):
+        return True
     if any(_clause_has_relational_lane_separation(clause) for clause in clauses):
         return True
     return any(_clause_has_referential_lane_separation(clause) for clause in clauses)

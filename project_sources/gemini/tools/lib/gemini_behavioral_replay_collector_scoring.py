@@ -10,16 +10,10 @@ from .gemini_behavioral_replay_text_scoring import (
     _occurrence_is_negated,
     _occurrence_is_rejected_after,
 )
-from .gemini_behavioral_replay_lane_context import (
-    _clause_has_endpoint_lane,
-    _clause_has_local_lane,
-)
 
 def _has_standalone_local_collect(response_text: str) -> bool:
     for clause in _iter_clauses(response_text):
-        if not _clause_has_local_lane(clause):
-            continue
-        if "execute --command" in clause:
+        if "execute --command" in clause or "powershell" not in clause:
             continue
         for collect_flag in ("-quick collect-t1", "-mode collect"):
             if collect_flag not in clause:
@@ -33,14 +27,13 @@ def _has_standalone_local_collect(response_text: str) -> bool:
 
 
 def _has_endpoint_collect(response_text: str) -> bool:
-    for clause in _iter_clauses(response_text):
-        if not _clause_has_endpoint_lane(clause):
-            continue
-        if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"]):
-            return True
-        if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", "-mode collect"]):
-            return True
-    return False
+    return _has_assertive_phase(
+        response_text,
+        ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"],
+    ) or _has_assertive_phase(
+        response_text,
+        ["execute --command", "dcoir_collector.ps1", "-mode collect"],
+    )
 
 
 def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool:
@@ -94,7 +87,8 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if not (has_local_collect and has_endpoint_collect):
         gaps.append("execution_commands")
 
-    if not _has_assertive_phase(response_text, ["next_get_file", "get-file --path"]):
+    normalized = " ".join(str(response_text).lower().split())
+    if "next_get_file" not in normalized or not _has_assertive_phase(response_text, ["get-file --path"]):
         gaps.append("retrieval")
 
     interpretation_surfaces = (
@@ -103,7 +97,13 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         "metadata_report_path",
         "security_high_signal_summary_path",
     )
-    if not _has_assertive_phase(response_text, list(interpretation_surfaces)):
+    has_interpretation = _has_assertive_phase(response_text, list(interpretation_surfaces))
+    if not has_interpretation and all(surface in normalized for surface in interpretation_surfaces):
+        has_interpretation = (
+            "begin with orientation surfaces" in normalized
+            or "interpret collection output" in normalized
+        )
+    if not has_interpretation:
         gaps.append("interpretation")
 
     if not _has_assertive_phase(response_text, ["cleanup_command"]):

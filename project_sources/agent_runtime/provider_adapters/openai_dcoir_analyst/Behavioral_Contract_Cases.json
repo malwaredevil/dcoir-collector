@@ -211,6 +211,10 @@
       "required_markers": [
         "complete collector procedure request",
         "ordered deployment",
+        "upload --file",
+        "DCOIR_Collector.ps1",
+        "DCOIR_Collector.zip",
+        "same directory",
         "one next action",
         "unreturned execution"
       ]

@@ -14,9 +14,6 @@ from .gemini_behavioral_replay_rejection_patterns import (
     REJECTION_SCOPE_LIMIT,
 )
 
-# Generic certainty checks intentionally exclude "confirmed": evidence-backed states such as
-# "confirmed the driver is present" are valid. Scenario-specific unsupported
-# confirmation claims remain governed by contextual forbidden markers.
 UNSUPPORTED_CERTAINTY_TERMS = [
     "definitely",
     "guarantee",
@@ -90,6 +87,10 @@ def _term_variants(term: str) -> List[str]:
         variants.add(normalized.replace("guarantee exact filtering", "guaranteed exact filtering"))
     if normalized == "guarantee":
         variants.update({"guaranteed", "guarantees"})
+    if normalized == "not verified":
+        variants.add("did not verify")
+    if normalized == "one controlled repair step":
+        variants.add("one controlled broadening step")
     return sorted(variants, key=len, reverse=True)
 
 
