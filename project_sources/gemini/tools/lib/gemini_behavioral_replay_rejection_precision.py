@@ -172,6 +172,21 @@ def run_rejection_precision_selftests() -> None:
             f"Coordinated modal affirmative guard was suppressed: {coordinated_modal_affirmative}"
         )
 
+    for response, marker in (
+        ("Absence does not indicate tampering: missing logs do not prove log clearing.", "missing logs do not prove log clearing"),
+        ("Suspicious placement does not prove exploitation, so the true state of activity remains unresolved due to evidence gaps.", "unresolved due to evidence gaps"),
+    ):
+        if score_marker_presence(response, [marker])["matched"] != [marker]:
+            raise SystemExit(f"Independent bounded state was suppressed: {marker}")
+    rejected_certainty = detect_anomalies(
+        "Precise filtering or guaranteed folder generation cannot be supported without evidence.",
+        ["unsupported_certainty_claims"],
+    )
+    if rejected_certainty:
+        raise SystemExit(f"Unsupported certainty rejection was mis-scored: {rejected_certainty}")
+    if not detect_anomalies("Guaranteed folder generation is supported by evidence.", ["unsupported_certainty_claims"]):
+        raise SystemExit("Affirmative certainty guard was suppressed.")
+
     perfect_rejection = score_forbidden_markers(
         "I have not claimed that I searched the enterprise.",
         ["I searched the enterprise"],

@@ -225,16 +225,17 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     # lists by resetting only when the suffix clearly starts a new subject,
     # predicate assertion, or imperative.
     clause_boundary = re.compile(
-        r"^\s*(?:(?:and|or|but)\s+)?(?:"
-        r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,3})\s+"
+        r"^\s*(?:(?:and|or|but|so)\s+)?(?:"
+        r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,5})\s+"
         r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays|recommend|suggest)\b"
+        r"|(?!(?:that|which|who)\b)(?:[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays)\b"
         r"|(?:please\s+)?(?:provide|send|run|execute|read|retrieve|upload|review|collect|use|check|verify|focus)\b"
         r")"
     )
     boundary_positions = [match.end() for match in re.finditer(r"[:,]", context)]
     for boundary_end in reversed(boundary_positions):
         suffix = context[boundary_end:]
-        if clause_boundary.search(suffix):
+        if clause_boundary.search(suffix + " " + marker_tail):
             context = suffix
             break
 
@@ -252,9 +253,9 @@ def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None)
     # Rejected claims can put the negative predicate after a short noun phrase,
     # e.g. "high confidence malicious verdict is not supported" or "is unsupported".
     if re.match(
-        r"^\s+(?:[a-z0-9_-]+\s+){1,4}(?:is|are|was|were)\s+"
-        r"(?:not\s+(?:supported|justified|established|proven)|"
-        r"unsupported|unjustified|unproven)\b",
+        r"^\s+(?:[a-z0-9_-]+\s+){1,4}(?:(?:is|are|was|were)\s+"
+        r"(?:not\s+(?:supported|justified|established|proven)|unsupported|unjustified|unproven)"
+        r"|(?:cannot|can't|can not)\s+be\s+(?:supported|justified|established|proven))\b",
         context,
     ):
         return True
