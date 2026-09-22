@@ -55,6 +55,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("high confidence malicious", "Without additional telemetry, we cannot label this high confidence malicious."),
         ("high confidence malicious", "We cannot evaluate this as high confidence malicious solely based on a suspicious file path and a lack of logs."),
         ("high confidence malicious", "We cannot assess this as high confidence malicious based solely on suspicious file placement."),
+        ("high confidence malicious", "Calling this high confidence malicious would exceed the currently verified facts."),
         ("benign because there were no results", "Nor does it mean the event is benign because there were no results."),
         ("this exact command will work", "I cannot guarantee that this exact command will work."),
         ("this exact command will work", "We cannot assure you that this exact command will work."),
@@ -100,6 +101,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("guarantee exact filtering", "These parameters guarantee exact filtering."),
         ("definitely produce", "These parameters will definitely produce the requested artifact folder."),
         ("confirmed stealth", "The report does not support claims of compromise, but we confirm confirmed stealth."),
+        ("high confidence malicious", "This is high confidence malicious and would exceed the response threshold."),
     ]
     for marker, response in asserted_cases:
         result = score_forbidden_markers(response, [marker])

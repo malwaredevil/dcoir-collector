@@ -6,6 +6,7 @@ from typing import Iterable, List
 
 from .gemini_behavioral_replay_rejection_patterns import (
     NEGATION_PATTERN,
+    POST_MARKER_EVIDENCE_BOUNDARY_PATTERN,
     POST_MARKER_REJECTION_NOUN_PHRASE,
     POST_MARKER_REJECTION_PATTERN,
     PRE_MARKER_REJECTION_FRAME_PATTERN,
@@ -264,9 +265,10 @@ def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None)
     context = text[end:limit]
     if POST_MARKER_REJECTION_PATTERN.search(context):
         return True
+    if POST_MARKER_EVIDENCE_BOUNDARY_PATTERN.match(context):
+        return True
 
-    # Rejected claims can put the negative predicate after a short noun phrase,
-    # e.g. "high confidence malicious verdict is not supported" or "is unsupported".
+    # A short noun phrase may defer the rejection predicate.
     if re.match(
         rf"^\s+{POST_MARKER_REJECTION_NOUN_PHRASE}\s+"
         r"(?:(?:is|are|was|were)\s+"
