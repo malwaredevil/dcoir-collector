@@ -87,7 +87,7 @@ def run_contextual_marker_precision_selftests() -> None:
     for marker, response in rejected_cases:
         result = score_forbidden_markers(response, [marker])
         if result["count"] != 0:
-            raise SystemExit(f"Rejected assertion was mis-scored as forbidden: {marker!r}: {result}")
+            raise SystemExit(marker)
 
     asserted_cases = [
         ("confirmed malicious compromise", "This is a confirmed malicious compromise."),
@@ -116,6 +116,7 @@ def run_contextual_marker_precision_selftests() -> None:
     live_rejections = (
         ("safe to clean up now", "We cannot conclude X, or that it is safe to clean up now."),
         ("high confidence malicious", "A high confidence malicious label is premature."),
+        ("high confidence malicious", "A high confidence malicious rating is unsupported."),
         ("confirmed stealth", "This does not prove absence, compromise, or confirmed stealth."),
     )
     for marker, response in live_rejections:

@@ -17,7 +17,7 @@ REJECTION_SCOPE_LIMIT = 180
 
 POST_MARKER_REJECTION_NOUN_PHRASE = (
     r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
-    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|outcome|result|guarantee|generation))"
+    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|outcome|result|guarantee|generation))"
 )
 
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
