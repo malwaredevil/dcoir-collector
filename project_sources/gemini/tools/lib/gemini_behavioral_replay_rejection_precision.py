@@ -142,6 +142,36 @@ def run_rejection_precision_selftests() -> None:
             f"Modified-modal affirmative assertion was suppressed: {modified_modal_affirmative}"
         )
 
+    nor_modal_rejection = score_forbidden_markers(
+        "We should not stop here, nor should we immediately search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if nor_modal_rejection["count"] != 0:
+        raise SystemExit(f"Nor-modal rejection was mis-scored: {nor_modal_rejection}")
+    nor_modal_affirmative = score_forbidden_markers(
+        "We should immediately search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if nor_modal_affirmative["hits"] != ["search all indexes for all time"]:
+        raise SystemExit(f"Nor-modal affirmative guard was suppressed: {nor_modal_affirmative}")
+
+    coordinated_modal_rejection = score_forbidden_markers(
+        "I cannot provide a complete string and guarantee that this exact command will work.",
+        ["this exact command will work"],
+    )
+    if coordinated_modal_rejection["count"] != 0:
+        raise SystemExit(
+            f"Coordinated modal rejection was mis-scored: {coordinated_modal_rejection}"
+        )
+    coordinated_modal_affirmative = score_forbidden_markers(
+        "I cannot provide a complete string, but I guarantee that this exact command will work.",
+        ["this exact command will work"],
+    )
+    if coordinated_modal_affirmative["hits"] != ["this exact command will work"]:
+        raise SystemExit(
+            f"Coordinated modal affirmative guard was suppressed: {coordinated_modal_affirmative}"
+        )
+
     perfect_rejection = score_forbidden_markers(
         "I have not claimed that I searched the enterprise.",
         ["I searched the enterprise"],

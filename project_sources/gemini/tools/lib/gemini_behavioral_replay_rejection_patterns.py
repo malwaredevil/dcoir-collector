@@ -18,8 +18,9 @@ REJECTION_SCOPE_LIMIT = 180
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"(?:"
     rf"(?:do not|don't|dont|does not|doesn't|doesnt|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
+    rf"(?:[^.!?;,]{{0,100}}\band\s+(?:guarantee|promise|claim|state|assert)\s+that\b)?"
     rf"|(?:do|does|did|should|must|will|would|can|could)\s+(?:(?:also|still|simply|just|really|only)\s+){{1,2}}not\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
-    rf"|nor\s+can\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:{REJECTED_ACTION_VERBS})\b"
+    rf"|nor\s+(?:can|should|must|would|will|could)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:(?:{REJECTED_ACTION_VERBS})\b|$)"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"
