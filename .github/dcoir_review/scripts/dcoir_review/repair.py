@@ -13,7 +13,7 @@ from typing import Any
 
 
 PRIMARY_CRITIC_MODEL = "openai/gpt-5.6-terra"
-FALLBACK_CRITIC_MODEL = "~anthropic/claude-sonnet-latest"
+FALLBACK_CRITIC_MODEL = "anthropic/claude-sonnet-5"
 OPENAI_CROSS_FAMILY_CRITIC_MODEL = "openai/gpt-5.6-sol-pro"
 OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = PRIMARY_CRITIC_MODEL
 ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5"

@@ -281,6 +281,18 @@ def main() -> None:
     suppressed = v36._declined_item(finding, absent_author, "exact evidence disproves the claim")
     assert suppressed[repair.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
 
+    critic_reason = "critic rejected companion test because " + ("evidence " * 260) + "remains incomplete"
+    declined = v36._declined_item(finding, None, critic_reason)
+    repair_note = declined["fix_guidance"]["notes"]
+    assert critic_reason in repair_note
+    assert repair_note.endswith(".")
+
+    oversized_reason = "x" * (v36.MAX_REPAIR_STATUS_NOTE_CHARS + 1000)
+    bounded_declined = v36._declined_item(finding, None, oversized_reason)
+    bounded_note = bounded_declined["fix_guidance"]["notes"]
+    assert len(bounded_note) <= v36.MAX_REPAIR_STATUS_NOTE_CHARS
+    assert bounded_note.endswith("...[truncated by DCOIR repair-set budget]")
+
     publisher_before = review.build_review_comments_for_finding
     synth_before = repair.synthesize_verified_repairs
     v36.apply_pareto_context_module(review)

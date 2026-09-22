@@ -83,7 +83,8 @@ class FakeHardened:
                     "attempt_in_model": 1,
                     "attempt_limit": 2,
                     "outcome": "retry",
-                    "failure_class": "empty_response",
+                    "failure_class": "http_error",
+                    "http_status": 503,
                 },
                 {
                     "request_attempt_count": 2,
@@ -463,6 +464,10 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
     }
     assert summary["stages"]["primary-semantic"]["attempt_requested_models"] == {"model-a": 2}
     assert summary["attempt_requested_models"] == {"model-a": 2}
+    assert summary["stages"]["primary-semantic"]["attempt_failure_classes"] == {"empty_response": 1}
+    assert summary["stages"]["primary-semantic"]["attempt_http_statuses"] == {}
+    assert summary["attempt_failure_classes"] == {"empty_response": 1}
+    assert summary["attempt_http_statuses"] == {}
     assert summary["metrics"]["prompt_tokens"]["observed_total"] == 100
     assert summary["metrics"]["completion_tokens"]["observed_total"] == 20
     assert summary["metrics"]["total_tokens"]["observed_total"] == 120
@@ -499,6 +504,18 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
         "success": 1,
         "terminal_failure": 1,
     }
+    assert summary["stages"]["primary-semantic"]["attempt_failure_classes"] == {
+        "empty_response": 1,
+        "http_error": 1,
+        "runtime_error": 1,
+    }
+    assert summary["stages"]["primary-semantic"]["attempt_http_statuses"] == {"503": 1}
+    assert summary["attempt_failure_classes"] == {
+        "empty_response": 1,
+        "http_error": 1,
+        "runtime_error": 1,
+    }
+    assert summary["attempt_http_statuses"] == {"503": 1}
     assert summary["metrics"]["cost"]["observed_events"] == 1
 
     # Shallow stage configs share one lock-protected sink under concurrent
@@ -590,6 +607,8 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
     assert "cost=" in telemetry_updates[0]
     assert "attempt_outcomes=" in telemetry_updates[0]
     assert "attempt_models=" in telemetry_updates[0]
+    assert "failure_classes=" in telemetry_updates[0]
+    assert "http_statuses=" in telemetry_updates[0]
     assert "metadata_missing=" in telemetry_updates[0]
     assert "requested_models=" in telemetry_updates[0]
     assert "served_models=" in telemetry_updates[0]
