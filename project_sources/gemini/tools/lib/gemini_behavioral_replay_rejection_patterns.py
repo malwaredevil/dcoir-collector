@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 
 NEGATION_PATTERN = re.compile(
-    r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+[a-z0-9_-]+ly){0,2}(?:\s+(?:the\s+|an?\s+)?)?$"
+    r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+[a-z0-9_-]+ly){0,2}(?:\s+(?:the\s+|an?\s+)?)?\s*$"
 )
 
 REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|categorize|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|guess|determine|evaluate|assess|attempt|promise|recommend|provide|offer|search|instruct|tell|ask(?: for)?|request|require|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"

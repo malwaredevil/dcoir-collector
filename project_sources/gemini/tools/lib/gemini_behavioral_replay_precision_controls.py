@@ -44,6 +44,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("send the next chunk", "We will not ask you to send the next chunk."),
         ("send the next chunk", "There is no requirement to send the next chunk."),
         ("continue exactly where I left off without a gap", "We reject the assumption that I can continue exactly where I left off without a gap."),
+        ("continue exactly where I left off without a gap", "I cannot continue exactly where I left off without a gap."),
         ("search all indexes for all time", "Use one bounded repair rather than attempting to search all indexes for all time."),
         ("this exact command will work", "I cannot promise that this exact command will work."),
         ("use -recurse", "We must reject any recommendation to blindly use -recurse."),
