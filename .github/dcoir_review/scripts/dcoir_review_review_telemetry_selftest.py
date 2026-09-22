@@ -617,6 +617,23 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
     assert len(telemetry_updates[0]) <= 1800
     assert getattr(config, telemetry.SUMMARY_ATTR)["review_calls"] == 14
 
+    # Copilot follow-up regression: mandatory failure/status diagnostics must
+    # remain complete even when lower-priority telemetry would exceed the
+    # terminal 1,800-character budget.
+    bloated_summary = copy.deepcopy(getattr(config, telemetry.SUMMARY_ATTR))
+    bloated_summary["attempt_failure_classes"] = {
+        "http_error": 9,
+        "transport_error": 3,
+    }
+    bloated_summary["attempt_http_statuses"] = {"404": 2, "503": 7}
+    bloated_summary["requested_models"] = {f"model-{i}-" + ("x" * 80): 1 for i in range(30)}
+    bloated_summary["served_models"] = {f"served-{i}-" + ("y" * 80): 1 for i in range(30)}
+    compact_bloated = telemetry.compact_summary(bloated_summary)
+    assert len(compact_bloated) <= 1800
+    assert "failure_classes=http_error:9,transport_error:3" in compact_bloated
+    assert "http_statuses=404:2,503:7" in compact_bloated
+    assert "optional_telemetry=[truncated]" in compact_bloated
+
 
     # Telemetry faults are side-channel failures only: they must never replace a
     # successful review result or mask the provider's original exception.

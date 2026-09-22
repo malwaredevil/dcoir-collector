@@ -255,36 +255,55 @@ def compact_summary(summary: dict[str, Any], limit: int = 1800) -> str:
         )
         or "none"
     )
-    text = "; ".join(
-        [
-            f"schema={SCHEMA_VERSION}",
-            f"telemetry_status={str(summary.get('telemetry_status', 'ok') or 'ok')}",
-            f"telemetry_error_count={int(summary.get('telemetry_error_count', 0) or 0)}",
-            f"calls={int(summary.get('review_calls', 0) or 0)}",
-            f"attempts={int(summary.get('request_attempts', 0) or 0)}",
-            f"responses={int(summary.get('provider_response_events', 0) or 0)}",
-            f"attempts_without_response_telemetry={int(summary.get('attempts_without_response_telemetry', 0) or 0)}",
-            metric("prompt_tokens"),
-            metric("completion_tokens"),
-            metric("total_tokens"),
-            metric("reasoning_tokens"),
-            metric("cached_tokens"),
-            metric("cache_write_tokens"),
-            metric("cost"),
-            f"response_healing_events={int(summary.get('response_healing_events', 0) or 0)}",
-            f"model_mismatch_events={int(summary.get('served_model_mismatch_events', 0) or 0)}",
-            f"stages(calls/attempts)={stage_text}",
-            f"attempt_outcomes={attempt_outcome_text}",
-            f"attempt_models={attempt_model_text}",
-            f"failure_classes={failure_class_text}",
-            f"http_statuses={http_status_text}",
-            f"metadata_missing={metadata_missing_text}",
-            f"providers={provider_text}",
-            f"service_tiers={service_tier_text}",
-            f"requested_models={requested_model_text}",
-            f"served_models={served_model_text}",
-            f"finish_reasons={finish_reason_text}",
-            f"structured_output_recovery={recovery_text}",
-        ]
-    )
-    return text[:limit]
+    # Keep actionable routing failures ahead of any optional truncation.
+    required_parts = [
+        f"schema={SCHEMA_VERSION}",
+        f"telemetry_status={str(summary.get('telemetry_status', 'ok') or 'ok')}",
+        f"telemetry_error_count={int(summary.get('telemetry_error_count', 0) or 0)}",
+        f"calls={int(summary.get('review_calls', 0) or 0)}",
+        f"attempts={int(summary.get('request_attempts', 0) or 0)}",
+        f"responses={int(summary.get('provider_response_events', 0) or 0)}",
+        f"attempts_without_response_telemetry={int(summary.get('attempts_without_response_telemetry', 0) or 0)}",
+        f"failure_classes={failure_class_text}",
+        f"http_statuses={http_status_text}",
+    ]
+    optional_parts = [
+        metric("prompt_tokens"),
+        metric("completion_tokens"),
+        metric("total_tokens"),
+        metric("reasoning_tokens"),
+        metric("cached_tokens"),
+        metric("cache_write_tokens"),
+        metric("cost"),
+        f"response_healing_events={int(summary.get('response_healing_events', 0) or 0)}",
+        f"model_mismatch_events={int(summary.get('served_model_mismatch_events', 0) or 0)}",
+        f"stages(calls/attempts)={stage_text}",
+        f"attempt_outcomes={attempt_outcome_text}",
+        f"attempt_models={attempt_model_text}",
+        f"metadata_missing={metadata_missing_text}",
+        f"providers={provider_text}",
+        f"service_tiers={service_tier_text}",
+        f"requested_models={requested_model_text}",
+        f"served_models={served_model_text}",
+        f"finish_reasons={finish_reason_text}",
+        f"structured_output_recovery={recovery_text}",
+    ]
+    required_text = "; ".join(required_parts)
+    if len(required_text) >= limit:
+        # Defensive overflow marker; normal governed diagnostics fit this bound.
+        marker = "...[required telemetry truncated]"
+        return required_text[: max(0, limit - len(marker))] + marker
+
+    parts = list(required_parts)
+    truncated = False
+    marker = "; optional_telemetry=[truncated]"
+    for part in optional_parts:
+        candidate = "; ".join((*parts, part))
+        if len(candidate) + len(marker) > limit:
+            truncated = True
+            break
+        parts.append(part)
+    text = "; ".join(parts)
+    if truncated:
+        text += marker
+    return text
