@@ -185,9 +185,12 @@ def _rejection_frame_governs_marker(context: str, marker_tail: str) -> bool:
         has_that_complement = frame_opens_that_complement or bool(
             re.search(r"\bthat\b", prefix)
         )
-        if (
+        if re.match(
+            r"^confirmed\s+(?!(?:the|a|an|that|this)\b)[a-z0-9_-]+(?:\s*[,.;:]|$)",
+            suffix,
+        ) and (
             re.search(r"\b(?:conclusions?|claims?|assertions?|inferences?)\s+of\b", prefix)
-            and re.match(r"^confirmed\s+(?!(?:the|a|an|that|this)\b)[a-z0-9_-]+", suffix)
+            or ("does not prove" in frame_text and "," in prefix)
         ):
             continue
         independently_predicated = bool(
@@ -220,7 +223,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         context = context[contrasts[-1].end():]
 
     marker_tail = normalize_text(text[start:start + 96])
-    if re.search(r"\b(?:and|or)\s*[\x60]*$", context) and re.match(
+    if re.search(r"\b(?:and|or)(?:\s+(?:(?:i|we)\s+)?(?:will|would|should|must|can|could))?\s*[\x60]*$", context) and re.match(
         r"^(?:not|do not|does not|did not|will not|would not|cannot|can't|must not|should not)\b",
         marker_tail,
     ):
@@ -234,7 +237,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         r"^\s*(?:(?:and|or|but|so)\s+)?(?:"
         r"(?:i|we|you|they|it|(?:this|these|those)(?:\s+[a-z0-9_-]+){0,2}|the(?:\s+[a-z0-9_-]+){1,5})\s+"
         r"(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays|recommend|suggest)\b"
-        r"|(?!(?:that|which|who)\b)(?:[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays)\b"
+        r"|(?!(?:that|which|who|and|or|but|so)\b)(?:[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+(?:will|would|should|can|cannot|can't|must|do|does|did|am|are|is|have|has|need|needs|remain|remains|stay|stays)\b"
         r"|(?:please\s+)?(?:provide|send|run|execute|read|retrieve|upload|review|collect|use|check|verify|focus|determine)\b"
         r")"
     )
@@ -261,7 +264,7 @@ def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None)
     if re.match(
         rf"^\s+{POST_MARKER_REJECTION_NOUN_PHRASE}\s+"
         r"(?:(?:is|are|was|were)\s+"
-        r"(?:not\s+(?:supported|justified|established|proven)|unsupported|unjustified|unproven)"
+        r"(?:not\s+(?:supported|justified|established|proven)|unsupported|unjustified|unproven|premature)"
         r"|(?:cannot|can't|can not)\s+be\s+(?:supported|justified|established|proven))\b",
         context,
     ):

@@ -28,6 +28,15 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
         allow_quoted_single_tokens=True,
         allow_markdown_code=True,
     )
+    for marker in markers:
+        if marker in matched:
+            continue
+        for occurrence in _iter_term_occurrences(lowered, marker):
+            prefix = lowered[max(0, occurrence.start() - 12):occurrence.start()]
+            suffix = lowered[occurrence.end():occurrence.end() + 120].lstrip()
+            if prefix.endswith("under the ") and suffix.startswith((", i explicitly reject that ", ", we explicitly reject that ")):
+                matched.append(marker)
+                break
     invalidated = []
     for marker in markers:
         if marker in matched:
@@ -87,6 +96,17 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
             skip_quoted=True,
         )
         for hit in hits:
+            if hit.startswith("guarantee"):
+                active = []
+                for occurrence in _iter_term_occurrences(lowered, hit):
+                    if _occurrence_is_negated(lowered, occurrence.start()) or _occurrence_is_rejected_before(lowered, occurrence.start()) or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
+                        continue
+                    words = lowered[:occurrence.start()].rstrip().split()
+                    if words and words[-1] in {"a", "an", "the", "this", "that", "these", "those", "such", "our", "your", "their", "its"}:
+                        continue
+                    active.append(occurrence)
+                if not active:
+                    continue
             anomalies.append({"type": "unsupported_certainty_claims", "detail": hit})
 
     if "invented_tool_or_workflow" in requested_checks:

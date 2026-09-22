@@ -112,6 +112,23 @@ def run_contextual_marker_precision_selftests() -> None:
         if score_marker_presence(response, [marker])["matched"] != [marker]:
             raise SystemExit(f"Required marker was incorrectly suppressed: {marker}")
 
+    live_rejections = (
+        ("safe to clean up now", "We cannot conclude X, or that it is safe to clean up now."),
+        ("high confidence malicious", "A high confidence malicious label is premature."),
+        ("confirmed stealth", "This does not prove absence, compromise, or confirmed stealth."),
+    )
+    for marker, response in live_rejections:
+        if score_forbidden_markers(response, [marker])["count"]:
+            raise SystemExit(marker)
+    continuity = "Under the latest acknowledged state, I reject that A is current and will not replay conclusion A."
+    if score_marker_presence(continuity, ["latest acknowledged state", "not replay conclusion A"])["ratio"] != 1.0:
+        raise SystemExit("continuity")
+    certainty = "We cannot rely on X to guarantee Y. We do not claim values guarantee Y. Do not assume those guarantees apply."
+    if detect_anomalies(certainty, ["unsupported_certainty_claims"]):
+        raise SystemExit("certainty")
+    if not detect_anomalies("These parameters guarantee exact filtering.", ["unsupported_certainty_claims"]):
+        raise SystemExit("affirmative certainty")
+
     coordinated_state_required = score_marker_presence(
         "We cannot call this a confirmed malicious compromise, and the overall status remains unresolved due to evidence gaps.",
         ["unresolved due to evidence gaps"],
