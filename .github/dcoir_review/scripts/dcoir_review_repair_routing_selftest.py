@@ -56,19 +56,22 @@ def main() -> None:
     assert contaminated.openrouter_route == "auto"
     assert contaminated.openrouter_service_tier == "priority"
 
-    # Issue #582 regression: the 2026-09-21 review run showed every Opus 5
-    # request falling through while Sol Pro succeeded. A Sol-authored repair
-    # must therefore retain an Anthropic-only fallback rather than turning the
-    # first non-retryable 404 into a terminal repair-critic failure.
+    # Issues #582/#586 regression: live review runs showed Opus 5 and then
+    # Sonnet 5 returning endpoint-routing 404s while Sol Pro succeeded in other
+    # stages. A Sol-authored repair must therefore retain independent-family
+    # fallbacks beyond Anthropic rather than turning those 404s into a terminal
+    # repair-critic failure.
     sol_author_critic = repair_policy.build_repair_critic_config(
         base_config, "openai/gpt-5.6-sol-pro"
     )
     assert sol_author_critic.model_stack == [
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
     ]
     assert repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "anthropic/claude-sonnet-5"
     assert not repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL.startswith("~")
+    assert repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "google/gemini-3.1-pro-preview"
     assert all(
         not str(model).removeprefix("~").startswith("openai/")
         for model in sol_author_critic.model_stack
@@ -80,7 +83,10 @@ def main() -> None:
 
     def fake_repair_critic_request(_prompt, _schema, _config, _ignored, model):
         attempted_models.append(model)
-        if model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL:
+        if model in {
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        }:
             body = json.dumps(
                 {"error": {"message": "No endpoints found that can handle the requested parameters."}}
             ).encode("utf-8")
@@ -111,8 +117,9 @@ def main() -> None:
     assert attempted_models == [
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
     ]
-    assert regression_model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL
+    assert regression_model == repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL
     assert regression_result["accepted"] is True
 
     critic = repair_pipeline._independent_config(base_config)

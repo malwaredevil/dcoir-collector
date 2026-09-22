@@ -50,6 +50,7 @@ def main() -> None:
     assert critic_after_sol.model_stack == [
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
     ]
     assert critic_after_sol.model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
     assert config.model_stack[0] == "anthropic/claude-opus-5"  # shared config was not mutated

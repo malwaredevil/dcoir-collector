@@ -18,6 +18,7 @@ OPENAI_CROSS_FAMILY_CRITIC_MODEL = "openai/gpt-5.6-sol-pro"
 OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = PRIMARY_CRITIC_MODEL
 ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5"
 ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = FALLBACK_CRITIC_MODEL
+GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = "google/gemini-3.1-pro-preview"
 CRITIC_SESSION_SUFFIX = "repair-critic"
 REPAIR_CANDIDATE_HARD_CAP = 12
 
@@ -55,6 +56,7 @@ def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
             critic_models = [
                 ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
                 ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+                GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
             ]
         else:
             critic_models = [
