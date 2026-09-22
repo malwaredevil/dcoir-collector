@@ -6,6 +6,7 @@ from typing import Iterable, List
 
 from .gemini_behavioral_replay_rejection_patterns import (
     NEGATION_PATTERN,
+    POST_MARKER_REJECTION_NOUN_PHRASE,
     POST_MARKER_REJECTION_PATTERN,
     PRE_MARKER_REJECTION_FRAME_PATTERN,
     REJECTED_ASSERTION_PATTERN,
@@ -253,7 +254,8 @@ def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None)
     # Rejected claims can put the negative predicate after a short noun phrase,
     # e.g. "high confidence malicious verdict is not supported" or "is unsupported".
     if re.match(
-        r"^\s+(?:[a-z0-9_-]+\s+){1,4}(?:(?:is|are|was|were)\s+"
+        rf"^\s+{POST_MARKER_REJECTION_NOUN_PHRASE}\s+"
+        r"(?:(?:is|are|was|were)\s+"
         r"(?:not\s+(?:supported|justified|established|proven)|unsupported|unjustified|unproven)"
         r"|(?:cannot|can't|can not)\s+be\s+(?:supported|justified|established|proven))\b",
         context,

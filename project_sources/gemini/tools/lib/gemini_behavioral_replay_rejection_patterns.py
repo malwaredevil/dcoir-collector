@@ -15,6 +15,11 @@ REJECTED_ASSERTION_PATTERN = re.compile(
 
 REJECTION_SCOPE_LIMIT = 180
 
+POST_MARKER_REJECTION_NOUN_PHRASE = (
+    r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
+    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|outcome|result|guarantee|generation))"
+)
+
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"(?:"
     rf"(?:do not|don't|dont|does not|doesn't|doesnt|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"

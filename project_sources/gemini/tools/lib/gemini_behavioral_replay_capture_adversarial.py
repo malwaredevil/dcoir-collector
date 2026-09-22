@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import tempfile
 import uuid
 from pathlib import Path
@@ -85,59 +84,191 @@ def _assert_identity_bound_final_remove(private_root: PrivateCaptureRoot) -> Non
 
 
 def _assert_descriptor_bound_allocation() -> None:
-    validation_root = Path("project_sources/validation").resolve()
-    validation_root.mkdir(parents=True, exist_ok=True)
-    displaced = validation_root.with_name(
-        f"{validation_root.name}.dcoir-allocation-test-{uuid.uuid4().hex}"
+    temp_root = Path(tempfile.gettempdir()).resolve()
+    sandbox = Path(tempfile.mkdtemp(prefix=".dcoir-allocation-test-", dir=temp_root))
+    container_fd = os.open(
+        temp_root,
+        os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0),
     )
-    if displaced.exists():
-        raise SystemExit("Descriptor-allocation test displacement path already exists.")
-
+    sandbox_name = sandbox.name
+    sandbox_identity = _identity(
+        os.stat(sandbox_name, dir_fd=container_fd, follow_symlinks=False)
+    )
+    displaced_name = f"{sandbox_name}.displaced-{uuid.uuid4().hex}"
     real_uuid4 = capture_paths.uuid.uuid4
+    real_tempfile = capture_paths.tempfile
     private_root: PrivateCaptureRoot | None = None
+    replacement_identity: tuple[int, int] | None = None
     swapped = False
-    replacement_created = False
+    failure: BaseException | None = None
+    cleanup_error: BaseException | None = None
+    restore_error: BaseException | None = None
+    preserved_name = ""
+
+    class _SandboxTempfile:
+        @staticmethod
+        def gettempdir() -> str:
+            return str(sandbox)
+
+    def preserve_visible_entry() -> str:
+        for _ in range(128):
+            candidate = f"{sandbox_name}.preserved-{uuid.uuid4().hex}"
+            try:
+                os.stat(candidate, dir_fd=container_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                os.rename(
+                    sandbox_name,
+                    candidate,
+                    src_dir_fd=container_fd,
+                    dst_dir_fd=container_fd,
+                )
+                return candidate
+        raise SystemExit("Unable to preserve substituted allocation sandbox entry.")
 
     def swap_visible_parent_then_uuid():
-        nonlocal swapped, replacement_created
+        nonlocal swapped, replacement_identity
         if not swapped:
-            validation_root.rename(displaced)
+            os.rename(
+                sandbox_name,
+                displaced_name,
+                src_dir_fd=container_fd,
+                dst_dir_fd=container_fd,
+            )
+            os.mkdir(sandbox_name, 0o700, dir_fd=container_fd)
+            replacement_identity = _identity(
+                os.stat(sandbox_name, dir_fd=container_fd, follow_symlinks=False)
+            )
             swapped = True
-            validation_root.mkdir(mode=0o700)
-            replacement_created = True
         return real_uuid4()
 
-    replacement_had_residue = False
+    capture_paths.tempfile = _SandboxTempfile
     capture_paths.uuid.uuid4 = swap_visible_parent_then_uuid
     try:
-        private_root = capture_paths.allocate_private_capture_root(validation_root)
-        if not swapped:
-            raise SystemExit("Descriptor-allocation test did not swap the visible parent.")
-        replacement_had_residue = any(validation_root.iterdir())
-        if replacement_had_residue:
-            raise SystemExit("Capture allocation touched the replacement visible parent.")
-        displaced_stat = os.stat(displaced, follow_symlinks=False)
-        if _identity(displaced_stat) != (private_root.parent_dev, private_root.parent_ino):
-            raise SystemExit("Capture parent capability did not remain bound to the displaced directory.")
+        private_root = capture_paths.allocate_private_capture_root(sandbox)
+        if not swapped or replacement_identity is None:
+            raise SystemExit("Descriptor-allocation test did not swap the visible sandbox.")
+        replacement_fd = _open_directory_at(
+            container_fd, sandbox_name, replacement_identity
+        )
+        try:
+            if os.listdir(replacement_fd):
+                raise SystemExit("Capture allocation touched the replacement sandbox.")
+        finally:
+            os.close(replacement_fd)
+        displaced_stat = os.stat(
+            displaced_name, dir_fd=container_fd, follow_symlinks=False
+        )
+        if _identity(displaced_stat) != sandbox_identity:
+            raise SystemExit("Displaced allocation sandbox identity changed.")
+        if sandbox_identity != (private_root.parent_dev, private_root.parent_ino):
+            raise SystemExit(
+                "Capture parent capability did not remain bound to the displaced sandbox."
+            )
         root_stat = os.stat(
             private_root.basename,
             dir_fd=private_root.parent_fd,
             follow_symlinks=False,
         )
         if _identity(root_stat) != (private_root.dev, private_root.ino):
-            raise SystemExit("Capture root was not created beneath the validated parent descriptor.")
+            raise SystemExit(
+                "Capture root was not created beneath the validated sandbox descriptor."
+            )
+    except BaseException as exc:
+        failure = exc
     finally:
         capture_paths.uuid.uuid4 = real_uuid4
+        capture_paths.tempfile = real_tempfile
         if private_root is not None and not private_root.closed:
-            cleanup_private_capture_root(private_root)
-        if replacement_created and validation_root.exists():
-            replacement_had_residue = replacement_had_residue or any(validation_root.iterdir())
-            shutil.rmtree(validation_root)
-        if swapped and displaced.exists():
-            displaced.rename(validation_root)
-        if replacement_had_residue:
-            raise SystemExit("Replacement visible parent gained unexpected allocation residue.")
+            try:
+                cleanup_private_capture_root(private_root)
+            except BaseException as exc:
+                cleanup_error = exc
+        try:
+            if swapped:
+                try:
+                    visible = os.stat(
+                        sandbox_name, dir_fd=container_fd, follow_symlinks=False
+                    )
+                except FileNotFoundError:
+                    visible = None
+                if visible is not None:
+                    visible_identity = _identity(visible)
+                    if (
+                        replacement_identity is not None
+                        and visible_identity == replacement_identity
+                    ):
+                        visible_fd = _open_directory_at(
+                            container_fd, sandbox_name, replacement_identity
+                        )
+                        try:
+                            visible_entries = os.listdir(visible_fd)
+                        finally:
+                            os.close(visible_fd)
+                        if visible_entries:
+                            preserved_name = preserve_visible_entry()
+                        else:
+                            _rmdir_if_identity(
+                                container_fd, sandbox_name, replacement_identity
+                            )
+                    else:
+                        preserved_name = preserve_visible_entry()
 
+                displaced_stat = os.stat(
+                    displaced_name, dir_fd=container_fd, follow_symlinks=False
+                )
+                if _identity(displaced_stat) != sandbox_identity:
+                    raise SystemExit(
+                        "Displaced allocation sandbox identity changed before restoration."
+                    )
+                os.rename(
+                    displaced_name,
+                    sandbox_name,
+                    src_dir_fd=container_fd,
+                    dst_dir_fd=container_fd,
+                )
+
+            try:
+                restored = os.stat(
+                    sandbox_name, dir_fd=container_fd, follow_symlinks=False
+                )
+            except FileNotFoundError:
+                restored = None
+            if restored is not None:
+                if _identity(restored) != sandbox_identity:
+                    raise SystemExit("Allocation sandbox identity changed during restoration.")
+                restored_fd = _open_directory_at(
+                    container_fd, sandbox_name, sandbox_identity
+                )
+                try:
+                    restored_entries = os.listdir(restored_fd)
+                finally:
+                    os.close(restored_fd)
+                if restored_entries:
+                    raise SystemExit(
+                        f"Allocation sandbox retained cleanup residue: {sandbox}"
+                    )
+                _rmdir_if_identity(container_fd, sandbox_name, sandbox_identity)
+        except BaseException as exc:
+            restore_error = exc
+        finally:
+            os.close(container_fd)
+
+    if preserved_name and restore_error is None:
+        restore_error = SystemExit(
+            f"Unexpected replacement sandbox was preserved at {temp_root / preserved_name}."
+        )
+    if failure is not None:
+        if cleanup_error is not None:
+            raise failure from cleanup_error
+        if restore_error is not None:
+            raise failure from restore_error
+        raise failure
+    if cleanup_error is not None:
+        if restore_error is not None:
+            raise cleanup_error from restore_error
+        raise cleanup_error
+    if restore_error is not None:
+        raise restore_error
 
 def _assert_rollback_failure_chaining() -> None:
     real_cleanup = capture_paths._quarantine_and_cleanup

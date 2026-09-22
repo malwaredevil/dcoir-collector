@@ -81,6 +81,12 @@ def run_rejection_precision_selftests() -> None:
     )
     if unsupported_verdict["count"] != 0:
         raise SystemExit(f"Unsupported verdict rejection was mis-scored: {unsupported_verdict}")
+    unrelated_noun = score_forbidden_markers(
+        "high confidence malicious actor says the verdict is unsupported",
+        ["high confidence malicious"],
+    )
+    if unrelated_noun["hits"] != ["high confidence malicious"]:
+        raise SystemExit(f"Unrelated noun phrase suppressed a required hit: {unrelated_noun}")
     supported_verdict = score_forbidden_markers(
         "A high confidence malicious verdict is supported by the current data.",
         ["high confidence malicious"],
