@@ -362,3 +362,23 @@ def _occurrence_has_local_mix_rejection(text: str, start: int) -> bool:
         match
         and not _repudiation_frame_is_negated(prefix, match.start())
     )
+
+
+_NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(
+    r"[.!?;,]|\b(?:but|however|whereas|yet|while|although|though|because|when|then)\b"
+)
+
+
+def _bounded_no_mix_relation_sides(
+    text: str,
+    occurrence: re.Match[str],
+) -> tuple[str, str]:
+    before = text[max(0, occurrence.start() - 180):occurrence.start()]
+    before_boundaries = list(_NO_MIX_RELATION_BOUNDARY_PATTERN.finditer(before))
+    if before_boundaries:
+        before = before[before_boundaries[-1].end():]
+    after = text[occurrence.end():min(len(text), occurrence.end() + 180)]
+    after_boundary = _NO_MIX_RELATION_BOUNDARY_PATTERN.search(after)
+    if after_boundary:
+        after = after[:after_boundary.start()]
+    return normalize_text(before), normalize_text(after)

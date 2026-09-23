@@ -15,6 +15,7 @@ from .gemini_behavioral_replay_semantic_assertions import response_has_explicit_
 from .gemini_behavioral_replay_lane_context import (
     _REFERENTIAL_LANES_PATTERN,
     _assertive_phrase_occurrences,
+    _bounded_no_mix_relation_sides,
     _clause_has_endpoint_lane,
     _clause_has_local_lane,
     _iter_lane_relation_segments,
@@ -34,27 +35,6 @@ _SHARED_CONTEXT_TERMS = (
     "single command",
     "same lane",
 )
-
-_NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(
-    r"[.!?;,]|\b(?:but|however|whereas|yet|while|although|though|because|when|then)\b"
-)
-
-
-def _bounded_no_mix_relation_sides(
-    text: str,
-    occurrence: re.Match[str],
-) -> tuple[str, str]:
-    before = text[max(0, occurrence.start() - 180):occurrence.start()]
-    before_boundaries = list(_NO_MIX_RELATION_BOUNDARY_PATTERN.finditer(before))
-    if before_boundaries:
-        before = before[before_boundaries[-1].end():]
-
-    after = text[occurrence.end():min(len(text), occurrence.end() + 180)]
-    after_boundary = _NO_MIX_RELATION_BOUNDARY_PATTERN.search(after)
-    if after_boundary:
-        after = after[:after_boundary.start()]
-    return normalize_text(before), normalize_text(after)
-
 
 _NO_MIX_OBJECT_FREE_ADVERB_PATTERN = re.compile(
     r"(?:[a-z0-9_-]+(?:ly|ward|wards|wise)|"

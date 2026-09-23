@@ -13,7 +13,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     REJECTED_ASSERTION_PATTERN,
     REJECTION_SCOPE_LIMIT,
 )
-from .gemini_behavioral_replay_semantic_assertions import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_semantic_assertions import occurrence_is_assertive_polarity, occurrence_is_backtick_wrapped
 
 UNSUPPORTED_CERTAINTY_TERMS = [
     "definitely",
@@ -130,17 +130,6 @@ def _occurrence_is_quoted(text: str, start: int, end: int) -> bool:
         prefix = text[opener + 1:start]
         trailing = text[end:closer]
         if not prefix.strip() and len(trailing) <= 4 and all(char in " ,.;:!?" for char in trailing):
-            return True
-    return False
-
-
-def _occurrence_is_backtick_wrapped(text: str, start: int, end: int) -> bool:
-    if start > 0 and end < len(text) and text[start - 1] == "`" and text[end] == "`":
-        return True
-    positions = [index for index, char in enumerate(text) if char == "`"]
-    for offset in range(0, len(positions) - 1, 2):
-        opener, closer = positions[offset], positions[offset + 1]
-        if opener < start and end <= closer:
             return True
     return False
 
@@ -320,7 +309,7 @@ def _find_contextual_term_hits(
                 )
                 allowed_markdown = (
                     allow_markdown_code
-                    and _occurrence_is_backtick_wrapped(
+                    and occurrence_is_backtick_wrapped(
                         text, match.start(), match.end()
                     )
                 )
