@@ -245,7 +245,7 @@ def python_line_has_explicit_file_write_call(
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
-            return True
+            return python_call_uses_write_mode(node)
         if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
             return True
         if isinstance(func, ast.Attribute) and func.attr == "open":
