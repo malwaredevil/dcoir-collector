@@ -289,9 +289,9 @@
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {
-      "bytes": 7993,
+      "bytes": 7988,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
-      "sha256": "96204d09ccc370d4116b5d083339c1b6add0b7a615243d342b1685f6d1620c2b"
+      "sha256": "dfced0b03bc04386556c27cb9caf81b355b8be4a4f62d9153cab0bd985ad8f61"
     },
     {
       "bytes": 3218,
@@ -301,7 +301,7 @@
   ],
   "generated_outputs_are_canonical": false,
   "instruction_character_ceiling": 8000,
-  "instruction_character_count": 7993,
+  "instruction_character_count": 7988,
   "knowledge_file_count": 7,
   "knowledge_files": [
     {
@@ -364,11 +364,11 @@
     },
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
-      "sha256": "9b39567a8583afa193f64d4bf882e42701eb47fc2f0faf349cddebe726b9af71"
+      "sha256": "0e62017afe639d397d5cfa65214ec03f770850ee042c31fbd93588d978931655"
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Instructions.md",
-      "sha256": "96204d09ccc370d4116b5d083339c1b6add0b7a615243d342b1685f6d1620c2b"
+      "sha256": "dfced0b03bc04386556c27cb9caf81b355b8be4a4f62d9153cab0bd985ad8f61"
     },
     "knowledge_projection_manifest": {
       "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",

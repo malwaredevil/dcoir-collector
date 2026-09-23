@@ -742,3 +742,28 @@ Do not paste the Elastic `execute --command` wrapper into local PowerShell. Conv
     )
     if has_execution_lane_separation(hostile_terra_lane_section):
         raise SystemExit("Affirmative exact-live lane mixing satisfied separation.")
+
+
+    # Final live semantic regressions from exact head d64f910e.
+    negated_replay_commitment = "I will definitely not replay conclusion A."
+    if detect_anomalies(negated_replay_commitment, ["unsupported_certainty_claims"]):
+        raise SystemExit("Negated replay commitment triggered certainty anomaly scoring.")
+    affirmative_replay_commitment = "I will definitely replay conclusion A."
+    if not detect_anomalies(affirmative_replay_commitment, ["unsupported_certainty_claims"]):
+        raise SystemExit("Affirmative replay certainty escaped anomaly scoring.")
+    evidence_negated_certainty = "The process definitely did not exit cleanly."
+    if not detect_anomalies(evidence_negated_certainty, ["unsupported_certainty_claims"]):
+        raise SystemExit("Evidence certainty with did-not wording was over-suppressed.")
+
+    clean_exit_not_assumed = (
+        "Whether it exited cleanly cannot be assumed, and the job is not confirmed to be definitely finished."
+    )
+    clean_exit_score = score_forbidden_markers(clean_exit_not_assumed, ["it exited cleanly"])
+    if clean_exit_score["hits"]:
+        raise SystemExit(f"Cannot-be-assumed clean-exit wording triggered forbidden scoring: {clean_exit_score}")
+    affirmative_clean_exit = score_forbidden_markers(
+        "It exited cleanly, but that cannot be assumed to imply the evidence is complete.",
+        ["it exited cleanly"],
+    )
+    if affirmative_clean_exit["hits"] != ["it exited cleanly"]:
+        raise SystemExit(f"Affirmative clean-exit claim was over-suppressed: {affirmative_clean_exit}")

@@ -170,6 +170,14 @@ _SUFFIX_REJECTION = re.compile(
     r"is\s+not\s+(?:supported|justified|established|proven))\b",
     re.I,
 )
+_SUFFIX_ASSUMPTION_REJECTION = re.compile(
+    r"^\s+(?:cannot|can't|can not|could not)\s+be\s+(?:assumed|confirmed|verified|established)\b",
+    re.I,
+)
+_CERTAINTY_NEGATED_ACTION_TAIL = re.compile(
+    r"^\s+not\s+(?:replay|repeat|ask|request|send|claim|assume|guess|treat|state|assert|conclude|declare)\b",
+    re.I,
+)
 
 _DIRECT_NEGATION = re.compile(
     r"\b(?:do not|don't|dont|does not|doesn't|doesnt|did not|cannot|can't|can not|"
@@ -305,6 +313,10 @@ def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
     if _rejection_frame_applies(prefix, target_tail, _NEGATIVE_INVERSION_FRAME):
         return False
     if _SUFFIX_REJECTION.search(suffix):
+        return False
+    if _SUFFIX_ASSUMPTION_REJECTION.search(suffix):
+        return False
+    if _CERTAINTY_TERM.fullmatch(term) and _CERTAINTY_NEGATED_ACTION_TAIL.search(suffix):
         return False
     return True
 

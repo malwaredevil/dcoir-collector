@@ -207,11 +207,13 @@
     {
       "id": "complete_collector_operator_procedure",
       "scenario": "The operator explicitly asks for the complete DCOIR Collector operating procedure from package/deployment through execution, retrieval, interpretation, and cleanup rather than only the next triage command.",
-      "expected_behavior": "Return a bounded ordered multi-step procedure, preserve endpoint/local command-lane separation, and never claim a step executed without returned evidence.",
+      "expected_behavior": "Return a bounded ordered multi-step procedure with concrete source-grounded upload and endpoint execution command lines, preserve endpoint/local command-lane separation, and never claim a step executed without returned evidence.",
       "required_markers": [
         "complete collector procedure request",
         "ordered deployment",
         "upload --file",
+        "execute --command",
+        "-Quick collect-t1",
         "DCOIR_Collector.ps1",
         "DCOIR_Collector.zip",
         "same directory",
