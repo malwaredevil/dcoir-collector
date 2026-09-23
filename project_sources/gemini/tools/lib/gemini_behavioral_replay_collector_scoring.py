@@ -64,6 +64,7 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
 
 def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     gaps: List[str] = []
+    normalized = " ".join(str(response_text).lower().split())
 
     numbered_steps = len(re.findall(r"(?m)^\s*\d+[.)]\s+", str(response_text)))
     if numbered_steps < 5:
@@ -86,6 +87,16 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
             and _has_assertive_phase(response_text, ["same directory"])
         )
     if not has_package_deployment:
+        same_directory_required = bool(
+            re.search(r"\b(?:must|should|need(?:s)?\s+to)\s+be\s+in\s+(?:the\s+)?same directory\b", normalized)
+        )
+        has_package_deployment = (
+            _has_assertive_phase(response_text, ["upload --file", "dcoir_collector.ps1"])
+            and _has_assertive_phase(response_text, ["upload --file", "dcoir_collector.zip"])
+            and _has_assertive_phase(response_text, ["upload both files"])
+            and same_directory_required
+        )
+    if not has_package_deployment:
         gaps.append("package_deployment")
 
     has_local_collect = _has_standalone_local_collect(response_text)
@@ -93,7 +104,6 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if not (has_local_collect and has_endpoint_collect):
         gaps.append("execution_commands")
 
-    normalized = " ".join(str(response_text).lower().split())
     has_retrieval = _has_assertive_phase(response_text, ["get-file --path"]) or _has_assertive_phase(
         response_text, ["get-file", "response action"]
     )
@@ -114,8 +124,7 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
             or _has_assertive_phase(response_text, ["orientation surfaces"])
             or _has_assertive_phase(response_text, ["interpret the returned evidence", "analyst-first order"])
             or _has_assertive_phase(response_text, ["interpret collector output", "analyst-first order"])
-            or _has_assertive_phase(response_text, ["review artifacts in this order"])
-            or _has_assertive_phase(response_text, ["review the returned artifacts in this order"])
+            or _has_assertive_phase(response_text, ["review", "returned", "in this order"])
         )
     if not has_interpretation:
         gaps.append("interpretation")

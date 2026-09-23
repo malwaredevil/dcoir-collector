@@ -147,6 +147,11 @@ def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
             "do not paste elastic upload, get-file, or execute syntax into a local powershell session",
             "do not mix endpoint response-action commands with local powershell",
         )
+        if (
+            re.search(r"\bendpoint response console\b.*\bnot local powershell\b", normalized)
+            or re.search(r"\blocal powershell\b.*\bnot in (?:the )?elastic response console\b", normalized)
+        ):
+            normalized += " do not mix endpoint response-action commands with local powershell"
         if normalized:
             yield normalized
 

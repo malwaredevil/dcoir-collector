@@ -5,9 +5,9 @@ from typing import Any, Dict, List
 import re
 
 from .gemini_behavioral_replay_rejection_patterns import (
-    BOUNDED_UNVERIFIED_SCOPE, COORDINATED_NEGATION_SCOPE, DIRECT_REJECTION_PREFIX,
-    GOVERNED_SOURCE_ACTION_SCOPE, POST_UNSUPPORTED_SCOPE,
+    BOUNDED_UNVERIFIED_SCOPE, COORDINATED_NEGATION_SCOPE, POST_UNSUPPORTED_SCOPE,
 )
+from .gemini_behavioral_replay_marker_semantics import augment_semantic_marker_matches
 from .gemini_behavioral_replay_text_scoring import (
     CONTRADICTION_PAIRS,
     INVENTED_TOOL_TERMS,
@@ -34,34 +34,7 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
         allow_quoted_single_tokens=True,
         allow_markdown_code=True,
     )
-    if "workflow state" in markers and "workflow state" not in matched and re.search(
-        r"\b(?:does not|doesn't|doesnt|cannot|can't|can not)\s+(?:establish|verify|confirm)\b[^.!?;]{0,80}\bworkflow state\b",
-        lowered,
-    ):
-        matched.append("workflow state")
-    if "do not guess" in markers and "do not guess" not in matched:
-        for occurrence in _iter_term_occurrences(lowered, "will not guess"):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
-                continue
-            if _occurrence_is_rejected_before(lowered, occurrence.start()):
-                continue
-            if _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
-                continue
-            matched.append("do not guess")
-            break
-    if "governed source" in markers:
-        matched = [m for m in matched if m != "governed source"]
-        for o in _iter_term_occurrences(lowered, "governed source"):
-            if _occurrence_is_quoted(lowered, o.start(), o.end()):
-                continue
-            p = lowered[max(0, o.start() - 120):o.start()]
-            a = GOVERNED_SOURCE_ACTION_SCOPE.search(p)
-            if a and DIRECT_REJECTION_PREFIX.search(p[max(0, a.start() - 40):a.start()]):
-                continue
-            if not a and (_occurrence_is_negated(lowered, o.start()) or _occurrence_is_rejected_before(lowered, o.start()) or _occurrence_is_rejected_after(lowered, o.end(), o.start())):
-                continue
-            matched.append("governed source")
-            break
+    matched = augment_semantic_marker_matches(response_text, markers, matched)
     for marker in markers:
         if marker in matched:
             continue

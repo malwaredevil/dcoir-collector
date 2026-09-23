@@ -384,3 +384,61 @@ Orientation, metadata, and upload-summary files guide review; they do not themse
     )
     if "interpretation" not in collector_procedure_actionability_gaps(negated_interpretation_variant):
         raise SystemExit("Negated fresh Terra interpretation wording incorrectly satisfied actionability.")
+
+    # Semantic scorer regressions from the post-fix exact-head Terra replay.
+    unresolved_with_gaps = (
+        "The evidence supports an unresolved suspicious staging or persistence-risk finding, not confirmed compromise. "
+        "No direct exploitation telemetry has been read back. No service-install evidence has been read back."
+    )
+    unresolved_score = score_marker_presence(unresolved_with_gaps, ["unresolved due to evidence gaps"])
+    if unresolved_score["matched"] != ["unresolved due to evidence gaps"]:
+        raise SystemExit(f"Unresolved finding with explicit evidence gaps was missed: {unresolved_score}")
+    resolved_without_gaps = score_marker_presence(
+        "The earlier finding was unresolved, but all required evidence has now been read back and the case is resolved.",
+        ["unresolved due to evidence gaps"],
+    )
+    if resolved_without_gaps["matched"]:
+        raise SystemExit(f"Resolved finding without evidence gaps satisfied unresolved-gap semantics: {resolved_without_gaps}")
+
+    interpretation_heading = score_marker_presence(
+        "5. Interpretation\n- Review returned outputs in this order when available.", ["interpret"]
+    )
+    if interpretation_heading["matched"] != ["interpret"]:
+        raise SystemExit(f"Interpretation heading did not satisfy interpret semantics: {interpretation_heading}")
+    rejected_interpretation = score_marker_presence(
+        "No interpretation should be attempted from these outputs.", ["interpret"]
+    )
+    if rejected_interpretation["matched"]:
+        raise SystemExit(f"Rejected interpretation satisfied interpret semantics: {rejected_interpretation}")
+
+    split_package_procedure = '''1. Package and deployment
+- Required runtime files: `DCOIR_Collector.ps1` and `DCOIR_Collector.zip`.
+- Upload both files to the endpoint response-action working location. They must be in the same directory.
+`upload --file "DCOIR_Collector.ps1"`
+`upload --file "DCOIR_Collector.zip"`'''
+    if "package_deployment" in collector_procedure_actionability_gaps(split_package_procedure):
+        raise SystemExit("Cross-clause package deployment semantics were not recognized.")
+    negated_split_package = split_package_procedure.replace(
+        "Upload both files to the endpoint response-action working location.",
+        "Do not upload both files to the endpoint response-action working location.",
+    )
+    if "package_deployment" not in collector_procedure_actionability_gaps(negated_split_package):
+        raise SystemExit("Negated cross-clause package deployment incorrectly satisfied actionability.")
+
+    endpoint_not_local_lane = (
+        "Use the endpoint response console—not local PowerShell—to request collector version output. "
+        "Use local PowerShell only for workstation testing, not in the Elastic response console."
+    )
+    if not has_execution_lane_separation(endpoint_not_local_lane):
+        raise SystemExit("Endpoint-console versus local-PowerShell separation semantics were not recognized.")
+    mixed_endpoint_local_lane = (
+        "Use the endpoint response console and local PowerShell interchangeably for the same commands."
+    )
+    if has_execution_lane_separation(mixed_endpoint_local_lane):
+        raise SystemExit("Affirmative interchangeable lane wording satisfied separation.")
+
+    returned_outputs_procedure = final_terra_procedure.replace(
+        "Review artifacts in this order when returned:", "Review returned outputs in this order:"
+    )
+    if "interpretation" in collector_procedure_actionability_gaps(returned_outputs_procedure):
+        raise SystemExit("Returned-outputs interpretation wording was not recognized.")
