@@ -221,8 +221,11 @@ def python_direct_dynamic_open_write(
         if not isinstance(func, ast.Attribute) or func.attr != "open":
             continue
         value = func.value
-        if python_is_path_constructor(value, constructor_names) and value.args:
-            return python_is_dynamic_path_segment(value.args[0])
+        value_is_path, value_has_dynamic = python_path_expr_info(
+            value, constructor_names, os_module_names
+        )
+        if value_is_path and value_has_dynamic:
+            return True
     return False
 
 
