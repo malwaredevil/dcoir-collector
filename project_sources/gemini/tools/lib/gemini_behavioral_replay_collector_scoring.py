@@ -41,12 +41,12 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
         if not all(token in clause for token in required_tokens):
             continue
         if re.search(
-            r"\b(?:do not|don't|dont|must not|should not|never|avoid|cannot|can't|can not|not)\b.*\b(?:use|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|mix|keep|invoke)\b",
+            r"\b(?:do not|don't|dont|must not|should not|never|avoid|cannot|can't|can not|not)\b.*\b(?:use|run|execute|upload|plac(?:e|ed|ing)|retrieve|review|collect|clean(?:up|\s+up)|mix|keep|invoke)\b",
             clause,
         ):
             continue
         if not re.search(
-            r"\b(?:use|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)\b",
+            r"\b(?:use|run|execute|upload|plac(?:e|ed|ing)|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)\b",
             clause,
         ):
             continue
@@ -80,6 +80,12 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         ["dcoir_collector.ps1", "dcoir_collector.zip", "upload --file", "alongside"],
     )
     if not has_package_deployment:
+        has_package_deployment = (
+            _has_assertive_phase(response_text, ["upload --file", "dcoir_collector.ps1"])
+            and _has_assertive_phase(response_text, ["upload --file", "dcoir_collector.zip"])
+            and _has_assertive_phase(response_text, ["same directory"])
+        )
+    if not has_package_deployment:
         gaps.append("package_deployment")
 
     has_local_collect = _has_standalone_local_collect(response_text)
@@ -102,6 +108,7 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         has_interpretation = (
             "begin with orientation surfaces" in normalized
             or "interpret collection output" in normalized
+            or _has_assertive_phase(response_text, ["orientation surfaces"])
         )
     if not has_interpretation:
         gaps.append("interpretation")

@@ -7,7 +7,8 @@ from pathlib import Path
 
 from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture_index, repo_root_from_script
 from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
-from lib.gemini_behavioral_replay_scoring import score_response_pack
+from lib.gemini_behavioral_replay_scoring import score_forbidden_markers, score_response_pack
+from lib.gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
 from lib.openai_dcoir_replay_live import build_request_body, extract_text, make_pack
 from lib.openai_dcoir_replay_package import OPENAI_MODEL_ID, load_governed_openai_package
@@ -66,6 +67,46 @@ def main() -> int:
     sample = {"output": [{"type": "message", "content": [{"type": "output_text", "text": "sample answer"}]}]}
     if extract_text(sample) != "sample answer":
         raise SystemExit("Responses API text extraction failed.")
+
+    rejected_byovd = (
+        ("confirmed malicious compromise", "Do not characterize this as confirmed malicious compromise without supporting telemetry."),
+        ("logs were cleared", "It cannot establish that logs were cleared without direct evidence."),
+    )
+    for marker, response in rejected_byovd:
+        if score_forbidden_markers(response, [marker])["count"]:
+            raise SystemExit(f"Terra BYOVD rejection was scored as affirmative: {marker}")
+    affirmative_byovd = (
+        ("confirmed malicious compromise", "We characterize this as confirmed malicious compromise."),
+        ("logs were cleared", "The evidence establishes that logs were cleared."),
+    )
+    for marker, response in affirmative_byovd:
+        if score_forbidden_markers(response, [marker])["hits"] != [marker]:
+            raise SystemExit(f"Terra BYOVD affirmative guard was suppressed: {marker}")
+
+    distributed_collector = """
+1. Package/deployment. Upload both files to the endpoint in this order.
+upload --file "DCOIR_Collector.ps1"
+upload --file "DCOIR_Collector.zip"
+They must be placed in the same directory.
+2. Endpoint execution. Use execute --command with powershell.exe -File .\DCOIR_Collector.ps1 -Mode Collect -Tier T1.
+3. Local validation. Use powershell.exe -File .\DCOIR_Collector.ps1 -Mode Collect -Tier T1 locally.
+4. Retrieval. Read NEXT_GET_FILE, then use get-file --path with the exact returned path.
+5. Interpret collected output. Review orientation surfaces before raw output.
+ANALYST_OVERVIEW_PATH
+UPLOAD_SUMMARY_PATH
+METADATA_REPORT_PATH
+SECURITY_HIGH_SIGNAL_SUMMARY_PATH
+6. Cleanup. Use CLEANUP_COMMAND only after required evidence is preserved.
+"""
+    gaps = collector_procedure_actionability_gaps(distributed_collector)
+    if gaps:
+        raise SystemExit(f"Distributed Terra collector procedure was not actionable: {gaps}")
+    rejected_placement = distributed_collector.replace(
+        "They must be placed in the same directory.",
+        "Do not place both files in the same directory.",
+    )
+    if "package_deployment" not in collector_procedure_actionability_gaps(rejected_placement):
+        raise SystemExit("Negated same-directory placement incorrectly satisfied package deployment.")
 
     entries = {entry["fixture_id"]: entry for entry in load_fixture_index(FIXTURES_ROOT).get("fixtures", [])}
     for fixture_id, pack_name in GOOD_PACKS.items():
