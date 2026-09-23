@@ -31,7 +31,6 @@ _SHARED_CONTEXT_TERMS = (
     "same command",
     "single command",
     "same lane",
-    "local powershell command",
 )
 
 _NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(
@@ -185,6 +184,9 @@ def _clause_has_referential_lane_mix(clause: str) -> bool:
 def _segment_has_negated_shared_context(segment: str) -> bool:
     if not _segment_has_lane_relation_scope(segment):
         return False
+    m=re.search(r"\\b(?:this|that|it)\\s+is\\s+(?:an?\\s+)?endpoint\\s+response(?:-| )action\\s*,?\\s+not\\s+(?:a\\s+)?local powershell\\b", segment)
+    if m and not _occurrence_is_quoted(segment, m.start(), m.end()) and not _occurrence_has_lane_relation_rejection(segment, m.start()):
+        return True
     for term in _SHARED_CONTEXT_TERMS:
         for occurrence in _iter_term_occurrences(segment, term):
             if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
