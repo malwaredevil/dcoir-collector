@@ -177,19 +177,25 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
         "Python request-controlled file write",
         "Python writes to a request-controlled filesystem path",
     }
+    legacy_sentinels: list[hardened.RiskSentinel] = []
+    for sentinel in _original_detect_risk_sentinels(diff, None):
+        if (sentinel.path, sentinel.line) in diff_fixture_added_lines:
+            continue
+        if sentinel.label in skipped_test_file_write_labels:
+            if is_python_test_file_path(sentinel.path):
+                continue
+            if not python_line_has_explicit_file_write_call(sentinel.text):
+                # Historical string matching treated names such as ``urlopen`` as
+                # filesystem ``open``. Keep uncertain real .open calls, but drop
+                # parseable call names that are not file-write APIs.
+                continue
+        legacy_sentinels.append(sentinel)
+
     combined = [
         *detect_python_file_write_path_sentinels(diff),
         *detect_python_dynamic_exec_sentinels(diff),
         *detect_github_actions_yaml_sentinels(diff),
-        *[
-            sentinel
-            for sentinel in _original_detect_risk_sentinels(diff, None)
-            if (sentinel.path, sentinel.line) not in diff_fixture_added_lines
-            and not (
-                is_python_test_file_path(sentinel.path)
-                and sentinel.label in skipped_test_file_write_labels
-            )
-        ],
+        *legacy_sentinels,
     ]
     deduped: list[hardened.RiskSentinel] = []
     seen: set[tuple[str, int, str]] = set()

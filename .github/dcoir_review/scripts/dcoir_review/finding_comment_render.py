@@ -27,9 +27,20 @@ def _deterministic_repair_disposition(finding: dict[str, Any]) -> str:
     )
     outcome = str(marker.get("outcome", "") or "").strip()
     if outcome in {"verified-no-safe-repair-set", "no-safe-single-line-fix"}:
+        critic_model = str(marker.get("critic_model", "") or "").strip()
+        if marker.get("critic_accepted") is True:
+            return (
+                "Repair synthesis passed the independent critic, but final exact-head revalidation "
+                "declined the candidate; no publishable repair set was produced."
+            )
+        if critic_model:
+            return (
+                "Repair synthesis produced a critic-eligible candidate, but the independent repair "
+                "critic rejected it; no publishable repair set was produced."
+            )
         return (
-            "Repair synthesis was attempted, but no independently accepted complete "
-            "repair set was available."
+            "Repair synthesis did not produce a critic-eligible complete repair set; no publishable "
+            "repair set was produced."
         )
     if outcome == "repair-stage-failed-closed":
         return "Repair synthesis was attempted and failed closed before an applyable repair was published."

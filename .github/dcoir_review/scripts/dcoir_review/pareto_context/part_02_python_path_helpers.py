@@ -164,10 +164,92 @@ def python_augmented_dynamic_path_target(text: str, path_constructor_names: set[
     return None
 
 
-def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> bool:
+def python_parse_diff_line(text: str) -> ast.Module | None:
+    """Parse one Python diff line, including block headers such as ``with ...:``."""
+
+    source = text.lstrip()
     try:
-        module = ast.parse(text.lstrip())
+        return ast.parse(source)
     except SyntaxError:
+        if source.rstrip().endswith(":"):
+            try:
+                return ast.parse(source.rstrip() + "\n    pass")
+            except SyntaxError:
+                return None
+        return None
+
+
+def python_call_uses_write_mode(call: ast.Call) -> bool:
+    """Return True when an open-style call can write to its target."""
+
+    mode_node = call.args[1] if len(call.args) > 1 else None
+    for keyword in call.keywords:
+        if keyword.arg == "mode":
+            mode_node = keyword.value
+            break
+    if mode_node is None:
+        return False
+    if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
+        return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
+    # A dynamic mode cannot prove read-only behavior, so preserve the security signal.
+    return True
+
+
+def python_direct_dynamic_open_write(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+) -> bool:
+    """Detect direct dynamic file opens while excluding lookalikes such as urlopen."""
+
+    module = python_parse_diff_line(text)
+    if module is None:
+        return False
+    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    for node in ast.walk(module):
+        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(node):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name) and func.id == "open":
+            return bool(node.args and python_is_dynamic_path_segment(node.args[0]))
+        if not isinstance(func, ast.Attribute) or func.attr != "open":
+            continue
+        value = func.value
+        if python_is_path_constructor(value, constructor_names) and value.args:
+            return python_is_dynamic_path_segment(value.args[0])
+    return False
+
+
+def python_line_has_explicit_file_write_call(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+) -> bool:
+    """Distinguish real file-write APIs from lexical open() lookalikes."""
+
+    module = python_parse_diff_line(text)
+    if module is None:
+        # Preserve legacy coverage when a single diff line cannot be parsed safely.
+        return True
+    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    for node in ast.walk(module):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Name) and func.id == "open":
+            return True
+        if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
+            return True
+        if isinstance(func, ast.Attribute) and func.attr == "open":
+            # os.open and Path.open are filesystem opens; arbitrary .open calls remain
+            # context-sensitive and are sent to the semantic verifier downstream.
+            return True
+    return False
+
+
+def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> bool:
+    module = python_parse_diff_line(text)
+    if module is None:
         return False
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     for node in ast.walk(module):
@@ -181,6 +263,8 @@ def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str]
         value_is_path, value_has_dynamic = python_path_expr_info(value, constructor_names, os_module_names)
         if value_is_path and value_has_dynamic:
             return True
+    if python_direct_dynamic_open_write(text, path_constructor_names, os_module_names):
+        return True
     return False
 
 
@@ -195,11 +279,15 @@ def python_file_write_target(text: str, path_constructor_names: set[str] | None 
     for node in ast.walk(module):
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
             continue
-        if node.func.attr not in {"write_text", "write_bytes"}:
+        if node.func.attr in {"write_text", "write_bytes"}:
+            target = python_target_key(node.func.value)
+            if target:
+                return target
             continue
-        target = python_target_key(node.func.value)
-        if target:
-            return target
+        if node.func.attr == "open" and python_call_uses_write_mode(node):
+            target = python_target_key(node.func.value)
+            if target:
+                return target
     return None
 
 
@@ -212,7 +300,9 @@ def python_wrapped_file_write_target(text: str, path_constructor_names: set[str]
     for node in ast.walk(module):
         if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
             continue
-        if node.func.attr not in {"write_text", "write_bytes"}:
+        if node.func.attr not in {"write_text", "write_bytes", "open"}:
+            continue
+        if node.func.attr == "open" and not python_call_uses_write_mode(node):
             continue
         value = node.func.value
         if python_is_path_constructor(value, constructor_names) and value.args:

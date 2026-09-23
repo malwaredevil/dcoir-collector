@@ -22,6 +22,22 @@ ORDINARY_SOURCE = '''def advertised_even(value: int) -> bool:
     return value % 2 == 1
 '''
 
+PATH_WRITE_PATH = "project_sources/gemini/tools/lib/path_write_probe.py"
+SAFE_PATH_WRITE_SOURCE = '''from pathlib import Path
+
+def write_report(output_dir: Path, payload: str) -> None:
+    governed = output_dir.resolve()
+    validation_root = Path("project_sources/validation").resolve()
+    if governed != validation_root and not governed.is_relative_to(validation_root):
+        raise ValueError("outside governed validation root")
+    (governed / "report.json").write_text(payload, encoding="utf-8")
+'''
+UNSAFE_PATH_WRITE_SOURCE = '''from pathlib import Path
+
+def write_report(user_path: str, payload: str) -> None:
+    Path(user_path).write_text(payload, encoding="utf-8")
+'''
+
 
 class Reporter:
     def __init__(self) -> None:
@@ -123,6 +139,93 @@ def test_supported_model_candidate_retains_concrete_evidence(review, verifier) -
     assert marker["mode"] == "model-judge"
     assert marker["confidence"] == 0.94
     assert "value % 2" in marker["evidence"]
+
+
+
+def _path_write_finding(v16, source: str, line: int) -> dict:
+    kind = v16.v11.PYTHON_PATH_WRITE
+    return {
+        "title": "Python writes to a request-controlled filesystem path",
+        "severity": "critical",
+        "confidence": 0.99,
+        "path": PATH_WRITE_PATH,
+        "line": line,
+        "body": "This write may use a request-controlled path.",
+        "validation": "python3 -m py_compile " + PATH_WRITE_PATH,
+        "_risk_sentinel_kind": kind,
+        "_risk_sentinel_key": [PATH_WRITE_PATH, line, kind],
+        "_anchored_line_text": source.splitlines()[line - 1],
+    }
+
+
+def test_context_sensitive_path_write_can_be_semantically_suppressed(review, verifier) -> None:
+    v16 = importlib.import_module("dcoir_review_required_runtime_patch_v16")
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    finding = _path_write_finding(v16, SAFE_PATH_WRITE_SOURCE, 8)
+    review.fetch_pr_file_text = lambda _gh, path, _sha: SAFE_PATH_WRITE_SOURCE if path == PATH_WRITE_PATH else ""
+    original = review.hardened.openrouter_review
+    calls = {"count": 0}
+
+    def reject_path_write(*_args, **_kwargs):
+        calls["count"] += 1
+        return (
+            {
+                "supported": False,
+                "confidence": 0.99,
+                "evidence": "",
+                "reason": "The full file constrains the destination to the governed validation root before the write.",
+            },
+            "verifier-model",
+            "default",
+        )
+
+    review.hardened.openrouter_review = reject_path_write
+    reporter = Reporter()
+    try:
+        verified = verifier.verify_findings_for_publication(review, [finding], object(), pr(), config, reporter)
+    finally:
+        review.hardened.openrouter_review = original
+    assert verified == []
+    assert calls["count"] == 1
+    assert any(
+        "deterministic=0" in detail and "model_judged=1" in detail and "suppressed=1" in detail
+        for stage, detail in reporter.events
+        if stage == "finding-verifier"
+    )
+
+
+def test_unsafe_path_write_still_requires_and_can_pass_semantic_verification(review, verifier) -> None:
+    v16 = importlib.import_module("dcoir_review_required_runtime_patch_v16")
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    finding = _path_write_finding(v16, UNSAFE_PATH_WRITE_SOURCE, 4)
+    review.fetch_pr_file_text = lambda _gh, path, _sha: UNSAFE_PATH_WRITE_SOURCE if path == PATH_WRITE_PATH else ""
+    original = review.hardened.openrouter_review
+    calls = {"count": 0}
+
+    def support_path_write(*_args, **_kwargs):
+        calls["count"] += 1
+        return (
+            {
+                "supported": True,
+                "confidence": 0.99,
+                "evidence": "Line 4 writes directly to Path(user_path) with no containment check in the supplied file.",
+                "reason": "The exact file directly supports the request-controlled destination claim.",
+            },
+            "verifier-model",
+            "default",
+        )
+
+    review.hardened.openrouter_review = support_path_write
+    try:
+        verified = verifier.verify_findings_for_publication(review, [finding], object(), pr(), config, Reporter())
+    finally:
+        review.hardened.openrouter_review = original
+    assert calls["count"] == 1
+    assert len(verified) == 1
+    marker = verified[0][verifier.VERIFIER_MARKER]
+    assert marker["mode"] == "model-judge"
+    assert marker["supported"] is True
+    assert "Path(user_path)" in marker["evidence"]
 
 
 def test_verifier_capacity_is_independent_from_repair_budget(review, verifier) -> None:
@@ -236,6 +339,8 @@ def main() -> None:
     test_deterministic_core_sentinel_is_evidence_verified_without_model(review, v20, verifier)
     test_unsupported_model_candidate_is_suppressed(review, verifier)
     test_supported_model_candidate_retains_concrete_evidence(review, verifier)
+    test_context_sensitive_path_write_can_be_semantically_suppressed(review, verifier)
+    test_unsafe_path_write_still_requires_and_can_pass_semantic_verification(review, verifier)
     test_verifier_capacity_is_independent_from_repair_budget(review, verifier)
     test_ambiguous_verifier_output_fails_closed(review, verifier)
     print("dcoir_review_finding_verifier_selftest passed")

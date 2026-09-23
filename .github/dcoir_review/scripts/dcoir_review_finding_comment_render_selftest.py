@@ -229,6 +229,35 @@ def main() -> None:
         )
         assert expected in disposition
         assert "MODEL TEXT" not in disposition
+    precritic = renderer._deterministic_repair_disposition(
+        {repair.REPAIR_MARKER: {"outcome": "verified-no-safe-repair-set", "reason": "MODEL TEXT"}}
+    )
+    assert "critic-eligible" in precritic
+    assert "MODEL TEXT" not in precritic
+    critic_rejected = renderer._deterministic_repair_disposition(
+        {
+            repair.REPAIR_MARKER: {
+                "outcome": "verified-no-safe-repair-set",
+                "critic_model": "openai/gpt-5.6-sol-pro",
+                "critic_confidence": 0.90,
+                "reason": "MODEL TEXT",
+            }
+        }
+    )
+    assert "critic rejected" in critic_rejected
+    assert "MODEL TEXT" not in critic_rejected
+    postcritic = renderer._deterministic_repair_disposition(
+        {
+            repair.REPAIR_MARKER: {
+                "outcome": "verified-no-safe-repair-set",
+                "critic_model": "openai/gpt-5.6-sol-pro",
+                "critic_accepted": True,
+                "reason": "MODEL TEXT",
+            }
+        }
+    )
+    assert "exact-head revalidation" in postcritic
+    assert "MODEL TEXT" not in postcritic
     observed = {}
     for name, finding in cases.items():
         rendered = review.base.build_inline_comment(dict(finding), "test-model", config)
@@ -240,7 +269,7 @@ def main() -> None:
             continue
         if name == "deterministic_declined":
             assert "MODEL REPAIR RATIONALE MUST NOT RENDER" not in rendered, rendered
-            assert "Repair synthesis was attempted, but no independently accepted complete repair set was available." in rendered, rendered
+            assert "Repair synthesis did not produce a critic-eligible complete repair set" in rendered, rendered
             continue
         observed[name] = hashlib.sha256(rendered.encode("utf-8")).hexdigest()
     assert observed == EXPECTED_SHA256, {"expected": EXPECTED_SHA256, "observed": observed}
