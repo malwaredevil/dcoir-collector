@@ -10,6 +10,7 @@ from .gemini_behavioral_replay_text_scoring import (
     _occurrence_is_rejected_after,
     normalize_text,
 )
+from .gemini_behavioral_replay_semantic_assertions import lane_target_head_index
 
 def _clause_has_endpoint_lane(clause: str) -> bool:
     return (
@@ -35,106 +36,8 @@ def _clause_has_local_lane(clause: str) -> bool:
 _REFERENTIAL_LANES_PATTERN = (
     r"(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)"
 )
-_LANE_TARGET_HEAD_BLOCKERS = frozenset(
-    {
-        "and",
-        "or",
-        "but",
-        "however",
-        "whereas",
-        "yet",
-        "then",
-        "except",
-        "excepting",
-        "excluding",
-        "excluded",
-        "without",
-        "unless",
-        "until",
-        "than",
-        "instead",
-        "rather",
-        "not",
-        "no",
-        "never",
-        "nor",
-        "apart",
-        "unlike",
-        "versus",
-        "vs",
-        "against",
-        "besides",
-        "beside",
-        "save",
-        "saving",
-        "aside",
-        "outside",
-        "beyond",
-        "bar",
-        "barring",
-        "sans",
-        "minus",
-        "from",
-        "to",
-        "for",
-        "of",
-        "in",
-        "on",
-        "at",
-        "by",
-        "with",
-        "as",
-        "about",
-        "around",
-        "through",
-        "via",
-        "per",
-        "under",
-        "over",
-        "before",
-        "after",
-        "between",
-        "among",
-        "across",
-        "into",
-        "onto",
-        "within",
-        "near",
-        "during",
-        "since",
-        "toward",
-        "towards",
-        "upon",
-        "if",
-        "when",
-        "while",
-        "though",
-        "although",
-        "because",
-        "whether",
-        "once",
-        "where",
-        "wherever",
-        "whenever",
-    }
-)
-
-
 def _lane_target_head_index(tokens: List[str]) -> int | None:
-    scan_limit = min(len(tokens), 4)
-    for index in range(scan_limit):
-        token = tokens[index]
-        if token in _LANE_TARGET_HEAD_BLOCKERS:
-            return None
-        if token in {"endpoint", "response-action", "local", "workstation"}:
-            return index
-        if (
-            token == "response"
-            and index + 1 < len(tokens)
-            and tokens[index + 1] == "action"
-        ):
-            return index
-    return None
+    return lane_target_head_index(tokens)
 
 
 def _iter_lane_relation_segments(clause: str) -> Iterable[str]:

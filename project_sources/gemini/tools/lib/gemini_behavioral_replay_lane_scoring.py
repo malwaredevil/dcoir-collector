@@ -11,7 +11,7 @@ from .gemini_behavioral_replay_text_scoring import (
     _occurrence_is_rejected_after,
     normalize_text,
 )
-from .gemini_behavioral_replay_semantic_assertions import response_has_explicit_lane_separation_semantics
+from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
 from .gemini_behavioral_replay_lane_context import (
     _REFERENTIAL_LANES_PATTERN,
     _assertive_phrase_occurrences,
@@ -348,6 +348,9 @@ def _clause_has_referential_lane_separation(clause: str) -> bool:
 
 
 def has_execution_lane_separation(response_text: str) -> bool:
+    semantic_status = analyze_semantics(response_text).execution_lane_separation_status()
+    if semantic_status is not None:
+        return semantic_status
     clauses = list(_iter_clauses(response_text))
     has_endpoint_lane, has_local_lane = _lane_presence(clauses)
     if not (has_endpoint_lane and has_local_lane):
@@ -358,8 +361,6 @@ def has_execution_lane_separation(response_text: str) -> bool:
         return False
     if _response_has_pronominal_shared_context_mix(clauses):
         return False
-    if response_has_explicit_lane_separation_semantics(response_text):
-        return True
     normalized = normalize_text(response_text)
     m=re.search(r"\b(this|that|it)\s+is\s+(?:an?\s+)?endpoint\s+response[- ]action(?: syntax)?\s*,?\s+not\s+(?:a\s+)?local powershell\b",normalized)
     if m and not _occurrence_is_quoted(normalized,m.start(),m.end()) and not _occurrence_has_lane_relation_rejection(normalized,m.start()):

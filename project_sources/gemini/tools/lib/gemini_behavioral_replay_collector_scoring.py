@@ -4,6 +4,7 @@ import re
 from typing import List
 
 from .gemini_behavioral_replay_rejection_patterns import POST_ACTION_REJECTION_PATTERN
+from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
 from .gemini_behavioral_replay_text_scoring import (
     _iter_clauses,
     _iter_term_occurrences,
@@ -110,26 +111,26 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if "next_get_file" not in normalized or not has_retrieval:
         gaps.append("retrieval")
 
-    interpretation_surfaces = (
-        "analyst_overview_path",
-        "upload_summary_path",
-        "metadata_report_path",
-        "security_high_signal_summary_path",
-    )
-    has_interpretation = _has_assertive_phase(response_text, list(interpretation_surfaces))
-    if not has_interpretation and all(surface in normalized for surface in interpretation_surfaces):
-        has_interpretation = (
-            "begin with orientation surfaces" in normalized
-            or "interpret collection output" in normalized
-            or _has_assertive_phase(response_text, ["orientation surfaces"])
-            or _has_assertive_phase(response_text, ["interpret the returned evidence", "analyst-first order"])
-            or _has_assertive_phase(response_text, ["interpret collector output", "analyst-first order"])
-            or (
-                _has_assertive_phase(response_text, ["interpret collector output"])
-                and _has_assertive_phase(response_text, ["review", "in this order"])
-            )
-            or _has_assertive_phase(response_text, ["review", "returned", "in this order"])
+    semantic_interpretation = analyze_semantics(response_text).interpretation_actionability_status()
+    if semantic_interpretation is None:
+        interpretation_surfaces = (
+            "analyst_overview_path",
+            "upload_summary_path",
+            "metadata_report_path",
+            "security_high_signal_summary_path",
         )
+        has_interpretation = _has_assertive_phase(response_text, list(interpretation_surfaces))
+        if not has_interpretation and all(surface in normalized for surface in interpretation_surfaces):
+            has_interpretation = (
+                "begin with orientation surfaces" in normalized
+                or "interpret collection output" in normalized
+                or _has_assertive_phase(response_text, ["orientation surfaces"])
+                or _has_assertive_phase(response_text, ["interpret the returned evidence", "analyst-first order"])
+                or _has_assertive_phase(response_text, ["interpret collector output", "analyst-first order"])
+                or _has_assertive_phase(response_text, ["review", "returned", "in this order"])
+            )
+    else:
+        has_interpretation = semantic_interpretation
     if not has_interpretation:
         gaps.append("interpretation")
 

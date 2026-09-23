@@ -8,7 +8,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     BOUNDED_UNVERIFIED_SCOPE, COORDINATED_NEGATION_SCOPE, POST_UNSUPPORTED_SCOPE,
 )
 from .gemini_behavioral_replay_marker_semantics import augment_semantic_marker_matches
-from .gemini_behavioral_replay_semantic_assertions import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
 from .gemini_behavioral_replay_text_scoring import (
     CONTRADICTION_PAIRS,
     INVENTED_TOOL_TERMS,
@@ -27,8 +27,9 @@ from .gemini_behavioral_replay_collector_scoring import collector_procedure_acti
 
 def _term_has_assertive_semantics(text: str, term: str) -> bool:
     surface = str(text).lower()
+    analysis = analyze_semantics(surface)
     return any(
-        occurrence_is_assertive_polarity(surface, occurrence.start(), occurrence.end())
+        analysis.occurrence_is_assertive(occurrence.start(), occurrence.end())
         for occurrence in _iter_term_occurrences(surface, term)
     )
 
@@ -171,17 +172,6 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
         )
         hits = [hit for hit in hits if _term_has_assertive_semantics(response_text, hit)]
         for hit in hits:
-            if hit.startswith("guarantee"):
-                active = []
-                for occurrence in _iter_term_occurrences(lowered, hit):
-                    if _occurrence_is_negated(lowered, occurrence.start()) or _occurrence_is_rejected_before(lowered, occurrence.start()) or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
-                        continue
-                    words = lowered[:occurrence.start()].rstrip().split()
-                    if words and words[-1] in {"a", "an", "the", "this", "that", "these", "those", "such", "our", "your", "their", "its"}:
-                        continue
-                    active.append(occurrence)
-                if not active:
-                    continue
             anomalies.append({"type": "unsupported_certainty_claims", "detail": hit})
 
     if "invented_tool_or_workflow" in requested_checks:

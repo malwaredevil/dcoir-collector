@@ -623,3 +623,80 @@ Use direct PowerShell only for local workstation testing. Do not paste Elastic r
     )
     if "interpretation" not in collector_procedure_actionability_gaps(heading_only_terra_interpretation):
         raise SystemExit("Interpretation heading without an actionable review step satisfied actionability.")
+
+    # Semantic-consolidation regressions from final live head 97ea7719.
+    final_gemini_operator = (
+        "You cannot rely on targeted mode with `WindowStart` and `WindowEnd` to guarantee exact filtering, "
+        "nor will it definitely produce a specific artifact folder. We do not claim exact filtering semantics "
+        "or guaranteed artifact generation without verifying the collector contract."
+    )
+    final_gemini_operator_anomalies = detect_anomalies(
+        final_gemini_operator, ["unsupported_certainty_claims"]
+    )
+    if final_gemini_operator_anomalies:
+        raise SystemExit(f"Final Gemini bounded guarantee wording triggered certainty anomalies: {final_gemini_operator_anomalies}")
+    hostile_gemini_operator = detect_anomalies(
+        "Targeted mode guarantees exact filtering and definitely produces the expected artifact folder.",
+        ["unsupported_certainty_claims"],
+    )
+    if not hostile_gemini_operator:
+        raise SystemExit("Affirmative Gemini guarantee wording escaped certainty scoring.")
+
+    final_terra_operator = (
+        "I would not claim that targeted mode with WindowStart and WindowEnd guarantees exact filtering across every artifact family "
+        "or definitely produce a particular artifacts folder. No fresh governed collector source readback was performed, so exact behavior remains unverified."
+    )
+    final_terra_operator_score = score_marker_presence(final_terra_operator, ["do not claim", "governed source"])
+    if set(final_terra_operator_score["matched"]) != {"do not claim", "governed source"}:
+        raise SystemExit(f"Modal no-claim semantics were missed: {final_terra_operator_score}")
+    hostile_modal_claim = score_marker_presence(
+        "I would claim that targeted mode guarantees exact filtering across every artifact family.",
+        ["do not claim"],
+    )
+    if hostile_modal_claim["matched"]:
+        raise SystemExit(f"Affirmative modal claim incorrectly satisfied do-not-claim semantics: {hostile_modal_claim}")
+
+    final_terra_byovd = (
+        "The available evidence supports suspicious staging or persistence risk involving a vulnerable driver, "
+        "but it does not prove active exploitation or confirmed malicious compromise."
+    )
+    final_terra_byovd_score = score_forbidden_markers(final_terra_byovd, ["confirmed malicious compromise"])
+    if final_terra_byovd_score["hits"]:
+        raise SystemExit(f"Coordinated negated compromise object triggered forbidden scoring: {final_terra_byovd_score}")
+    hostile_terra_byovd = score_forbidden_markers(
+        "The evidence does not prove active exploitation, but this is confirmed malicious compromise.",
+        ["confirmed malicious compromise"],
+    )
+    if hostile_terra_byovd["hits"] != ["confirmed malicious compromise"]:
+        raise SystemExit(f"Independent affirmative compromise claim escaped forbidden scoring: {hostile_terra_byovd}")
+
+    final_terra_collector = """2. Endpoint execution lane
+Use Elastic response-action syntax only in the endpoint response console. Do not paste this wrapper into local workstation PowerShell.
+
+3. Local workstation PowerShell lane
+Use direct PowerShell only for local testing, harness validation, or other workstation-local activity, not in the Elastic response console.
+
+5. Interpret outputs
+Start with the analyst-first surfaces identified by the returned collector output, in this order when available:
+1. ANALYST_OVERVIEW_PATH
+2. UPLOAD_SUMMARY_PATH
+3. METADATA_REPORT_PATH
+4. SECURITY_HIGH_SIGNAL_SUMMARY_PATH
+Base conclusions on the referenced evidence carriers.
+"""
+    if not has_execution_lane_separation(final_terra_collector):
+        raise SystemExit("Referential endpoint/local lane separation was not recognized.")
+    if "interpretation" in collector_procedure_actionability_gaps(final_terra_collector):
+        raise SystemExit("Interpret-outputs actionability semantics were not recognized.")
+    hostile_terra_lane = final_terra_collector.replace(
+        "Do not paste this wrapper into local workstation PowerShell.",
+        "Paste this endpoint wrapper into local workstation PowerShell.",
+    )
+    if has_execution_lane_separation(hostile_terra_lane):
+        raise SystemExit("Affirmative referential lane mixing satisfied lane separation.")
+    hostile_terra_interpretation = final_terra_collector.replace(
+        "5. Interpret outputs\nStart with the analyst-first surfaces identified by the returned collector output, in this order when available:",
+        "5. Output list\nDo not interpret these surfaces; they are listed for reference only:",
+    )
+    if "interpretation" not in collector_procedure_actionability_gaps(hostile_terra_interpretation):
+        raise SystemExit("Negated output interpretation incorrectly satisfied actionability.")

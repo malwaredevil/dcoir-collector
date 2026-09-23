@@ -7,7 +7,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     DIRECT_REJECTION_PREFIX,
     GOVERNED_SOURCE_ACTION_SCOPE,
 )
-from .gemini_behavioral_replay_semantic_assertions import response_has_next_evidence_semantics
+from .gemini_behavioral_replay_semantic_assertions import analyze_semantics, response_has_next_evidence_semantics
 from .gemini_behavioral_replay_text_scoring import (
     _find_contextual_term_hits,
     _iter_term_occurrences,
@@ -22,20 +22,6 @@ from .gemini_behavioral_replay_text_scoring import (
 def _append_once(values: List[str], marker: str) -> None:
     if marker not in values:
         values.append(marker)
-
-
-def _has_bounded_no_claim_semantics(lowered: str) -> bool:
-    for term in ("guarantee", "definitely"):
-        for occurrence in _iter_term_occurrences(lowered, term):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
-                continue
-            if (
-                _occurrence_is_negated(lowered, occurrence.start())
-                or _occurrence_is_rejected_before(lowered, occurrence.start())
-                or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start())
-            ):
-                return True
-    return False
 
 
 def _has_unresolved_gap_semantics(lowered: str) -> bool:
@@ -102,7 +88,7 @@ def augment_semantic_marker_matches(
             break
 
     if "do not claim" in markers and "do not claim" not in result:
-        if _has_bounded_no_claim_semantics(lowered):
+        if analyze_semantics(response_text).has_no_claim_semantics():
             _append_once(result, "do not claim")
 
     if "interpret" in markers and "interpret" not in result:
