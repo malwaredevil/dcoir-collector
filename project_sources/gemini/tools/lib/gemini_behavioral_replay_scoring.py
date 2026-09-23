@@ -8,6 +8,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     BOUNDED_UNVERIFIED_SCOPE, COORDINATED_NEGATION_SCOPE, POST_UNSUPPORTED_SCOPE,
 )
 from .gemini_behavioral_replay_marker_semantics import augment_semantic_marker_matches
+from .gemini_behavioral_replay_semantic_assertions import occurrence_is_assertive_polarity
 from .gemini_behavioral_replay_text_scoring import (
     CONTRADICTION_PAIRS,
     INVENTED_TOOL_TERMS,
@@ -23,6 +24,13 @@ from .gemini_behavioral_replay_text_scoring import (
 )
 from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from .gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
+
+def _term_has_assertive_semantics(text: str, term: str) -> bool:
+    return any(
+        occurrence_is_assertive_polarity(text, occurrence.start(), occurrence.end())
+        for occurrence in _iter_term_occurrences(text, term)
+    )
+
 
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
@@ -135,7 +143,8 @@ def score_forbidden_markers(
     )
     contextual_hits = [
         marker for marker in contextual_hits
-        if not _marker_only_in_not_proven_bullets(response_text, marker)
+        if _term_has_assertive_semantics(lowered, marker)
+        and not _marker_only_in_not_proven_bullets(response_text, marker)
         and not _marker_only_in_bounded_rejection(response_text, marker)
     ]
     literal_hits = _find_contextual_term_hits(lowered, literal_markers or [])
@@ -159,6 +168,7 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
             skip_negated=True,
             skip_quoted=True,
         )
+        hits = [hit for hit in hits if _term_has_assertive_semantics(lowered, hit)]
         for hit in hits:
             if hit.startswith("guarantee"):
                 active = []
