@@ -238,6 +238,8 @@ def python_line_has_explicit_file_write_call(
 
     module = python_parse_diff_line(text)
     if module is None:
+        if re.search(r"\burlopen\s*\(", text):
+            return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
         return True
     for node in ast.walk(module):
