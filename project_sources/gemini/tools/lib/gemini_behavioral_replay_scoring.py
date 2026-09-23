@@ -4,6 +4,10 @@ from typing import Any, Dict, List
 
 import re
 
+from .gemini_behavioral_replay_rejection_patterns import (
+    BOUNDED_UNVERIFIED_SCOPE, COORDINATED_NEGATION_SCOPE, DIRECT_REJECTION_PREFIX,
+    GOVERNED_SOURCE_ACTION_SCOPE, POST_UNSUPPORTED_SCOPE,
+)
 from .gemini_behavioral_replay_text_scoring import (
     CONTRADICTION_PAIRS,
     INVENTED_TOOL_TERMS,
@@ -45,6 +49,19 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
                 continue
             matched.append("do not guess")
             break
+    if "governed source" in markers:
+        matched = [m for m in matched if m != "governed source"]
+        for o in _iter_term_occurrences(lowered, "governed source"):
+            if _occurrence_is_quoted(lowered, o.start(), o.end()):
+                continue
+            p = lowered[max(0, o.start() - 120):o.start()]
+            a = GOVERNED_SOURCE_ACTION_SCOPE.search(p)
+            if a and DIRECT_REJECTION_PREFIX.search(p[max(0, a.start() - 40):a.start()]):
+                continue
+            if not a and (_occurrence_is_negated(lowered, o.start()) or _occurrence_is_rejected_before(lowered, o.start()) or _occurrence_is_rejected_after(lowered, o.end(), o.start())):
+                continue
+            matched.append("governed source")
+            break
     for marker in markers:
         if marker in matched:
             continue
@@ -81,23 +98,53 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
 def _marker_only_in_not_proven_bullets(response_text: str, marker: str) -> bool:
     target = normalize_text(marker)
     in_section = False
-    seen_rejected = False
+    seen = False
     seen_active = False
     for raw_line in str(response_text).splitlines():
         line = normalize_text(raw_line)
         if not line:
             continue
-        if line == "what is not proven":
+        if line.rstrip(":") == "what is not proven":
             in_section = True
             continue
         if in_section and raw_line.lstrip().startswith(("-", "*")):
             if target in line:
-                seen_rejected = True
+                seen = True
             continue
         in_section = False
         if target in line:
             seen_active = True
-    return seen_rejected and not seen_active
+    return seen and not seen_active
+
+
+def _marker_only_in_bounded_rejection(response_text: str, marker: str) -> bool:
+    lowered = normalize_text(response_text)
+    seen = False
+    for occurrence in _iter_term_occurrences(lowered, marker):
+        if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            continue
+        clause_start = max(
+            lowered.rfind(".", 0, occurrence.start()),
+            lowered.rfind("!", 0, occurrence.start()),
+            lowered.rfind("?", 0, occurrence.start()),
+            lowered.rfind(";", 0, occurrence.start()),
+        )
+        prefix = lowered[max(clause_start + 1, occurrence.start() - 220):occurrence.start()]
+        suffix = lowered[occurrence.end():occurrence.end() + 120]
+        frame = BOUNDED_UNVERIFIED_SCOPE.search(prefix)
+        if frame:
+            scope = prefix[frame.end():]
+            if not re.search(r"\b(?:but|however|yet|instead|so|therefore|thus|consequently)\b", scope):
+                seen = True
+                continue
+        if COORDINATED_NEGATION_SCOPE.search(prefix):
+            seen = True
+            continue
+        if POST_UNSUPPORTED_SCOPE.match(suffix):
+            seen = True
+            continue
+        return False
+    return seen
 
 
 def score_forbidden_markers(
@@ -116,6 +163,7 @@ def score_forbidden_markers(
     contextual_hits = [
         marker for marker in contextual_hits
         if not _marker_only_in_not_proven_bullets(response_text, marker)
+        and not _marker_only_in_bounded_rejection(response_text, marker)
     ]
     literal_hits = _find_contextual_term_hits(lowered, literal_markers or [])
     hits = list(dict.fromkeys(contextual_hits + literal_hits))

@@ -15,6 +15,23 @@ REJECTED_ASSERTION_PATTERN = re.compile(
 
 REJECTION_SCOPE_LIMIT = 180
 
+BOUNDED_UNVERIFIED_SCOPE = re.compile(
+    r"\b(?:not verified|not confirmed|unverified|cannot verify|can't verify|can not verify|cannot confirm|can't confirm|can not confirm)\s+that\b"
+)
+COORDINATED_NEGATION_SCOPE = re.compile(
+    r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b[^.!?;]{0,140}\b(?:and|or)\s*$"
+)
+POST_UNSUPPORTED_SCOPE = re.compile(
+    r"^\s+(?:intent|assessment|classification|determination|conclusion|claim)\s+(?:is|are)\s+(?:unsupported|unjustified|unproven|not\s+(?:supported|justified|established|proven))\b"
+)
+
+GOVERNED_SOURCE_ACTION_SCOPE = re.compile(
+    r"\b(?:fresh\s+)?(?:validation|verification|readback|inspection|review|check)\s+(?:against|of|from)\s+(?:the\s+)?$"
+)
+DIRECT_REJECTION_PREFIX = re.compile(
+    r"\b(?:avoid|do not|don't|dont|never|must not|should not)\s+$"
+)
+
 POST_MARKER_REJECTION_NOUN_PHRASE = (
     r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
     r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|finding|guarantee|generation))"

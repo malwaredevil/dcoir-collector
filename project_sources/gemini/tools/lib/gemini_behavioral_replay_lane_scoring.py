@@ -378,7 +378,7 @@ def has_execution_lane_separation(response_text: str) -> bool:
     if _response_has_pronominal_shared_context_mix(clauses):
         return False
     normalized = normalize_text(response_text)
-    m=re.search(r"\b(this|that|it)\s+is\s+(?:an?\s+)?endpoint\s+response[- ]action\s*,?\s+not\s+(?:a\s+)?local powershell\b",normalized)
+    m=re.search(r"\b(this|that|it)\s+is\s+(?:an?\s+)?endpoint\s+response[- ]action(?: syntax)?\s*,?\s+not\s+(?:a\s+)?local powershell\b",normalized)
     if m and not _occurrence_is_quoted(normalized,m.start(),m.end()) and not _occurrence_has_lane_relation_rejection(normalized,m.start()):
         return True
     endpoint_only = any(

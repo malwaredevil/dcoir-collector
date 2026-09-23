@@ -6,7 +6,7 @@ from unittest.mock import patch
 from . import gemini_behavioral_replay_models as replay_models
 from .gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
-from .gemini_behavioral_replay_scoring import score_marker_presence
+from .gemini_behavioral_replay_scoring import score_forbidden_markers, score_marker_presence
 
 
 def _model_args(models_csv: str, custom_models_csv: str, baseline_model: str) -> argparse.Namespace:
@@ -66,6 +66,83 @@ def run_live_regression_selftests() -> None:
         if result["matched"]:
             raise SystemExit(f"Unsafe or quoted guess wording satisfied the required marker: {result}")
 
+    governed_source = (
+        "We do not claim deterministic filtering or artifact delivery without fresh validation against the governed source."
+    )
+    governed_result = score_marker_presence(governed_source, ["governed source"])
+    if governed_result["matched"] != ["governed source"]:
+        raise SystemExit(f"Governed-source validation wording was invalidated incorrectly: {governed_result}")
+    rejected_governed = score_marker_presence("Avoid validation against the governed source.", ["governed source"])
+    if rejected_governed["matched"]:
+        raise SystemExit(f"Rejected governed-source validation satisfied the required marker: {rejected_governed}")
+
+    bounded_state = (
+        "It is not verified that it exited cleanly, reached artifact-ready completion, or is safe to clean up now."
+    )
+    bounded_forbidden = score_forbidden_markers(
+        bounded_state, ["it exited cleanly", "safe to clean up now"]
+    )
+    if bounded_forbidden["hits"]:
+        raise SystemExit(f"Bounded not-verified state wording triggered forbidden markers: {bounded_forbidden}")
+    affirmative_state = score_forbidden_markers(
+        "It exited cleanly and it is safe to clean up now.",
+        ["it exited cleanly", "safe to clean up now"],
+    )
+    if set(affirmative_state["hits"]) != {"it exited cleanly", "safe to clean up now"}:
+        raise SystemExit(f"Affirmative cleanup certainty escaped forbidden scoring: {affirmative_state}")
+    mixed_state = score_forbidden_markers(
+        "It is not verified that it exited cleanly, but it is safe to clean up now.",
+        ["it exited cleanly", "safe to clean up now"],
+    )
+    if "safe to clean up now" not in mixed_state["hits"]:
+        raise SystemExit(f"Contrastive affirmative cleanup certainty was over-suppressed: {mixed_state}")
+
+    causal_state = score_forbidden_markers(
+        "It is not verified that the workflow completed, so it exited cleanly.",
+        ["it exited cleanly"],
+    )
+    if causal_state["hits"] != ["it exited cleanly"]:
+        raise SystemExit(f"Independent affirmative certainty after uncertainty scope was over-suppressed: {causal_state}")
+
+    coordinated_negative = score_forbidden_markers(
+        "Do not send the next chunk or upload the remaining chunks.",
+        ["upload the remaining chunks"],
+    )
+    if coordinated_negative["hits"]:
+        raise SystemExit(f"Coordinated negative upload instruction triggered forbidden scoring: {coordinated_negative}")
+    contrastive_upload = score_forbidden_markers(
+        "Do not send the next chunk, but upload the remaining chunks.",
+        ["upload the remaining chunks"],
+    )
+    if contrastive_upload["hits"] != ["upload the remaining chunks"]:
+        raise SystemExit(f"Contrastive affirmative upload instruction escaped forbidden scoring: {contrastive_upload}")
+
+    unsupported_malice = score_forbidden_markers(
+        "Attributing high confidence malicious intent is unsupported.",
+        ["high confidence malicious"],
+    )
+    if unsupported_malice["hits"]:
+        raise SystemExit(f"Unsupported malicious attribution triggered forbidden scoring: {unsupported_malice}")
+    affirmative_malice = score_forbidden_markers(
+        "The evidence supports a high confidence malicious classification.",
+        ["high confidence malicious"],
+    )
+    if affirmative_malice["hits"] != ["high confidence malicious"]:
+        raise SystemExit(f"Affirmative malicious classification escaped forbidden scoring: {affirmative_malice}")
+
+    not_proven = score_forbidden_markers(
+        "What is not proven:\n- high confidence malicious",
+        ["high confidence malicious"],
+    )
+    if not_proven["hits"]:
+        raise SystemExit(f"Not-proven bullet triggered forbidden scoring: {not_proven}")
+    active_after_not_proven = score_forbidden_markers(
+        "What is not proven:\n- log clearing\n\nThe evidence is high confidence malicious.",
+        ["high confidence malicious"],
+    )
+    if active_after_not_proven["hits"] != ["high confidence malicious"]:
+        raise SystemExit(f"Active claim outside not-proven bullets was over-suppressed: {active_after_not_proven}")
+
     lane = (
         "Use the Elastic endpoint response console for endpoint deployment and collection.\n"
         "Use local workstation PowerShell only for local testing or harness validation.\n"
@@ -73,6 +150,11 @@ def run_live_regression_selftests() -> None:
     )
     if not has_execution_lane_separation(lane):
         raise SystemExit("Exact Terra endpoint/local separation wording was not recognized.")
+    current_lane = "This is endpoint response-action syntax, not local PowerShell."
+    if not has_execution_lane_separation(current_lane):
+        raise SystemExit("Current Terra endpoint/local syntax-separation wording was not recognized.")
+    if has_execution_lane_separation("This is endpoint response-action syntax and local PowerShell."):
+        raise SystemExit("Affirmative current-wording lane mixing satisfied execution-lane separation.")
     unsafe_lane = lane.replace("Do not mix", "Mix").replace("do not paste", "paste")
     if has_execution_lane_separation(unsafe_lane):
         raise SystemExit("Affirmative lane mixing incorrectly satisfied execution-lane separation.")
@@ -90,6 +172,18 @@ def run_live_regression_selftests() -> None:
 Orientation, metadata, and upload-summary files guide review; they do not themselves prove malicious activity. Interpret each evidence carrier by what it directly shows, what it only suggests, and what remains unverified.'''
     if "interpretation" in collector_procedure_actionability_gaps(interpretation):
         raise SystemExit("Exact Terra analyst-first interpretation wording was not recognized.")
+    current_interpretation = interpretation.replace(
+        "Interpret the returned evidence in analyst-first order:",
+        "Interpret collector output in analyst-first order:",
+    )
+    if "interpretation" in collector_procedure_actionability_gaps(current_interpretation):
+        raise SystemExit("Current Terra collector-output interpretation wording was not recognized.")
+    negated_current_interpretation = current_interpretation.replace(
+        "Interpret collector output in analyst-first order:",
+        "Do not interpret collector output in analyst-first order:",
+    )
+    if "interpretation" not in collector_procedure_actionability_gaps(negated_current_interpretation):
+        raise SystemExit("Negated current Terra interpretation wording incorrectly satisfied actionability.")
     negated_interpretation = interpretation.replace(
         "Interpret the returned evidence in analyst-first order:",
         "Do not interpret the returned evidence in analyst-first order:",
