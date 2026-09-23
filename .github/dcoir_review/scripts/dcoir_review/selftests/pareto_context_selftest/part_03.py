@@ -101,26 +101,6 @@ assert not any(
     and item.label in legacy_path_write_labels
     for item in urlopen_sentinels
 ), urlopen_sentinels
-multiline_urlopen_sentinels = mod.detect_risk_sentinels(
-    """diff --git a/tools/http_client.py b/tools/http_client.py
-index 0000000..1111111 100644
---- /dev/null
-+++ b/tools/http_client.py
-@@ -0,0 +1,6 @@
-+import urllib.request
-+def fetch(req):
-+    with urllib.request.urlopen(
-+        req,
-+    ) as response:
-+        return response.read()
-"""
-)
-assert not any(
-    item.path == "tools/http_client.py"
-    and item.line == 3
-    and item.label in legacy_path_write_labels
-    for item in multiline_urlopen_sentinels
-), multiline_urlopen_sentinels
 unsafe_builtin_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_writer.py b/tools/unsafe_writer.py
 index 0000000..1111111 100644

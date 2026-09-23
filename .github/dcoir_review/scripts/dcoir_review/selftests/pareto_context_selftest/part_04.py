@@ -1,3 +1,78 @@
+multiline_urlopen_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/http_client.py b/tools/http_client.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_client.py
+@@ -0,0 +1,6 @@
++import urllib.request
++def fetch(req):
++    with urllib.request.urlopen(
++        req,
++    ) as response:
++        return response.read()
+"""
+)
+assert not any(
+    item.path == "tools/http_client.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in multiline_urlopen_sentinels
+), multiline_urlopen_sentinels
+
+os_open_read_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_read.py b/tools/os_read.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_read.py
+@@ -0,0 +1,4 @@
++import os
++def load(user_path):
++    fd = os.open(user_path, os.O_RDONLY)
++    return fd
+"""
+)
+assert not any(
+    item.path == "tools/os_read.py" and item.label in legacy_path_write_labels
+    for item in os_open_read_sentinels
+), os_open_read_sentinels
+
+os_open_write_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_write.py b/tools/os_write.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_write.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path):
++    fd = os.open(user_path, os.O_WRONLY | os.O_CREAT)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_write.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_write_sentinels
+), os_open_write_sentinels
+
+read_only_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/read_only_path.py b/tools/read_only_path.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/read_only_path.py
+@@ -0,0 +1,4 @@
++from pathlib import Path
++def load(user_path):
++    with Path(user_path).open("r") as handle:
++        return handle.read()
+"""
+)
+assert not any(
+    item.path == "tools/read_only_path.py"
+    and item.label in legacy_path_write_labels
+    for item in read_only_path_open_sentinels
+), read_only_path_open_sentinels
+
 
 unsafe_path_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_path_writer.py b/tools/unsafe_path_writer.py

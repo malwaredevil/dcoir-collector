@@ -13,6 +13,7 @@ from typing import Any
 
 from dcoir_review import finding_comment_policy
 from dcoir_review import repair_pipeline
+from dcoir_review import repair_render
 from dcoir_review import verified_finding_render
 
 
@@ -25,30 +26,7 @@ def _deterministic_repair_disposition(finding: dict[str, Any]) -> str:
         if isinstance(finding.get(repair_pipeline.REPAIR_MARKER), dict)
         else {}
     )
-    outcome = str(marker.get("outcome", "") or "").strip()
-    if outcome in {"verified-no-safe-repair-set", "no-safe-single-line-fix"}:
-        critic_model = str(marker.get("critic_model", "") or "").strip()
-        if marker.get("critic_accepted") is True:
-            return (
-                "Repair synthesis passed the independent critic, but final exact-head revalidation "
-                "declined the candidate; no publishable repair set was produced."
-            )
-        if critic_model:
-            return (
-                "Repair synthesis produced a critic-eligible candidate, but the independent repair "
-                "critic rejected it; no publishable repair set was produced."
-            )
-        return (
-            "Repair synthesis did not produce a critic-eligible complete repair set; no publishable "
-            "repair set was produced."
-        )
-    if outcome == "repair-stage-failed-closed":
-        return "Repair synthesis was attempted and failed closed before an applyable repair was published."
-    if outcome == "verified-repair-budget-deferred":
-        return "Repair synthesis was not attempted because the configured repair budget was exhausted."
-    if outcome == "verified-repair-confidence-deferred":
-        return "Repair synthesis was not attempted because the finding was below the configured repair-confidence floor."
-    return ""
+    return repair_render.safe_repair_disposition(marker)
 
 
 def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, Any]:

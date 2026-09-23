@@ -122,11 +122,11 @@ def _valid_batch_result_item(item: Any) -> bool:
     return True
 
 
-def parse_batch(raw: Any, pending: list[dict[str, Any]], hardened: Any) -> dict[str, tuple[bool, float, str]]:
+def parse_batch(raw: Any, pending: list[dict[str, Any]], hardened: Any) -> dict[str, tuple[bool, float, str, bool]]:
     """Map by identity; malformed schema fails closed without cross-item leakage."""
 
     expected = {item["critic_item_id"] for item in pending}
-    missing = (False, 0.0, "independent repair-set critic returned no valid identity-bound disposition")
+    missing = (False, 0.0, "independent repair-set critic returned no valid identity-bound disposition", True)
     if (
         not isinstance(raw, dict)
         or set(raw) != {"results"}
@@ -135,7 +135,7 @@ def parse_batch(raw: Any, pending: list[dict[str, Any]], hardened: Any) -> dict[
     ):
         return {item_id: missing for item_id in expected}
 
-    parsed: dict[str, tuple[bool, float, str]] = {}
+    parsed: dict[str, tuple[bool, float, str, bool]] = {}
     seen: set[str] = set()
     duplicates: set[str] = set()
     for item in raw["results"]:
@@ -157,18 +157,21 @@ def parse_batch(raw: Any, pending: list[dict[str, Any]], hardened: Any) -> dict[
                 False,
                 0.0,
                 "independent repair-set critic result failed closed: batch result violated the required schema",
+                True,
             )
             continue
         try:
-            parsed[item_id] = v36._parse_critic(item, hardened)
+            accepted, confidence, reason = v36._parse_critic(item, hardened)
+            parsed[item_id] = (accepted, confidence, reason, False)
         except Exception as exc:
             parsed[item_id] = (
                 False,
                 0.0,
                 f"independent repair-set critic result failed closed: {type(exc).__name__}: {str(exc)[:300]}",
+                True,
             )
     for item_id in duplicates:
-        parsed[item_id] = (False, 0.0, "independent repair-set critic returned duplicate dispositions")
+        parsed[item_id] = (False, 0.0, "independent repair-set critic returned duplicate dispositions", True)
     for item_id in expected:
         parsed.setdefault(item_id, missing)
     return parsed
@@ -193,10 +196,11 @@ def run_group(
             raw, model, tier = module.hardened.openrouter_review(
                 prompt, v36.REPAIR_SET_CRITIC_SCHEMA, critic_config, reporter=None
             )
-            decision = v36._parse_critic(raw, module.hardened)
+            accepted, confidence, reason = v36._parse_critic(raw, module.hardened)
+            decision = (accepted, confidence, reason, False)
         except Exception as exc:
             raw, model, tier = {}, item["critic_model"], ""
-            decision = (False, 0.0, f"repair critic failed closed: {type(exc).__name__}: {str(exc)[:300]}")
+            decision = (False, 0.0, f"repair critic failed closed: {type(exc).__name__}: {str(exc)[:300]}", True)
         module.hardened.write_debug_json_artifact_safely(
             config,
             f"responses/repair-v36/{item['ordinal']:02d}-critic.json",
@@ -231,6 +235,7 @@ def run_group(
                 False,
                 0.0,
                 f"repair critic batch failed closed: {type(exc).__name__}: {str(exc)[:300]}",
+                True,
             )
             for item in group
         }

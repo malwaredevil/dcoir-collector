@@ -380,7 +380,9 @@ def main() -> None:
             review.hardened,
         )
         assert parsed[p2["critic_item_id"]][0] is True
+        assert parsed[p2["critic_item_id"]][3] is False
         assert parsed[p1["critic_item_id"]][0] is False
+        assert parsed[p1["critic_item_id"]][3] is True
         assert "required schema" in parsed[p1["critic_item_id"]][2]
         for invalid_item in (
             {"critic_item_id": p1["critic_item_id"], "accepted": "true", "confidence": 0.99, "reason": "bad"},
@@ -389,6 +391,7 @@ def main() -> None:
         ):
             parsed = batch.parse_batch({"results": [invalid_item]}, [p1], review.hardened)
             assert parsed[p1["critic_item_id"]][0] is False
+            assert parsed[p1["critic_item_id"]][3] is True
             assert "required schema" in parsed[p1["critic_item_id"]][2]
         parsed = batch.parse_batch(
             {
@@ -401,8 +404,10 @@ def main() -> None:
             review.hardened,
         )
         assert parsed[p1["critic_item_id"]][0] is False
+        assert parsed[p1["critic_item_id"]][3] is True
         assert "duplicate" in parsed[p1["critic_item_id"]][2]
         assert parsed[p2["critic_item_id"]][0] is False
+        assert parsed[p2["critic_item_id"]][3] is True
         assert "no valid identity-bound" in parsed[p2["critic_item_id"]][2]
         parsed = batch.parse_batch(
             {
