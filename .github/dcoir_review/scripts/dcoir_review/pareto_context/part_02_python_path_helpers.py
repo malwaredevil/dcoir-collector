@@ -180,9 +180,15 @@ def python_parse_diff_line(text: str) -> ast.Module | None:
 
 
 def python_call_uses_write_mode(call: ast.Call) -> bool:
-    """Return True when an open-style call can write to its target."""
+    """Return True when a builtin ``open`` or ``Path.open`` call can write."""
 
-    mode_node = call.args[1] if len(call.args) > 1 else None
+    if isinstance(call.func, ast.Name) and call.func.id == "open":
+        mode_node = call.args[1] if len(call.args) > 1 else None
+    elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
+        # pathlib.Path.open(mode=...) receives mode as its first positional arg.
+        mode_node = call.args[0] if call.args else None
+    else:
+        mode_node = None
     for keyword in call.keywords:
         if keyword.arg == "mode":
             mode_node = keyword.value
@@ -231,7 +237,6 @@ def python_line_has_explicit_file_write_call(
     if module is None:
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
         return True
-    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     for node in ast.walk(module):
         if not isinstance(node, ast.Call):
             continue
@@ -269,9 +274,8 @@ def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str]
 
 
 def python_file_write_target(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> str | None:
-    try:
-        module = ast.parse(text.lstrip())
-    except SyntaxError:
+    module = python_parse_diff_line(text)
+    if module is None:
         write_match = PYTHON_FILE_WRITE_RE.search(text)
         if not write_match:
             return None
@@ -292,9 +296,8 @@ def python_file_write_target(text: str, path_constructor_names: set[str] | None 
 
 
 def python_wrapped_file_write_target(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> str | None:
-    try:
-        module = ast.parse(text.lstrip())
-    except SyntaxError:
+    module = python_parse_diff_line(text)
+    if module is None:
         return None
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     for node in ast.walk(module):

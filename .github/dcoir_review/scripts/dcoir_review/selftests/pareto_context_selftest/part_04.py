@@ -1,3 +1,43 @@
+
+unsafe_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_path_writer.py b/tools/unsafe_path_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_path_writer.py
+@@ -0,0 +1,4 @@
++from pathlib import Path
++def persist(user_path, payload):
++    with Path(user_path).open("wb") as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_path_writer.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in unsafe_path_open_sentinels
+), unsafe_path_open_sentinels
+
+unsafe_assigned_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_assigned_writer.py b/tools/unsafe_assigned_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_assigned_writer.py
+@@ -0,0 +1,5 @@
++from pathlib import Path
++def persist(output_dir, filename, payload):
++    target = Path(output_dir) / filename
++    with target.open("w") as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_assigned_writer.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in unsafe_assigned_path_open_sentinels
+), unsafe_assigned_path_open_sentinels
+
 scope_reset_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/path_writer.py b/tools/path_writer.py
 index 0000000..1111111 100644
