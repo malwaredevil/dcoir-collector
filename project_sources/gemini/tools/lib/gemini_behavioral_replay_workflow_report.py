@@ -11,6 +11,7 @@ from lib.gemini_behavioral_replay_scoring import score_response_pack
 
 _SENSITIVE_KEY_RE = re.compile(r"(api[_-]?key|secret|token|password|authorization|credential)", re.IGNORECASE)
 _SENSITIVE_QUERY_RE = re.compile(r"((?:api[_-]?key|key|token|password)=)[^&\s`]+", re.IGNORECASE)
+_RAW_BODY_KEY_RE = re.compile(r"(?:error|response|raw)?[_-]?body(?:[_-]?excerpt)?$", re.IGNORECASE)
 
 
 def redact_report_value(value: Any) -> Any:
@@ -18,7 +19,7 @@ def redact_report_value(value: Any) -> Any:
         redacted: Dict[str, Any] = {}
         for key, child in value.items():
             key_text = str(key)
-            redacted[key] = "[redacted]" if _SENSITIVE_KEY_RE.search(key_text) else redact_report_value(child)
+            redacted[key] = "[redacted]" if (_SENSITIVE_KEY_RE.search(key_text) or _RAW_BODY_KEY_RE.search(key_text)) else redact_report_value(child)
         return redacted
     if isinstance(value, list):
         return [redact_report_value(item) for item in value]

@@ -9,6 +9,7 @@ import urllib.request
 from typing import Any, Dict, List
 
 from lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VERSION
+from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
 
 def live_prompt(fixture: Dict[str, Any], turn: Dict[str, Any]) -> str:
     evidence = fixture.get("available_evidence_by_turn", {}).get(turn.get("turn_id"), [])
@@ -78,7 +79,7 @@ def runtime_unavailable_reason(call: Dict[str, Any]) -> str:
     if call.get("ok"):
         return ""
     if call.get("error") == "http_404" and any(marker in low for marker in markers):
-        return text.strip()[:500] or "model unavailable at runtime"
+        return "model unavailable at runtime"
     return ""
 
 def unavailable_matrix_row(pack: Dict[str, Any]) -> Dict[str, Any]:
@@ -103,10 +104,10 @@ def make_pack(fixture: Dict[str, Any], args: argparse.Namespace, model: str, mod
             elif unavailable_reason:
                 response = f"MODEL_UNAVAILABLE: {model} is unavailable for live replay. {unavailable_reason}"
             else:
-                response = f"LIVE_REPLAY_CALL_FAILED: {call.get('error', 'unknown')}"
+                response = f"LIVE_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}"
             calls.append({
                 "fixture_id": fixture.get("fixture_id"), "model_name": model, "turn_id": turn.get("turn_id"),
-                "ok": call.get("ok"), "attempts": call.get("attempts", []), "error": call.get("error"),
+                "ok": call.get("ok"), "attempts": safe_attempts(call.get("attempts", [])), "error": safe_error(call.get("error")),
                 "unavailable": bool(unavailable_reason), "unavailable_reason": unavailable_reason,
             })
         else:

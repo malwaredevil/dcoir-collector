@@ -13,6 +13,7 @@ from lib.gemini_behavioral_replay_lane_scoring import has_execution_lane_separat
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
 from lib.openai_dcoir_replay_live import build_request_body, extract_text, make_pack
 from lib.openai_dcoir_replay_package import OPENAI_MODEL_ID, load_governed_openai_package
+from lib.gemini_behavioral_replay_workflow_report import redact_report_value
 
 FIXTURES_ROOT = Path("project_sources/gemini/fixtures/behavioral_replay")
 SUPPORT = FIXTURES_ROOT / "supporting_artifacts"
@@ -167,6 +168,23 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     generated = make_pack(first_fixture, args, package, "test-key", "", caller=fake_call)
     if generated.get("mode") != "live_openai_api" or history_lengths != [0, 2, 4, 6]:
         raise SystemExit(f"OpenAI multi-turn local-history contract failed: {history_lengths}")
+
+    def fake_failure(api_key, project_id, run_args, governed_package, fixture, turn, history):
+        return {
+            "ok": False,
+            "attempts": [{"attempt": 1, "status_code": 400, "latency_ms": 1.0, "error_body_excerpt": "password=supersecret"}],
+            "error": "Authorization: Bearer supersecret",
+            "error_body": "Authorization: Bearer supersecret",
+        }
+    failed_pack = make_pack(first_fixture, args, package, "test-key", "", caller=fake_failure)
+    serialized = json.dumps(failed_pack)
+    if "supersecret" in serialized or "error_body_excerpt" in serialized or "error_body" in serialized:
+        raise SystemExit("Raw provider diagnostics leaked into the persisted OpenAI replay pack.")
+    if "runtime_error" not in serialized:
+        raise SystemExit("Unsafe provider errors were not reduced to the runtime_error category.")
+    redacted = json.dumps(redact_report_value({"error_body_excerpt": "password=supersecret", "status_code": 400}))
+    if "supersecret" in redacted or "password=" in redacted:
+        raise SystemExit("Workflow report redaction retained raw provider error-body content.")
 
     print(json.dumps({"success": True, "model": OPENAI_MODEL_ID, "fixture_count": len(selected_ids), "knowledge_file_count": len(package["knowledge_files"])}, indent=2))
     return 0

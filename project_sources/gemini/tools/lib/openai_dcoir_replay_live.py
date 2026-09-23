@@ -8,6 +8,7 @@ import urllib.request
 from typing import Any, Callable, Dict, List
 
 from lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VERSION
+from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
 
 DEFAULT_API_BASE = "https://api.openai.com/v1/responses"
 
@@ -125,14 +126,14 @@ def make_pack(
     history: List[Dict[str, str]] = []
     for turn in fixture.get("turns", []):
         call = caller(api_key, project_id, args, package, fixture, turn, history)
-        response = call.get("response_text") if call.get("ok") else f"LIVE_OPENAI_REPLAY_CALL_FAILED: {call.get('error', 'unknown')}"
+        response = call.get("response_text") if call.get("ok") else f"LIVE_OPENAI_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}"
         calls.append({
             "fixture_id": fixture.get("fixture_id"),
             "model_name": package["model_id"],
             "turn_id": turn.get("turn_id"),
             "ok": bool(call.get("ok")),
-            "attempts": call.get("attempts", []),
-            "error": call.get("error"),
+            "attempts": safe_attempts(call.get("attempts", [])),
+            "error": safe_error(call.get("error")),
             "response_id": call.get("response_id"),
         })
         turns.append({"turn_id": turn.get("turn_id"), "assistant_response": str(response)})

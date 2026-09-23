@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .gemini_behavioral_replay_marker_precision import run_contextual_marker_precision_selftests
-
 SCORER_MODULE_CHARACTER_CEILING = 15000
 SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py"),

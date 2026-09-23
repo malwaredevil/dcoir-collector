@@ -17,10 +17,8 @@ from lib.gemini_behavioral_replay_capture_controls import (
     run_fixture_mode_selection_selftests,
     run_openai_webui_capture_selftests,
 )
-from lib.gemini_behavioral_replay_precision_controls import (
-    run_contextual_marker_precision_selftests,
-    run_scorer_module_size_selftest,
-)
+from lib.gemini_behavioral_replay_marker_precision import run_contextual_marker_precision_selftests
+from lib.gemini_behavioral_replay_precision_controls import run_scorer_module_size_selftest
 
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
 
