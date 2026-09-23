@@ -173,6 +173,41 @@ def python_call_name(node: ast.AST) -> str:
     return ""
 
 
+def python_call_uses_write_mode(
+    call: ast.Call, os_module_names: set[str] | None = None
+) -> bool:
+    """Return True when open-style calls can mutate filesystem contents."""
+
+    call_name = python_call_name(call.func)
+    os_open_names = {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}
+    if call_name in os_open_names:
+        flags_node = call.args[1] if len(call.args) > 1 else None
+        for keyword in call.keywords:
+            if keyword.arg == "flags":
+                flags_node = keyword.value
+                break
+        if isinstance(flags_node, ast.Constant) and flags_node.value == 0:
+            return False
+        if isinstance(flags_node, ast.Attribute) and flags_node.attr == "O_RDONLY":
+            return False
+        return flags_node is not None
+    if isinstance(call.func, ast.Name) and call.func.id == "open":
+        mode_node = call.args[1] if len(call.args) > 1 else None
+    elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
+        mode_node = call.args[0] if call.args else None
+    else:
+        mode_node = None
+    for keyword in call.keywords:
+        if keyword.arg == "mode":
+            mode_node = keyword.value
+            break
+    if mode_node is None:
+        return False
+    if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
+        return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
+    return True
+
+
 def python_target_key(node: ast.AST) -> str | None:
     if isinstance(node, ast.Name):
         return node.id

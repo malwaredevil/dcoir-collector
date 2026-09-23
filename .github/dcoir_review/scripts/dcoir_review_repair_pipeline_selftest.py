@@ -191,7 +191,7 @@ def test_fallback_renderer_has_no_native_fence(review, v21, repair) -> None:
     }
     rendered = review.base.build_inline_comment(finding, "test-model", config)
     assert "```suggestion" not in rendered
-    assert "No safe exact one-line fix was proven" in rendered
+    assert "Repair synthesis did not produce a critic-eligible complete repair set" in rendered
 
 
 def main() -> None:

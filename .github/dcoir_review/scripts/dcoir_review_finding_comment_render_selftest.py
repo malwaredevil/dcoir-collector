@@ -15,7 +15,7 @@ EXPECTED_SHA256 = {
     "verified_ordinary": "e79fa4331b2c598766f341ebf5c03e24b0bc810828d65eebdf3a5ab3795fb0ad",
     "deterministic_repair": "e169e713ad2e4ca9607229c640fc9e77cc7479b0d8e9060856d350994bed0a7f",
     "repair_native": "21709e01b45ce59a0581c8e6aa921552ebb26e0add941208bd802dc5d346e581",
-    "repair_fallback": "75beb87ecc18f7914d022d5d444e803bbe6b47f39fc0b0e570d63a5e8d833ac2",
+    "repair_fallback": "fb036ec9fb6a2bf4c4bd713c552d5d875b21cd38d3ca0566fc7e26f871b36800",
     "unverified_ordinary": "326e95f6333543744d865435f5927083c2f7103235a2710f831b8406ec50258b",
     "yaml_fallback": "a081f84c530797cb2267bc9a2a810702c94c9ecc4035091ea3ea6193c4af22a7",
 }
@@ -258,6 +258,34 @@ def main() -> None:
     )
     assert "exact-head revalidation" in postcritic
     assert "MODEL TEXT" not in postcritic
+    model_declined = dict(cases["repair_fallback"])
+    model_declined["fix_guidance"] = {"language": "py", "notes": "MODEL REPAIR RATIONALE MUST NOT RENDER"}
+    model_declined[repair.REPAIR_MARKER] = {
+        "version": "v56",
+        "outcome": "verified-no-safe-repair-set",
+        "critic_model": "openai/gpt-5.6-sol-pro",
+        "critic_confidence": 0.95,
+        "critic_failed_closed": False,
+        "reason": "MODEL CRITIC RATIONALE MUST NOT RENDER",
+    }
+    rendered_declined = review.base.build_inline_comment(model_declined, "test-model", config)
+    assert "critic rejected" in rendered_declined
+    assert "MODEL REPAIR RATIONALE MUST NOT RENDER" not in rendered_declined
+    assert "MODEL CRITIC RATIONALE MUST NOT RENDER" not in rendered_declined
+    model_failed = dict(cases["repair_fallback"])
+    model_failed["fix_guidance"] = {"language": "py", "notes": "MODEL FAILURE DETAIL MUST NOT RENDER"}
+    model_failed[repair.REPAIR_MARKER] = {
+        "version": "v56",
+        "outcome": "repair-stage-failed-closed",
+        "critic_model": "openai/gpt-5.6-sol-pro",
+        "critic_failed_closed": True,
+        "reason": "PROVIDER EXCEPTION MUST NOT RENDER",
+    }
+    rendered_failed = review.base.build_inline_comment(model_failed, "test-model", config)
+    assert "failed closed" in rendered_failed
+    assert "MODEL FAILURE DETAIL MUST NOT RENDER" not in rendered_failed
+    assert "PROVIDER EXCEPTION MUST NOT RENDER" not in rendered_failed
+
     observed = {}
     for name, finding in cases.items():
         rendered = review.base.build_inline_comment(dict(finding), "test-model", config)

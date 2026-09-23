@@ -179,28 +179,6 @@ def python_parse_diff_line(text: str) -> ast.Module | None:
         return None
 
 
-def python_call_uses_write_mode(call: ast.Call) -> bool:
-    """Return True when a builtin ``open`` or ``Path.open`` call can write."""
-
-    if isinstance(call.func, ast.Name) and call.func.id == "open":
-        mode_node = call.args[1] if len(call.args) > 1 else None
-    elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
-        # pathlib.Path.open(mode=...) receives mode as its first positional arg.
-        mode_node = call.args[0] if call.args else None
-    else:
-        mode_node = None
-    for keyword in call.keywords:
-        if keyword.arg == "mode":
-            mode_node = keyword.value
-            break
-    if mode_node is None:
-        return False
-    if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
-        return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
-    # A dynamic mode cannot prove read-only behavior, so preserve the security signal.
-    return True
-
-
 def python_direct_dynamic_open_write(
     text: str,
     path_constructor_names: set[str] | None = None,
@@ -213,10 +191,13 @@ def python_direct_dynamic_open_write(
         return False
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(node):
+        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(node, os_module_names):
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
+            return bool(node.args and python_is_dynamic_path_segment(node.args[0]))
+        call_name = python_call_name(func)
+        if call_name in {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}:
             return bool(node.args and python_is_dynamic_path_segment(node.args[0]))
         if not isinstance(func, ast.Attribute) or func.attr != "open":
             continue
@@ -247,13 +228,11 @@ def python_line_has_explicit_file_write_call(
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
-            return python_call_uses_write_mode(node)
+            return python_call_uses_write_mode(node, os_module_names)
         if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
             return True
         if isinstance(func, ast.Attribute) and func.attr == "open":
-            # os.open and Path.open are filesystem opens; arbitrary .open calls remain
-            # context-sensitive and are sent to the semantic verifier downstream.
-            return True
+            return python_call_uses_write_mode(node, os_module_names)
     return False
 
 
@@ -293,7 +272,7 @@ def python_file_write_target(text: str, path_constructor_names: set[str] | None 
             if target:
                 return target
             continue
-        if node.func.attr == "open" and python_call_uses_write_mode(node):
+        if node.func.attr == "open" and python_call_uses_write_mode(node, os_module_names):
             target = python_target_key(node.func.value)
             if target:
                 return target
@@ -310,7 +289,7 @@ def python_wrapped_file_write_target(text: str, path_constructor_names: set[str]
             continue
         if node.func.attr not in {"write_text", "write_bytes", "open"}:
             continue
-        if node.func.attr == "open" and not python_call_uses_write_mode(node):
+        if node.func.attr == "open" and not python_call_uses_write_mode(node, os_module_names):
             continue
         value = node.func.value
         if python_is_path_constructor(value, constructor_names) and value.args:

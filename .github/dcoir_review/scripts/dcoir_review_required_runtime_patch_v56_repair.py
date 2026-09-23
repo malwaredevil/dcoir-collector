@@ -224,7 +224,7 @@ def prepare_candidate(
 def finalize_candidate(
     module: Any,
     pending: dict[str, Any],
-    decision: tuple[bool, float, str],
+    decision: tuple[bool, float, str, bool],
     critic_model: str,
     critic_tier: str,
     right_line_index: dict[tuple[str, int], int],
@@ -236,12 +236,14 @@ def finalize_candidate(
 
     finding = pending["finding"]
     author = pending["author"]
-    accepted, confidence, reason = decision
+    accepted, confidence, reason, critic_failed_closed = decision
     if not accepted:
+        outcome = "repair-stage-failed-closed" if critic_failed_closed else v36.NO_SAFE_REPAIR_OUTCOME
         item = v36._declined_item(
             finding,
             author,
             reason or "independent repair-set critic rejected the coordinated repair",
+            outcome=outcome,
             author_model=pending["author_model"],
             author_tier=pending["author_tier"],
         )
@@ -250,6 +252,7 @@ def finalize_candidate(
                 "critic_model": critic_model,
                 "critic_service_tier": critic_tier,
                 "critic_confidence": confidence,
+                "critic_failed_closed": critic_failed_closed,
             }
         )
         return item
@@ -269,6 +272,7 @@ def finalize_candidate(
                 "critic_service_tier": critic_tier,
                 "critic_confidence": confidence,
                 "critic_accepted": True,
+                "critic_failed_closed": False,
             }
         )
         return item
@@ -301,6 +305,7 @@ def finalize_candidate(
         "critic_service_tier": critic_tier,
         "critic_confidence": confidence,
         "critic_accepted": True,
+        "critic_failed_closed": False,
         "critic_item_id": pending["critic_item_id"],
         "critic_batch_size": batch_size,
         "reason": reason[:800],
