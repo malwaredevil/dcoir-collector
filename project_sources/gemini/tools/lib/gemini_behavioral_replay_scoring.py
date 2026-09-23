@@ -35,6 +35,16 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
         lowered,
     ):
         matched.append("workflow state")
+    if "do not guess" in markers and "do not guess" not in matched:
+        for occurrence in _iter_term_occurrences(lowered, "will not guess"):
+            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+                continue
+            if _occurrence_is_rejected_before(lowered, occurrence.start()):
+                continue
+            if _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
+                continue
+            matched.append("do not guess")
+            break
     for marker in markers:
         if marker in matched:
             continue

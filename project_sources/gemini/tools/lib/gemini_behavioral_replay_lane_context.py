@@ -12,12 +12,17 @@ from .gemini_behavioral_replay_text_scoring import (
 )
 
 def _clause_has_endpoint_lane(clause: str) -> bool:
-    return "endpoint" in clause and (
-        "response action" in clause
-        or "response-action" in clause
-        or "response console" in clause
-        or "endpoint execution" in clause
-        or "execute --command" in clause
+    return (
+        "endpoint" in clause and (
+            "response action" in clause
+            or "response-action" in clause
+            or "response console" in clause
+            or "endpoint execution" in clause
+            or "execute --command" in clause
+        )
+    ) or (
+        "execute --command" in clause
+        and ("response action" in clause or "response-action" in clause)
     )
 
 
