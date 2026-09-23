@@ -27,6 +27,16 @@ def main() -> int:
         "same-clause relational separation",
     )
     _expect(
+        "This is an endpoint response action, not a local PowerShell command.",
+        True,
+        "direct endpoint-vs-local contrast",
+    )
+    _expect(
+        "It is wrong to say this is an endpoint response action, not a local PowerShell command.",
+        False,
+        "rejected direct endpoint-vs-local contrast",
+    )
+    _expect(
         "Use the Elastic response console only for endpoint actions. "
         "Use local workstation PowerShell only for package inspection, testing, or local harness validation. "
         "Do not paste Elastic execute syntax into local PowerShell, and do not paste bare PowerShell commands into the endpoint response console.",

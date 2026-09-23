@@ -31,6 +31,7 @@ _SHARED_CONTEXT_TERMS = (
     "same command",
     "single command",
     "same lane",
+    "local powershell command",
 )
 
 _NO_MIX_RELATION_BOUNDARY_PATTERN = re.compile(

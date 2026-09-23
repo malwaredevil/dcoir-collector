@@ -233,6 +233,12 @@ def _occurrence_has_direct_shared_context_negation(
     end: int,
 ) -> bool:
     prefix = text[max(0, start - 180):start]
+    if re.search(
+        r"\b(?:this|that|it)\s+is\s+(?:an?\s+)?endpoint\s+"
+        r"response(?:-| )action\s*,?\s+not\s+(?:a\s+)?$",
+        prefix,
+    ):
+        return True
     direct_use = re.search(
         r"\b(?:do not|don't|dont|must not|should not|never|avoid)\s+"
         r"(?:use|using|share)\s+(?:the\s+)?$",
