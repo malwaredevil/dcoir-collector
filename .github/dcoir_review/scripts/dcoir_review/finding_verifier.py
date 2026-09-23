@@ -25,6 +25,13 @@ VERIFIER_MIN_SUPPORT_CONFIDENCE = verifier_contract.VERIFIER_MIN_SUPPORT_CONFIDE
 VERIFIER_MARKER = verifier_contract.VERIFIER_MARKER
 BLANK_LINE_NOTATION = verifier_contract.BLANK_LINE_NOTATION
 
+# Core-required controls selection/coverage. These kinds are still security-sensitive,
+# but their concrete claim depends on surrounding provenance/containment context and
+# therefore cannot be auto-published from a matching line token alone.
+CONTEXT_SENSITIVE_CORE_KINDS = frozenset(
+    {getattr(v16.v11, "PYTHON_PATH_WRITE", "python_path_write")}
+)
+
 VERIFIER_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "DCOIR Candidate Finding Verifier",
@@ -72,6 +79,8 @@ def _deterministic_core_kind(finding: dict[str, Any], line_text: str) -> str:
         if isinstance(raw_key, (list, tuple)) and len(raw_key) == 3:
             kind = str(raw_key[2] or "").strip()
     if not kind or kind not in v16.CORE_REQUIRED_KINDS:
+        return ""
+    if kind in CONTEXT_SENSITIVE_CORE_KINDS:
         return ""
     observed_kind = str(v16._line_kind(path, line_text) or "").strip()
     return kind if observed_kind == kind else ""
