@@ -6,7 +6,7 @@ NEGATION_PATTERN = re.compile(
     r"(?:do not|don't|dont|never|avoid|must not|should not|cannot|can't|can not|not|no|isn't|isnt|wasn't|wasnt|aren't|arent|weren't|werent)(?:\s+[a-z0-9_-]+ly){0,2}(?:\s+(?:the\s+|an?\s+)?)?\s*$"
 )
 
-REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|categorize|assign|label|advise|assure|guarantee|mean|infer|call|assert|assume|guess|determine|evaluate|assess|attempt|promise|recommend|provide|offer|search|instruct|tell|ask(?: for)?|request|require|treat|frame|characterize|establish|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
+REJECTED_ACTION_VERBS = r"say|state|claim|declare|confirm|conclude|classify|categorize|assign|label|advise|assure|guarantee|mean|represent|infer|call|assert|assume|guess|determine|evaluate|assess|attempt|promise|recommend|provide|offer|search|instruct|tell|ask(?: for)?|request|require|treat|frame|characterize|establish|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read"
 
 REJECTED_ASSERTION_PATTERN = re.compile(
     rf"(?:wrong to (?:{REJECTED_ACTION_VERBS})|incorrect to (?:{REJECTED_ACTION_VERBS})|false to say|not true that|isn't true that|isnt true that|unsupported to (?:say|claim|treat|frame|characterize|establish|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not enough to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|not sufficient to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|premature to (?:say|claim|treat|frame|use|accept|rely on|run|execute|upload|place|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)|no need for|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not) (?:{REJECTED_ACTION_VERBS})|avoid (?:saying|asking for|requesting|requiring|treating|framing|using|accepting|relying on|running|executing|uploading|placing|retrieving|reviewing|collecting|cleaning(?:up|\s+up)|keeping|invoking|reading)|no need to (?:{REJECTED_ACTION_VERBS}))\s+(?:the\s+|an?\s+)?(?:\w+\s+){{0,6}}$"
@@ -26,7 +26,7 @@ POST_UNSUPPORTED_SCOPE = re.compile(
 )
 
 GOVERNED_SOURCE_ACTION_SCOPE = re.compile(
-    r"\b(?:fresh\s+)?(?:validation|verification|readback|inspection|review|check)\s+(?:against|of|from)\s+(?:the\s+)?$"
+    r"\b(?:fresh\s+)?(?:validat(?:ion|ed)|verif(?:ication|ied)|readback|inspect(?:ion|ed)|review(?:ed)?|check(?:ed)?)\s+(?:against|of|from)\s+(?:the\s+)?$"
 )
 DIRECT_REJECTION_PREFIX = re.compile(
     r"\b(?:avoid|do not|don't|dont|never|must not|should not)\s+$"
@@ -34,7 +34,7 @@ DIRECT_REJECTION_PREFIX = re.compile(
 
 POST_MARKER_REJECTION_NOUN_PHRASE = (
     r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
-    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|finding|guarantee|generation))"
+    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|finding|guarantee|generation|exploitation))"
 )
 
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
@@ -49,6 +49,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:it\s+is|it's)\s+not\s+(?:verified|confirmed|established)\s+(?:if|whether)\b"
     rf"|(?:there\s+(?:is|was)|there's)\s+no\s+(?:evidence|proof)\s+that\b"
+    rf"|no\s+evidence\s+supports?\b"
     rf"|(?:there\s+(?:is|was)|there's)\s+no\s+(?:requirement|need)\s+to\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"
     rf"|(?:it\s+is|it's)?\s*(?:wrong|incorrect|inaccurate|misleading)\s+to\s+(?:say|state|claim|assert)\b"
@@ -58,6 +59,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:cannot|can't|can not|must not|should not)\s+be\s+(?:considered|treated|regarded|viewed|deemed)\b"
     rf"|(?:have|has|had)\s+(?:(?:also|still|simply|just|really|only)\s+)?not\s+(?:claimed|stated|asserted|said|concluded)\s+that\b"
     rf"|(?:(?:i|we)\s+)?(?:(?:am|are)\s+)?not\s+(?:asking|requesting|instructing|telling)(?:\s+you)?\s+to\b"
+    rf"|(?:do|does|did)\s+not\s+need\s+(?:you|me|us|them)\s+to\b"
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
     rf"|nor\s+will\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:tell|instruct|claim|state|assert)\b"

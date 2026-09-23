@@ -94,7 +94,10 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
         gaps.append("execution_commands")
 
     normalized = " ".join(str(response_text).lower().split())
-    if "next_get_file" not in normalized or not _has_assertive_phase(response_text, ["get-file --path"]):
+    has_retrieval = _has_assertive_phase(response_text, ["get-file --path"]) or _has_assertive_phase(
+        response_text, ["get-file", "response action"]
+    )
+    if "next_get_file" not in normalized or not has_retrieval:
         gaps.append("retrieval")
 
     interpretation_surfaces = (
@@ -111,6 +114,7 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
             or _has_assertive_phase(response_text, ["orientation surfaces"])
             or _has_assertive_phase(response_text, ["interpret the returned evidence", "analyst-first order"])
             or _has_assertive_phase(response_text, ["interpret collector output", "analyst-first order"])
+            or _has_assertive_phase(response_text, ["review artifacts in this order"])
         )
     if not has_interpretation:
         gaps.append("interpretation")

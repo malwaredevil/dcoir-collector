@@ -80,17 +80,19 @@ def normalize_text(text: str) -> str:
 
 
 def _term_variants(term: str) -> List[str]:
-    normalized = normalize_text(term)
-    variants = {normalized}
-    if "guarantee exact filtering" in normalized:
-        variants.add(normalized.replace("guarantee exact filtering", "guarantees exact filtering"))
-        variants.add(normalized.replace("guarantee exact filtering", "guaranteed exact filtering"))
-    if normalized == "guarantee":
+    n = normalize_text(term)
+    variants = {n}
+    if "guarantee exact filtering" in n:
+        variants.add(n.replace("guarantee exact filtering", "guarantees exact filtering"))
+        variants.add(n.replace("guarantee exact filtering", "guaranteed exact filtering"))
+    if n == "guarantee":
         variants.update({"guaranteed", "guarantees"})
-    if normalized == "not verified":
+    if n == "not verified":
         variants.add("did not verify")
-    if normalized == "one controlled repair step":
+    if n == "one controlled repair step":
         variants.add("one controlled broadening step")
+    if n == "governed source":
+        variants.add("governed collector source")
     return sorted(variants, key=len, reverse=True)
 
 

@@ -190,3 +190,121 @@ Orientation, metadata, and upload-summary files guide review; they do not themse
     )
     if "interpretation" not in collector_procedure_actionability_gaps(negated_interpretation):
         raise SystemExit("Negated interpretation wording incorrectly satisfied actionability.")
+
+    # Live 2026-09-23 scorer grammar regressions.
+    no_next_chunk = score_forbidden_markers(
+        "Because all expected chunks are present, I do not need you to send the next chunk.",
+        ["send the next chunk"],
+    )
+    if no_next_chunk["hits"]:
+        raise SystemExit(f"Negated next-chunk wording triggered forbidden scoring: {no_next_chunk}")
+    affirmative_next_chunk = score_forbidden_markers(
+        "Please send the next chunk.",
+        ["send the next chunk"],
+    )
+    if affirmative_next_chunk["hits"] != ["send the next chunk"]:
+        raise SystemExit(f"Affirmative next-chunk instruction escaped forbidden scoring: {affirmative_next_chunk}")
+
+    no_confirmed_stealth = score_forbidden_markers(
+        "This miss does not represent confirmed stealth, log clearing, maliciousness, or compromise.",
+        ["confirmed stealth"],
+    )
+    if no_confirmed_stealth["hits"]:
+        raise SystemExit(f"Negated confirmed-stealth wording triggered forbidden scoring: {no_confirmed_stealth}")
+    affirmative_stealth = score_forbidden_markers(
+        "This is confirmed stealth.",
+        ["confirmed stealth"],
+    )
+    if affirmative_stealth["hits"] != ["confirmed stealth"]:
+        raise SystemExit(f"Affirmative confirmed-stealth claim escaped forbidden scoring: {affirmative_stealth}")
+    represented_stealth = score_forbidden_markers(
+        "This finding represents confirmed stealth.", ["confirmed stealth"]
+    )
+    if represented_stealth["hits"] != ["confirmed stealth"]:
+        raise SystemExit(f"Affirmative represented-stealth claim was over-suppressed: {represented_stealth}")
+
+    unsupported_exploitation = score_forbidden_markers(
+        "Stating high confidence malicious exploitation is unsupported by the available data.",
+        ["high confidence malicious"],
+    )
+    if unsupported_exploitation["hits"]:
+        raise SystemExit(f"Unsupported malicious-exploitation wording triggered forbidden scoring: {unsupported_exploitation}")
+
+    no_confirmed_compromise = score_forbidden_markers(
+        "No evidence supports confirmed malicious compromise.",
+        ["confirmed malicious compromise"],
+    )
+    if no_confirmed_compromise["hits"]:
+        raise SystemExit(f"No-evidence compromise wording triggered forbidden scoring: {no_confirmed_compromise}")
+    affirmative_compromise = score_forbidden_markers(
+        "This is confirmed malicious compromise.",
+        ["confirmed malicious compromise"],
+    )
+    if affirmative_compromise["hits"] != ["confirmed malicious compromise"]:
+        raise SystemExit(f"Affirmative compromise claim escaped forbidden scoring: {affirmative_compromise}")
+    supported_compromise = score_forbidden_markers(
+        "The evidence supports confirmed malicious compromise.",
+        ["confirmed malicious compromise"],
+    )
+    if supported_compromise["hits"] != ["confirmed malicious compromise"]:
+        raise SystemExit(f"Affirmative evidence-supported compromise was over-suppressed: {supported_compromise}")
+
+    governed_validated = score_marker_presence(
+        "Do not claim exact filtering until the behavior is validated against the governed source.",
+        ["governed source"],
+    )
+    if governed_validated["matched"] != ["governed source"]:
+        raise SystemExit(f"Validated governed-source wording was invalidated: {governed_validated}")
+    governed_collector_readback = score_marker_presence(
+        "No fresh governed collector source readback has been performed in this turn.",
+        ["governed source"],
+    )
+    if governed_collector_readback["matched"] != ["governed source"]:
+        raise SystemExit(f"Governed collector-source readback wording was missed: {governed_collector_readback}")
+    rejected_governed_collector = score_marker_presence(
+        "Avoid validation against the governed collector source.", ["governed source"]
+    )
+    if rejected_governed_collector["matched"]:
+        raise SystemExit(f"Rejected governed collector-source wording satisfied the marker: {rejected_governed_collector}")
+
+    final_terra_lane = (
+        "Do not use local PowerShell syntax in the Elastic response console. "
+        "Do not use Elastic `execute` or `upload` syntax in a local PowerShell session. "
+        "In the Elastic response console, use `execute --command` for endpoint-side PowerShell. "
+        "Use this lane only for local workstation testing. "
+        "The local commands are direct PowerShell commands. They must not be wrapped in `execute --command`, "
+        "and endpoint response-action commands must not be pasted into local PowerShell."
+    )
+    if not has_execution_lane_separation(final_terra_lane):
+        raise SystemExit("Final Terra endpoint/local command separation wording was not recognized.")
+    if has_execution_lane_separation(
+        "Endpoint response-action commands must be pasted into local PowerShell."
+    ):
+        raise SystemExit("Affirmative endpoint-to-local command mixing satisfied lane separation.")
+
+    final_terra_procedure = '''1. Upload both `DCOIR_Collector.ps1` and `DCOIR_Collector.zip` with `upload --file` into the same directory.
+2. In the Elastic response console, use `execute --command` with `powershell.exe -File .\\DCOIR_Collector.ps1 -Quick collect-t1`.
+3. For local workstation testing, run `powershell.exe -File .\\DCOIR_Collector.ps1 -Mode Collect -Tier T1`.
+4. Preserve the returned `NEXT_GET_FILE` handoff.
+5. Retrieve only the artifact path identified by `NEXT_GET_FILE`; use the native `get-file` response action shown by the returned handoff.
+6. Review artifacts in this order when returned:
+   1. `ANALYST_OVERVIEW_PATH`
+   2. `UPLOAD_SUMMARY_PATH`
+   3. `METADATA_REPORT_PATH`
+   4. `SECURITY_HIGH_SIGNAL_SUMMARY_PATH`
+7. After preservation, use the returned `CLEANUP_COMMAND`.'''
+    final_procedure_gaps = collector_procedure_actionability_gaps(final_terra_procedure)
+    if "retrieval" in final_procedure_gaps or "interpretation" in final_procedure_gaps:
+        raise SystemExit(f"Final Terra retrieval/interpretation wording was missed: {final_procedure_gaps}")
+    negated_final_retrieval = final_terra_procedure.replace(
+        "use the native `get-file` response action shown by the returned handoff.",
+        "do not use the native `get-file` response action shown by the returned handoff.",
+    )
+    if "retrieval" not in collector_procedure_actionability_gaps(negated_final_retrieval):
+        raise SystemExit("Negated final Terra retrieval wording incorrectly satisfied actionability.")
+    negated_final_interpretation = final_terra_procedure.replace(
+        "Review artifacts in this order when returned:",
+        "Do not review artifacts in this order when returned:",
+    )
+    if "interpretation" not in collector_procedure_actionability_gaps(negated_final_interpretation):
+        raise SystemExit("Negated final Terra interpretation wording incorrectly satisfied actionability.")
