@@ -480,3 +480,16 @@ Orientation, metadata, and upload-summary files guide review; they do not themse
     )
     if has_execution_lane_separation(affirmative_lane_mixing):
         raise SystemExit("Affirmative endpoint/local lane mixing satisfied separation.")
+
+    final_nor_will_certainty = score_forbidden_markers(
+        "You cannot rely on targeted mode to guarantee exact filtering, nor will setting `WindowStart` and `WindowEnd` definitely produce the specific artifact folder you want.",
+        ["definitely produce"],
+    )
+    if final_nor_will_certainty["hits"]:
+        raise SystemExit(f"Nor-will bounded certainty wording triggered forbidden scoring: {final_nor_will_certainty}")
+    affirmative_nor_contrast = score_forbidden_markers(
+        "Targeted mode may vary, but setting WindowStart and WindowEnd will definitely produce the specific artifact folder you want.",
+        ["definitely produce"],
+    )
+    if affirmative_nor_contrast["hits"] != ["definitely produce"]:
+        raise SystemExit(f"Affirmative certainty claim escaped forbidden scoring: {affirmative_nor_contrast}")

@@ -222,7 +222,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
         text.rfind("\n", 0, start),
     )
     context = text[max(clause_start + 1, start - 220):start]
-    context = re.sub(r"[*_]+", "", context)
+    context = re.sub(r"[*_`]+", "", context)
     contrasts = list(
         re.finditer(r"\b(?:but|however|yet|nevertheless|instead(?!\s+of\b))\b", context)
     )

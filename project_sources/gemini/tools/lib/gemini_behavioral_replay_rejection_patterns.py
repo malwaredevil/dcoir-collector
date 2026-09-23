@@ -65,6 +65,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:do|does|did)\s+not\s+need\s+(?:you|me|us|them)\s+to\b"
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"
+    rf"|nor\s+(?:can|could|will|would|should|must)\s+(?:(?!(?:can|could|will|would|should|must)\b)[a-z0-9_-]+\s+){{1,12}}$"
     rf"|nor\s+will\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:tell|instruct|claim|state|assert)\b"
     rf"|(?:must\s+)?(?:explicitly\s+)?avoid\s+(?:[a-z0-9_-]+\s+){{0,2}}(?:claiming|stating|asserting|assuming|telling|instructing|recommending|advising)\b"
     rf"|(?:explicitly\s+)?reject(?:ed|s)?\s+(?:(?:any|the|this|that|a|an)\s+)?"
