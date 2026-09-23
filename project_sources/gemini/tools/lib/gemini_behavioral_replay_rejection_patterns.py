@@ -30,6 +30,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|nor\s+do\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:advise|recommend|tell|instruct|ask)\b"
     rf"|nor\s+do\s+(?:[a-z0-9_-]+\s+){{1,4}}(?:ensure|guarantee|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|(?:does|do|did)\s+not\s+(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
+    rf"|(?:it\s+is|it's)\s+not\s+(?:verified|confirmed|established)\s+(?:if|whether)\b"
     rf"|(?:there\s+(?:is|was)|there's)\s+no\s+(?:evidence|proof)\s+that\b"
     rf"|(?:there\s+(?:is|was)|there's)\s+no\s+(?:requirement|need)\s+to\b"
     rf"|(?:it\s+is|it's)?\s*false\s+that\b"

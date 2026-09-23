@@ -220,7 +220,7 @@
       "sections": [
         "queries_commands_collection"
       ],
-      "sha256": "d09fd04229dafa92cb8ba6e039b1ec1f7d3c156df75af4e35f00ede51ed89ab0",
+      "sha256": "915b07b1b13c62ade66edffaeb0bca2ce15b1c40bf8c7ee0718c73632d013035",
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.06.md"
     },
     {
@@ -258,7 +258,7 @@
     }
   ],
   "behavior_coverage_count": 30,
-  "behavior_source_snapshot_sha256": "3222b4a9b0f493cbf60f85d8ea2c70e81df5277c89415e904385557815f23797",
+  "behavior_source_snapshot_sha256": "c8ae1ca7bd38796c6f3c10d33764f40f2a70812685462aa46643accce2b3ed3f",
   "behavioral_case_count": 22,
   "behavioral_case_ids": [
     "elastic_alert_triage",
@@ -289,9 +289,9 @@
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {
-      "bytes": 7982,
+      "bytes": 7993,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
-      "sha256": "234bd93626539974582f38f1163f655ab314ca852e35fe01463578135a92f14e"
+      "sha256": "96204d09ccc370d4116b5d083339c1b6add0b7a615243d342b1685f6d1620c2b"
     },
     {
       "bytes": 3218,
@@ -301,7 +301,7 @@
   ],
   "generated_outputs_are_canonical": false,
   "instruction_character_ceiling": 8000,
-  "instruction_character_count": 7982,
+  "instruction_character_count": 7993,
   "knowledge_file_count": 7,
   "knowledge_files": [
     {
@@ -360,7 +360,7 @@
   "source_contracts": {
     "behavior_module_manifest": {
       "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
-      "sha256": "053dccd23426d1241f36361f0337defe9553cde8318ae322caabf0d68cdad00c"
+      "sha256": "9b0a166ce5bc50fbd09df9a0fa70563aed04b2a79ad3c2765286662e7fa96b32"
     },
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
@@ -368,7 +368,7 @@
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Instructions.md",
-      "sha256": "234bd93626539974582f38f1163f655ab314ca852e35fe01463578135a92f14e"
+      "sha256": "96204d09ccc370d4116b5d083339c1b6add0b7a615243d342b1685f6d1620c2b"
     },
     "knowledge_projection_manifest": {
       "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",

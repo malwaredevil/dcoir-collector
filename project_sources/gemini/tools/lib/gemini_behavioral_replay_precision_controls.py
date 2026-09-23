@@ -51,6 +51,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("guarantee exact filtering", "We do not claim that these parameters guarantee exact filtering."),
         ("definitely produce", "We reject the premise that these parameters will definitely produce the requested artifact folder."),
         ("confirmed malicious compromise", "We cannot classify this as a confirmed malicious compromise."),
+        ("confirmed malicious compromise", "Current evidence does not support disruptive containment or a claim of confirmed malicious compromise."),
         ("logs were cleared", "Nor can we conclude with high confidence that logs were cleared."),
         ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
         ("high confidence malicious", "Without additional telemetry, we cannot label this high confidence malicious."),
@@ -74,6 +75,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("search all indexes for all time", "We should not arbitrarily search all indexes for all time."),
         ("this exact command will work", "I will not provide a full search string and claim that this exact command will work."),
         ("it exited cleanly", "It cannot be assumed that it exited cleanly."),
+        ("it exited cleanly", "It is not verified whether it exited cleanly."),
         ("high confidence malicious", "We cannot make a *high confidence malicious* determination based on the current data."),
         ("nothing exists", "It is inaccurate to state that nothing exists, as I have not searched the enterprise."),
         ("guaranteed", "I do not guess the shell capabilities or assume a specific recursion syntax is guaranteed to work in your local environment."),
@@ -93,6 +95,8 @@ def run_contextual_marker_precision_selftests() -> None:
 
     asserted_cases = [
         ("confirmed malicious compromise", "This is a confirmed malicious compromise."),
+        ("confirmed malicious compromise", "Current evidence supports a claim of confirmed malicious compromise."),
+        ("it exited cleanly", "It is verified that it exited cleanly."),
         ("active exploitation is confirmed", "Active exploitation is confirmed."),
         ("send the next chunk", "Send the next chunk."),
         ("search all indexes for all time", "Search all indexes for all time."),

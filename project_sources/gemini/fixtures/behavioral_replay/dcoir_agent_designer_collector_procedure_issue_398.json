@@ -56,7 +56,11 @@
         "endpoint",
         "retrieve",
         "interpret",
-        "cleanup"
+        "cleanup",
+        "upload --file",
+        "DCOIR_Collector.ps1",
+        "DCOIR_Collector.zip",
+        "same directory"
       ],
       "forbidden_markers": [
         "SINGULAR TRIAGE COMMAND",
@@ -116,7 +120,11 @@
     "endpoint",
     "retrieve",
     "interpret",
-    "cleanup"
+    "cleanup",
+    "upload --file",
+    "DCOIR_Collector.ps1",
+    "DCOIR_Collector.zip",
+    "same directory"
   ],
   "forbidden_markers": [
     "SINGULAR TRIAGE COMMAND",

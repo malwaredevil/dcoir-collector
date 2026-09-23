@@ -27,6 +27,19 @@ def main() -> int:
         "same-clause relational separation",
     )
     _expect(
+        "Use the Elastic response console only for endpoint actions. "
+        "Use local workstation PowerShell only for package inspection, testing, or local harness validation. "
+        "Do not paste Elastic execute syntax into local PowerShell, and do not paste bare PowerShell commands into the endpoint response console.",
+        True,
+        "mutually exclusive endpoint-local only-for lanes",
+    )
+    _expect(
+        "It is wrong to say the Elastic response console is only for endpoint actions. "
+        "It is also wrong to say local workstation PowerShell is only for package inspection.",
+        False,
+        "rejected only-for lane wording",
+    )
+    _expect(
         "Endpoint response-action execution uses execute --command. "
         "Local workstation PowerShell runs the collector. "
         "Do not mix these two lanes.",

@@ -129,8 +129,9 @@ def assert_isolated_control_reason(label: str, payload: dict) -> None:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 3 or forbidden.get("literal_hits") != expected_hits or anomaly_types:
             raise SystemExit(f"{label} did not fail solely on serialized internal-state leakage: {json.dumps(row, sort_keys=True)}")
     elif "missing-stage-only" in label:
-        if required.get("missing") != ["interpret"] or required.get("ratio") != 0.8 or forbidden.get("count") != 0 or anomaly_types:
-            raise SystemExit(f"{label} did not fail solely on the missing interpret lifecycle stage: {json.dumps(row, sort_keys=True)}")
+        missing = required.get("missing") or []
+        if missing != ["interpret"] or required.get("ratio") != round(len(required.get("matched") or []) / (len(required.get("matched") or []) + len(missing)), 4) or forbidden.get("count") != 0 or anomaly_types:
+            raise SystemExit(f"{label} isolation: {json.dumps(row, sort_keys=True)}")
     elif "negated-lane-separation-only" in label:
         if required.get("ratio") != 1.0 or forbidden.get("count") != 0 or anomaly_types != ["missing_execution_lane_separation"]:
             raise SystemExit(f"{label} did not fail solely on negated lane separation: {json.dumps(row, sort_keys=True)}")

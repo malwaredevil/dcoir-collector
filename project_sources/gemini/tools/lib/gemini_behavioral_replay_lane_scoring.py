@@ -367,6 +367,16 @@ def has_execution_lane_separation(response_text: str) -> bool:
     if _response_has_pronominal_shared_context_mix(clauses):
         return False
     normalized = normalize_text(response_text)
+    endpoint_only = any(
+        any(_assertive_phrase_occurrences(normalized, term))
+        for term in ("response console only for endpoint actions", "elastic response console only for endpoint actions")
+    )
+    local_only = any(
+        any(_assertive_phrase_occurrences(normalized, term))
+        for term in ("local powershell only for", "local workstation powershell only for")
+    )
+    if endpoint_only and local_only:
+        return True
     if any(_assertive_phrase_occurrences(normalized, "separate the execution lanes")):
         return True
     if any(_clause_has_relational_lane_separation(clause) for clause in clauses):

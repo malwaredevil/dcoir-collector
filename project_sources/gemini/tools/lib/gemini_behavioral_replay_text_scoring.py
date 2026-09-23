@@ -158,7 +158,7 @@ _COORDINATED_AFFIRMATIVE_PREDICATE = re.compile(
 
 _COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE = re.compile(
     r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
-    r"the(?:\s+[a-z0-9_-]+){1,3}|[a-z0-9_-]+)\s+"
+    r"the(?:\s+[a-z0-9_-]+){1,3}|(?!(?:a|an|the)\b)[a-z0-9_-]+)\s+"
     r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
     r"(?:guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
     r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?|"
