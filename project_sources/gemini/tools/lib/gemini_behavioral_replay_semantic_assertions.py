@@ -24,7 +24,7 @@ _SUFFIX_REJECTION = re.compile(
 
 _DIRECT_NEGATION = re.compile(
     r"\b(?:do not|don't|dont|does not|doesn't|doesnt|did not|cannot|can't|can not|"
-    r"should not|must not|will not|would not|never|no|not)\b[^.!?;\n]{0,80}$",
+    r"should not|must not|will not|would not|never|no|not)\b[^.!?;,\n]{0,80}$",
     re.I,
 )
 
