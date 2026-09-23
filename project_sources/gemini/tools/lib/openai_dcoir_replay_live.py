@@ -5,7 +5,7 @@ import json
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Callable, Dict, List
+from typing import Any, Dict, List
 
 from lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VERSION
 from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
@@ -118,15 +118,18 @@ def make_pack(
     package: Dict[str, Any],
     api_key: str,
     project_id: str,
-    *,
-    caller: Callable[..., Dict[str, Any]] = call_openai,
 ) -> Dict[str, Any]:
     turns: List[Dict[str, str]] = []
     calls: List[Dict[str, Any]] = []
     history: List[Dict[str, str]] = []
     for turn in fixture.get("turns", []):
-        call = caller(api_key, project_id, args, package, fixture, turn, history)
-        response = call.get("response_text") if call.get("ok") else f"LIVE_OPENAI_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}"
+        call = call_openai(api_key, project_id, args, package, fixture, turn, history)
+        if call.get("ok"):
+            response = str(call.get("response_text") or "")
+            if api_key and api_key in response:
+                response = "[redacted-secret-output]"
+        else:
+            response = f"LIVE_OPENAI_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}"
         calls.append({
             "fixture_id": fixture.get("fixture_id"),
             "model_name": package["model_id"],

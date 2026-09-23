@@ -4,6 +4,9 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+from unittest.mock import patch
+
+import lib.openai_dcoir_replay_live as replay_live
 
 from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture_index, repo_root_from_script
 from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
@@ -165,9 +168,20 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     def fake_call(api_key, project_id, run_args, governed_package, fixture, turn, history):
         history_lengths.append(len(history))
         return {"ok": True, "attempts": [{"attempt": 1, "status_code": 200}], "response_text": fake_responses[turn["turn_id"]], "response_id": "resp_test"}
-    generated = make_pack(first_fixture, args, package, "test-key", "", caller=fake_call)
+    with patch.object(replay_live, "call_openai", side_effect=fake_call):
+        generated = make_pack(first_fixture, args, package, "test-key", "")
     if generated.get("mode") != "live_openai_api" or history_lengths != [0, 2, 4, 6]:
         raise SystemExit(f"OpenAI multi-turn local-history contract failed: {history_lengths}")
+
+    secret_value = "sk-test-secret-should-never-persist"
+    def fake_secret_echo(api_key, project_id, run_args, governed_package, fixture, turn, history):
+        return {"ok": True, "attempts": [{"attempt": 1, "status_code": 200}], "response_text": api_key, "response_id": "resp_secret_test"}
+    with patch.object(replay_live, "call_openai", side_effect=fake_secret_echo):
+        secret_pack = make_pack(first_fixture, args, package, secret_value, "")
+    if secret_value in json.dumps(secret_pack):
+        raise SystemExit("Raw API key leaked into the persisted OpenAI replay pack through caller output.")
+    if "[redacted-secret-output]" not in json.dumps(secret_pack):
+        raise SystemExit("Echoed API key was not replaced by the persisted redaction marker.")
 
     def fake_failure(api_key, project_id, run_args, governed_package, fixture, turn, history):
         return {
@@ -176,7 +190,8 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
             "error": "Authorization: Bearer supersecret",
             "error_body": "Authorization: Bearer supersecret",
         }
-    failed_pack = make_pack(first_fixture, args, package, "test-key", "", caller=fake_failure)
+    with patch.object(replay_live, "call_openai", side_effect=fake_failure):
+        failed_pack = make_pack(first_fixture, args, package, "test-key", "")
     serialized = json.dumps(failed_pack)
     if "supersecret" in serialized or "error_body_excerpt" in serialized or "error_body" in serialized:
         raise SystemExit("Raw provider diagnostics leaked into the persisted OpenAI replay pack.")
