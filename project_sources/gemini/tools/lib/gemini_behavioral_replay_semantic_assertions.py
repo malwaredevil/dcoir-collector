@@ -18,6 +18,11 @@ _NEGATED_PREDICATE_FRAME = re.compile(
     r"classify|label|guarantee|ensure|provide|offer|paste|use|run|execute|wrap|mix|combine)\b",
     re.I,
 )
+_NEGATIVE_INVERSION_FRAME = re.compile(
+    r"\bnor\s+(?:does|do|did)\b[^.!?;,\n]{0,120}\b"
+    r"(?:mean|guarantee|ensure|prove|establish|confirm|show|indicate|support)\b",
+    re.I,
+)
 _COORDINATOR = re.compile(r"\b(?:and|or)\b", re.I)
 _INDEPENDENT_PREDICATE_START = re.compile(
     r"^(?:(?:the\s+evidence|this|that|it|they|we|i|these|those|[a-z0-9_-]+)\s+)?"
@@ -98,7 +103,7 @@ def lane_target_head_index(tokens: list[str]) -> int | None:
             return None
         if token in {"endpoint", "response-action", "local", "workstation"}:
             return index
-        if token == "response" and index + 1 < len(tokens) and tokens[index + 1] == "action":
+        if token == "response" and index + 1 < len(tokens) and tokens[index + 1] in {"action", "console"}:
             return index
     return None
 
@@ -242,7 +247,11 @@ def _coordination_starts_independent_assertion(scope: str, target_tail: str) -> 
     if not coordinators:
         return False
     tail = scope[coordinators[-1].end():] + target_tail
-    return bool(_INDEPENDENT_PREDICATE_START.match(tail.strip()))
+    stripped = tail.strip()
+    return bool(
+        _INDEPENDENT_PREDICATE_START.match(stripped)
+        or _COMMA_SUBJECT_PREDICATE_START.match(stripped)
+    )
 
 
 def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[str]) -> bool:
@@ -292,6 +301,8 @@ def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
     if _rejection_frame_applies(prefix, target_tail, _CLAIM_REJECTION_FRAME):
         return False
     if _rejection_frame_applies(prefix, target_tail, _NEGATED_PREDICATE_FRAME):
+        return False
+    if _rejection_frame_applies(prefix, target_tail, _NEGATIVE_INVERSION_FRAME):
         return False
     if _SUFFIX_REJECTION.search(suffix):
         return False

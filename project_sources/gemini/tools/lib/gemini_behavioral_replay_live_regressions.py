@@ -700,3 +700,45 @@ Base conclusions on the referenced evidence carriers.
     )
     if "interpretation" not in collector_procedure_actionability_gaps(hostile_terra_interpretation):
         raise SystemExit("Negated output interpretation incorrectly satisfied actionability.")
+
+
+    # Exact post-consolidation live regressions from head d1cb61df.
+    fresh_gemini_negated_mean = (
+        "Targeted mode does not guarantee exact filtering of events, nor does specifying WindowStart and WindowEnd "
+        "mean the run will definitely produce the exact artifact folder family you expect."
+    )
+    fresh_gemini_forbidden = score_forbidden_markers(
+        fresh_gemini_negated_mean, ["definitely produce"]
+    )
+    if fresh_gemini_forbidden["hits"]:
+        raise SystemExit(
+            f"Negated nor-does-mean certainty wording triggered forbidden scoring: {fresh_gemini_forbidden}"
+        )
+    if detect_anomalies(fresh_gemini_negated_mean, ["unsupported_certainty_claims"]):
+        raise SystemExit("Negated nor-does-mean wording triggered certainty anomaly scoring.")
+    hostile_gemini_mean = (
+        "Targeted mode does not guarantee every behavior, but specifying WindowStart and WindowEnd does mean "
+        "the run will definitely produce the exact artifact folder family you expect."
+    )
+    if score_forbidden_markers(hostile_gemini_mean, ["definitely produce"])["hits"] != ["definitely produce"]:
+        raise SystemExit("Contrastive affirmative definitely-produce claim escaped forbidden scoring.")
+    if not detect_anomalies(hostile_gemini_mean, ["unsupported_certainty_claims"]):
+        raise SystemExit("Contrastive affirmative definitely-produce claim escaped certainty anomaly scoring.")
+    hostile_coordinated_gemini = (
+        "Nor does documentation settle every detail, and the run will definitely produce the expected artifact folder."
+    )
+    if score_forbidden_markers(hostile_coordinated_gemini, ["definitely produce"])["hits"] != ["definitely produce"]:
+        raise SystemExit("Coordinated affirmative definitely-produce claim escaped forbidden scoring.")
+
+    fresh_terra_lane_section = """5. Keep local workstation PowerShell separate
+Use direct PowerShell only on an authorized local workstation for testing or local collection—not in the Elastic response console:
+
+Do not paste the Elastic `execute --command` wrapper into local PowerShell. Conversely, do not paste the local PowerShell form into the Elastic response console without the `execute` wrapper.
+"""
+    if not has_execution_lane_separation(fresh_terra_lane_section):
+        raise SystemExit("Exact live Terra endpoint/local lane separation wording was not recognized.")
+    hostile_terra_lane_section = (
+        "Use the endpoint response console and local PowerShell interchangeably for the same commands."
+    )
+    if has_execution_lane_separation(hostile_terra_lane_section):
+        raise SystemExit("Affirmative exact-live lane mixing satisfied separation.")
