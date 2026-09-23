@@ -8,13 +8,16 @@ from unittest.mock import patch
 
 import lib.openai_dcoir_replay_live as replay_live
 
+build_request_body = replay_live.build_request_body
+extract_text = replay_live.extract_text
+make_pack = replay_live.make_pack
+
 from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture_index, repo_root_from_script
 from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
 from lib.gemini_behavioral_replay_scoring import score_forbidden_markers, score_response_pack
 from lib.gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 from lib.gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
-from lib.openai_dcoir_replay_live import build_request_body, extract_text, make_pack
 from lib.openai_dcoir_replay_package import OPENAI_MODEL_ID, load_governed_openai_package
 from lib.gemini_behavioral_replay_workflow_report import redact_report_value
 
