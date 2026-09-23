@@ -17,6 +17,7 @@ from .gemini_behavioral_replay_lane_context import (
     _clause_has_endpoint_lane,
     _clause_has_local_lane,
     _iter_lane_relation_segments,
+    _lane_presence,
     _mix_occurrence_targets_lane,
     _occurrence_has_direct_shared_context_negation,
     _occurrence_has_local_mix_rejection,
@@ -367,8 +368,7 @@ def _clause_has_referential_lane_separation(clause: str) -> bool:
 
 def has_execution_lane_separation(response_text: str) -> bool:
     clauses = list(_iter_clauses(response_text))
-    has_endpoint_lane = any(_clause_has_endpoint_lane(clause) for clause in clauses)
-    has_local_lane = any(_clause_has_local_lane(clause) for clause in clauses)
+    has_endpoint_lane, has_local_lane = _lane_presence(clauses)
     if not (has_endpoint_lane and has_local_lane):
         return False
     if any(_clause_has_explicit_lane_mix(clause) for clause in clauses):

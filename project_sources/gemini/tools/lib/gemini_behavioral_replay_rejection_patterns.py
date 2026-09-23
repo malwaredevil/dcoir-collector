@@ -74,6 +74,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|rather than\s+(?:(?:attempting|trying)\s+to\s+)?"
     rf"|instead\s+of\s+(?:(?:an?|the)\s+)?(?:[a-z0-9_-]+\s+){{0,3}}(?:such\s+as\s+)?(?:attempting|trying)\s+to\s+"
     rf"|instead\s+of\s+(?:(?:an?|the)\s+)?(?:[a-z0-9_-]+\s+){{0,3}}(?:approach|attempt|plan)\s+to\s+"
+    rf"|(?:do not|don't|dont|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:take|use|adopt)\b[^.!?;,]{{0,120}}\bor\s+(?:attempt|try)(?:ing)?\s+to\s+"
     rf")"
 )
 

@@ -23,6 +23,20 @@ def _append_once(values: List[str], marker: str) -> None:
         values.append(marker)
 
 
+def _has_bounded_no_claim_semantics(lowered: str) -> bool:
+    for term in ("guarantee", "definitely"):
+        for occurrence in _iter_term_occurrences(lowered, term):
+            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+                continue
+            if (
+                _occurrence_is_negated(lowered, occurrence.start())
+                or _occurrence_is_rejected_before(lowered, occurrence.start())
+                or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start())
+            ):
+                return True
+    return False
+
+
 def _has_unresolved_gap_semantics(lowered: str) -> bool:
     unresolved = _find_contextual_term_hits(
         lowered, ["unresolved"], skip_negated=True, skip_quoted=True
@@ -85,6 +99,10 @@ def augment_semantic_marker_matches(
                 continue
             _append_once(result, "governed source")
             break
+
+    if "do not claim" in markers and "do not claim" not in result:
+        if _has_bounded_no_claim_semantics(lowered):
+            _append_once(result, "do not claim")
 
     if "interpret" in markers and "interpret" not in result:
         if _find_contextual_term_hits(

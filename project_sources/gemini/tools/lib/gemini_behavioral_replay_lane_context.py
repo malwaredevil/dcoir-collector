@@ -150,10 +150,31 @@ def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
         if (
             re.search(r"\bendpoint response console\b.*\bnot local powershell\b", normalized)
             or re.search(r"\blocal powershell\b.*\bnot in (?:the )?elastic response console\b", normalized)
+            or re.search(r"\bdo not use local powershell(?: commands)? in (?:the )?elastic response console\b", normalized)
+            or re.search(
+                r"\bdo not use (?:elastic )?(?:response-action|response action) (?:wrappers|commands|syntax) in (?:local|workstation) powershell\b",
+                normalized,
+            )
         ):
             normalized += " do not mix endpoint response-action commands with local powershell"
         if normalized:
             yield normalized
+
+
+def _lane_scopes(clauses: List[str]) -> List[str]:
+    return clauses + [
+        segment
+        for clause in clauses
+        for segment in _iter_lane_relation_segments(clause)
+    ]
+
+
+def _lane_presence(clauses: List[str]):
+    scopes = _lane_scopes(clauses)
+    return (
+        any(_clause_has_endpoint_lane(scope) for scope in scopes),
+        any(_clause_has_local_lane(scope) for scope in scopes),
+    )
 
 
 def _segment_has_lane_relation_scope(segment: str) -> bool:

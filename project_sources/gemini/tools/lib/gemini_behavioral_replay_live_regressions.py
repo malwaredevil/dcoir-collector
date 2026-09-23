@@ -442,3 +442,41 @@ Orientation, metadata, and upload-summary files guide review; they do not themse
     )
     if "interpretation" in collector_procedure_actionability_gaps(returned_outputs_procedure):
         raise SystemExit("Returned-outputs interpretation wording was not recognized.")
+
+    # Final exact-head live semantic regressions.
+    bounded_broad_search = score_forbidden_markers(
+        "We should not take an unconstrained approach or attempt to search all indexes for all time.",
+        ["search all indexes for all time"],
+    )
+    if bounded_broad_search["hits"]:
+        raise SystemExit(f"Negated broad-search wording triggered forbidden scoring: {bounded_broad_search}")
+    affirmative_broad_search = score_forbidden_markers(
+        "Search all indexes for all time.", ["search all indexes for all time"]
+    )
+    if affirmative_broad_search["hits"] != ["search all indexes for all time"]:
+        raise SystemExit(f"Affirmative broad-search instruction escaped scoring: {affirmative_broad_search}")
+
+    bounded_claim_semantics = score_marker_presence(
+        "You should not rely on targeted mode with WindowStart and WindowEnd to guarantee exact filtering across every artifact family, and it does not definitely produce a particular artifacts folder.",
+        ["do not claim"],
+    )
+    if bounded_claim_semantics["matched"] != ["do not claim"]:
+        raise SystemExit(f"Bounded no-claim semantics were missed: {bounded_claim_semantics}")
+    affirmative_claim_semantics = score_marker_presence(
+        "You can rely on targeted mode to guarantee exact filtering across every artifact family.",
+        ["do not claim"],
+    )
+    if affirmative_claim_semantics["matched"]:
+        raise SystemExit(f"Affirmative guarantee incorrectly satisfied no-claim semantics: {affirmative_claim_semantics}")
+
+    bidirectional_lane_prohibition = (
+        "Do not use local PowerShell commands in the Elastic response console. "
+        "Do not use Elastic response-action wrappers in local workstation PowerShell."
+    )
+    if not has_execution_lane_separation(bidirectional_lane_prohibition):
+        raise SystemExit("Bidirectional endpoint/local lane prohibition was not recognized.")
+    affirmative_lane_mixing = (
+        "Use local PowerShell commands in the Elastic response console and use Elastic response-action wrappers in local workstation PowerShell."
+    )
+    if has_execution_lane_separation(affirmative_lane_mixing):
+        raise SystemExit("Affirmative endpoint/local lane mixing satisfied separation.")
