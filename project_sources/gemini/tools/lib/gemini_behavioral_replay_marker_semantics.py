@@ -7,6 +7,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     DIRECT_REJECTION_PREFIX,
     GOVERNED_SOURCE_ACTION_SCOPE,
 )
+from .gemini_behavioral_replay_semantic_assertions import response_has_next_evidence_semantics
 from .gemini_behavioral_replay_text_scoring import (
     _find_contextual_term_hits,
     _iter_term_occurrences,
@@ -114,5 +115,10 @@ def augment_semantic_marker_matches(
     if unresolved_marker in markers and unresolved_marker not in result:
         if _has_unresolved_gap_semantics(lowered):
             _append_once(result, unresolved_marker)
+
+    next_evidence_marker = "next evidence"
+    if next_evidence_marker in markers and next_evidence_marker not in result:
+        if response_has_next_evidence_semantics(response_text):
+            _append_once(result, next_evidence_marker)
 
     return result

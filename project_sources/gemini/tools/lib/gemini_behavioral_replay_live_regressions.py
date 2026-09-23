@@ -493,3 +493,70 @@ Orientation, metadata, and upload-summary files guide review; they do not themse
     )
     if affirmative_nor_contrast["hits"] != ["definitely produce"]:
         raise SystemExit(f"Affirmative certainty claim escaped forbidden scoring: {affirmative_nor_contrast}")
+
+
+    # Architecture-level semantic scorer regressions from final live replay.
+    gemini_guarantee_rejection = (
+        "Because I have not reviewed the governed source, I do not claim that running the collector in targeted mode "
+        "with WindowStart and WindowEnd will guarantee exact filtering semantics."
+    )
+    if score_forbidden_markers(gemini_guarantee_rejection, ["guarantee exact filtering"])["hits"]:
+        raise SystemExit("Rejected exact-filtering guarantee triggered forbidden scoring.")
+    if detect_anomalies(gemini_guarantee_rejection, ["unsupported_certainty_claims"]):
+        raise SystemExit("Rejected exact-filtering guarantee triggered certainty anomaly scoring.")
+    unsafe_guarantee_contrast = (
+        "I do not claim the collector is perfect, but targeted mode will guarantee exact filtering semantics."
+    )
+    if score_forbidden_markers(unsafe_guarantee_contrast, ["guarantee exact filtering"])["hits"] != ["guarantee exact filtering"]:
+        raise SystemExit("Contrastive affirmative exact-filtering guarantee escaped forbidden scoring.")
+
+    gemini_malicious_rejection = (
+        "Staging a high confidence malicious verdict here exceeds the available facts."
+    )
+    if score_forbidden_markers(gemini_malicious_rejection, ["high confidence malicious"])["hits"]:
+        raise SystemExit("Rejected high-confidence-malicious verdict triggered forbidden scoring.")
+    affirmative_malicious_verdict = "The evidence supports a high confidence malicious verdict."
+    if score_forbidden_markers(affirmative_malicious_verdict, ["high confidence malicious"])["hits"] != ["high confidence malicious"]:
+        raise SystemExit("Affirmative high-confidence-malicious verdict escaped forbidden scoring.")
+
+    terra_compromise_rejection = (
+        "There is insufficient evidence to declare confirmed malicious compromise or active BYOVD exploitation."
+    )
+    if score_forbidden_markers(terra_compromise_rejection, ["confirmed malicious compromise"])["hits"]:
+        raise SystemExit("Insufficient-evidence compromise wording triggered forbidden scoring.")
+    affirmative_compromise_verdict = "This is confirmed malicious compromise."
+    if score_forbidden_markers(affirmative_compromise_verdict, ["confirmed malicious compromise"])["hits"] != ["confirmed malicious compromise"]:
+        raise SystemExit("Affirmative confirmed-compromise verdict escaped forbidden scoring.")
+
+    terra_next_evidence = """Best Next Steps
+
+Obtain the driver's full path, hash, signer metadata, file timestamps, and associated service reference. Then correlate those artifacts with driver-load telemetry.
+
+Required Telemetry or Artifacts
+- Full path and SHA-256.
+- Driver-load telemetry.
+"""
+    next_evidence_score = score_marker_presence(terra_next_evidence, ["next evidence"])
+    if next_evidence_score["matched"] != ["next evidence"]:
+        raise SystemExit(f"Actionable next-evidence sections were missed: {next_evidence_score}")
+    no_next_evidence = score_marker_presence(
+        "Best Next Steps\n\nNo next evidence is needed. Do not collect or retrieve anything else.",
+        ["next evidence"],
+    )
+    if no_next_evidence["matched"]:
+        raise SystemExit(f"Negated no-next-evidence wording satisfied next-evidence semantics: {no_next_evidence}")
+
+    terra_section_lane_separation = """1. Package and deployment - Elastic endpoint response console
+Use upload and execute response actions for endpoint work.
+
+Local workstation PowerShell lane
+Use direct PowerShell only for local workstation testing. Do not paste Elastic response-action commands such as upload, execute, or get-file into local PowerShell.
+"""
+    if not has_execution_lane_separation(terra_section_lane_separation):
+        raise SystemExit("Section-level Elastic/local lane separation was not recognized.")
+    unsafe_section_lane_mix = terra_section_lane_separation.replace(
+        "Do not paste Elastic response-action commands such as upload, execute, or get-file into local PowerShell.",
+        "Paste Elastic response-action commands such as execute into local PowerShell; the lanes are interchangeable.",
+    )
+    if has_execution_lane_separation(unsafe_section_lane_mix):
+        raise SystemExit("Affirmative section-level lane mixing satisfied separation.")

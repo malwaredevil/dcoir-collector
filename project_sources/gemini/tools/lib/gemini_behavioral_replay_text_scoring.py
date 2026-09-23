@@ -13,6 +13,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     REJECTED_ASSERTION_PATTERN,
     REJECTION_SCOPE_LIMIT,
 )
+from .gemini_behavioral_replay_semantic_assertions import occurrence_is_assertive_polarity
 
 UNSUPPORTED_CERTAINTY_TERMS = [
     "definitely",
@@ -331,6 +332,8 @@ def _find_contextual_term_hits(
             ):
                 continue
             if skip_negated and _occurrence_is_rejected_after(text, match.end(), match.start()):
+                continue
+            if skip_negated and not occurrence_is_assertive_polarity(text, match.start(), match.end()):
                 continue
             if reject_unverified and re.match(
                 r"^\s+(?:is|are|was|were)\s+(?:not\s+verified|unverified)\b",
