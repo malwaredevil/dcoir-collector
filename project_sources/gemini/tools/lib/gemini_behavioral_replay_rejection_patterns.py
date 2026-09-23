@@ -34,15 +34,17 @@ DIRECT_REJECTION_PREFIX = re.compile(
 
 POST_MARKER_REJECTION_NOUN_PHRASE = (
     r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
-    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|finding|guarantee|generation|exploitation))"
+    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|finding|guarantee|generation|exploitation|incident))"
 )
 
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"(?:"
-    rf"(?:do not|don't|dont|does not|doesn't|doesnt|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
+    rf"(?:do|should)\s+not\s+rely\s+on\b[^.!?;]{{0,160}}\bas\s+(?:an?\s+|the\s+)?(?:[a-z0-9_-]+\s+){{0,8}}$"
+    rf"|(?:do not|don't|dont|does not|doesn't|doesnt|should not|shouldn't|shouldnt|must not|cannot|can't|can not|will not|won't|wont)\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"(?:[^.!?;,]{{0,100}}\band\s+(?:guarantee|promise|claim|state|assert)\s+that\b)?"
     rf"|(?:do|does|did|should|must|will|would|can|could)\s+(?:(?:also|still|simply|just|really|only)\s+){{1,2}}not\s+(?:(?:[a-z0-9_-]+ly)\s+){{0,2}}(?:{REJECTED_ACTION_VERBS})\b"
     rf"|nor\s+(?:can|should|must|would|will|could)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:(?:{REJECTED_ACTION_VERBS})\b|$)"
+    rf"|nor\s+can\s+it\s+be\s+assumed\s+that\b"
     rf"|nor\s+does\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:mean|prove|establish|show|indicate|demonstrate|support)\b"
     rf"|nor\s+do\s+(?:i|we)\s+(?:[a-z0-9_-]+\s+){{0,3}}(?:advise|recommend|tell|instruct|ask)\b"
     rf"|nor\s+do\s+(?:[a-z0-9_-]+\s+){{1,4}}(?:ensure|guarantee|prove|establish|show|indicate|demonstrate|support)\b"
@@ -59,6 +61,7 @@ PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
     rf"|(?:cannot|can't|can not|must not|should not)\s+be\s+(?:considered|treated|regarded|viewed|deemed)\b"
     rf"|(?:have|has|had)\s+(?:(?:also|still|simply|just|really|only)\s+)?not\s+(?:claimed|stated|asserted|said|concluded)\s+that\b"
     rf"|(?:(?:i|we)\s+)?(?:(?:am|are)\s+)?not\s+(?:asking|requesting|instructing|telling)(?:\s+you)?\s+to\b"
+    rf"|none\s+should\s+be\s+read\s+as\b"
     rf"|(?:do|does|did)\s+not\s+need\s+(?:you|me|us|them)\s+to\b"
     rf"|(?:do not|don't|dont|cannot|can't|can not|will not|won't|wont)\s+expect(?:\s+[a-z0-9_-]+){{0,3}}\s+to\b"
     rf"|(?:cannot|can't|can not)\b[^.!?;,]{{0,120}}\b(?:claim|state|assert|tell|instruct)\b"

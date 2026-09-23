@@ -139,9 +139,12 @@ def _lane_target_head_index(tokens: List[str]) -> int | None:
 
 def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
     for segment in re.split(r"\b(?:but|however|whereas|yet)\b", clause):
-        normalized = normalize_text(segment)
+        normalized = normalize_text(segment).replace("`", "")
         normalized = normalized.replace(
             "endpoint response-action commands must not be pasted into local powershell",
+            "do not mix endpoint response-action commands with local powershell",
+        ).replace(
+            "do not paste elastic upload, get-file, or execute syntax into a local powershell session",
             "do not mix endpoint response-action commands with local powershell",
         )
         if normalized:
