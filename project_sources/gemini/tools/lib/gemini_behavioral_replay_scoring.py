@@ -26,9 +26,10 @@ from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from .gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 
 def _term_has_assertive_semantics(text: str, term: str) -> bool:
+    surface = str(text).lower()
     return any(
-        occurrence_is_assertive_polarity(text, occurrence.start(), occurrence.end())
-        for occurrence in _iter_term_occurrences(text, term)
+        occurrence_is_assertive_polarity(surface, occurrence.start(), occurrence.end())
+        for occurrence in _iter_term_occurrences(surface, term)
     )
 
 
@@ -143,7 +144,7 @@ def score_forbidden_markers(
     )
     contextual_hits = [
         marker for marker in contextual_hits
-        if _term_has_assertive_semantics(lowered, marker)
+        if _term_has_assertive_semantics(response_text, marker)
         and not _marker_only_in_not_proven_bullets(response_text, marker)
         and not _marker_only_in_bounded_rejection(response_text, marker)
     ]
@@ -168,7 +169,7 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
             skip_negated=True,
             skip_quoted=True,
         )
-        hits = [hit for hit in hits if _term_has_assertive_semantics(lowered, hit)]
+        hits = [hit for hit in hits if _term_has_assertive_semantics(response_text, hit)]
         for hit in hits:
             if hit.startswith("guarantee"):
                 active = []
