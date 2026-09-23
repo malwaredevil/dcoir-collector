@@ -15,8 +15,7 @@ _PREFIX_REJECTION_PATTERNS = (
 )
 
 _SUFFIX_REJECTION = re.compile(
-    r"^(?:\s+[a-z0-9_`'\-/]+){0,8}\s+"
-    r"(?:verdict|claim|classification|assessment|conclusion|finding|label|assertion)\b"
+    r"^\s+(?:verdict|claim|classification|assessment|conclusion|finding|label|assertion)\b"
     r"[^.!?;\n]{0,100}\b(?:exceeds?|outstrips?|goes\s+beyond|is\s+unsupported|is\s+unjustified|"
     r"is\s+not\s+(?:supported|justified|established|proven))\b",
     re.I,
