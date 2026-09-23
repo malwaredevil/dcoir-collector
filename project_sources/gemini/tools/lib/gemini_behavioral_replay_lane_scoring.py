@@ -259,9 +259,14 @@ def _separate_occurrence_targets_lane(
 
 def _occurrence_has_lane_relation_rejection(text: str, start: int) -> bool:
     prefix = text[max(0, start - 160):start]
+    contrasts = list(re.finditer(r"\b(?:but|however|yet|nevertheless)\b", prefix))
+    if contrasts:
+        prefix = prefix[contrasts[-1].end():]
     return bool(
         re.search(
-            r"\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+            r"(?:\b(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)\b"
+            r"|\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+(?:say|claim)\b"
+            r"|\b(?:(?:it\s+is|it's)\s+)?not\s+true\s+that\b)"
             r"[^.!?;]{0,140}$",
             prefix,
         )
@@ -279,9 +284,15 @@ def _occurrence_has_local_lane_relation_rejection(text: str, start: int) -> bool
         r"[^.!?;]{0,140}$",
         prefix,
     )
+    if match and not _repudiation_frame_is_negated(prefix, match.start()):
+        return True
     return bool(
-        match
-        and not _repudiation_frame_is_negated(prefix, match.start())
+        re.search(
+            r"(?:\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+(?:say|claim)\b"
+            r"|\b(?:(?:it\s+is|it's)\s+)?not\s+true\s+that\b)"
+            r"[^.!?;]{0,140}$",
+            prefix,
+        )
     )
 
 
@@ -377,6 +388,12 @@ def has_execution_lane_separation(response_text: str) -> bool:
     )
     if endpoint_only and local_only:
         return True
+    for occurrence in _assertive_phrase_occurrences(normalized, "separate execution lanes"):
+        if _occurrence_has_lane_relation_rejection(normalized, occurrence.start()):
+            continue
+        scope = normalized[max(0, occurrence.start() - 160):occurrence.end()]
+        if _clause_has_endpoint_lane(scope) and _clause_has_local_lane(scope):
+            return True
     if any(_assertive_phrase_occurrences(normalized, "separate the execution lanes")):
         return True
     if any(_clause_has_relational_lane_separation(clause) for clause in clauses):

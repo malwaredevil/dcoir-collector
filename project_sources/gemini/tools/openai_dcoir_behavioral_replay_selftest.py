@@ -9,6 +9,7 @@ from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture
 from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
 from lib.gemini_behavioral_replay_scoring import score_forbidden_markers, score_response_pack
 from lib.gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
+from lib.gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
 from lib.openai_dcoir_replay_live import build_request_body, extract_text, make_pack
 from lib.openai_dcoir_replay_package import OPENAI_MODEL_ID, load_governed_openai_package
@@ -107,6 +108,43 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     )
     if "package_deployment" not in collector_procedure_actionability_gaps(rejected_placement):
         raise SystemExit("Negated same-directory placement incorrectly satisfied package deployment.")
+    uploaded_collector = distributed_collector.replace(
+        "They must be placed in the same directory.",
+        "They must be uploaded in that order to the same directory on the endpoint.",
+    )
+    if collector_procedure_actionability_gaps(uploaded_collector):
+        raise SystemExit("Uploaded same-directory deployment was not recognized as actionable.")
+    rejected_upload = distributed_collector.replace(
+        "They must be placed in the same directory.",
+        "They must not be uploaded to the same directory.",
+    )
+    if "package_deployment" not in collector_procedure_actionability_gaps(rejected_upload):
+        raise SystemExit("Negated uploaded same-directory placement incorrectly satisfied package deployment.")
+
+    live_lane = (
+        "Endpoint response actions and local workstation PowerShell are separate execution lanes. "
+        "Do not paste response-action syntax into local PowerShell, and do not paste local PowerShell "
+        "directly into the Elastic response console."
+    )
+    if not has_execution_lane_separation(live_lane):
+        raise SystemExit("Terra's explicit separate-execution-lanes wording was not recognized.")
+    rejected_lane = (
+        "It is wrong to say endpoint response actions and local workstation PowerShell are separate execution lanes."
+    )
+    if has_execution_lane_separation(rejected_lane):
+        raise SystemExit("Rejected separate-execution-lanes wording incorrectly passed.")
+    for rejected in (
+        "Do not say endpoint response actions and local workstation PowerShell are separate execution lanes.",
+        "It is not true that endpoint response actions and local workstation PowerShell are separate execution lanes.",
+    ):
+        if has_execution_lane_separation(rejected):
+            raise SystemExit("Negated separate-execution-lanes wording incorrectly passed.")
+    contrast_lane = (
+        "Do not say endpoint response actions and local workstation PowerShell are separate execution lanes, "
+        "but endpoint response actions and local workstation PowerShell are separate execution lanes."
+    )
+    if not has_execution_lane_separation(contrast_lane):
+        raise SystemExit("Contrast reset incorrectly suppressed an affirmative lane-separation statement.")
 
     entries = {entry["fixture_id"]: entry for entry in load_fixture_index(FIXTURES_ROOT).get("fixtures", [])}
     for fixture_id, pack_name in GOOD_PACKS.items():

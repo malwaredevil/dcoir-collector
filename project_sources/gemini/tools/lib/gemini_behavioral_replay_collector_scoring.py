@@ -41,12 +41,12 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
         if not all(token in clause for token in required_tokens):
             continue
         if re.search(
-            r"\b(?:do not|don't|dont|must not|should not|never|avoid|cannot|can't|can not|not)\b.*\b(?:use|run|execute|upload|plac(?:e|ed|ing)|retrieve|review|collect|clean(?:up|\s+up)|mix|keep|invoke)\b",
+            r"\b(?:do not|don't|dont|must not|should not|never|avoid|cannot|can't|can not|not)\b.*\b(?:use|run|execute|upload(?:ed|ing)?|plac(?:e|ed|ing)|retrieve|review|collect|clean(?:up|\s+up)|mix|keep|invoke)\b",
             clause,
         ):
             continue
         if not re.search(
-            r"\b(?:use|run|execute|upload|plac(?:e|ed|ing)|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)\b",
+            r"\b(?:use|run|execute|upload(?:ed|ing)?|plac(?:e|ed|ing)|retrieve|review|collect|clean(?:up|\s+up)|keep|invoke|read)\b",
             clause,
         ):
             continue
