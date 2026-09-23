@@ -9,7 +9,9 @@ _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not|will not|would not)\s+claim\s+that\b", re.I),
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+(?:state|assert|conclude|declare|confirm|classify|label)\s+that\b", re.I),
     re.compile(r"\b(?:there\s+is\s+)?insufficient\s+evidence\s+to\s+(?:declare|conclude|confirm|classify|label|call)\b", re.I),
+    re.compile(r"\b(?:it\s+is\s+)?(?:incorrect|wrong|false)\s+to\s+(?:claim|conclude|state|assert|say|declare|confirm|classify|label)\s+that\b", re.I),
     re.compile(r"\bno\s+evidence\s+supports?\b", re.I),
+    re.compile(r"\b(?:before|without)\s+(?:drawing|reaching|making)\s+(?:any\s+)?conclusions?\s+about\b[^,]{0,80}$", re.I),
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+rely\s+on\b[^.!?;\n]{0,180}\bto\s+$", re.I),
     re.compile(r"\b(?:do not|don't|dont|does not|doesn't|doesnt|cannot|can't|can not|should not|must not)\b[^.!?;\n]{0,180}\b(?:provide|establish|offer|create|supply)\b[^.!?;\n]{0,180}$", re.I),
 )
@@ -97,12 +99,13 @@ def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
     raw = str(text)
     sentence, left, _ = _sentence_slice(raw, start, end)
     local_start = start - left
+    local_end = end - left
     normalized = _normalized_surface(sentence)
     term = _normalized_surface(raw[start:end]).strip()
-    occurrence = normalized.find(term)
-    if occurrence < 0:
-        occurrence = max(0, local_start)
-    occurrence_end = occurrence + len(term)
+    occurrence = len(_normalized_surface(sentence[:local_start]))
+    occurrence_end = len(_normalized_surface(sentence[:local_end]))
+    if not normalized[occurrence:occurrence_end].strip():
+        occurrence_end = occurrence + len(term)
     prefix = normalized[:occurrence]
     suffix = normalized[occurrence_end:]
 

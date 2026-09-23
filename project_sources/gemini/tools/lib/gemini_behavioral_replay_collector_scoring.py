@@ -124,6 +124,10 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
             or _has_assertive_phase(response_text, ["orientation surfaces"])
             or _has_assertive_phase(response_text, ["interpret the returned evidence", "analyst-first order"])
             or _has_assertive_phase(response_text, ["interpret collector output", "analyst-first order"])
+            or (
+                _has_assertive_phase(response_text, ["interpret collector output"])
+                and _has_assertive_phase(response_text, ["review", "in this order"])
+            )
             or _has_assertive_phase(response_text, ["review", "returned", "in this order"])
         )
     if not has_interpretation:

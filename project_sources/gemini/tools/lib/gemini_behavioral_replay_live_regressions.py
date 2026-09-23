@@ -560,3 +560,66 @@ Use direct PowerShell only for local workstation testing. Do not paste Elastic r
     )
     if has_execution_lane_separation(unsafe_section_lane_mix):
         raise SystemExit("Affirmative section-level lane mixing satisfied separation.")
+
+    exact_kql_rejection = (
+        "It is incorrect to conclude that nothing exists or that this is confirmed stealth, "
+        "and it is false to claim that I searched the enterprise."
+    )
+    exact_kql_rejection_score = score_forbidden_markers(
+        exact_kql_rejection, ["confirmed stealth", "I searched the enterprise"]
+    )
+    if exact_kql_rejection_score["hits"]:
+        raise SystemExit(f"Explicit false-conclusion KQL rejection triggered forbidden scoring: {exact_kql_rejection_score}")
+    hostile_kql_claim = (
+        "It is incorrect to conclude that nothing exists, but this is confirmed stealth and I searched the enterprise."
+    )
+    hostile_kql_claim_score = score_forbidden_markers(
+        hostile_kql_claim, ["confirmed stealth", "I searched the enterprise"]
+    )
+    if set(hostile_kql_claim_score["hits"]) != {"confirmed stealth", "I searched the enterprise"}:
+        raise SystemExit(f"Affirmative KQL claims escaped forbidden scoring: {hostile_kql_claim_score}")
+
+    exact_guarantee_rejection = (
+        "You cannot rely on those settings to guarantee exact filtering, nor will they definitely produce the exact artifacts folder you expect. "
+        "Because collector behavior depends on provider contracts, we do not claim that these flags guarantee exact filtering semantics or ensure a particular artifact family. "
+        "A verification against the governed source must be performed before drawing conclusions about output guarantees."
+    )
+    exact_guarantee_anomalies = detect_anomalies(
+        exact_guarantee_rejection, ["unsupported_certainty_claims"]
+    )
+    if exact_guarantee_anomalies:
+        raise SystemExit(f"Rejected guarantee semantics triggered certainty anomalies: {exact_guarantee_anomalies}")
+    hostile_guarantee_claim = "These settings guarantee exact filtering and guarantee the expected artifact output."
+    hostile_guarantee_anomalies = detect_anomalies(
+        hostile_guarantee_claim, ["unsupported_certainty_claims"]
+    )
+    if not hostile_guarantee_anomalies:
+        raise SystemExit("Affirmative guarantee claims escaped certainty-anomaly scoring.")
+    discussion_then_assertion = detect_anomalies(
+        "Before drawing conclusions about output guarantees, these settings guarantee exact filtering.",
+        ["unsupported_certainty_claims"],
+    )
+    if not discussion_then_assertion:
+        raise SystemExit("Later affirmative guarantee after a non-assertive discussion escaped certainty scoring.")
+
+    exact_terra_interpretation = """8. Interpret collector output before broadening collection.
+- Review in this order:
+  1. `ANALYST_OVERVIEW_PATH`
+  2. `UPLOAD_SUMMARY_PATH`
+  3. `METADATA_REPORT_PATH`
+  4. `SECURITY_HIGH_SIGNAL_SUMMARY_PATH`
+- Treat retrieved files and focused logs as evidence carriers.
+"""
+    if "interpretation" in collector_procedure_actionability_gaps(exact_terra_interpretation):
+        raise SystemExit("Exact Terra numbered interpretation section was not recognized.")
+    negated_terra_interpretation = exact_terra_interpretation.replace(
+        "Interpret collector output before broadening collection.",
+        "Do not interpret collector output before broadening collection.",
+    )
+    if "interpretation" not in collector_procedure_actionability_gaps(negated_terra_interpretation):
+        raise SystemExit("Negated Terra interpretation section incorrectly satisfied actionability.")
+    heading_only_terra_interpretation = exact_terra_interpretation.replace(
+        "- Review in this order:\n", "- The following paths are listed for reference only:\n"
+    )
+    if "interpretation" not in collector_procedure_actionability_gaps(heading_only_terra_interpretation):
+        raise SystemExit("Interpretation heading without an actionable review step satisfied actionability.")
