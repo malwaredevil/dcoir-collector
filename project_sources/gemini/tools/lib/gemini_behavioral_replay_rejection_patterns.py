@@ -17,7 +17,7 @@ REJECTION_SCOPE_LIMIT = 180
 
 POST_MARKER_REJECTION_NOUN_PHRASE = (
     r"(?:(?:(?:malicious|benign|exact|specific|precise|folder|artifact|security|operator|endpoint)\s+){0,2}"
-    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|guarantee|generation))"
+    r"(?:verdict|claim|conclusion|assertion|classification|framing|statement|assessment|label|rating|determination|outcome|result|finding|guarantee|generation))"
 )
 
 PRE_MARKER_REJECTION_FRAME_PATTERN = re.compile(
@@ -62,7 +62,7 @@ POST_MARKER_EVIDENCE_BOUNDARY_PATTERN = re.compile(
 )
 
 POST_MARKER_REJECTION_PATTERN = re.compile(
-    r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:no|nope)\b[\s,;:-]*)?(?:(?:but|however|though|although|yet|nevertheless|even so)\s+)?(?:(?:that|this|it|which|they|i|we)\s+)?(?:(?:is|are|was|were)\s+(?:(?:also|still|clearly|simply|just|really|only|explicitly)\s+)?(?:an?\s+)?)?(?:(?:also|still|clearly|simply|just|really|only|explicitly)\s+)?(?:the\s+)?(?:wrong|incorrect|false|invalid|misleading|wrong framing|wrong frame|incorrect framing|incorrect frame|false framing|false frame|wrong conclusion|incorrect conclusion|false conclusion|rejected(?:\s+as\s+(?:stale|unsupported|invalid|incorrect))?|reject(?:ed)?\s+(?:that|this)\s+(?:classification|conclusion|claim|framing)|not enough|not necessary|not needed|not required|unnecessary|insufficient|unsupported|unfounded|overstated|in name only|nominal|label only|just a label|only a label|phrase i would not use|phrase we would not use|a phrase i would not use|a phrase we would not use|should be ignored|should be discarded|should not be used|should not be relied on|can be ignored|can be discarded|does not matter|doesn't matter|doesnt matter|prove it|infer .* anyway|require the full transcript|request the full transcript|ask for the full transcript)"
+    r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:no|nope)\b[\s,;:-]*)?(?:(?:but|however|though|although|yet|nevertheless|even so)\s+)?(?:(?:that|this|it|which|they|i|we)\s+)?(?:(?:is|are|was|were)\s+(?:(?:also|still|clearly|simply|just|really|only|explicitly)\s+)?(?:an?\s+)?)?(?:(?:also|still|clearly|simply|just|really|only|explicitly)\s+)?(?:the\s+)?(?:wrong|incorrect|false|invalid|misleading|wrong framing|wrong frame|incorrect framing|incorrect frame|false framing|false frame|wrong conclusion|incorrect conclusion|false conclusion|rejected(?:\s+as\s+(?:stale|unsupported|invalid|incorrect))?|reject(?:ed)?\s+(?:that|this)\s+(?:classification|conclusion|claim|framing)|not enough|not necessary|not needed|not required|unnecessary|insufficient|not supported|unsupported|unfounded|overstated|in name only|nominal|label only|just a label|only a label|phrase i would not use|phrase we would not use|a phrase i would not use|a phrase we would not use|should be ignored|should be discarded|should not be used|should not be relied on|can be ignored|can be discarded|does not matter|doesn't matter|doesnt matter|prove it|infer .* anyway|require the full transcript|request the full transcript|ask for the full transcript)"
 )
 
 POST_ACTION_REJECTION_PATTERN = re.compile(

@@ -274,7 +274,7 @@ def _occurrence_is_rejected_after(text: str, end: int, start: int | None = None)
         rf"^\s+{POST_MARKER_REJECTION_NOUN_PHRASE}\s+"
         r"(?:(?:is|are|was|were)\s+"
         r"(?:not\s+(?:supported|justified|established|proven)|unsupported|unjustified|unproven|premature)"
-        r"|(?:cannot|can't|can not)\s+be\s+(?:supported|justified|established|proven))\b",
+        r"|(?:cannot|can't|can not)\s+be\s+(?:made|supported|justified|established|proven))\b",
         context,
     ):
         return True

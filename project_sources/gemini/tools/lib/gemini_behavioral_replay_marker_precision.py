@@ -10,7 +10,7 @@ from .gemini_behavioral_replay_rejection_precision import run_rejection_precisio
 def run_contextual_marker_precision_selftests() -> None:
     rejected_cases = [
         ("confirmed malicious compromise", "We cannot state that this is a confirmed malicious compromise."),
-        ("active exploitation is confirmed", "We cannot declare that active exploitation is confirmed."),
+        ("active exploitation is confirmed", "Active exploitation is confirmed is not supported."),
         ("nothing exists", "We explicitly reject any conclusion that nothing exists."),
         ("benign because there were no results", "We explicitly reject any conclusion that nothing exists, that the activity is benign because there were no results."),
         ("confirmed stealth", "We explicitly reject any conclusion that this indicates confirmed stealth."),
@@ -26,7 +26,7 @@ def run_contextual_marker_precision_selftests() -> None:
         ("confirmed malicious compromise", "We cannot classify this as a confirmed malicious compromise."),
         ("confirmed malicious compromise", "Current evidence does not support disruptive containment or a claim of confirmed malicious compromise."),
         ("logs were cleared", "Nor can we conclude with high confidence that logs were cleared."),
-        ("high confidence malicious", "We cannot assign a high confidence malicious verdict."),
+        ("high confidence malicious", "A high confidence malicious finding cannot be made on this evidence alone."),
         ("high confidence malicious", "Without additional telemetry, we cannot label this high confidence malicious."),
         ("high confidence malicious", "We cannot evaluate this as high confidence malicious solely based on a suspicious file path and a lack of logs."),
         ("high confidence malicious", "We cannot assess this as high confidence malicious based solely on suspicious file placement."),
