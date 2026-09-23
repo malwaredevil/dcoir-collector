@@ -101,7 +101,7 @@ def main() -> int:
     project_id = os.environ.get(args.project_id_env, "").strip()
     if not api_key:
         metadata["workflow_verdict"] = "failure"
-        metadata["validation_messages"].append({"level": "error", "message": f"Neither {args.api_key_env} nor {args.fallback_api_key_env} is configured."})
+        metadata["validation_messages"].append({"level": "error", "message": "OpenAI replay credentials are not configured."})
         metadata["unchecked_evidence"].append("live OpenAI Responses API output")
         write_reports(output_dir, [], metadata, report_label=REPORT_LABEL, report_filename=REPORT_NAME, report_markdown_filename="openai_dcoir_behavioral_replay_run_report.md")
         return 1
