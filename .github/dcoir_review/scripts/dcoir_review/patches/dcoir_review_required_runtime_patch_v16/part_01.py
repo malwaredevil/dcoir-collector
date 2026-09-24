@@ -64,8 +64,11 @@ PYTHON_BUILTIN_DYNAMIC_EXEC_RE = re.compile(
     re.IGNORECASE,
 )
 PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\burllib(?:\.request)?\.urlopen\s*\(", re.IGNORECASE)
+PYTHON_KNOWN_READ_MODE_OPEN_CALLS = frozenset({"bz2.open", "gzip.open", "lzma.open", "tarfile.open"})
 PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
 PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
+PYTHON_INT_EXPR_SHIFT_MAX = 128
+PYTHON_INT_EXPR_MAX_BITS = 4096
 PYTHON_OS_OPEN_MUTATING_FLAG_MASK = (
     getattr(os, "O_APPEND", 0)
     | getattr(os, "O_CREAT", 0)
@@ -138,24 +141,28 @@ def _python_call_arg(call: ast.Call, position: int, *keyword_names: str) -> ast.
     return None
 
 
+def _python_bounded_int_expr(value: int) -> int | None:
+    return value if abs(value).bit_length() <= PYTHON_INT_EXPR_MAX_BITS else None
+
+
 def _python_fold_os_flag_expr(node: ast.AST | None) -> int | None:
     if node is None:
         return None
     if isinstance(node, ast.Constant) and isinstance(node.value, int):
-        return int(node.value)
+        return _python_bounded_int_expr(int(node.value))
     if isinstance(node, ast.Attribute) and _python_call_name(node.value) == "os":
         value = getattr(os, node.attr, None)
-        return int(value) if isinstance(value, int) else None
+        return _python_bounded_int_expr(value) if isinstance(value, int) else None
     if isinstance(node, ast.UnaryOp):
         operand = _python_fold_os_flag_expr(node.operand)
         if operand is None:
             return None
         if isinstance(node.op, ast.Invert):
-            return ~operand
+            return _python_bounded_int_expr(~operand)
         if isinstance(node.op, ast.UAdd):
-            return +operand
+            return _python_bounded_int_expr(+operand)
         if isinstance(node.op, ast.USub):
-            return -operand
+            return _python_bounded_int_expr(-operand)
         return None
     if isinstance(node, ast.BinOp):
         left = _python_fold_os_flag_expr(node.left)
@@ -163,19 +170,23 @@ def _python_fold_os_flag_expr(node: ast.AST | None) -> int | None:
         if left is None or right is None:
             return None
         if isinstance(node.op, ast.BitOr):
-            return left | right
+            return _python_bounded_int_expr(left | right)
         if isinstance(node.op, ast.BitAnd):
-            return left & right
+            return _python_bounded_int_expr(left & right)
         if isinstance(node.op, ast.BitXor):
-            return left ^ right
+            return _python_bounded_int_expr(left ^ right)
         if isinstance(node.op, ast.LShift):
-            return left << right if right >= 0 else None
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return _python_bounded_int_expr(left << right)
         if isinstance(node.op, ast.RShift):
-            return left >> right if right >= 0 else None
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return _python_bounded_int_expr(left >> right)
         if isinstance(node.op, ast.Add):
-            return left + right
+            return _python_bounded_int_expr(left + right)
         if isinstance(node.op, ast.Sub):
-            return left - right
+            return _python_bounded_int_expr(left - right)
     return None
 
 
@@ -192,18 +203,35 @@ def _python_os_open_uses_write_mode(call: ast.Call) -> bool:
     return True
 
 
+def _python_is_proven_path_receiver(node: ast.AST) -> bool:
+    if isinstance(node, ast.Call) and _python_call_name(node.func) in {"Path", "pathlib.Path"}:
+        return True
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return _python_is_proven_path_receiver(node.left)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "joinpath":
+        return _python_is_proven_path_receiver(node.func.value)
+    return False
+
+
 def _python_call_uses_write_mode(call: ast.Call) -> bool:
     call_name = _python_call_name(call.func)
     if call_name == "os.open":
         return _python_os_open_uses_write_mode(call)
+    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = _python_call_arg(call, 1, "mode")
-    elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
+    elif call_name in PYTHON_KNOWN_READ_MODE_OPEN_CALLS:
+        mode_node = _python_call_arg(call, 1, "mode")
+    elif (
+        isinstance(call.func, ast.Attribute)
+        and call.func.attr == "open"
+        and _python_is_proven_path_receiver(call.func.value)
+    ):
         mode_node = _python_call_arg(call, 0, "mode")
     else:
         return False
     if mode_node is None:
-        return any(keyword.arg is None for keyword in call.keywords)
+        return has_kwargs_expansion
     if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
         return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
     return True
