@@ -157,6 +157,28 @@ assert any(
     for item in unsafe_multiline_builtin_open_sentinels
 ), unsafe_multiline_builtin_open_sentinels
 
+unsafe_multiline_commented_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_multiline_comment_writer.py b/tools/unsafe_multiline_comment_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_multiline_comment_writer.py
+@@ -0,0 +1,7 @@
++def persist(user_path, payload):
++    with open(
++        user_path,
++        # keep utf-8 writes explicit
++        mode="w",
++    ) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_multiline_comment_writer.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in unsafe_multiline_commented_open_sentinels
+), unsafe_multiline_commented_open_sentinels
+
 safe_reassign_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/safe_writer.py b/tools/safe_writer.py
 index 0000000..1111111 100644
