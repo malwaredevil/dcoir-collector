@@ -59,6 +59,30 @@ assert not any(
     for item in module_alias_urlopen_sentinels
 ), module_alias_urlopen_sentinels
 
+mod.set_python_urllib_urlopen_call_context(
+    {"tools/http_head_alias_client.py": {"urllib.request.urlopen", "urllib.urlopen", "urlopen"}}
+)
+try:
+    head_context_alias_urlopen_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/http_head_alias_client.py b/tools/http_head_alias_client.py
+index 0000000..1111111 100644
+--- a/tools/http_head_alias_client.py
++++ b/tools/http_head_alias_client.py
+@@ -2,2 +2,2 @@
+ def fetch(req):
+-    return "pending"
++    return urlopen(req)
+"""
+    )
+finally:
+    mod.set_python_urllib_urlopen_call_context({})
+assert not any(
+    item.path == "tools/http_head_alias_client.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in head_context_alias_urlopen_sentinels
+), head_context_alias_urlopen_sentinels
+
 original_detect_risk_sentinels = mod._original_detect_risk_sentinels
 
 

@@ -3,9 +3,6 @@
 
 from __future__ import annotations
 
-import os
-import tempfile
-from pathlib import Path
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v4 as v4
@@ -146,7 +143,7 @@ def test_patched_detector_skips_read_only_open_and_urlopen() -> None:
     assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
-def test_patched_detector_skips_unchanged_urlopen_aliases_from_head_file() -> None:
+def test_patched_detector_skips_urlopen_aliases_from_diff_context() -> None:
     class Owner:
         RiskSentinel = SimpleNamespace
 
@@ -167,21 +164,7 @@ def test_patched_detector_skips_unchanged_urlopen_aliases_from_head_file() -> No
             "+    return urlopen(req)",
         ]
     )
-    with tempfile.TemporaryDirectory() as tmpdir:
-        root = Path(tmpdir)
-        (root / "tools").mkdir()
-        (root / "tools" / "http_client.py").write_text(
-            "from urllib.request import urlopen\n\n"
-            "def fetch(req):\n"
-            "    return urlopen(req)\n",
-            encoding="utf-8",
-        )
-        cwd = Path.cwd()
-        os.chdir(root)
-        try:
-            found = owner.detect_risk_sentinels(diff)
-        finally:
-            os.chdir(cwd)
+    found = owner.detect_risk_sentinels(diff)
     assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
@@ -282,7 +265,7 @@ def main() -> None:
     test_python_path_write_classifier_skips_read_only_open_lookalikes()
     test_python_path_write_classifier_handles_oversized_os_open_shifts()
     test_patched_detector_skips_read_only_open_and_urlopen()
-    test_patched_detector_skips_unchanged_urlopen_aliases_from_head_file()
+    test_patched_detector_skips_urlopen_aliases_from_diff_context()
     test_patched_detector_skips_module_alias_urlopen()
     test_core_semantics_keeps_stable_finding_family_dependency()
 
