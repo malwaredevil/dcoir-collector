@@ -170,6 +170,25 @@ assert any(
     for item in os_open_keyword_path_sentinels
 ), os_open_keyword_path_sentinels
 
+os_open_kwargs_expansion_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_kwargs_writer.py b/tools/os_kwargs_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_kwargs_writer.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path, options):
++    fd = os.open(user_path, **options)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_kwargs_writer.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_kwargs_expansion_sentinels
+), os_open_kwargs_expansion_sentinels
+
 os_open_partially_unknown_flags_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_partial_flags.py b/tools/os_partial_flags.py
 index 0000000..1111111 100644
