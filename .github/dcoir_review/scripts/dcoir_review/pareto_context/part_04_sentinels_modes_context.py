@@ -1,6 +1,7 @@
 def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSentinel]:
     sentinels: list[hardened.RiskSentinel] = []
     assigned_paths: dict[str, list[PythonTrackedPath]] = {}
+    assigned_int_bindings: dict[str, list[tuple[ast.AST | None, int]]] = {}
     scope_stack: list[PythonScope] = []
     next_scope_id = 0
     path_constructor_names = set(DEFAULT_PYTHON_PATH_CONSTRUCTORS)
@@ -24,6 +25,26 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 current_python_scope_id(scope_stack),
             )
         pending_path_assignment = []
+
+    def prune_assigned_int_bindings(active_scope_ids: set[int]) -> None:
+        for target, bindings in list(assigned_int_bindings.items()):
+            while bindings and bindings[-1][1] not in active_scope_ids:
+                bindings.pop()
+            if not bindings:
+                del assigned_int_bindings[target]
+
+    def push_assigned_int_binding(target: str, value: ast.AST | None, scope_id: int) -> None:
+        bindings = assigned_int_bindings.setdefault(target, [])
+        while bindings and bindings[-1][1] == scope_id:
+            bindings.pop()
+        bindings.append((value, scope_id))
+
+    def visible_int_bindings() -> dict[str, ast.AST | int]:
+        visible: dict[str, ast.AST | int] = {}
+        for target, bindings in assigned_int_bindings.items():
+            if bindings and bindings[-1][0] is not None:
+                visible[target] = bindings[-1][0]
+        return visible
 
     for diff_line in iter_python_diff_lines_with_context(diff):
         if is_python_test_file_path(diff_line.path):
@@ -50,7 +71,9 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             current_hunk = diff_line.hunk
         diff_line_indent = python_code_line_indent(diff_line.text)
         pop_python_scopes_for_indent(scope_stack, diff_line_indent)
-        prune_assigned_paths_for_active_scopes(assigned_paths, active_python_scope_ids(scope_stack))
+        active_scope_ids = active_python_scope_ids(scope_stack)
+        prune_assigned_paths_for_active_scopes(assigned_paths, active_scope_ids)
+        prune_assigned_int_bindings(active_scope_ids)
         if diff_line.inside_multiline_string:
             continue
         if hardened.is_comment_only_added_line(diff_line.path, diff_line.text):
@@ -85,6 +108,10 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         if python_path_assignment_start(diff_line.text, path_constructor_names, os_module_names) and not python_statement_is_complete(diff_line.text):
             pending_path_assignment = [diff_line]
             continue
+        simple_assignment = python_simple_assignment(diff_line.text)
+        if simple_assignment:
+            assigned_target, assigned_value = simple_assignment
+            push_assigned_int_binding(assigned_target, assigned_value, current_scope_id)
         augmented_targets = python_augmented_assignment_targets(diff_line.text)
         assignment_indent = diff_line_indent or 0
         for assigned_target in python_assignment_target_names(diff_line.text):
@@ -101,16 +128,39 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                     push_assigned_path(assigned_paths, assigned_target, diff_line, current_scope_id)
             else:
                 clear_assigned_path_in_scope(assigned_paths, assigned_target, assignment_indent, current_scope_id)
-        write_target = python_file_write_target(diff_line.text, path_constructor_names, os_module_names)
+            if not simple_assignment or simple_assignment[0] != assigned_target:
+                push_assigned_int_binding(assigned_target, None, current_scope_id)
+        current_int_bindings = visible_int_bindings()
+        write_target = python_file_write_target(
+            diff_line.text,
+            path_constructor_names,
+            os_module_names,
+            current_int_bindings,
+        )
         if not write_target:
-            write_target = python_wrapped_file_write_target(diff_line.text, path_constructor_names, os_module_names)
+            write_target = python_wrapped_file_write_target(
+                diff_line.text,
+                path_constructor_names,
+                os_module_names,
+                current_int_bindings,
+            )
         if not write_target:
-            if diff_line.is_added and python_direct_dynamic_file_write(diff_line.text, path_constructor_names, os_module_names):
+            if diff_line.is_added and python_direct_dynamic_file_write(
+                diff_line.text,
+                path_constructor_names,
+                os_module_names,
+                current_int_bindings,
+            ):
                 append_file_write_sentinel(sentinels, diff_line)
             continue
         assignment = current_assigned_path(assigned_paths, write_target)
         if not assignment:
-            if diff_line.is_added and python_direct_dynamic_file_write(diff_line.text, path_constructor_names, os_module_names):
+            if diff_line.is_added and python_direct_dynamic_file_write(
+                diff_line.text,
+                path_constructor_names,
+                os_module_names,
+                current_int_bindings,
+            ):
                 append_file_write_sentinel(sentinels, diff_line)
             continue
         if not assignment.is_added and not diff_line.is_added:

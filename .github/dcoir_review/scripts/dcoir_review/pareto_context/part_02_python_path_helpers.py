@@ -183,6 +183,7 @@ def python_direct_dynamic_open_write(
     text: str,
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
 ) -> bool:
     """Detect direct dynamic file opens while excluding lookalikes such as urlopen."""
 
@@ -191,14 +192,15 @@ def python_direct_dynamic_open_write(
         return False
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(node, os_module_names):
+        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(node, os_module_names, local_int_bindings):
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
             return bool(node.args and python_is_dynamic_path_segment(node.args[0]))
         call_name = python_call_name(func)
         if call_name in {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}:
-            return bool(node.args and python_is_dynamic_path_segment(node.args[0]))
+            path_node = python_call_arg(node, 0, "path")
+            return bool(path_node and python_is_dynamic_path_segment(path_node))
         if not isinstance(func, ast.Attribute) or func.attr != "open":
             continue
         value = func.value
@@ -214,6 +216,7 @@ def python_line_has_explicit_file_write_call(
     text: str,
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
 ) -> bool:
     """Distinguish real file-write APIs from lexical open() lookalikes."""
 
@@ -228,15 +231,20 @@ def python_line_has_explicit_file_write_call(
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
-            return python_call_uses_write_mode(node, os_module_names)
+            return python_call_uses_write_mode(node, os_module_names, local_int_bindings)
         if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
             return True
         if isinstance(func, ast.Attribute) and func.attr == "open":
-            return python_call_uses_write_mode(node, os_module_names)
+            return python_call_uses_write_mode(node, os_module_names, local_int_bindings)
     return False
 
 
-def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> bool:
+def python_direct_dynamic_file_write(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+) -> bool:
     module = python_parse_diff_line(text)
     if module is None:
         return False
@@ -252,12 +260,17 @@ def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str]
         value_is_path, value_has_dynamic = python_path_expr_info(value, constructor_names, os_module_names)
         if value_is_path and value_has_dynamic:
             return True
-    if python_direct_dynamic_open_write(text, path_constructor_names, os_module_names):
+    if python_direct_dynamic_open_write(text, path_constructor_names, os_module_names, local_int_bindings):
         return True
     return False
 
 
-def python_file_write_target(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> str | None:
+def python_file_write_target(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+) -> str | None:
     module = python_parse_diff_line(text)
     if module is None:
         write_match = PYTHON_FILE_WRITE_RE.search(text)
@@ -272,14 +285,19 @@ def python_file_write_target(text: str, path_constructor_names: set[str] | None 
             if target:
                 return target
             continue
-        if node.func.attr == "open" and python_call_uses_write_mode(node, os_module_names):
+        if node.func.attr == "open" and python_call_uses_write_mode(node, os_module_names, local_int_bindings):
             target = python_target_key(node.func.value)
             if target:
                 return target
     return None
 
 
-def python_wrapped_file_write_target(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> str | None:
+def python_wrapped_file_write_target(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+) -> str | None:
     module = python_parse_diff_line(text)
     if module is None:
         return None
@@ -289,7 +307,7 @@ def python_wrapped_file_write_target(text: str, path_constructor_names: set[str]
             continue
         if node.func.attr not in {"write_text", "write_bytes", "open"}:
             continue
-        if node.func.attr == "open" and not python_call_uses_write_mode(node, os_module_names):
+        if node.func.attr == "open" and not python_call_uses_write_mode(node, os_module_names, local_int_bindings):
             continue
         value = node.func.value
         if python_is_path_constructor(value, constructor_names) and value.args:
@@ -323,5 +341,4 @@ def python_dynamic_exec_call_name(text: str) -> str | None:
         if call_name in PYTHON_DYNAMIC_EXEC_CALL_NAMES:
             return call_name
     return None
-
 

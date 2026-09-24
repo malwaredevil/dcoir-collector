@@ -111,6 +111,8 @@ DEFAULT_PYTHON_PATH_CONSTRUCTORS = frozenset({"Path", "pathlib.Path"})
 DEFAULT_PYTHON_OS_MODULES = frozenset({"os"})
 PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
 PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
+PYTHON_INT_EXPR_SHIFT_MAX = 128
+PYTHON_INT_EXPR_MAX_BITS = 4096
 PYTHON_OS_OPEN_WRITE_ACCESS_NAMES = frozenset({"O_WRONLY", "O_RDWR"})
 PYTHON_OS_OPEN_READ_ACCESS_NAMES = frozenset({"O_RDONLY"})
 PYTHON_OS_OPEN_MUTATING_FLAG_NAMES = frozenset({"O_CREAT", "O_TRUNC", "O_APPEND", "O_EXCL", "O_TMPFILE"})
@@ -186,20 +188,31 @@ def python_call_name(node: ast.AST) -> str:
     return ""
 
 
+def python_bounded_int_expr(value: int) -> int | None:
+    return value if abs(value).bit_length() <= PYTHON_INT_EXPR_MAX_BITS else None
+
+
+def python_call_arg(call: ast.Call, position: int, *keyword_names: str) -> ast.AST | None:
+    if len(call.args) > position:
+        return call.args[position]
+    for keyword in call.keywords:
+        if keyword.arg in keyword_names:
+            return keyword.value
+    return None
+
+
 def python_call_uses_write_mode(
-    call: ast.Call, os_module_names: set[str] | None = None
+    call: ast.Call,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
 ) -> bool:
     """Return True when open-style calls can mutate filesystem contents."""
 
     call_name = python_call_name(call.func)
     os_open_names = {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}
     if call_name in os_open_names:
-        flags_node = call.args[1] if len(call.args) > 1 else None
-        for keyword in call.keywords:
-            if keyword.arg == "flags":
-                flags_node = keyword.value
-                break
-        folded_flags = python_fold_int_expr(flags_node)
+        flags_node = python_call_arg(call, 1, "flags")
+        folded_flags = python_fold_int_expr(flags_node, local_int_bindings)
         if folded_flags is not None:
             access_mode = folded_flags & PYTHON_OS_OPEN_ACCESS_MODE_MASK
             if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
@@ -212,7 +225,7 @@ def python_call_uses_write_mode(
             return True
         if referenced_flags and referenced_flags <= PYTHON_OS_OPEN_KNOWN_FLAG_NAMES:
             return False
-        return False
+        return True
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = call.args[1] if len(call.args) > 1 else None
     elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
@@ -230,46 +243,63 @@ def python_call_uses_write_mode(
     return True
 
 
-def python_fold_int_expr(node: ast.AST | None) -> int | None:
+def python_fold_int_expr(
+    node: ast.AST | None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    seen_names: set[str] | None = None,
+) -> int | None:
     if node is None:
         return None
     if isinstance(node, ast.Constant) and isinstance(node.value, int):
-        return int(node.value)
+        return python_bounded_int_expr(int(node.value))
     if isinstance(node, ast.Name):
+        if local_int_bindings and node.id in local_int_bindings:
+            if seen_names is None:
+                seen_names = set()
+            if node.id in seen_names:
+                return None
+            bound_value = local_int_bindings[node.id]
+            if isinstance(bound_value, int):
+                return python_bounded_int_expr(bound_value)
+            return python_fold_int_expr(bound_value, local_int_bindings, seen_names | {node.id})
         return getattr(os, node.id, None) if isinstance(getattr(os, node.id, None), int) else None
     if isinstance(node, ast.Attribute):
         value = getattr(os, node.attr, None)
-        return value if isinstance(value, int) else None
+        return python_bounded_int_expr(value) if isinstance(value, int) else None
     if isinstance(node, ast.UnaryOp):
-        operand = python_fold_int_expr(node.operand)
+        operand = python_fold_int_expr(node.operand, local_int_bindings, seen_names)
         if operand is None:
             return None
         if isinstance(node.op, ast.Invert):
-            return ~operand
+            return python_bounded_int_expr(~operand)
         if isinstance(node.op, ast.UAdd):
-            return +operand
+            return python_bounded_int_expr(+operand)
         if isinstance(node.op, ast.USub):
-            return -operand
+            return python_bounded_int_expr(-operand)
         return None
     if isinstance(node, ast.BinOp):
-        left = python_fold_int_expr(node.left)
-        right = python_fold_int_expr(node.right)
+        left = python_fold_int_expr(node.left, local_int_bindings, seen_names)
+        right = python_fold_int_expr(node.right, local_int_bindings, seen_names)
         if left is None or right is None:
             return None
         if isinstance(node.op, ast.BitOr):
-            return left | right
+            return python_bounded_int_expr(left | right)
         if isinstance(node.op, ast.BitAnd):
-            return left & right
+            return python_bounded_int_expr(left & right)
         if isinstance(node.op, ast.BitXor):
-            return left ^ right
+            return python_bounded_int_expr(left ^ right)
         if isinstance(node.op, ast.LShift):
-            return left << right
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return python_bounded_int_expr(left << right)
         if isinstance(node.op, ast.RShift):
-            return left >> right
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return python_bounded_int_expr(left >> right)
         if isinstance(node.op, ast.Add):
-            return left + right
+            return python_bounded_int_expr(left + right)
         if isinstance(node.op, ast.Sub):
-            return left - right
+            return python_bounded_int_expr(left - right)
     return None
 
 
