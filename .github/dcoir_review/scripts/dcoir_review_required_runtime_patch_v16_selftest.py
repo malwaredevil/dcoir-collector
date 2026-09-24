@@ -321,6 +321,46 @@ def test_patched_detector_consumes_owner_alias_context() -> None:
     assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
+def test_patched_detector_derives_path_and_os_aliases_from_diff() -> None:
+    class Owner:
+        RiskSentinel = pareto.hardened.RiskSentinel
+        detect_risk_sentinels = staticmethod(pareto.detect_risk_sentinels)
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    safe_diff = "\n".join(
+        [
+            "diff --git a/tools/alias_reader.py b/tools/alias_reader.py",
+            "+++ b/tools/alias_reader.py",
+            "@@ -0,0 +1,6 @@",
+            "+from pathlib import Path as P",
+            "+import os as operating_system",
+            "+def load(user_path):",
+            "+    with P(user_path).open(\"r\") as handle:",
+            "+        fd = operating_system.open(user_path, operating_system.O_RDONLY)",
+            "+        return handle.read(), fd",
+        ]
+    )
+    found = owner.detect_risk_sentinels(safe_diff)
+    assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+    hostile_diff = "\n".join(
+        [
+            "diff --git a/tools/alias_writer.py b/tools/alias_writer.py",
+            "+++ b/tools/alias_writer.py",
+            "@@ -0,0 +1,6 @@",
+            "+from pathlib import Path as P",
+            "+import os as operating_system",
+            "+def save(user_path, payload):",
+            "+    with P(user_path).open(\"w\") as handle:",
+            "+        handle.write(payload)",
+            "+    return operating_system.open(user_path, operating_system.O_WRONLY)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(hostile_diff)
+    assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
 def test_patched_detector_keeps_unknown_custom_open_calls() -> None:
     class Owner:
         RiskSentinel = SimpleNamespace
@@ -424,6 +464,7 @@ def main() -> None:
     test_python_path_write_classifier_uses_alias_context()
     test_python_path_write_classifier_uses_os_alias_context()
     test_patched_detector_consumes_owner_alias_context()
+    test_patched_detector_derives_path_and_os_aliases_from_diff()
     test_patched_detector_keeps_unknown_custom_open_calls()
     test_core_semantics_keeps_stable_finding_family_dependency()
 
