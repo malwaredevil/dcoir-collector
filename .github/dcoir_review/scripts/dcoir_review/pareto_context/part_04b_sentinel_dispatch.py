@@ -61,7 +61,7 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
         if sentinel.label in skipped_test_file_write_labels:
             if is_python_test_file_path(sentinel.path):
                 continue
-            if python_line_is_known_urllib_urlopen(sentinel.text):
+            if Path(sentinel.path).suffix.lower() == ".py" and python_line_is_known_urllib_urlopen(sentinel.text):
                 # Historical string matching treated names such as ``urlopen`` as
                 # filesystem ``open``. Drop only this known lexical false
                 # positive and keep other legacy sentinels unless a dedicated

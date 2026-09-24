@@ -75,6 +75,17 @@ def main() -> None:
             ]
         ),
     )
+    assert not _has_python_path_write(
+        "tools/http_alias_client.py",
+        "\n".join(
+            [
+                "from urllib.request import urlopen",
+                "def fetch(req):",
+                "    with urlopen(req) as response:",
+                "        return response.read()",
+            ]
+        ),
+    )
     corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
     assert corpus.get("schema_version") == "dcoir_review_precision_corpus_v1"
     fixtures = corpus.get("fixtures")
