@@ -246,6 +246,46 @@ def test_patched_detector_skips_module_alias_urlopen() -> None:
     assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
+def test_urlopen_context_prunes_shadowed_urllib_bindings() -> None:
+    diff = "\n".join(
+        [
+            "diff --git a/tools/shadowed_urlopen.py b/tools/shadowed_urlopen.py",
+            "+++ b/tools/shadowed_urlopen.py",
+            "@@ -0,0 +1,4 @@",
+            "+import urllib.request",
+            "+urllib = storage",
+            "+def persist(user_path):",
+            "+    return urllib.request.urlopen(user_path)",
+        ]
+    )
+    call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_urlopen.py", set())
+    assert "urllib.request.urlopen" not in call_names, call_names
+
+
+def test_patched_detector_keeps_unknown_custom_open_calls() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/custom_open.py b/tools/custom_open.py",
+            "+++ b/tools/custom_open.py",
+            "@@ -0,0 +1,3 @@",
+            "+def persist(storage, user_path, payload):",
+            '+    with storage.open(user_path, "w") as handle:',
+            "+        handle.write(payload)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
 def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
     from dcoir_review import finding_family
 
@@ -320,6 +360,8 @@ def main() -> None:
     test_patched_detector_skips_read_only_open_and_urlopen()
     test_patched_detector_skips_urlopen_aliases_from_diff_context()
     test_patched_detector_skips_module_alias_urlopen()
+    test_urlopen_context_prunes_shadowed_urllib_bindings()
+    test_patched_detector_keeps_unknown_custom_open_calls()
     test_core_semantics_keeps_stable_finding_family_dependency()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
