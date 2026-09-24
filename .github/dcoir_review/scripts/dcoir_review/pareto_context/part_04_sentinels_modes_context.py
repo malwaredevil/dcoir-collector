@@ -253,7 +253,13 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             ):
                 append_file_write_sentinel(sentinels, diff_line)
             elif (
-                re.search(r"\bopen\s*\(", diff_line.text)
+                re.search(r"\b(?:write_text|write_bytes|open)\s*\(", diff_line.text)
+                and python_line_has_explicit_file_write_call(
+                    diff_line.text,
+                    path_constructor_names,
+                    os_module_names,
+                    current_int_bindings,
+                )
                 and not python_statement_is_complete(diff_line.text)
             ):
                 pending_write_statement = [diff_line]

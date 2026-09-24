@@ -169,6 +169,27 @@ assert any(
     for item in os_open_write_sentinels
 ), os_open_write_sentinels
 
+os_open_multiline_write_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_write_multiline.py b/tools/os_write_multiline.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_write_multiline.py
+@@ -0,0 +1,6 @@
++import os
++def persist(user_path):
++    fd = os.open(
++        user_path,
++        os.O_WRONLY | os.O_CREAT)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_write_multiline.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_multiline_write_sentinels
+), os_open_multiline_write_sentinels
+
 os_open_read_create_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_read_create.py b/tools/os_read_create.py
 index 0000000..1111111 100644
