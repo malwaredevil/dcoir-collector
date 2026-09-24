@@ -36,6 +36,23 @@ assert not any(
     for item in os_open_read_sentinels
 ), os_open_read_sentinels
 
+os_open_read_with_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_read_with_flags.py b/tools/os_read_with_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_read_with_flags.py
+@@ -0,0 +1,4 @@
++import os
++def load(user_path):
++    fd = os.open(user_path, os.O_RDONLY | os.O_CLOEXEC)
++    return fd
+"""
+)
+assert not any(
+    item.path == "tools/os_read_with_flags.py" and item.label in legacy_path_write_labels
+    for item in os_open_read_with_flags_sentinels
+), os_open_read_with_flags_sentinels
+
 os_open_write_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_write.py b/tools/os_write.py
 index 0000000..1111111 100644
@@ -54,6 +71,25 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in os_open_write_sentinels
 ), os_open_write_sentinels
+
+os_open_read_create_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_read_create.py b/tools/os_read_create.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_read_create.py
+@@ -0,0 +1,4 @@
++import os
++def create(user_path):
++    fd = os.open(user_path, os.O_RDONLY | os.O_CREAT)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_read_create.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_read_create_sentinels
+), os_open_read_create_sentinels
 
 read_only_path_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/read_only_path.py b/tools/read_only_path.py

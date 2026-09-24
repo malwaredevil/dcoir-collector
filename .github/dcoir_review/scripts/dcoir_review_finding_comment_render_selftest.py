@@ -234,6 +234,11 @@ def main() -> None:
     )
     assert "critic-eligible" in precritic
     assert "MODEL TEXT" not in precritic
+    author_declined = renderer._deterministic_repair_disposition(
+        {repair.REPAIR_MARKER: {"outcome": "author-declined", "reason": "MODEL TEXT"}}
+    )
+    assert "critic-eligible" in author_declined
+    assert "MODEL TEXT" not in author_declined
     critic_rejected = renderer._deterministic_repair_disposition(
         {
             repair.REPAIR_MARKER: {

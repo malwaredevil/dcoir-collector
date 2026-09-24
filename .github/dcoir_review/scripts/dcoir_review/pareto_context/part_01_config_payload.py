@@ -109,6 +109,13 @@ PYTHON_HUNK_CONTEXT_RE = re.compile(r"^@@.*?@@\s*(?P<context>.*)$")
 PYTHON_TRIPLE_QUOTE_RE = re.compile(r"(?<!\\)(?:'''|\"\"\")")
 DEFAULT_PYTHON_PATH_CONSTRUCTORS = frozenset({"Path", "pathlib.Path"})
 DEFAULT_PYTHON_OS_MODULES = frozenset({"os"})
+PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
+PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
+PYTHON_OS_OPEN_MUTATING_FLAG_MASK = 0
+for _flag_name in ("O_CREAT", "O_TRUNC", "O_APPEND", "O_EXCL", "O_TMPFILE"):
+    _flag_value = getattr(os, _flag_name, 0)
+    if isinstance(_flag_value, int):
+        PYTHON_OS_OPEN_MUTATING_FLAG_MASK |= _flag_value
 PYTHON_PATH_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_OS_ALIAS_CONTEXT: dict[str, set[str]] = {}
 GITHUB_ACTIONS_WRITE_PERMISSION_RE = re.compile(
@@ -186,10 +193,12 @@ def python_call_uses_write_mode(
             if keyword.arg == "flags":
                 flags_node = keyword.value
                 break
-        if isinstance(flags_node, ast.Constant) and flags_node.value == 0:
-            return False
-        if isinstance(flags_node, ast.Attribute) and flags_node.attr == "O_RDONLY":
-            return False
+        folded_flags = python_fold_int_expr(flags_node)
+        if folded_flags is not None:
+            access_mode = folded_flags & PYTHON_OS_OPEN_ACCESS_MODE_MASK
+            if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
+                return bool(folded_flags & PYTHON_OS_OPEN_MUTATING_FLAG_MASK)
+            return True
         return flags_node is not None
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = call.args[1] if len(call.args) > 1 else None
@@ -206,6 +215,49 @@ def python_call_uses_write_mode(
     if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
         return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
     return True
+
+
+def python_fold_int_expr(node: ast.AST | None) -> int | None:
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant) and isinstance(node.value, int):
+        return int(node.value)
+    if isinstance(node, ast.Name):
+        return getattr(os, node.id, None) if isinstance(getattr(os, node.id, None), int) else None
+    if isinstance(node, ast.Attribute):
+        value = getattr(os, node.attr, None)
+        return value if isinstance(value, int) else None
+    if isinstance(node, ast.UnaryOp):
+        operand = python_fold_int_expr(node.operand)
+        if operand is None:
+            return None
+        if isinstance(node.op, ast.Invert):
+            return ~operand
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        if isinstance(node.op, ast.USub):
+            return -operand
+        return None
+    if isinstance(node, ast.BinOp):
+        left = python_fold_int_expr(node.left)
+        right = python_fold_int_expr(node.right)
+        if left is None or right is None:
+            return None
+        if isinstance(node.op, ast.BitOr):
+            return left | right
+        if isinstance(node.op, ast.BitAnd):
+            return left & right
+        if isinstance(node.op, ast.BitXor):
+            return left ^ right
+        if isinstance(node.op, ast.LShift):
+            return left << right
+        if isinstance(node.op, ast.RShift):
+            return left >> right
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+    return None
 
 
 def python_target_key(node: ast.AST) -> str | None:
@@ -353,4 +405,3 @@ def set_python_os_alias_context(os_alias_context: dict[str, set[str]] | None) ->
         for path, aliases in (os_alias_context or {}).items()
         if aliases
     }
-
