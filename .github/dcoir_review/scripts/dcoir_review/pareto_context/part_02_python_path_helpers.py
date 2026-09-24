@@ -248,12 +248,17 @@ def python_line_has_explicit_file_write_call(
     os_module_names: set[str] | None = None,
     local_int_bindings: dict[str, ast.AST | int] | None = None,
     allow_urllib_urlopen_alias: bool = False,
+    known_call_names: set[str] | None = None,
 ) -> bool:
     """Distinguish real file-write APIs from lexical open() lookalikes."""
 
     module = python_parse_diff_line(text)
     if module is None:
-        if python_line_is_known_urllib_urlopen(text, allow_urllib_urlopen_alias):
+        if python_line_is_known_urllib_urlopen(
+            text,
+            allow_urllib_urlopen_alias,
+            known_call_names=known_call_names,
+        ):
             return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
         return True
