@@ -158,6 +158,33 @@ assert "Every semantic, Markdown, governance, validation, or review-gate concern
 assert mod.CONTEXT_REVIEW_MARKER not in small_prompt
 assert mod.DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER.strip() not in small_prompt
 
+cross_file_unbound_os_open_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_read_flags.py b/tools/os_read_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_read_flags.py
+@@ -0,0 +1,5 @@
++import os
++def load(user_path):
++    flags = os.O_RDONLY
++    return os.open(user_path, flags)
+diff --git a/tools/os_write_flags.py b/tools/os_write_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_write_flags.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path, flags):
++    return os.open(user_path, flags)
+"""
+)
+assert any(
+    item.path == "tools/os_write_flags.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in cross_file_unbound_os_open_flags_sentinels
+), cross_file_unbound_os_open_flags_sentinels
+
 
 # Review-assist artifact context must only be loaded from the trusted extraction path.
 class ReviewAssistContextConfig:

@@ -60,12 +60,14 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             current_path = diff_line.path
             current_hunk = diff_line.hunk
             assigned_paths.clear()
+            assigned_int_bindings.clear()
             scope_stack.clear()
             next_scope_id = seed_python_hunk_scope(scope_stack, diff_line.hunk_context, next_scope_id)
         elif diff_line.hunk != current_hunk:
             flush_pending_path_assignment()
             if not trim_python_scope_stack_to_hunk(scope_stack, diff_line.hunk_context):
                 assigned_paths.clear()
+                assigned_int_bindings.clear()
                 scope_stack.clear()
                 next_scope_id = seed_python_hunk_scope(scope_stack, diff_line.hunk_context, next_scope_id)
             current_hunk = diff_line.hunk
