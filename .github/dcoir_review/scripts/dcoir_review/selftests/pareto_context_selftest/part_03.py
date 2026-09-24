@@ -157,6 +157,29 @@ assert any(
     for item in unsafe_multiline_builtin_open_sentinels
 ), unsafe_multiline_builtin_open_sentinels
 
+unsafe_multiline_context_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_multiline_context_writer.py b/tools/unsafe_multiline_context_writer.py
+index 1111111..2222222 100644
+--- a/tools/unsafe_multiline_context_writer.py
++++ b/tools/unsafe_multiline_context_writer.py
+@@ -1,6 +1,6 @@
+ def persist(user_path, payload):
+     with open(
+-        "safe.txt",
+-        "r",
++        user_path,
++        "w",
+     ) as handle:
+         handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_multiline_context_writer.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in unsafe_multiline_context_open_sentinels
+), unsafe_multiline_context_open_sentinels
+
 unsafe_multiline_commented_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_multiline_comment_writer.py b/tools/unsafe_multiline_comment_writer.py
 index 0000000..1111111 100644
@@ -178,6 +201,41 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in unsafe_multiline_commented_open_sentinels
 ), unsafe_multiline_commented_open_sentinels
+
+open_kwargs_expansion_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_kwargs_writer.py b/tools/unsafe_kwargs_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_kwargs_writer.py
+@@ -0,0 +1,3 @@
++def persist(user_path, payload, options):
++    with open(file=user_path, **options) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_kwargs_writer.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in open_kwargs_expansion_sentinels
+), open_kwargs_expansion_sentinels
+
+default_builtin_open_read_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/default_open_reader.py b/tools/default_open_reader.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/default_open_reader.py
+@@ -0,0 +1,3 @@
++def load(user_path):
++    with open(user_path) as handle:
++        return handle.read()
+"""
+)
+assert not any(
+    item.path == "tools/default_open_reader.py"
+    and item.label in legacy_path_write_labels
+    for item in default_builtin_open_read_sentinels
+), default_builtin_open_read_sentinels
 
 overflowed_multiline_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/overflowed_multiline_writer.py b/tools/overflowed_multiline_writer.py

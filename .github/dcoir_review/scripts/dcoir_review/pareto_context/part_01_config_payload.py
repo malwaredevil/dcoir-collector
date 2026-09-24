@@ -230,6 +230,7 @@ def python_call_uses_write_mode(
         ):
             return False
         return True
+    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = call.args[1] if len(call.args) > 1 else None
     elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
@@ -241,7 +242,7 @@ def python_call_uses_write_mode(
             mode_node = keyword.value
             break
     if mode_node is None:
-        return False
+        return has_kwargs_expansion
     if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
         return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
     return True

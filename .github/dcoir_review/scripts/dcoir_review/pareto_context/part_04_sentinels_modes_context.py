@@ -45,9 +45,10 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         nonlocal pending_write_statement
         if not pending_write_statement:
             return
+        has_added_line = any(line.is_added for line in pending_write_statement)
         statement = "\n".join(line.text for line in pending_write_statement)
         current_int_bindings = visible_int_bindings()
-        if python_statement_is_complete(statement):
+        if has_added_line and python_statement_is_complete(statement):
             if python_direct_dynamic_file_write(
                 statement,
                 path_constructor_names,
@@ -55,7 +56,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 current_int_bindings,
             ):
                 append_file_write_sentinel(sentinels, pending_write_statement_anchor())
-        elif overflowed and python_line_has_explicit_file_write_call(
+        elif has_added_line and overflowed and python_line_has_explicit_file_write_call(
             statement,
             path_constructor_names,
             os_module_names,
@@ -252,8 +253,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             ):
                 append_file_write_sentinel(sentinels, diff_line)
             elif (
-                diff_line.is_added
-                and re.search(r"\bopen\s*\(", diff_line.text)
+                re.search(r"\bopen\s*\(", diff_line.text)
                 and not python_statement_is_complete(diff_line.text)
             ):
                 pending_write_statement = [diff_line]
