@@ -257,7 +257,6 @@ def python_line_has_explicit_file_write_call(
         if python_line_is_known_urllib_urlopen(
             text,
             allow_urllib_urlopen_alias,
-            known_call_names=known_call_names,
         ):
             return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
