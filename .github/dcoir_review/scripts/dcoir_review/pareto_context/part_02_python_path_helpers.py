@@ -266,26 +266,34 @@ def python_line_has_explicit_file_write_call(
             return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
         return True
-    for node in ast.walk(module):
-        if not isinstance(node, ast.Call):
-            continue
-        func = node.func
-        if isinstance(func, ast.Name) and func.id == "open":
-            return python_call_uses_write_mode(
-                node,
-                os_module_names,
-                local_int_bindings,
-                conservative_unknown_kwargs=False,
-            )
-        if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
-            return True
-        if isinstance(func, ast.Attribute) and func.attr == "open":
-            return python_call_uses_write_mode(
-                node,
-                os_module_names,
-                local_int_bindings,
-                conservative_unknown_kwargs=False,
-            )
+    scoped_bindings = dict(local_int_bindings or {})
+    for statement in module.body:
+        if isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    scoped_bindings[target.id] = statement.value
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name) and statement.value is not None:
+            scoped_bindings[statement.target.id] = statement.value
+        for node in ast.walk(statement):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if isinstance(func, ast.Name) and func.id == "open":
+                return python_call_uses_write_mode(
+                    node,
+                    os_module_names,
+                    scoped_bindings,
+                    conservative_unknown_kwargs=False,
+                )
+            if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
+                return True
+            if isinstance(func, ast.Attribute) and func.attr == "open":
+                return python_call_uses_write_mode(
+                    node,
+                    os_module_names,
+                    scoped_bindings,
+                    conservative_unknown_kwargs=False,
+                )
     return False
 
 

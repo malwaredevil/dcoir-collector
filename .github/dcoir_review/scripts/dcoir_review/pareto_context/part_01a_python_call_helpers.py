@@ -78,9 +78,34 @@ def python_call_uses_write_mode(
             break
     if mode_node is None:
         return has_kwargs_expansion if conservative_unknown_kwargs else False
-    if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
-        return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
+    folded_mode = python_fold_string_expr(mode_node, local_int_bindings)
+    if folded_mode is not None:
+        return any(token in folded_mode.lower() for token in ("w", "a", "x", "+"))
     return True
+
+
+def python_fold_string_expr(
+    node: ast.AST | None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    seen_names: set[str] | None = None,
+) -> str | None:
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return str(node.value)
+    if isinstance(node, ast.Name):
+        if not local_int_bindings or node.id not in local_int_bindings:
+            return None
+        if seen_names is None:
+            seen_names = set()
+        if node.id in seen_names:
+            return None
+        bound_value = local_int_bindings[node.id]
+        if isinstance(bound_value, str):
+            return bound_value
+        if isinstance(bound_value, ast.AST):
+            return python_fold_string_expr(bound_value, local_int_bindings, seen_names | {node.id})
+    return None
 
 
 def python_fold_int_expr(
