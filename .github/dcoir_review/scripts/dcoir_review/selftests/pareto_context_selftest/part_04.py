@@ -94,6 +94,11 @@ assert not any(
     for item in custom_open_sentinels
 ), custom_open_sentinels
 
+assert not mod.python_line_has_explicit_file_write_call(
+    "with open(file=user_path, **options) as handle:",
+    local_int_bindings={},
+)
+
 os_open_read_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_read.py b/tools/os_read.py
 index 0000000..1111111 100644

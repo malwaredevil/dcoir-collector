@@ -231,7 +231,7 @@ def _python_call_uses_write_mode(call: ast.Call) -> bool:
     else:
         return False
     if mode_node is None:
-        return has_kwargs_expansion
+        return False
     if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
         return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
     return True
