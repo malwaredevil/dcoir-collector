@@ -145,6 +145,8 @@ assert not mod.python_line_has_explicit_file_write_call(
     "with ur.urlopen(",
     known_call_names={"urllib.request.urlopen", "urllib.urlopen", "ur.urlopen"},
 )
+assert not mod.python_line_has_explicit_file_write_call('mode = "r"; open(user_path, mode)')
+assert mod.python_line_has_explicit_file_write_call('mode = "w"; open(user_path, mode)')
 
 os_open_read_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_read.py b/tools/os_read.py
