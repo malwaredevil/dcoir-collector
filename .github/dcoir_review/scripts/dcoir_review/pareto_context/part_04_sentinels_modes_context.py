@@ -10,6 +10,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     current_hunk = 0
     current_alias_path = ""
     pending_path_assignment: list[PythonDiffLine] = []
+    pending_write_statement: list[PythonDiffLine] = []
 
     def flush_pending_path_assignment() -> None:
         nonlocal pending_path_assignment
@@ -32,6 +33,26 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 bindings.pop()
             if not bindings:
                 del assigned_int_bindings[target]
+
+    def flush_pending_write_statement() -> None:
+        nonlocal pending_write_statement
+        if not pending_write_statement:
+            return
+        statement = "\n".join(line.text for line in pending_write_statement)
+        if python_statement_is_complete(statement):
+            current_int_bindings = visible_int_bindings()
+            if python_direct_dynamic_file_write(
+                statement,
+                path_constructor_names,
+                os_module_names,
+                current_int_bindings,
+            ):
+                anchor_line = next(
+                    (line for line in pending_write_statement if line.is_added),
+                    pending_write_statement[0],
+                )
+                append_file_write_sentinel(sentinels, anchor_line)
+        pending_write_statement = []
 
     def push_assigned_int_binding(target: str, value: ast.AST | None, scope_id: int) -> None:
         bindings = assigned_int_bindings.setdefault(target, [])
@@ -57,6 +78,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             current_alias_path = diff_line.path
         if diff_line.path != current_path:
             flush_pending_path_assignment()
+            flush_pending_write_statement()
             current_path = diff_line.path
             current_hunk = diff_line.hunk
             assigned_paths.clear()
@@ -65,6 +87,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             next_scope_id = seed_python_hunk_scope(scope_stack, diff_line.hunk_context, next_scope_id)
         elif diff_line.hunk != current_hunk:
             flush_pending_path_assignment()
+            flush_pending_write_statement()
             if not trim_python_scope_stack_to_hunk(scope_stack, diff_line.hunk_context):
                 assigned_paths.clear()
                 assigned_int_bindings.clear()
@@ -76,6 +99,11 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         active_scope_ids = active_python_scope_ids(scope_stack)
         prune_assigned_paths_for_active_scopes(assigned_paths, active_scope_ids)
         prune_assigned_int_bindings(active_scope_ids)
+        if pending_write_statement:
+            pending_write_statement.append(diff_line)
+            if python_statement_is_complete("\n".join(line.text for line in pending_write_statement)):
+                flush_pending_write_statement()
+            continue
         if diff_line.inside_multiline_string:
             continue
         if hardened.is_comment_only_added_line(diff_line.path, diff_line.text):
@@ -92,12 +120,15 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             next_scope_id += 1
             scope_indent = diff_line_indent or 0
             scope_stack.append(PythonScope(scope_indent, python_scope_key(diff_line.text), next_scope_id))
+            shadowed_names = python_scope_boundary_shadowed_names(diff_line.text)
             remove_shadowed_assigned_paths(
                 assigned_paths,
-                python_scope_boundary_shadowed_names(diff_line.text),
+                shadowed_names,
                 diff_line,
                 current_python_scope_id(scope_stack),
             )
+            for shadowed_name in shadowed_names:
+                push_assigned_int_binding(shadowed_name, None, current_python_scope_id(scope_stack))
         current_scope_id = current_python_scope_id(scope_stack)
         dynamic_target = python_dynamic_path_target(diff_line.text, path_constructor_names, os_module_names)
         if dynamic_target:
@@ -154,6 +185,12 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 current_int_bindings,
             ):
                 append_file_write_sentinel(sentinels, diff_line)
+            elif (
+                diff_line.is_added
+                and re.search(r"\bopen\s*\(", diff_line.text)
+                and not python_statement_is_complete(diff_line.text)
+            ):
+                pending_write_statement = [diff_line]
             continue
         assignment = current_assigned_path(assigned_paths, write_target)
         if not assignment:
@@ -170,6 +207,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         anchor = assignment if assignment.is_added else diff_line
         append_file_write_sentinel(sentinels, anchor)
     flush_pending_path_assignment()
+    flush_pending_write_statement()
     return sentinels
 
 

@@ -148,6 +148,25 @@ assert any(
     for item in os_open_keyword_path_sentinels
 ), os_open_keyword_path_sentinels
 
+os_open_partially_unknown_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_partial_flags.py b/tools/os_partial_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_partial_flags.py
+@@ -0,0 +1,5 @@
++import os
++def persist(user_path, user_flags):
++    fd = os.open(user_path, os.O_RDONLY | user_flags)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_partial_flags.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_partially_unknown_flags_sentinels
+), os_open_partially_unknown_flags_sentinels
+
 os_open_large_shift_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_large_shift.py b/tools/os_large_shift.py
 index 0000000..1111111 100644
@@ -223,6 +242,27 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in unsafe_path_open_sentinels
 ), unsafe_path_open_sentinels
+
+unsafe_multiline_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_multiline_path_writer.py b/tools/unsafe_multiline_path_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_multiline_path_writer.py
+@@ -0,0 +1,7 @@
++from pathlib import Path
++def persist(user_path, payload):
++    with Path(user_path).open(
++        "wb",
++    ) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_multiline_path_writer.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in unsafe_multiline_path_open_sentinels
+), unsafe_multiline_path_open_sentinels
 
 unsafe_assigned_path_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_assigned_writer.py b/tools/unsafe_assigned_writer.py

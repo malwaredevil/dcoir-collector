@@ -223,7 +223,11 @@ def python_call_uses_write_mode(
         referenced_flags = python_os_open_flag_names(flags_node, os_module_names)
         if referenced_flags & (PYTHON_OS_OPEN_WRITE_ACCESS_NAMES | PYTHON_OS_OPEN_MUTATING_FLAG_NAMES):
             return True
-        if referenced_flags and referenced_flags <= PYTHON_OS_OPEN_KNOWN_FLAG_NAMES:
+        if (
+            referenced_flags
+            and referenced_flags <= PYTHON_OS_OPEN_KNOWN_FLAG_NAMES
+            and python_os_open_flag_expr_is_fully_known(flags_node, os_module_names, local_int_bindings)
+        ):
             return False
         return True
     if isinstance(call.func, ast.Name) and call.func.id == "open":
@@ -324,6 +328,59 @@ def python_os_open_flag_names(
         ):
             names.add(child.attr)
     return names
+
+
+def python_os_open_flag_expr_is_fully_known(
+    node: ast.AST,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    seen_names: set[str] | None = None,
+) -> bool:
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, int)
+    if isinstance(node, ast.Name):
+        if not local_int_bindings or node.id not in local_int_bindings:
+            return False
+        if seen_names is None:
+            seen_names = set()
+        if node.id in seen_names:
+            return False
+        bound_value = local_int_bindings[node.id]
+        if isinstance(bound_value, int):
+            return True
+        return python_os_open_flag_expr_is_fully_known(
+            bound_value,
+            os_module_names,
+            local_int_bindings,
+            seen_names | {node.id},
+        )
+    if isinstance(node, ast.Attribute):
+        return (
+            node.attr in PYTHON_OS_OPEN_KNOWN_FLAG_NAMES
+            and python_call_name(node.value) in (os_module_names or DEFAULT_PYTHON_OS_MODULES)
+        )
+    if isinstance(node, ast.UnaryOp):
+        return isinstance(node.op, (ast.Invert, ast.UAdd, ast.USub)) and python_os_open_flag_expr_is_fully_known(
+            node.operand,
+            os_module_names,
+            local_int_bindings,
+            seen_names,
+        )
+    if isinstance(node, ast.BinOp):
+        if not isinstance(node.op, (ast.BitOr, ast.BitAnd, ast.BitXor, ast.LShift, ast.RShift, ast.Add, ast.Sub)):
+            return False
+        return python_os_open_flag_expr_is_fully_known(
+            node.left,
+            os_module_names,
+            local_int_bindings,
+            seen_names,
+        ) and python_os_open_flag_expr_is_fully_known(
+            node.right,
+            os_module_names,
+            local_int_bindings,
+            seen_names,
+        )
+    return False
 
 
 def python_target_key(node: ast.AST) -> str | None:

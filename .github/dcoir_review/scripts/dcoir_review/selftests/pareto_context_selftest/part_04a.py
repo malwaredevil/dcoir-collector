@@ -185,6 +185,25 @@ assert any(
     for item in cross_file_unbound_os_open_flags_sentinels
 ), cross_file_unbound_os_open_flags_sentinels
 
+shadowed_parameter_os_open_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_shadowed_flags.py b/tools/os_shadowed_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_shadowed_flags.py
+@@ -0,0 +1,5 @@
++import os
++flags = os.O_RDONLY
++def persist(user_path, flags):
++    return os.open(user_path, flags)
+"""
+)
+assert any(
+    item.path == "tools/os_shadowed_flags.py"
+    and item.line == 4
+    and item.label in legacy_path_write_labels
+    for item in shadowed_parameter_os_open_flags_sentinels
+), shadowed_parameter_os_open_flags_sentinels
+
 
 # Review-assist artifact context must only be loaded from the trusted extraction path.
 class ReviewAssistContextConfig:
