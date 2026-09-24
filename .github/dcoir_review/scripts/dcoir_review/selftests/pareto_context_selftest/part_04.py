@@ -77,6 +77,23 @@ assert any(
     for item in custom_urlopen_sentinels
 ), custom_urlopen_sentinels
 
+custom_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/custom_open.py b/tools/custom_open.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/custom_open.py
+@@ -0,0 +1,3 @@
++def persist(client, payload):
++    with client.open("w") as handle:
++        return handle.write(payload)
+"""
+)
+assert not any(
+    item.path == "tools/custom_open.py"
+    and item.label in legacy_path_write_labels
+    for item in custom_open_sentinels
+), custom_open_sentinels
+
 os_open_read_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_read.py b/tools/os_read.py
 index 0000000..1111111 100644
