@@ -209,6 +209,7 @@ def python_call_uses_write_mode(
     """Return True when open-style calls can mutate filesystem contents."""
 
     call_name = python_call_name(call.func)
+    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
     os_open_names = {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}
     if call_name in os_open_names:
         flags_node = python_call_arg(call, 1, "flags")
@@ -219,7 +220,7 @@ def python_call_uses_write_mode(
                 return bool(folded_flags & PYTHON_OS_OPEN_MUTATING_FLAG_MASK)
             return True
         if flags_node is None:
-            return False
+            return has_kwargs_expansion
         referenced_flags = python_os_open_flag_names(flags_node, os_module_names)
         if referenced_flags & (PYTHON_OS_OPEN_WRITE_ACCESS_NAMES | PYTHON_OS_OPEN_MUTATING_FLAG_NAMES):
             return True
@@ -230,7 +231,6 @@ def python_call_uses_write_mode(
         ):
             return False
         return True
-    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = call.args[1] if len(call.args) > 1 else None
     elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
