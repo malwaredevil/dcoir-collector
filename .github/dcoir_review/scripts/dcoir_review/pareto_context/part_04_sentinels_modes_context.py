@@ -281,3 +281,21 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     flush_pending_path_assignment()
     flush_pending_write_statement()
     return sentinels
+
+
+def set_python_path_alias_context(path_alias_context: dict[str, set[str]] | None) -> None:
+    global PYTHON_PATH_ALIAS_CONTEXT
+    PYTHON_PATH_ALIAS_CONTEXT = {
+        path: set(aliases)
+        for path, aliases in (path_alias_context or {}).items()
+        if aliases
+    }
+
+
+def set_python_os_alias_context(os_alias_context: dict[str, set[str]] | None) -> None:
+    global PYTHON_OS_ALIAS_CONTEXT
+    PYTHON_OS_ALIAS_CONTEXT = {
+        path: set(aliases)
+        for path, aliases in (os_alias_context or {}).items()
+        if aliases
+    }
