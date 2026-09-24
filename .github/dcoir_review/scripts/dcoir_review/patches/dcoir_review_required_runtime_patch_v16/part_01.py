@@ -63,7 +63,7 @@ PYTHON_BUILTIN_DYNAMIC_EXEC_RE = re.compile(
     r"(?<![A-Za-z0-9_.])(?:eval|exec)\s*\(|(?:builtins|__builtins__)\.(?:eval|exec)\s*\(",
     re.IGNORECASE,
 )
-PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\b(?:urllib(?:\.request)?\.)?urlopen\s*\(", re.IGNORECASE)
+PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\burllib(?:\.request)?\.urlopen\s*\(", re.IGNORECASE)
 PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
 PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
 PYTHON_OS_OPEN_MUTATING_FLAG_MASK = (
@@ -209,14 +209,36 @@ def _python_call_uses_write_mode(call: ast.Call) -> bool:
     return True
 
 
-def _python_is_known_urllib_urlopen(text: str) -> bool:
+def _python_line_imports_urllib_urlopen_alias(text: str) -> bool:
+    module = _python_parse_diff_line(text)
+    if module is None:
+        return bool(re.search(r"^\s*from\s+urllib\.request\s+import\s+.*\burlopen\b", text))
+    for node in module.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "urllib.request":
+            return any(alias.name == "urlopen" for alias in node.names)
+    return False
+
+
+def _python_diff_urllib_urlopen_alias_paths(diff: str) -> set[str]:
+    return {
+        path
+        for path, _line, text in selection._iter_added_diff_lines(diff)
+        if Path(str(path or "")).suffix.lower() == ".py" and _python_line_imports_urllib_urlopen_alias(text)
+    }
+
+
+def _python_is_known_urllib_urlopen(text: str, allow_imported_alias: bool = False) -> bool:
     module = _python_parse_diff_line(text)
     if module is not None:
+        call_names = {"urllib.request.urlopen", "urllib.urlopen"}
+        if allow_imported_alias:
+            call_names.add("urlopen")
         return any(
-            isinstance(node, ast.Call) and _python_call_name(node.func) in {"urllib.request.urlopen", "urllib.urlopen", "urlopen"}
+            isinstance(node, ast.Call) and _python_call_name(node.func) in call_names
             for node in ast.walk(module)
         )
-    return bool(PYTHON_KNOWN_URLOPEN_RE.search(text))
+    pattern = r"\b(?:urllib(?:\.request)?\.)?urlopen\s*\(" if allow_imported_alias else PYTHON_KNOWN_URLOPEN_RE.pattern
+    return bool(re.search(pattern, text, re.IGNORECASE))
 
 
 def _python_is_explicit_file_write(text: str) -> bool:

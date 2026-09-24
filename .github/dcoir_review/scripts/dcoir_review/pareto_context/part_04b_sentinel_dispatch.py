@@ -49,6 +49,7 @@ def detect_github_actions_yaml_sentinels(diff: str) -> list[hardened.RiskSentine
 
 def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[hardened.RiskSentinel]:
     diff_fixture_added_lines = python_diff_fixture_added_line_keys(diff)
+    urllib_urlopen_alias_paths = python_diff_urllib_urlopen_alias_paths(diff)
     skipped_test_file_write_labels = {
         FILE_WRITE_PATH_LABEL,
         "Python request-controlled file write",
@@ -61,7 +62,10 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
         if sentinel.label in skipped_test_file_write_labels:
             if is_python_test_file_path(sentinel.path):
                 continue
-            if Path(sentinel.path).suffix.lower() == ".py" and python_line_is_known_urllib_urlopen(sentinel.text):
+            if Path(sentinel.path).suffix.lower() == ".py" and python_line_is_known_urllib_urlopen(
+                sentinel.text,
+                sentinel.path in urllib_urlopen_alias_paths,
+            ):
                 # Historical string matching treated names such as ``urlopen`` as
                 # filesystem ``open``. Drop only this known lexical false
                 # positive and keep other legacy sentinels unless a dedicated
@@ -89,14 +93,38 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
 hardened.detect_risk_sentinels = detect_risk_sentinels
 
 
-def python_line_is_known_urllib_urlopen(text: str) -> bool:
+def python_line_imports_urllib_urlopen_alias(text: str) -> bool:
+    module = python_parse_diff_line(text)
+    if module is None:
+        return bool(re.search(r"^\s*from\s+urllib\.request\s+import\s+.*\burlopen\b", text))
+    for node in module.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "urllib.request":
+            return any(alias.name == "urlopen" for alias in node.names)
+    return False
+
+
+def python_diff_urllib_urlopen_alias_paths(diff: str) -> set[str]:
+    return {
+        changed_line.path
+        for changed_line in hardened.iter_added_diff_lines(diff)
+        if Path(changed_line.path).suffix.lower() == ".py"
+        and python_line_imports_urllib_urlopen_alias(changed_line.text)
+    }
+
+
+def python_line_is_known_urllib_urlopen(text: str, allow_imported_alias: bool = False) -> bool:
     module = python_parse_diff_line(text)
     if module is not None:
         for node in ast.walk(module):
-            if isinstance(node, ast.Call) and python_call_name(node.func) in {"urllib.request.urlopen", "urllib.urlopen"}:
+            if isinstance(node, ast.Call) and python_call_name(node.func) in {
+                "urllib.request.urlopen",
+                "urllib.urlopen",
+                *({"urlopen"} if allow_imported_alias else set()),
+            }:
                 return True
         return False
-    return bool(re.search(r"\burllib(?:\.request)?\.urlopen\s*\(", text))
+    pattern = r"\b(?:urllib(?:\.request)?\.)?urlopen\s*\(" if allow_imported_alias else r"\burllib(?:\.request)?\.urlopen\s*\("
+    return bool(re.search(pattern, text))
 
 
 def command_option_tokens(body: str, command: str) -> set[str]:
