@@ -62,15 +62,26 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
         if sentinel.label in skipped_test_file_write_labels:
             if is_python_test_file_path(sentinel.path):
                 continue
-            if Path(sentinel.path).suffix.lower() == ".py" and python_line_is_known_urllib_urlopen(
-                sentinel.text,
-                known_call_names=urllib_urlopen_call_names_by_path.get(sentinel.path),
-            ):
-                # Historical string matching treated names such as ``urlopen`` as
-                # filesystem ``open``. Drop only this known lexical false
-                # positive and keep other legacy sentinels unless a dedicated
-                # replacement already covers them.
-                continue
+            if Path(sentinel.path).suffix.lower() == ".py":
+                known_call_names = urllib_urlopen_call_names_by_path.get(sentinel.path)
+                is_known_urlopen = python_line_is_known_urllib_urlopen(
+                    sentinel.text,
+                    known_call_names=known_call_names,
+                )
+                if (
+                    (is_known_urlopen or re.search(r"\b(?:write_text|write_bytes|open)\s*\(", sentinel.text))
+                    and python_parse_diff_line(sentinel.text) is not None
+                    and not python_line_has_explicit_file_write_call(
+                        sentinel.text,
+                        known_call_names=known_call_names,
+                    )
+                ):
+                    # Historical string matching treated parseable, non-writing
+                    # ``open`` lookalikes (for example ``urlopen`` and read-only
+                    # ``open(..., "r")``) as filesystem writes. Drop only these
+                    # lexical false positives and keep other legacy sentinels
+                    # unless dedicated replacement coverage already exists.
+                    continue
         legacy_sentinels.append(sentinel)
 
     combined = [
