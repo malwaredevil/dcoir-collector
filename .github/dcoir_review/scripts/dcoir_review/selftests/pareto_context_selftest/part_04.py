@@ -71,6 +71,28 @@ assert not any(
     for item in os_open_read_via_variable_sentinels
 ), os_open_read_via_variable_sentinels
 
+os_open_branch_overridden_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_branch_flags.py b/tools/os_branch_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_branch_flags.py
+@@ -0,0 +1,7 @@
++import os
++def persist(user_path, safe):
++    flags = os.O_WRONLY | os.O_CREAT
++    if safe:
++        flags = os.O_RDONLY
++    fd = os.open(user_path, flags)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_branch_flags.py"
+    and item.line == 6
+    and item.label in legacy_path_write_labels
+    for item in os_open_branch_overridden_flags_sentinels
+), os_open_branch_overridden_flags_sentinels
+
 os_open_write_via_variable_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_write_variable.py b/tools/os_write_variable.py
 index 0000000..1111111 100644
