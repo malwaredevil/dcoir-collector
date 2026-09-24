@@ -150,6 +150,76 @@ assert not any(
 ), alias_urlopen_sentinels
 
 
+def fake_original_head_context_alias_urlopen(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/http_head_alias_client.py",
+            line=2,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel detail",
+            text="    return urlopen(req)",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_head_context_alias_urlopen
+mod.set_python_urllib_urlopen_call_context(
+    {"tools/http_head_alias_client.py": {"urllib.request.urlopen", "urllib.urlopen", "urlopen"}}
+)
+try:
+    head_context_alias_urlopen_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/http_head_alias_client.py b/tools/http_head_alias_client.py
+index 0000000..1111111 100644
+--- a/tools/http_head_alias_client.py
++++ b/tools/http_head_alias_client.py
+@@ -2,2 +2,2 @@
+ def fetch(req):
+-    return "pending"
++    return urlopen(req)
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+    mod.set_python_urllib_urlopen_call_context({})
+assert not any(
+    item.path == "tools/http_head_alias_client.py" and item.label == mod.FILE_WRITE_PATH_LABEL
+    for item in head_context_alias_urlopen_sentinels
+), head_context_alias_urlopen_sentinels
+
+
+def fake_original_read_only_open(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/read_only_open.py",
+            line=2,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel detail",
+            text='    with open(user_path, "r") as handle:',
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_read_only_open
+try:
+    read_only_open_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/read_only_open.py b/tools/read_only_open.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/read_only_open.py
+@@ -0,0 +1,4 @@
++def load(user_path):
++    with open(user_path, "r") as handle:
++        return handle.read()
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert not any(
+    item.path == "tools/read_only_open.py" and item.label == mod.FILE_WRITE_PATH_LABEL
+    for item in read_only_open_sentinels
+), read_only_open_sentinels
+
+
 
 python_dynamic_exec_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/eval_probe.py b/tools/eval_probe.py

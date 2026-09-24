@@ -332,4 +332,9 @@ def set_python_os_alias_context(os_alias_context: dict[str, set[str]] | None) ->
 
 
 def set_python_urllib_urlopen_call_context(urlopen_call_context: dict[str, set[str]] | None) -> None:
-    _ = urlopen_call_context
+    global PYTHON_URLLIB_URLOPEN_CALL_CONTEXT
+    PYTHON_URLLIB_URLOPEN_CALL_CONTEXT = {
+        path: set(call_names)
+        for path, call_names in (urlopen_call_context or {}).items()
+        if call_names
+    }
