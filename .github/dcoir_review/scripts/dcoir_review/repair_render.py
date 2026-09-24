@@ -16,7 +16,7 @@ def safe_repair_disposition(marker: dict[str, Any]) -> str:
     """Return operator-facing repair status without model/provider rationale."""
 
     outcome = str(marker.get("outcome", "") or "").strip()
-    if outcome == "repair-stage-failed-closed" or marker.get("critic_failed_closed") is True:
+    if outcome.endswith("-stage-failed-closed") or marker.get("critic_failed_closed") is True:
         return "Repair synthesis failed closed before a publishable repair set was produced."
     if outcome in {"verified-repair-budget-deferred"}:
         return "Repair synthesis was not attempted because the configured repair budget was exhausted."
