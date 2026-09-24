@@ -317,9 +317,7 @@ def python_os_open_flag_names(
 ) -> set[str]:
     names: set[str] = set()
     for child in ast.walk(node):
-        if isinstance(child, ast.Name) and child.id.startswith("O_"):
-            names.add(child.id)
-        elif (
+        if (
             isinstance(child, ast.Attribute)
             and child.attr.startswith("O_")
             and python_call_name(child.value) in (os_module_names or DEFAULT_PYTHON_OS_MODULES)
