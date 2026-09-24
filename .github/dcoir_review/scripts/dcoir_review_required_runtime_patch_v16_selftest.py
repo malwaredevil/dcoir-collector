@@ -91,6 +91,7 @@ def test_python_path_write_classifier_skips_read_only_open_lookalikes() -> None:
     path = "tools/path_probe.py"
     false_positives = [
         'with open(user_path, "r") as handle:',
+        "with open(file=user_path, **options) as handle:",
         'with gzip.open(user_path, "r") as handle:',
         'with tarfile.open(user_path, "r") as handle:',
         "fd = os.open(user_path, os.O_RDONLY)",

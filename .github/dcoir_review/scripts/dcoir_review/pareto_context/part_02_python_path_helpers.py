@@ -262,11 +262,21 @@ def python_line_has_explicit_file_write_call(
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
-            return python_call_uses_write_mode(node, os_module_names, local_int_bindings)
+            return python_call_uses_write_mode(
+                node,
+                os_module_names,
+                local_int_bindings,
+                conservative_unknown_kwargs=False,
+            )
         if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
             return True
         if isinstance(func, ast.Attribute) and func.attr == "open":
-            return python_call_uses_write_mode(node, os_module_names, local_int_bindings)
+            return python_call_uses_write_mode(
+                node,
+                os_module_names,
+                local_int_bindings,
+                conservative_unknown_kwargs=False,
+            )
     return False
 
 
