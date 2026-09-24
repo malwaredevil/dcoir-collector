@@ -20,12 +20,30 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
         elif isinstance(node, ast.Starred):
             collect_target(node.value)
 
+    def collect_arguments(node: ast.arguments) -> None:
+        for argument in (
+            *node.posonlyargs,
+            *node.args,
+            *node.kwonlyargs,
+        ):
+            roots.add(argument.arg)
+        if node.vararg is not None:
+            roots.add(node.vararg.arg)
+        if node.kwarg is not None:
+            roots.add(node.kwarg.arg)
+
     class _ModuleScopeShadowVisitor(ast.NodeVisitor):
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
 
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
             roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
 
         def visit_ClassDef(self, node: ast.ClassDef) -> None:
             roots.add(node.name)
