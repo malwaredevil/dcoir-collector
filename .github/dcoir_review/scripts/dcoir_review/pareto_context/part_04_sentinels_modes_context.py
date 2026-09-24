@@ -236,10 +236,11 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
         if sentinel.label in skipped_test_file_write_labels:
             if is_python_test_file_path(sentinel.path):
                 continue
-            if not python_line_has_explicit_file_write_call(sentinel.text):
+            if re.search(r"\burlopen\s*\(", sentinel.text):
                 # Historical string matching treated names such as ``urlopen`` as
-                # filesystem ``open``. Keep uncertain real .open calls, but drop
-                # parseable call names that are not file-write APIs.
+                # filesystem ``open``. Drop only this known lexical false
+                # positive and keep other legacy sentinels unless a dedicated
+                # replacement already covers them.
                 continue
         legacy_sentinels.append(sentinel)
 
