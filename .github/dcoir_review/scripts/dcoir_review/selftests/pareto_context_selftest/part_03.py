@@ -101,6 +101,21 @@ assert not any(
     and item.label in legacy_path_write_labels
     for item in urlopen_sentinels
 ), urlopen_sentinels
+
+shadowed_urlopen_param_diff = (
+    """diff --git a/tools/http_shadow.py b/tools/http_shadow.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_shadow.py
+@@ -0,0 +1,4 @@
++from urllib.request import urlopen
++def persist(urlopen, user_path):
++    return urlopen(user_path)
++"""
+)
+shadowed_urlopen_param_call_names = mod.python_diff_urllib_urlopen_call_names(shadowed_urlopen_param_diff).get("tools/http_shadow.py", set())
+assert "urlopen" not in shadowed_urlopen_param_call_names, shadowed_urlopen_param_call_names
+
 unsafe_builtin_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_writer.py b/tools/unsafe_writer.py
 index 0000000..1111111 100644

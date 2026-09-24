@@ -262,6 +262,65 @@ def test_urlopen_context_prunes_shadowed_urllib_bindings() -> None:
     assert "urllib.request.urlopen" not in call_names, call_names
 
 
+def test_urlopen_context_prunes_function_scoped_shadowing() -> None:
+    diff = "\n".join(
+        [
+            "diff --git a/tools/shadowed_param_urlopen.py b/tools/shadowed_param_urlopen.py",
+            "+++ b/tools/shadowed_param_urlopen.py",
+            "@@ -0,0 +1,4 @@",
+            "+from urllib.request import urlopen",
+            "+def persist(urlopen, user_path):",
+            "+    return urlopen(user_path)",
+            "+",
+        ]
+    )
+    call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_param_urlopen.py", set())
+    assert "urlopen" not in call_names, call_names
+
+
+def test_python_path_write_classifier_uses_alias_context() -> None:
+    path = "tools/alias_reader.py"
+    v16.PYTHON_PATH_ALIAS_CONTEXT.clear()
+    v16.PYTHON_PATH_ALIAS_CONTEXT[path] = {"P"}
+    try:
+        assert v16._line_kind(path, 'with P(user_path).open("r") as handle:') != v11.PYTHON_PATH_WRITE
+    finally:
+        v16.PYTHON_PATH_ALIAS_CONTEXT.clear()
+
+
+def test_python_path_write_classifier_uses_os_alias_context() -> None:
+    path = "tools/os_alias_reader.py"
+    v16.PYTHON_OS_ALIAS_CONTEXT.clear()
+    v16.PYTHON_OS_ALIAS_CONTEXT[path] = {"operating_system"}
+    try:
+        assert v16._line_kind(path, "fd = operating_system.open(user_path, operating_system.O_RDONLY)") != v11.PYTHON_PATH_WRITE
+    finally:
+        v16.PYTHON_OS_ALIAS_CONTEXT.clear()
+
+
+def test_patched_detector_consumes_owner_alias_context() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+        PYTHON_PATH_ALIAS_CONTEXT = {"tools/ctx_alias_reader.py": {"P"}}
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/ctx_alias_reader.py b/tools/ctx_alias_reader.py",
+            "+++ b/tools/ctx_alias_reader.py",
+            "@@ -3,0 +4,1 @@",
+            '+with P(user_path).open("r") as handle:',
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
 def test_patched_detector_keeps_unknown_custom_open_calls() -> None:
     class Owner:
         RiskSentinel = SimpleNamespace
@@ -361,6 +420,10 @@ def main() -> None:
     test_patched_detector_skips_urlopen_aliases_from_diff_context()
     test_patched_detector_skips_module_alias_urlopen()
     test_urlopen_context_prunes_shadowed_urllib_bindings()
+    test_urlopen_context_prunes_function_scoped_shadowing()
+    test_python_path_write_classifier_uses_alias_context()
+    test_python_path_write_classifier_uses_os_alias_context()
+    test_patched_detector_consumes_owner_alias_context()
     test_patched_detector_keeps_unknown_custom_open_calls()
     test_core_semantics_keeps_stable_finding_family_dependency()
 

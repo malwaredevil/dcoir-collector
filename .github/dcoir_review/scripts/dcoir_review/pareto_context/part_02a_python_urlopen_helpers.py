@@ -144,6 +144,8 @@ def python_line_has_explicit_file_write_call(
             return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
         return True
+    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    os_names = os_module_names or DEFAULT_PYTHON_OS_MODULES
     scoped_bindings = dict(local_int_bindings or {})
     for statement in module.body:
         if isinstance(statement, ast.Assign):
@@ -169,15 +171,20 @@ def python_line_has_explicit_file_write_call(
                 return True
             if isinstance(func, ast.Attribute) and func.attr == "open":
                 call_name = python_call_name(func)
-                os_open_names = {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}
+                os_open_names = {f"{name}.open" for name in os_names}
                 known_mode_checked = {"bz2.open", "gzip.open", "lzma.open", "tarfile.open", *os_open_names}
-                if not python_is_proven_path_receiver(func.value) and call_name not in known_mode_checked:
+                value_is_path, _value_has_dynamic = python_path_expr_info(
+                    func.value,
+                    constructor_names,
+                    os_names,
+                )
+                if not value_is_path and call_name not in known_mode_checked:
                     return True
                 if python_call_uses_write_mode(
                     node,
-                    os_module_names,
+                    os_names,
                     scoped_bindings,
-                    assume_path_receiver=True,
+                    assume_path_receiver=value_is_path,
                     conservative_unknown_kwargs=False,
                 ):
                     return True
