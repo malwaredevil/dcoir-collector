@@ -1,3 +1,7 @@
+import base64
+import urllib.parse
+
+
 class FakeGitHubClient:
     repo = "DCOIR-Collector/dcoir-collector"
 
@@ -13,13 +17,13 @@ class FakeGitHubClient:
 
     def request(self, _method: str, path: str):
         if path.startswith("/repos/DCOIR-Collector/dcoir-collector/pulls/287/reviews"):
-            params = mod.urllib.parse.parse_qs(mod.urllib.parse.urlparse(path).query)
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(path).query)
             page = int(params.get("page", ["1"])[0])
             return self.reviews if page == 1 else []
         if "/contents/" not in path:
             raise AssertionError(f"unexpected GitHub path: {path}")
         encoded_path = path.split("/contents/", 1)[1].split("?", 1)[0]
-        file_path = mod.urllib.parse.unquote(encoded_path)
+        file_path = urllib.parse.unquote(encoded_path)
         if file_path == "large/oversized.py":
             return {"type": "file", "encoding": "none", "content": ""}
         content = self.files[file_path].encode("utf-8")
