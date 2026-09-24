@@ -217,7 +217,6 @@ def _python_call_uses_write_mode(call: ast.Call) -> bool:
     call_name = _python_call_name(call.func)
     if call_name == "os.open":
         return _python_os_open_uses_write_mode(call)
-    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = _python_call_arg(call, 1, "mode")
     elif call_name in PYTHON_KNOWN_READ_MODE_OPEN_CALLS:
