@@ -7,11 +7,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     next_scope_id = 0
     path_constructor_names = set(DEFAULT_PYTHON_PATH_CONSTRUCTORS)
     os_module_names = set(DEFAULT_PYTHON_OS_MODULES)
-    urllib_urlopen_alias_paths = {
-        diff_line.path
-        for diff_line in iter_python_diff_lines_with_context(diff)
-        if diff_line.is_added and python_line_imports_urllib_urlopen_alias(diff_line.text)
-    }
+    urllib_urlopen_call_names_by_path = python_diff_urllib_urlopen_call_names(diff)
     current_path = ""
     current_hunk = 0
     current_alias_path = ""
@@ -53,22 +49,43 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         has_added_line = any(line.is_added for line in pending_write_statement)
         statement = "\n".join(line.text for line in pending_write_statement)
         current_int_bindings = visible_int_bindings()
+        anchor = pending_write_statement_anchor()
+        write_target = python_file_write_target(
+            statement,
+            path_constructor_names,
+            os_module_names,
+            current_int_bindings,
+        )
+        if not write_target:
+            write_target = python_wrapped_file_write_target(
+                statement,
+                path_constructor_names,
+                os_module_names,
+                current_int_bindings,
+            )
         if has_added_line and python_statement_is_complete(statement):
-            if python_direct_dynamic_file_write(
+            assignment = current_assigned_path(assigned_paths, write_target) if write_target else None
+            if assignment:
+                append_file_write_sentinel(sentinels, assignment if assignment.is_added else anchor)
+            elif python_direct_dynamic_file_write(
                 statement,
                 path_constructor_names,
                 os_module_names,
                 current_int_bindings,
             ):
-                append_file_write_sentinel(sentinels, pending_write_statement_anchor())
+                append_file_write_sentinel(sentinels, anchor)
         elif has_added_line and overflowed and python_line_has_explicit_file_write_call(
             statement,
             path_constructor_names,
             os_module_names,
             current_int_bindings,
-            current_path in urllib_urlopen_alias_paths,
+            known_call_names=urllib_urlopen_call_names_by_path.get(current_path),
         ):
-            append_file_write_sentinel(sentinels, pending_write_statement_anchor())
+            assignment = current_assigned_path(assigned_paths, write_target) if write_target else None
+            if assignment:
+                append_file_write_sentinel(sentinels, assignment if assignment.is_added else anchor)
+            else:
+                append_file_write_sentinel(sentinels, anchor)
         pending_write_statement = []
 
     def push_assigned_int_binding(target: str, value: ast.AST | None, scope_id: int) -> None:
@@ -265,7 +282,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                     path_constructor_names,
                     os_module_names,
                     current_int_bindings,
-                    diff_line.path in urllib_urlopen_alias_paths,
+                    known_call_names=urllib_urlopen_call_names_by_path.get(diff_line.path),
                 )
                 and not python_statement_is_complete(diff_line.text)
             ):

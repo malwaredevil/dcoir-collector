@@ -40,6 +40,25 @@ assert not any(
     for item in multiline_alias_urlopen_sentinels
 ), multiline_alias_urlopen_sentinels
 
+module_alias_urlopen_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/http_module_alias_client.py b/tools/http_module_alias_client.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_module_alias_client.py
+@@ -0,0 +1,4 @@
++import urllib.request as ur
++def fetch(req):
++    with ur.urlopen(req) as response:
++        return response.read()
+"""
+)
+assert not any(
+    item.path == "tools/http_module_alias_client.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in module_alias_urlopen_sentinels
+), module_alias_urlopen_sentinels
+
 original_detect_risk_sentinels = mod._original_detect_risk_sentinels
 
 
@@ -425,6 +444,28 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in unsafe_assigned_path_open_sentinels
 ), unsafe_assigned_path_open_sentinels
+
+unsafe_multiline_assigned_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_multiline_assigned_writer.py b/tools/unsafe_multiline_assigned_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_multiline_assigned_writer.py
+@@ -0,0 +1,7 @@
++from pathlib import Path
++def persist(output_dir, filename, payload):
++    target = Path(output_dir) / filename
++    with target.open(
++        "w",
++    ) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_multiline_assigned_writer.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in unsafe_multiline_assigned_path_open_sentinels
+), unsafe_multiline_assigned_path_open_sentinels
 
 unsafe_chained_path_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_chained_writer.py b/tools/unsafe_chained_writer.py

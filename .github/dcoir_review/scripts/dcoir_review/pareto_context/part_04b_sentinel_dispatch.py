@@ -49,7 +49,7 @@ def detect_github_actions_yaml_sentinels(diff: str) -> list[hardened.RiskSentine
 
 def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[hardened.RiskSentinel]:
     diff_fixture_added_lines = python_diff_fixture_added_line_keys(diff)
-    urllib_urlopen_alias_paths = python_diff_urllib_urlopen_alias_paths(diff)
+    urllib_urlopen_call_names_by_path = python_diff_urllib_urlopen_call_names(diff)
     skipped_test_file_write_labels = {
         FILE_WRITE_PATH_LABEL,
         "Python request-controlled file write",
@@ -64,7 +64,7 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
                 continue
             if Path(sentinel.path).suffix.lower() == ".py" and python_line_is_known_urllib_urlopen(
                 sentinel.text,
-                sentinel.path in urllib_urlopen_alias_paths,
+                known_call_names=urllib_urlopen_call_names_by_path.get(sentinel.path),
             ):
                 # Historical string matching treated names such as ``urlopen`` as
                 # filesystem ``open``. Drop only this known lexical false
@@ -103,27 +103,88 @@ def python_line_imports_urllib_urlopen_alias(text: str) -> bool:
     return False
 
 
-def python_diff_urllib_urlopen_alias_paths(diff: str) -> set[str]:
-    return {
-        changed_line.path
-        for changed_line in hardened.iter_added_diff_lines(diff)
-        if Path(changed_line.path).suffix.lower() == ".py"
-        and python_line_imports_urllib_urlopen_alias(changed_line.text)
-    }
+def python_urllib_urlopen_call_names(text: str) -> set[str]:
+    call_names = {"urllib.request.urlopen", "urllib.urlopen"}
+    module = python_parse_diff_line(text)
+    if module is None:
+        if python_line_imports_urllib_urlopen_alias(text):
+            call_names.add("urlopen")
+        module_alias_match = re.match(r"^\s*import\s+urllib\.request\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b", text)
+        if module_alias_match:
+            call_names.add(f"{module_alias_match.group(1)}.urlopen")
+        request_alias_match = re.match(r"^\s*from\s+urllib\s+import\s+request\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b", text)
+        if request_alias_match:
+            call_names.add(f"{request_alias_match.group(1)}.urlopen")
+        urllib_alias_match = re.match(r"^\s*import\s+urllib\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b", text)
+        if urllib_alias_match:
+            call_names.add(f"{urllib_alias_match.group(1)}.request.urlopen")
+        return call_names
+    for node in ast.walk(module):
+        if isinstance(node, ast.ImportFrom):
+            if node.module == "urllib.request":
+                for alias in node.names:
+                    if alias.name == "urlopen":
+                        call_names.add(alias.asname or alias.name)
+            elif node.module == "urllib":
+                for alias in node.names:
+                    if alias.name == "request":
+                        call_names.add(f"{alias.asname or alias.name}.urlopen")
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "urllib.request":
+                    call_names.add(f"{alias.asname or alias.name}.urlopen")
+                elif alias.name == "urllib":
+                    call_names.add(f"{alias.asname or alias.name}.request.urlopen")
+    return call_names
 
 
-def python_line_is_known_urllib_urlopen(text: str, allow_imported_alias: bool = False) -> bool:
+def python_head_file_text(path: str) -> str | None:
+    relative_path = Path(str(path or "").replace("\\", "/"))
+    candidates = [relative_path] if relative_path.is_absolute() else [Path.cwd() / relative_path]
+    candidates.extend(parent / relative_path for parent in Path(__file__).resolve().parents if not relative_path.is_absolute())
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.resolve(strict=False)
+        if resolved in seen or not resolved.is_file():
+            continue
+        seen.add(resolved)
+        try:
+            return resolved.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return None
+    return None
+
+
+def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
+    sources_by_path: dict[str, list[str]] = {}
+    for diff_line in iter_python_diff_lines_with_context(diff):
+        if Path(diff_line.path).suffix.lower() == ".py":
+            sources_by_path.setdefault(diff_line.path, []).append(diff_line.text)
+    call_names_by_path: dict[str, set[str]] = {}
+    for path, lines in sources_by_path.items():
+        call_names = python_urllib_urlopen_call_names("\n".join(lines))
+        head_text = python_head_file_text(path)
+        if head_text:
+            call_names.update(python_urllib_urlopen_call_names(head_text))
+        call_names_by_path[path] = call_names
+    return call_names_by_path
+
+
+def python_line_is_known_urllib_urlopen(
+    text: str,
+    allow_imported_alias: bool = False,
+    known_call_names: set[str] | None = None,
+) -> bool:
+    call_names = set(known_call_names or {"urllib.request.urlopen", "urllib.urlopen"})
+    if allow_imported_alias:
+        call_names.add("urlopen")
     module = python_parse_diff_line(text)
     if module is not None:
         for node in ast.walk(module):
-            if isinstance(node, ast.Call) and python_call_name(node.func) in {
-                "urllib.request.urlopen",
-                "urllib.urlopen",
-                *({"urlopen"} if allow_imported_alias else set()),
-            }:
+            if isinstance(node, ast.Call) and python_call_name(node.func) in call_names:
                 return True
         return False
-    pattern = r"\b(?:urllib(?:\.request)?\.)?urlopen\s*\(" if allow_imported_alias else r"\burllib(?:\.request)?\.urlopen\s*\("
+    pattern = r"\b(?:" + "|".join(re.escape(name) for name in sorted(call_names, key=len, reverse=True)) + r")\s*\("
     return bool(re.search(pattern, text))
 
 

@@ -183,7 +183,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
             sentinels = list(original(diff, *args, **kwargs))
         except TypeError:
             sentinels = list(original(diff))
-        urllib_urlopen_alias_paths = _python_diff_urllib_urlopen_alias_paths(diff)
+        urllib_urlopen_call_names_by_path = _python_diff_urllib_urlopen_call_names(diff)
         sentinels = [
             item
             for item in sentinels
@@ -207,7 +207,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 continue
             if kind == v11.PYTHON_PATH_WRITE and _python_is_known_urllib_urlopen(
                 text,
-                path in urllib_urlopen_alias_paths,
+                known_call_names=urllib_urlopen_call_names_by_path.get(path),
             ):
                 continue
             key = (path, line, kind)
