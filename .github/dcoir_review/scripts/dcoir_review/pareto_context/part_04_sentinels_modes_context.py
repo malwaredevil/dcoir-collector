@@ -99,14 +99,24 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         active_scope_ids = active_python_scope_ids(scope_stack)
         prune_assigned_paths_for_active_scopes(assigned_paths, active_scope_ids)
         prune_assigned_int_bindings(active_scope_ids)
+        if diff_line.inside_multiline_string:
+            if pending_write_statement:
+                pending_write_statement = []
+            continue
+        if hardened.is_comment_only_added_line(diff_line.path, diff_line.text):
+            if pending_write_statement:
+                pending_write_statement.append(diff_line)
+                if python_statement_is_complete("\n".join(line.text for line in pending_write_statement)):
+                    flush_pending_write_statement()
+                elif len(pending_write_statement) >= 12:
+                    pending_write_statement = []
+            continue
         if pending_write_statement:
             pending_write_statement.append(diff_line)
             if python_statement_is_complete("\n".join(line.text for line in pending_write_statement)):
                 flush_pending_write_statement()
-            continue
-        if diff_line.inside_multiline_string:
-            continue
-        if hardened.is_comment_only_added_line(diff_line.path, diff_line.text):
+            elif len(pending_write_statement) >= 12:
+                pending_write_statement = []
             continue
         path_constructor_names.update(python_path_constructor_aliases(diff_line.text))
         os_module_names.update(python_os_module_aliases(diff_line.text))
