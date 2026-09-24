@@ -130,7 +130,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         prune_assigned_int_bindings(active_scope_ids)
         if diff_line.inside_multiline_string:
             if pending_write_statement:
-                pending_write_statement = []
+                flush_pending_write_statement(overflowed=True)
             continue
         if hardened.is_comment_only_added_line(diff_line.path, diff_line.text):
             if pending_write_statement:

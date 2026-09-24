@@ -209,6 +209,28 @@ assert any(
     for item in overflowed_multiline_open_sentinels
 ), overflowed_multiline_open_sentinels
 
+multiline_string_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/multiline_string_path_writer.py b/tools/multiline_string_path_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/multiline_string_path_writer.py
+@@ -0,0 +1,7 @@
++def persist(user_path, payload):
++    with open(
++        f\"\"\"{user_path}
++        .txt\"\"\",
++        "w",
++    ) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/multiline_string_path_writer.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in multiline_string_path_open_sentinels
+), multiline_string_path_open_sentinels
+
 safe_reassign_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/safe_writer.py b/tools/safe_writer.py
 index 0000000..1111111 100644
