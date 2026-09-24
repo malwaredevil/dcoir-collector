@@ -220,7 +220,7 @@ def python_call_uses_write_mode(
             return True
         if flags_node is None:
             return False
-        referenced_flags = python_os_open_flag_names(flags_node)
+        referenced_flags = python_os_open_flag_names(flags_node, os_module_names)
         if referenced_flags & (PYTHON_OS_OPEN_WRITE_ACCESS_NAMES | PYTHON_OS_OPEN_MUTATING_FLAG_NAMES):
             return True
         if referenced_flags and referenced_flags <= PYTHON_OS_OPEN_KNOWN_FLAG_NAMES:
@@ -311,12 +311,19 @@ def python_fold_int_expr(
     return None
 
 
-def python_os_open_flag_names(node: ast.AST) -> set[str]:
+def python_os_open_flag_names(
+    node: ast.AST,
+    os_module_names: set[str] | None = None,
+) -> set[str]:
     names: set[str] = set()
     for child in ast.walk(node):
         if isinstance(child, ast.Name) and child.id.startswith("O_"):
             names.add(child.id)
-        elif isinstance(child, ast.Attribute) and child.attr.startswith("O_"):
+        elif (
+            isinstance(child, ast.Attribute)
+            and child.attr.startswith("O_")
+            and python_call_name(child.value) in (os_module_names or DEFAULT_PYTHON_OS_MODULES)
+        ):
             names.add(child.attr)
     return names
 
