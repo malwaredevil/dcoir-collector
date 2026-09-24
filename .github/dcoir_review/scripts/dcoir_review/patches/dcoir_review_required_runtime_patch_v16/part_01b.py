@@ -14,41 +14,83 @@ def _python_shadowed_name_roots(module: ast.AST) -> set[str]:
     def collect_target(node: ast.AST) -> None:
         if isinstance(node, ast.Name):
             roots.add(node.id)
-            return
-        if isinstance(node, (ast.Tuple, ast.List)):
+        elif isinstance(node, (ast.Tuple, ast.List)):
             for item in node.elts:
                 collect_target(item)
-            return
-        if isinstance(node, ast.Starred):
+        elif isinstance(node, ast.Starred):
             collect_target(node.value)
 
-    for node in ast.walk(module):
-        if isinstance(node, ast.Assign):
+    class _ModuleScopeShadowVisitor(ast.NodeVisitor):
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            roots.add(node.name)
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            roots.add(node.name)
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            roots.add(node.name)
+
+        def visit_Assign(self, node: ast.Assign) -> None:
             for target in node.targets:
                 collect_target(target)
-        elif isinstance(node, ast.AnnAssign):
+            self.generic_visit(node.value)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
             collect_target(node.target)
-        elif isinstance(node, ast.AugAssign):
+            if node.value is not None:
+                self.generic_visit(node.value)
+
+        def visit_AugAssign(self, node: ast.AugAssign) -> None:
             collect_target(node.target)
-        elif isinstance(node, ast.NamedExpr):
+            self.generic_visit(node.value)
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
             collect_target(node.target)
-        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            self.generic_visit(node.value)
+
+        def visit_For(self, node: ast.For) -> None:
             collect_target(node.target)
-        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            self.generic_visit(node.iter)
+            for statement in node.body:
+                self.visit(statement)
+            for statement in node.orelse:
+                self.visit(statement)
+
+        def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+            collect_target(node.target)
+            self.generic_visit(node.iter)
+            for statement in node.body:
+                self.visit(statement)
+            for statement in node.orelse:
+                self.visit(statement)
+
+        def visit_With(self, node: ast.With) -> None:
             for item in node.items:
                 if item.optional_vars is not None:
                     collect_target(item.optional_vars)
-        elif isinstance(node, ast.ExceptHandler) and node.name:
-            roots.add(node.name)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-            roots.add(node.name)
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
-                    roots.add(arg.arg)
-                if node.args.vararg:
-                    roots.add(node.args.vararg.arg)
-                if node.args.kwarg:
-                    roots.add(node.args.kwarg.arg)
+                self.generic_visit(item.context_expr)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+                self.generic_visit(item.context_expr)
+            for statement in node.body:
+                self.visit(statement)
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name:
+                roots.add(node.name)
+            if node.type is not None:
+                self.generic_visit(node.type)
+            for statement in node.body:
+                self.visit(statement)
+
+    visitor = _ModuleScopeShadowVisitor()
+    for statement in getattr(module, "body", []):
+        visitor.visit(statement)
     return roots
 
 

@@ -216,6 +216,10 @@ assert not mod.python_line_has_explicit_file_write_call(
     "with ur.urlopen(",
     known_call_names={"urllib.request.urlopen", "urllib.urlopen", "ur.urlopen"},
 )
+assert mod.python_line_has_explicit_file_write_call(
+    'persist(urlopen(req), Path(user_path).open("w"))',
+    known_call_names={"urlopen"},
+)
 assert not mod.python_line_has_explicit_file_write_call('mode = "r"; open(user_path, mode)')
 assert mod.python_line_has_explicit_file_write_call('mode = "w"; open(user_path, mode)')
 
