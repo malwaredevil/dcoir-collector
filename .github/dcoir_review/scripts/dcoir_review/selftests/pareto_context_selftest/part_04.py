@@ -19,6 +19,27 @@ assert not any(
     for item in multiline_urlopen_sentinels
 ), multiline_urlopen_sentinels
 
+multiline_alias_urlopen_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/http_alias_client.py b/tools/http_alias_client.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_alias_client.py
+@@ -0,0 +1,7 @@
++from urllib.request import urlopen
++def fetch(req):
++    with urlopen(
++        req,
++    ) as response:
++        return response.read()
+"""
+)
+assert not any(
+    item.path == "tools/http_alias_client.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in multiline_alias_urlopen_sentinels
+), multiline_alias_urlopen_sentinels
+
 original_detect_risk_sentinels = mod._original_detect_risk_sentinels
 
 

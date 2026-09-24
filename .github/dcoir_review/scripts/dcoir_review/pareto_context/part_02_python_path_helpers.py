@@ -213,17 +213,42 @@ def python_direct_dynamic_open_write(
     return False
 
 
+def python_line_imports_urllib_urlopen_alias(text: str) -> bool:
+    module = python_parse_diff_line(text)
+    if module is None:
+        return bool(re.search(r"^\s*from\s+urllib\.request\s+import\s+.*\burlopen\b", text))
+    for node in module.body:
+        if isinstance(node, ast.ImportFrom) and node.module == "urllib.request":
+            return any(alias.name == "urlopen" for alias in node.names)
+    return False
+
+
+def python_line_is_known_urllib_urlopen(text: str, allow_imported_alias: bool = False) -> bool:
+    module = python_parse_diff_line(text)
+    if module is not None:
+        call_names = {"urllib.request.urlopen", "urllib.urlopen"}
+        if allow_imported_alias:
+            call_names.add("urlopen")
+        for node in ast.walk(module):
+            if isinstance(node, ast.Call) and python_call_name(node.func) in call_names:
+                return True
+        return False
+    pattern = r"\b(?:urllib(?:\.request)?\.)?urlopen\s*\(" if allow_imported_alias else r"\burllib(?:\.request)?\.urlopen\s*\("
+    return bool(re.search(pattern, text))
+
+
 def python_line_has_explicit_file_write_call(
     text: str,
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
     local_int_bindings: dict[str, ast.AST | int] | None = None,
+    allow_urllib_urlopen_alias: bool = False,
 ) -> bool:
     """Distinguish real file-write APIs from lexical open() lookalikes."""
 
     module = python_parse_diff_line(text)
     if module is None:
-        if re.search(r"\burlopen\s*\(", text):
+        if python_line_is_known_urllib_urlopen(text, allow_urllib_urlopen_alias):
             return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
         return True
