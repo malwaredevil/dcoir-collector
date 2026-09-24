@@ -221,6 +221,10 @@ def main() -> None:
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     for outcome, expected in (
         ("repair-stage-failed-closed", "failed closed"),
+        ("author-call-stage-failed-closed", "failed closed"),
+        ("author-parse-stage-failed-closed", "failed closed"),
+        ("critic-call-stage-failed-closed", "failed closed"),
+        ("critic-parse-stage-failed-closed", "failed closed"),
         ("verified-repair-budget-deferred", "repair budget was exhausted"),
         ("verified-repair-confidence-deferred", "repair-confidence floor"),
     ):
