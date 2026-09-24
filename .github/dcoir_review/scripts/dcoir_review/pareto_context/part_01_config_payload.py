@@ -212,7 +212,7 @@ def python_call_uses_write_mode(
     os_open_names = {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}
     if call_name in os_open_names:
         flags_node = python_call_arg(call, 1, "flags")
-        folded_flags = python_fold_int_expr(flags_node, local_int_bindings)
+        folded_flags = python_fold_int_expr(flags_node, local_int_bindings, None, os_module_names)
         if folded_flags is not None:
             access_mode = folded_flags & PYTHON_OS_OPEN_ACCESS_MODE_MASK
             if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
@@ -247,6 +247,7 @@ def python_fold_int_expr(
     node: ast.AST | None,
     local_int_bindings: dict[str, ast.AST | int] | None = None,
     seen_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
 ) -> int | None:
     if node is None:
         return None
@@ -261,13 +262,20 @@ def python_fold_int_expr(
             bound_value = local_int_bindings[node.id]
             if isinstance(bound_value, int):
                 return python_bounded_int_expr(bound_value)
-            return python_fold_int_expr(bound_value, local_int_bindings, seen_names | {node.id})
-        return getattr(os, node.id, None) if isinstance(getattr(os, node.id, None), int) else None
+            return python_fold_int_expr(
+                bound_value,
+                local_int_bindings,
+                seen_names | {node.id},
+                os_module_names,
+            )
+        return None
     if isinstance(node, ast.Attribute):
+        if python_call_name(node.value) not in (os_module_names or DEFAULT_PYTHON_OS_MODULES):
+            return None
         value = getattr(os, node.attr, None)
         return python_bounded_int_expr(value) if isinstance(value, int) else None
     if isinstance(node, ast.UnaryOp):
-        operand = python_fold_int_expr(node.operand, local_int_bindings, seen_names)
+        operand = python_fold_int_expr(node.operand, local_int_bindings, seen_names, os_module_names)
         if operand is None:
             return None
         if isinstance(node.op, ast.Invert):
@@ -278,8 +286,8 @@ def python_fold_int_expr(
             return python_bounded_int_expr(-operand)
         return None
     if isinstance(node, ast.BinOp):
-        left = python_fold_int_expr(node.left, local_int_bindings, seen_names)
-        right = python_fold_int_expr(node.right, local_int_bindings, seen_names)
+        left = python_fold_int_expr(node.left, local_int_bindings, seen_names, os_module_names)
+        right = python_fold_int_expr(node.right, local_int_bindings, seen_names, os_module_names)
         if left is None or right is None:
             return None
         if isinstance(node.op, ast.BitOr):
