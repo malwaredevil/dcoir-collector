@@ -137,6 +137,77 @@ assert not any(
     for item in custom_open_sentinels
 ), custom_open_sentinels
 
+
+def fake_original_custom_open(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/custom_open.py",
+            line=2,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel",
+            text='    with storage.open(user_path, "w") as handle:',
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_custom_open
+try:
+    preserved_custom_open_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/custom_open.py b/tools/custom_open.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/custom_open.py
+@@ -0,0 +1,3 @@
++def persist(storage, user_path, payload):
++    with storage.open(user_path, "w") as handle:
++        return handle.write(payload)
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert any(
+    item.path == "tools/custom_open.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in preserved_custom_open_sentinels
+), preserved_custom_open_sentinels
+
+
+def fake_original_shadowed_urlopen(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/shadowed_urlopen.py",
+            line=4,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel",
+            text="    return urllib.request.urlopen(user_path)",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_shadowed_urlopen
+try:
+    shadowed_urlopen_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/shadowed_urlopen.py b/tools/shadowed_urlopen.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/shadowed_urlopen.py
+@@ -0,0 +1,4 @@
++import urllib.request
++urllib = storage
++def persist(user_path):
++    return urllib.request.urlopen(user_path)
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert any(
+    item.path == "tools/shadowed_urlopen.py"
+    and item.line == 4
+    and item.label in legacy_path_write_labels
+    for item in shadowed_urlopen_sentinels
+), shadowed_urlopen_sentinels
+
 assert not mod.python_line_has_explicit_file_write_call(
     "with open(file=user_path, **options) as handle:",
     local_int_bindings={},

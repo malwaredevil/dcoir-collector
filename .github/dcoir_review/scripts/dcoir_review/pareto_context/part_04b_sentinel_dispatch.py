@@ -114,8 +114,62 @@ def python_line_imports_urllib_urlopen_alias(text: str) -> bool:
     return False
 
 
+def python_shadowed_name_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+
+    def collect_target(node: ast.AST) -> None:
+        if isinstance(node, ast.Name):
+            roots.add(node.id)
+            return
+        if isinstance(node, (ast.Tuple, ast.List)):
+            for item in node.elts:
+                collect_target(item)
+            return
+        if isinstance(node, ast.Starred):
+            collect_target(node.value)
+
+    for node in ast.walk(module):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                collect_target(target)
+        elif isinstance(node, ast.AnnAssign):
+            collect_target(node.target)
+        elif isinstance(node, ast.AugAssign):
+            collect_target(node.target)
+        elif isinstance(node, ast.NamedExpr):
+            collect_target(node.target)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            collect_target(node.target)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            roots.add(node.name)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            roots.add(node.name)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
+                    roots.add(arg.arg)
+                if node.args.vararg:
+                    roots.add(node.args.vararg.arg)
+                if node.args.kwarg:
+                    roots.add(node.args.kwarg.arg)
+    return roots
+
+
+def python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_roots: set[str]) -> set[str]:
+    if not shadowed_roots:
+        return call_names
+    return {
+        call_name
+        for call_name in call_names
+        if call_name.split(".", 1)[0] not in shadowed_roots
+    }
+
+
 def python_urllib_urlopen_call_names(text: str) -> set[str]:
-    call_names = {"urllib.request.urlopen", "urllib.urlopen"}
+    call_names: set[str] = set()
     module = python_parse_diff_line(text)
     if module is None:
         if python_line_imports_urllib_urlopen_alias(text):
@@ -146,7 +200,10 @@ def python_urllib_urlopen_call_names(text: str) -> set[str]:
                     call_names.add(f"{alias.asname or alias.name}.urlopen")
                 elif alias.name == "urllib":
                     call_names.add(f"{alias.asname or alias.name}.request.urlopen")
-    return call_names
+    return python_prune_shadowed_urlopen_call_names(
+        call_names,
+        python_shadowed_name_roots(module),
+    )
 
 
 def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
@@ -167,9 +224,11 @@ def python_line_is_known_urllib_urlopen(
     allow_imported_alias: bool = False,
     known_call_names: set[str] | None = None,
 ) -> bool:
-    call_names = set(known_call_names or {"urllib.request.urlopen", "urllib.urlopen"})
+    call_names = set(known_call_names or ())
     if allow_imported_alias:
         call_names.add("urlopen")
+    if not call_names:
+        return False
     module = python_parse_diff_line(text)
     if module is not None:
         for node in ast.walk(module):

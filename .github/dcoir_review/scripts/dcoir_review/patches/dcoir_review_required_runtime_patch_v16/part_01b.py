@@ -8,8 +8,62 @@ def _python_line_imports_urllib_urlopen_alias(text: str) -> bool:
     return False
 
 
+def _python_shadowed_name_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+
+    def collect_target(node: ast.AST) -> None:
+        if isinstance(node, ast.Name):
+            roots.add(node.id)
+            return
+        if isinstance(node, (ast.Tuple, ast.List)):
+            for item in node.elts:
+                collect_target(item)
+            return
+        if isinstance(node, ast.Starred):
+            collect_target(node.value)
+
+    for node in ast.walk(module):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                collect_target(target)
+        elif isinstance(node, ast.AnnAssign):
+            collect_target(node.target)
+        elif isinstance(node, ast.AugAssign):
+            collect_target(node.target)
+        elif isinstance(node, ast.NamedExpr):
+            collect_target(node.target)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            collect_target(node.target)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            roots.add(node.name)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            roots.add(node.name)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                for arg in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs):
+                    roots.add(arg.arg)
+                if node.args.vararg:
+                    roots.add(node.args.vararg.arg)
+                if node.args.kwarg:
+                    roots.add(node.args.kwarg.arg)
+    return roots
+
+
+def _python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_roots: set[str]) -> set[str]:
+    if not shadowed_roots:
+        return call_names
+    return {
+        call_name
+        for call_name in call_names
+        if call_name.split(".", 1)[0] not in shadowed_roots
+    }
+
+
 def _python_urllib_urlopen_call_names(text: str) -> set[str]:
-    call_names = {"urllib.request.urlopen", "urllib.urlopen"}
+    call_names: set[str] = set()
     module = _python_parse_diff_line(text)
     if module is None:
         if _python_line_imports_urllib_urlopen_alias(text):
@@ -40,7 +94,10 @@ def _python_urllib_urlopen_call_names(text: str) -> set[str]:
                     call_names.add(f"{alias.asname or alias.name}.urlopen")
                 elif alias.name == "urllib":
                     call_names.add(f"{alias.asname or alias.name}.request.urlopen")
-    return call_names
+    return _python_prune_shadowed_urlopen_call_names(
+        call_names,
+        _python_shadowed_name_roots(module),
+    )
 
 
 def _iter_diff_python_lines_with_context(diff: str) -> list[tuple[str, str]]:
@@ -82,9 +139,11 @@ def _python_is_known_urllib_urlopen(
     allow_imported_alias: bool = False,
     known_call_names: set[str] | None = None,
 ) -> bool:
-    call_names = set(known_call_names or {"urllib.request.urlopen", "urllib.urlopen"})
+    call_names = set(known_call_names or ())
     if allow_imported_alias:
         call_names.add("urlopen")
+    if not call_names:
+        return False
     module = _python_parse_diff_line(text)
     if module is not None:
         return any(
@@ -102,8 +161,16 @@ def _python_is_explicit_file_write(text: str) -> bool:
     for node in ast.walk(module):
         if not isinstance(node, ast.Call):
             continue
-        if _python_call_name(node.func) == "os.open":
+        call_name = _python_call_name(node.func)
+        if call_name == "os.open":
             return _python_os_open_uses_write_mode(node)
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "open"
+            and not _python_is_proven_path_receiver(node.func.value)
+            and call_name not in (set(PYTHON_KNOWN_READ_MODE_OPEN_CALLS) | {"os.open"})
+        ):
+            return True
         if isinstance(node.func, ast.Attribute) and node.func.attr in {"write_text", "write_bytes"}:
             return True
         if _python_call_uses_write_mode(node):
