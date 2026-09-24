@@ -40,6 +40,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'pareto_context/part_04_sentinels_modes_context.py',
         'pareto_context/part_04a_ranking_context.py',
         'pareto_context/part_04b_sentinel_dispatch.py',
+        'pareto_context/part_04c_review_context.py',
         'pareto_context/part_05_ranking_per_file_review.py',
         'pareto_context/part_05a_hybrid_review.py',
         'pareto_context/part_06_fix_synthesis.py',

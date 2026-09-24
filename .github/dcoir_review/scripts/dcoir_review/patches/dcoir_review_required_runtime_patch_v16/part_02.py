@@ -189,7 +189,13 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
             for item in sentinels
             if not (
                 _sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE
-                and _is_python_test_file(_sentinel_key(item)[0])
+                and (
+                    _is_python_test_file(_sentinel_key(item)[0])
+                    or _python_is_known_urllib_urlopen(
+                        str(getattr(item, "text", "") or ""),
+                        known_call_names=urllib_urlopen_call_names_by_path.get(_sentinel_key(item)[0]),
+                    )
+                )
             )
         ]
         risk_sentinel_type = getattr(owner, "RiskSentinel", None) or getattr(sentinel_owner, "RiskSentinel", None)
