@@ -93,6 +93,16 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     def inside_conditional_block(indent: int | None) -> bool:
         return indent is not None and any(indent > block_indent for block_indent in conditional_block_indents)
 
+    def pending_write_statement_accepts_line(indent: int | None, text: str) -> bool:
+        if not pending_write_statement:
+            return False
+        anchor_indent = python_code_line_indent(pending_write_statement[0].text)
+        if indent is None or anchor_indent is None:
+            return True
+        if indent > anchor_indent:
+            return True
+        return indent == anchor_indent and bool(re.match(r"^[)\]}]", text.strip()))
+
     for diff_line in iter_python_diff_lines_with_context(diff):
         if is_python_test_file_path(diff_line.path):
             continue
@@ -145,12 +155,15 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                     flush_pending_write_statement(overflowed=True)
             continue
         if pending_write_statement:
-            pending_write_statement.append(diff_line)
-            if python_statement_is_complete("\n".join(line.text for line in pending_write_statement)):
-                flush_pending_write_statement()
-            elif len(pending_write_statement) >= 12:
+            if not pending_write_statement_accepts_line(diff_line_indent, diff_line.text):
                 flush_pending_write_statement(overflowed=True)
-            continue
+            else:
+                pending_write_statement.append(diff_line)
+                if python_statement_is_complete("\n".join(line.text for line in pending_write_statement)):
+                    flush_pending_write_statement()
+                elif len(pending_write_statement) >= 12:
+                    flush_pending_write_statement(overflowed=True)
+                continue
         path_constructor_names.update(python_path_constructor_aliases(diff_line.text))
         os_module_names.update(python_os_module_aliases(diff_line.text))
         if pending_path_assignment:
