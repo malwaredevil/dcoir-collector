@@ -63,7 +63,7 @@ PYTHON_BUILTIN_DYNAMIC_EXEC_RE = re.compile(
     r"(?<![A-Za-z0-9_.])(?:eval|exec)\s*\(|(?:builtins|__builtins__)\.(?:eval|exec)\s*\(",
     re.IGNORECASE,
 )
-PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\burllib(?:\.request)?\.urlopen\s*\(", re.IGNORECASE)
+PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\b(?:urllib(?:\.request)?\.)?urlopen\s*\(", re.IGNORECASE)
 PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
 PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
 PYTHON_OS_OPEN_MUTATING_FLAG_MASK = (
@@ -213,7 +213,7 @@ def _python_is_known_urllib_urlopen(text: str) -> bool:
     module = _python_parse_diff_line(text)
     if module is not None:
         return any(
-            isinstance(node, ast.Call) and _python_call_name(node.func) in {"urllib.request.urlopen", "urllib.urlopen"}
+            isinstance(node, ast.Call) and _python_call_name(node.func) in {"urllib.request.urlopen", "urllib.urlopen", "urlopen"}
             for node in ast.walk(module)
         )
     return bool(PYTHON_KNOWN_URLOPEN_RE.search(text))

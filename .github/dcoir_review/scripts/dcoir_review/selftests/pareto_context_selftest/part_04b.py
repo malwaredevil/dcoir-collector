@@ -88,6 +88,34 @@ assert len(bounded_path_sentinels) == 3
 assert bounded_path_sentinels[0].label == mod.FILE_WRITE_PATH_LABEL
 
 
+def fake_original_non_python_urlopen(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="docs/reference.txt",
+            line=1,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel detail",
+            text="urllib.request.urlopen(",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_non_python_urlopen
+try:
+    non_python_urlopen_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/docs/reference.txt b/docs/reference.txt
+index 0000000..1111111 100644
+--- /dev/null
++++ b/docs/reference.txt
+@@ -0,0 +1,1 @@
++urllib.request.urlopen(
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert any(item.path == "docs/reference.txt" and item.label == mod.FILE_WRITE_PATH_LABEL for item in non_python_urlopen_sentinels)
+
+
 
 python_dynamic_exec_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/eval_probe.py b/tools/eval_probe.py
@@ -137,4 +165,3 @@ index 0000000..1111111 100644
 '''
 )
 assert not any(item.label == mod.PYTHON_DYNAMIC_EXEC_LABEL for item in fixture_eval_string_sentinels)
-
