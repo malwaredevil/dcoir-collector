@@ -71,6 +71,26 @@ assert not any(
     for item in os_open_read_via_variable_sentinels
 ), os_open_read_via_variable_sentinels
 
+os_open_write_via_variable_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_write_variable.py b/tools/os_write_variable.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_write_variable.py
+@@ -0,0 +1,5 @@
++import os
++def persist(user_path):
++    flags = os.O_WRONLY | os.O_CREAT
++    fd = os.open(user_path, flags)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_write_variable.py"
+    and item.line == 4
+    and item.label in legacy_path_write_labels
+    for item in os_open_write_via_variable_sentinels
+), os_open_write_via_variable_sentinels
+
 os_open_write_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_write.py b/tools/os_write.py
 index 0000000..1111111 100644
@@ -108,6 +128,63 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in os_open_read_create_sentinels
 ), os_open_read_create_sentinels
+
+os_open_keyword_path_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_keyword_path.py b/tools/os_keyword_path.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_keyword_path.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path):
++    fd = os.open(path=user_path, flags=os.O_WRONLY)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_keyword_path.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_keyword_path_sentinels
+), os_open_keyword_path_sentinels
+
+os_open_large_shift_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_large_shift.py b/tools/os_large_shift.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_large_shift.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path):
++    fd = os.open(user_path, 1 << 1000000000)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_large_shift.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_large_shift_sentinels
+), os_open_large_shift_sentinels
+
+os_open_negative_shift_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_negative_shift.py b/tools/os_negative_shift.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_negative_shift.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path):
++    fd = os.open(user_path, 1 << -1)
++    return fd
+"""
+)
+assert any(
+    item.path == "tools/os_negative_shift.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in os_open_negative_shift_sentinels
+), os_open_negative_shift_sentinels
 
 read_only_path_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/read_only_path.py b/tools/read_only_path.py
