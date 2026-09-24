@@ -111,8 +111,14 @@ DEFAULT_PYTHON_PATH_CONSTRUCTORS = frozenset({"Path", "pathlib.Path"})
 DEFAULT_PYTHON_OS_MODULES = frozenset({"os"})
 PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
 PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
+PYTHON_OS_OPEN_WRITE_ACCESS_NAMES = frozenset({"O_WRONLY", "O_RDWR"})
+PYTHON_OS_OPEN_READ_ACCESS_NAMES = frozenset({"O_RDONLY"})
+PYTHON_OS_OPEN_MUTATING_FLAG_NAMES = frozenset({"O_CREAT", "O_TRUNC", "O_APPEND", "O_EXCL", "O_TMPFILE"})
+PYTHON_OS_OPEN_KNOWN_FLAG_NAMES = (
+    PYTHON_OS_OPEN_WRITE_ACCESS_NAMES | PYTHON_OS_OPEN_READ_ACCESS_NAMES | PYTHON_OS_OPEN_MUTATING_FLAG_NAMES
+)
 PYTHON_OS_OPEN_MUTATING_FLAG_MASK = 0
-for _flag_name in ("O_CREAT", "O_TRUNC", "O_APPEND", "O_EXCL", "O_TMPFILE"):
+for _flag_name in PYTHON_OS_OPEN_MUTATING_FLAG_NAMES:
     _flag_value = getattr(os, _flag_name, 0)
     if isinstance(_flag_value, int):
         PYTHON_OS_OPEN_MUTATING_FLAG_MASK |= _flag_value
@@ -199,7 +205,14 @@ def python_call_uses_write_mode(
             if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
                 return bool(folded_flags & PYTHON_OS_OPEN_MUTATING_FLAG_MASK)
             return True
-        return flags_node is not None
+        if flags_node is None:
+            return False
+        referenced_flags = python_os_open_flag_names(flags_node)
+        if referenced_flags & (PYTHON_OS_OPEN_WRITE_ACCESS_NAMES | PYTHON_OS_OPEN_MUTATING_FLAG_NAMES):
+            return True
+        if referenced_flags and referenced_flags <= PYTHON_OS_OPEN_KNOWN_FLAG_NAMES:
+            return False
+        return False
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = call.args[1] if len(call.args) > 1 else None
     elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
@@ -258,6 +271,16 @@ def python_fold_int_expr(node: ast.AST | None) -> int | None:
         if isinstance(node.op, ast.Sub):
             return left - right
     return None
+
+
+def python_os_open_flag_names(node: ast.AST) -> set[str]:
+    names: set[str] = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name) and child.id.startswith("O_"):
+            names.add(child.id)
+        elif isinstance(child, ast.Attribute) and child.attr.startswith("O_"):
+            names.add(child.attr)
+    return names
 
 
 def python_target_key(node: ast.AST) -> str | None:
