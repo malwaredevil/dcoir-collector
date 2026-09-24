@@ -12,6 +12,7 @@ import dcoir_review_required_runtime_patch_v10 as v10
 import dcoir_review_required_runtime_patch_v11 as v11
 import dcoir_review_required_runtime_patch_v13 as v13
 import dcoir_review_required_runtime_patch_v16 as v16
+import openrouter_pr_review_pareto_context as pareto
 
 
 def _s(path: str, line: int, kind: str, text: str) -> SimpleNamespace:
@@ -141,6 +142,58 @@ def test_patched_detector_skips_read_only_open_and_urlopen() -> None:
     )
     found = owner.detect_risk_sentinels(diff)
     assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
+def test_patched_detector_does_not_readd_multiline_read_only_or_urlopen() -> None:
+    class Owner:
+        RiskSentinel = pareto.hardened.RiskSentinel
+        detect_risk_sentinels = staticmethod(pareto.detect_risk_sentinels)
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/http_client.py b/tools/http_client.py",
+            "+++ b/tools/http_client.py",
+            "@@ -0,0 +1,10 @@",
+            "+import urllib.request",
+            "+def read_only(user_path, req):",
+            "+    with open(",
+            "+        user_path,",
+            "+        \"r\",",
+            "+    ) as handle:",
+            "+        handle.read()",
+            "+    return urllib.request.urlopen(",
+            "+        req,",
+            "+    )",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
+def test_patched_detector_keeps_multiline_writable_open_from_context_detector() -> None:
+    class Owner:
+        RiskSentinel = pareto.hardened.RiskSentinel
+        detect_risk_sentinels = staticmethod(pareto.detect_risk_sentinels)
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/writer.py b/tools/writer.py",
+            "+++ b/tools/writer.py",
+            "@@ -0,0 +1,6 @@",
+            "+def persist(user_path, payload):",
+            "+    with open(",
+            "+        user_path,",
+            "+        \"w\",",
+            "+    ) as handle:",
+            "+        handle.write(payload)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
 def test_patched_detector_skips_urlopen_aliases_from_diff_context() -> None:

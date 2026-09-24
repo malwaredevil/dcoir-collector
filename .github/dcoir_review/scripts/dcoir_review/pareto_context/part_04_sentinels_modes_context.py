@@ -29,13 +29,6 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             )
         pending_path_assignment = []
 
-    def prune_assigned_int_bindings(active_scope_ids: set[int]) -> None:
-        for target, bindings in list(assigned_int_bindings.items()):
-            while bindings and bindings[-1][1] not in active_scope_ids:
-                bindings.pop()
-            if not bindings:
-                del assigned_int_bindings[target]
-
     def pending_write_statement_anchor() -> PythonDiffLine:
         return next(
             (line for line in pending_write_statement if line.is_added),
@@ -107,13 +100,6 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         while conditional_block_indents and indent <= conditional_block_indents[-1]:
             conditional_block_indents.pop()
 
-    def line_opens_conditional_block(text: str) -> bool:
-        stripped = text.lstrip()
-        return bool(
-            stripped.rstrip().endswith(":")
-            and re.match(r"^(?:if|elif|else|for|while|try|except|finally|match|case)\b", stripped)
-        )
-
     def inside_conditional_block(indent: int | None) -> bool:
         return indent is not None and any(indent > block_indent for block_indent in conditional_block_indents)
 
@@ -161,7 +147,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         pop_python_scopes_for_indent(scope_stack, diff_line_indent)
         active_scope_ids = active_python_scope_ids(scope_stack)
         prune_assigned_paths_for_active_scopes(assigned_paths, active_scope_ids)
-        prune_assigned_int_bindings(active_scope_ids)
+        _prune_assigned_int_bindings(assigned_int_bindings, active_scope_ids)
         if diff_line.inside_multiline_string:
             if pending_write_statement:
                 pending_write_statement.append(diff_line)
@@ -213,18 +199,18 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         dynamic_target = python_dynamic_path_target(diff_line.text, path_constructor_names, os_module_names)
         if dynamic_target:
             push_assigned_path(assigned_paths, dynamic_target, diff_line, current_scope_id)
-            if line_opens_conditional_block(diff_line.text):
+            if _line_opens_conditional_block(diff_line.text):
                 conditional_block_indents.append(diff_line_indent or 0)
             continue
         augmented_dynamic_target = python_augmented_dynamic_path_target(diff_line.text, path_constructor_names, os_module_names)
         if augmented_dynamic_target:
             push_assigned_path(assigned_paths, augmented_dynamic_target, diff_line, current_scope_id)
-            if line_opens_conditional_block(diff_line.text):
+            if _line_opens_conditional_block(diff_line.text):
                 conditional_block_indents.append(diff_line_indent or 0)
             continue
         if python_path_assignment_start(diff_line.text, path_constructor_names, os_module_names) and not python_statement_is_complete(diff_line.text):
             pending_path_assignment = [diff_line]
-            if line_opens_conditional_block(diff_line.text):
+            if _line_opens_conditional_block(diff_line.text):
                 conditional_block_indents.append(diff_line_indent or 0)
             continue
         simple_assignment = python_simple_assignment(diff_line.text)
@@ -287,7 +273,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 and not python_statement_is_complete(diff_line.text)
             ):
                 pending_write_statement = [diff_line]
-            if line_opens_conditional_block(diff_line.text):
+            if _line_opens_conditional_block(diff_line.text):
                 conditional_block_indents.append(diff_line_indent or 0)
             continue
         assignment = current_assigned_path(assigned_paths, write_target)
@@ -301,40 +287,13 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 append_file_write_sentinel(sentinels, diff_line)
             continue
         if not assignment.is_added and not diff_line.is_added:
-            if line_opens_conditional_block(diff_line.text):
+            if _line_opens_conditional_block(diff_line.text):
                 conditional_block_indents.append(diff_line_indent or 0)
             continue
         anchor = assignment if assignment.is_added else diff_line
         append_file_write_sentinel(sentinels, anchor)
-        if line_opens_conditional_block(diff_line.text):
+        if _line_opens_conditional_block(diff_line.text):
             conditional_block_indents.append(diff_line_indent or 0)
     flush_pending_path_assignment()
     flush_pending_write_statement()
     return sentinels
-
-
-def set_python_path_alias_context(path_alias_context: dict[str, set[str]] | None) -> None:
-    global PYTHON_PATH_ALIAS_CONTEXT
-    PYTHON_PATH_ALIAS_CONTEXT = {
-        path: set(aliases)
-        for path, aliases in (path_alias_context or {}).items()
-        if aliases
-    }
-
-
-def set_python_os_alias_context(os_alias_context: dict[str, set[str]] | None) -> None:
-    global PYTHON_OS_ALIAS_CONTEXT
-    PYTHON_OS_ALIAS_CONTEXT = {
-        path: set(aliases)
-        for path, aliases in (os_alias_context or {}).items()
-        if aliases
-    }
-
-
-def set_python_urllib_urlopen_call_context(urlopen_call_context: dict[str, set[str]] | None) -> None:
-    global PYTHON_URLLIB_URLOPEN_CALL_CONTEXT
-    PYTHON_URLLIB_URLOPEN_CALL_CONTEXT = {
-        path: set(call_names)
-        for path, call_names in (urlopen_call_context or {}).items()
-        if call_names
-    }
