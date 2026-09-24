@@ -281,23 +281,6 @@ def _python_urllib_urlopen_call_names(text: str) -> set[str]:
     return call_names
 
 
-def _python_head_file_text(path: str) -> str | None:
-    relative_path = Path(str(path or "").replace("\\", "/"))
-    candidates = [relative_path] if relative_path.is_absolute() else [Path.cwd() / relative_path]
-    candidates.extend(parent / relative_path for parent in Path(__file__).resolve().parents if not relative_path.is_absolute())
-    seen: set[Path] = set()
-    for candidate in candidates:
-        resolved = candidate.resolve(strict=False)
-        if resolved in seen or not resolved.is_file():
-            continue
-        seen.add(resolved)
-        try:
-            return resolved.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            return None
-    return None
-
-
 def _iter_diff_python_lines_with_context(diff: str) -> list[tuple[str, str]]:
     lines: list[tuple[str, str]] = []
     current_path = ""
@@ -328,9 +311,6 @@ def _python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
     call_names_by_path: dict[str, set[str]] = {}
     for path, lines in sources_by_path.items():
         call_names = _python_urllib_urlopen_call_names("\n".join(lines))
-        head_text = _python_head_file_text(path)
-        if head_text:
-            call_names.update(_python_urllib_urlopen_call_names(head_text))
         call_names_by_path[path] = call_names
     return call_names_by_path
 

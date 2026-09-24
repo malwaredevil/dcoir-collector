@@ -36,6 +36,25 @@ def build_python_os_alias_context(gh: Any, pr: dict[str, Any], files: list[dict[
     return os_alias_context
 
 
+def build_python_urllib_urlopen_call_context(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]]) -> dict[str, set[str]]:
+    head_sha = str(pr.get("head", {}).get("sha", "") or "")
+    if not head_sha:
+        return {}
+    urlopen_call_context: dict[str, set[str]] = {}
+    for item in files:
+        path = str(item.get("filename", "")).strip()
+        status = str(item.get("status", "")).strip()
+        if not path or status in {"removed", "deleted"} or Path(path).suffix.lower() != ".py":
+            continue
+        try:
+            call_names = python_urllib_urlopen_call_names(fetch_pr_file_text(gh, path, head_sha))
+        except Exception:
+            continue
+        if call_names:
+            urlopen_call_context[path] = call_names
+    return urlopen_call_context
+
+
 def deep_context_priority(item: dict[str, Any]) -> tuple[int, int, int, str]:
     """Prefer substantive source before derived/generated evidence under the deep-context budget."""
     path = str(item.get("filename", "") or "").replace("\\", "/")
@@ -133,4 +152,3 @@ def truncate_with_balanced_fences(text: str, max_chars: int, marker: str) -> str
         if partial.count("~~~") % 2 == 1:
             partial = f"{partial}{fence_close}"
     return f"{partial}{marker}"
-
