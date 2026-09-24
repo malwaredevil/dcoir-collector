@@ -196,7 +196,8 @@ def python_direct_dynamic_open_write(
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
-            return bool(node.args and python_is_dynamic_path_segment(node.args[0]))
+            path_node = python_call_arg(node, 0, "file")
+            return bool(path_node and python_is_dynamic_path_segment(path_node))
         call_name = python_call_name(func)
         if call_name in {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}:
             path_node = python_call_arg(node, 0, "path")
@@ -341,4 +342,3 @@ def python_dynamic_exec_call_name(text: str) -> str | None:
         if call_name in PYTHON_DYNAMIC_EXEC_CALL_NAMES:
             return call_name
     return None
-

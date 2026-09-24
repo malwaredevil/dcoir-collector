@@ -118,6 +118,45 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in unsafe_builtin_open_sentinels
 ), unsafe_builtin_open_sentinels
+unsafe_keyword_only_builtin_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_keyword_writer.py b/tools/unsafe_keyword_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_keyword_writer.py
+@@ -0,0 +1,3 @@
++def persist(user_path, payload):
++    with open(file=user_path, mode="w", encoding="utf-8") as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_keyword_writer.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in unsafe_keyword_only_builtin_open_sentinels
+), unsafe_keyword_only_builtin_open_sentinels
+
+unsafe_multiline_builtin_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/unsafe_multiline_writer.py b/tools/unsafe_multiline_writer.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/unsafe_multiline_writer.py
+@@ -0,0 +1,6 @@
++def persist(user_path, payload):
++    with open(
++        user_path,
++        "w",
++    ) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/unsafe_multiline_writer.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in unsafe_multiline_builtin_open_sentinels
+), unsafe_multiline_builtin_open_sentinels
+
 safe_reassign_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/safe_writer.py b/tools/safe_writer.py
 index 0000000..1111111 100644
