@@ -20,10 +20,21 @@ def python_call_arg(call: ast.Call, position: int, *keyword_names: str) -> ast.A
     return None
 
 
+def python_is_proven_path_receiver(node: ast.AST) -> bool:
+    if isinstance(node, ast.Call) and python_call_name(node.func) in DEFAULT_PYTHON_PATH_CONSTRUCTORS:
+        return True
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return python_is_proven_path_receiver(node.left)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "joinpath":
+        return python_is_proven_path_receiver(node.func.value)
+    return False
+
+
 def python_call_uses_write_mode(
     call: ast.Call,
     os_module_names: set[str] | None = None,
     local_int_bindings: dict[str, ast.AST | int] | None = None,
+    assume_path_receiver: bool = False,
 ) -> bool:
     """Return True when open-style calls can mutate filesystem contents."""
 
@@ -52,7 +63,11 @@ def python_call_uses_write_mode(
         return True
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         mode_node = call.args[1] if len(call.args) > 1 else None
+    elif call_name in {"bz2.open", "gzip.open", "lzma.open", "tarfile.open"}:
+        mode_node = call.args[1] if len(call.args) > 1 else None
     elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
+        if not (assume_path_receiver or python_is_proven_path_receiver(call.func.value)):
+            return False
         mode_node = call.args[0] if call.args else None
     else:
         mode_node = None

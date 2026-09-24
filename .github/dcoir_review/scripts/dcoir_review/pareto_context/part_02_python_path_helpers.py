@@ -192,7 +192,12 @@ def python_direct_dynamic_open_write(
         return False
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(node, os_module_names, local_int_bindings):
+        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(
+            node,
+            os_module_names,
+            local_int_bindings,
+            assume_path_receiver=True,
+        ):
             continue
         func = node.func
         if isinstance(func, ast.Name) and func.id == "open":
@@ -311,7 +316,12 @@ def python_file_write_target(
             if target:
                 return target
             continue
-        if node.func.attr == "open" and python_call_uses_write_mode(node, os_module_names, local_int_bindings):
+        if node.func.attr == "open" and python_call_uses_write_mode(
+            node,
+            os_module_names,
+            local_int_bindings,
+            assume_path_receiver=True,
+        ):
             target = python_target_key(node.func.value)
             if target:
                 return target
@@ -333,7 +343,12 @@ def python_wrapped_file_write_target(
             continue
         if node.func.attr not in {"write_text", "write_bytes", "open"}:
             continue
-        if node.func.attr == "open" and not python_call_uses_write_mode(node, os_module_names, local_int_bindings):
+        if node.func.attr == "open" and not python_call_uses_write_mode(
+            node,
+            os_module_names,
+            local_int_bindings,
+            assume_path_receiver=True,
+        ):
             continue
         value = node.func.value
         if python_is_path_constructor(value, constructor_names) and value.args:
