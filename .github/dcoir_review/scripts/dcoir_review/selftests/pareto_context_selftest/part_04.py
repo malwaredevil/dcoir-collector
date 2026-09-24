@@ -190,6 +190,42 @@ assert not any(
     for item in read_only_path_open_sentinels
 ), read_only_path_open_sentinels
 
+read_only_aliased_path_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/read_only_aliased_path.py b/tools/read_only_aliased_path.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/read_only_aliased_path.py
+@@ -0,0 +1,4 @@
++from pathlib import Path as P
++def load(user_path):
++    with P(user_path).open("r") as handle:
++        return handle.read()
++"""
+)
+assert not any(
+    item.path == "tools/read_only_aliased_path.py"
+    and item.label in legacy_path_write_labels
+    for item in read_only_aliased_path_open_sentinels
+), read_only_aliased_path_open_sentinels
+
+read_only_os_alias_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/read_only_os_alias.py b/tools/read_only_os_alias.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/read_only_os_alias.py
+@@ -0,0 +1,4 @@
++import os as operating_system
++def load(user_path):
++    fd = operating_system.open(user_path, operating_system.O_RDONLY)
++    return fd
++"""
+)
+assert not any(
+    item.path == "tools/read_only_os_alias.py"
+    and item.label in legacy_path_write_labels
+    for item in read_only_os_alias_open_sentinels
+), read_only_os_alias_open_sentinels
+
 
 unsafe_path_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_path_writer.py b/tools/unsafe_path_writer.py

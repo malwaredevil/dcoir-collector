@@ -20,12 +20,30 @@ def _python_shadowed_name_roots(module: ast.AST) -> set[str]:
         elif isinstance(node, ast.Starred):
             collect_target(node.value)
 
+    def collect_arguments(node: ast.arguments) -> None:
+        for argument in (
+            *node.posonlyargs,
+            *node.args,
+            *node.kwonlyargs,
+        ):
+            roots.add(argument.arg)
+        if node.vararg is not None:
+            roots.add(node.vararg.arg)
+        if node.kwarg is not None:
+            roots.add(node.kwarg.arg)
+
     class _ModuleScopeShadowVisitor(ast.NodeVisitor):
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
 
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
             roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
 
         def visit_ClassDef(self, node: ast.ClassDef) -> None:
             roots.add(node.name)
@@ -196,26 +214,34 @@ def _python_is_known_urllib_urlopen(
     return bool(re.search(pattern, text, re.IGNORECASE))
 
 
-def _python_is_explicit_file_write(text: str) -> bool:
+def _python_is_explicit_file_write(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+) -> bool:
     module = _python_parse_diff_line(text)
     if module is None:
         return False
+    constructor_names = path_constructor_names or {"Path", "pathlib.Path"}
+    os_names = os_module_names or {"os"}
+    os_open_names = {f"{name}.open" for name in os_names}
+    known_mode_checked = set(PYTHON_KNOWN_READ_MODE_OPEN_CALLS) | os_open_names
     for node in ast.walk(module):
         if not isinstance(node, ast.Call):
             continue
         call_name = _python_call_name(node.func)
-        if call_name == "os.open":
-            return _python_os_open_uses_write_mode(node)
-        if (
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr == "open"
-            and not _python_is_proven_path_receiver(node.func.value)
-            and call_name not in (set(PYTHON_KNOWN_READ_MODE_OPEN_CALLS) | {"os.open"})
-        ):
-            return True
+        if call_name in os_open_names:
+            return _python_os_open_uses_write_mode(node, os_names)
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "open":
+            value_is_path = _python_is_proven_path_receiver(node.func.value, constructor_names)
+            if not value_is_path and call_name not in known_mode_checked:
+                return True
+            if _python_call_uses_write_mode(node, constructor_names, os_names):
+                return True
+            continue
         if isinstance(node.func, ast.Attribute) and node.func.attr in {"write_text", "write_bytes"}:
             return True
-        if _python_call_uses_write_mode(node):
+        if _python_call_uses_write_mode(node, constructor_names, os_names):
             return True
     return False
 
@@ -252,9 +278,16 @@ def _line_kind(path: str, text: str) -> str:
         if "extractall" in lower:
             return v11.PYTHON_ARCHIVE_EXTRACT
         if any(token in lower for token in ("write_text(", "write_bytes(", ".open(", "open(")):
-            if _python_is_known_urllib_urlopen(text):
+            constructor_names = {"Path", "pathlib.Path"}
+            constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(path, set()))
+            os_module_names = {"os"}
+            os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
+            if _python_is_known_urllib_urlopen(
+                text,
+                known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path),
+            ):
                 return _ORIGINAL_V13_LINE_KIND(path, text)
-            if _python_is_explicit_file_write(text):
+            if _python_is_explicit_file_write(text, constructor_names, os_module_names):
                 return v11.PYTHON_PATH_WRITE
             if _python_parse_diff_line(text) is not None:
                 return _ORIGINAL_V13_LINE_KIND(path, text)

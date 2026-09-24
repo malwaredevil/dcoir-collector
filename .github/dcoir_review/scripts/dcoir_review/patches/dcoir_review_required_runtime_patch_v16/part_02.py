@@ -179,11 +179,34 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
         return
 
     def detect_risk_sentinels(diff: str, *args: Any, **kwargs: Any) -> list[Any]:
+        path_alias_context = {"Path", "pathlib.Path"}
+        os_alias_context = {"os"}
+        PYTHON_PATH_ALIAS_CONTEXT.clear()
+        PYTHON_OS_ALIAS_CONTEXT.clear()
+        PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.clear()
+        for source in (sentinel_owner, owner):
+            path_context = getattr(source, "PYTHON_PATH_ALIAS_CONTEXT", None)
+            if isinstance(path_context, dict):
+                for key, value in path_context.items():
+                    if isinstance(value, set):
+                        PYTHON_PATH_ALIAS_CONTEXT[str(key)] = set(value)
+            os_context = getattr(source, "PYTHON_OS_ALIAS_CONTEXT", None)
+            if isinstance(os_context, dict):
+                for key, value in os_context.items():
+                    if isinstance(value, set):
+                        PYTHON_OS_ALIAS_CONTEXT[str(key)] = set(value)
+            urlopen_context = getattr(source, "PYTHON_URLLIB_URLOPEN_CALL_CONTEXT", None)
+            if isinstance(urlopen_context, dict):
+                for key, value in urlopen_context.items():
+                    if isinstance(value, set):
+                        PYTHON_URLLIB_URLOPEN_CALL_CONTEXT[str(key)] = set(value)
         try:
             sentinels = list(original(diff, *args, **kwargs))
         except TypeError:
             sentinels = list(original(diff))
         urllib_urlopen_call_names_by_path = _python_diff_urllib_urlopen_call_names(diff)
+        for path, names in urllib_urlopen_call_names_by_path.items():
+            PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.setdefault(path, set()).update(names)
         sentinels = [
             item
             for item in sentinels
@@ -213,10 +236,18 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 continue
             if kind == v11.PYTHON_PATH_WRITE and _python_is_known_urllib_urlopen(
                 text,
-                known_call_names=urllib_urlopen_call_names_by_path.get(path),
+                known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, urllib_urlopen_call_names_by_path.get(path)),
             ):
                 continue
-            if kind == v11.PYTHON_PATH_WRITE and not _python_is_explicit_file_write(text):
+            constructor_names = set(path_alias_context)
+            constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(path, set()))
+            os_module_names = set(os_alias_context)
+            os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
+            if kind == v11.PYTHON_PATH_WRITE and not _python_is_explicit_file_write(
+                text,
+                constructor_names,
+                os_module_names,
+            ):
                 # The wrapped detector already evaluates complete statements. Do not
                 # manufacture a path-write sentinel from an incomplete line fragment.
                 continue

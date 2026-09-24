@@ -63,6 +63,10 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
             if is_python_test_file_path(sentinel.path):
                 continue
             if Path(sentinel.path).suffix.lower() == ".py":
+                path_constructor_names = set(DEFAULT_PYTHON_PATH_CONSTRUCTORS)
+                path_constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(sentinel.path, set()))
+                os_module_names = set(DEFAULT_PYTHON_OS_MODULES)
+                os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(sentinel.path, set()))
                 known_call_names = urllib_urlopen_call_names_by_path.get(sentinel.path)
                 is_known_urlopen = python_line_is_known_urllib_urlopen(
                     sentinel.text,
@@ -73,6 +77,8 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
                     and python_parse_diff_line(sentinel.text) is not None
                     and not python_line_has_explicit_file_write_call(
                         sentinel.text,
+                        path_constructor_names,
+                        os_module_names,
                         known_call_names=known_call_names,
                     )
                 ):
@@ -126,12 +132,30 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
         elif isinstance(node, ast.Starred):
             collect_target(node.value)
 
+    def collect_arguments(node: ast.arguments) -> None:
+        for argument in (
+            *node.posonlyargs,
+            *node.args,
+            *node.kwonlyargs,
+        ):
+            roots.add(argument.arg)
+        if node.vararg is not None:
+            roots.add(node.vararg.arg)
+        if node.kwarg is not None:
+            roots.add(node.kwarg.arg)
+
     class _ModuleScopeShadowVisitor(ast.NodeVisitor):
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
 
         def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
             roots.add(node.name)
+            collect_arguments(node.args)
+            for statement in node.body:
+                self.visit(statement)
 
         def visit_ClassDef(self, node: ast.ClassDef) -> None:
             roots.add(node.name)
