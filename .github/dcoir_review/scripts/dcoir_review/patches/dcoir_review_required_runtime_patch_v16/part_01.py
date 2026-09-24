@@ -11,6 +11,8 @@ suppressed.
 
 from __future__ import annotations
 
+import ast
+import os
 import re
 import shlex
 from pathlib import Path
@@ -61,6 +63,15 @@ PYTHON_BUILTIN_DYNAMIC_EXEC_RE = re.compile(
     r"(?<![A-Za-z0-9_.])(?:eval|exec)\s*\(|(?:builtins|__builtins__)\.(?:eval|exec)\s*\(",
     re.IGNORECASE,
 )
+PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\burllib(?:\.request)?\.urlopen\s*\(", re.IGNORECASE)
+PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
+PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
+PYTHON_OS_OPEN_MUTATING_FLAG_MASK = (
+    getattr(os, "O_APPEND", 0)
+    | getattr(os, "O_CREAT", 0)
+    | getattr(os, "O_TMPFILE", 0)
+    | getattr(os, "O_TRUNC", 0)
+)
 
 
 def _normalize(value: Any) -> str:
@@ -96,6 +107,134 @@ def _is_python_test_file(path: str) -> bool:
     )
 
 
+def _python_parse_diff_line(text: str) -> ast.Module | None:
+    source = text.lstrip()
+    try:
+        return ast.parse(source)
+    except SyntaxError:
+        if source.rstrip().endswith(":"):
+            try:
+                return ast.parse(source.rstrip() + "\n    pass")
+            except SyntaxError:
+                return None
+        return None
+
+
+def _python_call_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _python_call_name(node.value)
+        return f"{prefix}.{node.attr}" if prefix else node.attr
+    return ""
+
+
+def _python_call_arg(call: ast.Call, position: int, *keyword_names: str) -> ast.AST | None:
+    if len(call.args) > position:
+        return call.args[position]
+    for keyword in call.keywords:
+        if keyword.arg in keyword_names:
+            return keyword.value
+    return None
+
+
+def _python_fold_os_flag_expr(node: ast.AST | None) -> int | None:
+    if node is None:
+        return None
+    if isinstance(node, ast.Constant) and isinstance(node.value, int):
+        return int(node.value)
+    if isinstance(node, ast.Attribute) and _python_call_name(node.value) == "os":
+        value = getattr(os, node.attr, None)
+        return int(value) if isinstance(value, int) else None
+    if isinstance(node, ast.UnaryOp):
+        operand = _python_fold_os_flag_expr(node.operand)
+        if operand is None:
+            return None
+        if isinstance(node.op, ast.Invert):
+            return ~operand
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        if isinstance(node.op, ast.USub):
+            return -operand
+        return None
+    if isinstance(node, ast.BinOp):
+        left = _python_fold_os_flag_expr(node.left)
+        right = _python_fold_os_flag_expr(node.right)
+        if left is None or right is None:
+            return None
+        if isinstance(node.op, ast.BitOr):
+            return left | right
+        if isinstance(node.op, ast.BitAnd):
+            return left & right
+        if isinstance(node.op, ast.BitXor):
+            return left ^ right
+        if isinstance(node.op, ast.LShift):
+            return left << right if right >= 0 else None
+        if isinstance(node.op, ast.RShift):
+            return left >> right if right >= 0 else None
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+    return None
+
+
+def _python_os_open_uses_write_mode(call: ast.Call) -> bool:
+    flags_node = _python_call_arg(call, 1, "flags")
+    if flags_node is None:
+        return any(keyword.arg is None for keyword in call.keywords)
+    folded_flags = _python_fold_os_flag_expr(flags_node)
+    if folded_flags is None:
+        return True
+    access_mode = folded_flags & PYTHON_OS_OPEN_ACCESS_MODE_MASK
+    if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
+        return bool(folded_flags & PYTHON_OS_OPEN_MUTATING_FLAG_MASK)
+    return True
+
+
+def _python_call_uses_write_mode(call: ast.Call) -> bool:
+    call_name = _python_call_name(call.func)
+    if call_name == "os.open":
+        return _python_os_open_uses_write_mode(call)
+    if isinstance(call.func, ast.Name) and call.func.id == "open":
+        mode_node = _python_call_arg(call, 1, "mode")
+    elif isinstance(call.func, ast.Attribute) and call.func.attr == "open":
+        mode_node = _python_call_arg(call, 0, "mode")
+    else:
+        return False
+    if mode_node is None:
+        return any(keyword.arg is None for keyword in call.keywords)
+    if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
+        return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
+    return True
+
+
+def _python_is_known_urllib_urlopen(text: str) -> bool:
+    module = _python_parse_diff_line(text)
+    if module is not None:
+        return any(
+            isinstance(node, ast.Call) and _python_call_name(node.func) in {"urllib.request.urlopen", "urllib.urlopen"}
+            for node in ast.walk(module)
+        )
+    return bool(PYTHON_KNOWN_URLOPEN_RE.search(text))
+
+
+def _python_is_explicit_file_write(text: str) -> bool:
+    module = _python_parse_diff_line(text)
+    if module is None:
+        return False
+    for node in ast.walk(module):
+        if not isinstance(node, ast.Call):
+            continue
+        if _python_call_name(node.func) == "os.open":
+            return _python_os_open_uses_write_mode(node)
+        if isinstance(node.func, ast.Attribute) and node.func.attr in {"write_text", "write_bytes"}:
+            return True
+        if _python_call_uses_write_mode(node):
+            return True
+    return False
+
+
 def _line_kind(path: str, text: str) -> str:
     suffix = Path(str(path or "").lower()).suffix
     lower = _normalize(text)
@@ -128,6 +267,12 @@ def _line_kind(path: str, text: str) -> str:
         if "extractall" in lower:
             return v11.PYTHON_ARCHIVE_EXTRACT
         if any(token in lower for token in ("write_text(", "write_bytes(", ".open(", "open(")):
+            if _python_is_known_urllib_urlopen(text):
+                return _ORIGINAL_V13_LINE_KIND(path, text)
+            if _python_is_explicit_file_write(text):
+                return v11.PYTHON_PATH_WRITE
+            if _python_parse_diff_line(text) is not None:
+                return _ORIGINAL_V13_LINE_KIND(path, text)
             return v11.PYTHON_PATH_WRITE
     if suffix in {".ps1", ".psm1", ".psd1"}:
         if "invoke-expression" in lower or re.search(r"\biex\b", lower):

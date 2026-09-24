@@ -19,6 +19,43 @@ assert not any(
     for item in multiline_urlopen_sentinels
 ), multiline_urlopen_sentinels
 
+original_detect_risk_sentinels = mod._original_detect_risk_sentinels
+
+
+def fake_original_custom_urlopen(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/custom_urlopen.py",
+            line=2,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel",
+            text="    with client.urlopen(user_path) as handle:",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_custom_urlopen
+try:
+    custom_urlopen_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/custom_urlopen.py b/tools/custom_urlopen.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/custom_urlopen.py
+@@ -0,0 +1,3 @@
++def persist(client, user_path):
++    with client.urlopen(user_path) as handle:
++        return handle
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert any(
+    item.path == "tools/custom_urlopen.py"
+    and item.line == 2
+    and item.label in legacy_path_write_labels
+    for item in custom_urlopen_sentinels
+), custom_urlopen_sentinels
+
 os_open_read_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_read.py b/tools/os_read.py
 index 0000000..1111111 100644

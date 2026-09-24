@@ -61,7 +61,7 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
         if sentinel.label in skipped_test_file_write_labels:
             if is_python_test_file_path(sentinel.path):
                 continue
-            if re.search(r"\burlopen\s*\(", sentinel.text):
+            if python_line_is_known_urllib_urlopen(sentinel.text):
                 # Historical string matching treated names such as ``urlopen`` as
                 # filesystem ``open``. Drop only this known lexical false
                 # positive and keep other legacy sentinels unless a dedicated
@@ -87,6 +87,16 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
 
 
 hardened.detect_risk_sentinels = detect_risk_sentinels
+
+
+def python_line_is_known_urllib_urlopen(text: str) -> bool:
+    module = python_parse_diff_line(text)
+    if module is not None:
+        for node in ast.walk(module):
+            if isinstance(node, ast.Call) and python_call_name(node.func) in {"urllib.request.urlopen", "urllib.urlopen"}:
+                return True
+        return False
+    return bool(re.search(r"\burllib(?:\.request)?\.urlopen\s*\(", text))
 
 
 def command_option_tokens(body: str, command: str) -> set[str]:
