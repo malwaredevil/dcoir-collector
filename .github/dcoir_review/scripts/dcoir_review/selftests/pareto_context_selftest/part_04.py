@@ -53,6 +53,24 @@ assert not any(
     for item in os_open_read_with_flags_sentinels
 ), os_open_read_with_flags_sentinels
 
+os_open_read_via_variable_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_read_variable.py b/tools/os_read_variable.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_read_variable.py
+@@ -0,0 +1,5 @@
++import os
++def load(user_path):
++    flags = os.O_RDONLY
++    fd = os.open(user_path, flags)
++    return fd
+"""
+)
+assert not any(
+    item.path == "tools/os_read_variable.py" and item.label in legacy_path_write_labels
+    for item in os_open_read_via_variable_sentinels
+), os_open_read_via_variable_sentinels
+
 os_open_write_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/os_write.py b/tools/os_write.py
 index 0000000..1111111 100644
