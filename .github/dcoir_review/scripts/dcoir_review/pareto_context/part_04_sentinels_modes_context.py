@@ -7,6 +7,11 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     next_scope_id = 0
     path_constructor_names = set(DEFAULT_PYTHON_PATH_CONSTRUCTORS)
     os_module_names = set(DEFAULT_PYTHON_OS_MODULES)
+    urllib_urlopen_alias_paths = {
+        diff_line.path
+        for diff_line in iter_python_diff_lines_with_context(diff)
+        if diff_line.is_added and python_line_imports_urllib_urlopen_alias(diff_line.text)
+    }
     current_path = ""
     current_hunk = 0
     current_alias_path = ""
@@ -61,6 +66,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             path_constructor_names,
             os_module_names,
             current_int_bindings,
+            current_path in urllib_urlopen_alias_paths,
         ):
             append_file_write_sentinel(sentinels, pending_write_statement_anchor())
         pending_write_statement = []
@@ -259,6 +265,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                     path_constructor_names,
                     os_module_names,
                     current_int_bindings,
+                    diff_line.path in urllib_urlopen_alias_paths,
                 )
                 and not python_statement_is_complete(diff_line.text)
             ):
