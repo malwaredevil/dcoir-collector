@@ -26,7 +26,7 @@ def safe_repair_disposition(marker: dict[str, Any]) -> str:
         return "Repair synthesis passed the independent critic, but final exact-head revalidation declined the candidate; no publishable repair set was produced."
     if outcome in {"critic-declined"}:
         return "Repair synthesis produced a critic-eligible candidate, but the independent repair critic rejected it; no publishable repair set was produced."
-    if outcome in {"deterministic-precheck-declined"}:
+    if outcome in {"author-declined", "deterministic-precheck-declined"}:
         return "Repair synthesis did not produce a critic-eligible complete repair set; no publishable repair set was produced."
     if outcome in {"verified-no-safe-repair-set", "no-safe-single-line-fix"}:
         if marker.get("critic_accepted") is True:
