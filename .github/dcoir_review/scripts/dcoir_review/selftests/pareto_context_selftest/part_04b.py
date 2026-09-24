@@ -116,6 +116,40 @@ finally:
 assert any(item.path == "docs/reference.txt" and item.label == mod.FILE_WRITE_PATH_LABEL for item in non_python_urlopen_sentinels)
 
 
+def fake_original_alias_urlopen(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/http_alias_client.py",
+            line=3,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel detail",
+            text="    with urlopen(req) as response:",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_alias_urlopen
+try:
+    alias_urlopen_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/http_alias_client.py b/tools/http_alias_client.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_alias_client.py
+@@ -0,0 +1,4 @@
++from urllib.request import urlopen
++def fetch(req):
++    with urlopen(req) as response:
++        return response.read()
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert not any(
+    item.path == "tools/http_alias_client.py" and item.label == mod.FILE_WRITE_PATH_LABEL
+    for item in alias_urlopen_sentinels
+), alias_urlopen_sentinels
+
+
 
 python_dynamic_exec_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/eval_probe.py b/tools/eval_probe.py
