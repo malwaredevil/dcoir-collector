@@ -210,6 +210,10 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 known_call_names=urllib_urlopen_call_names_by_path.get(path),
             ):
                 continue
+            if kind == v11.PYTHON_PATH_WRITE and not _python_is_explicit_file_write(text):
+                # The wrapped detector already evaluates complete statements. Do not
+                # manufacture a path-write sentinel from an incomplete line fragment.
+                continue
             key = (path, line, kind)
             if key in existing:
                 continue
