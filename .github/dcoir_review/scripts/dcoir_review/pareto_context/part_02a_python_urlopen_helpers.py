@@ -213,6 +213,7 @@ def python_line_has_explicit_file_write_call(
             text,
             allow_urllib_urlopen_alias,
             known_call_names,
+            shadowed_names,
         ):
             return False
         # Preserve legacy coverage when a single diff line cannot be parsed safely.
@@ -233,6 +234,9 @@ def python_line_has_explicit_file_write_call(
             if not isinstance(node, ast.Call):
                 continue
             func = node.func
+            call_name = python_call_name(func)
+            if call_name.endswith("open") and call_name.split(".", 1)[0] in active_shadowed_names:
+                return True
             if isinstance(func, ast.Name) and func.id == "open":
                 if python_call_uses_write_mode(
                     node,
@@ -246,7 +250,6 @@ def python_line_has_explicit_file_write_call(
             if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
                 return True
             if isinstance(func, ast.Attribute) and func.attr == "open":
-                call_name = python_call_name(func)
                 os_open_names = {f"{name}.open" for name in os_names}
                 known_mode_checked = {"bz2.open", "gzip.open", "lzma.open", "tarfile.open", *os_open_names}
                 value_is_path, _value_has_dynamic = python_path_expr_info(

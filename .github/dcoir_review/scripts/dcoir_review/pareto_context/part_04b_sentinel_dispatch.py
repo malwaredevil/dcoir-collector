@@ -50,7 +50,7 @@ def detect_github_actions_yaml_sentinels(diff: str) -> list[hardened.RiskSentine
 def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[hardened.RiskSentinel]:
     diff_fixture_added_lines = python_diff_fixture_added_line_keys(diff)
     urllib_urlopen_call_names_by_path = python_diff_urllib_urlopen_call_names(diff)
-    shadowed_name_roots_by_path = python_diff_shadowed_name_roots(diff)
+    shadowed_name_roots_by_line = python_diff_shadowed_name_roots_by_line(diff)
     skipped_test_file_write_labels = {
         FILE_WRITE_PATH_LABEL,
         "Python request-controlled file write",
@@ -73,15 +73,21 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
                 is_known_urlopen = python_line_is_known_urllib_urlopen(
                     statement_text,
                     known_call_names=known_call_names,
+                    shadowed_names=shadowed_name_roots_by_line.get(sentinel.path, {}).get(sentinel.line),
+                )
+                has_known_open_call = is_known_urlopen or python_has_known_file_open_call(
+                    statement_text,
+                    path_constructor_names,
+                    os_module_names,
                 )
                 if (
-                    (is_known_urlopen or re.search(r"\b(?:write_text|write_bytes|open)\s*\(", statement_text))
+                    has_known_open_call
                     and not python_line_has_explicit_file_write_call(
                         statement_text,
                         path_constructor_names,
                         os_module_names,
                         known_call_names=known_call_names,
-                        shadowed_names=shadowed_name_roots_by_path.get(sentinel.path),
+                        shadowed_names=shadowed_name_roots_by_line.get(sentinel.path, {}).get(sentinel.line),
                     )
                 ):
                     # Historical string matching treated parseable, non-writing
@@ -274,6 +280,51 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
     return roots
 
 
+def python_scope_definition_name(text: str) -> str | None:
+    module = python_parse_diff_line(text)
+    if module is None or not module.body:
+        return None
+    statement = module.body[0]
+    if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return statement.name
+    return None
+
+
+def python_trusted_import_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+    for statement in getattr(module, "body", []):
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if alias.name in {"os", "urllib", "urllib.request"}:
+                    roots.add(imported_name)
+        elif isinstance(statement, ast.ImportFrom):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name
+                if (
+                    statement.module == "urllib.request"
+                    and alias.name == "urlopen"
+                ) or (
+                    statement.module == "urllib"
+                    and alias.name == "request"
+                ):
+                    roots.add(imported_name)
+    return roots
+
+
+def python_line_shadowed_name_roots(text: str) -> set[str]:
+    module = python_parse_diff_line(text)
+    if module is None:
+        return set()
+    roots = python_shadowed_name_roots(module)
+    definition_name = python_scope_definition_name(text)
+    if definition_name:
+        roots.discard(definition_name)
+    roots.difference_update(python_scope_boundary_shadowed_names(text))
+    roots.difference_update(python_trusted_import_roots(module))
+    return roots
+
+
 def python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_roots: set[str]) -> set[str]:
     if not shadowed_roots:
         return call_names
@@ -316,10 +367,7 @@ def python_urllib_urlopen_call_names(text: str) -> set[str]:
                     call_names.add(f"{alias.asname or alias.name}.urlopen")
                 elif alias.name == "urllib":
                     call_names.add(f"{alias.asname or alias.name}.request.urlopen")
-    return python_prune_shadowed_urlopen_call_names(
-        call_names,
-        python_shadowed_name_roots(module),
-    )
+    return call_names
 
 
 def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
@@ -333,6 +381,66 @@ def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
         call_names.update(PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, set()))
         call_names_by_path[path] = call_names
     return call_names_by_path
+
+
+def python_diff_shadowed_name_roots_by_line(diff: str) -> dict[str, dict[int, set[str]]]:
+    shadowed_names_by_path: dict[str, dict[int, set[str]]] = {}
+    shadowed_bindings: dict[str, list[int]] = {}
+    scope_stack: list[PythonScope] = []
+    next_scope_id = 0
+    current_path = ""
+    current_hunk = 0
+
+    def push_shadowed_root(name: str, scope_id: int) -> None:
+        root = name.split(".", 1)[0]
+        bindings = shadowed_bindings.setdefault(root, [])
+        while bindings and bindings[-1] == scope_id:
+            bindings.pop()
+        bindings.append(scope_id)
+
+    def visible_shadowed_roots() -> set[str]:
+        return {name for name, bindings in shadowed_bindings.items() if bindings}
+
+    def prune_shadowed_bindings(active_scope_ids: set[int]) -> None:
+        for name, bindings in list(shadowed_bindings.items()):
+            while bindings and bindings[-1] not in active_scope_ids:
+                bindings.pop()
+            if not bindings:
+                shadowed_bindings.pop(name, None)
+
+    for diff_line in iter_python_diff_lines_with_context(diff):
+        if diff_line.path != current_path:
+            current_path = diff_line.path
+            current_hunk = diff_line.hunk
+            shadowed_bindings.clear()
+            scope_stack.clear()
+            next_scope_id = seed_python_hunk_scope(scope_stack, diff_line.hunk_context, next_scope_id)
+        elif diff_line.hunk != current_hunk:
+            if not trim_python_scope_stack_to_hunk(scope_stack, diff_line.hunk_context):
+                shadowed_bindings.clear()
+                scope_stack.clear()
+                next_scope_id = seed_python_hunk_scope(scope_stack, diff_line.hunk_context, next_scope_id)
+            current_hunk = diff_line.hunk
+        diff_line_indent = python_code_line_indent(diff_line.text)
+        pop_python_scopes_for_indent(scope_stack, diff_line_indent)
+        prune_shadowed_bindings(active_python_scope_ids(scope_stack))
+        current_scope_id = current_python_scope_id(scope_stack)
+        definition_name = python_scope_definition_name(diff_line.text)
+        if definition_name:
+            push_shadowed_root(definition_name, current_scope_id)
+        if python_is_scope_boundary(diff_line.text):
+            next_scope_id += 1
+            scope_stack.append(PythonScope(diff_line_indent or 0, python_scope_key(diff_line.text), next_scope_id))
+            current_scope_id = current_python_scope_id(scope_stack)
+            scope_shadowed_names = python_scope_boundary_shadowed_names(diff_line.text)
+            if definition_name:
+                scope_shadowed_names.discard(definition_name)
+            for shadowed_name in scope_shadowed_names:
+                push_shadowed_root(shadowed_name, current_scope_id)
+        for shadowed_name in python_line_shadowed_name_roots(diff_line.text):
+            push_shadowed_root(shadowed_name, current_scope_id)
+        shadowed_names_by_path.setdefault(diff_line.path, {})[diff_line.line] = visible_shadowed_roots()
+    return shadowed_names_by_path
 
 
 def python_diff_statement_text_for_anchor(diff: str, path: str, line: int, fallback_text: str) -> str:
@@ -355,24 +463,55 @@ def python_diff_statement_text_for_anchor(diff: str, path: str, line: int, fallb
     return fallback_text
 
 
+def python_has_known_file_open_call(
+    text: str,
+    path_constructor_names: set[str],
+    os_module_names: set[str],
+) -> bool:
+    known_read_mode_open_calls = {"bz2.open", "gzip.open", "lzma.open", "tarfile.open"}
+    module = python_parse_diff_line(text)
+    if module is None:
+        return False
+    os_open_names = {f"{name}.open" for name in os_module_names}
+    for node in ast.walk(module):
+        if not isinstance(node, ast.Call):
+            continue
+        call_name = python_call_name(node.func)
+        if isinstance(node.func, ast.Name) and node.func.id == "open":
+            return True
+        if call_name in known_read_mode_open_calls or call_name in os_open_names:
+            return True
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "open"
+            and python_is_proven_path_receiver(node.func.value)
+        ):
+            return True
+    return False
+
+
 def python_line_is_known_urllib_urlopen(
     text: str,
     allow_imported_alias: bool = False,
     known_call_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     call_names = set(known_call_names or ())
     if allow_imported_alias:
         call_names.add("urlopen")
     if not call_names:
-        return False
+        call_names.update({"urllib.urlopen", "urllib.request.urlopen"})
     module = python_parse_diff_line(text)
+    active_shadowed_names = set(shadowed_names or ())
     if module is not None:
-        call_names = python_prune_shadowed_urlopen_call_names(
-            call_names,
-            python_shadowed_name_roots(module),
-        )
-        if not call_names:
-            return False
+        active_shadowed_names.update(python_line_shadowed_name_roots(text))
+    call_names = python_prune_shadowed_urlopen_call_names(
+        call_names,
+        active_shadowed_names,
+    )
+    if not call_names:
+        return False
+    if module is not None:
         for node in ast.walk(module):
             if isinstance(node, ast.Call) and python_call_name(node.func) in call_names:
                 return True

@@ -260,7 +260,7 @@ def test_urlopen_context_prunes_shadowed_urllib_bindings() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_urlopen.py", set())
-    assert "urllib.request.urlopen" not in call_names, call_names
+    assert "urllib.request.urlopen" in call_names, call_names
 
 
 def test_urlopen_context_prunes_function_scoped_shadowing() -> None:
@@ -276,7 +276,7 @@ def test_urlopen_context_prunes_function_scoped_shadowing() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_param_urlopen.py", set())
-    assert "urlopen" not in call_names, call_names
+    assert "urlopen" in call_names, call_names
 
 
 def test_urlopen_context_prunes_qualified_module_rebinding() -> None:
@@ -292,7 +292,7 @@ def test_urlopen_context_prunes_qualified_module_rebinding() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_qualified_urlopen.py", set())
-    assert "urllib.request.urlopen" not in call_names, call_names
+    assert "urllib.request.urlopen" in call_names, call_names
 
 
 def test_urlopen_context_prunes_qualified_alias_rebinding() -> None:
@@ -308,7 +308,54 @@ def test_urlopen_context_prunes_qualified_alias_rebinding() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_alias_urlopen.py", set())
-    assert "ur.urlopen" not in call_names, call_names
+    assert "ur.urlopen" in call_names, call_names
+
+
+def test_scope_local_urlopen_shadowing_stays_local() -> None:
+    diff = "\n".join(
+        [
+            "diff --git a/tools/shadowed_param_urlopen.py b/tools/shadowed_param_urlopen.py",
+            "+++ b/tools/shadowed_param_urlopen.py",
+            "@@ -0,0 +1,4 @@",
+            "+from urllib.request import urlopen",
+            "+def persist(urlopen, user_path):",
+            "+    return urlopen(user_path)",
+            "+",
+        ]
+    )
+    roots = v16._python_diff_shadowed_name_roots_by_line(diff).get("tools/shadowed_param_urlopen.py", {})
+    assert "urlopen" in roots.get(3, set()), roots
+    assert not v16._python_is_known_urllib_urlopen(
+        "    return urlopen(user_path)",
+        known_call_names={"urlopen"},
+        shadowed_names={"urlopen"},
+    )
+
+
+def test_patched_detector_keeps_cross_function_urlopen_imports() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/http_shadow_scope.py b/tools/http_shadow_scope.py",
+            "+++ b/tools/http_shadow_scope.py",
+            "@@ -0,0 +1,6 @@",
+            "+from urllib.request import urlopen",
+            "+def helper(urlopen):",
+            "+    return urlopen(\"https://example.invalid\")",
+            "+def fetch(req):",
+            "+    return urlopen(req)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert not any(v16._sentinel_key(item) == ("tools/http_shadow_scope.py", 5, v11.PYTHON_PATH_WRITE) for item in found), found
 
 
 def test_python_path_write_classifier_uses_alias_context() -> None:
@@ -329,6 +376,31 @@ def test_python_path_write_classifier_uses_os_alias_context() -> None:
         assert v16._line_kind(path, "fd = operating_system.open(user_path, operating_system.O_RDONLY)") != v11.PYTHON_PATH_WRITE
     finally:
         v16.PYTHON_OS_ALIAS_CONTEXT.clear()
+
+
+def test_patched_detector_keeps_shadowed_os_module_reads_conservative() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/os_shadow.py b/tools/os_shadow.py",
+            "+++ b/tools/os_shadow.py",
+            "@@ -0,0 +1,4 @@",
+            "+import os",
+            "+os = storage",
+            "+def persist(user_path):",
+            "+    return os.open(user_path, os.O_RDONLY)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item) == ("tools/os_shadow.py", 4, v11.PYTHON_PATH_WRITE) for item in found), found
 
 
 def test_patched_detector_consumes_owner_alias_context() -> None:
@@ -608,8 +680,11 @@ def main() -> None:
     test_urlopen_context_prunes_function_scoped_shadowing()
     test_urlopen_context_prunes_qualified_module_rebinding()
     test_urlopen_context_prunes_qualified_alias_rebinding()
+    test_scope_local_urlopen_shadowing_stays_local()
+    test_patched_detector_keeps_cross_function_urlopen_imports()
     test_python_path_write_classifier_uses_alias_context()
     test_python_path_write_classifier_uses_os_alias_context()
+    test_patched_detector_keeps_shadowed_os_module_reads_conservative()
     test_patched_detector_consumes_owner_alias_context()
     test_patched_detector_derives_path_and_os_aliases_from_diff()
     test_patched_detector_keeps_unknown_custom_open_calls()
