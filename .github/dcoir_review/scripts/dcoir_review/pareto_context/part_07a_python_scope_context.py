@@ -1,5 +1,4 @@
 def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]]:
-    """Return conservative, lexical-scope-aware urllib shadow roots by source line."""
     module = ast.parse(source)
     by_line: dict[int, set[str]] = {}
     function_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
@@ -122,7 +121,6 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         return _python_scope_finalize_restoration_guarantees(found)
 
     mutation_events = qualified_events()
-    mutation_paths = {'urllib.request', 'urllib.request.urlopen'}
     eager_nodes = {module, *(node for node in infos if isinstance(node, ast.ClassDef))}
 
     def trusted_binding_is_shadowed(
@@ -163,13 +161,12 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             return _python_scope_alias_source_shadowed(value_path, root_targets, state)
         if 'urllib.request' in targets:
             return 'urllib.request' in state
-        return bool(state & mutation_paths)
+        return bool(state & {'urllib.request', 'urllib.request.urlopen'})
 
+    mutation_events = _python_scope_demote_shadowed_mutation_roots(infos, qualified_events, trusted_binding_is_shadowed)
     while True:
         mutation_events = qualified_events()
-        shadowed_binding_keys = _python_scope_shadowed_binding_keys(
-            infos, trusted_binding_is_shadowed
-        )
+        shadowed_binding_keys = _python_scope_shadowed_binding_keys(infos, trusted_binding_is_shadowed)
         if not _python_scope_demote_binding_keys(infos, shadowed_binding_keys):
             break
     mutation_events = qualified_events()

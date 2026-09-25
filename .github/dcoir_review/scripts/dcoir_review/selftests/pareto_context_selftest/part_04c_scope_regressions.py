@@ -118,3 +118,88 @@ conditional_snapshot_context = _scope_context(
     ]
 )
 assert "urllib" in conditional_snapshot_context.get(8, set()), conditional_snapshot_context
+
+
+future_global_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "try:",
+        "    mutator()",
+        "except NameError:",
+        "    pass",
+        "saved = urllib.request.urlopen",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in future_global_snapshot_context.get(12, set()), future_global_snapshot_context
+
+earlier_global_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in earlier_global_snapshot_context.get(8, set()), earlier_global_snapshot_context
+
+transient_mutation_import_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved_request = urllib.request",
+        "urllib.request = custom_request",
+        "late = urllib.request",
+        "late.urlopen = custom_open",
+        "urllib.request = saved_request",
+        "from urllib.request import urlopen as copied",
+        "def fetch(request):",
+        "    return copied(request)",
+    ]
+)
+assert "late" in transient_mutation_import_context.get(9, set()), transient_mutation_import_context
+assert "copied" not in transient_mutation_import_context.get(9, set()), transient_mutation_import_context
+
+
+future_nonlocal_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "def outer():",
+        "    def mutator():",
+        "        nonlocal saved",
+        "        urllib.request.urlopen = custom_open",
+        "        urllib.request.urlopen = saved",
+        "    try:",
+        "        mutator()",
+        "    except NameError:",
+        "        pass",
+        "    saved = urllib.request.urlopen",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in future_nonlocal_snapshot_context.get(13, set()), future_nonlocal_snapshot_context
+
+earlier_nonlocal_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "def outer():",
+        "    saved = urllib.request.urlopen",
+        "    def mutator():",
+        "        nonlocal saved",
+        "        urllib.request.urlopen = custom_open",
+        "        urllib.request.urlopen = saved",
+        "    mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in earlier_nonlocal_snapshot_context.get(10, set()), earlier_nonlocal_snapshot_context

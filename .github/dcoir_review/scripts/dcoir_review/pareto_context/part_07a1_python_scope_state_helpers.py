@@ -199,16 +199,17 @@ def _python_scope_binding_event_owner(
         return None
     seen.add(key)
     info = infos[node]
+    cross_scope_line = int(getattr(node, 'lineno', 0) or 0) or line
     if node is not module and name in info['globals']:
         return _python_scope_binding_event_owner(
-            module, name, None, None, infos, module, function_scope_types,
+            module, name, cross_scope_line, None, infos, module, function_scope_types,
             lexical_parent, nearest_nonlocal_owner, seen
         )
     if node is not module and name in info['nonlocals']:
         owner = nearest_nonlocal_owner(node, name)
         return (
             _python_scope_binding_event_owner(
-                owner, name, None, None, infos, module, function_scope_types,
+                owner, name, cross_scope_line, None, infos, module, function_scope_types,
                 lexical_parent, nearest_nonlocal_owner, seen
             )
             if owner is not None else None
@@ -221,7 +222,7 @@ def _python_scope_binding_event_owner(
     parent = lexical_parent(node)
     return (
         _python_scope_binding_event_owner(
-            parent, name, None, None, infos, module, function_scope_types,
+            parent, name, cross_scope_line, None, infos, module, function_scope_types,
             lexical_parent, nearest_nonlocal_owner, seen
         )
         if parent is not None else None
@@ -304,6 +305,21 @@ def _python_scope_demote_binding_keys(
                     updated.append(event)
             info['binding_events'][name] = updated
     return changed
+
+
+def _python_scope_demote_shadowed_mutation_roots(infos, qualified_events, predicate):
+    mutation_alias_names = {
+        mutation.partition('.')[0]
+        for info in infos.values()
+        for _line, _sequence, mutation, _value_path, _safe in info['attribute_mutations']
+    }
+    while True:
+        mutation_events = qualified_events()
+        keys = _python_scope_shadowed_binding_keys(
+            infos, lambda node, name, event: name in mutation_alias_names and predicate(node, name, event)
+        )
+        if not _python_scope_demote_binding_keys(infos, keys):
+            return mutation_events
 
 
 def _python_scope_submodule_import_binding_keys(infos: dict[ast.AST, dict[str, Any]]) -> set[tuple[int, str, int, int]]:
