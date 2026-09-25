@@ -174,6 +174,7 @@ def python_line_is_known_urllib_urlopen(
     text: str,
     allow_imported_alias: bool = False,
     known_call_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     module = python_parse_diff_line(text)
     call_names = set(known_call_names or ())
@@ -182,9 +183,11 @@ def python_line_is_known_urllib_urlopen(
     if not call_names:
         return False
     if module is not None:
+        active_shadowed_names = set(shadowed_names or ())
+        active_shadowed_names.update(python_shadowed_name_roots(module))
         call_names = python_prune_shadowed_urlopen_call_names(
             call_names,
-            python_shadowed_name_roots(module),
+            active_shadowed_names,
         )
         if not call_names:
             return False
