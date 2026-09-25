@@ -18,22 +18,22 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
             if isinstance(path_context, dict):
                 for key, value in path_context.items():
                     if isinstance(value, set):
-                        PYTHON_PATH_ALIAS_CONTEXT[str(key)] = set(value)
+                        PYTHON_PATH_ALIAS_CONTEXT.setdefault(str(key), set()).update(value)
             os_context = getattr(source, "PYTHON_OS_ALIAS_CONTEXT", None)
             if isinstance(os_context, dict):
                 for key, value in os_context.items():
                     if isinstance(value, set):
-                        PYTHON_OS_ALIAS_CONTEXT[str(key)] = set(value)
+                        PYTHON_OS_ALIAS_CONTEXT.setdefault(str(key), set()).update(value)
             urlopen_context = getattr(source, "PYTHON_URLLIB_URLOPEN_CALL_CONTEXT", None)
             if isinstance(urlopen_context, dict):
                 for key, value in urlopen_context.items():
                     if isinstance(value, set):
-                        PYTHON_URLLIB_URLOPEN_CALL_CONTEXT[str(key)] = set(value)
+                        PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.setdefault(str(key), set()).update(value)
             shadowed_name_context = getattr(source, "PYTHON_SHADOWED_NAME_CONTEXT", None)
             if isinstance(shadowed_name_context, dict):
                 for key, value in shadowed_name_context.items():
                     if isinstance(value, set):
-                        PYTHON_SHADOWED_NAME_CONTEXT[str(key)] = set(value)
+                        PYTHON_SHADOWED_NAME_CONTEXT.setdefault(str(key), set()).update(value)
         diff_path_aliases, diff_os_aliases = _python_diff_import_alias_context(diff)
         diff_shadowed_names = _python_diff_shadowed_name_roots(diff)
         for path, names in diff_path_aliases.items():
