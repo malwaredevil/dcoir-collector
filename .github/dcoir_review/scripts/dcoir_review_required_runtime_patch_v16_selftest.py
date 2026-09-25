@@ -1393,6 +1393,45 @@ def test_full_head_callable_copied_after_mutation_stays_hostile() -> None:
     )
 
 
+
+def test_full_head_same_line_callable_copy_respects_mutation_sequence() -> None:
+    copied_first = "\n".join(
+        [
+            "import urllib.request",
+            "opener = urllib.request.urlopen; urllib.request.urlopen = custom_open",
+            "def fetch(request):",
+            "    return opener(request)",
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(copied_first)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(copied_first, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(copied_first)
+    assert "opener" not in scoped_context.get(4, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "    return opener(request)",
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(4, set()),
+    )
+
+    mutated_first = "\n".join(
+        [
+            "import urllib.request",
+            "urllib.request.urlopen = custom_open; late = urllib.request.urlopen",
+            "def persist(user_path, data):",
+            '    return late(user_path, "w").write(data)',
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(mutated_first)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(mutated_first, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(mutated_first)
+    assert "late" in scoped_context.get(4, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return late(user_path, "w").write(data)',
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(4, set()),
+    )
+
+
 def test_pareto_shadowed_name_context_registry_is_defined() -> None:
     pareto.set_python_shadowed_name_context({"tools/custom_open_import.py": {"open"}})
     assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {"tools/custom_open_import.py": {"open"}}
@@ -1583,6 +1622,7 @@ def main() -> None:
     test_full_head_copied_urlopen_callable_survives_module_mutation()
     test_full_head_qualified_mutation_is_line_ordered_and_restorable()
     test_full_head_callable_copied_after_mutation_stays_hostile()
+    test_full_head_same_line_callable_copy_respects_mutation_sequence()
     test_pareto_shadowed_name_context_registry_is_defined()
     test_patched_detector_consumes_sentinel_owner_urlopen_context()
     test_core_semantics_keeps_stable_finding_family_dependency()

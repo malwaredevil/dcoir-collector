@@ -139,12 +139,15 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
 
     mutation_events = qualified_events()
 
-    def eager_state(line: int | None) -> set[str]:
+    def eager_state(line: int | None, before_sequence: int | None = None) -> set[str]:
         state: set[str] = set()
-        for event_line, _sequence, source_node, path, restored in mutation_events:
+        for event_line, event_sequence, source_node, path, restored in mutation_events:
             if source_node is not module and not isinstance(source_node, ast.ClassDef):
                 continue
-            if line is not None and event_line > line:
+            if line is not None and (
+                event_line > line
+                or (event_line == line and before_sequence is not None and event_sequence >= before_sequence)
+            ):
                 continue
             (state.discard if restored else state.add)(path)
         return state
@@ -153,7 +156,8 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         for name, events in list(info['binding_events'].items()):
             info['binding_events'][name] = [
                 (event[0], event[1], None)
-                if event[2] == {'urllib.request.urlopen'} and 'urllib.request.urlopen' in eager_state(event[0])
+                if event[2] == {'urllib.request.urlopen'}
+                and 'urllib.request.urlopen' in eager_state(event[0], before_sequence=event[1])
                 else event
                 for event in events
             ]
