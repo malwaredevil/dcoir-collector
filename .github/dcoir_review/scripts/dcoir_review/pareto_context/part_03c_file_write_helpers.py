@@ -44,3 +44,12 @@ def set_python_urllib_urlopen_call_context(
         for path, call_names in (urlopen_call_context or {}).items()
         if call_names
     })
+
+
+def set_python_shadowed_name_context(shadowed_name_context: dict[str, set[str]] | None) -> None:
+    PYTHON_SHADOWED_NAME_CONTEXT.clear()
+    PYTHON_SHADOWED_NAME_CONTEXT.update({
+        path: set(shadowed_names)
+        for path, shadowed_names in (shadowed_name_context or {}).items()
+        if shadowed_names
+    })

@@ -92,7 +92,6 @@ def test_python_path_write_classifier_skips_read_only_open_lookalikes() -> None:
     path = "tools/path_probe.py"
     false_positives = [
         'with open(user_path, "r") as handle:',
-        "with open(file=user_path, **options) as handle:",
         'with gzip.open(user_path, "r") as handle:',
         'with tarfile.open(user_path, "r") as handle:',
         "fd = os.open(user_path, os.O_RDONLY)",
@@ -104,6 +103,8 @@ def test_python_path_write_classifier_skips_read_only_open_lookalikes() -> None:
     true_positives = [
         'with Path(user_path).open("wb") as handle:',
         'with pathlib.Path(user_path).open("w") as handle:',
+        "with open(file=user_path, **options) as handle:",
+        "with Path(user_path).open(**options) as handle:",
     ]
     for line in true_positives:
         assert v16._line_kind(path, line) == v11.PYTHON_PATH_WRITE, line
@@ -442,6 +443,59 @@ def test_patched_detector_keeps_shadowed_read_only_bare_open_calls() -> None:
     assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
+def test_patched_detector_keeps_unknown_kwargs_open_calls() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/kwargs_open.py b/tools/kwargs_open.py",
+            "+++ b/tools/kwargs_open.py",
+            "@@ -0,0 +1,5 @@",
+            "+from pathlib import Path",
+            "+def persist(user_path, options):",
+            "+    with open(file=user_path, **options) as handle:",
+            "+        with Path(user_path).open(**options) as wrapped_handle:",
+            "+            return handle, wrapped_handle",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item) == ("tools/kwargs_open.py", 3, v11.PYTHON_PATH_WRITE) for item in found), found
+    assert any(v16._sentinel_key(item) == ("tools/kwargs_open.py", 4, v11.PYTHON_PATH_WRITE) for item in found), found
+
+
+def test_patched_detector_consumes_owner_shadowed_name_context() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+        PYTHON_SHADOWED_NAME_CONTEXT = {"tools/custom_open_import.py": {"open", "persist", "handle"}}
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/custom_open_import.py b/tools/custom_open_import.py",
+            "+++ b/tools/custom_open_import.py",
+            "@@ -2,3 +2,3 @@",
+            " def persist(user_path):",
+            '-    return "pending"',
+            '+    with open(user_path, "r") as handle:',
+            '+        return handle.read()',
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
 def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
     from dcoir_review import finding_family
 
@@ -526,6 +580,8 @@ def main() -> None:
     test_patched_detector_derives_path_and_os_aliases_from_diff()
     test_patched_detector_keeps_unknown_custom_open_calls()
     test_patched_detector_keeps_shadowed_read_only_bare_open_calls()
+    test_patched_detector_keeps_unknown_kwargs_open_calls()
+    test_patched_detector_consumes_owner_shadowed_name_context()
     test_core_semantics_keeps_stable_finding_family_dependency()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")

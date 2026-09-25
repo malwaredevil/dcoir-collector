@@ -29,6 +29,11 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 for key, value in urlopen_context.items():
                     if isinstance(value, set):
                         PYTHON_URLLIB_URLOPEN_CALL_CONTEXT[str(key)] = set(value)
+            shadowed_name_context = getattr(source, "PYTHON_SHADOWED_NAME_CONTEXT", None)
+            if isinstance(shadowed_name_context, dict):
+                for key, value in shadowed_name_context.items():
+                    if isinstance(value, set):
+                        PYTHON_SHADOWED_NAME_CONTEXT[str(key)] = set(value)
         diff_path_aliases, diff_os_aliases = _python_diff_import_alias_context(diff)
         diff_shadowed_names = _python_diff_shadowed_name_roots(diff)
         for path, names in diff_path_aliases.items():

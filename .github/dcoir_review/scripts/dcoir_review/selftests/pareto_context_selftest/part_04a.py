@@ -28,6 +28,15 @@ os_alias_context = mod.build_python_os_alias_context(
     ],
 )
 assert os_alias_context == {"tools/aliased_writer.py": {"operating_system"}}
+shadowed_name_context = mod.build_python_shadowed_name_context(
+    FakeGitHubClient(),
+    {"head": {"sha": "abc123def4567890"}},
+    [
+        {"filename": "tools/custom_open_import.py", "status": "modified"},
+        {"filename": "docs/review.md", "status": "modified"},
+    ],
+)
+assert shadowed_name_context == {"tools/custom_open_import.py": {"open", "persist", "handle", "user_path"}}
 
 deep_block, deep_summary = mod.build_deep_context_block(
     FakeGitHubClient(),
