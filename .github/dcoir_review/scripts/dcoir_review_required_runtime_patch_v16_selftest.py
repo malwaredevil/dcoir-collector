@@ -878,6 +878,26 @@ def test_full_head_qualified_mutation_survives_sibling_trusted_reimport() -> Non
     )
 
 
+def test_full_head_unrelated_urllib_attribute_mutation_stays_trusted() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "def mutate():",
+            "    urllib.foo = custom_value",
+            "def fetch(req):",
+            "    return urllib.request.urlopen(req)",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urllib" not in scoped_context.get(3, set()), scoped_context
+    assert "urllib" not in scoped_context.get(5, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "    return urllib.request.urlopen(req)",
+        known_call_names={"urllib.request.urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
 def test_full_head_unrelated_attribute_mutation_does_not_shadow_urllib() -> None:
     source = "\n".join(
         [
@@ -1110,6 +1130,7 @@ def main() -> None:
     test_full_head_nonlocal_reference_without_rebind_stays_trusted()
     test_full_head_qualified_urlopen_mutation_propagates_to_sibling_scope()
     test_full_head_qualified_mutation_survives_sibling_trusted_reimport()
+    test_full_head_unrelated_urllib_attribute_mutation_stays_trusted()
     test_full_head_unrelated_attribute_mutation_does_not_shadow_urllib()
     test_full_head_default_expression_uses_enclosing_shadow_state()
     test_full_head_decorator_expression_uses_enclosing_shadow_state()
