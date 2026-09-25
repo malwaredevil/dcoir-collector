@@ -14,6 +14,8 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
     def collect_target(node: ast.AST) -> None:
         if isinstance(node, ast.Name):
             roots.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            collect_target(node.value)
         elif isinstance(node, (ast.Tuple, ast.List)):
             for item in node.elts:
                 collect_target(item)
@@ -33,6 +35,18 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
             roots.add(node.kwarg.arg)
 
     class _ModuleScopeShadowVisitor(ast.NodeVisitor):
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if imported_name == "open":
+                    roots.add(imported_name)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name
+                if imported_name == "open":
+                    roots.add(imported_name)
+
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             roots.add(node.name)
             collect_arguments(node.args)
@@ -149,6 +163,7 @@ def python_line_has_explicit_file_write_call(
     local_int_bindings: dict[str, ast.AST | int] | None = None,
     allow_urllib_urlopen_alias: bool = False,
     known_call_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     """Distinguish real file-write APIs from lexical open() lookalikes."""
 
@@ -165,6 +180,8 @@ def python_line_has_explicit_file_write_call(
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
     os_names = os_module_names or DEFAULT_PYTHON_OS_MODULES
     scoped_bindings = dict(local_int_bindings or {})
+    active_shadowed_names = set(shadowed_names or ())
+    active_shadowed_names.update(python_shadowed_name_roots(module))
     for statement in module.body:
         if isinstance(statement, ast.Assign):
             for target in statement.targets:
@@ -182,6 +199,7 @@ def python_line_has_explicit_file_write_call(
                     os_module_names,
                     scoped_bindings,
                     conservative_unknown_kwargs=False,
+                    shadowed_names=active_shadowed_names,
                 ):
                     return True
                 continue
@@ -204,6 +222,7 @@ def python_line_has_explicit_file_write_call(
                     scoped_bindings,
                     assume_path_receiver=value_is_path,
                     conservative_unknown_kwargs=False,
+                    shadowed_names=active_shadowed_names,
                 ):
                     return True
     return False
@@ -214,6 +233,7 @@ def python_direct_dynamic_file_write(
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
     local_int_bindings: dict[str, ast.AST | int] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     module = python_parse_diff_line(text)
     if module is None:
@@ -230,9 +250,31 @@ def python_direct_dynamic_file_write(
         value_is_path, value_has_dynamic = python_path_expr_info(value, constructor_names, os_module_names)
         if value_is_path and value_has_dynamic:
             return True
-    if python_direct_dynamic_open_write(text, path_constructor_names, os_module_names, local_int_bindings):
+    if python_direct_dynamic_open_write(
+        text,
+        path_constructor_names,
+        os_module_names,
+        local_int_bindings,
+        shadowed_names,
+    ):
         return True
     return False
+
+
+def python_diff_shadowed_name_roots(diff: str) -> dict[str, set[str]]:
+    sources_by_path: dict[str, list[str]] = {}
+    for diff_line in iter_python_diff_lines_with_context(diff):
+        if Path(diff_line.path).suffix.lower() == ".py":
+            sources_by_path.setdefault(diff_line.path, []).append(diff_line.text)
+    shadowed_names_by_path: dict[str, set[str]] = {}
+    for path, lines in sources_by_path.items():
+        module = python_parse_diff_line("\n".join(lines))
+        if module is None:
+            continue
+        shadowed_names = python_shadowed_name_roots(module)
+        if shadowed_names:
+            shadowed_names_by_path[path] = shadowed_names
+    return shadowed_names_by_path
 
 
 def python_file_write_target(

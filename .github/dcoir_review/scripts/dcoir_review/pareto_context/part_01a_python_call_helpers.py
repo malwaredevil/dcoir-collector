@@ -36,6 +36,7 @@ def python_call_uses_write_mode(
     local_int_bindings: dict[str, ast.AST | int] | None = None,
     assume_path_receiver: bool = False,
     conservative_unknown_kwargs: bool = True,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     """Return True when open-style calls can mutate filesystem contents."""
 
@@ -63,6 +64,8 @@ def python_call_uses_write_mode(
             return False
         return True
     if isinstance(call.func, ast.Name) and call.func.id == "open":
+        if shadowed_names and "open" in shadowed_names:
+            return True
         mode_node = call.args[1] if len(call.args) > 1 else None
     elif call_name in {"bz2.open", "gzip.open", "lzma.open", "tarfile.open"}:
         mode_node = call.args[1] if len(call.args) > 1 else None

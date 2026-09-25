@@ -50,6 +50,7 @@ def detect_github_actions_yaml_sentinels(diff: str) -> list[hardened.RiskSentine
 def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[hardened.RiskSentinel]:
     diff_fixture_added_lines = python_diff_fixture_added_line_keys(diff)
     urllib_urlopen_call_names_by_path = python_diff_urllib_urlopen_call_names(diff)
+    shadowed_name_roots_by_path = python_diff_shadowed_name_roots(diff)
     skipped_test_file_write_labels = {
         FILE_WRITE_PATH_LABEL,
         "Python request-controlled file write",
@@ -80,6 +81,7 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
                         path_constructor_names,
                         os_module_names,
                         known_call_names=known_call_names,
+                        shadowed_names=shadowed_name_roots_by_path.get(sentinel.path),
                     )
                 ):
                     # Historical string matching treated parseable, non-writing
@@ -126,6 +128,8 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
     def collect_target(node: ast.AST) -> None:
         if isinstance(node, ast.Name):
             roots.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            collect_target(node.value)
         elif isinstance(node, (ast.Tuple, ast.List)):
             for item in node.elts:
                 collect_target(item)
@@ -145,6 +149,18 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
             roots.add(node.kwarg.arg)
 
     class _ModuleScopeShadowVisitor(ast.NodeVisitor):
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if imported_name == "open":
+                    roots.add(imported_name)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name
+                if imported_name == "open":
+                    roots.add(imported_name)
+
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             roots.add(node.name)
             collect_arguments(node.args)

@@ -116,6 +116,61 @@ index 0000000..1111111 100644
 shadowed_urlopen_param_call_names = mod.python_diff_urllib_urlopen_call_names(shadowed_urlopen_param_diff).get("tools/http_shadow.py", set())
 assert "urlopen" not in shadowed_urlopen_param_call_names, shadowed_urlopen_param_call_names
 
+shadowed_qualified_urlopen_diff = (
+    """diff --git a/tools/http_shadow_qualified.py b/tools/http_shadow_qualified.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_shadow_qualified.py
+@@ -0,0 +1,4 @@
++import urllib.request
++urllib.request.urlopen = custom_open
++def persist(user_path):
++    return urllib.request.urlopen(user_path)
++"""
+)
+shadowed_qualified_urlopen_call_names = mod.python_diff_urllib_urlopen_call_names(shadowed_qualified_urlopen_diff).get(
+    "tools/http_shadow_qualified.py",
+    set(),
+)
+assert "urllib.request.urlopen" not in shadowed_qualified_urlopen_call_names, shadowed_qualified_urlopen_call_names
+
+shadowed_alias_urlopen_diff = (
+    """diff --git a/tools/http_shadow_alias.py b/tools/http_shadow_alias.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_shadow_alias.py
+@@ -0,0 +1,4 @@
++import urllib.request as ur
++ur.urlopen = custom_open
++def persist(user_path):
++    return ur.urlopen(user_path)
++"""
+)
+shadowed_alias_urlopen_call_names = mod.python_diff_urllib_urlopen_call_names(shadowed_alias_urlopen_diff).get(
+    "tools/http_shadow_alias.py",
+    set(),
+)
+assert "ur.urlopen" not in shadowed_alias_urlopen_call_names, shadowed_alias_urlopen_call_names
+
+shadowed_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/custom_open_import.py b/tools/custom_open_import.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/custom_open_import.py
+@@ -0,0 +1,4 @@
++from custom_storage import open
++def persist(user_path):
++    with open(user_path, "r") as handle:
++        return handle.read()
+"""
+)
+assert any(
+    item.path == "tools/custom_open_import.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in shadowed_open_sentinels
+), shadowed_open_sentinels
+
 unsafe_builtin_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_writer.py b/tools/unsafe_writer.py
 index 0000000..1111111 100644

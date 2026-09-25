@@ -184,6 +184,7 @@ def python_direct_dynamic_open_write(
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
     local_int_bindings: dict[str, ast.AST | int] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     """Detect direct dynamic file opens while excluding lookalikes such as urlopen."""
 
@@ -191,12 +192,15 @@ def python_direct_dynamic_open_write(
     if module is None:
         return False
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    active_shadowed_names = set(shadowed_names or ())
+    active_shadowed_names.update(python_shadowed_name_roots(module))
     for node in ast.walk(module):
         if not isinstance(node, ast.Call) or not python_call_uses_write_mode(
             node,
             os_module_names,
             local_int_bindings,
             assume_path_receiver=True,
+            shadowed_names=active_shadowed_names,
         ):
             continue
         func = node.func
