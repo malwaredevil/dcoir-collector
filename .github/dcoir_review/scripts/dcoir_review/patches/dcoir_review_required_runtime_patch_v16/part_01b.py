@@ -415,6 +415,7 @@ def _python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
     call_names_by_path: dict[str, set[str]] = {}
     for path, lines in sources_by_path.items():
         call_names = _python_urllib_urlopen_call_names("\n".join(lines))
+        call_names.update(PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, set()))
         call_names_by_path[path] = call_names
     return call_names_by_path
 
