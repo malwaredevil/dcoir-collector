@@ -69,15 +69,15 @@ def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[har
                 os_module_names = set(DEFAULT_PYTHON_OS_MODULES)
                 os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(sentinel.path, set()))
                 known_call_names = urllib_urlopen_call_names_by_path.get(sentinel.path)
+                statement_text = python_diff_statement_text_for_anchor(diff, sentinel.path, sentinel.line, sentinel.text)
                 is_known_urlopen = python_line_is_known_urllib_urlopen(
-                    sentinel.text,
+                    statement_text,
                     known_call_names=known_call_names,
                 )
                 if (
-                    (is_known_urlopen or re.search(r"\b(?:write_text|write_bytes|open)\s*\(", sentinel.text))
-                    and python_parse_diff_line(sentinel.text) is not None
+                    (is_known_urlopen or re.search(r"\b(?:write_text|write_bytes|open)\s*\(", statement_text))
                     and not python_line_has_explicit_file_write_call(
-                        sentinel.text,
+                        statement_text,
                         path_constructor_names,
                         os_module_names,
                         known_call_names=known_call_names,
@@ -299,6 +299,26 @@ def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
         call_names.update(PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, set()))
         call_names_by_path[path] = call_names
     return call_names_by_path
+
+
+def python_diff_statement_text_for_anchor(diff: str, path: str, line: int, fallback_text: str) -> str:
+    matching_lines = [diff_line for diff_line in iter_python_diff_lines_with_context(diff) if diff_line.path == path]
+    for index, diff_line in enumerate(matching_lines):
+        if diff_line.line != line:
+            continue
+        statement_lines = [diff_line.text]
+        statement = diff_line.text
+        if python_statement_is_complete(statement):
+            return statement
+        for next_line in matching_lines[index + 1:]:
+            if next_line.hunk != diff_line.hunk:
+                break
+            statement_lines.append(next_line.text)
+            statement = "\n".join(statement_lines)
+            if python_statement_is_complete(statement) or len(statement_lines) >= 12:
+                return statement
+        return statement
+    return fallback_text
 
 
 def python_line_is_known_urllib_urlopen(

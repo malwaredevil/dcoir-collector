@@ -59,6 +59,82 @@ assert not any(
     for item in module_alias_urlopen_sentinels
 ), module_alias_urlopen_sentinels
 
+original_detect_risk_sentinels = mod._original_detect_risk_sentinels
+
+
+def fake_original_multiline_read_open(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/multiline_read.py",
+            line=2,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel",
+            text="    with open(",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_multiline_read_open
+try:
+    multiline_read_open_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/multiline_read.py b/tools/multiline_read.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/multiline_read.py
+@@ -0,0 +1,6 @@
++def load(user_path):
++    with open(
++        user_path,
++        "r",
++    ) as handle:
++        return handle.read()
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert not any(
+    item.path == "tools/multiline_read.py"
+    and item.label in legacy_path_write_labels
+    for item in multiline_read_open_sentinels
+), multiline_read_open_sentinels
+
+
+def fake_original_multiline_urlopen(_diff, _max_anchors=None):
+    return [
+        mod.hardened.RiskSentinel(
+            path="tools/multiline_urlopen.py",
+            line=3,
+            label=mod.FILE_WRITE_PATH_LABEL,
+            detail="legacy sentinel",
+            text="    with urllib.request.urlopen(",
+        )
+    ]
+
+
+mod._original_detect_risk_sentinels = fake_original_multiline_urlopen
+try:
+    multiline_urlopen_legacy_sentinels = mod.detect_risk_sentinels(
+        """diff --git a/tools/multiline_urlopen.py b/tools/multiline_urlopen.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/multiline_urlopen.py
+@@ -0,0 +1,6 @@
++import urllib.request
++def fetch(req):
++    with urllib.request.urlopen(
++        req,
++    ) as response:
++        return response.read()
+"""
+    )
+finally:
+    mod._original_detect_risk_sentinels = original_detect_risk_sentinels
+assert not any(
+    item.path == "tools/multiline_urlopen.py"
+    and item.label in legacy_path_write_labels
+    for item in multiline_urlopen_legacy_sentinels
+), multiline_urlopen_legacy_sentinels
+
 mod.set_python_urllib_urlopen_call_context(
     {"tools/http_head_alias_client.py": {"urllib.request.urlopen", "urllib.urlopen", "urlopen"}}
 )
