@@ -138,45 +138,37 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         return sorted(found, key=lambda event: (event[0], event[1]))
 
     mutation_events = qualified_events()
+    mutation_paths = {'urllib.request', 'urllib.request.urlopen'}
+    eager_nodes = {module, *(node for node in infos if isinstance(node, ast.ClassDef))}
 
-    def eager_state(line: int | None, before_sequence: int | None = None) -> set[str]:
-        state: set[str] = set()
-        for event_line, event_sequence, source_node, path, restored in mutation_events:
-            if source_node is not module and not isinstance(source_node, ast.ClassDef):
-                continue
-            if line is not None and (
-                event_line > line
-                or (event_line == line and before_sequence is not None and event_sequence >= before_sequence)
-            ):
-                continue
-            (state.discard if restored else state.add)(path)
-        return state
+    def callable_binding_is_shadowed(node: ast.AST, event: tuple[int, int, set[str] | None]) -> bool:
+        if event[2] != {'urllib.request.urlopen'}:
+            return False
+        state = _python_scope_mutation_state(mutation_events, eager_nodes, event[0], event[1])
+        if node not in eager_nodes:
+            state.update(_python_scope_mutation_state(mutation_events, {node}, event[0], event[1]))
+        return bool(state & mutation_paths)
 
-    for info in infos.values():
+    for node, info in infos.items():
         for name, events in list(info['binding_events'].items()):
             info['binding_events'][name] = [
-                (event[0], event[1], None)
-                if event[2] == {'urllib.request.urlopen'}
-                and eager_state(event[0], before_sequence=event[1]) & {'urllib.request', 'urllib.request.urlopen'}
-                else event
+                (event[0], event[1], None) if callable_binding_is_shadowed(node, event) else event
                 for event in events
             ]
     mutation_events = qualified_events()
-    deferred_events = [
-        (int(getattr(source_node, 'lineno', 0) or 0), path)
-        for _line, _sequence, source_node, path, restored in mutation_events
-        if source_node is not module and not isinstance(source_node, ast.ClassDef) and not restored
-    ]
+    deferred_events = _python_scope_deferred_mutations(mutation_events, eager_nodes)
 
     def apply_qualified_shadow_state(active: set[str], node: ast.AST, line: int | None) -> set[str]:
-        state = eager_state(line if node is module or isinstance(node, ast.ClassDef) else None)
+        state = _python_scope_mutation_state(
+            mutation_events, eager_nodes, line if node in eager_nodes else None
+        )
         if node is module and line is not None:
             state.update(path for start, path in deferred_events if start and start <= line)
         elif node is not module:
             state.update(path for _start, path in deferred_events)
         for name in all_alias_names:
             targets = resolve_trusted_targets(node, name, line)
-            if targets & {'urllib', 'urllib.request'} and state & {'urllib.request', 'urllib.request.urlopen'}:
+            if targets & {'urllib', 'urllib.request'} and state & mutation_paths:
                 active.add(name)
         return active
 

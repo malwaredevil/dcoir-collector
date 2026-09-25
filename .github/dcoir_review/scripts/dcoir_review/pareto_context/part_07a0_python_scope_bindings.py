@@ -290,6 +290,25 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     }
 
 
+
+def _python_scope_mutation_state(events, nodes, line=None, before=None):
+    state = set()
+    for event_line, seq, event_node, path, restored in events:
+        if event_node not in nodes:
+            continue
+        if line is not None and (event_line > line or (event_line == line and before is not None and seq >= before)):
+            continue
+        (state.discard if restored else state.add)(path)
+    return state
+
+def _python_scope_deferred_mutations(events, excluded):
+    states = {}
+    for _line, _seq, node, path, restored in events:
+        if node not in excluded:
+            state = states.setdefault(node, set())
+            (state.discard if restored else state.add)(path)
+    return [(int(getattr(node, 'lineno', 0) or 0), path) for node, state in states.items() for path in state]
+
 def python_assignment_urllib_urlopen_call_names(text: str, base_call_names: set[str] | None = None) -> set[str]:
     """Return possible urlopen call names introduced by simple assignment aliases."""
     try:
