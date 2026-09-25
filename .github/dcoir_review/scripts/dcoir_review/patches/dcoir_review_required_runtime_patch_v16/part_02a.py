@@ -13,6 +13,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
         PYTHON_OS_ALIAS_CONTEXT.clear()
         PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.clear()
         PYTHON_SHADOWED_NAME_CONTEXT.clear()
+        PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.clear()
         for source in (sentinel_owner, owner):
             path_context = getattr(source, "PYTHON_PATH_ALIAS_CONTEXT", None)
             if isinstance(path_context, dict):
@@ -34,6 +35,15 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 for key, value in shadowed_name_context.items():
                     if isinstance(value, set):
                         PYTHON_SHADOWED_NAME_CONTEXT.setdefault(str(key), set()).update(value)
+            scoped_shadow_context = getattr(source, "PYTHON_SCOPED_SHADOWED_NAME_CONTEXT", None)
+            if isinstance(scoped_shadow_context, dict):
+                for key, by_line in scoped_shadow_context.items():
+                    if not isinstance(by_line, dict):
+                        continue
+                    target = PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.setdefault(str(key), {})
+                    for line, names in by_line.items():
+                        if isinstance(names, set):
+                            target.setdefault(int(line), set()).update(names)
         diff_path_aliases, diff_os_aliases = _python_diff_import_alias_context(diff)
         diff_shadowed_names = _python_diff_shadowed_name_roots(diff)
         diff_shadowed_names_by_line = _python_diff_shadowed_name_roots_by_line(diff)
@@ -63,10 +73,12 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
                 if _is_python_test_file(path):
                     continue
-                item_shadowed_names = (
-                    set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
-                    | diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0), set())
+                item_line = int(getattr(item, "line", 0) or 0)
+                scoped_shadowed_names = (
+                    set(PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.get(path, {}).get(item_line, set()))
+                    | diff_shadowed_names_by_line.get(path, {}).get(item_line, set())
                 )
+                item_shadowed_names = set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set())) | scoped_shadowed_names
                 explicit_file_write = _python_is_explicit_file_write(
                     text,
                     constructor_names,
@@ -76,7 +88,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 if _python_is_known_urllib_urlopen(
                     text,
                     known_call_names=urllib_urlopen_call_names_by_path.get(path),
-                    shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0)),
+                    shadowed_names=scoped_shadowed_names,
                 ) and not explicit_file_write:
                     continue
                 has_known_open_call = _python_has_known_file_open_call(text, constructor_names, os_module_names)
@@ -96,15 +108,16 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
         for path, line, text in selection._iter_added_diff_lines(diff):
             if callable(checker) and checker(path, text):
                 continue
-            kind = _line_kind(path, text)
+            kind = _call_line_kind(path, text, line)
             constructor_names = set(path_alias_context)
             constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(path, set()))
             os_module_names = set(os_alias_context)
             os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
-            shadowed_names = (
-                set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
+            scoped_shadowed_names = (
+                set(PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.get(path, {}).get(line, set()))
                 | diff_shadowed_names_by_line.get(path, {}).get(line, set())
             )
+            shadowed_names = set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set())) | scoped_shadowed_names
             explicit_file_write = _python_is_explicit_file_write(
                 text,
                 constructor_names,
@@ -127,7 +140,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 and _python_is_known_urllib_urlopen(
                     text,
                     known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, urllib_urlopen_call_names_by_path.get(path)),
-                    shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(line),
+                    shadowed_names=scoped_shadowed_names,
                 )
                 and not explicit_file_write
             ):

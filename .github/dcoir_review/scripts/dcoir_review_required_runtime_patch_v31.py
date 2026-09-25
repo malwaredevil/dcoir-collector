@@ -161,16 +161,16 @@ def _patch_deterministic_line_kind() -> None:
         original = v20._line_kind
         setattr(v20, storage, original)
 
-    def line_kind(path: str, text: str) -> str:
+    def line_kind(path: str, text: str, line: int = 0) -> str:
         if Path(str(path or "")).suffix.lower() == ".py":
             structural = python_bare_truthy_or_operand(str(text or ""))
             if structural is True:
                 return PYTHON_TRUTHY_KIND
             if structural is False:
-                return v20._ORIGINAL_V16_LINE_KIND(path, text)
+                return v20._ORIGINAL_V16_LINE_KIND(path, text, line)
             # Parse failure is intentionally fail-closed: preserve the existing
             # deterministic classifier rather than silently dropping a risk.
-        return original(path, text)
+        return original(path, text, line)
 
     v20._line_kind = line_kind
     v16._line_kind = line_kind

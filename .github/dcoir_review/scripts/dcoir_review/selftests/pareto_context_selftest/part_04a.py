@@ -37,6 +37,13 @@ shadowed_name_context = mod.build_python_shadowed_name_context(
     ],
 )
 assert shadowed_name_context == {"tools/custom_open_import.py": {"open", "persist", "handle", "user_path"}}
+scoped_shadowed_name_context = mod.build_python_scoped_shadowed_name_context(
+    FakeGitHubClient(),
+    {"head": {"sha": "abc123def4567890"}},
+    [{"filename": "tools/custom_open_import.py", "status": "modified"}],
+)
+assert "user_path" in scoped_shadowed_name_context["tools/custom_open_import.py"][3]
+assert "open" not in scoped_shadowed_name_context["tools/custom_open_import.py"][3]
 
 deep_block, deep_summary = mod.build_deep_context_block(
     FakeGitHubClient(),
