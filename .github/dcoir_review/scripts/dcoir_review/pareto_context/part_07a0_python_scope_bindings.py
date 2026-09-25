@@ -1,5 +1,4 @@
 _PY_SCOPE_FUNCTION_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
-_PY_SCOPE_CHILD_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
 
 
 def _python_scope_attribute_path(node: ast.AST) -> str | None:

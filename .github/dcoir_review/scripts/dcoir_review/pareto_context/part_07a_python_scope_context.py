@@ -3,7 +3,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     module = ast.parse(source)
     by_line: dict[int, set[str]] = {}
     function_scope_types = _PY_SCOPE_FUNCTION_TYPES
-    child_scope_types = _PY_SCOPE_CHILD_TYPES
+    child_scope_types = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
     collect_scope_bindings = _python_scope_collect_bindings
 
     infos: dict[ast.AST, dict[str, Any]] = {module: collect_scope_bindings(module)}
@@ -112,8 +112,6 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 owner = nearest_nonlocal_owner(node, name)
                 if owner is not None:
                     nonlocal_rebounds[owner].add(name)
-
-    module_info = infos[module]
 
     def apply_local_bindings(
         active: set[str], node: ast.AST, line: int | None, *, function_unbound_is_shadowed: bool
