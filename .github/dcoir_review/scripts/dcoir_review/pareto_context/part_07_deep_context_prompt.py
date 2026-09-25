@@ -66,10 +66,8 @@ def build_python_shadowed_name_context(gh: Any, pr: dict[str, Any], files: list[
         if not path or status in {"removed", "deleted"} or Path(path).suffix.lower() != ".py":
             continue
         try:
-            module = python_parse_diff_line(fetch_pr_file_text(gh, path, head_sha))
-        except Exception:
-            continue
-        if module is None:
+            module = ast.parse(fetch_pr_file_text(gh, path, head_sha))
+        except (SyntaxError, ValueError, TypeError):
             continue
         shadowed_names = python_shadowed_name_roots(module)
         if shadowed_names:
