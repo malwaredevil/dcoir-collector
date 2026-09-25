@@ -2,8 +2,8 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     """Return conservative, lexical-scope-aware urllib shadow roots by source line."""
     module = ast.parse(source)
     by_line: dict[int, set[str]] = {}
-    function_scope_types = _PY_SCOPE_FUNCTION_TYPES
-    child_scope_types = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef)
+    function_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, *_PY_SCOPE_COMPREHENSION_TYPES)
+    child_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ClassDef, *_PY_SCOPE_COMPREHENSION_TYPES)
     collect_scope_bindings = _python_scope_collect_bindings
 
     infos: dict[ast.AST, dict[str, Any]] = {module: collect_scope_bindings(module)}
@@ -116,28 +116,67 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             if event is not None and event[2] is None:
                 global_shadowed_roots.add(name)
 
-    def canonical_mutation_paths(node: ast.AST, path: str, line: int) -> set[str]:
+    def canonical_mutation_paths(node: ast.AST, path: str, line: int, sequence: int | None = None) -> set[str]:
         root, dot, suffix = path.partition('.')
-        targets = resolve_trusted_targets(node, root, line)
+        targets = resolve_trusted_targets(node, root, line, before_sequence=sequence)
         return {f'{target}.{suffix}' if dot and suffix else target for target in targets}
 
-    def mutation_affects_urlopen(path: str) -> bool:
-        return path in {'urllib.request', 'urllib.request.urlopen'}
+    all_alias_names = {name for info in infos.values() for name in info['trusted_alias_targets']}
 
-    all_alias_targets: dict[str, set[str]] = {}
-    for info in infos.values():
-        for name, targets in info['trusted_alias_targets'].items():
-            all_alias_targets.setdefault(name, set()).update(targets)
+    def qualified_events() -> list[tuple[int, int, ast.AST, str, bool]]:
+        found = []
+        for source_node, info in infos.items():
+            for line, sequence, mutation, value_path in info['attribute_mutations']:
+                for target in canonical_mutation_paths(source_node, mutation, line, sequence):
+                    if target not in {'urllib.request', 'urllib.request.urlopen'}:
+                        continue
+                    restored = bool(
+                        value_path and '.' not in value_path
+                        and target in resolve_trusted_targets(source_node, value_path, line, before_sequence=sequence)
+                    )
+                    found.append((line, sequence, source_node, target, restored))
+        return sorted(found, key=lambda event: (event[0], event[1]))
 
-    shared_qualified_shadow_roots: set[str] = set()
-    for node, info in infos.items():
-        for mutation_line, mutation in info['attribute_mutations']:
-            canonical = canonical_mutation_paths(node, mutation, mutation_line)
-            if not any(mutation_affects_urlopen(path) for path in canonical):
+    mutation_events = qualified_events()
+
+    def eager_state(line: int | None) -> set[str]:
+        state: set[str] = set()
+        for event_line, _sequence, source_node, path, restored in mutation_events:
+            if source_node is not module and not isinstance(source_node, ast.ClassDef):
                 continue
-            for alias_name, targets in all_alias_targets.items():
-                if any(target in {'urllib', 'urllib.request', 'urllib.request.urlopen'} for target in targets):
-                    shared_qualified_shadow_roots.add(alias_name)
+            if line is not None and event_line > line:
+                continue
+            (state.discard if restored else state.add)(path)
+        return state
+
+    for info in infos.values():
+        for name, events in list(info['binding_events'].items()):
+            info['binding_events'][name] = [
+                (event[0], event[1], None)
+                if event[2] == {'urllib.request.urlopen'} and 'urllib.request.urlopen' in eager_state(event[0])
+                else event
+                for event in events
+            ]
+    mutation_events = qualified_events()
+    deferred_events = [
+        (int(getattr(source_node, 'lineno', 0) or 0), path)
+        for _line, _sequence, source_node, path, restored in mutation_events
+        if source_node is not module and not isinstance(source_node, ast.ClassDef) and not restored
+    ]
+
+    def apply_qualified_shadow_state(active: set[str], node: ast.AST, line: int | None) -> set[str]:
+        state = eager_state(line if node is module or isinstance(node, ast.ClassDef) else None)
+        if node is module and line is not None:
+            state.update(path for start, path in deferred_events if start and start <= line)
+        elif node is not module:
+            state.update(path for _start, path in deferred_events)
+        for name in all_alias_names:
+            targets = resolve_trusted_targets(node, name, line)
+            if 'urllib' in targets and state & {'urllib.request', 'urllib.request.urlopen'}:
+                active.add(name)
+            elif 'urllib.request' in targets and 'urllib.request.urlopen' in state:
+                active.add(name)
+        return active
 
     nonlocal_rebounds: dict[ast.AST, set[str]] = {node: set() for node in infos}
     for node, info in infos.items():
@@ -167,11 +206,11 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         return active
 
     def module_line_state(line: int | None) -> set[str]:
-        active: set[str] = set(shared_qualified_shadow_roots)
+        active: set[str] = set()
         apply_local_bindings(active, module, line, function_unbound_is_shadowed=True)
         if line is None:
             active.update(global_shadowed_roots)
-        return active
+        return apply_qualified_shadow_state(active, module, line)
 
     module_final_state = module_line_state(None)
     final_cache: dict[ast.AST, set[str]] = {module: set(module_final_state)}
@@ -194,7 +233,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             function_unbound_is_shadowed=isinstance(node, function_scope_types),
         )
         active.update(nonlocal_rebounds[node])
-        active.update(shared_qualified_shadow_roots)
+        apply_qualified_shadow_state(active, node, None)
         final_cache[node] = set(active)
         return active
 
@@ -216,8 +255,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             function_unbound_is_shadowed=isinstance(node, function_scope_types),
         )
         active.update(nonlocal_rebounds[node])
-        active.update(shared_qualified_shadow_roots)
-        return active
+        return apply_qualified_shadow_state(active, node, line)
 
     max_line = int(getattr(module, 'end_lineno', 0) or len(source.splitlines()))
     for line in range(1, max_line + 1):
@@ -244,6 +282,17 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     for node in sorted(scoped_nodes, key=lambda item: (depth(item), int(getattr(item, 'lineno', 0) or 0))):
         start = int(getattr(node, 'lineno', 0) or 0)
         end = int(getattr(node, 'end_lineno', start) or start)
+        if isinstance(node, _PY_SCOPE_COMPREHENSION_TYPES):
+            parts = ([node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt])
+            parts += [generator.target for generator in node.generators]
+            parts += [clause for generator in node.generators for clause in generator.ifs]
+            parts += [generator.iter for generator in node.generators[1:]]
+            for part in parts:
+                first = int(getattr(part, 'lineno', start) or start)
+                last = int(getattr(part, 'end_lineno', first) or first)
+                for line in range(first, last + 1):
+                    by_line[line] = scope_line_state(node, line)
+            continue
         if isinstance(node, ast.Lambda):
             for line in range(start, end + 1):
                 by_line[line] = scope_line_state(node, line)

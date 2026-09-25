@@ -1,4 +1,5 @@
 _PY_SCOPE_FUNCTION_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+_PY_SCOPE_COMPREHENSION_TYPES = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
 
 def _python_scope_attribute_path(node: ast.AST) -> str | None:
@@ -19,7 +20,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     globals_declared: set[str] = set()
     nonlocals_declared: set[str] = set()
     trusted_alias_targets: dict[str, set[str]] = {}
-    attribute_mutations: set[tuple[int, str]] = set()
+    attribute_mutations: list[tuple[int, int, str, str | None]] = []
     binding_events: dict[str, list[tuple[int, int, set[str] | None]]] = {}
     alias_assignments: list[tuple[int, int, str, str]] = []
     sequence = 0
@@ -46,6 +47,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         record_event(name, source_node, {target})
 
     def collect_target(target: ast.AST, alias_value_path: str | None = None) -> None:
+        nonlocal sequence
         if isinstance(target, ast.Name):
             event_sequence = bind_local(target.id, assigned=True, source_node=target)
             if alias_value_path and event_sequence is not None:
@@ -53,12 +55,39 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         elif isinstance(target, ast.Attribute):
             path = _python_scope_attribute_path(target)
             if path:
-                attribute_mutations.add((int(getattr(target, 'lineno', 0) or 0), path))
+                sequence += 1
+                attribute_mutations.append(
+                    (int(getattr(target, 'lineno', 0) or 0), sequence, path, alias_value_path)
+                )
         elif isinstance(target, (ast.Tuple, ast.List)):
             for item in target.elts:
                 collect_target(item)
         elif isinstance(target, ast.Starred):
             collect_target(target.value)
+
+    def collect_match_pattern(pattern: ast.AST) -> None:
+        if isinstance(pattern, ast.MatchAs):
+            if pattern.pattern is not None:
+                collect_match_pattern(pattern.pattern)
+            if pattern.name:
+                bind_local(pattern.name, assigned=True, source_node=pattern)
+        elif isinstance(pattern, ast.MatchStar):
+            if pattern.name:
+                bind_local(pattern.name, assigned=True, source_node=pattern)
+        elif isinstance(pattern, ast.MatchMapping):
+            for child in pattern.patterns:
+                collect_match_pattern(child)
+            if pattern.rest:
+                bind_local(pattern.rest, assigned=True, source_node=pattern)
+        elif isinstance(pattern, ast.MatchSequence):
+            for child in pattern.patterns:
+                collect_match_pattern(child)
+        elif isinstance(pattern, ast.MatchClass):
+            for child in (*pattern.patterns, *pattern.kwd_patterns):
+                collect_match_pattern(child)
+        elif isinstance(pattern, ast.MatchOr):
+            for child in pattern.patterns:
+                collect_match_pattern(child)
 
     def visit_arg_annotations(visitor: ast.NodeVisitor, args: ast.arguments) -> None:
         for arg in (*args.posonlyargs, *args.args, *args.kwonlyargs):
@@ -214,6 +243,36 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                 self.visit(item.type)
             if isinstance(item.name, str):
                 bind_local(item.name, assigned=True, source_node=item)
+            for stmt in item.body:
+                self.visit(stmt)
+
+        def _visit_comprehension_scope(self, item: ast.AST, values: list[ast.AST]) -> None:
+            generators = list(getattr(item, 'generators', []))
+            if item is not node:
+                if generators:
+                    self.visit(generators[0].iter)
+                return
+            for generator in generators:
+                self.visit(generator.iter)
+                collect_target(generator.target)
+                for clause in generator.ifs:
+                    self.visit(clause)
+            for value in values:
+                self.visit(value)
+
+        def visit_ListComp(self, item: ast.ListComp) -> None:
+            self._visit_comprehension_scope(item, [item.elt])
+
+        visit_SetComp = visit_ListComp
+        visit_GeneratorExp = visit_ListComp
+
+        def visit_DictComp(self, item: ast.DictComp) -> None:
+            self._visit_comprehension_scope(item, [item.key, item.value])
+
+        def visit_match_case(self, item: ast.match_case) -> None:
+            collect_match_pattern(item.pattern)
+            if item.guard is not None:
+                self.visit(item.guard)
             for stmt in item.body:
                 self.visit(stmt)
 
