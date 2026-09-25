@@ -696,6 +696,45 @@ def test_full_head_trusted_inner_import_overrides_outer_shadow() -> None:
     )
 
 
+def test_full_head_global_custom_rebind_remains_shadowed() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def persist(user_path, data):",
+            "    global urlopen",
+            "    urlopen = custom_open",
+            '    return urlopen(user_path, "w").write(data)',
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" in scoped_context.get(5, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return urlopen(user_path, "w").write(data)',
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_global_declaration_without_rebind_uses_module_import() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def outer(urlopen):",
+            "    def fetch(req):",
+            "        global urlopen",
+            "        return urlopen(req)",
+            "    return fetch",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" not in scoped_context.get(5, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "        return urlopen(req)",
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
 def test_pareto_shadowed_name_context_registry_is_defined() -> None:
     pareto.set_python_shadowed_name_context({"tools/custom_open_import.py": {"open"}})
     assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {"tools/custom_open_import.py": {"open"}}
@@ -852,6 +891,8 @@ def main() -> None:
     test_full_head_scoped_urlopen_shadowing_does_not_leak_across_functions()
     test_full_head_nested_scope_shadowing_is_preserved()
     test_full_head_trusted_inner_import_overrides_outer_shadow()
+    test_full_head_global_custom_rebind_remains_shadowed()
+    test_full_head_global_declaration_without_rebind_uses_module_import()
     test_pareto_shadowed_name_context_registry_is_defined()
     test_patched_detector_consumes_sentinel_owner_urlopen_context()
     test_core_semantics_keeps_stable_finding_family_dependency()

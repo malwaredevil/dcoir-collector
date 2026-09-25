@@ -189,7 +189,9 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 self.generic_visit(item)
 
         Visitor().visit(node)
-        roots.difference_update(globals_declared)
+        # A bare `global name` bypasses enclosing function scope, but an actual
+        # assignment/definition to that global name still rebinds the module
+        # symbol and must remain a conservative shadow signal.
         return roots, globals_declared, trusted_roots
 
     def iter_nested_scopes(node: ast.AST):
