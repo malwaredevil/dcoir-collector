@@ -8,6 +8,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
     path_constructor_names = set(DEFAULT_PYTHON_PATH_CONSTRUCTORS)
     os_module_names = set(DEFAULT_PYTHON_OS_MODULES)
     urllib_urlopen_call_names_by_path = python_diff_urllib_urlopen_call_names(diff)
+    shadowed_name_roots_by_path = python_diff_shadowed_name_roots(diff)
     current_path = ""
     current_hunk = 0
     current_alias_path = ""
@@ -65,6 +66,16 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 path_constructor_names,
                 os_module_names,
                 current_int_bindings,
+                shadowed_name_roots_by_path.get(current_path),
+            ):
+                append_file_write_sentinel(sentinels, anchor)
+            elif write_target and python_line_has_explicit_file_write_call(
+                statement,
+                path_constructor_names,
+                os_module_names,
+                current_int_bindings,
+                known_call_names=urllib_urlopen_call_names_by_path.get(current_path),
+                shadowed_names=shadowed_name_roots_by_path.get(current_path),
             ):
                 append_file_write_sentinel(sentinels, anchor)
         elif has_added_line and overflowed and python_line_has_explicit_file_write_call(
@@ -73,6 +84,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             os_module_names,
             current_int_bindings,
             known_call_names=urllib_urlopen_call_names_by_path.get(current_path),
+            shadowed_names=shadowed_name_roots_by_path.get(current_path),
         ):
             assignment = current_assigned_path(assigned_paths, write_target) if write_target else None
             if assignment:
@@ -259,6 +271,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 path_constructor_names,
                 os_module_names,
                 current_int_bindings,
+                shadowed_name_roots_by_path.get(diff_line.path),
             ):
                 append_file_write_sentinel(sentinels, diff_line)
             elif (
@@ -269,6 +282,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                     os_module_names,
                     current_int_bindings,
                     known_call_names=urllib_urlopen_call_names_by_path.get(diff_line.path),
+                    shadowed_names=shadowed_name_roots_by_path.get(diff_line.path),
                 )
                 and not python_statement_is_complete(diff_line.text)
             ):
@@ -283,6 +297,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 path_constructor_names,
                 os_module_names,
                 current_int_bindings,
+                shadowed_name_roots_by_path.get(diff_line.path),
             ):
                 append_file_write_sentinel(sentinels, diff_line)
             continue

@@ -12,6 +12,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
         PYTHON_PATH_ALIAS_CONTEXT.clear()
         PYTHON_OS_ALIAS_CONTEXT.clear()
         PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.clear()
+        PYTHON_SHADOWED_NAME_CONTEXT.clear()
         for source in (sentinel_owner, owner):
             path_context = getattr(source, "PYTHON_PATH_ALIAS_CONTEXT", None)
             if isinstance(path_context, dict):
@@ -29,10 +30,13 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                     if isinstance(value, set):
                         PYTHON_URLLIB_URLOPEN_CALL_CONTEXT[str(key)] = set(value)
         diff_path_aliases, diff_os_aliases = _python_diff_import_alias_context(diff)
+        diff_shadowed_names = _python_diff_shadowed_name_roots(diff)
         for path, names in diff_path_aliases.items():
             PYTHON_PATH_ALIAS_CONTEXT.setdefault(path, set()).update(names)
         for path, names in diff_os_aliases.items():
             PYTHON_OS_ALIAS_CONTEXT.setdefault(path, set()).update(names)
+        for path, names in diff_shadowed_names.items():
+            PYTHON_SHADOWED_NAME_CONTEXT.setdefault(path, set()).update(names)
         try:
             sentinels = list(original(diff, *args, **kwargs))
         except TypeError:
@@ -61,7 +65,12 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 if (
                     Path(path).suffix.lower() == ".py"
                     and _python_has_known_file_open_call(text, constructor_names, os_module_names)
-                    and not _python_is_explicit_file_write(text, constructor_names, os_module_names)
+                    and not _python_is_explicit_file_write(
+                        text,
+                        constructor_names,
+                        os_module_names,
+                        PYTHON_SHADOWED_NAME_CONTEXT.get(path),
+                    )
                 ):
                     continue
             filtered_sentinels.append(item)
@@ -92,6 +101,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 text,
                 constructor_names,
                 os_module_names,
+                PYTHON_SHADOWED_NAME_CONTEXT.get(path),
             ):
                 # The wrapped detector already evaluates complete statements. Do not
                 # manufacture a path-write sentinel from an incomplete line fragment.

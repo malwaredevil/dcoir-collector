@@ -94,13 +94,14 @@ def _line_kind(path: str, text: str) -> str:
             constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(path, set()))
             os_module_names = {"os"}
             os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
+            shadowed_names = PYTHON_SHADOWED_NAME_CONTEXT.get(path)
             if _python_is_known_urllib_urlopen(
                 text,
                 known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path),
             ):
                 fallback = _ORIGINAL_V13_LINE_KIND(path, text)
                 return "" if fallback == v11.PYTHON_PATH_WRITE else fallback
-            if _python_is_explicit_file_write(text, constructor_names, os_module_names):
+            if _python_is_explicit_file_write(text, constructor_names, os_module_names, shadowed_names):
                 return v11.PYTHON_PATH_WRITE
             if _python_has_known_file_open_call(text, constructor_names, os_module_names):
                 fallback = _ORIGINAL_V13_LINE_KIND(path, text)

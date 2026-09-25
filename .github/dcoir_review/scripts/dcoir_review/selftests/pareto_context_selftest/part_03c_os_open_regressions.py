@@ -172,6 +172,27 @@ assert any(
     for item in preserved_custom_open_sentinels
 ), preserved_custom_open_sentinels
 
+multiline_custom_open_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/custom_multiline_open.py b/tools/custom_multiline_open.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/custom_multiline_open.py
+@@ -0,0 +1,6 @@
++def persist(storage, user_path, payload):
++    with storage.open(
++        user_path,
++        "w",
++    ) as handle:
++        handle.write(payload)
+"""
+)
+assert any(
+    item.path == "tools/custom_multiline_open.py"
+    and item.line == 2
+    and item.label == mod.FILE_WRITE_PATH_LABEL
+    for item in multiline_custom_open_sentinels
+), multiline_custom_open_sentinels
+
 
 def fake_original_shadowed_urlopen(_diff, _max_anchors=None):
     return [

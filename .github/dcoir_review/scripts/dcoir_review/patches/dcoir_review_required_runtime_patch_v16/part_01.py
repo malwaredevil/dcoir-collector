@@ -78,6 +78,7 @@ PYTHON_OS_OPEN_MUTATING_FLAG_MASK = (
 PYTHON_PATH_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_OS_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_URLLIB_URLOPEN_CALL_CONTEXT: dict[str, set[str]] = {}
+PYTHON_SHADOWED_NAME_CONTEXT: dict[str, set[str]] = {}
 
 
 def _normalize(value: Any) -> str:
@@ -222,12 +223,15 @@ def _python_call_uses_write_mode(
     call: ast.Call,
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     call_name = _python_call_name(call.func)
     os_open_names = {f"{name}.open" for name in (os_module_names or {"os"})}
     if call_name in os_open_names:
         return _python_os_open_uses_write_mode(call, os_module_names)
     if isinstance(call.func, ast.Name) and call.func.id == "open":
+        if shadowed_names and "open" in shadowed_names:
+            return True
         mode_node = _python_call_arg(call, 1, "mode")
     elif call_name in PYTHON_KNOWN_READ_MODE_OPEN_CALLS:
         mode_node = _python_call_arg(call, 1, "mode")

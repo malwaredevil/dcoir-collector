@@ -14,6 +14,8 @@ def _python_shadowed_name_roots(module: ast.AST) -> set[str]:
     def collect_target(node: ast.AST) -> None:
         if isinstance(node, ast.Name):
             roots.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            collect_target(node.value)
         elif isinstance(node, (ast.Tuple, ast.List)):
             for item in node.elts:
                 collect_target(item)
@@ -33,6 +35,18 @@ def _python_shadowed_name_roots(module: ast.AST) -> set[str]:
             roots.add(node.kwarg.arg)
 
     class _ModuleScopeShadowVisitor(ast.NodeVisitor):
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if imported_name == "open":
+                    roots.add(imported_name)
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            for alias in node.names:
+                imported_name = alias.asname or alias.name
+                if imported_name == "open":
+                    roots.add(imported_name)
+
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
             roots.add(node.name)
             collect_arguments(node.args)
@@ -194,6 +208,21 @@ def _python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
     return call_names_by_path
 
 
+def _python_diff_shadowed_name_roots(diff: str) -> dict[str, set[str]]:
+    sources_by_path: dict[str, list[str]] = {}
+    for path, text in _iter_diff_python_lines_with_context(diff):
+        sources_by_path.setdefault(str(path), []).append(text)
+    shadowed_names_by_path: dict[str, set[str]] = {}
+    for path, lines in sources_by_path.items():
+        module = _python_parse_diff_line("\n".join(lines))
+        if module is None:
+            continue
+        shadowed_names = _python_shadowed_name_roots(module)
+        if shadowed_names:
+            shadowed_names_by_path[path] = shadowed_names
+    return shadowed_names_by_path
+
+
 def _python_is_known_urllib_urlopen(
     text: str,
     allow_imported_alias: bool = False,
@@ -220,6 +249,7 @@ def _python_is_explicit_file_write(
     text: str,
     path_constructor_names: set[str] | None = None,
     os_module_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
 ) -> bool:
     module = _python_parse_diff_line(text)
     if module is None:
@@ -228,6 +258,8 @@ def _python_is_explicit_file_write(
     os_names = os_module_names or {"os"}
     os_open_names = {f"{name}.open" for name in os_names}
     known_mode_checked = set(PYTHON_KNOWN_READ_MODE_OPEN_CALLS) | os_open_names
+    active_shadowed_names = set(shadowed_names or ())
+    active_shadowed_names.update(_python_shadowed_name_roots(module))
     for node in ast.walk(module):
         if not isinstance(node, ast.Call):
             continue
@@ -238,11 +270,11 @@ def _python_is_explicit_file_write(
             value_is_path = _python_is_proven_path_receiver(node.func.value, constructor_names)
             if not value_is_path and call_name not in known_mode_checked:
                 return True
-            if _python_call_uses_write_mode(node, constructor_names, os_names):
+            if _python_call_uses_write_mode(node, constructor_names, os_names, active_shadowed_names):
                 return True
             continue
         if isinstance(node.func, ast.Attribute) and node.func.attr in {"write_text", "write_bytes"}:
             return True
-        if _python_call_uses_write_mode(node, constructor_names, os_names):
+        if _python_call_uses_write_mode(node, constructor_names, os_names, active_shadowed_names):
             return True
     return False

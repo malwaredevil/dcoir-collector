@@ -278,6 +278,38 @@ def test_urlopen_context_prunes_function_scoped_shadowing() -> None:
     assert "urlopen" not in call_names, call_names
 
 
+def test_urlopen_context_prunes_qualified_module_rebinding() -> None:
+    diff = "\n".join(
+        [
+            "diff --git a/tools/shadowed_qualified_urlopen.py b/tools/shadowed_qualified_urlopen.py",
+            "+++ b/tools/shadowed_qualified_urlopen.py",
+            "@@ -0,0 +1,4 @@",
+            "+import urllib.request",
+            "+urllib.request.urlopen = custom_open",
+            "+def persist(user_path):",
+            "+    return urllib.request.urlopen(user_path)",
+        ]
+    )
+    call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_qualified_urlopen.py", set())
+    assert "urllib.request.urlopen" not in call_names, call_names
+
+
+def test_urlopen_context_prunes_qualified_alias_rebinding() -> None:
+    diff = "\n".join(
+        [
+            "diff --git a/tools/shadowed_alias_urlopen.py b/tools/shadowed_alias_urlopen.py",
+            "+++ b/tools/shadowed_alias_urlopen.py",
+            "@@ -0,0 +1,4 @@",
+            "+import urllib.request as ur",
+            "+ur.urlopen = custom_open",
+            "+def persist(user_path):",
+            "+    return ur.urlopen(user_path)",
+        ]
+    )
+    call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_alias_urlopen.py", set())
+    assert "ur.urlopen" not in call_names, call_names
+
+
 def test_python_path_write_classifier_uses_alias_context() -> None:
     path = "tools/alias_reader.py"
     v16.PYTHON_PATH_ALIAS_CONTEXT.clear()
@@ -385,6 +417,31 @@ def test_patched_detector_keeps_unknown_custom_open_calls() -> None:
     assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
+def test_patched_detector_keeps_shadowed_read_only_bare_open_calls() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            "diff --git a/tools/custom_open_import.py b/tools/custom_open_import.py",
+            "+++ b/tools/custom_open_import.py",
+            "@@ -0,0 +1,4 @@",
+            "+from custom_storage import open",
+            "+def persist(user_path):",
+            '+    with open(user_path, "r") as handle:',
+            "+        return handle.read()",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
 def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
     from dcoir_review import finding_family
 
@@ -461,11 +518,14 @@ def main() -> None:
     test_patched_detector_skips_module_alias_urlopen()
     test_urlopen_context_prunes_shadowed_urllib_bindings()
     test_urlopen_context_prunes_function_scoped_shadowing()
+    test_urlopen_context_prunes_qualified_module_rebinding()
+    test_urlopen_context_prunes_qualified_alias_rebinding()
     test_python_path_write_classifier_uses_alias_context()
     test_python_path_write_classifier_uses_os_alias_context()
     test_patched_detector_consumes_owner_alias_context()
     test_patched_detector_derives_path_and_os_aliases_from_diff()
     test_patched_detector_keeps_unknown_custom_open_calls()
+    test_patched_detector_keeps_shadowed_read_only_bare_open_calls()
     test_core_semantics_keeps_stable_finding_family_dependency()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
