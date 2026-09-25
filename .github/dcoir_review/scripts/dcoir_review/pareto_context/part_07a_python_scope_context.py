@@ -89,6 +89,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 changed = True
 
     alias_sources = _python_scope_alias_sources(infos)
+    submodule_import_binding_keys = _python_scope_submodule_import_binding_keys(infos)
 
     global_shadowed_roots: set[str] = set()
     for node, info in infos.items():
@@ -144,6 +145,8 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         if node not in eager_nodes:
             state.update(_python_scope_mutation_state(mutation_events, {node}, event[0], event[1]))
         value_path = alias_sources.get(event_key)
+        if event_key in submodule_import_binding_keys:
+            return 'urllib.request.urlopen' in state
         if value_path:
             value_root, dot, _suffix = value_path.partition('.')
             source = _python_scope_binding_event_owner(

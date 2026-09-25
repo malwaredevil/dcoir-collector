@@ -269,12 +269,14 @@ def _python_scope_finalize_restoration_guarantees(events):
     finalized = []
     for event in ordered:
         line, sequence, node, path, restored = event[:5]
+        restoration_candidate_safe = bool(event[5]) if len(event) > 5 else True
         key = (id(node), path)
         guaranteed = False
         if restored:
             previous = active_mutations.get(key)
             guaranteed = bool(
-                previous
+                restoration_candidate_safe
+                and previous
                 and _python_scope_direct_restoration_guaranteed(node, previous[0], line)
             )
             if guaranteed:
@@ -302,3 +304,11 @@ def _python_scope_demote_binding_keys(
                     updated.append(event)
             info['binding_events'][name] = updated
     return changed
+
+
+def _python_scope_submodule_import_binding_keys(infos: dict[ast.AST, dict[str, Any]]) -> set[tuple[int, str, int, int]]:
+    return {
+        (id(scope_node), name, line, sequence)
+        for scope_node, info in infos.items()
+        for name, line, sequence in info.get('submodule_import_binding_keys', set())
+    }

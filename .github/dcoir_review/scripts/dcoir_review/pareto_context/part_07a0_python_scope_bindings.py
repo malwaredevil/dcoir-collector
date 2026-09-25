@@ -22,6 +22,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     attribute_mutations: list[tuple[int, int, str, str | None, bool]] = []
     binding_events: dict[str, list[tuple[int, int, set[str] | None]]] = {}
     alias_assignments: list[tuple[int, int, str, str]] = []
+    submodule_import_binding_keys: set[tuple[str, int, int]] = set()
     sequence = 0
 
     def record_event(name: str, source_node: ast.AST | None, targets: set[str] | None) -> int:
@@ -40,10 +41,20 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             return record_event(name, source_node, None)
         return None
 
-    def bind_trusted(name: str, target: str, source_node: ast.AST) -> None:
+    def bind_trusted(
+        name: str,
+        target: str,
+        source_node: ast.AST,
+        *,
+        from_real_submodule: bool = False,
+    ) -> None:
         local_bindings.add(name)
         trusted_alias_targets.setdefault(name, set()).add(target)
-        record_event(name, source_node, {target})
+        event_sequence = record_event(name, source_node, {target})
+        if from_real_submodule:
+            submodule_import_binding_keys.add(
+                (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
+            )
 
     guaranteed_statements = _python_scope_guaranteed_direct_statements(node)
 
@@ -196,7 +207,12 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             for alias in item.names:
                 name = alias.asname or alias.name
                 if item.module == 'urllib.request' and alias.name == 'urlopen':
-                    bind_trusted(name, 'urllib.request.urlopen', item)
+                    bind_trusted(
+                        name,
+                        'urllib.request.urlopen',
+                        item,
+                        from_real_submodule=True,
+                    )
                 elif item.module == 'urllib' and alias.name == 'request':
                     bind_trusted(name, 'urllib.request', item)
                 else:
@@ -205,8 +221,16 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         def visit_Assign(self, item: ast.Assign) -> None:
             self.visit(item.value)
             alias_value_path = _python_scope_attribute_path(item.value) if isinstance(item.value, (ast.Name, ast.Attribute)) else None
+            prior_targets_cannot_raise = True
             for target in item.targets:
-                collect_target(target, alias_value_path, id(item) in guaranteed_statements)
+                collect_target(
+                    target,
+                    alias_value_path,
+                    id(item) in guaranteed_statements and prior_targets_cannot_raise,
+                )
+                prior_targets_cannot_raise = (
+                    prior_targets_cannot_raise and isinstance(target, ast.Name)
+                )
 
         def visit_AnnAssign(self, item: ast.AnnAssign) -> None:
             alias_value_path = None
@@ -298,4 +322,5 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         'attribute_mutations': attribute_mutations,
         'binding_events': binding_events,
         'alias_assignments': alias_assignments,
+        'submodule_import_binding_keys': submodule_import_binding_keys,
     }
