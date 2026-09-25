@@ -15,8 +15,6 @@ def openrouter_request_once(
     if capture_telemetry:
         attempt_count = int(getattr(config, "_openrouter_request_attempt_count", 0) or 0) + 1
         setattr(config, "_openrouter_request_attempt_count", attempt_count)
-    else:
-        attempt_count = 0
 
     api_key = base.env_required("OPENROUTER_API_KEY")
     payload = build_openrouter_payload(prompt, schema, config, ignored_providers, model)
