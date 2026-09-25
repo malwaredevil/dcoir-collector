@@ -2,8 +2,8 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     """Return conservative, lexical-scope-aware urllib shadow roots by source line."""
     module = ast.parse(source)
     by_line: dict[int, set[str]] = {}
-    function_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, *_PY_SCOPE_COMPREHENSION_TYPES)
-    child_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ClassDef, *_PY_SCOPE_COMPREHENSION_TYPES)
+    function_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+    child_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ClassDef, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
     collect_scope_bindings = _python_scope_collect_bindings
 
     infos: dict[ast.AST, dict[str, Any]] = {module: collect_scope_bindings(module)}
@@ -281,7 +281,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     for node in sorted(scoped_nodes, key=lambda item: (depth(item), int(getattr(item, 'lineno', 0) or 0))):
         start = int(getattr(node, 'lineno', 0) or 0)
         end = int(getattr(node, 'end_lineno', start) or start)
-        if isinstance(node, _PY_SCOPE_COMPREHENSION_TYPES):
+        if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
             parts = ([node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt])
             parts += [generator.target for generator in node.generators]
             parts += [clause for generator in node.generators for clause in generator.ifs]
