@@ -297,3 +297,23 @@ oversized_alias_text = (
 )
 assert mod.python_path_constructor_aliases(oversized_alias_text) == set()
 assert mod.python_os_module_aliases(oversized_alias_text) == set()
+rebound_alias_text = (
+    "import os as operating_system\n"
+    "import custom_storage as operating_system\n"
+    "from pathlib import Path as PathAlias\n"
+    "from custom_storage import Path as PathAlias\n"
+)
+assert mod.python_os_module_aliases(rebound_alias_text) == set()
+assert mod.python_path_constructor_aliases(rebound_alias_text) == set()
+assert mod.python_urllib_urlopen_call_names(
+    "from urllib.request import urlopen\n"
+    "from custom_storage import urlopen\n"
+) == set()
+assert not mod.python_line_is_known_urllib_urlopen(
+    "(lambda urlopen: urlopen(target))(writer)",
+    known_call_names={"urlopen"},
+)
+assert not mod.python_line_is_known_urllib_urlopen(
+    "[urlopen(target) for urlopen in writers]",
+    known_call_names={"urlopen"},
+)
