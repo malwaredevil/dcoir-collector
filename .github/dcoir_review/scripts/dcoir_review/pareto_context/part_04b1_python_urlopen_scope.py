@@ -302,10 +302,9 @@ def python_urllib_urlopen_call_names(text: str) -> set[str]:
                     call_names.add(f"{alias.asname or alias.name}.urlopen")
                 elif alias.name == "urllib":
                     call_names.add(f"{alias.asname or alias.name}.request.urlopen")
-    return python_prune_shadowed_urlopen_call_names(
-        call_names,
-        python_module_shadowed_name_roots(module),
-    )
+    # Keep the full-head registry complete. Line-specific scope state decides
+    # whether a trusted call name is shadowed at the actual call site.
+    return call_names
 
 
 def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
