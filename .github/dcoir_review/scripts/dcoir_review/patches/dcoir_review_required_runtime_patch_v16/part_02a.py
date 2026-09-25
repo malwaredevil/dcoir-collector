@@ -93,6 +93,26 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
             if callable(checker) and checker(path, text):
                 continue
             kind = _line_kind(path, text)
+            constructor_names = set(path_alias_context)
+            constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(path, set()))
+            os_module_names = set(os_alias_context)
+            os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
+            shadowed_names = (
+                set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
+                | diff_shadowed_names_by_line.get(path, {}).get(line, set())
+            )
+            if (
+                kind != v11.PYTHON_PATH_WRITE
+                and Path(path).suffix.lower() == ".py"
+                and re.search(r"\b(?:write_text|write_bytes|open)\s*\(", text)
+                and _python_is_explicit_file_write(
+                    text,
+                    constructor_names,
+                    os_module_names,
+                    shadowed_names,
+                )
+            ):
+                kind = v11.PYTHON_PATH_WRITE
             if kind not in TRACKED_KINDS and kind not in OPTIONAL_PRESSURE_KINDS:
                 continue
             if kind == v11.PYTHON_PATH_WRITE and _is_python_test_file(path):
@@ -103,16 +123,11 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(line),
             ):
                 continue
-            constructor_names = set(path_alias_context)
-            constructor_names.update(PYTHON_PATH_ALIAS_CONTEXT.get(path, set()))
-            os_module_names = set(os_alias_context)
-            os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
             if kind == v11.PYTHON_PATH_WRITE and not _python_is_explicit_file_write(
                 text,
                 constructor_names,
                 os_module_names,
-                set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
-                | diff_shadowed_names_by_line.get(path, {}).get(line, set()),
+                shadowed_names,
             ):
                 # The wrapped detector already evaluates complete statements. Do not
                 # manufacture a path-write sentinel from an incomplete line fragment.

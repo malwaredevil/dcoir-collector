@@ -260,7 +260,7 @@ def test_urlopen_context_prunes_shadowed_urllib_bindings() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_urlopen.py", set())
-    assert "urllib.request.urlopen" in call_names, call_names
+    assert "urllib.request.urlopen" not in call_names, call_names
 
 
 def test_urlopen_context_prunes_function_scoped_shadowing() -> None:
@@ -292,7 +292,7 @@ def test_urlopen_context_prunes_qualified_module_rebinding() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_qualified_urlopen.py", set())
-    assert "urllib.request.urlopen" in call_names, call_names
+    assert "urllib.request.urlopen" not in call_names, call_names
 
 
 def test_urlopen_context_prunes_qualified_alias_rebinding() -> None:
@@ -308,7 +308,27 @@ def test_urlopen_context_prunes_qualified_alias_rebinding() -> None:
         ]
     )
     call_names = v16._python_diff_urllib_urlopen_call_names(diff).get("tools/shadowed_alias_urlopen.py", set())
-    assert "ur.urlopen" in call_names, call_names
+    assert "ur.urlopen" not in call_names, call_names
+
+
+def test_urlopen_context_prunes_rebound_cached_aliases() -> None:
+    path = "tools/rebound_cached_urlopen.py"
+    v16.PYTHON_URLLIB_URLOPEN_CALL_CONTEXT[path] = {"urlopen"}
+    try:
+        diff = "\n".join(
+            [
+                f"diff --git a/{path} b/{path}",
+                f"+++ b/{path}",
+                "@@ -1,2 +1,3 @@",
+                " from urllib.request import urlopen",
+                '+urlopen = custom_open',
+                '+return urlopen(req)',
+            ]
+        )
+        call_names = v16._python_diff_urllib_urlopen_call_names(diff).get(path, set())
+        assert "urlopen" not in call_names, call_names
+    finally:
+        v16.PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.clear()
 
 
 def test_scope_local_urlopen_shadowing_stays_local() -> None:
@@ -680,6 +700,7 @@ def main() -> None:
     test_urlopen_context_prunes_function_scoped_shadowing()
     test_urlopen_context_prunes_qualified_module_rebinding()
     test_urlopen_context_prunes_qualified_alias_rebinding()
+    test_urlopen_context_prunes_rebound_cached_aliases()
     test_scope_local_urlopen_shadowing_stays_local()
     test_patched_detector_keeps_cross_function_urlopen_imports()
     test_python_path_write_classifier_uses_alias_context()

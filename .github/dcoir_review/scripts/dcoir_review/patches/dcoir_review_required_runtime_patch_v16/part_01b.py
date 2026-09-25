@@ -229,6 +229,61 @@ def _python_line_shadowed_name_roots(text: str) -> set[str]:
     return roots
 
 
+def _python_module_shadowed_name_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+
+    def collect_target(node: ast.AST) -> None:
+        if isinstance(node, ast.Name):
+            roots.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            collect_target(node.value)
+        elif isinstance(node, (ast.Tuple, ast.List)):
+            for item in node.elts:
+                collect_target(item)
+        elif isinstance(node, ast.Starred):
+            collect_target(node.value)
+
+    for statement in getattr(module, "body", []):
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if alias.name in {"urllib", "urllib.request", "os"}:
+                    roots.discard(imported_name)
+                else:
+                    roots.add(imported_name)
+        elif isinstance(statement, ast.ImportFrom):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name
+                if (
+                    statement.module == "urllib.request"
+                    and alias.name == "urlopen"
+                ) or (
+                    statement.module == "urllib"
+                    and alias.name == "request"
+                ):
+                    roots.discard(imported_name)
+                else:
+                    roots.add(imported_name)
+        elif isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            roots.add(statement.name)
+        elif isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                collect_target(target)
+        elif isinstance(statement, ast.AnnAssign):
+            collect_target(statement.target)
+        elif isinstance(statement, ast.AugAssign):
+            collect_target(statement.target)
+        elif isinstance(statement, ast.NamedExpr):
+            collect_target(statement.target)
+        elif isinstance(statement, (ast.For, ast.AsyncFor)):
+            collect_target(statement.target)
+        elif isinstance(statement, (ast.With, ast.AsyncWith)):
+            for item in statement.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+    return roots
+
+
 def _python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_roots: set[str]) -> set[str]:
     if not shadowed_roots:
         return call_names
@@ -414,8 +469,15 @@ def _python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
         sources_by_path.setdefault(str(path), []).append(text)
     call_names_by_path: dict[str, set[str]] = {}
     for path, lines in sources_by_path.items():
+        source = "\n".join(lines)
         call_names = _python_urllib_urlopen_call_names("\n".join(lines))
         call_names.update(PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, set()))
+        module = _python_parse_diff_line(source)
+        shadowed_names = _python_module_shadowed_name_roots(module) if module is not None else set()
+        call_names = _python_prune_shadowed_urlopen_call_names(
+            call_names,
+            shadowed_names,
+        )
         call_names_by_path[path] = call_names
     return call_names_by_path
 
