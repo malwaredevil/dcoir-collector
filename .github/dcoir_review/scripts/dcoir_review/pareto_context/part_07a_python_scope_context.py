@@ -157,7 +157,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             info['binding_events'][name] = [
                 (event[0], event[1], None)
                 if event[2] == {'urllib.request.urlopen'}
-                and 'urllib.request.urlopen' in eager_state(event[0], before_sequence=event[1])
+                and eager_state(event[0], before_sequence=event[1]) & {'urllib.request', 'urllib.request.urlopen'}
                 else event
                 for event in events
             ]
@@ -176,9 +176,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             state.update(path for _start, path in deferred_events)
         for name in all_alias_names:
             targets = resolve_trusted_targets(node, name, line)
-            if 'urllib' in targets and state & {'urllib.request', 'urllib.request.urlopen'}:
-                active.add(name)
-            elif 'urllib.request' in targets and 'urllib.request.urlopen' in state:
+            if targets & {'urllib', 'urllib.request'} and state & {'urllib.request', 'urllib.request.urlopen'}:
                 active.add(name)
         return active
 
