@@ -44,7 +44,7 @@ scoped_shadowed_name_context = mod.build_python_scoped_shadowed_name_context(
 )
 assert "user_path" not in scoped_shadowed_name_context["tools/custom_open_import.py"][3]
 assert "user_path" in scoped_shadowed_name_context["tools/custom_open_import.py"][4]
-assert "open" not in scoped_shadowed_name_context["tools/custom_open_import.py"][4]
+assert "open" in scoped_shadowed_name_context["tools/custom_open_import.py"][4]
 
 deep_block, deep_summary = mod.build_deep_context_block(
     FakeGitHubClient(),
