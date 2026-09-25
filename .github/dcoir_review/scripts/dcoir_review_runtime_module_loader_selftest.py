@@ -23,13 +23,8 @@ NUMBERED_PRODUCTION_PATCH_RE = re.compile(
     r"^dcoir_review_required_runtime_patch_v(?P<version>\d+)(?:$|_)"
 )
 
-# One pre-existing provider segment is already tracked as architecture debt in
-# #550. Keep the exception explicit and size-frozen while the consolidated
-# provider architecture replaces it; all other runtime segments stay subject
-# to the normal connector-safe limit.
-LEGACY_OVERSIZE_SEGMENT_MAX_BYTES = {
-    "hardened/part_04a_provider.py": 19_159,
-}
+# All runtime segments are now subject to the normal connector-safe limit.
+LEGACY_OVERSIZE_SEGMENT_MAX_BYTES: dict[str, int] = {}
 
 # Every maintained Python module under scripts/dcoir_review has one explicit
 # ownership mode: concatenated runtime segment, ordinary direct-import module,

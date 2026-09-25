@@ -629,6 +629,33 @@ def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
     assert finding_family.FAMILY_ORDER == ("yaml", "python", "powershell", "other", "typescript")
 
 
+def test_patched_detector_preserves_mixed_urlopen_and_file_write() -> None:
+    path = "tools/mixed_url_write.py"
+    statement = '    urllib.request.urlopen(url).read(); open(user_path, "w").write(data)'
+
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return [_s(path, 3, v11.PYTHON_PATH_WRITE, statement)]
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            f"diff --git a/{path} b/{path}",
+            f"+++ b/{path}",
+            "@@ -0,0 +1,3 @@",
+            "+import urllib.request",
+            "+def persist(url, user_path, data):",
+            "+    urllib.request.urlopen(url).read(); open(user_path, \"w\").write(data)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item) == (path, 3, v11.PYTHON_PATH_WRITE) for item in found), found
+
+
 def main() -> None:
     workflow = ".github/workflows/dcoir-review-v16-probe.yml"
     py = ".github/chatgpt_staging/dcoir_review_probe/v16_probe.py"
@@ -694,6 +721,7 @@ def main() -> None:
     test_python_path_write_classifier_skips_read_only_open_lookalikes()
     test_python_path_write_classifier_handles_oversized_os_open_shifts()
     test_patched_detector_skips_read_only_open_and_urlopen()
+    test_patched_detector_preserves_mixed_urlopen_and_file_write()
     test_patched_detector_skips_urlopen_aliases_from_diff_context()
     test_patched_detector_skips_module_alias_urlopen()
     test_urlopen_context_prunes_shadowed_urllib_bindings()

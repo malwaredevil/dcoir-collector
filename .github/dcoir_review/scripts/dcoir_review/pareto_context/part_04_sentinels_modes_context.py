@@ -30,12 +30,6 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             )
         pending_path_assignment = []
 
-    def pending_write_statement_anchor() -> PythonDiffLine:
-        return next(
-            (line for line in pending_write_statement if line.is_added),
-            pending_write_statement[0],
-        )
-
     def flush_pending_write_statement(overflowed: bool = False) -> None:
         nonlocal pending_write_statement
         if not pending_write_statement:
@@ -43,7 +37,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
         has_added_line = any(line.is_added for line in pending_write_statement)
         statement = "\n".join(line.text for line in pending_write_statement)
         current_int_bindings = visible_int_bindings()
-        anchor = pending_write_statement_anchor()
+        anchor = python_pending_write_statement_anchor(pending_write_statement)
         active_shadowed_names = shadowed_name_roots_by_line.get(current_path, {}).get(anchor.line)
         write_target = python_file_write_target(
             statement,
@@ -107,24 +101,6 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 visible[target] = bindings[-1][0]
         return visible
 
-    def prune_conditional_blocks(indent: int | None) -> None:
-        if indent is None:
-            return
-        while conditional_block_indents and indent <= conditional_block_indents[-1]:
-            conditional_block_indents.pop()
-
-    def inside_conditional_block(indent: int | None) -> bool:
-        return indent is not None and any(indent > block_indent for block_indent in conditional_block_indents)
-
-    def pending_write_statement_accepts_line(indent: int | None, text: str) -> bool:
-        if not pending_write_statement:
-            return False
-        anchor_indent = python_code_line_indent(pending_write_statement[0].text)
-        if indent is None or anchor_indent is None:
-            return True
-        if indent > anchor_indent:
-            return True
-        return indent == anchor_indent and bool(re.match(r"^[)\]}]", text.strip()))
 
     for diff_line in iter_python_diff_lines_with_context(diff):
         if is_python_test_file_path(diff_line.path):
@@ -156,7 +132,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                 next_scope_id = seed_python_hunk_scope(scope_stack, diff_line.hunk_context, next_scope_id)
             current_hunk = diff_line.hunk
         diff_line_indent = python_code_line_indent(diff_line.text)
-        prune_conditional_blocks(diff_line_indent)
+        python_prune_conditional_blocks(conditional_block_indents, diff_line_indent)
         pop_python_scopes_for_indent(scope_stack, diff_line_indent)
         active_scope_ids = active_python_scope_ids(scope_stack)
         prune_assigned_paths_for_active_scopes(assigned_paths, active_scope_ids)
@@ -178,7 +154,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
                     flush_pending_write_statement(overflowed=True)
             continue
         if pending_write_statement:
-            if not pending_write_statement_accepts_line(diff_line_indent, diff_line.text):
+            if not python_pending_write_statement_accepts_line(pending_write_statement, diff_line_indent, diff_line.text):
                 flush_pending_write_statement(overflowed=True)
             else:
                 pending_write_statement.append(diff_line)
@@ -231,7 +207,7 @@ def detect_python_file_write_path_sentinels(diff: str) -> list[hardened.RiskSent
             assigned_target, assigned_value = simple_assignment
             push_assigned_int_binding(
                 assigned_target,
-                None if inside_conditional_block(diff_line_indent) else assigned_value,
+                None if python_inside_conditional_block(conditional_block_indents, diff_line_indent) else assigned_value,
                 current_scope_id,
             )
         augmented_targets = python_augmented_assignment_targets(diff_line.text)

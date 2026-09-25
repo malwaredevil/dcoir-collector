@@ -160,6 +160,106 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
     return roots
 
 
+def python_module_shadowed_name_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+
+    def collect_target(node: ast.AST) -> None:
+        if isinstance(node, ast.Name):
+            roots.add(node.id)
+        elif isinstance(node, ast.Attribute):
+            collect_target(node.value)
+        elif isinstance(node, (ast.Tuple, ast.List)):
+            for item in node.elts:
+                collect_target(item)
+        elif isinstance(node, ast.Starred):
+            collect_target(node.value)
+
+    for statement in getattr(module, "body", []):
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if alias.name in {"urllib", "urllib.request", "os"}:
+                    roots.discard(imported_name)
+                else:
+                    roots.add(imported_name)
+        elif isinstance(statement, ast.ImportFrom):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name
+                if (
+                    statement.module == "urllib.request"
+                    and alias.name == "urlopen"
+                ) or (
+                    statement.module == "urllib"
+                    and alias.name == "request"
+                ):
+                    roots.discard(imported_name)
+                else:
+                    roots.add(imported_name)
+        elif isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            roots.add(statement.name)
+        elif isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                collect_target(target)
+        elif isinstance(statement, ast.AnnAssign):
+            collect_target(statement.target)
+        elif isinstance(statement, ast.AugAssign):
+            collect_target(statement.target)
+        elif isinstance(statement, ast.NamedExpr):
+            collect_target(statement.target)
+        elif isinstance(statement, (ast.For, ast.AsyncFor)):
+            collect_target(statement.target)
+        elif isinstance(statement, (ast.With, ast.AsyncWith)):
+            for item in statement.items:
+                if item.optional_vars is not None:
+                    collect_target(item.optional_vars)
+    return roots
+
+
+def python_scope_definition_name(text: str) -> str | None:
+    module = python_parse_diff_line(text)
+    if module is None or not module.body:
+        return None
+    statement = module.body[0]
+    if isinstance(statement, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return statement.name
+    return None
+
+
+def python_trusted_import_roots(module: ast.AST) -> set[str]:
+    roots: set[str] = set()
+    for statement in getattr(module, "body", []):
+        if isinstance(statement, ast.Import):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
+                if alias.name in {"os", "urllib", "urllib.request"}:
+                    roots.add(imported_name)
+        elif isinstance(statement, ast.ImportFrom):
+            for alias in statement.names:
+                imported_name = alias.asname or alias.name
+                if (
+                    statement.module == "urllib.request"
+                    and alias.name == "urlopen"
+                ) or (
+                    statement.module == "urllib"
+                    and alias.name == "request"
+                ):
+                    roots.add(imported_name)
+    return roots
+
+
+def python_line_shadowed_name_roots(text: str) -> set[str]:
+    module = python_parse_diff_line(text)
+    if module is None:
+        return set()
+    roots = python_shadowed_name_roots(module)
+    definition_name = python_scope_definition_name(text)
+    if definition_name:
+        roots.discard(definition_name)
+    roots.difference_update(python_scope_boundary_shadowed_names(text))
+    roots.difference_update(python_trusted_import_roots(module))
+    return roots
+
+
 def python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_roots: set[str]) -> set[str]:
     if not shadowed_roots:
         return call_names
@@ -170,154 +270,54 @@ def python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_root
     }
 
 
-def python_line_is_known_urllib_urlopen(
-    text: str,
-    allow_imported_alias: bool = False,
-    known_call_names: set[str] | None = None,
-    shadowed_names: set[str] | None = None,
-) -> bool:
-    module = python_parse_diff_line(text)
-    call_names = set(known_call_names or ())
-    if allow_imported_alias:
-        call_names.add("urlopen")
-    if not call_names:
-        return False
-    if module is not None:
-        active_shadowed_names = set(shadowed_names or ())
-        active_shadowed_names.update(python_shadowed_name_roots(module))
-        call_names = python_prune_shadowed_urlopen_call_names(
-            call_names,
-            active_shadowed_names,
-        )
-        if not call_names:
-            return False
-        for node in ast.walk(module):
-            if isinstance(node, ast.Call) and python_call_name(node.func) in call_names:
-                return True
-        return False
-    pattern = r"\b(?:" + "|".join(re.escape(name) for name in sorted(call_names, key=len, reverse=True)) + r")\s*\("
-    return bool(re.search(pattern, text))
-
-
-def python_line_has_explicit_file_write_call(
-    text: str,
-    path_constructor_names: set[str] | None = None,
-    os_module_names: set[str] | None = None,
-    local_int_bindings: dict[str, ast.AST | int] | None = None,
-    allow_urllib_urlopen_alias: bool = False,
-    known_call_names: set[str] | None = None,
-    shadowed_names: set[str] | None = None,
-) -> bool:
-    """Distinguish real file-write APIs from lexical open() lookalikes."""
-
+def python_urllib_urlopen_call_names(text: str) -> set[str]:
+    call_names: set[str] = set()
     module = python_parse_diff_line(text)
     if module is None:
-        if python_line_is_known_urllib_urlopen(
-            text,
-            allow_urllib_urlopen_alias,
-            known_call_names,
-            shadowed_names,
-        ):
-            return False
-        # Preserve legacy coverage when a single diff line cannot be parsed safely.
-        return True
-    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
-    os_names = os_module_names or DEFAULT_PYTHON_OS_MODULES
-    scoped_bindings = dict(local_int_bindings or {})
-    active_shadowed_names = set(shadowed_names or ())
-    active_shadowed_names.update(python_shadowed_name_roots(module))
-    for statement in module.body:
-        if isinstance(statement, ast.Assign):
-            for target in statement.targets:
-                if isinstance(target, ast.Name):
-                    scoped_bindings[target.id] = statement.value
-        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name) and statement.value is not None:
-            scoped_bindings[statement.target.id] = statement.value
-        for node in ast.walk(statement):
-            if not isinstance(node, ast.Call):
-                continue
-            func = node.func
-            call_name = python_call_name(func)
-            if call_name.endswith("open") and call_name.split(".", 1)[0] in active_shadowed_names:
-                return True
-            if isinstance(func, ast.Name) and func.id == "open":
-                if python_call_uses_write_mode(
-                    node,
-                    os_module_names,
-                    scoped_bindings,
-                    conservative_unknown_kwargs=False,
-                    shadowed_names=active_shadowed_names,
-                ):
-                    return True
-                continue
-            if isinstance(func, ast.Attribute) and func.attr in {"write_text", "write_bytes"}:
-                return True
-            if isinstance(func, ast.Attribute) and func.attr == "open":
-                os_open_names = {f"{name}.open" for name in os_names}
-                known_mode_checked = {"bz2.open", "gzip.open", "lzma.open", "tarfile.open", *os_open_names}
-                value_is_path, _value_has_dynamic = python_path_expr_info(
-                    func.value,
-                    constructor_names,
-                    os_names,
-                )
-                if not value_is_path and call_name not in known_mode_checked:
-                    return True
-                if python_call_uses_write_mode(
-                    node,
-                    os_names,
-                    scoped_bindings,
-                    assume_path_receiver=value_is_path,
-                    conservative_unknown_kwargs=False,
-                    shadowed_names=active_shadowed_names,
-                ):
-                    return True
-    return False
-
-
-def python_direct_dynamic_file_write(
-    text: str,
-    path_constructor_names: set[str] | None = None,
-    os_module_names: set[str] | None = None,
-    local_int_bindings: dict[str, ast.AST | int] | None = None,
-    shadowed_names: set[str] | None = None,
-) -> bool:
-    module = python_parse_diff_line(text)
-    if module is None:
-        return False
-    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+        if python_line_imports_urllib_urlopen_alias(text):
+            call_names.add("urlopen")
+        module_alias_match = re.match(r"^\s*import\s+urllib\.request\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b", text)
+        if module_alias_match:
+            call_names.add(f"{module_alias_match.group(1)}.urlopen")
+        request_alias_match = re.match(r"^\s*from\s+urllib\s+import\s+request\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b", text)
+        if request_alias_match:
+            call_names.add(f"{request_alias_match.group(1)}.urlopen")
+        urllib_alias_match = re.match(r"^\s*import\s+urllib\s+as\s+([A-Za-z_][A-Za-z0-9_]*)\b", text)
+        if urllib_alias_match:
+            call_names.add(f"{urllib_alias_match.group(1)}.request.urlopen")
+        return call_names
     for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-            continue
-        if node.func.attr not in {"write_text", "write_bytes"}:
-            continue
-        value = node.func.value
-        if python_target_key(value):
-            continue
-        value_is_path, value_has_dynamic = python_path_expr_info(value, constructor_names, os_module_names)
-        if value_is_path and value_has_dynamic:
-            return True
-    if python_direct_dynamic_open_write(
-        text,
-        path_constructor_names,
-        os_module_names,
-        local_int_bindings,
-        shadowed_names,
-    ):
-        return True
-    return False
+        if isinstance(node, ast.ImportFrom):
+            if node.module == "urllib.request":
+                for alias in node.names:
+                    if alias.name == "urlopen":
+                        call_names.add(alias.asname or alias.name)
+            elif node.module == "urllib":
+                for alias in node.names:
+                    if alias.name == "request":
+                        call_names.add(f"{alias.asname or alias.name}.urlopen")
+        elif isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "urllib.request":
+                    call_names.add(f"{alias.asname or alias.name}.urlopen")
+                elif alias.name == "urllib":
+                    call_names.add(f"{alias.asname or alias.name}.request.urlopen")
+    return python_prune_shadowed_urlopen_call_names(
+        call_names,
+        python_module_shadowed_name_roots(module),
+    )
 
 
-def python_diff_shadowed_name_roots(diff: str) -> dict[str, set[str]]:
+def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:
     sources_by_path: dict[str, list[str]] = {}
     for diff_line in iter_python_diff_lines_with_context(diff):
         if Path(diff_line.path).suffix.lower() == ".py":
             sources_by_path.setdefault(diff_line.path, []).append(diff_line.text)
-    shadowed_names_by_path: dict[str, set[str]] = {}
+    call_names_by_path: dict[str, set[str]] = {}
     for path, lines in sources_by_path.items():
-        module = python_parse_diff_line("\n".join(lines))
-        if module is None:
-            continue
-        shadowed_names = python_shadowed_name_roots(module)
-        if shadowed_names:
-            shadowed_names_by_path[path] = shadowed_names
-    return shadowed_names_by_path
+        call_names: set[str] = set()
+        for line_text in lines:
+            call_names.update(python_urllib_urlopen_call_names(line_text))
+        call_names.update(PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, set()))
+        call_names_by_path[path] = call_names
+    return call_names_by_path

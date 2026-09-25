@@ -86,6 +86,28 @@ def _deterministic_core_kind(finding: dict[str, Any], line_text: str) -> str:
     return kind if observed_kind == kind else ""
 
 
+def _bounded_anchor_file_context(file_text: str, line: int, max_chars: int) -> str:
+    if len(file_text) <= max_chars:
+        return file_text
+    lines = file_text.splitlines(keepends=True)
+    if not lines:
+        return ""
+    anchor_index = min(max(line - 1, 0), len(lines) - 1)
+    anchor_offset = sum(len(value) for value in lines[:anchor_index])
+    marker = "\n\n[... verifier context omitted ...]\n\n"
+    header_budget = min(2000, max_chars // 4)
+    window_budget = max(1, max_chars - header_budget - len(marker))
+    window_start = max(0, anchor_offset - (window_budget // 2))
+    window_end = min(len(file_text), window_start + window_budget)
+    if window_end == len(file_text):
+        window_start = max(0, window_end - window_budget)
+    header = file_text[:header_budget]
+    window = file_text[window_start:window_end]
+    if window_start <= len(header):
+        return file_text[:max_chars]
+    return header + marker + window
+
+
 def _verifier_prompt(finding: dict[str, Any], path: str, line: int, line_text: str, file_text: str, base: Any, config: Any) -> str:
     payload = json.dumps(
         {
@@ -100,10 +122,11 @@ def _verifier_prompt(finding: dict[str, Any], path: str, line: int, line_text: s
         indent=2,
         ensure_ascii=False,
     )
-    visible_file = base.sanitize_text(file_text, config)
     max_chars = max(2000, int(getattr(config, "per_file_review_max_file_chars", 12000)))
-    if len(visible_file) > max_chars:
-        visible_file = visible_file[:max_chars] + "\n\n[full head-file context truncated by verifier budget]"
+    visible_file = base.sanitize_text(
+        _bounded_anchor_file_context(file_text, line, max_chars),
+        config,
+    )
     prompt = f"""
 Independent DCOIR Review candidate-finding verification pass.
 

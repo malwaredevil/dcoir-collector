@@ -308,7 +308,7 @@ assert mod.python_path_constructor_aliases(rebound_alias_text) == set()
 assert mod.python_urllib_urlopen_call_names(
     "from urllib.request import urlopen\n"
     "from custom_storage import urlopen\n"
-) == {"urlopen"}
+) == set()
 assert not mod.python_line_is_known_urllib_urlopen(
     "(lambda urlopen: urlopen(target))(writer)",
     known_call_names={"urlopen"},

@@ -404,9 +404,10 @@ def main() -> None:
     stable_source = Path(
         ".github/dcoir_review/scripts/dcoir_review/per_file_routing.py"
     ).read_text(encoding="utf-8")
-    provider_source = Path(
-        ".github/dcoir_review/scripts/dcoir_review/hardened/part_04a_provider.py"
-    ).read_text(encoding="utf-8")
+    provider_source = "\n".join(
+        Path(".github/dcoir_review/scripts/dcoir_review/hardened", name).read_text(encoding="utf-8")
+        for name in ("part_04a_provider.py", "part_04b_provider_request.py")
+    )
     assert "VERSION = \"v47\"" not in stable_source
     assert "def openrouter_request_once" not in stable_source
     assert "openrouter_capture_request_telemetry" in provider_source
