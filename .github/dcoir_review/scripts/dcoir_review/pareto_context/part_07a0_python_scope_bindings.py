@@ -19,7 +19,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     globals_declared: set[str] = set()
     nonlocals_declared: set[str] = set()
     trusted_alias_targets: dict[str, set[str]] = {}
-    attribute_mutations: list[tuple[int, int, str, str | None]] = []
+    attribute_mutations: list[tuple[int, int, str, str | None, bool]] = []
     binding_events: dict[str, list[tuple[int, int, set[str] | None]]] = {}
     alias_assignments: list[tuple[int, int, str, str]] = []
     sequence = 0
@@ -45,7 +45,13 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         trusted_alias_targets.setdefault(name, set()).add(target)
         record_event(name, source_node, {target})
 
-    def collect_target(target: ast.AST, alias_value_path: str | None = None) -> None:
+    guaranteed_statements = _python_scope_guaranteed_direct_statements(node)
+
+    def collect_target(
+        target: ast.AST,
+        alias_value_path: str | None = None,
+        restoration_guaranteed: bool = False,
+    ) -> None:
         nonlocal sequence
         if isinstance(target, ast.Name):
             event_sequence = bind_local(target.id, assigned=True, source_node=target)
@@ -56,7 +62,13 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             if path:
                 sequence += 1
                 attribute_mutations.append(
-                    (int(getattr(target, 'lineno', 0) or 0), sequence, path, alias_value_path)
+                    (
+                        int(getattr(target, 'lineno', 0) or 0),
+                        sequence,
+                        path,
+                        alias_value_path,
+                        restoration_guaranteed,
+                    )
                 )
         elif isinstance(target, (ast.Tuple, ast.List)):
             for item in target.elts:
@@ -194,7 +206,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             self.visit(item.value)
             alias_value_path = _python_scope_attribute_path(item.value) if isinstance(item.value, (ast.Name, ast.Attribute)) else None
             for target in item.targets:
-                collect_target(target, alias_value_path)
+                collect_target(target, alias_value_path, id(item) in guaranteed_statements)
 
         def visit_AnnAssign(self, item: ast.AnnAssign) -> None:
             alias_value_path = None
@@ -202,7 +214,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                 self.visit(item.value)
                 if isinstance(item.value, (ast.Name, ast.Attribute)):
                     alias_value_path = _python_scope_attribute_path(item.value)
-            collect_target(item.target, alias_value_path)
+            collect_target(item.target, alias_value_path, id(item) in guaranteed_statements)
 
         def visit_AugAssign(self, item: ast.AugAssign) -> None:
             self.visit(item.value)
@@ -287,68 +299,3 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         'binding_events': binding_events,
         'alias_assignments': alias_assignments,
     }
-
-
-
-def _python_scope_mutation_state(events, nodes, line=None, before=None):
-    state = set()
-    for event_line, seq, event_node, path, restored in events:
-        if event_node not in nodes:
-            continue
-        if line is not None and (event_line > line or (event_line == line and before is not None and seq >= before)):
-            continue
-        (state.discard if restored else state.add)(path)
-    return state
-
-def _python_scope_deferred_mutations(events, excluded):
-    states = {}
-    for _line, _seq, node, path, restored in events:
-        if node not in excluded:
-            state = states.setdefault(node, set())
-            (state.discard if restored else state.add)(path)
-    return [(int(getattr(node, 'lineno', 0) or 0), path) for node, state in states.items() for path in state]
-
-def python_assignment_urllib_urlopen_call_names(text: str, base_call_names: set[str] | None = None) -> set[str]:
-    """Return possible urlopen call names introduced by simple assignment aliases."""
-    try:
-        module = ast.parse(text)
-    except (SyntaxError, ValueError, TypeError):
-        return set()
-    calls = set(base_call_names or ())
-    aliases: list[tuple[str, str]] = []
-    for item in ast.walk(module):
-        value = None
-        targets: list[ast.AST] = []
-        if isinstance(item, ast.Assign):
-            value = item.value
-            targets = list(item.targets)
-        elif isinstance(item, ast.AnnAssign) and item.value is not None:
-            value = item.value
-            targets = [item.target]
-        elif isinstance(item, ast.NamedExpr):
-            value = item.value
-            targets = [item.target]
-        if not isinstance(value, (ast.Name, ast.Attribute)):
-            continue
-        value_path = _python_scope_attribute_path(value)
-        if not value_path:
-            continue
-        for target in targets:
-            if isinstance(target, ast.Name):
-                aliases.append((target.id, value_path))
-    changed = True
-    while changed:
-        changed = False
-        for target, value_path in aliases:
-            candidates: set[str] = set()
-            if value_path in calls:
-                candidates.add(target)
-            if f'{value_path}.urlopen' in calls:
-                candidates.add(f'{target}.urlopen')
-            if f'{value_path}.request.urlopen' in calls:
-                candidates.add(f'{target}.request.urlopen')
-            new = candidates - calls
-            if new:
-                calls.update(new)
-                changed = True
-    return calls - set(base_call_names or ())
