@@ -47,7 +47,9 @@ def build_python_urllib_urlopen_call_context(gh: Any, pr: dict[str, Any], files:
         if not path or status in {"removed", "deleted"} or Path(path).suffix.lower() != ".py":
             continue
         try:
-            call_names = python_urllib_urlopen_call_names(fetch_pr_file_text(gh, path, head_sha))
+            source = fetch_pr_file_text(gh, path, head_sha)
+            call_names = python_urllib_urlopen_call_names(source)
+            call_names.update(python_assignment_urllib_urlopen_call_names(source, call_names))
         except Exception:
             continue
         if call_names:
