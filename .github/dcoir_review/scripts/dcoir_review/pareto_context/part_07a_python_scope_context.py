@@ -65,7 +65,6 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 path = attribute_path(target)
                 if path:
                     attribute_mutations.add(path)
-                    roots.add(path.split('.', 1)[0])
             elif isinstance(target, (ast.Tuple, ast.List)):
                 for item in target.elts:
                     collect_target(item)
