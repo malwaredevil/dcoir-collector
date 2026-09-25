@@ -78,11 +78,12 @@ def build_python_shadowed_name_context(gh: Any, pr: dict[str, Any], files: list[
 def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]]:
     module = ast.parse(source)
     by_line: dict[int, set[str]] = {}
+    scope_types = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
 
-    def collect_scope_bindings(node: ast.AST) -> set[str]:
+    def collect_scope_bindings(node: ast.AST) -> tuple[set[str], set[str], set[str]]:
         roots: set[str] = set()
         globals_declared: set[str] = set()
-        nonlocals_declared: set[str] = set()
+        trusted_roots: set[str] = set()
 
         def collect_target(target: ast.AST) -> None:
             if isinstance(target, ast.Name):
@@ -93,7 +94,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             elif isinstance(target, ast.Starred):
                 collect_target(target.value)
 
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        if isinstance(node, scope_types):
             args = node.args
             for arg in (*args.posonlyargs, *args.args, *args.kwonlyargs):
                 roots.add(arg.arg)
@@ -106,8 +107,9 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             def visit_Global(self, item: ast.Global) -> None:
                 globals_declared.update(item.names)
 
-            def visit_Nonlocal(self, item: ast.Nonlocal) -> None:
-                nonlocals_declared.update(item.names)
+            def visit_Nonlocal(self, _item: ast.Nonlocal) -> None:
+                # Nonlocal bindings intentionally keep the enclosing scope state.
+                return
 
             def visit_FunctionDef(self, item: ast.FunctionDef) -> None:
                 if item is not node:
@@ -133,7 +135,9 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             def visit_Import(self, item: ast.Import) -> None:
                 for alias in item.names:
                     name = alias.asname or alias.name.rsplit('.', 1)[-1]
-                    if alias.name not in {'urllib', 'urllib.request'}:
+                    if alias.name in {'urllib', 'urllib.request'}:
+                        trusted_roots.add(name)
+                    else:
                         roots.add(name)
 
             def visit_ImportFrom(self, item: ast.ImportFrom) -> None:
@@ -142,7 +146,9 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                     trusted = (item.module == 'urllib.request' and alias.name == 'urlopen') or (
                         item.module == 'urllib' and alias.name == 'request'
                     )
-                    if not trusted:
+                    if trusted:
+                        trusted_roots.add(name)
+                    else:
                         roots.add(name)
 
             def visit_Assign(self, item: ast.Assign) -> None:
@@ -184,25 +190,33 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
 
         Visitor().visit(node)
         roots.difference_update(globals_declared)
-        roots.difference_update(nonlocals_declared)
-        return roots
+        return roots, globals_declared, trusted_roots
 
-    def walk(node: ast.AST, inherited: set[str]) -> None:
-        is_scope = isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda))
-        active = set(inherited)
-        if is_scope:
-            active.update(collect_scope_bindings(node))
-            start = int(getattr(node, 'lineno', 0) or 0)
-            end = int(getattr(node, 'end_lineno', start) or start)
-            for line in range(start, end + 1):
-                by_line.setdefault(line, set()).update(active)
+    def iter_nested_scopes(node: ast.AST):
         for child in ast.iter_child_nodes(node):
-            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
-                walk(child, active)
-            elif not is_scope:
-                walk(child, active)
+            if isinstance(child, scope_types):
+                yield child
+                continue
+            yield from iter_nested_scopes(child)
 
-    walk(module, set())
+    def walk_scope(node: ast.AST, inherited: set[str]) -> None:
+        roots, globals_declared, trusted_roots = collect_scope_bindings(node)
+        active = set(inherited)
+        active.difference_update(globals_declared)
+        active.difference_update(trusted_roots)
+        active.update(roots)
+        start = int(getattr(node, 'lineno', 0) or 0)
+        end = int(getattr(node, 'end_lineno', start) or start)
+        for line in range(start, end + 1):
+            # The innermost lexical scope owns each mapped line. Replacing the
+            # enclosing scope state lets local trusted imports and `global`
+            # declarations clear inherited shadowing instead of unioning it back.
+            by_line[line] = set(active)
+        for child in iter_nested_scopes(node):
+            walk_scope(child, active)
+
+    for scope in iter_nested_scopes(module):
+        walk_scope(scope, set())
     return by_line
 
 
