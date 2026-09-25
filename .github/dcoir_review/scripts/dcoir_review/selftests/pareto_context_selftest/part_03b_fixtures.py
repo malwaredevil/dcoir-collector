@@ -13,6 +13,7 @@ class FakeGitHubClient:
             "tools/later_probe.py": "import subprocess\n\nsubprocess.run('whoami', shell=True)\n",
             "tools/huge_probe.py": "print('large context line')\n" * 1000,
             "tools/aliased_writer.py": "from pathlib import Path as P\nimport pathlib as pl\nimport os as operating_system\n\ndef write_triage_note(filename, note, output_dir):\n    destination = P(output_dir, filename)\n    pl.Path(destination).write_text(note)\n",
+            "tools/custom_open_import.py": "from custom_storage import open\n\ndef persist(user_path):\n    with open(user_path, \"r\") as handle:\n        return handle.read()\n",
         }
 
     def request(self, _method: str, path: str):

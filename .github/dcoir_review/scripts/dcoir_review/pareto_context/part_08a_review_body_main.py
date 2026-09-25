@@ -95,6 +95,7 @@ def main() -> None:
         set_python_path_alias_context(build_python_path_alias_context(gh, pr, files))
         set_python_os_alias_context(build_python_os_alias_context(gh, pr, files))
         set_python_urllib_urlopen_call_context(build_python_urllib_urlopen_call_context(gh, pr, files))
+        set_python_shadowed_name_context(build_python_shadowed_name_context(gh, pr, files))
         try:
             prior_successful_review = has_prior_successful_context_review(gh, pr_number)
             reporter.update("review-mode", f"prior context review found: {str(prior_successful_review).lower()}")
@@ -239,6 +240,7 @@ def main() -> None:
         set_python_path_alias_context({})
         set_python_os_alias_context({})
         set_python_urllib_urlopen_call_context({})
+        set_python_shadowed_name_context({})
         if config.script_timeout_seconds > 0 and hasattr(signal, "SIGALRM"):
             signal.alarm(0)
 
