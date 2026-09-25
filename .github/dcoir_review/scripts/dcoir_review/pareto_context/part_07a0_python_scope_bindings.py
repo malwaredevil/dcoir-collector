@@ -1,5 +1,4 @@
 _PY_SCOPE_FUNCTION_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
-_PY_SCOPE_COMPREHENSION_TYPES = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
 
 def _python_scope_attribute_path(node: ast.AST) -> str | None:
