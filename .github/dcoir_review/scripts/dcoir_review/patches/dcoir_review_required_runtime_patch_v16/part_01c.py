@@ -8,23 +8,79 @@ def _python_diff_import_alias_context(diff: str) -> tuple[dict[str, set[str]], d
         module = _python_parse_diff_line("\n".join(lines))
         if module is None:
             continue
-        shadowed_roots = _python_shadowed_name_roots(module)
         path_names: set[str] = set()
         os_names: set[str] = set()
-        for node in ast.walk(module):
-            if isinstance(node, ast.ImportFrom) and node.module == "pathlib":
-                for alias in node.names:
-                    if alias.name == "Path":
-                        name = alias.asname or alias.name
-                        if name not in shadowed_roots:
-                            path_names.add(name)
-            elif isinstance(node, ast.Import):
-                for alias in node.names:
-                    root = alias.asname or alias.name
-                    if alias.name == "pathlib" and root not in shadowed_roots:
+
+        def drop_path_root(root: str) -> None:
+            path_names.difference_update(
+                {
+                    alias
+                    for alias in path_names
+                    if alias == root or alias.startswith(f"{root}.")
+                }
+            )
+
+        def bound_roots(statement: ast.stmt) -> set[str]:
+            roots: set[str] = set()
+
+            def collect_target(node: ast.AST) -> None:
+                if isinstance(node, ast.Name):
+                    roots.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    collect_target(node.value)
+                elif isinstance(node, (ast.Tuple, ast.List)):
+                    for item in node.elts:
+                        collect_target(item)
+                elif isinstance(node, ast.Starred):
+                    collect_target(node.value)
+
+            for node in ast.walk(statement):
+                if isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        collect_target(target)
+                elif isinstance(node, ast.AnnAssign):
+                    collect_target(node.target)
+                elif isinstance(node, ast.AugAssign):
+                    collect_target(node.target)
+                elif isinstance(node, ast.NamedExpr):
+                    collect_target(node.target)
+                elif isinstance(node, (ast.For, ast.AsyncFor)):
+                    collect_target(node.target)
+                elif isinstance(node, ast.With):
+                    for item in node.items:
+                        if item.optional_vars is not None:
+                            collect_target(item.optional_vars)
+                elif isinstance(node, ast.AsyncWith):
+                    for item in node.items:
+                        if item.optional_vars is not None:
+                            collect_target(item.optional_vars)
+                elif isinstance(node, ast.ExceptHandler) and node.name:
+                    roots.add(node.name)
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    roots.add(node.name)
+            return roots
+
+        for statement in module.body:
+            if isinstance(statement, ast.ImportFrom):
+                for imported in statement.names:
+                    imported_name = imported.asname or imported.name
+                    drop_path_root(imported_name)
+                    os_names.discard(imported_name)
+                    if statement.module == "pathlib" and imported.name == "Path":
+                        path_names.add(imported_name)
+            elif isinstance(statement, ast.Import):
+                for imported in statement.names:
+                    root = imported.asname or imported.name.split(".", 1)[0]
+                    drop_path_root(root)
+                    os_names.discard(root)
+                    if imported.name == "pathlib":
                         path_names.add(f"{root}.Path")
-                    elif alias.name == "os" and root not in shadowed_roots:
+                    elif imported.name == "os":
                         os_names.add(root)
+            else:
+                for root in bound_roots(statement):
+                    drop_path_root(root)
+                    os_names.discard(root)
         if path_names:
             path_aliases[path] = path_names
         if os_names:

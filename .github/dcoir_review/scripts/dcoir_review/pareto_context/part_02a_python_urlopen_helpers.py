@@ -38,13 +38,19 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
         def visit_Import(self, node: ast.Import) -> None:
             for alias in node.names:
                 imported_name = alias.asname or alias.name.rsplit(".", 1)[-1]
-                if imported_name == "open":
+                if alias.name not in {"urllib", "urllib.request"}:
                     roots.add(imported_name)
 
         def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
             for alias in node.names:
                 imported_name = alias.asname or alias.name
-                if imported_name == "open":
+                if not (
+                    node.module == "urllib.request"
+                    and alias.name == "urlopen"
+                ) and not (
+                    node.module == "urllib"
+                    and alias.name == "request"
+                ):
                     roots.add(imported_name)
 
         def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
@@ -120,6 +126,34 @@ def python_shadowed_name_roots(module: ast.AST) -> set[str]:
             for statement in node.body:
                 self.visit(statement)
 
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            collect_arguments(node.args)
+            self.visit(node.body)
+
+        def _visit_comprehension_generators(self, generators: list[ast.comprehension]) -> None:
+            for generator in generators:
+                collect_target(generator.target)
+                self.visit(generator.iter)
+                for if_clause in generator.ifs:
+                    self.visit(if_clause)
+
+        def visit_ListComp(self, node: ast.ListComp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.elt)
+
+        def visit_SetComp(self, node: ast.SetComp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.elt)
+
+        def visit_DictComp(self, node: ast.DictComp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.key)
+            self.visit(node.value)
+
+        def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+            self._visit_comprehension_generators(node.generators)
+            self.visit(node.elt)
+
     visitor = _ModuleScopeShadowVisitor()
     for statement in getattr(module, "body", []):
         visitor.visit(statement)
@@ -148,6 +182,12 @@ def python_line_is_known_urllib_urlopen(
     if not call_names:
         return False
     if module is not None:
+        call_names = python_prune_shadowed_urlopen_call_names(
+            call_names,
+            python_shadowed_name_roots(module),
+        )
+        if not call_names:
+            return False
         for node in ast.walk(module):
             if isinstance(node, ast.Call) and python_call_name(node.func) in call_names:
                 return True

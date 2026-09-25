@@ -348,15 +348,72 @@ def python_path_constructor_aliases(text: str) -> set[str]:
         module = ast.parse(text.lstrip())
     except SyntaxError:
         return aliases
-    for statement in ast.walk(module):
-        if isinstance(statement, ast.ImportFrom) and statement.module == "pathlib":
-            for alias in statement.names:
-                if alias.name == "Path":
-                    aliases.add(alias.asname or alias.name)
+
+    def drop_root(root: str) -> None:
+        aliases.difference_update(
+            {
+                alias
+                for alias in aliases
+                if alias == root or alias.startswith(f"{root}.")
+            }
+        )
+
+    def bound_roots(statement: ast.stmt) -> set[str]:
+        roots: set[str] = set()
+
+        def collect_target(node: ast.AST) -> None:
+            if isinstance(node, ast.Name):
+                roots.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                collect_target(node.value)
+            elif isinstance(node, (ast.Tuple, ast.List)):
+                for item in node.elts:
+                    collect_target(item)
+            elif isinstance(node, ast.Starred):
+                collect_target(node.value)
+
+        for node in ast.walk(statement):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    collect_target(target)
+            elif isinstance(node, ast.AnnAssign):
+                collect_target(node.target)
+            elif isinstance(node, ast.AugAssign):
+                collect_target(node.target)
+            elif isinstance(node, ast.NamedExpr):
+                collect_target(node.target)
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                collect_target(node.target)
+            elif isinstance(node, ast.With):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        collect_target(item.optional_vars)
+            elif isinstance(node, ast.AsyncWith):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        collect_target(item.optional_vars)
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                roots.add(node.name)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                roots.add(node.name)
+        return roots
+
+    for statement in module.body:
+        if isinstance(statement, ast.ImportFrom):
+            for imported in statement.names:
+                imported_name = imported.asname or imported.name
+                drop_root(imported_name)
+                if statement.module == "pathlib" and imported.name == "Path":
+                    aliases.add(imported_name)
         elif isinstance(statement, ast.Import):
-            for alias in statement.names:
-                if alias.name == "pathlib":
-                    aliases.add(f"{alias.asname or alias.name}.Path")
+            for imported in statement.names:
+                root = imported.asname or imported.name.split(".", 1)[0]
+                drop_root(root)
+                if imported.name == "pathlib":
+                    aliases.add(f"{root}.Path")
+        else:
+            for root in bound_roots(statement):
+                drop_root(root)
     return aliases
 
 
@@ -369,9 +426,58 @@ def python_os_module_aliases(text: str) -> set[str]:
         module = ast.parse(text.lstrip())
     except SyntaxError:
         return aliases
-    for statement in ast.walk(module):
+
+    def bound_roots(statement: ast.stmt) -> set[str]:
+        roots: set[str] = set()
+
+        def collect_target(node: ast.AST) -> None:
+            if isinstance(node, ast.Name):
+                roots.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                collect_target(node.value)
+            elif isinstance(node, (ast.Tuple, ast.List)):
+                for item in node.elts:
+                    collect_target(item)
+            elif isinstance(node, ast.Starred):
+                collect_target(node.value)
+
+        for node in ast.walk(statement):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    collect_target(target)
+            elif isinstance(node, ast.AnnAssign):
+                collect_target(node.target)
+            elif isinstance(node, ast.AugAssign):
+                collect_target(node.target)
+            elif isinstance(node, ast.NamedExpr):
+                collect_target(node.target)
+            elif isinstance(node, (ast.For, ast.AsyncFor)):
+                collect_target(node.target)
+            elif isinstance(node, ast.With):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        collect_target(item.optional_vars)
+            elif isinstance(node, ast.AsyncWith):
+                for item in node.items:
+                    if item.optional_vars is not None:
+                        collect_target(item.optional_vars)
+            elif isinstance(node, ast.ExceptHandler) and node.name:
+                roots.add(node.name)
+            elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                roots.add(node.name)
+        return roots
+
+    for statement in module.body:
         if isinstance(statement, ast.Import):
-            for alias in statement.names:
-                if alias.name == "os":
-                    aliases.add(alias.asname or alias.name)
+            for imported in statement.names:
+                root = imported.asname or imported.name.split(".", 1)[0]
+                aliases.discard(root)
+                if imported.name == "os":
+                    aliases.add(root)
+        elif isinstance(statement, ast.ImportFrom):
+            for imported in statement.names:
+                aliases.discard(imported.asname or imported.name)
+        else:
+            for root in bound_roots(statement):
+                aliases.discard(root)
     return aliases
