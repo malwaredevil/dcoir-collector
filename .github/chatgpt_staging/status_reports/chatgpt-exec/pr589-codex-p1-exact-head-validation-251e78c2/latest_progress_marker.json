@@ -1,0 +1,15 @@
+{
+  "artifact_name": "chatgpt-exec-harness-failure-20260925T114841Z",
+  "exit_code": "1",
+  "github_ref": "refs/heads/agent-ops",
+  "github_run_attempt": "1",
+  "github_run_id": "36131149384",
+  "github_sha": "86ec023ca35bcfca9db24cc3af3b49ef0fa5d0da",
+  "phase": "harness-finished",
+  "request_id": "pr589-codex-p1-exact-head-validation-251e78c2",
+  "request_path": ".github/chatgpt_staging/exec_requests/pr589-codex-p1-exact-head-validation-251e78c2.json",
+  "result": "failure",
+  "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
+  "updated_utc": "2026-09-25T11:48:41Z",
+  "workflow": "chatgpt-exec"
+}
