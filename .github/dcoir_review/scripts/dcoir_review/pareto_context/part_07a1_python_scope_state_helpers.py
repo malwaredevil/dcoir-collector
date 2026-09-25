@@ -376,4 +376,18 @@ def _python_scope_guaranteed_restoration_targets(
         ]
         if any(set(event[2] or ()) != source_targets for event in later_events):
             return set()
+        for writer, writer_info in infos.items():
+            if writer is source[0]:
+                continue
+            writes_owner = (
+                value_path in writer_info['globals'] and source[0] is module
+            ) or (
+                value_path in writer_info['nonlocals']
+                and nearest_nonlocal_owner(writer, value_path) is source[0]
+            )
+            if writes_owner and any(
+                set(event[2] or ()) != source_targets
+                for event in writer_info['binding_events'].get(value_path, [])
+            ):
+                return set()
     return source_targets

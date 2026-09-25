@@ -272,3 +272,80 @@ same_trusted_global_rebind_context = _scope_context(
     ]
 )
 assert "urllib" not in same_trusted_global_rebind_context.get(10, set()), same_trusted_global_rebind_context
+
+
+sibling_global_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def rebind():",
+        "    global saved",
+        "    saved = custom_open",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "rebind()",
+        "mutator()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in sibling_global_rebind_context.get(13, set()), sibling_global_rebind_context
+
+sibling_nonlocal_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "def outer():",
+        "    saved = urllib.request.urlopen",
+        "    def rebind():",
+        "        nonlocal saved",
+        "        saved = custom_open",
+        "    def mutator():",
+        "        nonlocal saved",
+        "        urllib.request.urlopen = custom_open",
+        "        urllib.request.urlopen = saved",
+        "    rebind()",
+        "    mutator()",
+        "outer()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in sibling_nonlocal_rebind_context.get(15, set()), sibling_nonlocal_rebind_context
+
+sibling_local_only_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def local_only():",
+        "    saved = custom_open",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in sibling_local_only_context.get(11, set()), sibling_local_only_context
+
+sibling_same_trusted_global_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def rebind():",
+        "    global saved",
+        "    saved = urllib.request.urlopen",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "rebind()",
+        "mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in sibling_same_trusted_global_rebind_context.get(13, set()), sibling_same_trusted_global_rebind_context
