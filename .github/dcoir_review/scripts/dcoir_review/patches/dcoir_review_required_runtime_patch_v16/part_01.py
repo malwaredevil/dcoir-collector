@@ -229,6 +229,8 @@ def _python_call_uses_write_mode(
     has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
     os_open_names = {f"{name}.open" for name in (os_module_names or {"os"})}
     if call_name in os_open_names:
+        if shadowed_names and call_name.split(".", 1)[0] in shadowed_names:
+            return True
         return _python_os_open_uses_write_mode(call, os_module_names)
     if isinstance(call.func, ast.Name) and call.func.id == "open":
         if shadowed_names and "open" in shadowed_names:

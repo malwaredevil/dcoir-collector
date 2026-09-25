@@ -114,7 +114,34 @@ index 0000000..1111111 100644
 +"""
 )
 shadowed_urlopen_param_call_names = mod.python_diff_urllib_urlopen_call_names(shadowed_urlopen_param_diff).get("tools/http_shadow.py", set())
-assert "urlopen" not in shadowed_urlopen_param_call_names, shadowed_urlopen_param_call_names
+assert "urlopen" in shadowed_urlopen_param_call_names, shadowed_urlopen_param_call_names
+shadowed_urlopen_param_roots = mod.python_diff_shadowed_name_roots_by_line(shadowed_urlopen_param_diff).get("tools/http_shadow.py", {})
+assert "urlopen" in shadowed_urlopen_param_roots.get(3, set()), shadowed_urlopen_param_roots
+assert not mod.python_line_is_known_urllib_urlopen(
+    "    return urlopen(user_path)",
+    known_call_names={"urlopen"},
+    shadowed_names={"urlopen"},
+)
+
+cross_function_urlopen_shadow_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/http_shadow_scope.py b/tools/http_shadow_scope.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/http_shadow_scope.py
+@@ -0,0 +1,6 @@
++from urllib.request import urlopen
++def helper(urlopen):
++    return urlopen("https://example.invalid")
++def fetch(req):
++    return urlopen(req)
+"""
+)
+assert not any(
+    item.path == "tools/http_shadow_scope.py"
+    and item.line == 5
+    and item.label in legacy_path_write_labels
+    for item in cross_function_urlopen_shadow_sentinels
+), cross_function_urlopen_shadow_sentinels
 
 shadowed_qualified_urlopen_diff = (
     """diff --git a/tools/http_shadow_qualified.py b/tools/http_shadow_qualified.py
@@ -132,7 +159,17 @@ shadowed_qualified_urlopen_call_names = mod.python_diff_urllib_urlopen_call_name
     "tools/http_shadow_qualified.py",
     set(),
 )
-assert "urllib.request.urlopen" not in shadowed_qualified_urlopen_call_names, shadowed_qualified_urlopen_call_names
+assert "urllib.request.urlopen" in shadowed_qualified_urlopen_call_names, shadowed_qualified_urlopen_call_names
+assert not mod.python_line_is_known_urllib_urlopen(
+    "    return urllib.request.urlopen(user_path)",
+    known_call_names={"urllib.request.urlopen"},
+    shadowed_names={"urllib"},
+)
+assert mod.python_line_has_explicit_file_write_call(
+    "    return urllib.request.urlopen(user_path)",
+    known_call_names={"urllib.request.urlopen"},
+    shadowed_names={"urllib"},
+)
 
 shadowed_alias_urlopen_diff = (
     """diff --git a/tools/http_shadow_alias.py b/tools/http_shadow_alias.py
@@ -150,7 +187,17 @@ shadowed_alias_urlopen_call_names = mod.python_diff_urllib_urlopen_call_names(sh
     "tools/http_shadow_alias.py",
     set(),
 )
-assert "ur.urlopen" not in shadowed_alias_urlopen_call_names, shadowed_alias_urlopen_call_names
+assert "ur.urlopen" in shadowed_alias_urlopen_call_names, shadowed_alias_urlopen_call_names
+assert not mod.python_line_is_known_urllib_urlopen(
+    "    return ur.urlopen(user_path)",
+    known_call_names={"ur.urlopen"},
+    shadowed_names={"ur"},
+)
+assert mod.python_line_has_explicit_file_write_call(
+    "    return ur.urlopen(user_path)",
+    known_call_names={"ur.urlopen"},
+    shadowed_names={"ur"},
+)
 
 shadowed_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/custom_open_import.py b/tools/custom_open_import.py
@@ -170,6 +217,25 @@ assert any(
     and item.label in legacy_path_write_labels
     for item in shadowed_open_sentinels
 ), shadowed_open_sentinels
+
+shadowed_os_module_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_shadow.py b/tools/os_shadow.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_shadow.py
+@@ -0,0 +1,4 @@
++import os
++os = storage
++def persist(user_path):
++    return os.open(user_path, os.O_RDONLY)
+"""
+)
+assert any(
+    item.path == "tools/os_shadow.py"
+    and item.line == 4
+    and item.label in legacy_path_write_labels
+    for item in shadowed_os_module_sentinels
+), shadowed_os_module_sentinels
 
 unsafe_builtin_open_sentinels = mod.detect_risk_sentinels(
     """diff --git a/tools/unsafe_writer.py b/tools/unsafe_writer.py

@@ -36,6 +36,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                         PYTHON_SHADOWED_NAME_CONTEXT.setdefault(str(key), set()).update(value)
         diff_path_aliases, diff_os_aliases = _python_diff_import_alias_context(diff)
         diff_shadowed_names = _python_diff_shadowed_name_roots(diff)
+        diff_shadowed_names_by_line = _python_diff_shadowed_name_roots_by_line(diff)
         for path, names in diff_path_aliases.items():
             PYTHON_PATH_ALIAS_CONTEXT.setdefault(path, set()).update(names)
         for path, names in diff_os_aliases.items():
@@ -65,16 +66,19 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 if _python_is_known_urllib_urlopen(
                     text,
                     known_call_names=urllib_urlopen_call_names_by_path.get(path),
+                    shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0)),
                 ):
                     continue
+                has_known_open_call = _python_has_known_file_open_call(text, constructor_names, os_module_names)
                 if (
                     Path(path).suffix.lower() == ".py"
-                    and _python_has_known_file_open_call(text, constructor_names, os_module_names)
+                    and has_known_open_call
                     and not _python_is_explicit_file_write(
                         text,
                         constructor_names,
                         os_module_names,
-                        PYTHON_SHADOWED_NAME_CONTEXT.get(path),
+                        set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
+                        | diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0), set()),
                     )
                 ):
                     continue
@@ -96,6 +100,7 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
             if kind == v11.PYTHON_PATH_WRITE and _python_is_known_urllib_urlopen(
                 text,
                 known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, urllib_urlopen_call_names_by_path.get(path)),
+                shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(line),
             ):
                 continue
             constructor_names = set(path_alias_context)
@@ -106,7 +111,8 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 text,
                 constructor_names,
                 os_module_names,
-                PYTHON_SHADOWED_NAME_CONTEXT.get(path),
+                set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
+                | diff_shadowed_names_by_line.get(path, {}).get(line, set()),
             ):
                 # The wrapped detector already evaluates complete statements. Do not
                 # manufacture a path-write sentinel from an incomplete line fragment.
