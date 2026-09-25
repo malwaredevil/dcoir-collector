@@ -26,10 +26,18 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             parent = parents.get(parent)
         return parent
 
-    def latest_binding(info: dict[str, Any], name: str, line: int | None) -> tuple[int, int, set[str] | None] | None:
+    def latest_binding(
+        info: dict[str, Any],
+        name: str,
+        line: int | None,
+        before_sequence: int | None = None,
+    ) -> tuple[int, int, set[str] | None] | None:
         events = list(info['binding_events'].get(name, []))
         if line is not None:
-            events = [event for event in events if event[0] <= line]
+            events = [
+                event for event in events
+                if event[0] < line or (event[0] == line and (before_sequence is None or event[1] < before_sequence))
+            ]
         return max(events, key=lambda event: (event[0], event[1])) if events else None
 
     def nearest_nonlocal_owner(node: ast.AST, name: str) -> ast.AST | None:
@@ -47,6 +55,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         name: str,
         line: int | None = None,
         seen: set[tuple[int, str]] | None = None,
+        before_sequence: int | None = None,
     ) -> set[str]:
         seen = set(seen or ())
         key = (id(node), name)
@@ -59,7 +68,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         if node is not module and name in info['nonlocals']:
             owner = nearest_nonlocal_owner(node, name)
             return resolve_trusted_targets(owner, name, None, seen) if owner is not None else set()
-        event = latest_binding(info, name, line)
+        event = latest_binding(info, name, line, before_sequence)
         if event is not None:
             return set(event[2] or ())
         if name in info['local_bindings']:
@@ -69,6 +78,34 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         if parent is None:
             return set()
         return resolve_trusted_targets(parent, name, None, seen)
+
+    trusted_assignment_targets = {'urllib', 'urllib.request', 'urllib.request.urlopen'}
+    changed = True
+    while changed:
+        changed = False
+        for node, info in infos.items():
+            for line, sequence, target_name, value_path in info.get('alias_assignments', []):
+                events = info['binding_events'].get(target_name, [])
+                current = next((event for event in events if event[0] == line and event[1] == sequence), None)
+                if current is None or current[2] is not None:
+                    continue
+                value_root, dot, suffix = value_path.partition('.')
+                base_targets = resolve_trusted_targets(
+                    node,
+                    value_root,
+                    line,
+                    before_sequence=sequence,
+                )
+                canonical = {f'{base}.{suffix}' if dot and suffix else base for base in base_targets}
+                promoted = canonical & trusted_assignment_targets
+                if not promoted:
+                    continue
+                info['binding_events'][target_name] = [
+                    (event[0], event[1], set(promoted)) if event[0] == line and event[1] == sequence else event
+                    for event in events
+                ]
+                info['trusted_alias_targets'].setdefault(target_name, set()).update(promoted)
+                changed = True
 
     global_shadowed_roots: set[str] = set()
     for node, info in infos.items():

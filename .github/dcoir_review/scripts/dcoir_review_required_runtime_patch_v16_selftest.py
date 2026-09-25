@@ -1159,6 +1159,136 @@ def test_full_head_parameter_before_trusted_import_remains_shadowed() -> None:
     )
 
 
+def test_full_head_assignment_module_alias_is_trusted() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "req = urllib.request",
+            "def fetch(request):",
+            "    return req.urlopen(request)",
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(source)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(source, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "req.urlopen" in call_names, call_names
+    assert "req" not in scoped_context.get(4, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "    return req.urlopen(request)",
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(4, set()),
+    )
+
+
+def test_full_head_assignment_direct_urlopen_alias_is_trusted() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "opener = urlopen",
+            "def fetch(request):",
+            "    return opener(request)",
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(source)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(source, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "opener" in call_names, call_names
+    assert "opener" not in scoped_context.get(4, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "    return opener(request)",
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(4, set()),
+    )
+
+
+def test_full_head_assignment_inherited_alias_is_trusted() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def outer():",
+            "    opener = urlopen",
+            "    def fetch(request):",
+            "        return opener(request)",
+            "    return fetch",
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(source)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(source, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "opener" in call_names, call_names
+    assert "opener" not in scoped_context.get(5, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "        return opener(request)",
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_assignment_alias_mutation_remains_shadowed() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "req = urllib.request",
+            "req.urlopen = custom_open",
+            "def persist(user_path, data):",
+            '    return req.urlopen(user_path, "w").write(data)',
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(source)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(source, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "req" in scoped_context.get(5, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return req.urlopen(user_path, "w").write(data)',
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_assignment_alias_parameter_collision_stays_isolated() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request as client",
+            "def mutate(client):",
+            "    alias = client",
+            "    alias.urlopen = custom_open",
+            "def fetch(request):",
+            "    import urllib.request as alias",
+            "    return alias.urlopen(request)",
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(source)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(source, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "alias" not in scoped_context.get(7, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "    return alias.urlopen(request)",
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(7, set()),
+    )
+
+
+def test_full_head_assignment_alias_rebind_after_trust_is_shadowed() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "req = urllib.request",
+            "req = custom_storage",
+            "def persist(user_path, data):",
+            '    return req.urlopen(user_path, "w").write(data)',
+        ]
+    )
+    base_calls = pareto.python_urllib_urlopen_call_names(source)
+    call_names = set(base_calls) | pareto.python_assignment_urllib_urlopen_call_names(source, base_calls)
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "req" in scoped_context.get(5, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return req.urlopen(user_path, "w").write(data)',
+        known_call_names=call_names,
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
 def test_pareto_shadowed_name_context_registry_is_defined() -> None:
     pareto.set_python_shadowed_name_context({"tools/custom_open_import.py": {"open"}})
     assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {"tools/custom_open_import.py": {"open"}}
@@ -1338,6 +1468,12 @@ def main() -> None:
     test_full_head_module_trusted_reimport_restores_name_binding()
     test_full_head_parameter_then_trusted_import_restores_local_binding()
     test_full_head_parameter_before_trusted_import_remains_shadowed()
+    test_full_head_assignment_module_alias_is_trusted()
+    test_full_head_assignment_direct_urlopen_alias_is_trusted()
+    test_full_head_assignment_inherited_alias_is_trusted()
+    test_full_head_assignment_alias_mutation_remains_shadowed()
+    test_full_head_assignment_alias_parameter_collision_stays_isolated()
+    test_full_head_assignment_alias_rebind_after_trust_is_shadowed()
     test_pareto_shadowed_name_context_registry_is_defined()
     test_patched_detector_consumes_sentinel_owner_urlopen_context()
     test_core_semantics_keeps_stable_finding_family_dependency()
