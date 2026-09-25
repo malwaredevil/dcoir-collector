@@ -131,6 +131,7 @@ for _flag_name in PYTHON_OS_OPEN_MUTATING_FLAG_NAMES:
 PYTHON_PATH_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_OS_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_URLLIB_URLOPEN_CALL_CONTEXT: dict[str, set[str]] = {}
+PYTHON_SHADOWED_NAME_CONTEXT: dict[str, set[str]] = {}
 GITHUB_ACTIONS_WRITE_PERMISSION_RE = re.compile(
     r"^\s*(?:permissions\s*:\s*write-all|(?:actions|checks|contents|deployments|id-token|issues|packages|pull-requests|statuses)\s*:\s*write)\b",
     re.IGNORECASE,

@@ -160,7 +160,7 @@ def apply_pareto_context_module(module: Any) -> None:
         key=_candidate_priority,
     )[: max(0, int(getattr(config, "max_inline_comments", 12)))]
     if hardened is not None:
-        _patch_detect(hardened)
+        _patch_detect(hardened, module)
         hardened.add_risk_sentinel_fallback_findings = lambda findings, risk_sentinels, config, unanchored_findings=None: _select_required_postable(
             hardened, findings, risk_sentinels, config, unanchored_findings
         )

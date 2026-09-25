@@ -496,6 +496,40 @@ def test_patched_detector_consumes_owner_shadowed_name_context() -> None:
     assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
+def test_pareto_shadowed_name_context_registry_is_defined() -> None:
+    pareto.set_python_shadowed_name_context({"tools/custom_open_import.py": {"open"}})
+    assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {"tools/custom_open_import.py": {"open"}}
+    pareto.set_python_shadowed_name_context({})
+    assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {}
+
+
+def test_patched_detector_consumes_sentinel_owner_urlopen_context() -> None:
+    class Owner:
+        RiskSentinel = SimpleNamespace
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return [_s("tools/http_head_alias_client.py", 2, v11.PYTHON_PATH_WRITE, "    return urlopen(req)")]
+
+    class SentinelOwner:
+        PYTHON_URLLIB_URLOPEN_CALL_CONTEXT = {"tools/http_head_alias_client.py": {"urlopen"}}
+
+    owner = Owner()
+    v16._patch_detect(owner, SentinelOwner())
+    diff = "\n".join(
+        [
+            "diff --git a/tools/http_head_alias_client.py b/tools/http_head_alias_client.py",
+            "+++ b/tools/http_head_alias_client.py",
+            "@@ -2,2 +2,2 @@",
+            " def fetch(req):",
+            '-    return "pending"',
+            "+    return urlopen(req)",
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert not any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
+
+
 def test_core_semantics_keeps_stable_finding_family_dependency() -> None:
     from dcoir_review import finding_family
 
@@ -582,6 +616,8 @@ def main() -> None:
     test_patched_detector_keeps_shadowed_read_only_bare_open_calls()
     test_patched_detector_keeps_unknown_kwargs_open_calls()
     test_patched_detector_consumes_owner_shadowed_name_context()
+    test_pareto_shadowed_name_context_registry_is_defined()
+    test_patched_detector_consumes_sentinel_owner_urlopen_context()
     test_core_semantics_keeps_stable_finding_family_dependency()
 
     print("dcoir_review_required_runtime_patch_v16_selftest passed")
