@@ -333,6 +333,24 @@ def test_stable_owner_composition() -> None:
     assert not hasattr(publication, "_VERIFIER_STORAGE")
     assert not hasattr(gate, "_VERIFIER_STORAGE")
 
+def test_large_file_context_is_centered_on_late_anchor(verifier) -> None:
+    prefix_lines = ["from pathlib import Path\n"] + [f"EARLY_{index:04d} = {index}\n" for index in range(260)]
+    local_lines = [
+        "NEAR_BEFORE = Path(user_path).parent.resolve()\n",
+        "Path(user_path).write_text(payload, encoding=\"utf-8\")\n",
+        "NEAR_AFTER = user_path\n",
+    ]
+    file_text = "".join(prefix_lines + local_lines + ["TRAILING = True\n"] * 80)
+    anchor_line = len(prefix_lines) + 2
+    context = verifier._bounded_anchor_file_context(file_text, anchor_line, 2000)
+    assert len(context) <= 2000
+    assert "from pathlib import Path" in context
+    assert "[... verifier context omitted ...]" in context
+    assert "NEAR_BEFORE" in context
+    assert "Path(user_path).write_text" in context
+    assert "NEAR_AFTER" in context
+
+
 def main() -> None:
     test_stable_owner_composition()
     review, v20, verifier = patched_modules()
@@ -341,6 +359,7 @@ def main() -> None:
     test_supported_model_candidate_retains_concrete_evidence(review, verifier)
     test_context_sensitive_path_write_can_be_semantically_suppressed(review, verifier)
     test_unsafe_path_write_still_requires_and_can_pass_semantic_verification(review, verifier)
+    test_large_file_context_is_centered_on_late_anchor(verifier)
     test_verifier_capacity_is_independent_from_repair_budget(review, verifier)
     test_ambiguous_verifier_output_fails_closed(review, verifier)
     print("dcoir_review_finding_verifier_selftest passed")

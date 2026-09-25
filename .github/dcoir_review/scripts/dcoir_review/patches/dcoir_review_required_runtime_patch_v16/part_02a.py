@@ -63,23 +63,27 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
                 if _is_python_test_file(path):
                     continue
+                item_shadowed_names = (
+                    set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
+                    | diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0), set())
+                )
+                explicit_file_write = _python_is_explicit_file_write(
+                    text,
+                    constructor_names,
+                    os_module_names,
+                    item_shadowed_names,
+                )
                 if _python_is_known_urllib_urlopen(
                     text,
                     known_call_names=urllib_urlopen_call_names_by_path.get(path),
                     shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0)),
-                ):
+                ) and not explicit_file_write:
                     continue
                 has_known_open_call = _python_has_known_file_open_call(text, constructor_names, os_module_names)
                 if (
                     Path(path).suffix.lower() == ".py"
                     and has_known_open_call
-                    and not _python_is_explicit_file_write(
-                        text,
-                        constructor_names,
-                        os_module_names,
-                        set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
-                        | diff_shadowed_names_by_line.get(path, {}).get(int(getattr(item, "line", 0) or 0), set()),
-                    )
+                    and not explicit_file_write
                 ):
                     continue
             filtered_sentinels.append(item)
@@ -101,34 +105,34 @@ def _patch_detect(owner: Any, sentinel_owner: Any | None = None) -> None:
                 set(PYTHON_SHADOWED_NAME_CONTEXT.get(path, set()))
                 | diff_shadowed_names_by_line.get(path, {}).get(line, set())
             )
+            explicit_file_write = _python_is_explicit_file_write(
+                text,
+                constructor_names,
+                os_module_names,
+                shadowed_names,
+            )
             if (
                 kind != v11.PYTHON_PATH_WRITE
                 and Path(path).suffix.lower() == ".py"
-                and re.search(r"\b(?:write_text|write_bytes|open)\s*\(", text)
-                and _python_is_explicit_file_write(
-                    text,
-                    constructor_names,
-                    os_module_names,
-                    shadowed_names,
-                )
+                and re.search(r"(?:write_text|write_bytes|open)\s*\(", text)
+                and explicit_file_write
             ):
                 kind = v11.PYTHON_PATH_WRITE
             if kind not in TRACKED_KINDS and kind not in OPTIONAL_PRESSURE_KINDS:
                 continue
             if kind == v11.PYTHON_PATH_WRITE and _is_python_test_file(path):
                 continue
-            if kind == v11.PYTHON_PATH_WRITE and _python_is_known_urllib_urlopen(
-                text,
-                known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, urllib_urlopen_call_names_by_path.get(path)),
-                shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(line),
+            if (
+                kind == v11.PYTHON_PATH_WRITE
+                and _python_is_known_urllib_urlopen(
+                    text,
+                    known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path, urllib_urlopen_call_names_by_path.get(path)),
+                    shadowed_names=diff_shadowed_names_by_line.get(path, {}).get(line),
+                )
+                and not explicit_file_write
             ):
                 continue
-            if kind == v11.PYTHON_PATH_WRITE and not _python_is_explicit_file_write(
-                text,
-                constructor_names,
-                os_module_names,
-                shadowed_names,
-            ):
+            if kind == v11.PYTHON_PATH_WRITE and not explicit_file_write:
                 # The wrapped detector already evaluates complete statements. Do not
                 # manufacture a path-write sentinel from an incomplete line fragment.
                 continue
