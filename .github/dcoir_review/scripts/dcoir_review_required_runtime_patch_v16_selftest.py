@@ -775,6 +775,176 @@ def test_full_head_dotted_trusted_import_binds_root_name() -> None:
     )
 
 
+def test_full_head_global_rebind_remains_shadowed_in_global_consumer() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def rebind():",
+            "    global urlopen",
+            "    urlopen = custom_open",
+            "def persist(user_path, data):",
+            "    global urlopen",
+            '    return urlopen(user_path, "w").write(data)',
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" in scoped_context.get(7, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return urlopen(user_path, "w").write(data)',
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(7, set()),
+    )
+
+
+def test_full_head_nonlocal_rebind_propagates_to_sibling_scope() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def outer():",
+            "    from urllib.request import urlopen",
+            "    def rebind():",
+            "        nonlocal urlopen",
+            "        urlopen = custom_open",
+            "    def persist(user_path, data):",
+            '        return urlopen(user_path, "w").write(data)',
+            "    return rebind, persist",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" in scoped_context.get(8, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '        return urlopen(user_path, "w").write(data)',
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(8, set()),
+    )
+
+
+def test_full_head_nonlocal_reference_without_rebind_stays_trusted() -> None:
+    source = "\n".join(
+        [
+            "def outer():",
+            "    from urllib.request import urlopen",
+            "    def fetch(req):",
+            "        nonlocal urlopen",
+            "        return urlopen(req)",
+            "    return fetch",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" not in scoped_context.get(5, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "        return urlopen(req)",
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_qualified_urlopen_mutation_propagates_to_sibling_scope() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "def rebind():",
+            "    urllib.request.urlopen = custom_open",
+            "def persist(user_path, data):",
+            '    return urllib.request.urlopen(user_path, "w").write(data)',
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urllib" in scoped_context.get(5, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+        known_call_names={"urllib.request.urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_qualified_mutation_survives_sibling_trusted_reimport() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "def rebind():",
+            "    urllib.request.urlopen = custom_open",
+            "def persist(user_path, data):",
+            "    from urllib import request as req",
+            '    return req.urlopen(user_path, "w").write(data)',
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "req" in scoped_context.get(6, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return req.urlopen(user_path, "w").write(data)',
+        known_call_names={"req.urlopen"},
+        shadowed_names=scoped_context.get(6, set()),
+    )
+
+
+def test_full_head_unrelated_attribute_mutation_does_not_shadow_urllib() -> None:
+    source = "\n".join(
+        [
+            "import urllib.request",
+            "def mutate(client):",
+            "    client.request = custom_request",
+            "def fetch(req):",
+            "    return urllib.request.urlopen(req)",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urllib" not in scoped_context.get(5, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "    return urllib.request.urlopen(req)",
+        known_call_names={"urllib.request.urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_default_expression_uses_enclosing_shadow_state() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def outer(urlopen, user_path, data):",
+            '    def persist(value=urlopen(user_path, "w").write(data)):',
+            "        from urllib.request import urlopen",
+            "        return urlopen(value)",
+            "    return persist",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" in scoped_context.get(3, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    def persist(value=urlopen(user_path, "w").write(data)):',
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(3, set()),
+    )
+    assert "urlopen" not in scoped_context.get(5, set()), scoped_context
+    assert v16._python_is_known_urllib_urlopen(
+        "        return urlopen(value)",
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(5, set()),
+    )
+
+
+def test_full_head_decorator_expression_uses_enclosing_shadow_state() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "def outer(urlopen, user_path, data):",
+            '    @urlopen(user_path, "w").write(data)',
+            "    def persist(value):",
+            "        from urllib.request import urlopen",
+            "        return urlopen(value)",
+            "    return persist",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" in scoped_context.get(3, set()), scoped_context
+    assert not v16._python_is_known_urllib_urlopen(
+        '    @urlopen(user_path, "w").write(data)',
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(3, set()),
+    )
+    assert "urlopen" not in scoped_context.get(6, set()), scoped_context
+
+
 def test_pareto_shadowed_name_context_registry_is_defined() -> None:
     pareto.set_python_shadowed_name_context({"tools/custom_open_import.py": {"open"}})
     assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {"tools/custom_open_import.py": {"open"}}
@@ -935,6 +1105,14 @@ def main() -> None:
     test_full_head_global_declaration_without_rebind_uses_module_import()
     test_full_head_global_custom_rebind_propagates_cross_function()
     test_full_head_dotted_trusted_import_binds_root_name()
+    test_full_head_global_rebind_remains_shadowed_in_global_consumer()
+    test_full_head_nonlocal_rebind_propagates_to_sibling_scope()
+    test_full_head_nonlocal_reference_without_rebind_stays_trusted()
+    test_full_head_qualified_urlopen_mutation_propagates_to_sibling_scope()
+    test_full_head_qualified_mutation_survives_sibling_trusted_reimport()
+    test_full_head_unrelated_attribute_mutation_does_not_shadow_urllib()
+    test_full_head_default_expression_uses_enclosing_shadow_state()
+    test_full_head_decorator_expression_uses_enclosing_shadow_state()
     test_pareto_shadowed_name_context_registry_is_defined()
     test_patched_detector_consumes_sentinel_owner_urlopen_context()
     test_core_semantics_keeps_stable_finding_family_dependency()

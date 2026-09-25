@@ -50,6 +50,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'pareto_context/part_05_ranking_per_file_review.py',
         'pareto_context/part_05a_hybrid_review.py',
         'pareto_context/part_06_fix_synthesis.py',
+        'pareto_context/part_07a_python_scope_context.py',
         'pareto_context/part_07_deep_context_prompt.py',
         'pareto_context/part_08_review_body_main.py',
         'pareto_context/part_08a_review_body_main.py',
