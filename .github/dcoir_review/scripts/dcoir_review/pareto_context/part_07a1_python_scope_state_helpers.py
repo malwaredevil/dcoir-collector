@@ -312,3 +312,44 @@ def _python_scope_submodule_import_binding_keys(infos: dict[ast.AST, dict[str, A
         for scope_node, info in infos.items()
         for name, line, sequence in info.get('submodule_import_binding_keys', set())
     }
+
+
+def _python_scope_guaranteed_binding_keys(infos: dict[ast.AST, dict[str, Any]]) -> set[tuple[int, str, int, int]]:
+    return {
+        (id(scope_node), name, line, sequence)
+        for scope_node, info in infos.items()
+        for name, line, sequence in info.get('guaranteed_binding_keys', set())
+    }
+
+
+def _python_scope_guaranteed_restoration_targets(
+    source_node,
+    value_path,
+    line,
+    sequence,
+    infos,
+    module,
+    function_scope_types,
+    lexical_parent,
+    nearest_nonlocal_owner,
+    guaranteed_binding_keys,
+):
+    if not value_path or '.' in value_path:
+        return set()
+    source = _python_scope_binding_event_owner(
+        source_node,
+        value_path,
+        line,
+        sequence,
+        infos,
+        module,
+        function_scope_types,
+        lexical_parent,
+        nearest_nonlocal_owner,
+    )
+    if source is None:
+        return set()
+    key = (id(source[0]), value_path, source[1][0], source[1][1])
+    if key not in guaranteed_binding_keys:
+        return set()
+    return set(source[1][2] or ())

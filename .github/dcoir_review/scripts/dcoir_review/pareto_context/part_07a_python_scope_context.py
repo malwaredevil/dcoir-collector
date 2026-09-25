@@ -90,6 +90,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
 
     alias_sources = _python_scope_alias_sources(infos)
     submodule_import_binding_keys = _python_scope_submodule_import_binding_keys(infos)
+    guaranteed_binding_keys = _python_scope_guaranteed_binding_keys(infos)
 
     global_shadowed_roots: set[str] = set()
     for node, info in infos.items():
@@ -114,10 +115,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 for target in canonical_mutation_paths(source_node, mutation, line, sequence):
                     if target not in {'urllib.request', 'urllib.request.urlopen'}:
                         continue
-                    restored = bool(
-                        value_path and '.' not in value_path
-                        and target in resolve_trusted_targets(source_node, value_path, line, before_sequence=sequence)
-                    )
+                    restored = target in _python_scope_guaranteed_restoration_targets(source_node, value_path, line, sequence, infos, module, function_scope_types, lexical_parent, nearest_nonlocal_owner, guaranteed_binding_keys)
                     found.append(
                         (line, sequence, source_node, target, restored, restoration_guaranteed)
                     )

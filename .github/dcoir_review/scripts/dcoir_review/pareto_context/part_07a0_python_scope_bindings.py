@@ -23,6 +23,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     binding_events: dict[str, list[tuple[int, int, set[str] | None]]] = {}
     alias_assignments: list[tuple[int, int, str, str]] = []
     submodule_import_binding_keys: set[tuple[str, int, int]] = set()
+    guaranteed_binding_keys: set[tuple[str, int, int]] = set()
     sequence = 0
 
     def record_event(name: str, source_node: ast.AST | None, targets: set[str] | None) -> int:
@@ -32,13 +33,24 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         binding_events.setdefault(name, []).append((line, sequence, None if targets is None else set(targets)))
         return sequence
 
-    def bind_local(name: str, *, assigned: bool = False, source_node: ast.AST | None = None) -> int | None:
+    def bind_local(
+        name: str,
+        *,
+        assigned: bool = False,
+        source_node: ast.AST | None = None,
+        guaranteed: bool = False,
+    ) -> int | None:
         roots.add(name)
         local_bindings.add(name)
         if assigned:
             assigned_names.add(name)
         if source_node is not None:
-            return record_event(name, source_node, None)
+            event_sequence = record_event(name, source_node, None)
+            if guaranteed:
+                guaranteed_binding_keys.add(
+                    (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
+                )
+            return event_sequence
         return None
 
     def bind_trusted(
@@ -51,6 +63,10 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         local_bindings.add(name)
         trusted_alias_targets.setdefault(name, set()).add(target)
         event_sequence = record_event(name, source_node, {target})
+        if id(source_node) in guaranteed_statements:
+            guaranteed_binding_keys.add(
+                (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
+            )
         if from_real_submodule:
             submodule_import_binding_keys.add(
                 (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
@@ -65,7 +81,12 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     ) -> None:
         nonlocal sequence
         if isinstance(target, ast.Name):
-            event_sequence = bind_local(target.id, assigned=True, source_node=target)
+            event_sequence = bind_local(
+                target.id,
+                assigned=True,
+                source_node=target,
+                guaranteed=restoration_guaranteed,
+            )
             if alias_value_path and event_sequence is not None:
                 alias_assignments.append((int(getattr(target, 'lineno', 0) or 0), event_sequence, target.id, alias_value_path))
         elif isinstance(target, ast.Attribute):
@@ -323,4 +344,5 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         'binding_events': binding_events,
         'alias_assignments': alias_assignments,
         'submodule_import_binding_keys': submodule_import_binding_keys,
+        'guaranteed_binding_keys': guaranteed_binding_keys,
     }

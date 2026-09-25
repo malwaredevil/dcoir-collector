@@ -103,3 +103,18 @@ direct_urlopen_import_context = mod.python_scoped_shadowed_name_roots_by_line(
     direct_urlopen_mutation_import_source
 )
 assert "copied" in direct_urlopen_import_context.get(7, set()), direct_urlopen_import_context
+
+
+conditional_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "def mutator(flag):",
+        "    if flag:",
+        "        saved = urllib.request.urlopen",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in conditional_snapshot_context.get(8, set()), conditional_snapshot_context
