@@ -58,12 +58,9 @@ def _python_scope_mutation_state(events, nodes, line=None, before=None):
     state = set()
     for event in events:
         event_line, seq, event_node, path, restored = event[:5]
-        restoration_guaranteed = bool(event[5]) if len(event) > 5 else True
         if event_node not in nodes:
             continue
         if line is not None and (event_line > line or (event_line == line and before is not None and seq >= before)):
-            continue
-        if restored and not restoration_guaranteed:
             continue
         (state.discard if restored else state.add)(path)
     return state
@@ -247,3 +244,61 @@ def _python_scope_shadowed_binding_keys(infos: dict[ast.AST, dict[str, Any]], pr
         for event in events
         if predicate(node, name, event)
     }
+
+
+def _python_scope_direct_restoration_guaranteed(node: ast.AST, mutation_line: int, restoration_line: int) -> bool:
+    body = list(getattr(node, 'body', []) or [])
+    mutation_index = next(
+        (index for index, statement in enumerate(body) if int(getattr(statement, 'lineno', 0) or 0) == mutation_line),
+        None,
+    )
+    restoration_index = next(
+        (index for index, statement in enumerate(body) if int(getattr(statement, 'lineno', 0) or 0) == restoration_line),
+        None,
+    )
+    return (
+        mutation_index is not None
+        and restoration_index is not None
+        and restoration_index == mutation_index + 1
+    )
+
+
+def _python_scope_finalize_restoration_guarantees(events):
+    ordered = sorted(events, key=lambda event: (event[0], event[1]))
+    active_mutations = {}
+    finalized = []
+    for event in ordered:
+        line, sequence, node, path, restored = event[:5]
+        key = (id(node), path)
+        guaranteed = False
+        if restored:
+            previous = active_mutations.get(key)
+            guaranteed = bool(
+                previous
+                and _python_scope_direct_restoration_guaranteed(node, previous[0], line)
+            )
+            if guaranteed:
+                active_mutations.pop(key, None)
+        else:
+            active_mutations[key] = (line, sequence)
+        finalized.append((line, sequence, node, path, restored, guaranteed))
+    return finalized
+
+
+def _python_scope_demote_binding_keys(
+    infos: dict[ast.AST, dict[str, Any]],
+    keys: set[tuple[int, str, int, int]],
+) -> bool:
+    changed = False
+    for node, info in infos.items():
+        for name, events in list(info['binding_events'].items()):
+            updated = []
+            for event in events:
+                key = (id(node), name, event[0], event[1])
+                if key in keys and event[2] is not None:
+                    updated.append((event[0], event[1], None))
+                    changed = True
+                else:
+                    updated.append(event)
+            info['binding_events'][name] = updated
+    return changed

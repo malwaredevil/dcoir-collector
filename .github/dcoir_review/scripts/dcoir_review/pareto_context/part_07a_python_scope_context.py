@@ -120,7 +120,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                     found.append(
                         (line, sequence, source_node, target, restored, restoration_guaranteed)
                     )
-        return sorted(found, key=lambda event: (event[0], event[1]))
+        return _python_scope_finalize_restoration_guarantees(found)
 
     mutation_events = qualified_events()
     mutation_paths = {'urllib.request', 'urllib.request.urlopen'}
@@ -164,15 +164,13 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             return 'urllib.request' in state
         return bool(state & mutation_paths)
 
-    shadowed_binding_keys = _python_scope_shadowed_binding_keys(infos, trusted_binding_is_shadowed)
-    for node, info in infos.items():
-        for name, events in list(info['binding_events'].items()):
-            info['binding_events'][name] = [
-                (event[0], event[1], None)
-                if (id(node), name, event[0], event[1]) in shadowed_binding_keys
-                else event
-                for event in events
-            ]
+    while True:
+        mutation_events = qualified_events()
+        shadowed_binding_keys = _python_scope_shadowed_binding_keys(
+            infos, trusted_binding_is_shadowed
+        )
+        if not _python_scope_demote_binding_keys(infos, shadowed_binding_keys):
+            break
     mutation_events = qualified_events()
     deferred_events = _python_scope_deferred_mutations(mutation_events, eager_nodes)
 
