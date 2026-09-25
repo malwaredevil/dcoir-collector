@@ -48,7 +48,7 @@ def build_python_urllib_urlopen_call_context(gh: Any, pr: dict[str, Any], files:
             continue
         try:
             source = fetch_pr_file_text(gh, path, head_sha)
-            call_names = python_urllib_urlopen_call_names(source)
+            call_names = python_urllib_urlopen_call_names(source, preserve_shadowed=True)
             call_names.update(python_assignment_urllib_urlopen_call_names(source, call_names))
         except Exception:
             continue

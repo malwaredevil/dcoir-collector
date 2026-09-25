@@ -141,18 +141,21 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     mutation_paths = {'urllib.request', 'urllib.request.urlopen'}
     eager_nodes = {module, *(node for node in infos if isinstance(node, ast.ClassDef))}
 
-    def callable_binding_is_shadowed(node: ast.AST, event: tuple[int, int, set[str] | None]) -> bool:
-        if event[2] != {'urllib.request.urlopen'}:
+    def trusted_binding_is_shadowed(node: ast.AST, event: tuple[int, int, set[str] | None]) -> bool:
+        targets = set(event[2] or ())
+        if not targets & {'urllib.request', 'urllib.request.urlopen'}:
             return False
         state = _python_scope_mutation_state(mutation_events, eager_nodes, event[0], event[1])
         if node not in eager_nodes:
             state.update(_python_scope_mutation_state(mutation_events, {node}, event[0], event[1]))
+        if 'urllib.request' in targets:
+            return 'urllib.request' in state
         return bool(state & mutation_paths)
 
     for node, info in infos.items():
         for name, events in list(info['binding_events'].items()):
             info['binding_events'][name] = [
-                (event[0], event[1], None) if callable_binding_is_shadowed(node, event) else event
+                (event[0], event[1], None) if trusted_binding_is_shadowed(node, event) else event
                 for event in events
             ]
     mutation_events = qualified_events()
@@ -168,7 +171,9 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             state.update(path for _start, path in deferred_events)
         for name in all_alias_names:
             targets = resolve_trusted_targets(node, name, line)
-            if targets & {'urllib', 'urllib.request'} and state & mutation_paths:
+            if 'urllib.request.urlopen' in state and targets & {'urllib', 'urllib.request'}:
+                active.add(name)
+            elif 'urllib.request' in state and 'urllib' in targets:
                 active.add(name)
         return active
 
