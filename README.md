@@ -26,6 +26,7 @@ This repository is the governed GitHub source for the DCOIR collector, Gemini-re
 - GitHub workflow automation
 - operator tooling
 - durable guidance that belongs in source control
+- shared sanitized test artifacts for manual and automated validation under [`project_sources/validation/fixtures/`](project_sources/validation/fixtures/README.md)
 
 ## What this repo is not for
 

@@ -40,6 +40,7 @@ The detailed DCOIR-specific architecture contract is in `.github/dcoir_review/AR
 * Default Supabase `project_id`: `kdhkhyksdzjbajavsoxa`
 * Default Supabase schema: `ircore`
 * Active continuity file: `/workspace/memory/agent-redesign/ACTIVE-CONTINUITY.md`
+* Canonical shared test-artifact registry: `project_sources/validation/fixtures/index.json` (manual and automated sanitized fixtures shared across Gemini, OpenAI, and other governed validation targets)
 
 Do not drift to another repo, Supabase project, schema, or memory surface unless the operator explicitly changes the target.
 

@@ -1,0 +1,8 @@
+Date,User,Location,Computer Name,User Information,USB Device,Serial Number,Network connection,SNOW Ticket Number,Reported to Command Security?,Notes
+9/18/2026 07:28Z,Dummy User 01,Dummy Location 01,DUMMY-PC-01,Dummy User Information 01,Logi Bolt Receiver,5&2a506e64&0&13,On-Site,INCNDUMMY0001,Yes,
+09/19/2026 2014Z ,Dummy User 02,Dummy Location 02,DUMMY-PC-02,Dummy User Information 02,Apple iPhone,00008130000459D83422001C,On-Site,INCNDUMMY0002,Yes,
+09/19/2026 2029Z ,Dummy User 03,Dummy Location 03,DUMMY-PC-03,Dummy User Information 03,Apple iPhone,00008120001650DE0E42201E,On-Site,INCNDUMMY0003,Yes,
+09/20/2026 0523Z and 0528Z,Dummy User 04,Dummy Location 04,DUMMY-PC-04,Dummy User Information 04,M7350 4G Mi-Fi Router,6&26C01FEC&0&0002,On-Site,INCNDUMMY0004,Yes,
+9/21/2026 1528Z,Dummy User 05,Dummy Location 05,DUMMY-PC-05,Dummy User Information 05,Logitech Inc. - Nano Receiver (Wireless),8&3694BF6B&0&2,Off-Site/VPN,INCNDUMMY0005,Yes,
+9/22/2026 08:18Z,Dummy User 06,Dummy Location 06,DUMMY-PC-06,Dummy User Information 06,"NetGear, Inc. Remote NDIS Compatible Device",3.54349E+14,Off-Site/VPN,INCSDUMMY0006,Yes,
+09/24/2026 0213Z,Dummy User 07,Dummy Location 07,DUMMY-PC-07,Dummy User Information 07,Wireless Mouse 2.4GHz Transceiver v8.0,7&3bb30e2&0&1,On-Site,INCSDUMMY0007,Yes,

@@ -1,0 +1,103 @@
+{
+  "schema_version": "dcoir_test_artifact_manifest_v1",
+  "artifact_family_id": "agent_runtime_usb_reporting",
+  "title": "USB Violations Reporting",
+  "status": "active",
+  "purpose": "Cross-provider sanitized inputs for validating the governed weekly USB Violations report-composer behavior.",
+  "source_issues": [
+    590,
+    581,
+    398
+  ],
+  "intended_targets": [
+    {
+      "target_id": "gemini_dcoir_agent/sub_agent.11",
+      "display_name": "Gemini USB Violations Report Composer"
+    },
+    {
+      "target_id": "openai_usb_reporting",
+      "display_name": "AFRICOM USB Reporting OpenAI GPT"
+    }
+  ],
+  "canonical_behavior_sources": [
+    "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_11_USB_Violations_Report_Composer.md.txt",
+    "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md",
+    "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json"
+  ],
+  "interaction_expectation": {
+    "start_posture": "Treat the CSV as USB violations reporting input and remain in the narrow report-composer workflow.",
+    "clarification_behavior": "Ask only bounded questions required by the governed contract. The fixtures intentionally do not provide the previous week's single overall USB violation count.",
+    "forbidden_generic_posture": [
+      "BLUF",
+      "generic analyst assessment",
+      "evidence-needs scaffolding",
+      "recommendations instead of the requested report"
+    ],
+    "final_output_requirement": "Construct the governed recipient, subject, and message-draft output rather than merely describing or mentioning it."
+  },
+  "privacy": {
+    "classification": "sanitized_nonproduction_regression_fixture",
+    "synthetic_fields": [
+      "User",
+      "Location",
+      "Computer Name",
+      "User Information",
+      "SNOW Ticket Number"
+    ],
+    "serial_number_handling": "Retained from the operator-provided source under explicit operator approval for this test context.",
+    "notes": "Do not replace these sanitized fixtures with raw operator data in committed test artifacts."
+  },
+  "artifacts": [
+    {
+      "artifact_id": "usb_reporting_nipr_only_v1",
+      "path": "project_sources/validation/fixtures/agent_runtime/usb_reporting/inputs/violations_sanitized_nipr.csv",
+      "media_type": "text/csv",
+      "sha256": "2782edffe984b7ef6938737cd198d4b07589174178df3248f6108864f0dbce6b",
+      "row_count": 7,
+      "classification_counts": {
+        "INCN": 7,
+        "INCS": 0
+      },
+      "intended_use": [
+        "manual",
+        "automated"
+      ],
+      "exercises": [
+        "NIPR-only final report path",
+        "required clarification behavior",
+        "templated email construction"
+      ]
+    },
+    {
+      "artifact_id": "usb_reporting_mixed_nipr_sipr_v1",
+      "path": "project_sources/validation/fixtures/agent_runtime/usb_reporting/inputs/violations_sanitized_mixed.csv",
+      "media_type": "text/csv",
+      "sha256": "f155bdb738a34e3773ebdde3b92b69ebbab0a32d75469604935a3cf195513864",
+      "row_count": 7,
+      "classification_counts": {
+        "INCN": 5,
+        "INCS": 2
+      },
+      "intended_use": [
+        "manual",
+        "automated"
+      ],
+      "exercises": [
+        "split NIPR/SIPR final report path",
+        "required clarification behavior",
+        "SIPR transfer instructions",
+        "classification separation"
+      ]
+    }
+  ],
+  "provenance": {
+    "source_kind": "operator_provided_structure",
+    "sanitized_on": "2026-09-25",
+    "note": "Derived from an operator-provided violations.csv structure. Direct identifying fields and ticket identifiers were replaced with synthetic values before repository storage."
+  },
+  "evidence_boundary": {
+    "fixture_role": "stable test input",
+    "not_proof_of": "runtime correctness or deployment state",
+    "live_evidence_rule": "Runtime behavior claims require captured execution evidence tied to the tested target/version/head."
+  }
+}
