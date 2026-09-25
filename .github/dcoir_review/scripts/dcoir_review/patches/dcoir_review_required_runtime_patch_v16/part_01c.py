@@ -114,7 +114,7 @@ def _python_has_known_file_open_call(
     return False
 
 
-def _line_kind(path: str, text: str) -> str:
+def _line_kind(path: str, text: str, line: int = 0) -> str:
     suffix = Path(str(path or "").lower()).suffix
     lower = _normalize(text)
     if _is_workflow_path(path):
@@ -151,9 +151,11 @@ def _line_kind(path: str, text: str) -> str:
             os_module_names = {"os"}
             os_module_names.update(PYTHON_OS_ALIAS_CONTEXT.get(path, set()))
             shadowed_names = PYTHON_SHADOWED_NAME_CONTEXT.get(path)
+            scoped_shadowed_names = PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.get(path, {}).get(int(line or 0), set())
             if _python_is_known_urllib_urlopen(
                 text,
                 known_call_names=PYTHON_URLLIB_URLOPEN_CALL_CONTEXT.get(path),
+                shadowed_names=scoped_shadowed_names,
             ):
                 fallback = _ORIGINAL_V13_LINE_KIND(path, text)
                 return "" if fallback == v11.PYTHON_PATH_WRITE else fallback
@@ -186,11 +188,19 @@ def _line_kind(path: str, text: str) -> str:
     return _ORIGINAL_V13_LINE_KIND(path, text)
 
 
+def _call_line_kind(path: str, text: str, line: int = 0) -> str:
+    classifier = _line_kind
+    code = getattr(classifier, "__code__", None)
+    if code is not None and code.co_argcount < 3 and not (code.co_flags & 0x04):
+        return classifier(path, text)
+    return classifier(path, text, line)
+
+
 def _sentinel_key(sentinel: Any) -> SentinelKey:
     path = str(getattr(sentinel, "path", "") or "")
     line = _line_number(getattr(sentinel, "line", 0))
     text = str(getattr(sentinel, "text", "") or "")
-    kind = _line_kind(path, text) or _ORIGINAL_V13_SENTINEL_KEY(sentinel)[2]
+    kind = _call_line_kind(path, text, line) or _ORIGINAL_V13_SENTINEL_KEY(sentinel)[2]
     return path, line, kind
 
 
@@ -200,7 +210,7 @@ def _postable_key(finding: dict[str, Any]) -> SentinelKey:
         return str(raw[0] or ""), _line_number(raw[1]), str(raw[2] or "")
     path, line, kind = _ORIGINAL_V13_POSTABLE_KEY(finding)
     text = "\n".join(str(finding.get(name, "") or "") for name in ("_anchored_line_text", "title", "body", "description"))
-    return path, line, _line_kind(path, text) or kind
+    return path, line, _call_line_kind(path, text, line) or kind
 
 
 def _coverage_key(key: SentinelKey) -> SentinelKey:

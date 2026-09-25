@@ -53,3 +53,14 @@ def set_python_shadowed_name_context(shadowed_name_context: dict[str, set[str]] 
         for path, shadowed_names in (shadowed_name_context or {}).items()
         if shadowed_names
     })
+
+
+def set_python_scoped_shadowed_name_context(
+    shadowed_name_context: dict[str, dict[int, set[str]]] | None,
+) -> None:
+    PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.clear()
+    PYTHON_SCOPED_SHADOWED_NAME_CONTEXT.update({
+        path: {int(line): set(names) for line, names in by_line.items() if names}
+        for path, by_line in (shadowed_name_context or {}).items()
+        if by_line
+    })

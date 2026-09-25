@@ -79,6 +79,7 @@ PYTHON_PATH_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_OS_ALIAS_CONTEXT: dict[str, set[str]] = {}
 PYTHON_URLLIB_URLOPEN_CALL_CONTEXT: dict[str, set[str]] = {}
 PYTHON_SHADOWED_NAME_CONTEXT: dict[str, set[str]] = {}
+PYTHON_SCOPED_SHADOWED_NAME_CONTEXT: dict[str, dict[int, set[str]]] = {}
 
 
 def _normalize(value: Any) -> str:

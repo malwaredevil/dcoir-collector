@@ -588,6 +588,73 @@ def test_patched_detector_consumes_owner_shadowed_name_context() -> None:
     assert any(v16._sentinel_key(item)[2] == v11.PYTHON_PATH_WRITE for item in found), found
 
 
+def test_patched_detector_consumes_full_head_scoped_urlopen_shadow_context() -> None:
+    path = "tools/head_scoped_urlopen.py"
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "",
+            "def persist(urlopen, user_path, data):",
+            '    return "pending"',
+            "",
+            "def fetch(req):",
+            "    return urlopen(req)",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert "urlopen" in scoped_context.get(4, set()), scoped_context
+    assert "urlopen" not in scoped_context.get(7, set()), scoped_context
+
+    class Owner:
+        RiskSentinel = SimpleNamespace
+        PYTHON_URLLIB_URLOPEN_CALL_CONTEXT = {path: {"urlopen"}}
+        PYTHON_SHADOWED_NAME_CONTEXT = {path: {"persist", "fetch", "urlopen", "user_path", "data", "req"}}
+        PYTHON_SCOPED_SHADOWED_NAME_CONTEXT = {path: scoped_context}
+
+        @staticmethod
+        def detect_risk_sentinels(_diff, *_args, **_kwargs):
+            return []
+
+    owner = Owner()
+    v16._patch_detect(owner)
+    diff = "\n".join(
+        [
+            f"diff --git a/{path} b/{path}",
+            f"+++ b/{path}",
+            "@@ -4 +4 @@ def persist(urlopen, user_path, data):",
+            '-    return "pending"',
+            '+    return urlopen(user_path, "w").write(data)',
+        ]
+    )
+    found = owner.detect_risk_sentinels(diff)
+    assert any(v16._sentinel_key(item) == (path, 4, v11.PYTHON_PATH_WRITE) for item in found), found
+
+
+def test_full_head_scoped_urlopen_shadowing_does_not_leak_across_functions() -> None:
+    source = "\n".join(
+        [
+            "from urllib.request import urlopen",
+            "",
+            "def persist(urlopen, user_path, data):",
+            '    return urlopen(user_path, "w").write(data)',
+            "",
+            "def fetch(req):",
+            "    return urlopen(req)",
+        ]
+    )
+    scoped_context = pareto.python_scoped_shadowed_name_roots_by_line(source)
+    assert not v16._python_is_known_urllib_urlopen(
+        '    return urlopen(user_path, "w").write(data)',
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(4, set()),
+    )
+    assert v16._python_is_known_urllib_urlopen(
+        "    return urlopen(req)",
+        known_call_names={"urlopen"},
+        shadowed_names=scoped_context.get(7, set()),
+    )
+
+
 def test_pareto_shadowed_name_context_registry_is_defined() -> None:
     pareto.set_python_shadowed_name_context({"tools/custom_open_import.py": {"open"}})
     assert pareto.PYTHON_SHADOWED_NAME_CONTEXT == {"tools/custom_open_import.py": {"open"}}
@@ -740,6 +807,8 @@ def main() -> None:
     test_patched_detector_keeps_shadowed_read_only_bare_open_calls()
     test_patched_detector_keeps_unknown_kwargs_open_calls()
     test_patched_detector_consumes_owner_shadowed_name_context()
+    test_patched_detector_consumes_full_head_scoped_urlopen_shadow_context()
+    test_full_head_scoped_urlopen_shadowing_does_not_leak_across_functions()
     test_pareto_shadowed_name_context_registry_is_defined()
     test_patched_detector_consumes_sentinel_owner_urlopen_context()
     test_core_semantics_keeps_stable_finding_family_dependency()
