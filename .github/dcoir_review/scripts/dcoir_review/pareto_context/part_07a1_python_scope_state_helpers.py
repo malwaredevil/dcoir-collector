@@ -368,4 +368,12 @@ def _python_scope_guaranteed_restoration_targets(
     key = (id(source[0]), value_path, source[1][0], source[1][1])
     if key not in guaranteed_binding_keys:
         return set()
-    return set(source[1][2] or ())
+    source_targets = set(source[1][2] or ())
+    if source[0] is not source_node:
+        later_events = [
+            event for event in infos[source[0]]['binding_events'].get(value_path, [])
+            if event[:2] > source[1][:2]
+        ]
+        if any(set(event[2] or ()) != source_targets for event in later_events):
+            return set()
+    return source_targets

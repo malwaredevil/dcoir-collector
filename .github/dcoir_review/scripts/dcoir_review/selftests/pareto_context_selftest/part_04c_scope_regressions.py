@@ -203,3 +203,72 @@ earlier_nonlocal_snapshot_context = _scope_context(
     ]
 )
 assert "urllib" not in earlier_nonlocal_snapshot_context.get(10, set()), earlier_nonlocal_snapshot_context
+
+
+stale_global_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "saved = custom_open",
+        "mutator()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in stale_global_snapshot_context.get(10, set()), stale_global_snapshot_context
+
+stale_enclosing_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "def outer():",
+        "    saved = urllib.request.urlopen",
+        "    def mutator():",
+        "        urllib.request.urlopen = custom_open",
+        "        urllib.request.urlopen = saved",
+        "    saved = custom_open",
+        "    mutator()",
+        "outer()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in stale_enclosing_snapshot_context.get(11, set()), stale_enclosing_snapshot_context
+
+
+stale_nonlocal_snapshot_context = _scope_context(
+    [
+        "import urllib.request",
+        "def outer():",
+        "    saved = urllib.request.urlopen",
+        "    def mutator():",
+        "        nonlocal saved",
+        "        urllib.request.urlopen = custom_open",
+        "        urllib.request.urlopen = saved",
+        "    saved = custom_open",
+        "    mutator()",
+        "outer()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in stale_nonlocal_snapshot_context.get(12, set()), stale_nonlocal_snapshot_context
+
+same_trusted_global_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "saved = urllib.request.urlopen",
+        "mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in same_trusted_global_rebind_context.get(10, set()), same_trusted_global_rebind_context
