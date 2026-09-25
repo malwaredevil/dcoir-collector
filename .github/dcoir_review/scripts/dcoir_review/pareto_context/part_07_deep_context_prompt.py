@@ -108,7 +108,6 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 globals_declared.update(item.names)
 
             def visit_Nonlocal(self, _item: ast.Nonlocal) -> None:
-                # Nonlocal bindings intentionally keep the enclosing scope state.
                 return
 
             def visit_FunctionDef(self, item: ast.FunctionDef) -> None:
@@ -134,7 +133,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
 
             def visit_Import(self, item: ast.Import) -> None:
                 for alias in item.names:
-                    name = alias.asname or alias.name.rsplit('.', 1)[-1]
+                    name = alias.asname or alias.name.split('.', 1)[0]
                     if alias.name in {'urllib', 'urllib.request'}:
                         trusted_roots.add(name)
                     else:
@@ -189,9 +188,6 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 self.generic_visit(item)
 
         Visitor().visit(node)
-        # A bare `global name` bypasses enclosing function scope, but an actual
-        # assignment/definition to that global name still rebinds the module
-        # symbol and must remain a conservative shadow signal.
         return roots, globals_declared, trusted_roots
 
     def iter_nested_scopes(node: ast.AST):
@@ -210,15 +206,23 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
         start = int(getattr(node, 'lineno', 0) or 0)
         end = int(getattr(node, 'end_lineno', start) or start)
         for line in range(start, end + 1):
-            # The innermost lexical scope owns each mapped line. Replacing the
-            # enclosing scope state lets local trusted imports and `global`
-            # declarations clear inherited shadowing instead of unioning it back.
             by_line[line] = set(active)
         for child in iter_nested_scopes(node):
             walk_scope(child, active)
 
+    def iter_all_scopes(node: ast.AST):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, scope_types):
+                yield child
+            yield from iter_all_scopes(child)
+
+    global_shadowed_roots: set[str] = set()
+    for scope in iter_all_scopes(module):
+        roots, globals_declared, _trusted_roots = collect_scope_bindings(scope)
+        global_shadowed_roots.update(roots & globals_declared)
+
     for scope in iter_nested_scopes(module):
-        walk_scope(scope, set())
+        walk_scope(scope, global_shadowed_roots)
     return by_line
 
 
