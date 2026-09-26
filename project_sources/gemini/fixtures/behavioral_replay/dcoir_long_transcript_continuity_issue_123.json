@@ -20,7 +20,7 @@
       "allowed_assumptions": ["The transcript advanced after conclusion A.", "The operator correction is newer than conclusion A.", "CHUNKS COMPLETE is the latest chunk-state marker."],
       "disallowed_assumptions": ["Conclusion A remains current without rechecking.", "More chunks are expected.", "Continuity is perfect after the interruption."],
       "expected_behavior_tags": ["latest_state_wins", "chunk_marker_respected", "stale_replay_rejected"],
-      "required_markers": ["latest acknowledged state", "CHUNKS COMPLETE", "operator correction", "do not replay conclusion A", "smallest recovery artifact"],
+      "required_markers": ["latest acknowledged state", "CHUNKS COMPLETE", "operator correction", "not replay conclusion A", "smallest recovery artifact"],
       "forbidden_markers": ["conclusion A is still the answer", "send the next chunk", "as I said earlier, conclusion A", "continue exactly where I left off without a gap"],
       "anomaly_checks": ["unsupported_certainty_claims", "output_shape_drift"],
       "forbidden_behavior_tags": ["stale_conclusion_replay", "chunk_state_loss", "false_continuity"],

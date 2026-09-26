@@ -19,29 +19,12 @@
       "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.01.md"
     },
     {
-      "id": "prime.chunk.03",
-      "sections": [
-        "identity_scope",
-        "queries_report_preparation"
-      ],
-      "sha256": "591b2085cf349205f1572258ba7d384789af3672f385fcc3c6a7c137d4f7a362",
-      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.03.md"
-    },
-    {
       "id": "prime.chunk.04",
       "sections": [
         "authority_evidence_lanes"
       ],
       "sha256": "43aff2e5e176c13b27733cc83b7009169eaebcb72113d40f62c273c672abaea6",
       "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.04.md"
-    },
-    {
-      "id": "prime.chunk.08",
-      "sections": [
-        "conclusions_output"
-      ],
-      "sha256": "588b3b11feb95ca35192682d416a9128e4a51b1f4695d1f383bbf216f23225d0",
-      "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.08.md"
     },
     {
       "id": "prime.chunk.11",
@@ -80,14 +63,6 @@
       "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.20.md"
     },
     {
-      "id": "sub_agent.10",
-      "sections": [
-        "conclusions_output"
-      ],
-      "sha256": "11d587b19f12af39a63c76e80cdf497ed88e018fecb7a4de3ff9918a4e231413",
-      "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md"
-    },
-    {
       "id": "sub_agent.11",
       "sections": [
         "usb_reporting_workflow",
@@ -97,72 +72,65 @@
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.11.md"
     }
   ],
-  "behavior_coverage_count": 11,
-  "behavior_source_snapshot_sha256": "ffd28584ed58edb4f6554fae22e8cdafa2660c8ed18f73720427dd3a6b95d4b3",
+  "behavior_coverage_count": 8,
+  "behavior_source_snapshot_sha256": "5ff8585a3692c55f28860a0c45a18f06060621da4fafef93691a19902abe32c5",
   "behavioral_case_count": 13,
   "behavioral_case_ids": [
-    "usb_reporting_intake",
-    "ordinary_triage_redirect",
-    "missing_data_readiness",
-    "query_without_execution",
-    "pasted_result_transformation",
-    "final_drafting_confirmation",
-    "unsupported_capabilities",
-    "source_reference_inference_split",
-    "scaffold_suppression",
-    "knowledge_instruction_injection",
-    "request_coverage",
-    "incident_timestamp_and_notes",
-    "nipr_sipr_email_contract"
+    "primary_report_composer",
+    "generic_scaffold_forbidden",
+    "missing_source",
+    "missing_prior_count",
+    "reporting_window",
+    "nipr_final",
+    "mixed_final",
+    "timestamp_notes",
+    "network_connection",
+    "ticket_classification",
+    "no_invention",
+    "out_of_scope_redirect",
+    "capability_truthfulness"
   ],
   "description_character_ceiling": 300,
-  "description_character_count": 166,
+  "description_character_count": 154,
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {
-      "bytes": 7938,
+      "bytes": 7996,
       "path": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
-      "sha256": "da4a320728391ca62d1fa2217d7c669f03de99dcbd152af8ee2e5c6753f0eb34"
+      "sha256": "173cc9bfb9a153ffcc21e70c9e0cb305e651989d56cf7e93da2647e45c186783"
     },
     {
-      "bytes": 1769,
+      "bytes": 1464,
       "path": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/GPT_Configuration.json",
-      "sha256": "11b9334e42b49ed17b87306d15e0b102b5637c2d104f0bd8dd5cedb7627574c2"
+      "sha256": "3af152d3cf1709e1d31760a97f6fc5c916046cd514303721ff581bddeb1ae88f"
     }
   ],
   "generated_outputs_are_canonical": false,
   "instruction_character_ceiling": 8000,
-  "instruction_character_count": 7938,
-  "knowledge_file_count": 2,
+  "instruction_character_count": 7996,
+  "knowledge_file_count": 1,
   "knowledge_files": [
     {
-      "bytes": 9913,
+      "bytes": 3495,
       "id": "usb_reporting_core",
       "order": 0,
       "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md",
-      "sha256": "295f6d6ef95413897996dbd02b74c8859bd10ab970680f1f3b6a82f29c528a0e"
-    },
-    {
-      "bytes": 67948,
-      "id": "usb_query_reference",
-      "order": 1,
-      "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-query-reference.md",
-      "sha256": "3001b6138bc620eb17501ccb8cc266b493cfe97b22cb209f4aa45ff0ea99557e"
+      "sha256": "1e364b0e194ee2d190bbaf6c06b3f746093d94db428d29a0e9d3a8f32a08d6e2"
     }
   ],
   "live_webui_validation_performed": false,
   "manual_deployment_required": true,
   "schema": "dcoir.agent_runtime.openai_usb_reporting_package.v1",
   "source_base_commit": "3f98f43000a6cf0707e330fba4eb94d35a937bd2",
-  "source_contract_sha256": "631e7d3d85fec36c00e6a2b99c27773cb7d7a79dba9ccd7df8fa24889a097753",
+  "source_contract_sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae",
   "source_contracts": {
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Behavioral_Contract_Cases.json",
-      "sha256": "82dc9bd160bc7ab5f037a8689a010a654f37ddc82120f5381a7417728616f7fa"
+      "sha256": "36cafca0a3b321a22ca4f965ad67a4383b065b079c19f9028a224637c5cc4cf2"
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md",
-      "sha256": "da4a320728391ca62d1fa2217d7c669f03de99dcbd152af8ee2e5c6753f0eb34"
+      "sha256": "173cc9bfb9a153ffcc21e70c9e0cb305e651989d56cf7e93da2647e45c186783"
     }
   },
   "strict_knowledge_file_ceiling": 20,

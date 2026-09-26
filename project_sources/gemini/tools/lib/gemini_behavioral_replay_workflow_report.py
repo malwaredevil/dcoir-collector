@@ -11,6 +11,9 @@ from lib.gemini_behavioral_replay_scoring import score_response_pack
 
 _SENSITIVE_KEY_RE = re.compile(r"(api[_-]?key|secret|token|password|authorization|credential)", re.IGNORECASE)
 _SENSITIVE_QUERY_RE = re.compile(r"((?:api[_-]?key|key|token|password)=)[^&\s`]+", re.IGNORECASE)
+_RAW_BODY_KEY_RE = re.compile(r"(?:error|response|raw)?[_-]?body(?:[_-]?excerpt)?$", re.IGNORECASE)
+# Run-configuration keys that match _SENSITIVE_KEY_RE but carry no secret.
+_NON_SECRET_KEYS = {"max_output_tokens"}
 
 
 def redact_report_value(value: Any) -> Any:
@@ -18,7 +21,7 @@ def redact_report_value(value: Any) -> Any:
         redacted: Dict[str, Any] = {}
         for key, child in value.items():
             key_text = str(key)
-            redacted[key] = "[redacted]" if _SENSITIVE_KEY_RE.search(key_text) else redact_report_value(child)
+            redacted[key] = "[redacted]" if key_text not in _NON_SECRET_KEYS and (_SENSITIVE_KEY_RE.search(key_text) or _RAW_BODY_KEY_RE.search(key_text)) else redact_report_value(child)
         return redacted
     if isinstance(value, list):
         return [redact_report_value(item) for item in value]
@@ -82,7 +85,15 @@ def matrix_rows(results: List[Dict[str, Any]], metadata: Dict[str, Any]) -> List
         rows.append({"model": result.get("model_name"), "fixture_id": result.get("fixture_id"), "mode": result.get("mode"), "api_ok": f"{ok}/{count}", "turns": f"{result.get('turn_success_count')}/{result.get('turn_count')}", "required_ratio": result.get("overall_required_marker_ratio"), "forbidden_hits": len(result.get("forbidden_marker_hits", [])), "anomalies": result.get("anomaly_count"), "absolute_gate": "pass" if result.get("absolute_safety_evidence_pass") else "fail", "validation_errors": 0, "scorer": "pass" if result.get("success") else "fail", "baseline_relative": baseline_relative.get("verdict", "not_scored"), "workflow": metadata.get("workflow_verdict", "success"), "meaning": "Absolute safety/evidence gates remain binding; baseline-relative verdict compares coverage/style dimensions."})
     return sorted(rows, key=lambda row: (str(row.get("model") or ""), str(row.get("fixture_id") or ""), str(row.get("mode") or "")))
 
-def write_reports(output_dir: Path, results: List[Dict[str, Any]], metadata: Dict[str, Any]) -> None:
+def write_reports(
+    output_dir: Path,
+    results: List[Dict[str, Any]],
+    metadata: Dict[str, Any],
+    *,
+    report_label: str = "Gemini Behavioral Replay",
+    report_filename: str = "gemini_behavioral_replay_run_report.json",
+    report_markdown_filename: str = "gemini_behavioral_replay_run_report.md",
+) -> None:
     metadata["baseline_relative_summary"] = apply_baseline_comparisons(results, metadata)
     report_metadata = redact_report_value(metadata)
     report_results = redact_report_value(results)
@@ -90,13 +101,13 @@ def write_reports(output_dir: Path, results: List[Dict[str, Any]], metadata: Dic
     summary = {"workflow_success": report_metadata.get("workflow_verdict", "success") == "success", "scorer_success": bool(results) and all(r.get("success") for r in results), "absolute_safety_evidence_success": bool(results) and all(r.get("absolute_safety_evidence_pass") for r in results), "result_count": len(results), "runtime_unavailable_count": len(report_metadata.get("runtime_unavailable_results", [])), "runtime_unavailable_models": report_metadata.get("runtime_unavailable_models", []), "matrix": rows, "baseline_relative_summary": report_metadata["baseline_relative_summary"]}
     payload = {"summary": summary, "metadata": report_metadata, "results": report_results}
     # report_metadata and report_results are recursively redacted before payload construction.
-    (output_dir / "gemini_behavioral_replay_run_report.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    lines = ["# Gemini Behavioral Replay Report", "", "## Summary", "", f"- workflow_verdict: `{report_metadata.get('workflow_verdict', 'success')}`", f"- aggregate_scorer_success: `{str(summary['scorer_success']).lower()}`", f"- absolute_safety_evidence_success: `{str(summary['absolute_safety_evidence_success']).lower()}`", f"- baseline_model: `{report_metadata.get('baseline_model')}`", f"- baseline_relative_summary: `{report_metadata.get('baseline_relative_summary')}`", f"- result_count: `{len(results)}`", f"- runtime_unavailable_count: `{summary['runtime_unavailable_count']}`", f"- runtime_unavailable_models: `{summary['runtime_unavailable_models']}`", f"- live_execution: `{report_metadata.get('live_execution')}`", f"- fallback_reason: `{report_metadata.get('fallback_reason', '')}`", "", "## Evidence Buckets", "", f"- checked_evidence: `{report_metadata.get('checked_evidence', [])}`", f"- unchecked_evidence: `{report_metadata.get('unchecked_evidence', [])}`", "", "## Viable Model Check", ""]
-    mr = report_metadata["model_resolution"]
+    (output_dir / report_filename).write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    lines = [f"# {report_label} Report", "", "## Summary", "", f"- workflow_verdict: `{report_metadata.get('workflow_verdict', 'success')}`", f"- aggregate_scorer_success: `{str(summary['scorer_success']).lower()}`", f"- absolute_safety_evidence_success: `{str(summary['absolute_safety_evidence_success']).lower()}`", f"- baseline_model: `{report_metadata.get('baseline_model')}`", f"- baseline_relative_summary: `{report_metadata.get('baseline_relative_summary')}`", f"- result_count: `{len(results)}`", f"- runtime_unavailable_count: `{summary['runtime_unavailable_count']}`", f"- runtime_unavailable_models: `{summary['runtime_unavailable_models']}`", f"- live_execution: `{report_metadata.get('live_execution')}`", f"- fallback_reason: `{report_metadata.get('fallback_reason', '')}`", "", "## Evidence Buckets", "", f"- checked_evidence: `{report_metadata.get('checked_evidence', [])}`", f"- unchecked_evidence: `{report_metadata.get('unchecked_evidence', [])}`", "", "## Viable Model Check", ""]
+    mr = report_metadata.get("model_resolution", {})
     for key in ("selection_source", "catalog_ok", "catalog_error", "hardcoded_models", "governed_pair_models", "baseline_model", "selected_models_to_run", "rejected_selected_models", "hardcoded_and_viable", "viable_missing_from_hardcoded", "hardcoded_not_currently_viable"):
         lines.append(f"- {key}: `{mr.get(key)}`")
     lines += ["", "## Fixture Selection", ""]
-    fr = report_metadata["fixture_resolution"]
+    fr = report_metadata.get("fixture_resolution", {})
     for key in ("selection_source", "active_fixtures", "selected_fixtures_to_run", "rejected_selected_fixtures"):
         lines.append(f"- {key}: `{fr.get(key)}`")
     lines += ["", "## Pass/Fail Matrix", "", "| Model | Fixture | Mode | API OK | Turns | Required Ratio | Forbidden Hits | Anomalies | Absolute Gate | Scorer | Baseline Relative | Workflow | Meaning |", "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"]
@@ -113,5 +124,5 @@ def write_reports(output_dir: Path, results: List[Dict[str, Any]], metadata: Dic
     if report_metadata.get("validation_messages"):
         lines += ["", "## Validation Messages", ""] + [f"- `{m.get('level')}`: {m.get('message')}" for m in report_metadata["validation_messages"]]
     markdown = "\n".join(lines).rstrip() + "\n"
-    (output_dir / "gemini_behavioral_replay_run_report.md").write_text(markdown, encoding="utf-8")
+    (output_dir / report_markdown_filename).write_text(markdown, encoding="utf-8")
     (output_dir / "chatgpt_workflow_report_section.md").write_text("## Source Workflow Custom Report\n\n" + markdown, encoding="utf-8")

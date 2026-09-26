@@ -98,25 +98,29 @@ def resolve_models(args: argparse.Namespace, api_key: str) -> Dict[str, Any]:
     viable = [model for model in catalog_viable if not is_retired_text_model(model)]
     retired_viable = sorted(model for model in catalog_viable if is_retired_text_model(model))
     checked = csv(args.models_csv)
-    if args.models_csv is None and not checked:
-        checked = [args.model] if args.model else []
     custom = csv(args.custom_models_csv)
+    if args.models_csv is None and not checked and not custom:
+        checked = [args.model] if args.model else []
     rejected: List[Dict[str, str]] = []
     if args.run_all_viable_catalog_models:
         selected, source = viable, "all_viable_text_replay_catalog_models"
-    elif custom:
-        selected, source = [], "custom_models_csv"
-        for model in custom:
-            if catalog["ok"] and model not in viable:
-                rejected.append({"model": model, "reason": "not in currently viable replay text model set"})
-            else:
-                selected.append(model)
     else:
-        selected, source = [], "checkbox_models"
+        selected = []
+        if checked and custom:
+            source = "checkbox_models_plus_custom_models_csv"
+        elif custom:
+            source = "custom_models_csv"
+        else:
+            source = "checkbox_models"
         for model in checked:
             if model not in HARDCODED_MODELS:
                 rejected.append({"model": model, "reason": "not present in hard-coded checkbox model list"})
             elif catalog["ok"] and model not in viable:
+                rejected.append({"model": model, "reason": "not in currently viable replay text model set"})
+            else:
+                selected.append(model)
+        for model in custom:
+            if catalog["ok"] and model not in viable:
                 rejected.append({"model": model, "reason": "not in currently viable replay text model set"})
             else:
                 selected.append(model)

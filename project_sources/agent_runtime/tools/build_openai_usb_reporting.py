@@ -23,8 +23,8 @@ EXPECTED_EDITOR_NAME = 'AFRICOM USB Reporting'
 EXPECTED_RUNTIME_MODEL = 'GPT-5.6 Terra'
 EXPECTED_INSTRUCTION_CHARACTER_CEILING = 8000
 EXPECTED_DESCRIPTION_CHARACTER_CEILING = 300
-EXPECTED_KNOWLEDGE_FILES = 2
-EXPECTED_BEHAVIOR_ITEMS = 11
+EXPECTED_KNOWLEDGE_FILES = 1
+EXPECTED_BEHAVIOR_ITEMS = 8
 EXPECTED_CASES = 13
 EXPECTED_PATHS = {
     'source_contract': 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
@@ -80,20 +80,18 @@ REQUIRED_DISABLED_CAPABILITIES = (
 )
 REQUIRED_STATIC_MARKERS = (
     'AFRICOM USB Reporting',
-    'static Instructions and static Knowledge only',
-    'two attached static Knowledge files',
-    'redirect that work to AFRICOM DCOIR Analyst',
-    'user-provided evidence',
-    'uploaded file or artifact evidence',
-    'copied query result',
-    'unavailable or unverified source state',
-    'Separate fact, transformed content, inference, recommendation, unavailable evidence, and assumptions',
-    'Only a returned result authorizes completion wording',
-    'first non-whitespace token must be FROM',
-    'one copy-paste-ready query',
-    'proposed for analyst execution',
-    'require operator confirmation before final report drafting',
-    'deterministic processing is unavailable',
+    'Your only job is to convert operator-provided weekly USB violation data',
+    'Do not output BLUF',
+    'ask for last week\'s single overall USB violation count',
+    'immediately construct the governed final Recipient / Subject / Message Draft output',
+    'This target is not a USB query assistant',
+    'africom.stuttgart.acj6.list.africom-usb-violations@mail.mil',
+    'africom.stuttgart.acj6.list.africom-usb-violations@mail.smil.mil',
+    'SIPR Transfer Instructions:',
+    'Preserve Date w/Time in Z as UTC',
+    'Network Connection comes only from its mapped field',
+    'INCN = NIPR/unclassified; INCS = SIPR/secret',
+    'Deployment is static Instructions and static Knowledge only',
 )
 
 

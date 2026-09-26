@@ -12,27 +12,20 @@
     "web_search": false
   },
   "conversation_starters": [
-    "Prepare the weekly USB reporting evidence checklist for this date range.",
-    "Draft one Elastic query for USB device activity in this reporting window.",
-    "Normalize these pasted USB event rows into report-ready findings.",
-    "Check whether this USB evidence set is ready for final report drafting."
+    "Turn this USB violations CSV into the weekly report email draft.",
+    "Prepare the NIPR-only weekly USB violations email from these rows.",
+    "Prepare the split NIPR/SIPR weekly USB violations emails from these rows.",
+    "Check what required USB report information is missing from these rows."
   ],
-  "description": "Static USB reporting assistant for AFRICOM weekly USB evidence review, query drafting, result normalization, readiness checks, and operator-confirmed report drafting.",
+  "description": "Narrow AFRICOM weekly USB violations report composer that converts supplied rows into governed NIPR/SIPR email drafts without generic analyst scaffolding.",
   "instructions_file": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
   "knowledge_files": [
     {
-      "bytes": 9913,
+      "bytes": 3495,
       "id": "usb_reporting_core",
       "order": 0,
       "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/01-usb-reporting-core.md",
-      "sha256": "295f6d6ef95413897996dbd02b74c8859bd10ab970680f1f3b6a82f29c528a0e"
-    },
-    {
-      "bytes": 67948,
-      "id": "usb_query_reference",
-      "order": 1,
-      "path": "project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-query-reference.md",
-      "sha256": "3001b6138bc620eb17501ccb8cc266b493cfe97b22cb209f4aa45ff0ea99557e"
+      "sha256": "1e364b0e194ee2d190bbaf6c06b3f746093d94db428d29a0e9d3a8f32a08d6e2"
     }
   ],
   "name": "AFRICOM USB Reporting",

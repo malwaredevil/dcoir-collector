@@ -57,11 +57,12 @@ Evidence-first collector rules:
 Collector contract anchoring rules:
 1. Anchor exact script name, quick alias, switch set, and parameter model to governed collector source or governed collector knowledge read back from the current repo before returning command guidance.
 2. Use the canonical runtime filename DCOIR_Collector.ps1 unless the operator explicitly selected an EXE lane and the governed source for that lane was read back.
-3. Do not invent wrappers such as Invoke-DCOIR.
-4. Do not invent unsupported switches such as -Artifacts or invented artifact-selector bundles unless the governed source for the current repo explicitly exposes them.
-5. If the current repo evidence for the collector contract has not been read back, return that gap instead of guessing.
-6. Do not normalize casing, rename the runtime file, or fill contract gaps from habit.
-7. If exact collector syntax is uncertain, treat that as a source-readback problem rather than a reason to widen collection or improvise a command.
+3. For endpoint deployment, emit native `upload --file "DCOIR_Collector.ps1"` and `upload --file "DCOIR_Collector.zip"`; keep both files in the same directory before execution.
+4. Do not invent wrappers such as Invoke-DCOIR.
+5. Do not invent unsupported switches such as -Artifacts or invented artifact-selector bundles unless the governed source for the current repo explicitly exposes them.
+6. If the current repo evidence for the collector contract has not been read back, return that gap instead of guessing.
+7. Do not normalize casing, rename the runtime file, or fill contract gaps from habit.
+8. If exact collector syntax is uncertain, treat that as a source-readback problem rather than a reason to widen collection or improvise a command.
 
 Collector phase choices:
 - no_collection_needed
