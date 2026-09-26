@@ -134,11 +134,23 @@ def _incident_shape_errors(block: str, lane: str, ticket: str) -> list[str]:
     errors: list[str] = []
     for line in block.splitlines():
         candidate = line.lstrip(' \t')
-        if candidate == line:
+        known_label = next(
+            (label for label in INCIDENT_LABELS if candidate.startswith(f'{label}:')),
+            None,
+        )
+        if known_label is not None:
+            if candidate != line:
+                errors.append(
+                    f'{lane} body contains indented/noncanonical incident label '
+                    f'for ticket {ticket}: {candidate}'
+                )
             continue
-        if any(candidate.startswith(f'{label}:') for label in INCIDENT_LABELS):
-            errors.append(f'{lane} body contains indented/noncanonical incident label for ticket {ticket}: {candidate}')
-        elif re.fullmatch(r'(?:INCN|INCS)\S*', candidate, flags=re.IGNORECASE):
+        if re.match(r'^[A-Za-z][A-Za-z0-9 ()/_-]{0,63}:', candidate):
+            errors.append(
+                f'{lane} body contains unknown/noncanonical incident label '
+                f'for ticket {ticket}: {candidate}'
+            )
+        elif candidate != line and re.fullmatch(r'(?:INCN|INCS)\S*', candidate, flags=re.IGNORECASE):
             errors.append(f'{lane} body contains indented/noncanonical ticket line for ticket {ticket}: {candidate}')
     return errors
 

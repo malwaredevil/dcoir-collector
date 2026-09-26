@@ -272,6 +272,16 @@ def test_indented_duplicate_notes_is_rejected() -> None:
     assert any('indented/noncanonical incident label' in error or 'Notes evidence count mismatch' in error for error in result['errors'])
 
 
+def test_unknown_incident_label_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows)
+    source = f"Location: {module._value(rows[0], 'Location')}"
+    response = response.replace(source, source + '\nApproval Status: Cleared', 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('unknown/noncanonical incident label' in error for error in result['errors'])
+
+
 def test_incident_evidence_after_message_fence_is_rejected() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows) + '''\n\nDate: 09/24/2026 0300Z
@@ -351,6 +361,7 @@ def main() -> int:
         test_indented_duplicate_date_is_rejected,
         test_indented_duplicate_location_is_rejected,
         test_indented_duplicate_notes_is_rejected,
+        test_unknown_incident_label_is_rejected,
         test_incident_evidence_after_message_fence_is_rejected,
         test_inline_sipr_transfer_label_is_rejected,
         test_wrong_recipient_is_rejected,
