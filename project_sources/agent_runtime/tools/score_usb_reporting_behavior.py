@@ -188,6 +188,8 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
     }
     for label, field in field_map.items():
         expected_counts[label] = sum(1 for row in rows if _value(row, field))
+    # Name(s) marks every incident, matching the per-lane incident count in _row_errors.
+    expected_counts['Name(s)'] = len(rows)
 
     for label, expected_count in expected_counts.items():
         observed_count = len(re.findall(rf'(?mi)^[ \t]*{re.escape(label)}:', text))
@@ -395,8 +397,14 @@ def score_final_response(
         if len(transfer_matches) != 1:
             errors.append(f'expected exactly one SIPR Transfer Instructions label, found {len(transfer_matches)}')
         else:
-            transfer = text[transfer_matches[0].end():].strip()
+            # The instruction is the first paragraph after the label; later
+            # paragraphs are permitted source-correction notes, which must not
+            # revisit transfer handling.
+            transfer, *rest = re.split(r'\n[ \t]*\n', text[transfer_matches[0].end():].strip(), maxsplit=1)
+            trailing = rest[0] if rest else ''
             errors.extend(_transfer_instruction_errors(transfer))
+            if re.search(r'isafe|text document|sipr (?:recipient|subject|message draft)|\bmove\b[^.\n]*\bsipr\b', trailing, flags=re.IGNORECASE):
+                errors.append('content after SIPR Transfer Instructions revisits SIPR transfer handling')
     else:
         values: dict[str, str] = {}
         for label in ['Recipient', 'Subject', 'Message Draft']:
@@ -432,7 +440,7 @@ def score_clarification_response(text: str) -> dict[str, Any]:
         if _label_matches(text, label):
             errors.append(f'clarification response prematurely emits final label {label}:')
     lower = text.lower()
-    prior = ('last week' in lower or 'previous week' in lower) and 'count' in lower
+    prior = bool(re.search(r'\b(?:last|previous) week\b', lower) and re.search(r'\bcounts?\b', lower))
     if not prior:
         errors.append('clarification response does not request the missing prior-week overall count')
     if text.count('?') > 1:

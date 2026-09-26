@@ -19,9 +19,28 @@ from .gemini_behavioral_replay_text_scoring import (
 )
 
 
+_FRAME_PREFIX = re.compile(r"\b(?:under|per|according to|based on|given)\s+(?:the\s+)?$")
+_FRAME_REJECTION_SUFFIX = re.compile(
+    r"^\s*,?\s*(?:i|we)\s+(?:explicitly\s+)?(?:reject|dispute)\s+"
+    r"(?:the\s+(?:claim|assumption|premise)\s+)?that\b"
+)
+
+
 def _append_once(values: List[str], marker: str) -> None:
     if marker not in values:
         values.append(marker)
+
+
+def _marker_frames_rejection(lowered: str, marker: str) -> bool:
+    """Marker names the governing frame of a rejection ("under the X, I reject that Y")."""
+    for occurrence in _iter_term_occurrences(lowered, marker):
+        if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            continue
+        prefix = lowered[max(0, occurrence.start() - 40):occurrence.start()]
+        suffix = lowered[occurrence.end():occurrence.end() + 120]
+        if _FRAME_PREFIX.search(prefix) and _FRAME_REJECTION_SUFFIX.match(suffix):
+            return True
+    return False
 
 
 def _has_unresolved_gap_semantics(lowered: str) -> bool:
@@ -106,5 +125,9 @@ def augment_semantic_marker_matches(
     if next_evidence_marker in markers and next_evidence_marker not in result:
         if response_has_next_evidence_semantics(response_text):
             _append_once(result, next_evidence_marker)
+
+    for marker in markers:
+        if marker not in result and _marker_frames_rejection(lowered, marker):
+            _append_once(result, marker)
 
     return result

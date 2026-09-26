@@ -341,6 +341,38 @@ def test_extra_clarification_question_is_rejected() -> None:
     assert not result['passed'], result
     assert any('more than one question' in error or 'reporting window' in error for error in result['errors'])
 
+
+def test_prior_count_substring_does_not_satisfy_clarification() -> None:
+    result = module.score_clarification_response("Which account should last week's report be sent from?")
+    assert not result['passed'], result
+    assert any('prior-week overall count' in error for error in result['errors'])
+
+
+def test_trailing_source_correction_note_is_allowed() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows) + (
+        '\n\nCorrection needed: the NIPR row has an ambiguous Network Connection; '
+        'do not send until the operator confirms it.'
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert result['passed'], result
+
+
+def test_trailing_transfer_contradiction_is_rejected() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows) + '\n\nActually, do not move the text document to SIPR; email it on NIPR instead.'
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('revisits SIPR transfer handling' in error for error in result['errors'])
+
+
+def test_blank_user_row_is_passable() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    rows[0] = {**rows[0], module._norm_header('User'): ''}
+    result = module.score_final_response(_nipr_response(rows), rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert result['passed'], result
+
+
 def main() -> int:
     tests = [
         test_positive_nipr_email_construction,
@@ -368,6 +400,10 @@ def main() -> int:
         test_bounded_prior_count_clarification_passes,
         test_generic_bluf_clarification_fails,
         test_extra_clarification_question_is_rejected,
+        test_prior_count_substring_does_not_satisfy_clarification,
+        test_trailing_source_correction_note_is_allowed,
+        test_trailing_transfer_contradiction_is_rejected,
+        test_blank_user_row_is_passable,
     ]
     for test in tests:
         test()

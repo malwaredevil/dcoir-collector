@@ -45,15 +45,6 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
         allow_markdown_code=True,
     )
     matched = augment_semantic_marker_matches(response_text, markers, matched)
-    for marker in markers:
-        if marker in matched:
-            continue
-        for occurrence in _iter_term_occurrences(lowered, marker):
-            prefix = lowered[max(0, occurrence.start() - 12):occurrence.start()]
-            suffix = lowered[occurrence.end():occurrence.end() + 120].lstrip()
-            if prefix.endswith("under the ") and suffix.startswith((", i explicitly reject that ", ", we explicitly reject that ")):
-                matched.append(marker)
-                break
     invalidated = []
     for marker in markers:
         if marker in matched:

@@ -155,7 +155,7 @@ def make_pack(
         })
         turns.append({"turn_id": turn.get("turn_id"), "assistant_response": str(response)})
         history.extend([
-            {"role": "user", "content": str(turn.get("content", "")).strip()},
+            {"role": "user", "content": replay_prompt(fixture, turn)},
             {"role": "assistant", "content": str(response)},
         ])
     return {

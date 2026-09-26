@@ -62,6 +62,24 @@ def main() -> int:
     assert report['results'][0]['classification_counts'] == {'NIPR': 7, 'SIPR': 0}
     assert report['results'][1]['classification_counts'] == {'NIPR': 5, 'SIPR': 2}
     assert 'Custom GPT WebUI host behavior' in report['unchecked_evidence']
+
+    failed_calls = {'value': 0}
+
+    def failing_caller(api_key, project_id, args, body):
+        failed_calls['value'] += 1
+        return {
+            'ok': False,
+            'error': 'http_401',
+            'attempts': [{'attempt': 1, 'status_code': 401, 'error_body_excerpt': 'Incorrect API key provided: sk-...'}],
+        }
+
+    failed = runner.run_replay(args, caller=failing_caller, api_key_override='test-key', project_id_override='')
+    assert failed['workflow_verdict'] == 'failure', failed
+    assert failed_calls['value'] == len(failed['results']), 'final call must be skipped after clarification failure'
+    for item in failed['results']:
+        assert item['clarification']['error'] == 'http_401', item
+        assert item['clarification']['attempts'] == [{'attempt': 1, 'status_code': 401}], item
+        assert item['final']['error'] == 'not_attempted_after_clarification_failure', item
     print({'success': True, 'fixture_count': len(report['results']), 'model': report['model_id']})
     return 0
 

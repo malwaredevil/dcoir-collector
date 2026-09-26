@@ -143,6 +143,9 @@ jobs:
               python project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py "${args[@]}"
               ;;
             openai_usb_reporting)
+              if [[ -n "$CUSTOM_FIXTURES_CSV" || "$RUN_ALL_ACTIVE_FIXTURES" != "true" ]]; then
+                echo '::warning::openai_usb_reporting ignores run_all_active_fixtures and custom_fixtures_csv; running the governed default USB fixtures.'
+              fi
               python project_sources/gemini/tools/run_openai_usb_reporting_behavioral_replay.py \
                 --output-dir project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual \
                 --reasoning-effort "$REASONING_EFFORT" \

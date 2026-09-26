@@ -168,13 +168,18 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
 
     fake_responses = {turn["turn_id"]: "not verified workflow state read back one best next move do not guess governed source partial artifact bundle smallest recovery artifact" for turn in first_fixture["turns"]}
     history_lengths = []
+    last_history = []
     def fake_call(api_key, project_id, run_args, governed_package, fixture, turn, history):
         history_lengths.append(len(history))
+        last_history[:] = list(history)
         return {"ok": True, "attempts": [{"attempt": 1, "status_code": 200}], "response_text": fake_responses[turn["turn_id"]], "response_id": "resp_test"}
     with patch.object(replay_live, "call_openai", side_effect=fake_call):
         generated = make_pack(first_fixture, args, package, "test-key", "")
     if generated.get("mode") != "live_openai_api" or history_lengths != [0, 2, 4, 6]:
         raise SystemExit(f"OpenAI multi-turn local-history contract failed: {history_lengths}")
+    sent_prompts = [replay_live.replay_prompt(first_fixture, turn) for turn in first_fixture["turns"][:-1]]
+    if [row["content"] for row in last_history if row["role"] == "user"] != sent_prompts:
+        raise SystemExit("OpenAI multi-turn history must carry the exact replay prompts (with per-turn evidence) that were sent.")
 
     secret_value = "sk-test-secret-should-never-persist"
     def fake_secret_echo(api_key, project_id, run_args, governed_package, fixture, turn, history):

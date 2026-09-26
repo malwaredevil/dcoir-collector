@@ -18,7 +18,10 @@ from lib.gemini_behavioral_replay_capture_controls import (
     run_openai_webui_capture_selftests,
 )
 from lib.gemini_behavioral_replay_marker_precision import run_contextual_marker_precision_selftests
-from lib.gemini_behavioral_replay_precision_controls import run_scorer_module_size_selftest
+from lib.gemini_behavioral_replay_precision_controls import (
+    run_marker_frame_rejection_selftest,
+    run_scorer_module_size_selftest,
+)
 from lib.gemini_behavioral_replay_live_regressions import run_live_regression_selftests
 
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
@@ -248,6 +251,7 @@ def main() -> int:
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_scorer_module_size_selftest()
+    run_marker_frame_rejection_selftest()
     run_lane_separation_scoring_selftests()
     run_contextual_marker_precision_selftests()
     run_live_regression_selftests()
@@ -265,6 +269,7 @@ def main() -> int:
     run_known_bad(args.fixtures_root, args.output_dir)
     run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
     run([sys.executable, "project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py"])
+    run([sys.executable, "project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py"])
     run_openai_webui_capture_selftests(args.fixtures_root, args.output_dir, SUPPORT)
     run_numbered_procedure_duplicate_selftest()
     run_mode_mismatch(args.fixtures_root)

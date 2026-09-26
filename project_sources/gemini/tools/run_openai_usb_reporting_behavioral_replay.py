@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 from lib.gemini_behavioral_replay_runner import repo_root_from_script
+from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
+from lib.gemini_behavioral_replay_workflow_report import redact_report_value
 from lib.openai_dcoir_replay_live import DEFAULT_API_BASE, call_openai_body
 from lib.openai_usb_replay_package import load_governed_openai_usb_package
 
@@ -106,8 +108,13 @@ def run_replay(
             {'role': 'assistant', 'content': first_text},
         ])
 
-        second_user = _completion_prompt(args.previous_week_count, args.start_date, args.end_date)
-        second_call = caller(api_key, project_id, args, _request_body(package, history, second_user, args))
+        if first_call.get('ok'):
+            second_user = _completion_prompt(args.previous_week_count, args.start_date, args.end_date)
+            second_call = caller(api_key, project_id, args, _request_body(package, history, second_user, args))
+            second_error = safe_error(second_call.get('error'))
+        else:
+            second_call = {'ok': False, 'attempts': []}
+            second_error = 'not_attempted_after_clarification_failure'
         second_text = _safe_response(second_call, api_key)
         final_score = scorer.score_final_response(
             second_text,
@@ -128,14 +135,16 @@ def run_replay(
             'clarification': {
                 'call_ok': bool(first_call.get('ok')),
                 'response_id': first_call.get('response_id'),
-                'attempts': first_call.get('attempts', []),
+                'error': safe_error(first_call.get('error')),
+                'attempts': safe_attempts(first_call.get('attempts', [])),
                 'response_text': first_text,
                 'semantic_score': clarification_score,
             },
             'final': {
                 'call_ok': bool(second_call.get('ok')),
                 'response_id': second_call.get('response_id'),
-                'attempts': second_call.get('attempts', []),
+                'error': second_error,
+                'attempts': safe_attempts(second_call.get('attempts', [])),
                 'response_text': second_text,
                 'semantic_score': final_score,
             },
@@ -216,6 +225,7 @@ def main() -> int:
             'workflow_verdict': 'failure',
             'error': f'{type(exc).__name__}: {exc}',
         }
+    report = redact_report_value(report)
     (output / REPORT_NAME).write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, indent=2))
     return 0 if report.get('workflow_verdict') == 'success' else 1
