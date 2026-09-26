@@ -25,6 +25,8 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
         ) + ' Instead paste the SIPR incident details into the NIPR email.',
         safe + '. You must not complete this transfer until further notice.',
         safe + '. Rather than transfer the draft to SIPR, keep it on NIPR.',
+        safe + '. Do not, however, actually perform this transfer; keep the draft on this workstation.',
+        safe + '. Do not let anyone else on the team move the text document.',
     ]
     for response_text in unsafe_variants:
         result = score(mixed_response(rows).replace(safe, response_text, 1))
@@ -65,6 +67,10 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
 
     benign_variants = [
         safe.replace('into a text document', 'into a text document without changes'),
+        safe.replace(
+            'SIPR message draft into a text document',
+            'SIPR message draft without changes into a text document',
+        ),
         safe.replace('move that text document to SIPR', 'move that text document from NIPR to SIPR'),
     ]
     for response_text in benign_variants:

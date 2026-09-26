@@ -5,19 +5,39 @@ import re
 
 TRANSFER_NEGATION = (
     r"\b(?:do not|don't|must not|shall not|should not|cannot|can't|no longer|never|avoid|"
-    r"instead(?: of)?|rather than|without|refrain from|skip|hold off)\b"
+    r"instead(?: of)?|rather than|refrain from|skip|hold off)\b"
 )
-TRANSFER_ACTION = r"\b(?:transfer|send|move|copy|upload|attach|route|deliver)\w*\b"
-TRANSFER_SCOPE = r"\b(?:sipr|isafe|text document|transfer|copy|move|send|upload|attach|draft)\b"
-# Negation must govern a transfer term within the same clause ("without changes
-# and move ..." is benign; "must not complete this transfer" is not).
-NEGATED_TRANSFER = rf"{TRANSFER_NEGATION}(?:\s+(?!(?:and|or|then)\b)[^\s.,;:!?]+){{0,3}}?\s+{TRANSFER_SCOPE}"
+TRANSFER_ACTION = (
+    r"\b(?:transfer|transferring|send|sending|move|moving|copy|copying|upload|uploading|"
+    r"attach|attaching|route|routing|deliver|delivering|perform|performing|complete|completing)\b"
+)
+WITHOUT_TRANSFER_ACTION = (
+    r"\bwithout\b(?:\s+\w+){0,3}\s+"
+    r"(?:moving|transferring|sending|uploading|copying|attaching|routing|delivering)\b"
+)
 # Only a NIPR destination is unsafe; "from NIPR to SIPR" is the governed direction.
 NIPR_DESTINATION = r"\b(?:to|into|onto|on|via|through|over|in)\s+(?:the\s+)?nipr\b"
 
 
 def _normalized(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip().lower()
+
+
+def _clause_has_transfer_negation(clause: str) -> bool:
+    if re.search(WITHOUT_TRANSFER_ACTION, clause):
+        return True
+    negation = re.search(TRANSFER_NEGATION, clause)
+    if not negation:
+        return False
+    return bool(re.search(TRANSFER_ACTION, clause[negation.end():]))
+
+
+def _has_transfer_contradiction(text: str) -> bool:
+    return any(
+        _clause_has_transfer_negation(clause)
+        for clause in re.split(r'[.;!?]+', text)
+        if clause.strip()
+    )
 
 
 def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
@@ -40,7 +60,7 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
         text,
     ):
         errors.append('SIPR transfer instructions do not affirmatively move the text document to SIPR using Intelink iSafe')
-    if re.search(NEGATED_TRANSFER, text):
+    if _has_transfer_contradiction(text):
         errors.append('SIPR transfer instructions contain contradictory or negated handling')
     if re.search(NIPR_DESTINATION, text):
         errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
