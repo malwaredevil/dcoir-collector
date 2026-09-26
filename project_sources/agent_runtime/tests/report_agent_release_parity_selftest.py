@@ -310,6 +310,27 @@ def test_projection_manifest_symlink_loop_is_reported_without_crash() -> None:
         td.cleanup()
 
 
+def test_projection_manifest_below_looping_directory_is_reported() -> None:
+    # On Windows with Python 3.13+, a file below a looping directory stats as
+    # missing rather than as a loop, so every link on the path must be followed.
+    td, root = stage_repo()
+    try:
+        loop = root / 'loop-dir'
+        try:
+            loop.symlink_to(loop, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            return
+        path = root / module.KNOWLEDGE_MANIFEST
+        value = json.loads(path.read_text(encoding='utf-8'))
+        value['targets']['openai_usb_reporting']['target_manifest_path'] = 'loop-dir/manifest.json'
+        write_json(root, module.KNOWLEDGE_MANIFEST.as_posix(), value)
+        errors, report = build(root)
+        assert any('path could not be resolved: OSError:' in error for error in errors), errors
+        assert report['static_parity_status'] == 'fail'
+    finally:
+        td.cleanup()
+
+
 def test_repo_root_symlink_loop_returns_failure_report_without_crash() -> None:
     td, root = stage_repo()
     try:
@@ -403,6 +424,7 @@ def main() -> int:
         test_knowledge_count_mismatch_is_blocking_gap,
         test_projection_manifest_path_escape_is_rejected,
         test_projection_manifest_symlink_loop_is_reported_without_crash,
+        test_projection_manifest_below_looping_directory_is_reported,
         test_repo_root_symlink_loop_returns_failure_report_without_crash,
         test_manual_guide_marker_is_required,
         test_live_readback_state_changes_when_recorded,

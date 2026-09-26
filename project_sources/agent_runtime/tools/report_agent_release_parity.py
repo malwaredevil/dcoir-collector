@@ -57,6 +57,9 @@ def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
     except FileNotFoundError:
         errors.append(f'Missing {label}: {path.as_posix()}')
         return {}
+    except OSError as exc:
+        errors.append(f'Unreadable {label} {path.as_posix()}: {type(exc).__name__}: {exc}')
+        return {}
     except json.JSONDecodeError as exc:
         errors.append(f'Invalid JSON in {label} {path.as_posix()}: {exc}')
         return {}
@@ -64,6 +67,25 @@ def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
         errors.append(f'{label} must be a JSON object: {path.as_posix()}')
         return {}
     return value
+
+
+def _reject_unfollowable_symlinks(root: Path, relative: Path = Path()) -> None:
+    """Raise OSError when root, or a symlink along root/relative, cannot be followed.
+
+    Path.resolve() raises RuntimeError on symlink loops only before Python 3.13;
+    newer versions return the unresolved path, so each link is followed explicitly.
+    A file below a looping directory stats as missing on Windows, so every link on
+    the path is checked, not just the final component.
+    """
+    os.stat(root)
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            try:
+                os.stat(current)
+            except FileNotFoundError:
+                return
 
 
 def _resolve_repo_path(
@@ -80,12 +102,14 @@ def _resolve_repo_path(
         return None
     try:
         root = repo_root.resolve()
+        _reject_unfollowable_symlinks(root)
     except (OSError, RuntimeError) as exc:
         errors.append(
             f'{label} repository root could not be resolved: {type(exc).__name__}: {exc}'
         )
         return None
     try:
+        _reject_unfollowable_symlinks(root, relative)
         candidate = (root / relative).resolve(strict=False)
     except (OSError, RuntimeError) as exc:
         errors.append(f'{label} path could not be resolved: {type(exc).__name__}: {exc}')
@@ -483,6 +507,7 @@ def build_release_report(
     errors: list[str] = []
     try:
         repo_root = repo_root.resolve()
+        _reject_unfollowable_symlinks(repo_root)
     except (OSError, RuntimeError) as exc:
         errors.append(f'Repository root could not be resolved: {type(exc).__name__}: {exc}')
         commit, commit_basis = resolve_source_commit(None, source_commit)
