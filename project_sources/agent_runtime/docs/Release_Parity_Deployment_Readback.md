@@ -44,7 +44,7 @@ Use only the generated package under `project_sources/agent_runtime/generated/pa
 
 ## AFRICOM USB Reporting manual deployment
 
-Use only the generated package under `project_sources/agent_runtime/generated/packages/openai_usb_reporting/` and the two Knowledge files enumerated by that package manifest.
+Use only the generated package under `project_sources/agent_runtime/generated/packages/openai_usb_reporting/` and the one Knowledge file enumerated by that package manifest.
 
 1. Confirm the approved commit and a passing static release/parity report.
 2. Run `python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check` immediately before deployment.

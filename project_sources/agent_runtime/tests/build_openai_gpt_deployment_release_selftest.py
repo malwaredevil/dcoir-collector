@@ -99,7 +99,7 @@ def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
         webui_name="AFRICOM USB Reporting",
         package_dir="project_sources/agent_runtime/generated/packages/openai_usb_reporting",
         knowledge_dir="project_sources/agent_runtime/generated/knowledge/openai_usb_reporting",
-        knowledge_count=2,
+        knowledge_count=1,
     )
     guide = repo / "project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md"
     _write(guide, b"# Agent Release, Parity, Deployment, and Readback\n")
@@ -144,7 +144,7 @@ def test_combined_delivery_and_determinism() -> None:
         assert f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Instructions.md" not in names
         assert f"{module.DELIVERY_ROOT_NAME}/delivery_manifest.json" in names
         assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_DCOIR_Analyst/Knowledge/") for name in names) == 7
-        assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Knowledge/") for name in names) == 2
+        assert sum(name.startswith(f"{module.DELIVERY_ROOT_NAME}/AFRICOM_USB_Reporting/Knowledge/") for name in names) == 1
         manifest = json.loads(
             (repo / "project_sources/validation/out_a" / module.DELIVERY_ROOT_NAME / "delivery_manifest.json").read_text(
                 encoding="utf-8"

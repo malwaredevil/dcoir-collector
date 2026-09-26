@@ -71,16 +71,13 @@ def extract_text(payload: Dict[str, Any]) -> str:
     return "\n".join(out).strip()
 
 
-def call_openai(
+def call_openai_body(
     api_key: str,
     project_id: str,
     args: argparse.Namespace,
-    package: Dict[str, Any],
-    fixture: Dict[str, Any],
-    turn: Dict[str, Any],
-    history: List[Dict[str, str]],
+    body_payload: Dict[str, Any],
 ) -> Dict[str, Any]:
-    body = json.dumps(build_request_body(package, fixture, turn, history, args)).encode("utf-8")
+    body = json.dumps(body_payload).encode("utf-8")
     headers = {"Content-Type": "application/json", "Authorization": f"Bearer {api_key}"}
     if project_id:
         headers["OpenAI-Project"] = project_id
@@ -111,6 +108,23 @@ def call_openai(
             return {"ok": False, "attempts": attempts, "error": str(exc)}
     return {"ok": False, "attempts": attempts, "error": "unknown"}
 
+
+
+def call_openai(
+    api_key: str,
+    project_id: str,
+    args: argparse.Namespace,
+    package: Dict[str, Any],
+    fixture: Dict[str, Any],
+    turn: Dict[str, Any],
+    history: List[Dict[str, str]],
+) -> Dict[str, Any]:
+    return call_openai_body(
+        api_key,
+        project_id,
+        args,
+        build_request_body(package, fixture, turn, history, args),
+    )
 
 def make_pack(
     fixture: Dict[str, Any],

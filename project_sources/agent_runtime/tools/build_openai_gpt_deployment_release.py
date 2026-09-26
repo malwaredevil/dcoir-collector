@@ -51,7 +51,7 @@ TARGETS = (
         "delivery_dir": "AFRICOM_USB_Reporting",
         "package_root": Path("project_sources/agent_runtime/generated/packages/openai_usb_reporting"),
         "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_usb_reporting"),
-        "knowledge_count": 2,
+        "knowledge_count": 1,
     },
 )
 

@@ -372,15 +372,15 @@
     },
     "knowledge_projection_manifest": {
       "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
-      "sha256": "5d7f418a77550c8c4fd5019e4550dc4ec171ed02d5b60132a24cdf8b238561be"
+      "sha256": "0231ebbdd3c036bc59690a75b0aacc39075b1a986bf36193ed75deb90ccfe535"
     },
     "knowledge_target_manifest": {
       "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/manifest.json",
-      "sha256": "f1ba23dc463ae17f92bde60bd675b6fe3e96b43c378420fa0e6c7b062a077320"
+      "sha256": "cd713750e2a160350a0a0ab1d41f2451b4504e51ef6061c33eca44a9b2cf2d7d"
     },
     "source_contract": {
       "path": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-      "sha256": "631e7d3d85fec36c00e6a2b99c27773cb7d7a79dba9ccd7df8fa24889a097753"
+      "sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae"
     }
   },
   "strict_knowledge_file_ceiling": 20,
