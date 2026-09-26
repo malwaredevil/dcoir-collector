@@ -90,7 +90,13 @@ def _python_scope_guaranteed_restoration_targets(
     if key not in guaranteed_binding_keys:
         return set()
     source_targets = set(source[1][2] or ())
-    if source[0] is not source_node and not _python_scope_cross_binding_stable(
+    has_nested_nonlocal_writer = any(
+        writer is not source[0]
+        and value_path in writer_info['nonlocals']
+        and nearest_nonlocal_owner(writer, value_path) is source[0]
+        for writer, writer_info in infos.items()
+    )
+    if (source[0] is not source_node or has_nested_nonlocal_writer) and not _python_scope_cross_binding_stable(
         source[0], value_path, source[1], source_targets, infos, module, function_scope_types,
         lexical_parent, nearest_nonlocal_owner, _python_scope_alias_sources(infos),
     ):
