@@ -19,6 +19,8 @@ SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_controls.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_paths.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_adversarial.py"),
+    Path("project_sources/agent_runtime/tools/usb_reporting_transfer_semantics.py"),
+    Path("project_sources/agent_runtime/tests/usb_reporting_transfer_semantics_selftest.py"),
 ]
 
 # Recorded AGENTS.md connector-size exemptions. Each is capped near its current
