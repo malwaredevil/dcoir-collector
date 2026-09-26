@@ -153,34 +153,46 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
         ('Serial Number', 'Serial Number'),
         ('Network Connection', 'Network connection'),
     ]
-    ticket_positions: list[int] = []
+    expected_tickets = [_ticket(row) for row in expected]
+    expected_ticket_set = set(expected_tickets)
+    ticket_matches = list(re.finditer(r'(?mi)^((?:INCN|INCS)\S*)\s*$', body))
+    observed_tickets = [match.group(1) for match in ticket_matches]
+    for ticket in expected_tickets:
+        count = observed_tickets.count(ticket)
+        if count != 1:
+            errors.append(f'{lane} body must contain ticket exactly once: {ticket} (found {count})')
+    for ticket in observed_tickets:
+        if ticket not in expected_ticket_set:
+            errors.append(f'{lane} body contains unexpected/unbound ticket: {ticket}')
+    if [ticket for ticket in observed_tickets if ticket in expected_ticket_set] != expected_tickets:
+        errors.append(f'{lane} body incident order does not match ascending fixture order')
+
+    blocks: dict[str, str] = {}
+    previous_end = 0
+    for match in ticket_matches:
+        ticket = match.group(1)
+        blocks.setdefault(ticket, body[previous_end:match.end()])
+        previous_end = match.end()
+
     for row in expected:
         ticket = _ticket(row)
-        ticket_matches = list(re.finditer(rf'(?m)^{re.escape(ticket)}\s*$', body))
-        if len(ticket_matches) != 1:
-            errors.append(f'{lane} body must contain ticket exactly once: {ticket}')
-        else:
-            ticket_positions.append(ticket_matches[0].start())
+        block = blocks.get(ticket, '')
         expected_date = _expected_date_line(row)
         if expected_date is None:
             errors.append(f'{lane} fixture date is not parseable for ticket: {ticket}')
-        elif expected_date not in body:
-            errors.append(f'{lane} body missing source date/time: {expected_date}')
+        elif expected_date not in block:
+            errors.append(f'{lane} body missing source date/time for ticket {ticket}: {expected_date}')
         for label, field in required_fields:
             value = _value(row, field)
             if not value:
                 continue
             expected_line = f'{label}: {value}'
-            if label == 'USB Device':
-                if expected_line.casefold() not in body.casefold():
-                    errors.append(f'{lane} body missing source value {label}: {value}')
-            elif expected_line not in body:
-                errors.append(f'{lane} body missing source value {label}: {value}')
+            found = expected_line.casefold() in block.casefold() if label == 'USB Device' else expected_line in block
+            if not found:
+                errors.append(f'{lane} body missing source value {label} for ticket {ticket}: {value}')
         notes = _value(row, 'Notes')
-        if notes and f'Notes: {notes}' not in body:
-            errors.append(f'{lane} body missing Notes: {notes}')
-    if len(ticket_positions) == len(expected) and ticket_positions != sorted(ticket_positions):
-        errors.append(f'{lane} body incident order does not match ascending fixture order')
+        if notes and f'Notes: {notes}' not in block:
+            errors.append(f'{lane} body missing Notes for ticket {ticket}: {notes}')
     if expected and not any(_value(row, 'Notes') for row in expected) and re.search(r'(?m)^Notes:', body):
         errors.append(f'{lane} body must omit blank Notes lines')
     for row in forbidden:
@@ -190,7 +202,6 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     if not body.rstrip().endswith('Please let us know if there are any questions.'):
         errors.append(f'{lane} body does not use the exact governed closing')
     return errors
-
 
 def score_final_response(
     text: str,

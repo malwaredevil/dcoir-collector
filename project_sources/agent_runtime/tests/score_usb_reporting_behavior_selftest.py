@@ -143,6 +143,39 @@ def test_out_of_order_incidents_are_rejected() -> None:
     assert any('incident order' in error for error in result['errors'])
 
 
+
+def test_swapped_same_lane_fields_are_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows)
+    response = response.replace('Name(s): Dummy User 01', 'Name(s): __SWAP__', 1)
+    response = response.replace('Name(s): Dummy User 02', 'Name(s): Dummy User 01', 1)
+    response = response.replace('Name(s): __SWAP__', 'Name(s): Dummy User 02', 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('INCNDUMMY0001' in error and 'Name(s)' in error for error in result['errors'])
+
+
+def test_unbound_invented_incident_data_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows)
+    invented = '''Date: 09/24/2026 0300Z
+Name(s): Invented User
+Location: Invented Location
+Computer Name: INVENTED-PC
+User Information: Invented User Information
+USB Device: Invented Device
+Serial Number: INVENTED-SERIAL
+Network Connection: On-Site
+INCNDUMMY9999'''
+    response = response.replace(
+        '\n\nPlease let us know if there are any questions.',
+        '\n\n' + invented + '\n\nPlease let us know if there are any questions.',
+        1,
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('unexpected/unbound ticket: INCNDUMMY9999' in error for error in result['errors'])
+
 def test_usb_device_brand_capitalization_is_allowed() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows)
@@ -205,6 +238,8 @@ def main() -> int:
         test_missing_date_line_is_rejected,
         test_nonblank_notes_are_required,
         test_out_of_order_incidents_are_rejected,
+        test_swapped_same_lane_fields_are_rejected,
+        test_unbound_invented_incident_data_is_rejected,
         test_usb_device_brand_capitalization_is_allowed,
         test_inline_sipr_transfer_label_is_rejected,
         test_wrong_recipient_is_rejected,
