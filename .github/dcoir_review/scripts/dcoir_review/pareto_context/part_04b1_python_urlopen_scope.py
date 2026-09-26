@@ -167,7 +167,9 @@ def python_module_shadowed_name_roots(module: ast.AST) -> set[str]:
         if isinstance(node, ast.Name):
             roots.add(node.id)
         elif isinstance(node, ast.Attribute):
-            collect_target(node.value)
+            # Attribute writes mutate an object but do not rebind the root name.
+            # Scoped mutation state handles urllib.request / urlopen changes.
+            return
         elif isinstance(node, (ast.Tuple, ast.List)):
             for item in node.elts:
                 collect_target(item)
@@ -270,7 +272,7 @@ def python_prune_shadowed_urlopen_call_names(call_names: set[str], shadowed_root
     }
 
 
-def python_urllib_urlopen_call_names(text: str) -> set[str]:
+def python_urllib_urlopen_call_names(text: str, *, preserve_shadowed: bool = False) -> set[str]:
     call_names: set[str] = set()
     module = python_parse_diff_line(text)
     if module is None:
@@ -302,9 +304,14 @@ def python_urllib_urlopen_call_names(text: str) -> set[str]:
                     call_names.add(f"{alias.asname or alias.name}.urlopen")
                 elif alias.name == "urllib":
                     call_names.add(f"{alias.asname or alias.name}.request.urlopen")
-    # Keep the full-head registry complete. Line-specific scope state decides
-    # whether a trusted call name is shadowed at the actual call site.
-    return call_names
+    if preserve_shadowed:
+        # Line-aware consumers need the complete registry so an early trusted
+        # call remains recognizable even if the same root is rebound later.
+        return call_names
+    return python_prune_shadowed_urlopen_call_names(
+        call_names,
+        python_module_shadowed_name_roots(module),
+    )
 
 
 def python_diff_urllib_urlopen_call_names(diff: str) -> dict[str, set[str]]:

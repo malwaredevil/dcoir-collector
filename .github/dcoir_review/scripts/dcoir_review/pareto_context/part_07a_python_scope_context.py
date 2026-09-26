@@ -1,9 +1,8 @@
 def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]]:
-    """Return conservative, lexical-scope-aware urllib shadow roots by source line."""
     module = ast.parse(source)
     by_line: dict[int, set[str]] = {}
-    function_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, *_PY_SCOPE_COMPREHENSION_TYPES)
-    child_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ClassDef, *_PY_SCOPE_COMPREHENSION_TYPES)
+    function_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+    child_scope_types = (*_PY_SCOPE_FUNCTION_TYPES, ast.ClassDef, ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
     collect_scope_bindings = _python_scope_collect_bindings
 
     infos: dict[ast.AST, dict[str, Any]] = {module: collect_scope_bindings(module)}
@@ -26,29 +25,10 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             parent = parents.get(parent)
         return parent
 
-    def latest_binding(
-        info: dict[str, Any],
-        name: str,
-        line: int | None,
-        before_sequence: int | None = None,
-    ) -> tuple[int, int, set[str] | None] | None:
-        events = list(info['binding_events'].get(name, []))
-        if line is not None:
-            events = [
-                event for event in events
-                if event[0] < line or (event[0] == line and (before_sequence is None or event[1] < before_sequence))
-            ]
-        return max(events, key=lambda event: (event[0], event[1])) if events else None
+    latest_binding = _python_scope_latest_binding
 
     def nearest_nonlocal_owner(node: ast.AST, name: str) -> ast.AST | None:
-        parent = lexical_parent(node)
-        while parent is not None and parent is not module:
-            info = infos[parent]
-            local_names = info['local_bindings'] - (info['globals'] | info['nonlocals'])
-            if name in local_names:
-                return parent
-            parent = lexical_parent(parent)
-        return None
+        return _python_scope_nearest_nonlocal_owner(node, name, infos, module, lexical_parent)
 
     def resolve_trusted_targets(
         node: ast.AST,
@@ -107,6 +87,10 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
                 info['trusted_alias_targets'].setdefault(target_name, set()).update(promoted)
                 changed = True
 
+    alias_sources = _python_scope_alias_sources(infos)
+    submodule_import_binding_keys = _python_scope_submodule_import_binding_keys(infos)
+    guaranteed_binding_keys = _python_scope_guaranteed_binding_keys(infos)
+
     global_shadowed_roots: set[str] = set()
     for node, info in infos.items():
         if node is module:
@@ -126,55 +110,81 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     def qualified_events() -> list[tuple[int, int, ast.AST, str, bool]]:
         found = []
         for source_node, info in infos.items():
-            for line, sequence, mutation, value_path in info['attribute_mutations']:
+            for line, sequence, mutation, value_path, restoration_guaranteed, statement_id in info['attribute_mutations']:
                 for target in canonical_mutation_paths(source_node, mutation, line, sequence):
                     if target not in {'urllib.request', 'urllib.request.urlopen'}:
                         continue
-                    restored = bool(
-                        value_path and '.' not in value_path
-                        and target in resolve_trusted_targets(source_node, value_path, line, before_sequence=sequence)
+                    restored = target in _python_scope_guaranteed_restoration_targets(source_node, value_path, line, sequence, infos, module, function_scope_types, lexical_parent, nearest_nonlocal_owner, guaranteed_binding_keys)
+                    found.append(
+                        (line, sequence, source_node, target, restored, restoration_guaranteed, statement_id)
                     )
-                    found.append((line, sequence, source_node, target, restored))
-        return sorted(found, key=lambda event: (event[0], event[1]))
+        return _python_scope_finalize_restoration_guarantees(found)
 
     mutation_events = qualified_events()
+    eager_nodes = {module, *(node for node in infos if isinstance(node, ast.ClassDef))}
 
-    def eager_state(line: int | None) -> set[str]:
-        state: set[str] = set()
-        for event_line, _sequence, source_node, path, restored in mutation_events:
-            if source_node is not module and not isinstance(source_node, ast.ClassDef):
-                continue
-            if line is not None and event_line > line:
-                continue
-            (state.discard if restored else state.add)(path)
-        return state
+    def trusted_binding_is_shadowed(
+        node: ast.AST,
+        name: str,
+        event: tuple[int, int, set[str] | None],
+        seen: set[tuple[int, str, int, int]] | None = None,
+    ) -> bool:
+        targets = set(event[2] or ())
+        if not targets & {'urllib.request', 'urllib.request.urlopen'}:
+            return False
+        event_key = (id(node), name, event[0], event[1])
+        seen = set(seen or ())
+        if event_key in seen:
+            return True
+        seen.add(event_key)
+        state = _python_scope_mutation_state(mutation_events, eager_nodes, event[0], event[1])
+        if node not in eager_nodes:
+            state.update(_python_scope_mutation_state(mutation_events, {node}, event[0], event[1]))
+        value_path = alias_sources.get(event_key)
+        if event_key in submodule_import_binding_keys:
+            return 'urllib.request.urlopen' in state
+        if value_path:
+            value_root, dot, _suffix = value_path.partition('.')
+            source = _python_scope_binding_event_owner(
+                node, value_root, event[0], event[1], infos, module,
+                function_scope_types, lexical_parent, nearest_nonlocal_owner
+            )
+            if source is not None and trusted_binding_is_shadowed(
+                source[0], value_root, source[1], seen
+            ):
+                return True
+            if not dot:
+                return False
+            root_targets = resolve_trusted_targets(
+                node, value_root, event[0], before_sequence=event[1]
+            )
+            return _python_scope_alias_source_shadowed(value_path, root_targets, state)
+        if 'urllib.request' in targets:
+            return 'urllib.request' in state
+        return bool(state & {'urllib.request', 'urllib.request.urlopen'})
 
-    for info in infos.values():
-        for name, events in list(info['binding_events'].items()):
-            info['binding_events'][name] = [
-                (event[0], event[1], None)
-                if event[2] == {'urllib.request.urlopen'} and 'urllib.request.urlopen' in eager_state(event[0])
-                else event
-                for event in events
-            ]
+    mutation_events = _python_scope_demote_shadowed_mutation_roots(infos, qualified_events, trusted_binding_is_shadowed)
+    while True:
+        mutation_events = qualified_events()
+        shadowed_binding_keys = _python_scope_shadowed_binding_keys(infos, trusted_binding_is_shadowed)
+        if not _python_scope_demote_binding_keys(infos, shadowed_binding_keys):
+            break
     mutation_events = qualified_events()
-    deferred_events = [
-        (int(getattr(source_node, 'lineno', 0) or 0), path)
-        for _line, _sequence, source_node, path, restored in mutation_events
-        if source_node is not module and not isinstance(source_node, ast.ClassDef) and not restored
-    ]
+    deferred_events = _python_scope_deferred_mutations(mutation_events, eager_nodes)
 
     def apply_qualified_shadow_state(active: set[str], node: ast.AST, line: int | None) -> set[str]:
-        state = eager_state(line if node is module or isinstance(node, ast.ClassDef) else None)
+        state = _python_scope_mutation_state(
+            mutation_events, eager_nodes, line if node in eager_nodes else None
+        )
         if node is module and line is not None:
             state.update(path for start, path in deferred_events if start and start <= line)
         elif node is not module:
             state.update(path for _start, path in deferred_events)
         for name in all_alias_names:
             targets = resolve_trusted_targets(node, name, line)
-            if 'urllib' in targets and state & {'urllib.request', 'urllib.request.urlopen'}:
+            if 'urllib.request.urlopen' in state and targets & {'urllib', 'urllib.request'}:
                 active.add(name)
-            elif 'urllib.request' in targets and 'urllib.request.urlopen' in state:
+            elif 'urllib.request' in state and 'urllib' in targets:
                 active.add(name)
         return active
 
@@ -261,28 +271,11 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     for line in range(1, max_line + 1):
         by_line[line] = module_line_state(line)
 
-    def scope_header_lines(node: ast.AST, body_start: int) -> set[int]:
-        starts = [int(getattr(node, 'lineno', 0) or 0)]
-        starts.extend(int(getattr(item, 'lineno', 0) or 0) for item in getattr(node, 'decorator_list', []))
-        positive = [line for line in starts if line > 0]
-        if not positive:
-            return set()
-        start = min(positive)
-        return set(range(start, max(start, body_start - 1) + 1))
-
-    def depth(node: ast.AST) -> int:
-        value = 0
-        parent = parents.get(node)
-        while parent is not None:
-            value += 1
-            parent = parents.get(parent)
-        return value
-
     scoped_nodes = [node for node in infos if node is not module]
-    for node in sorted(scoped_nodes, key=lambda item: (depth(item), int(getattr(item, 'lineno', 0) or 0))):
+    for node in sorted(scoped_nodes, key=lambda item: (_python_scope_depth(item, parents), int(getattr(item, 'lineno', 0) or 0))):
         start = int(getattr(node, 'lineno', 0) or 0)
         end = int(getattr(node, 'end_lineno', start) or start)
-        if isinstance(node, _PY_SCOPE_COMPREHENSION_TYPES):
+        if isinstance(node, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
             parts = ([node.key, node.value] if isinstance(node, ast.DictComp) else [node.elt])
             parts += [generator.target for generator in node.generators]
             parts += [clause for generator in node.generators for clause in generator.ifs]
@@ -302,7 +295,7 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
             continue
         body_start = min(int(getattr(stmt, 'lineno', start) or start) for stmt in body)
         exec_parent = parents.get(node)
-        for line in scope_header_lines(node, body_start):
+        for line in _python_scope_header_lines(node, body_start):
             by_line[line] = scope_line_state(exec_parent, line) if exec_parent is not None else module_line_state(line)
         for line in range(body_start, end + 1):
             by_line[line] = scope_line_state(node, line)

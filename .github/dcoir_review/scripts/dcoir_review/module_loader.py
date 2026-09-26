@@ -51,6 +51,8 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'pareto_context/part_05a_hybrid_review.py',
         'pareto_context/part_06_fix_synthesis.py',
         'pareto_context/part_07a0_python_scope_bindings.py',
+        'pareto_context/part_07a1_python_scope_state_helpers.py',
+        'pareto_context/part_07a2_python_scope_restoration.py',
         'pareto_context/part_07a_python_scope_context.py',
         'pareto_context/part_07_deep_context_prompt.py',
         'pareto_context/part_08_review_body_main.py',
@@ -80,6 +82,8 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'selftests/pareto_context_selftest/part_04.py',
         'selftests/pareto_context_selftest/part_04a.py',
         'selftests/pareto_context_selftest/part_04b.py',
+        'selftests/pareto_context_selftest/part_04c_scope_regressions.py',
+        'selftests/pareto_context_selftest/part_04d_scope_statement_regressions.py',
         'selftests/pareto_context_selftest/part_05.py',
     ),
     'dcoir_review_required_runtime_patch_v14_selftest': (

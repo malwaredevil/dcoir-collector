@@ -1,5 +1,4 @@
 _PY_SCOPE_FUNCTION_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
-_PY_SCOPE_COMPREHENSION_TYPES = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 
 
 def _python_scope_attribute_path(node: ast.AST) -> str | None:
@@ -20,9 +19,11 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     globals_declared: set[str] = set()
     nonlocals_declared: set[str] = set()
     trusted_alias_targets: dict[str, set[str]] = {}
-    attribute_mutations: list[tuple[int, int, str, str | None]] = []
+    attribute_mutations: list[tuple[int, int, str, str | None, bool, int | None]] = []
     binding_events: dict[str, list[tuple[int, int, set[str] | None]]] = {}
     alias_assignments: list[tuple[int, int, str, str]] = []
+    submodule_import_binding_keys: set[tuple[str, int, int]] = set()
+    guaranteed_binding_keys: set[tuple[str, int, int]] = set()
     sequence = 0
 
     def record_event(name: str, source_node: ast.AST | None, targets: set[str] | None) -> int:
@@ -32,24 +33,61 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         binding_events.setdefault(name, []).append((line, sequence, None if targets is None else set(targets)))
         return sequence
 
-    def bind_local(name: str, *, assigned: bool = False, source_node: ast.AST | None = None) -> int | None:
+    def bind_local(
+        name: str,
+        *,
+        assigned: bool = False,
+        source_node: ast.AST | None = None,
+        guaranteed: bool = False,
+    ) -> int | None:
         roots.add(name)
         local_bindings.add(name)
         if assigned:
             assigned_names.add(name)
         if source_node is not None:
-            return record_event(name, source_node, None)
+            event_sequence = record_event(name, source_node, None)
+            if guaranteed:
+                guaranteed_binding_keys.add(
+                    (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
+                )
+            return event_sequence
         return None
 
-    def bind_trusted(name: str, target: str, source_node: ast.AST) -> None:
+    def bind_trusted(
+        name: str,
+        target: str,
+        source_node: ast.AST,
+        *,
+        from_real_submodule: bool = False,
+    ) -> None:
         local_bindings.add(name)
         trusted_alias_targets.setdefault(name, set()).add(target)
-        record_event(name, source_node, {target})
+        event_sequence = record_event(name, source_node, {target})
+        if id(source_node) in guaranteed_statements:
+            guaranteed_binding_keys.add(
+                (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
+            )
+        if from_real_submodule:
+            submodule_import_binding_keys.add(
+                (name, int(getattr(source_node, 'lineno', 0) or 0), event_sequence)
+            )
 
-    def collect_target(target: ast.AST, alias_value_path: str | None = None) -> None:
+    guaranteed_statements = _python_scope_guaranteed_direct_statements(node)
+
+    def collect_target(
+        target: ast.AST,
+        alias_value_path: str | None = None,
+        restoration_guaranteed: bool = False,
+        statement_id: int | None = None,
+    ) -> None:
         nonlocal sequence
         if isinstance(target, ast.Name):
-            event_sequence = bind_local(target.id, assigned=True, source_node=target)
+            event_sequence = bind_local(
+                target.id,
+                assigned=True,
+                source_node=target,
+                guaranteed=restoration_guaranteed,
+            )
             if alias_value_path and event_sequence is not None:
                 alias_assignments.append((int(getattr(target, 'lineno', 0) or 0), event_sequence, target.id, alias_value_path))
         elif isinstance(target, ast.Attribute):
@@ -57,13 +95,20 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             if path:
                 sequence += 1
                 attribute_mutations.append(
-                    (int(getattr(target, 'lineno', 0) or 0), sequence, path, alias_value_path)
+                    (
+                        int(getattr(target, 'lineno', 0) or 0),
+                        sequence,
+                        path,
+                        alias_value_path,
+                        restoration_guaranteed,
+                        statement_id,
+                    )
                 )
         elif isinstance(target, (ast.Tuple, ast.List)):
             for item in target.elts:
-                collect_target(item)
+                collect_target(item, statement_id=statement_id)
         elif isinstance(target, ast.Starred):
-            collect_target(target.value)
+            collect_target(target.value, statement_id=statement_id)
 
     def collect_match_pattern(pattern: ast.AST) -> None:
         if isinstance(pattern, ast.MatchAs):
@@ -185,7 +230,12 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             for alias in item.names:
                 name = alias.asname or alias.name
                 if item.module == 'urllib.request' and alias.name == 'urlopen':
-                    bind_trusted(name, 'urllib.request.urlopen', item)
+                    bind_trusted(
+                        name,
+                        'urllib.request.urlopen',
+                        item,
+                        from_real_submodule=True,
+                    )
                 elif item.module == 'urllib' and alias.name == 'request':
                     bind_trusted(name, 'urllib.request', item)
                 else:
@@ -194,8 +244,24 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         def visit_Assign(self, item: ast.Assign) -> None:
             self.visit(item.value)
             alias_value_path = _python_scope_attribute_path(item.value) if isinstance(item.value, (ast.Name, ast.Attribute)) else None
-            for target in item.targets:
-                collect_target(target, alias_value_path)
+            prior_targets_cannot_raise = True
+            targets = list(item.targets)
+            for index, target in enumerate(targets):
+                later_targets_cannot_raise = all(
+                    isinstance(later_target, ast.Name)
+                    for later_target in targets[index + 1:]
+                )
+                collect_target(
+                    target,
+                    alias_value_path,
+                    id(item) in guaranteed_statements
+                    and prior_targets_cannot_raise
+                    and later_targets_cannot_raise,
+                    id(item),
+                )
+                prior_targets_cannot_raise = (
+                    prior_targets_cannot_raise and isinstance(target, ast.Name)
+                )
 
         def visit_AnnAssign(self, item: ast.AnnAssign) -> None:
             alias_value_path = None
@@ -203,24 +269,24 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                 self.visit(item.value)
                 if isinstance(item.value, (ast.Name, ast.Attribute)):
                     alias_value_path = _python_scope_attribute_path(item.value)
-            collect_target(item.target, alias_value_path)
+            collect_target(item.target, alias_value_path, id(item) in guaranteed_statements, id(item))
 
         def visit_AugAssign(self, item: ast.AugAssign) -> None:
             self.visit(item.value)
-            collect_target(item.target)
+            collect_target(item.target, statement_id=id(item))
 
         def visit_NamedExpr(self, item: ast.NamedExpr) -> None:
             self.visit(item.value)
             alias_value_path = _python_scope_attribute_path(item.value) if isinstance(item.value, (ast.Name, ast.Attribute)) else None
-            collect_target(item.target, alias_value_path)
+            collect_target(item.target, alias_value_path, statement_id=id(item))
 
         def visit_Delete(self, item: ast.Delete) -> None:
             for target in item.targets:
-                collect_target(target)
+                collect_target(target, statement_id=id(item))
 
         def visit_For(self, item: ast.For) -> None:
             self.visit(item.iter)
-            collect_target(item.target)
+            collect_target(item.target, statement_id=id(item))
             for stmt in item.body:
                 self.visit(stmt)
             for stmt in item.orelse:
@@ -232,7 +298,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             for entry in item.items:
                 self.visit(entry.context_expr)
                 if entry.optional_vars is not None:
-                    collect_target(entry.optional_vars)
+                    collect_target(entry.optional_vars, statement_id=id(item))
             for stmt in item.body:
                 self.visit(stmt)
 
@@ -254,7 +320,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                 return
             for generator in generators:
                 self.visit(generator.iter)
-                collect_target(generator.target)
+                collect_target(generator.target, statement_id=id(item))
                 for clause in generator.ifs:
                     self.visit(clause)
             for value in values:
@@ -287,50 +353,6 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         'attribute_mutations': attribute_mutations,
         'binding_events': binding_events,
         'alias_assignments': alias_assignments,
+        'submodule_import_binding_keys': submodule_import_binding_keys,
+        'guaranteed_binding_keys': guaranteed_binding_keys,
     }
-
-
-def python_assignment_urllib_urlopen_call_names(text: str, base_call_names: set[str] | None = None) -> set[str]:
-    """Return possible urlopen call names introduced by simple assignment aliases."""
-    try:
-        module = ast.parse(text)
-    except (SyntaxError, ValueError, TypeError):
-        return set()
-    calls = set(base_call_names or ())
-    aliases: list[tuple[str, str]] = []
-    for item in ast.walk(module):
-        value = None
-        targets: list[ast.AST] = []
-        if isinstance(item, ast.Assign):
-            value = item.value
-            targets = list(item.targets)
-        elif isinstance(item, ast.AnnAssign) and item.value is not None:
-            value = item.value
-            targets = [item.target]
-        elif isinstance(item, ast.NamedExpr):
-            value = item.value
-            targets = [item.target]
-        if not isinstance(value, (ast.Name, ast.Attribute)):
-            continue
-        value_path = _python_scope_attribute_path(value)
-        if not value_path:
-            continue
-        for target in targets:
-            if isinstance(target, ast.Name):
-                aliases.append((target.id, value_path))
-    changed = True
-    while changed:
-        changed = False
-        for target, value_path in aliases:
-            candidates: set[str] = set()
-            if value_path in calls:
-                candidates.add(target)
-            if f'{value_path}.urlopen' in calls:
-                candidates.add(f'{target}.urlopen')
-            if f'{value_path}.request.urlopen' in calls:
-                candidates.add(f'{target}.request.urlopen')
-            new = candidates - calls
-            if new:
-                calls.update(new)
-                changed = True
-    return calls - set(base_call_names or ())
