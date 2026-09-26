@@ -239,6 +239,37 @@ def test_negated_sipr_transfer_instructions_are_rejected() -> None:
     )
 
 
+def test_must_not_sipr_transfer_instructions_are_rejected() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows)
+    safe = (
+        'Copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document '
+        f'and move that text document to SIPR using Intelink iSafe: {module.ISAFE_URL}'
+    )
+    unsafe = safe + '. You must not complete this transfer until further notice.'
+    response = response.replace(safe, unsafe, 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('contradictory or negated' in error for error in result['errors'])
+
+
+def test_rather_than_sipr_transfer_instructions_are_rejected() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows)
+    safe = (
+        'Copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document '
+        f'and move that text document to SIPR using Intelink iSafe: {module.ISAFE_URL}'
+    )
+    unsafe = safe + '. Rather than transfer the draft to SIPR, keep it on NIPR.'
+    response = response.replace(safe, unsafe, 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any(
+        'contradictory or negated' in error or 'must not direct SIPR content into NIPR' in error
+        for error in result['errors']
+    )
+
+
 def test_indented_duplicate_date_is_rejected() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows)
@@ -366,6 +397,16 @@ def test_trailing_transfer_contradiction_is_rejected() -> None:
     assert any('revisits SIPR transfer handling' in error for error in result['errors'])
 
 
+def test_trailing_transfer_synonym_contradiction_is_rejected() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows) + (
+        '\n\nHold off sending this draft to SIPR; route it through NIPR instead.'
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('revisits SIPR transfer handling' in error for error in result['errors'])
+
+
 def test_blank_user_row_is_passable() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     rows[0] = {**rows[0], module._norm_header('User'): ''}
@@ -390,6 +431,8 @@ def main() -> int:
         test_non_netgear_usb_device_recasing_is_rejected,
         test_usb_device_brand_capitalization_is_allowed,
         test_negated_sipr_transfer_instructions_are_rejected,
+        test_must_not_sipr_transfer_instructions_are_rejected,
+        test_rather_than_sipr_transfer_instructions_are_rejected,
         test_indented_duplicate_date_is_rejected,
         test_indented_duplicate_location_is_rejected,
         test_indented_duplicate_notes_is_rejected,
@@ -403,6 +446,7 @@ def main() -> int:
         test_prior_count_substring_does_not_satisfy_clarification,
         test_trailing_source_correction_note_is_allowed,
         test_trailing_transfer_contradiction_is_rejected,
+        test_trailing_transfer_synonym_contradiction_is_rejected,
         test_blank_user_row_is_passable,
     ]
     for test in tests:

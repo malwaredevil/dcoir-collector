@@ -201,6 +201,49 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
     return errors
 
 
+TRANSFER_CONTRADICTION_RE = re.compile(
+    r"\b(?:do not|don't|must not|shall not|should not|cannot|can't|no longer|never|avoid|"
+    r"instead(?: of)?|rather than|without|refrain from|skip|hold off)\b",
+    flags=re.IGNORECASE,
+)
+TRANSFER_SCOPE_RE = re.compile(
+    r"\b(?:sipr|isafe|text document|transfer|copy|move|send|upload|attach|draft|"
+    r"message draft|recipient|subject)\b",
+    flags=re.IGNORECASE,
+)
+TRANSFER_ACTION_RE = re.compile(
+    r"\b(?:transfer|send|move|copy|upload|attach|route|deliver)\w*\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _contains_transfer_contradiction(text: str) -> bool:
+    normalized = re.sub(r'\s+', ' ', text).strip()
+    return bool(
+        TRANSFER_CONTRADICTION_RE.search(normalized)
+        and TRANSFER_SCOPE_RE.search(normalized)
+    )
+
+
+def _trailing_revisits_transfer_handling(text: str) -> bool:
+    normalized = re.sub(r'\s+', ' ', text).strip()
+    if not normalized:
+        return False
+    if re.search(
+        r'isafe|text document|sipr (?:recipient|subject|message draft)',
+        normalized,
+        flags=re.IGNORECASE,
+    ):
+        return True
+    for sentence in re.split(r'(?<=[.!?])\s+', normalized):
+        if re.search(r'\bsipr\b', sentence, flags=re.IGNORECASE) and (
+            TRANSFER_ACTION_RE.search(sentence)
+            or TRANSFER_CONTRADICTION_RE.search(sentence)
+        ):
+            return True
+    return False
+
+
 def _transfer_instruction_errors(transfer: str) -> list[str]:
     errors: list[str] = []
     normalized = re.sub(r'\s+', ' ', transfer).strip()
@@ -226,7 +269,7 @@ def _transfer_instruction_errors(transfer: str) -> list[str]:
         errors.append('SIPR transfer instructions do not affirmatively copy the governed SIPR draft into a text document')
     if not move_pattern.search(normalized):
         errors.append('SIPR transfer instructions do not affirmatively move the text document to SIPR using Intelink iSafe')
-    if re.search(r"\b(?:do not|don't|never|avoid|instead(?: of)?)\b", lower):
+    if _contains_transfer_contradiction(normalized):
         errors.append('SIPR transfer instructions contain contradictory or negated handling')
     if re.search(r'\bnipr\b', lower):
         errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
@@ -403,7 +446,7 @@ def score_final_response(
             transfer, *rest = re.split(r'\n[ \t]*\n', text[transfer_matches[0].end():].strip(), maxsplit=1)
             trailing = rest[0] if rest else ''
             errors.extend(_transfer_instruction_errors(transfer))
-            if re.search(r'isafe|text document|sipr (?:recipient|subject|message draft)|\bmove\b[^.\n]*\bsipr\b', trailing, flags=re.IGNORECASE):
+            if _trailing_revisits_transfer_handling(trailing):
                 errors.append('content after SIPR Transfer Instructions revisits SIPR transfer handling')
     else:
         values: dict[str, str] = {}
