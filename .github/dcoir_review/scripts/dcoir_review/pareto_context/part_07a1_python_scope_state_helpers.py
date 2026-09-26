@@ -283,12 +283,15 @@ def _python_scope_finalize_restoration_guarantees(events):
             guaranteed = bool(
                 restoration_candidate_safe
                 and previous
+                and previous[3]
                 and _python_scope_direct_restoration_guaranteed(node, previous[2], restoration_statement_id)
             )
             if guaranteed:
                 active_mutations.pop(key, None)
         else:
-            active_mutations[key] = (line, sequence, restoration_statement_id)
+            active_mutations[key] = (
+                line, sequence, restoration_statement_id, restoration_candidate_safe
+            )
         finalized.append((line, sequence, node, path, restored, guaranteed, restoration_statement_id))
     return finalized
 

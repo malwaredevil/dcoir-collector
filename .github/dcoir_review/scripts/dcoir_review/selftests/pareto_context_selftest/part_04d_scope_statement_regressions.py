@@ -63,3 +63,85 @@ nested_nonlocal_same_trusted_local_snapshot_context = _scope_context(
     ]
 )
 assert "urllib" not in nested_nonlocal_same_trusted_local_snapshot_context.get(12, set()), nested_nonlocal_same_trusted_local_snapshot_context
+
+
+chained_mutation_later_attribute_target_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def mutator():",
+        "    urllib.request.urlopen = sink.value = custom_open",
+        "    urllib.request.urlopen = saved",
+        "mutator()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in chained_mutation_later_attribute_target_context.get(8, set()), chained_mutation_later_attribute_target_context
+
+chained_mutation_later_name_target_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "def mutator():",
+        "    urllib.request.urlopen = mirror = custom_open",
+        "    urllib.request.urlopen = saved",
+        "mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in chained_mutation_later_name_target_context.get(8, set()), chained_mutation_later_name_target_context
+
+
+benign_alias_cycle_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "alias = urllib.request.urlopen",
+        "def rebind_saved():",
+        "    global saved",
+        "    saved = alias",
+        "def rebind_alias():",
+        "    global alias",
+        "    alias = saved",
+        "rebind_saved()",
+        "rebind_alias()",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in benign_alias_cycle_context.get(18, set()), benign_alias_cycle_context
+
+hostile_alias_cycle_context = _scope_context(
+    [
+        "import urllib.request",
+        "saved = urllib.request.urlopen",
+        "alias = urllib.request.urlopen",
+        "def rebind_saved():",
+        "    global saved",
+        "    saved = alias",
+        "def rebind_alias():",
+        "    global alias",
+        "    alias = saved",
+        "def poison_alias():",
+        "    global alias",
+        "    alias = custom_open",
+        "rebind_saved()",
+        "rebind_alias()",
+        "poison_alias()",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "mutator()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in hostile_alias_cycle_context.get(22, set()), hostile_alias_cycle_context

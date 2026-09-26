@@ -245,11 +245,18 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             self.visit(item.value)
             alias_value_path = _python_scope_attribute_path(item.value) if isinstance(item.value, (ast.Name, ast.Attribute)) else None
             prior_targets_cannot_raise = True
-            for target in item.targets:
+            targets = list(item.targets)
+            for index, target in enumerate(targets):
+                later_targets_cannot_raise = all(
+                    isinstance(later_target, ast.Name)
+                    for later_target in targets[index + 1:]
+                )
                 collect_target(
                     target,
                     alias_value_path,
-                    id(item) in guaranteed_statements and prior_targets_cannot_raise,
+                    id(item) in guaranteed_statements
+                    and prior_targets_cannot_raise
+                    and later_targets_cannot_raise,
                     id(item),
                 )
                 prior_targets_cannot_raise = (

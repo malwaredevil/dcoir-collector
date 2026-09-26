@@ -5,7 +5,7 @@ def _python_scope_cross_binding_stable(
     key = (id(owner), name, event[0], event[1])
     seen = set(seen or ())
     if key in seen:
-        return False
+        return True
     seen.add(key)
 
     value_path = alias_sources.get(key)
