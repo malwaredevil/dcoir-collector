@@ -92,6 +92,41 @@ def test_v43_refreshes_non_null_review_context() -> None:
         v42_hooks._LAST_LEDGER = old_ledger
 
 
+def test_v43_empty_decisions_preserve_canonical_review_counts() -> None:
+    debug: dict[str, object] = {}
+    module = SimpleNamespace(
+        hardened=SimpleNamespace(
+            write_debug_json_artifact_safely=lambda _cfg, path, value: debug.__setitem__(path, value)
+        )
+    )
+    gh = SimpleNamespace()
+    ledger = base_ledger()
+    ledger["telemetry"]["reviewed_file_count"] = 5
+    ledger["telemetry"]["recomputed_file_count"] = 5
+    setattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, ledger)
+    state = {
+        "decisions": {},
+        "carry_forward_decisions": {},
+        "carried_forward_record_count": 0,
+        "load_reason": "trusted-prior-review-missing",
+    }
+    old_context = v42_hooks._LAST_REVIEW_CONTEXT
+    old_ledger = v42_hooks._LAST_LEDGER
+    try:
+        v42_hooks._LAST_REVIEW_CONTEXT = {"existing": True}
+        v42_hooks._LAST_LEDGER = ledger
+        v43._apply_ledger_telemetry(module, gh, SimpleNamespace(), state)
+        updated = getattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR)
+        assert updated["telemetry"]["reviewed_file_count"] == 5
+        assert updated["telemetry"]["recomputed_file_count"] == 5
+        context = debug["metadata/review-context.json"]
+        assert context["semantic_reviewed_file_count"] == 5
+        assert context["semantic_recomputed_file_count"] == 5
+    finally:
+        v42_hooks._LAST_REVIEW_CONTEXT = old_context
+        v42_hooks._LAST_LEDGER = old_ledger
+
+
 def test_v44_refreshes_non_null_review_context() -> None:
     debug: dict[str, object] = {}
     module = SimpleNamespace(
@@ -144,6 +179,7 @@ def test_v44_refreshes_non_null_review_context() -> None:
 def main() -> None:
     test_helper_contract()
     test_v43_refreshes_non_null_review_context()
+    test_v43_empty_decisions_preserve_canonical_review_counts()
     test_v44_refreshes_non_null_review_context()
     print("dcoir_review_review_context_ledger_integration_selftest passed")
 

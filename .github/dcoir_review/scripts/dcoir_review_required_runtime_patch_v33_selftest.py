@@ -34,13 +34,17 @@ def main() -> None:
 
     # v32's compatibility constants remain at the governed repair budget, while
     # the canonical verifier owns the separate 12-candidate verification ceiling.
-    assert v21.VERIFIER_MAX_MODEL_FINDINGS == 8
-    assert repair.MAX_REPAIR_CANDIDATES == 8
+    assert v21.VERIFIER_MAX_MODEL_FINDINGS == 12
+    assert repair.MAX_REPAIR_CANDIDATES == 12
     assert v21.verifier_candidate_limit(config) == 12
     assert v33.verifier_candidate_limit(config) == 12
-    assert v33.repair_synthesis_budget(config) == 8
+    assert v33.repair_synthesis_budget(config) == 12
     assert v21.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
     assert not hasattr(v33, "VERIFIER_STORAGE")
+
+    # The production budget now reaches the full 12-finding publication ceiling.
+    # Lower custom budgets remain supported and still defer rather than erase findings.
+    config.fix_synthesis_max_findings = 8
 
     candidates = [
         {

@@ -47,6 +47,7 @@ MAX_EDIT_TEXT_CHARS = 12000
 MAX_TOTAL_REPLACEMENT_CHARS = 24000
 MAX_DIFF_CONTEXT_CHARS = 60000
 MAX_CRITIC_CONTEXT_CHARS = 70000
+MAX_REPAIR_STATUS_NOTE_CHARS = 4000
 AUTHOR_MIN_CONFIDENCE = repair_contract.AUTHOR_MIN_CONFIDENCE
 CRITIC_MIN_CONFIDENCE = repair_contract.CRITIC_MIN_CONFIDENCE
 
@@ -296,6 +297,10 @@ Rules:
   speculative tests. Every edit must be necessary for the verified root cause.
 - A coordinated repair MAY include a focused regression test when it is necessary
   to prevent this exact defect class from recurring, but keep it minimal.
+- When regression coverage is required, inspect the supplied primary file and PR
+  diff for existing self-test/assertion surfaces, including tests colocated with
+  implementation code. Do not assume a separate test file is required merely
+  because one was not supplied as a standalone context block.
 - Prefer edit ranges visible in the supplied PR diff when possible because those
   can become native GitHub suggestions. If a necessary edit is outside the diff,
   still include it accurately; DCOIR will publish it as coordinated guidance.
@@ -481,13 +486,14 @@ def _declined_item(
     item["title"] = title
     item["body"] = body
     item["suggested_replacement"] = ""
+    status_note = (
+        "DCOIR Review verified the finding. A native coordinated repair was not published because "
+        + (reason or "the repair-set pipeline could not prove a safe complete repair")
+        + "."
+    )
     item["fix_guidance"] = {
         "language": Path(path).suffix.lstrip(".") or "text",
-        "notes": (
-            "DCOIR Review verified the finding. A native coordinated repair was not published because "
-            + (reason or "the repair-set pipeline could not prove a safe complete repair")
-            + "."
-        )[:1600],
+        "notes": _bounded(status_note, MAX_REPAIR_STATUS_NOTE_CHARS),
     }
     item[repair.REPAIR_MARKER] = {
         "version": VERSION,

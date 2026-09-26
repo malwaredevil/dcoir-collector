@@ -1,0 +1,31 @@
+{
+  "schema_version": "dcoir_test_artifact_index_v1",
+  "registry_root": "project_sources/validation/fixtures",
+  "purpose": "Stable sanitized test inputs for manual and automated governed validation.",
+  "artifact_families": [
+    {
+      "artifact_family_id": "agent_runtime_usb_reporting",
+      "path": "project_sources/validation/fixtures/agent_runtime/usb_reporting",
+      "manifest": "project_sources/validation/fixtures/agent_runtime/usb_reporting/manifest.json",
+      "intended_targets": [
+        "gemini_dcoir_agent/sub_agent.11",
+        "openai_usb_reporting"
+      ],
+      "manual_eligible": true,
+      "automation_eligible": true,
+      "status": "active"
+    }
+  ],
+  "existing_specialized_fixture_roots": [
+    {
+      "path": "project_sources/gemini/fixtures/behavioral_replay",
+      "owner": "gemini_behavioral_replay_harness",
+      "note": "Established specialized fixture family remains in place; do not duplicate it into the shared registry."
+    },
+    {
+      "path": "project_sources/collector/fixtures",
+      "owner": "collector_validation_harnesses",
+      "note": "Established collector-specific fixture trees remain in place."
+    }
+  ]
+}

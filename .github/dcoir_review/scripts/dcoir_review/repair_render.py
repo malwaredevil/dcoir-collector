@@ -12,6 +12,33 @@ DEFAULT_PIPELINE_VERSION = "v28"
 DEFAULT_REPAIR_MARKER = "_dcoir_repair"
 
 
+def safe_repair_disposition(marker: dict[str, Any]) -> str:
+    """Return operator-facing repair status without model/provider rationale."""
+
+    outcome = str(marker.get("outcome", "") or "").strip()
+    if outcome.endswith("-stage-failed-closed") or marker.get("critic_failed_closed") is True:
+        return "Repair synthesis failed closed before a publishable repair set was produced."
+    if outcome in {"verified-repair-budget-deferred"}:
+        return "Repair synthesis was not attempted because the configured repair budget was exhausted."
+    if outcome in {"verified-repair-confidence-deferred"}:
+        return "Repair synthesis was not attempted because the finding was below the configured repair-confidence floor."
+    if outcome in {"deterministic-final-declined"}:
+        return "Repair synthesis passed the independent critic, but final exact-head revalidation declined the candidate; no publishable repair set was produced."
+    if outcome in {"critic-declined"}:
+        return "Repair synthesis produced a critic-eligible candidate, but the independent repair critic rejected it; no publishable repair set was produced."
+    if outcome in {"author-declined", "deterministic-precheck-declined"}:
+        return "Repair synthesis did not produce a critic-eligible complete repair set; no publishable repair set was produced."
+    if outcome in {"verified-no-safe-repair-set", "no-safe-single-line-fix"}:
+        if marker.get("critic_accepted") is True:
+            return "Repair synthesis passed the independent critic, but final exact-head revalidation declined the candidate; no publishable repair set was produced."
+        if str(marker.get("critic_model", "") or "").strip():
+            return "Repair synthesis produced a critic-eligible candidate, but the independent repair critic rejected it; no publishable repair set was produced."
+        return "Repair synthesis did not produce a critic-eligible complete repair set; no publishable repair set was produced."
+    if outcome and outcome not in {"native-suggestion", "verified-repair-set"}:
+        return "Repair synthesis did not publish an applyable repair set for this verified finding."
+    return ""
+
+
 def render_repair(
     module: Any,
     finding: dict[str, Any],
@@ -44,7 +71,9 @@ def render_repair(
             parts.extend(["", "**Suggested change:**", "", "```suggestion", safe, "```"])
 
     guidance = finding.get("fix_guidance") if isinstance(finding.get("fix_guidance"), dict) else {}
-    notes = base.fix_guidance_value_text(guidance.get("notes", ""), config) if guidance else ""
+    notes = safe_repair_disposition(marker)
+    if not notes and marker.get("outcome") in {"native-suggestion", "verified-repair-set"} and guidance:
+        notes = base.fix_guidance_value_text(guidance.get("notes", ""), config)
     if notes:
         parts.extend(["", "**Repair status:**", "", notes])
 

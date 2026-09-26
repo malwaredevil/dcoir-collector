@@ -164,87 +164,59 @@ def python_augmented_dynamic_path_target(text: str, path_constructor_names: set[
     return None
 
 
-def python_direct_dynamic_file_write(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> bool:
+def python_parse_diff_line(text: str) -> ast.Module | None:
+    """Parse one Python diff line, including block headers such as ``with ...:``."""
+
+    source = text.lstrip()
     try:
-        module = ast.parse(text.lstrip())
+        return ast.parse(source)
     except SyntaxError:
+        if source.rstrip().endswith(":"):
+            try:
+                return ast.parse(source.rstrip() + "\n    pass")
+            except SyntaxError:
+                return None
+        return None
+
+
+def python_direct_dynamic_open_write(
+    text: str,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    local_int_bindings: dict[str, ast.AST | int] | None = None,
+    shadowed_names: set[str] | None = None,
+) -> bool:
+    """Detect direct dynamic file opens while excluding lookalikes such as urlopen."""
+
+    module = python_parse_diff_line(text)
+    if module is None:
         return False
     constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
+    active_shadowed_names = set(shadowed_names or ())
+    active_shadowed_names.update(python_shadowed_name_roots(module))
     for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        if not isinstance(node, ast.Call) or not python_call_uses_write_mode(
+            node,
+            os_module_names,
+            local_int_bindings,
+            assume_path_receiver=True,
+            shadowed_names=active_shadowed_names,
+        ):
             continue
-        if node.func.attr not in {"write_text", "write_bytes"}:
+        func = node.func
+        if isinstance(func, ast.Name) and func.id == "open":
+            path_node = python_call_arg(node, 0, "file")
+            return bool(path_node and python_is_dynamic_path_segment(path_node))
+        call_name = python_call_name(func)
+        if call_name in {f"{name}.open" for name in (os_module_names or DEFAULT_PYTHON_OS_MODULES)}:
+            path_node = python_call_arg(node, 0, "path")
+            return bool(path_node and python_is_dynamic_path_segment(path_node))
+        if not isinstance(func, ast.Attribute) or func.attr != "open":
             continue
-        value = node.func.value
-        if python_target_key(value):
-            continue
-        value_is_path, value_has_dynamic = python_path_expr_info(value, constructor_names, os_module_names)
+        value = func.value
+        value_is_path, value_has_dynamic = python_path_expr_info(
+            value, constructor_names, os_module_names
+        )
         if value_is_path and value_has_dynamic:
             return True
     return False
-
-
-def python_file_write_target(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> str | None:
-    try:
-        module = ast.parse(text.lstrip())
-    except SyntaxError:
-        write_match = PYTHON_FILE_WRITE_RE.search(text)
-        if not write_match:
-            return None
-        return write_match.group("target") or write_match.group("wrapped_target")
-    for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-            continue
-        if node.func.attr not in {"write_text", "write_bytes"}:
-            continue
-        target = python_target_key(node.func.value)
-        if target:
-            return target
-    return None
-
-
-def python_wrapped_file_write_target(text: str, path_constructor_names: set[str] | None = None, os_module_names: set[str] | None = None) -> str | None:
-    try:
-        module = ast.parse(text.lstrip())
-    except SyntaxError:
-        return None
-    constructor_names = path_constructor_names or DEFAULT_PYTHON_PATH_CONSTRUCTORS
-    for node in ast.walk(module):
-        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
-            continue
-        if node.func.attr not in {"write_text", "write_bytes"}:
-            continue
-        value = node.func.value
-        if python_is_path_constructor(value, constructor_names) and value.args:
-            return python_target_key(value.args[0])
-    return None
-
-
-def append_file_write_sentinel(sentinels: list[hardened.RiskSentinel], anchor: PythonDiffLine) -> None:
-    sentinels.append(
-        hardened.RiskSentinel(
-            path=anchor.path,
-            line=anchor.line,
-            label=FILE_WRITE_PATH_LABEL,
-            detail=FILE_WRITE_PATH_DETAIL,
-            text=anchor.text,
-        )
-    )
-
-
-def python_dynamic_exec_call_name(text: str) -> str | None:
-    if "eval" not in text and "exec" not in text:
-        return None
-    try:
-        module = ast.parse(text.lstrip())
-    except SyntaxError:
-        return None
-    for node in ast.walk(module):
-        if not isinstance(node, ast.Call):
-            continue
-        call_name = python_call_name(node.func)
-        if call_name in PYTHON_DYNAMIC_EXEC_CALL_NAMES:
-            return call_name
-    return None
-
-

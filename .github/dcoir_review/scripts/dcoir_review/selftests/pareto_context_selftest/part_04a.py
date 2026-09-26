@@ -28,6 +28,23 @@ os_alias_context = mod.build_python_os_alias_context(
     ],
 )
 assert os_alias_context == {"tools/aliased_writer.py": {"operating_system"}}
+shadowed_name_context = mod.build_python_shadowed_name_context(
+    FakeGitHubClient(),
+    {"head": {"sha": "abc123def4567890"}},
+    [
+        {"filename": "tools/custom_open_import.py", "status": "modified"},
+        {"filename": "docs/review.md", "status": "modified"},
+    ],
+)
+assert shadowed_name_context == {"tools/custom_open_import.py": {"open", "persist", "handle", "user_path"}}
+scoped_shadowed_name_context = mod.build_python_scoped_shadowed_name_context(
+    FakeGitHubClient(),
+    {"head": {"sha": "abc123def4567890"}},
+    [{"filename": "tools/custom_open_import.py", "status": "modified"}],
+)
+assert "user_path" not in scoped_shadowed_name_context["tools/custom_open_import.py"][3]
+assert "user_path" in scoped_shadowed_name_context["tools/custom_open_import.py"][4]
+assert "open" in scoped_shadowed_name_context["tools/custom_open_import.py"][4]
 
 deep_block, deep_summary = mod.build_deep_context_block(
     FakeGitHubClient(),
@@ -157,6 +174,52 @@ assert small_prompt.startswith("Governed review hardening requirements:")
 assert "Every semantic, Markdown, governance, validation, or review-gate concern" in small_prompt
 assert mod.CONTEXT_REVIEW_MARKER not in small_prompt
 assert mod.DEEP_CONTEXT_PROMPT_TRUNCATED_MARKER.strip() not in small_prompt
+
+cross_file_unbound_os_open_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_read_flags.py b/tools/os_read_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_read_flags.py
+@@ -0,0 +1,5 @@
++import os
++def load(user_path):
++    flags = os.O_RDONLY
++    return os.open(user_path, flags)
+diff --git a/tools/os_write_flags.py b/tools/os_write_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_write_flags.py
+@@ -0,0 +1,4 @@
++import os
++def persist(user_path, flags):
++    return os.open(user_path, flags)
+"""
+)
+assert any(
+    item.path == "tools/os_write_flags.py"
+    and item.line == 3
+    and item.label in legacy_path_write_labels
+    for item in cross_file_unbound_os_open_flags_sentinels
+), cross_file_unbound_os_open_flags_sentinels
+
+shadowed_parameter_os_open_flags_sentinels = mod.detect_risk_sentinels(
+    """diff --git a/tools/os_shadowed_flags.py b/tools/os_shadowed_flags.py
+index 0000000..1111111 100644
+--- /dev/null
++++ b/tools/os_shadowed_flags.py
+@@ -0,0 +1,5 @@
++import os
++flags = os.O_RDONLY
++def persist(user_path, flags):
++    return os.open(user_path, flags)
+"""
+)
+assert any(
+    item.path == "tools/os_shadowed_flags.py"
+    and item.line == 4
+    and item.label in legacy_path_write_labels
+    for item in shadowed_parameter_os_open_flags_sentinels
+), shadowed_parameter_os_open_flags_sentinels
 
 
 # Review-assist artifact context must only be loaded from the trusted extraction path.

@@ -13,10 +13,20 @@ from typing import Any
 
 from dcoir_review import finding_comment_policy
 from dcoir_review import repair_pipeline
+from dcoir_review import repair_render
 from dcoir_review import verified_finding_render
 
 
 APPLIED_MARKER = "_dcoir_finding_comment_render_applied"
+
+
+def _deterministic_repair_disposition(finding: dict[str, Any]) -> str:
+    marker = (
+        finding.get(repair_pipeline.REPAIR_MARKER)
+        if isinstance(finding.get(repair_pipeline.REPAIR_MARKER), dict)
+        else {}
+    )
+    return repair_render.safe_repair_disposition(marker)
 
 
 def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, Any]:
@@ -28,7 +38,9 @@ def _canonicalize_deterministic_sentinel(finding: dict[str, Any]) -> dict[str, A
     item["title"] = str(title or item.get("title", "") or "DCOIR Review finding").strip()
     item["body"] = str(body or item.get("body", "") or "").strip()
     guidance = dict(item.get("fix_guidance")) if isinstance(item.get("fix_guidance"), dict) else {}
-    guidance["notes"] = str(notes or "").strip()
+    canonical_notes = str(notes or "").strip()
+    disposition = _deterministic_repair_disposition(item)
+    guidance["notes"] = "\n\n".join(part for part in (canonical_notes, disposition) if part)
     item["fix_guidance"] = guidance
     return item
 

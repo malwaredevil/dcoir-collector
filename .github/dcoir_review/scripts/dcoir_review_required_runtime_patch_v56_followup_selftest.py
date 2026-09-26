@@ -168,6 +168,21 @@ def main() -> None:
         "critic_model": "openai/gpt-5.6-sol-pro",
         "critic_item_id": "C01-alpha",
     }
+    failed_closed = repair.finalize_candidate(
+        review, first, (False, 0.0, "MODEL PROVIDER ERROR", True),
+        "openai/gpt-5.6-sol-pro", "", {}, {}, config, 1
+    )
+    failed_marker = failed_closed[importlib.import_module("dcoir_review.repair_pipeline").REPAIR_MARKER]
+    assert failed_marker["outcome"] == "repair-stage-failed-closed"
+    assert failed_marker["critic_failed_closed"] is True
+    rejected = repair.finalize_candidate(
+        review, first, (False, 0.97, "repair is incomplete", False),
+        "openai/gpt-5.6-sol-pro", "default", {}, {}, config, 1
+    )
+    rejected_marker = rejected[importlib.import_module("dcoir_review.repair_pipeline").REPAIR_MARKER]
+    assert rejected_marker["outcome"] == "verified-no-safe-repair-set"
+    assert rejected_marker["critic_failed_closed"] is False
+
     second = {
         "ordinal": 2,
         "finding": _finding("b.py"),

@@ -139,7 +139,7 @@ fix_synthesis_enabled: true
 # v53 restores the pre-v33 confidence separation: verifier-supported findings
 # below fix_synthesis_min_confidence still publish, but do not spend repair calls
 # or consume the eligible repair-count budget.
-fix_synthesis_max_findings: 8
+fix_synthesis_max_findings: 12
 fix_synthesis_min_confidence: 0.80
 # v56 keeps batching operator-reversible and separately caps each compatible
 # independent critic request without changing the existing repair budget.

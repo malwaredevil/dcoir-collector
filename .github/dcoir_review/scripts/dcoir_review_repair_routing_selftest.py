@@ -4,7 +4,11 @@
 from __future__ import annotations
 
 import copy
+from email.message import Message
 import importlib
+import io
+import json
+import urllib.error
 
 from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
@@ -41,13 +45,82 @@ def main() -> None:
         contaminated, "anthropic/claude-opus-5"
     )
     assert author_critic.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
-    assert author_critic.model_stack == [repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL]
+    assert author_critic.model_stack == [
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
     assert author_critic.fallback_models == []
     assert author_critic.openrouter_route == ""
     assert author_critic.openrouter_service_tier == ""
     assert contaminated.fallback_models == ["legacy/fallback"]
     assert contaminated.openrouter_route == "auto"
     assert contaminated.openrouter_service_tier == "priority"
+
+    # Issues #582/#586 regression: live review runs showed Opus 5 and then
+    # Sonnet 5 returning endpoint-routing 404s while Sol Pro succeeded in other
+    # stages. A Sol-authored repair must therefore retain independent-family
+    # fallbacks beyond Anthropic rather than turning those 404s into a terminal
+    # repair-critic failure.
+    sol_author_critic = repair_policy.build_repair_critic_config(
+        base_config, "openai/gpt-5.6-sol-pro"
+    )
+    assert sol_author_critic.model_stack == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "anthropic/claude-sonnet-5"
+    assert not repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL.startswith("~")
+    assert repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "google/gemini-3.1-pro-preview"
+    assert all(
+        not str(model).removeprefix("~").startswith("openai/")
+        for model in sol_author_critic.model_stack
+    )
+
+    attempted_models: list[str] = []
+    original_request_once = review.hardened.openrouter_request_once
+    empty_headers = Message()
+
+    def fake_repair_critic_request(_prompt, _schema, _config, _ignored, model):
+        attempted_models.append(model)
+        if model in {
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        }:
+            body = json.dumps(
+                {"error": {"message": "No endpoints found that can handle the requested parameters."}}
+            ).encode("utf-8")
+            raise urllib.error.HTTPError(
+                url="https://openrouter.ai/api/v1/chat/completions",
+                code=404,
+                msg="No endpoints found",
+                hdrs=empty_headers,
+                fp=io.BytesIO(body),
+            )
+        return (
+            {"accepted": True, "confidence": 0.99, "reason": "fallback critic accepted"},
+            model,
+            "",
+        )
+
+    review.hardened.openrouter_request_once = fake_repair_critic_request
+    try:
+        regression_result, regression_model, _regression_tier = review.hardened.openrouter_review(
+            "critic probe",
+            repair_pipeline.REPAIR_CRITIC_SCHEMA,
+            sol_author_critic,
+            reporter=None,
+        )
+    finally:
+        review.hardened.openrouter_request_once = original_request_once
+
+    assert attempted_models == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert regression_model == repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL
+    assert regression_result["accepted"] is True
 
     critic = repair_pipeline._independent_config(base_config)
 

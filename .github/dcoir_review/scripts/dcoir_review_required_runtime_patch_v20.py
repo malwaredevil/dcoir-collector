@@ -38,10 +38,10 @@ _ORIGINAL_V16_TEMPLATE_FOR_KIND = v16._template_for_kind
 _ORIGINAL_V16_KIND_RANK = v16._kind_rank
 
 
-def _line_kind(path: str, text: str) -> str:
+def _line_kind(path: str, text: str, line: int = 0) -> str:
     if Path(str(path or "").lower()).suffix == ".py" and TRUTHY_LITERAL_BRANCH_RE.search(str(text or "")):
         return PYTHON_TRUTHY_LITERAL_BRANCH
-    return _ORIGINAL_V16_LINE_KIND(path, text)
+    return _ORIGINAL_V16_LINE_KIND(path, text, line)
 
 
 def _template_for_kind(kind: str) -> tuple[str, str, str]:

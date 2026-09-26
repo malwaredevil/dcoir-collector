@@ -36,6 +36,48 @@ def build_python_os_alias_context(gh: Any, pr: dict[str, Any], files: list[dict[
     return os_alias_context
 
 
+def build_python_urllib_urlopen_call_context(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]]) -> dict[str, set[str]]:
+    head_sha = str(pr.get("head", {}).get("sha", "") or "")
+    if not head_sha:
+        return {}
+    urlopen_call_context: dict[str, set[str]] = {}
+    for item in files:
+        path = str(item.get("filename", "")).strip()
+        status = str(item.get("status", "")).strip()
+        if not path or status in {"removed", "deleted"} or Path(path).suffix.lower() != ".py":
+            continue
+        try:
+            source = fetch_pr_file_text(gh, path, head_sha)
+            call_names = python_urllib_urlopen_call_names(source, preserve_shadowed=True)
+            call_names.update(python_assignment_urllib_urlopen_call_names(source, call_names))
+        except Exception:
+            continue
+        if call_names:
+            urlopen_call_context[path] = call_names
+    return urlopen_call_context
+
+
+def build_python_shadowed_name_context(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]]) -> dict[str, set[str]]:
+    head_sha = str(pr.get("head", {}).get("sha", "") or "")
+    if not head_sha:
+        return {}
+    shadowed_name_context: dict[str, set[str]] = {}
+    for item in files:
+        path = str(item.get("filename", "")).strip()
+        status = str(item.get("status", "")).strip()
+        if not path or status in {"removed", "deleted"} or Path(path).suffix.lower() != ".py":
+            continue
+        try:
+            module = ast.parse(fetch_pr_file_text(gh, path, head_sha))
+        except (SyntaxError, ValueError, TypeError):
+            continue
+        shadowed_names = python_shadowed_name_roots(module)
+        if shadowed_names:
+            shadowed_name_context[path] = shadowed_names
+    return shadowed_name_context
+
+
+
 def deep_context_priority(item: dict[str, Any]) -> tuple[int, int, int, str]:
     """Prefer substantive source before derived/generated evidence under the deep-context budget."""
     path = str(item.get("filename", "") or "").replace("\\", "/")
@@ -133,4 +175,3 @@ def truncate_with_balanced_fences(text: str, max_chars: int, marker: str) -> str
         if partial.count("~~~") % 2 == 1:
             partial = f"{partial}{fence_close}"
     return f"{partial}{marker}"
-

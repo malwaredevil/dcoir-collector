@@ -11,6 +11,8 @@ suppressed.
 
 from __future__ import annotations
 
+import ast
+import os
 import re
 import shlex
 from pathlib import Path
@@ -61,6 +63,23 @@ PYTHON_BUILTIN_DYNAMIC_EXEC_RE = re.compile(
     r"(?<![A-Za-z0-9_.])(?:eval|exec)\s*\(|(?:builtins|__builtins__)\.(?:eval|exec)\s*\(",
     re.IGNORECASE,
 )
+PYTHON_KNOWN_URLOPEN_RE = re.compile(r"\burllib(?:\.request)?\.urlopen\s*\(", re.IGNORECASE)
+PYTHON_KNOWN_READ_MODE_OPEN_CALLS = frozenset({"bz2.open", "gzip.open", "lzma.open", "tarfile.open"})
+PYTHON_OS_OPEN_ACCESS_MODE_MASK = getattr(os, "O_ACCMODE", 3)
+PYTHON_OS_OPEN_RDONLY_MODE = getattr(os, "O_RDONLY", 0)
+PYTHON_INT_EXPR_SHIFT_MAX = 128
+PYTHON_INT_EXPR_MAX_BITS = 4096
+PYTHON_OS_OPEN_MUTATING_FLAG_MASK = (
+    getattr(os, "O_APPEND", 0)
+    | getattr(os, "O_CREAT", 0)
+    | getattr(os, "O_TMPFILE", 0)
+    | getattr(os, "O_TRUNC", 0)
+)
+PYTHON_PATH_ALIAS_CONTEXT: dict[str, set[str]] = {}
+PYTHON_OS_ALIAS_CONTEXT: dict[str, set[str]] = {}
+PYTHON_URLLIB_URLOPEN_CALL_CONTEXT: dict[str, set[str]] = {}
+PYTHON_SHADOWED_NAME_CONTEXT: dict[str, set[str]] = {}
+PYTHON_SCOPED_SHADOWED_NAME_CONTEXT: dict[str, dict[int, set[str]]] = {}
 
 
 def _normalize(value: Any) -> str:
@@ -96,132 +115,140 @@ def _is_python_test_file(path: str) -> bool:
     )
 
 
-def _line_kind(path: str, text: str) -> str:
-    suffix = Path(str(path or "").lower()).suffix
-    lower = _normalize(text)
-    if _is_workflow_path(path):
-        if PR_METADATA_TOKEN_RE.search(lower):
-            return v10.YAML_TOKEN_TO_PR_URL
-        if "pull_request_target" in lower:
-            return v4.YAML_PULL_REQUEST_TARGET
-        if "write-all" in lower or re.search(r"\b[a-z_-]+\s*:\s*write\b", lower):
-            return v4.YAML_BROAD_WRITE
-        if "github.event.pull_request.head" in lower or "github.head_ref" in lower:
-            return v4.YAML_UNTRUSTED_CHECKOUT
-        if ("curl" in lower or "wget" in lower) and ("| sh" in lower or "| bash" in lower):
-            return v4.YAML_SHELL_PIPE
-        if "github.event.pull_request" in lower and any(token in lower for token in ("bash -lc", "sh -c", "run:", "shell:")):
-            return v4.YAML_METADATA_SHELL
-    if suffix == ".py":
-        if "pickle.loads" in lower or "pickle.load(" in lower:
-            return v9.PYTHON_PICKLE_LOAD
-        if "yaml.load" in lower:
-            return v5.PYTHON_YAML_LOAD
-        if PYTHON_BUILTIN_DYNAMIC_EXEC_RE.search(lower):
-            return PYTHON_DYNAMIC_EXEC
-        if "shell=true" in lower or "os.system(" in lower or "os.popen(" in lower:
-            return v5.PYTHON_SHELL_EXEC
-        if ("requests." in lower or "urlopen" in lower) and (
-            "authorization" in lower or "bearer" in lower or "dcoir_token" in lower or "callback" in lower
-        ):
-            return v5.PYTHON_ENV_TOKEN
-        if "extractall" in lower:
-            return v11.PYTHON_ARCHIVE_EXTRACT
-        if any(token in lower for token in ("write_text(", "write_bytes(", ".open(", "open(")):
-            return v11.PYTHON_PATH_WRITE
-    if suffix in {".ps1", ".psm1", ".psd1"}:
-        if "invoke-expression" in lower or re.search(r"\biex\b", lower):
-            return v9.PS_DYNAMIC_EXEC
-        if "convertto-securestring" in lower and "-asplaintext" in lower:
-            return v13.PS_PLAINTEXT_SECURE_STRING
-        if "filesystemaccessrule" in lower or "set-acl" in lower:
-            return v4.PS_ACL
-        if "start-process" in lower:
-            return v4.PS_PROCESS_LAUNCH
-        if ("invoke-webrequest" in lower or "invoke-restmethod" in lower) and (
-            "authorization" in lower or "bearer" in lower or "$env:dcoir_token" in lower
-        ):
-            return v5.PS_ENV_TOKEN
-        if "currentversion\\run" in lower:
-            return v13.PS_RUN_KEY_PERSISTENCE
-    if suffix in {".ts", ".tsx", ".js", ".jsx"}:
-        if ".innerhtml" in lower or ".outerhtml" in lower or "insertadjacenthtml" in lower:
-            return v13.TS_INNER_HTML
-        if "settimeout(" in lower or "setinterval(" in lower or "new function(" in lower:
-            return v13.TS_DYNAMIC_EXECUTION
-    return _ORIGINAL_V13_LINE_KIND(path, text)
+def _python_parse_diff_line(text: str) -> ast.Module | None:
+    source = text.lstrip()
+    try:
+        return ast.parse(source)
+    except SyntaxError:
+        if source.rstrip().endswith(":"):
+            try:
+                return ast.parse(source.rstrip() + "\n    pass")
+            except SyntaxError:
+                return None
+        return None
 
 
-def _sentinel_key(sentinel: Any) -> SentinelKey:
-    path = str(getattr(sentinel, "path", "") or "")
-    line = _line_number(getattr(sentinel, "line", 0))
-    text = str(getattr(sentinel, "text", "") or "")
-    kind = _line_kind(path, text) or _ORIGINAL_V13_SENTINEL_KEY(sentinel)[2]
-    return path, line, kind
+def _python_call_name(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        prefix = _python_call_name(node.value)
+        return f"{prefix}.{node.attr}" if prefix else node.attr
+    return ""
 
 
-def _postable_key(finding: dict[str, Any]) -> SentinelKey:
-    raw = finding.get("_risk_sentinel_key")
-    if isinstance(raw, (list, tuple)) and len(raw) == 3:
-        return str(raw[0] or ""), _line_number(raw[1]), str(raw[2] or "")
-    path, line, kind = _ORIGINAL_V13_POSTABLE_KEY(finding)
-    text = "\n".join(str(finding.get(name, "") or "") for name in ("_anchored_line_text", "title", "body", "description"))
-    return path, line, _line_kind(path, text) or kind
+def _python_call_arg(call: ast.Call, position: int, *keyword_names: str) -> ast.AST | None:
+    if len(call.args) > position:
+        return call.args[position]
+    for keyword in call.keywords:
+        if keyword.arg in keyword_names:
+            return keyword.value
+    return None
 
 
-def _coverage_key(key: SentinelKey) -> SentinelKey:
-    path, line, kind = key
-    if kind in {v4.YAML_BROAD_WRITE, v11.PYTHON_ARCHIVE_EXTRACT}:
-        return path, 0, kind
-    return path, line, kind
+def _python_bounded_int_expr(value: int) -> int | None:
+    return value if abs(value).bit_length() <= PYTHON_INT_EXPR_MAX_BITS else None
 
 
-def _coverage_from_finding(finding: dict[str, Any]) -> set[SentinelKey]:
-    keys = {_coverage_key(_postable_key(finding))}
-    raw_keys = finding.get("covered_risk_sentinel_keys")
-    if isinstance(raw_keys, list):
-        for raw in raw_keys:
-            if isinstance(raw, (list, tuple)) and len(raw) == 3:
-                keys.add(_coverage_key((str(raw[0] or ""), _line_number(raw[1]), str(raw[2] or ""))))
-    return {key for key in keys if key[0] and key[2]}
+def _python_fold_os_flag_expr(node: ast.AST | None, os_module_names: set[str] | None = None) -> int | None:
+    if node is None:
+        return None
+    modules = os_module_names or {"os"}
+    if isinstance(node, ast.Constant) and isinstance(node.value, int):
+        return _python_bounded_int_expr(int(node.value))
+    if isinstance(node, ast.Attribute) and _python_call_name(node.value) in modules:
+        value = getattr(os, node.attr, None)
+        return _python_bounded_int_expr(value) if isinstance(value, int) else None
+    if isinstance(node, ast.UnaryOp):
+        operand = _python_fold_os_flag_expr(node.operand, modules)
+        if operand is None:
+            return None
+        if isinstance(node.op, ast.Invert):
+            return _python_bounded_int_expr(~operand)
+        if isinstance(node.op, ast.UAdd):
+            return _python_bounded_int_expr(+operand)
+        if isinstance(node.op, ast.USub):
+            return _python_bounded_int_expr(-operand)
+        return None
+    if isinstance(node, ast.BinOp):
+        left = _python_fold_os_flag_expr(node.left, modules)
+        right = _python_fold_os_flag_expr(node.right, modules)
+        if left is None or right is None:
+            return None
+        if isinstance(node.op, ast.BitOr):
+            return _python_bounded_int_expr(left | right)
+        if isinstance(node.op, ast.BitAnd):
+            return _python_bounded_int_expr(left & right)
+        if isinstance(node.op, ast.BitXor):
+            return _python_bounded_int_expr(left ^ right)
+        if isinstance(node.op, ast.LShift):
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return _python_bounded_int_expr(left << right)
+        if isinstance(node.op, ast.RShift):
+            if right < 0 or right > PYTHON_INT_EXPR_SHIFT_MAX:
+                return None
+            return _python_bounded_int_expr(left >> right)
+        if isinstance(node.op, ast.Add):
+            return _python_bounded_int_expr(left + right)
+        if isinstance(node.op, ast.Sub):
+            return _python_bounded_int_expr(left - right)
+    return None
 
 
-def _kind_rank(kind: str) -> int:
-    order = {
-        v10.YAML_TOKEN_TO_PR_URL: 0,
-        v4.YAML_METADATA_SHELL: 1,
-        v4.YAML_SHELL_PIPE: 2,
-        v4.YAML_PULL_REQUEST_TARGET: 3,
-        v4.YAML_BROAD_WRITE: 4,
-        v4.YAML_UNTRUSTED_CHECKOUT: 5,
-        v9.PYTHON_PICKLE_LOAD: 10,
-        v5.PYTHON_YAML_LOAD: 11,
-        PYTHON_DYNAMIC_EXEC: 12,
-        v5.PYTHON_SHELL_EXEC: 13,
-        v5.PYTHON_ENV_TOKEN: 14,
-        v11.PYTHON_ARCHIVE_EXTRACT: 15,
-        v11.PYTHON_PATH_WRITE: 16,
-        v9.PS_DYNAMIC_EXEC: 20,
-        v4.PS_PROCESS_LAUNCH: 21,
-        v5.PS_ENV_TOKEN: 22,
-        v13.PS_RUN_KEY_PERSISTENCE: 23,
-        v4.PS_ACL: 24,
-        v13.PS_PLAINTEXT_SECURE_STRING: 25,
-        v13.TS_INNER_HTML: 80,
-        v13.TS_DYNAMIC_EXECUTION: 81,
-    }
-    return order.get(str(kind or ""), 99)
+def _python_os_open_uses_write_mode(call: ast.Call, os_module_names: set[str] | None = None) -> bool:
+    flags_node = _python_call_arg(call, 1, "flags")
+    if flags_node is None:
+        return any(keyword.arg is None for keyword in call.keywords)
+    folded_flags = _python_fold_os_flag_expr(flags_node, os_module_names)
+    if folded_flags is None:
+        return True
+    access_mode = folded_flags & PYTHON_OS_OPEN_ACCESS_MODE_MASK
+    if access_mode == PYTHON_OS_OPEN_RDONLY_MODE:
+        return bool(folded_flags & PYTHON_OS_OPEN_MUTATING_FLAG_MASK)
+    return True
 
 
-def _family(kind: str) -> str:
-    if kind.startswith("yaml_"):
-        return "yaml"
-    if kind.startswith("python_"):
-        return "python"
-    if kind.startswith("ps_"):
-        return "powershell"
-    if kind.startswith("ts_"):
-        return "typescript"
-    if kind.startswith("k8s_"):
-        return "kubernetes"
-    return "other"
+def _python_is_proven_path_receiver(node: ast.AST, path_constructor_names: set[str] | None = None) -> bool:
+    constructors = path_constructor_names or {"Path", "pathlib.Path"}
+    if isinstance(node, ast.Call) and _python_call_name(node.func) in constructors:
+        return True
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+        return _python_is_proven_path_receiver(node.left, constructors)
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "joinpath":
+        return _python_is_proven_path_receiver(node.func.value, constructors)
+    return False
+
+
+def _python_call_uses_write_mode(
+    call: ast.Call,
+    path_constructor_names: set[str] | None = None,
+    os_module_names: set[str] | None = None,
+    shadowed_names: set[str] | None = None,
+) -> bool:
+    call_name = _python_call_name(call.func)
+    has_kwargs_expansion = any(keyword.arg is None for keyword in call.keywords)
+    os_open_names = {f"{name}.open" for name in (os_module_names or {"os"})}
+    if call_name in os_open_names:
+        if shadowed_names and call_name.split(".", 1)[0] in shadowed_names:
+            return True
+        return _python_os_open_uses_write_mode(call, os_module_names)
+    if isinstance(call.func, ast.Name) and call.func.id == "open":
+        if shadowed_names and "open" in shadowed_names:
+            return True
+        mode_node = _python_call_arg(call, 1, "mode")
+    elif call_name in PYTHON_KNOWN_READ_MODE_OPEN_CALLS:
+        mode_node = _python_call_arg(call, 1, "mode")
+    elif (
+        isinstance(call.func, ast.Attribute)
+        and call.func.attr == "open"
+        and _python_is_proven_path_receiver(call.func.value, path_constructor_names)
+    ):
+        mode_node = _python_call_arg(call, 0, "mode")
+    else:
+        return False
+    if mode_node is None:
+        return has_kwargs_expansion
+    if isinstance(mode_node, ast.Constant) and isinstance(mode_node.value, str):
+        return any(token in mode_node.value.lower() for token in ("w", "a", "x", "+"))
+    return True

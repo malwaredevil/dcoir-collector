@@ -45,8 +45,47 @@ def _has_label(path: str, source: str, label: str) -> bool:
     return any(str(getattr(item, "label", "")) == label for item in _sentinels(path, source))
 
 
+def _has_python_path_write(path: str, source: str) -> bool:
+    return any(v16._sentinel_key(item)[2] == v16.v11.PYTHON_PATH_WRITE for item in _sentinels(path, source))
+
+
 def main() -> None:
     DcoirReviewEntrypoint().apply_runtime_patches(review)
+    assert not _has_python_path_write(
+        "tools/read_only_open.py",
+        "\n".join(
+            [
+                "from pathlib import Path",
+                "def load(user_path):",
+                '    with Path(user_path).open("r") as handle:',
+                "        return handle.read()",
+            ]
+        ),
+    )
+    assert not _has_python_path_write(
+        "tools/http_client.py",
+        "\n".join(
+            [
+                "import urllib.request",
+                "def fetch(req):",
+                "    with urllib.request.urlopen(",
+                "        req,",
+                "    ) as response:",
+                "        return response.read()",
+            ]
+        ),
+    )
+    assert not _has_python_path_write(
+        "tools/http_alias_client.py",
+        "\n".join(
+            [
+                "from urllib.request import urlopen",
+                "def fetch(req):",
+                "    with urlopen(req) as response:",
+                "        return response.read()",
+            ]
+        ),
+    )
     corpus = json.loads(CORPUS_PATH.read_text(encoding="utf-8"))
     assert corpus.get("schema_version") == "dcoir_review_precision_corpus_v1"
     fixtures = corpus.get("fixtures")
