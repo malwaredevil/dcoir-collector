@@ -176,6 +176,36 @@ INCNDUMMY9999'''
     assert not result['passed'], result
     assert any('unexpected/unbound ticket: INCNDUMMY9999' in error for error in result['errors'])
 
+def test_suffix_appended_field_value_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows).replace(
+        'Name(s): Dummy User 01',
+        'Name(s): Dummy User 01 WRONG',
+        1,
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any(
+        'INCNDUMMY0001' in error and 'Name(s)' in error
+        for error in result['errors']
+    )
+
+
+def test_non_netgear_usb_device_recasing_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows).replace(
+        'USB Device: Logi Bolt Receiver',
+        'USB Device: LOGI BOLT RECEIVER',
+        1,
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any(
+        'INCNDUMMY0001' in error and 'USB Device' in error
+        for error in result['errors']
+    )
+
+
 def test_usb_device_brand_capitalization_is_allowed() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows)
@@ -240,6 +270,8 @@ def main() -> int:
         test_out_of_order_incidents_are_rejected,
         test_swapped_same_lane_fields_are_rejected,
         test_unbound_invented_incident_data_is_rejected,
+        test_suffix_appended_field_value_is_rejected,
+        test_non_netgear_usb_device_recasing_is_rejected,
         test_usb_device_brand_capitalization_is_allowed,
         test_inline_sipr_transfer_label_is_rejected,
         test_wrong_recipient_is_rejected,
