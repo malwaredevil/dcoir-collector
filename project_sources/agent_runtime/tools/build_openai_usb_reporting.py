@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -129,6 +130,24 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def _reject_unfollowable_symlinks(root: Path, relative: Path) -> None:
+    """Raise OSError when a symlink along root/relative cannot be followed.
+
+    Path.resolve() raises RuntimeError on symlink loops only before Python 3.13;
+    newer versions return the unresolved path, so each link is followed explicitly.
+    A file below a looping directory stats as missing on Windows, so every link on
+    the path is checked, not just the final component.
+    """
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            try:
+                os.stat(current)
+            except FileNotFoundError:
+                return
+
+
 def _resolve_repo_path(
     repo_root: Path,
     value: Any,
@@ -149,6 +168,7 @@ def _resolve_repo_path(
         errors.append(f'{label} repository root could not be resolved: {type(exc).__name__}')
         return None
     try:
+        _reject_unfollowable_symlinks(resolved_repo, relative)
         candidate = (resolved_repo / relative).resolve()
     except (OSError, RuntimeError) as exc:
         errors.append(f'{label} path could not be resolved: {type(exc).__name__}')
@@ -180,6 +200,9 @@ def _read_bytes(path: Path, label: str, errors: list[str]) -> bytes:
         return path.read_bytes()
     except FileNotFoundError:
         errors.append(f'Missing {label}: {path}')
+        return b''
+    except OSError as exc:
+        errors.append(f'Unreadable {label}: {path} ({type(exc).__name__})')
         return b''
 
 
@@ -657,6 +680,11 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
                 actual = path.read_bytes()
             except FileNotFoundError:
                 errors.append(f'Missing generated package file: {path.relative_to(repo_root)}')
+                continue
+            except OSError as exc:
+                errors.append(
+                    f'Unreadable generated package file: {path.relative_to(repo_root)} ({type(exc).__name__})'
+                )
                 continue
             if actual != expected:
                 errors.append(f'Generated package drift: {path.relative_to(repo_root)}')

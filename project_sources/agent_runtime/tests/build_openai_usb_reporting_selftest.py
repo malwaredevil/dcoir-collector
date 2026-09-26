@@ -257,6 +257,24 @@ def test_generated_root_symlink_loop_is_reported_without_crash() -> None:
         td.cleanup()
 
 
+def test_path_below_looping_directory_is_rejected() -> None:
+    # On Windows with Python 3.13+, a file below a looping directory stats as
+    # missing rather than as a loop, so every link on the path must be followed.
+    td, repo = stage_repo()
+    try:
+        loop = repo / 'loop-dir'
+        try:
+            loop.symlink_to(loop, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            return
+        errors: list[str] = []
+        resolved = module._resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
+        assert resolved is None, resolved
+        assert any('probe path could not be resolved: OSError' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
 def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
     td, repo = stage_repo()
     outside_td = tempfile.TemporaryDirectory(prefix='openai-usb-outside-')
@@ -426,6 +444,7 @@ def main() -> int:
         test_stale_generated_file_is_rejected,
         test_generated_root_symlink_is_rejected,
         test_generated_root_symlink_loop_is_reported_without_crash,
+        test_path_below_looping_directory_is_rejected,
         test_absolute_generated_root_symlink_is_reported_without_crash,
         test_instruction_character_ceiling_is_rejected,
         test_description_character_ceiling_is_rejected,
