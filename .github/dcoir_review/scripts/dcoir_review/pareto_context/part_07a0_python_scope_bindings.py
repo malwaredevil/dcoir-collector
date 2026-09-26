@@ -19,7 +19,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
     globals_declared: set[str] = set()
     nonlocals_declared: set[str] = set()
     trusted_alias_targets: dict[str, set[str]] = {}
-    attribute_mutations: list[tuple[int, int, str, str | None, bool]] = []
+    attribute_mutations: list[tuple[int, int, str, str | None, bool, int | None]] = []
     binding_events: dict[str, list[tuple[int, int, set[str] | None]]] = {}
     alias_assignments: list[tuple[int, int, str, str]] = []
     submodule_import_binding_keys: set[tuple[str, int, int]] = set()
@@ -78,6 +78,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
         target: ast.AST,
         alias_value_path: str | None = None,
         restoration_guaranteed: bool = False,
+        statement_id: int | None = None,
     ) -> None:
         nonlocal sequence
         if isinstance(target, ast.Name):
@@ -100,13 +101,14 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                         path,
                         alias_value_path,
                         restoration_guaranteed,
+                        statement_id,
                     )
                 )
         elif isinstance(target, (ast.Tuple, ast.List)):
             for item in target.elts:
-                collect_target(item)
+                collect_target(item, statement_id=statement_id)
         elif isinstance(target, ast.Starred):
-            collect_target(target.value)
+            collect_target(target.value, statement_id=statement_id)
 
     def collect_match_pattern(pattern: ast.AST) -> None:
         if isinstance(pattern, ast.MatchAs):
@@ -248,6 +250,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                     target,
                     alias_value_path,
                     id(item) in guaranteed_statements and prior_targets_cannot_raise,
+                    id(item),
                 )
                 prior_targets_cannot_raise = (
                     prior_targets_cannot_raise and isinstance(target, ast.Name)
@@ -259,24 +262,24 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                 self.visit(item.value)
                 if isinstance(item.value, (ast.Name, ast.Attribute)):
                     alias_value_path = _python_scope_attribute_path(item.value)
-            collect_target(item.target, alias_value_path, id(item) in guaranteed_statements)
+            collect_target(item.target, alias_value_path, id(item) in guaranteed_statements, id(item))
 
         def visit_AugAssign(self, item: ast.AugAssign) -> None:
             self.visit(item.value)
-            collect_target(item.target)
+            collect_target(item.target, statement_id=id(item))
 
         def visit_NamedExpr(self, item: ast.NamedExpr) -> None:
             self.visit(item.value)
             alias_value_path = _python_scope_attribute_path(item.value) if isinstance(item.value, (ast.Name, ast.Attribute)) else None
-            collect_target(item.target, alias_value_path)
+            collect_target(item.target, alias_value_path, statement_id=id(item))
 
         def visit_Delete(self, item: ast.Delete) -> None:
             for target in item.targets:
-                collect_target(target)
+                collect_target(target, statement_id=id(item))
 
         def visit_For(self, item: ast.For) -> None:
             self.visit(item.iter)
-            collect_target(item.target)
+            collect_target(item.target, statement_id=id(item))
             for stmt in item.body:
                 self.visit(stmt)
             for stmt in item.orelse:
@@ -288,7 +291,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
             for entry in item.items:
                 self.visit(entry.context_expr)
                 if entry.optional_vars is not None:
-                    collect_target(entry.optional_vars)
+                    collect_target(entry.optional_vars, statement_id=id(item))
             for stmt in item.body:
                 self.visit(stmt)
 
@@ -310,7 +313,7 @@ def _python_scope_collect_bindings(node: ast.AST) -> dict[str, Any]:
                 return
             for generator in generators:
                 self.visit(generator.iter)
-                collect_target(generator.target)
+                collect_target(generator.target, statement_id=id(item))
                 for clause in generator.ifs:
                     self.visit(clause)
             for value in values:

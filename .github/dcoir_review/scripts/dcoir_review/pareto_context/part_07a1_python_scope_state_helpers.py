@@ -247,14 +247,18 @@ def _python_scope_shadowed_binding_keys(infos: dict[ast.AST, dict[str, Any]], pr
     }
 
 
-def _python_scope_direct_restoration_guaranteed(node: ast.AST, mutation_line: int, restoration_line: int) -> bool:
+def _python_scope_direct_restoration_guaranteed(
+    node: ast.AST, mutation_statement_id: int | None, restoration_statement_id: int | None
+) -> bool:
+    if mutation_statement_id is None or restoration_statement_id is None:
+        return False
     body = list(getattr(node, 'body', []) or [])
     mutation_index = next(
-        (index for index, statement in enumerate(body) if int(getattr(statement, 'lineno', 0) or 0) == mutation_line),
+        (index for index, statement in enumerate(body) if id(statement) == mutation_statement_id),
         None,
     )
     restoration_index = next(
-        (index for index, statement in enumerate(body) if int(getattr(statement, 'lineno', 0) or 0) == restoration_line),
+        (index for index, statement in enumerate(body) if id(statement) == restoration_statement_id),
         None,
     )
     return (
@@ -271,6 +275,7 @@ def _python_scope_finalize_restoration_guarantees(events):
     for event in ordered:
         line, sequence, node, path, restored = event[:5]
         restoration_candidate_safe = bool(event[5]) if len(event) > 5 else True
+        restoration_statement_id = event[6] if len(event) > 6 else None
         key = (id(node), path)
         guaranteed = False
         if restored:
@@ -278,13 +283,13 @@ def _python_scope_finalize_restoration_guarantees(events):
             guaranteed = bool(
                 restoration_candidate_safe
                 and previous
-                and _python_scope_direct_restoration_guaranteed(node, previous[0], line)
+                and _python_scope_direct_restoration_guaranteed(node, previous[2], restoration_statement_id)
             )
             if guaranteed:
                 active_mutations.pop(key, None)
         else:
-            active_mutations[key] = (line, sequence)
-        finalized.append((line, sequence, node, path, restored, guaranteed))
+            active_mutations[key] = (line, sequence, restoration_statement_id)
+        finalized.append((line, sequence, node, path, restored, guaranteed, restoration_statement_id))
     return finalized
 
 
@@ -311,7 +316,7 @@ def _python_scope_demote_shadowed_mutation_roots(infos, qualified_events, predic
     mutation_alias_names = {
         mutation.partition('.')[0]
         for info in infos.values()
-        for _line, _sequence, mutation, _value_path, _safe in info['attribute_mutations']
+        for _line, _sequence, mutation, _value_path, _safe, _statement_id in info['attribute_mutations']
     }
     while True:
         mutation_events = qualified_events()

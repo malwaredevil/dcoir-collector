@@ -110,13 +110,13 @@ def python_scoped_shadowed_name_roots_by_line(source: str) -> dict[int, set[str]
     def qualified_events() -> list[tuple[int, int, ast.AST, str, bool]]:
         found = []
         for source_node, info in infos.items():
-            for line, sequence, mutation, value_path, restoration_guaranteed in info['attribute_mutations']:
+            for line, sequence, mutation, value_path, restoration_guaranteed, statement_id in info['attribute_mutations']:
                 for target in canonical_mutation_paths(source_node, mutation, line, sequence):
                     if target not in {'urllib.request', 'urllib.request.urlopen'}:
                         continue
                     restored = target in _python_scope_guaranteed_restoration_targets(source_node, value_path, line, sequence, infos, module, function_scope_types, lexical_parent, nearest_nonlocal_owner, guaranteed_binding_keys)
                     found.append(
-                        (line, sequence, source_node, target, restored, restoration_guaranteed)
+                        (line, sequence, source_node, target, restored, restoration_guaranteed, statement_id)
                     )
         return _python_scope_finalize_restoration_guarantees(found)
 
