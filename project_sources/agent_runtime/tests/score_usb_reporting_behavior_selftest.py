@@ -218,6 +218,80 @@ def test_usb_device_brand_capitalization_is_allowed() -> None:
     assert result['passed'], result
 
 
+def test_negated_sipr_transfer_instructions_are_rejected() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows)
+    safe = (
+        'Copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document '
+        f'and move that text document to SIPR using Intelink iSafe: {module.ISAFE_URL}'
+    )
+    unsafe = (
+        'Copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document. '
+        f'Do not move that text document to SIPR using Intelink iSafe: {module.ISAFE_URL}. '
+        'Instead paste the SIPR incident details into the NIPR email.'
+    )
+    response = response.replace(safe, unsafe, 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any(
+        'contradictory or negated' in error or 'must not direct SIPR content into NIPR' in error
+        for error in result['errors']
+    )
+
+
+def test_indented_duplicate_date_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows)
+    first_date = module._expected_date_line(rows[0])
+    assert first_date
+    response = response.replace(first_date, first_date + '\n Date: 01/01/1999 0000Z', 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('indented/noncanonical incident label' in error or 'Date evidence count mismatch' in error for error in result['errors'])
+
+
+def test_indented_duplicate_location_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows)
+    source = f"Location: {module._value(rows[0], 'Location')}"
+    response = response.replace(source, source + '\n Location: WRONG', 1)
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('indented/noncanonical incident label' in error or 'Location evidence count mismatch' in error for error in result['errors'])
+
+
+def test_indented_duplicate_notes_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows).replace(
+        module._value(rows[0], 'SNOW Ticket Number'),
+        ' Notes: Invented exculpatory note\n' + module._value(rows[0], 'SNOW Ticket Number'),
+        1,
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('indented/noncanonical incident label' in error or 'Notes evidence count mismatch' in error for error in result['errors'])
+
+
+def test_incident_evidence_after_message_fence_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows) + '''\n\nDate: 09/24/2026 0300Z
+Name(s): Invented User
+Location: Invented Location
+Computer Name: INVENTED-PC
+User Information: Invented User Information
+USB Device: Invented Device
+Serial Number: INVENTED-SERIAL
+Network Connection: On-Site
+INCNDUMMY9999'''
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any(
+        'incident ticket evidence outside the governed drafts' in error
+        or 'Name(s) evidence count mismatch' in error
+        for error in result['errors']
+    )
+
+
 def test_inline_sipr_transfer_label_is_rejected() -> None:
     rows = module.load_fixture_rows(MIXED_FIXTURE)
     response = _mixed_response(rows)
@@ -273,6 +347,11 @@ def main() -> int:
         test_suffix_appended_field_value_is_rejected,
         test_non_netgear_usb_device_recasing_is_rejected,
         test_usb_device_brand_capitalization_is_allowed,
+        test_negated_sipr_transfer_instructions_are_rejected,
+        test_indented_duplicate_date_is_rejected,
+        test_indented_duplicate_location_is_rejected,
+        test_indented_duplicate_notes_is_rejected,
+        test_incident_evidence_after_message_fence_is_rejected,
         test_inline_sipr_transfer_label_is_rejected,
         test_wrong_recipient_is_rejected,
         test_bounded_prior_count_clarification_passes,

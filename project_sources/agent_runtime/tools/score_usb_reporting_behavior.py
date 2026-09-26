@@ -27,6 +27,17 @@ FINAL_LABELS = {
     'SIPR Recipient', 'SIPR Subject', 'SIPR Message Draft',
     'SIPR Transfer Instructions',
 }
+INCIDENT_LABELS = (
+    'Date',
+    'Name(s)',
+    'Location',
+    'Computer Name',
+    'User Information',
+    'USB Device',
+    'Serial Number',
+    'Network Connection',
+    'Notes',
+)
 
 
 def _norm_header(value: str) -> str:
@@ -104,11 +115,12 @@ def _expected_date_line(row: dict[str, str]) -> str | None:
 
 def _labeled_values(block: str, label: str) -> list[str]:
     prefix = f'{label}:'
-    return [
-        line[len(prefix):].strip()
-        for line in block.splitlines()
-        if line.startswith(prefix)
-    ]
+    values: list[str] = []
+    for line in block.splitlines():
+        candidate = line.lstrip(' \t')
+        if candidate.startswith(prefix):
+            values.append(candidate[len(prefix):].strip())
+    return values
 
 
 def _field_value_matches(label: str, expected: str, actual: str) -> bool:
@@ -117,6 +129,95 @@ def _field_value_matches(label: str, expected: str, actual: str) -> bool:
     if label == 'USB Device' and expected.startswith('NetGear'):
         return actual == 'NETGEAR' + expected[len('NetGear'):]
     return False
+
+def _incident_shape_errors(block: str, lane: str, ticket: str) -> list[str]:
+    errors: list[str] = []
+    for line in block.splitlines():
+        candidate = line.lstrip(' \t')
+        if candidate == line:
+            continue
+        if any(candidate.startswith(f'{label}:') for label in INCIDENT_LABELS):
+            errors.append(f'{lane} body contains indented/noncanonical incident label for ticket {ticket}: {candidate}')
+        elif re.fullmatch(r'(?:INCN|INCS)\S*', candidate, flags=re.IGNORECASE):
+            errors.append(f'{lane} body contains indented/noncanonical ticket line for ticket {ticket}: {candidate}')
+    return errors
+
+
+def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> list[str]:
+    errors: list[str] = []
+    expected_tickets = [
+        _ticket(row)
+        for lane in ('NIPR', 'SIPR')
+        for row in rows
+        if _classification(row) == lane
+    ]
+    observed_tickets = [
+        match.group(1)
+        for match in re.finditer(r'(?mi)^[ \t]*((?:INCN|INCS)\S*)\s*$', text)
+    ]
+    if observed_tickets != expected_tickets:
+        errors.append(
+            'final response contains incident ticket evidence outside the governed drafts '
+            f'or in the wrong order: expected {expected_tickets!r}, found {observed_tickets!r}'
+        )
+
+    expected_counts: dict[str, int] = {
+        'Date': sum(1 for row in rows if _expected_date_line(row) is not None),
+        'Notes': sum(1 for row in rows if _value(row, 'Notes')),
+    }
+    field_map = {
+        'Name(s)': 'User',
+        'Location': 'Location',
+        'Computer Name': 'Computer Name',
+        'User Information': 'User Information',
+        'USB Device': 'USB Device',
+        'Serial Number': 'Serial Number',
+        'Network Connection': 'Network connection',
+    }
+    for label, field in field_map.items():
+        expected_counts[label] = sum(1 for row in rows if _value(row, field))
+
+    for label, expected_count in expected_counts.items():
+        observed_count = len(re.findall(rf'(?mi)^[ \t]*{re.escape(label)}:', text))
+        if observed_count != expected_count:
+            errors.append(
+                f'final response {label} evidence count mismatch: '
+                f'expected {expected_count}, found {observed_count}'
+            )
+    return errors
+
+
+def _transfer_instruction_errors(transfer: str) -> list[str]:
+    errors: list[str] = []
+    normalized = re.sub(r'\s+', ' ', transfer).strip()
+    lower = normalized.lower()
+
+    if ISAFE_URL.lower() not in lower:
+        errors.append('SIPR transfer instructions lack governed Intelink iSafe URL')
+    for phrase in ('sipr recipient', 'sipr subject', 'sipr message draft', 'text document', 'intelink isafe'):
+        if phrase not in lower:
+            errors.append(f'SIPR transfer instructions lack required affirmative element: {phrase}')
+
+    copy_pattern = re.compile(
+        r'\bcopy\b.*\bsipr recipient\b.*\bsipr subject\b.*'
+        r'\bsipr message draft\b.*\btext document\b',
+        flags=re.IGNORECASE,
+    )
+    move_pattern = re.compile(
+        r'\bmove\b.*\b(?:that text document|the text document|it)\b.*'
+        r'\bto sipr\b.*\bintelink isafe\b',
+        flags=re.IGNORECASE,
+    )
+    if not copy_pattern.search(normalized):
+        errors.append('SIPR transfer instructions do not affirmatively copy the governed SIPR draft into a text document')
+    if not move_pattern.search(normalized):
+        errors.append('SIPR transfer instructions do not affirmatively move the text document to SIPR using Intelink iSafe')
+    if re.search(r"\b(?:do not|don't|never|avoid|instead(?: of)?)\b", lower):
+        errors.append('SIPR transfer instructions contain contradictory or negated handling')
+    if re.search(r'\bnipr\b', lower):
+        errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
+    return errors
+
 
 def _count_phrase(count: int, noun: str = 'USB violation') -> str:
     verb = 'was' if count == 1 else 'were'
@@ -158,8 +259,9 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     errors: list[str] = []
     expected = [row for row in rows if _classification(row) == lane]
     forbidden = [row for row in rows if _classification(row) not in {lane, 'UNKNOWN'}]
-    if body.count('Name(s):') != len(expected):
-        errors.append(f'{lane} body incident count mismatch: expected {len(expected)}, saw {body.count("Name(s):")}')
+    incident_name_count = len(re.findall(r'(?mi)^[ \t]*Name\(s\):', body))
+    if incident_name_count != len(expected):
+        errors.append(f'{lane} body incident count mismatch: expected {len(expected)}, saw {incident_name_count}')
     required_fields = [
         ('Name(s)', 'User'),
         ('Location', 'Location'),
@@ -171,7 +273,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     ]
     expected_tickets = [_ticket(row) for row in expected]
     expected_ticket_set = set(expected_tickets)
-    ticket_matches = list(re.finditer(r'(?mi)^((?:INCN|INCS)\S*)\s*$', body))
+    ticket_matches = list(re.finditer(r'(?mi)^[ \t]*((?:INCN|INCS)\S*)\s*$', body))
     observed_tickets = [match.group(1) for match in ticket_matches]
     for ticket in expected_tickets:
         count = observed_tickets.count(ticket)
@@ -193,6 +295,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     for row in expected:
         ticket = _ticket(row)
         block = blocks.get(ticket, '')
+        errors.extend(_incident_shape_errors(block, lane, ticket))
         expected_date = _expected_date_line(row)
         if expected_date is None:
             errors.append(f'{lane} fixture date is not parseable for ticket: {ticket}')
@@ -222,7 +325,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
                     f'{lane} body missing Notes for ticket {ticket}: '
                     f'{notes} (found {note_values!r})'
                 )
-    if expected and not any(_value(row, 'Notes') for row in expected) and re.search(r'(?m)^Notes:', body):
+    if expected and not any(_value(row, 'Notes') for row in expected) and re.search(r'(?mi)^[ \t]*Notes:', body):
         errors.append(f'{lane} body must omit blank Notes lines')
     for row in forbidden:
         ticket = _ticket(row)
@@ -246,6 +349,7 @@ def score_final_response(
         errors.append('fixture contains unknown ticket prefix: ' + ', '.join(unknown))
     nipr = [row for row in rows if _classification(row) == 'NIPR']
     sipr = [row for row in rows if _classification(row) == 'SIPR']
+    errors.extend(_global_incident_evidence_errors(text, rows))
     mixed = bool(sipr)
     expected_first = 'NIPR Recipient:' if mixed else 'Recipient:'
     first = next((line.strip() for line in text.splitlines() if line.strip()), '')
@@ -279,9 +383,8 @@ def score_final_response(
         if len(transfer_matches) != 1:
             errors.append(f'expected exactly one SIPR Transfer Instructions label, found {len(transfer_matches)}')
         else:
-            transfer = text[transfer_matches[0].end():]
-            if ISAFE_URL not in transfer or 'text document' not in transfer.lower():
-                errors.append('SIPR transfer instructions lack text-document iSafe handling')
+            transfer = text[transfer_matches[0].end():].strip()
+            errors.extend(_transfer_instruction_errors(transfer))
     else:
         values: dict[str, str] = {}
         for label in ['Recipient', 'Subject', 'Message Draft']:
