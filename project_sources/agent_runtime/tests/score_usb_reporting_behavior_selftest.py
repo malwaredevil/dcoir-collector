@@ -142,6 +142,31 @@ def test_out_of_order_incidents_are_rejected() -> None:
     assert not result['passed'], result
     assert any('incident order' in error for error in result['errors'])
 
+
+def test_usb_device_brand_capitalization_is_allowed() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    response = _nipr_response(rows)
+    response = response.replace(
+        'USB Device: NetGear, Inc. Remote NDIS Compatible Device',
+        'USB Device: NETGEAR, Inc. Remote NDIS Compatible Device',
+        1,
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert result['passed'], result
+
+
+def test_inline_sipr_transfer_label_is_rejected() -> None:
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    response = _mixed_response(rows)
+    response = response.replace(
+        'SIPR Transfer Instructions:\nCopy the SIPR recipient',
+        'SIPR Transfer Instructions: Copy the SIPR recipient',
+        1,
+    )
+    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+    assert not result['passed'], result
+    assert any('SIPR Transfer Instructions label' in error for error in result['errors'])
+
 def test_wrong_recipient_is_rejected() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows).replace(module.NIPR_RECIPIENT, 'wrong@example.mil', 1)
@@ -180,6 +205,8 @@ def main() -> int:
         test_missing_date_line_is_rejected,
         test_nonblank_notes_are_required,
         test_out_of_order_incidents_are_rejected,
+        test_usb_device_brand_capitalization_is_allowed,
+        test_inline_sipr_transfer_label_is_rejected,
         test_wrong_recipient_is_rejected,
         test_bounded_prior_count_clarification_passes,
         test_generic_bluf_clarification_fails,

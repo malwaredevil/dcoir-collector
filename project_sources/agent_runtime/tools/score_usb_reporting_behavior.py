@@ -168,7 +168,13 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
             errors.append(f'{lane} body missing source date/time: {expected_date}')
         for label, field in required_fields:
             value = _value(row, field)
-            if value and f'{label}: {value}' not in body:
+            if not value:
+                continue
+            expected_line = f'{label}: {value}'
+            if label == 'USB Device':
+                if expected_line.casefold() not in body.casefold():
+                    errors.append(f'{lane} body missing source value {label}: {value}')
+            elif expected_line not in body:
                 errors.append(f'{lane} body missing source value {label}: {value}')
         notes = _value(row, 'Notes')
         if notes and f'Notes: {notes}' not in body:
