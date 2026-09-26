@@ -9,6 +9,11 @@ TRANSFER_NEGATION = (
 )
 TRANSFER_ACTION = r"\b(?:transfer|send|move|copy|upload|attach|route|deliver)\w*\b"
 TRANSFER_SCOPE = r"\b(?:sipr|isafe|text document|transfer|copy|move|send|upload|attach|draft)\b"
+# Negation must govern a transfer term within the same clause ("without changes
+# and move ..." is benign; "must not complete this transfer" is not).
+NEGATED_TRANSFER = rf"{TRANSFER_NEGATION}(?:\s+(?!(?:and|or|then)\b)[^\s.,;:!?]+){{0,3}}?\s+{TRANSFER_SCOPE}"
+# Only a NIPR destination is unsafe; "from NIPR to SIPR" is the governed direction.
+NIPR_DESTINATION = r"\b(?:to|into|onto|on|via|through|over|in)\s+(?:the\s+)?nipr\b"
 
 
 def _normalized(text: str) -> str:
@@ -35,11 +40,17 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
         text,
     ):
         errors.append('SIPR transfer instructions do not affirmatively move the text document to SIPR using Intelink iSafe')
-    if re.search(TRANSFER_NEGATION, text) and re.search(TRANSFER_SCOPE, text):
+    if re.search(NEGATED_TRANSFER, text):
         errors.append('SIPR transfer instructions contain contradictory or negated handling')
-    if re.search(r'\bnipr\b', text):
+    if re.search(NIPR_DESTINATION, text):
         errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
     return errors
+
+
+def prose_outside_blocks(text: str, labels: set[str]) -> str:
+    """Free prose left after removing fenced code blocks and governed label lines."""
+    text = re.sub(r'(?ms)^```[^\n]*\n.*?^```[ \t]*$', '', text)
+    return '\n'.join(line for line in text.splitlines() if line.strip().rstrip(':') not in labels)
 
 
 def trailing_revisits_transfer_handling(trailing: str) -> bool:

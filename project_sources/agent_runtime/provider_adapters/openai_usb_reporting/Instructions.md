@@ -62,7 +62,7 @@ SIPR Subject:
 SIPR Message Draft:
 [one plaintext code block containing only the SIPR email body]
 SIPR Transfer Instructions:
-The label `SIPR Transfer Instructions:` must appear on its own line. On the following line, tell the operator to copy the SIPR recipient, subject, and message draft into a text document and move it to SIPR using Intelink iSafe: https://isafe.intelink.gov/
+The label `SIPR Transfer Instructions:` must appear on its own line. On the following line, tell the operator to copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document and move it to SIPR using Intelink iSafe: https://isafe.intelink.gov/
 
 Subject is exactly: Weekly USB Violations [Start date] - [End date], with M/D/YYYY dates.
 

@@ -198,13 +198,31 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
             "error": "Authorization: Bearer supersecret",
             "error_body": "Authorization: Bearer supersecret",
         }
-    with patch.object(replay_live, "call_openai", side_effect=fake_failure):
+    with patch.object(replay_live, "call_openai", side_effect=fake_failure) as failing_call:
         failed_pack = make_pack(first_fixture, args, package, "test-key", "")
+    if failing_call.call_count != 1 or len(failed_pack["turns"]) != len(first_fixture["turns"]):
+        raise SystemExit("OpenAI replay must stop calling after a failed turn while keeping every turn in the pack.")
+    if not all("not_attempted_after_prior_failure" in row["assistant_response"] for row in failed_pack["turns"][1:]):
+        raise SystemExit("Turns after a failed call must be marked not attempted.")
     serialized = json.dumps(failed_pack)
     if "supersecret" in serialized or "error_body_excerpt" in serialized or "error_body" in serialized:
         raise SystemExit("Raw provider diagnostics leaked into the persisted OpenAI replay pack.")
     if "runtime_error" not in serialized:
         raise SystemExit("Unsafe provider errors were not reduced to the runtime_error category.")
+    class _IncompleteResponse:
+        status = 200
+        def __enter__(self):
+            return self
+        def __exit__(self, *exc):
+            return False
+        def read(self):
+            return json.dumps({"id": "resp_cut", "status": "incomplete", "output_text": "partial"}).encode("utf-8")
+    with patch.object(replay_live.urllib.request, "urlopen", return_value=_IncompleteResponse()):
+        truncated = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+    if truncated.get("ok") or truncated.get("error") != "incomplete_output":
+        raise SystemExit(f"Incomplete Responses API output must not count as a successful call: {truncated}")
+    if redact_report_value({"max_output_tokens": 8192}) != {"max_output_tokens": 8192}:
+        raise SystemExit("Non-secret max_output_tokens run configuration must not be redacted.")
     redacted = json.dumps(redact_report_value({"error_body_excerpt": "password=supersecret", "status_code": 400}))
     if "supersecret" in redacted or "password=" in redacted:
         raise SystemExit("Workflow report redaction retained raw provider error-body content.")

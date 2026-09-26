@@ -59,9 +59,9 @@ on:
         type: choice
         options: [none, low, medium, high, xhigh, max]
       max_output_tokens:
-        description: Maximum output tokens per Terra response
-        required: true
-        default: "8192"
+        description: Maximum output tokens per Terra response; blank uses the per-target default (8192 DCOIR Analyst, 16384 USB Reporting)
+        required: false
+        default: ""
         type: string
 
 permissions:
@@ -82,7 +82,7 @@ jobs:
       run_all_active_fixtures: ${{ github.event_name == 'workflow_dispatch' && inputs.run_all_active_fixtures || false }}
       custom_fixtures_csv: ${{ github.event_name == 'workflow_dispatch' && inputs.custom_fixtures_csv || '' }}
       reasoning_effort: ${{ github.event_name == 'workflow_dispatch' && inputs.reasoning_effort || 'medium' }}
-      max_output_tokens: ${{ github.event_name == 'workflow_dispatch' && inputs.max_output_tokens || '8192' }}
+      max_output_tokens: ${{ github.event_name == 'workflow_dispatch' && inputs.max_output_tokens || '' }}
     secrets:
       DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

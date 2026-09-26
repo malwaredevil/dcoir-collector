@@ -90,6 +90,8 @@ def call_openai_body(
                 payload = json.loads(response.read().decode("utf-8"))
                 text = extract_text(payload)
                 attempts.append({"attempt": attempt, "status_code": response.status, "latency_ms": round((time.monotonic() - started) * 1000, 2)})
+                if payload.get("status", "completed") != "completed":
+                    return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}
                 if not text:
                     return {"ok": False, "attempts": attempts, "error": "empty_output", "response_id": payload.get("id")}
                 return {"ok": True, "attempts": attempts, "response_text": text, "response_id": payload.get("id")}
@@ -136,7 +138,12 @@ def make_pack(
     turns: List[Dict[str, str]] = []
     calls: List[Dict[str, Any]] = []
     history: List[Dict[str, str]] = []
+    prior_failure = False
     for turn in fixture.get("turns", []):
+        if prior_failure:
+            # Later turns would be conditioned on a failure placeholder, so skip the call.
+            turns.append({"turn_id": turn.get("turn_id"), "assistant_response": "LIVE_OPENAI_REPLAY_NOT_ATTEMPTED: not_attempted_after_prior_failure"})
+            continue
         call = call_openai(api_key, project_id, args, package, fixture, turn, history)
         if call.get("ok"):
             response = str(call.get("response_text") or "")
@@ -144,6 +151,7 @@ def make_pack(
                 response = "[redacted-secret-output]"
         else:
             response = f"LIVE_OPENAI_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}"
+            prior_failure = True
         calls.append({
             "fixture_id": fixture.get("fixture_id"),
             "model_name": package["model_id"],

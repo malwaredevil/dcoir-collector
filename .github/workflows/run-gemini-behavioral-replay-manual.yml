@@ -140,9 +140,9 @@ on:
         default: "medium"
         type: string
       openai_max_output_tokens:
-        description: OpenAI replay max output tokens when run_openai_dcoir_replay is true
-        required: true
-        default: "8192"
+        description: OpenAI replay max output tokens when run_openai_dcoir_replay is true; blank uses the per-target default
+        required: false
+        default: ""
         type: string
       temperature:
         description: Live replay temperature
@@ -198,7 +198,7 @@ jobs:
       run_all_active_fixtures: ${{ github.event_name != 'workflow_dispatch' || inputs.run_all_active_fixtures }}
       custom_fixtures_csv: ${{ inputs.custom_fixtures_csv || '' }}
       reasoning_effort: ${{ inputs.openai_reasoning_effort || 'medium' }}
-      max_output_tokens: ${{ inputs.openai_max_output_tokens || '8192' }}
+      max_output_tokens: ${{ inputs.openai_max_output_tokens || '' }}
     secrets:
       DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

@@ -29,6 +29,6 @@ def safe_error(value: object) -> str | None:
     if value is None:
         return None
     text = str(value)
-    if re.fullmatch(r"http_[0-9]{3}|empty_output|unknown", text):
+    if re.fullmatch(r"http_[0-9]{3}|empty_output|incomplete_output|unknown", text):
         return text
     return "runtime_error"

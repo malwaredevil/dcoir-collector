@@ -27,9 +27,10 @@ on:
         type: string
         default: medium
       max_output_tokens:
+        description: Blank uses the per-target runner default (8192 DCOIR Analyst, 16384 USB Reporting)
         required: false
         type: string
-        default: '8192'
+        default: ''
     secrets:
       DCOIR_OPENAI_API_KEY:
         required: false
@@ -135,8 +136,10 @@ jobs:
                 --output-dir project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual
                 --custom-fixtures-csv "$CUSTOM_FIXTURES_CSV"
                 --reasoning-effort "$REASONING_EFFORT"
-                --max-output-tokens "$MAX_OUTPUT_TOKENS"
               )
+              if [[ -n "$MAX_OUTPUT_TOKENS" ]]; then
+                args+=(--max-output-tokens "$MAX_OUTPUT_TOKENS")
+              fi
               if [[ "$RUN_ALL_ACTIVE_FIXTURES" == "true" ]]; then
                 args+=(--run-all-active-fixtures)
               fi
@@ -146,10 +149,14 @@ jobs:
               if [[ -n "$CUSTOM_FIXTURES_CSV" || "$RUN_ALL_ACTIVE_FIXTURES" != "true" ]]; then
                 echo '::warning::openai_usb_reporting ignores run_all_active_fixtures and custom_fixtures_csv; running the governed default USB fixtures.'
               fi
-              python project_sources/gemini/tools/run_openai_usb_reporting_behavioral_replay.py \
-                --output-dir project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual \
-                --reasoning-effort "$REASONING_EFFORT" \
-                --max-output-tokens "$MAX_OUTPUT_TOKENS"
+              usb_args=(
+                --output-dir project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual
+                --reasoning-effort "$REASONING_EFFORT"
+              )
+              if [[ -n "$MAX_OUTPUT_TOKENS" ]]; then
+                usb_args+=(--max-output-tokens "$MAX_OUTPUT_TOKENS")
+              fi
+              python project_sources/gemini/tools/run_openai_usb_reporting_behavioral_replay.py "${usb_args[@]}"
               ;;
           esac
 

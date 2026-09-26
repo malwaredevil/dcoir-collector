@@ -11,6 +11,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from usb_reporting_transfer_semantics import (
+    prose_outside_blocks as _prose_outside_blocks,
     trailing_revisits_transfer_handling as _trailing_revisits_transfer_handling,
     transfer_instruction_errors as _transfer_instruction_errors,
 )
@@ -121,6 +122,15 @@ def _expected_date_line(row: dict[str, str]) -> str | None:
     return f'Date: {int(month):02d}/{int(day):02d}/{int(year):04d} {time_text}'
 
 
+def _lane_rows(rows: list[dict[str, str]], lane: str) -> list[dict[str, str]]:
+    """Rows for one lane in governed ascending date order (stable for ties)."""
+    def key(row: dict[str, str]) -> tuple:
+        line = _expected_date_line(row) or ''
+        match = re.match(r'Date: (\d\d)/(\d\d)/(\d{4}) (\d{4})', line)
+        return (0, match[3], match[1], match[2], match[4]) if match else (1,)
+    return sorted((row for row in rows if _classification(row) == lane), key=key)
+
+
 def _labeled_values(block: str, label: str) -> list[str]:
     prefix = f'{label}:'
     values: list[str] = []
@@ -168,8 +178,7 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
     expected_tickets = [
         _ticket(row)
         for lane in ('NIPR', 'SIPR')
-        for row in rows
-        if _classification(row) == lane
+        for row in _lane_rows(rows, lane)
     ]
     observed_tickets = [
         match.group(1)
@@ -247,7 +256,7 @@ def _expected_openings(nipr_count: int, sipr_count: int, previous_count: int, st
 
 def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     errors: list[str] = []
-    expected = [row for row in rows if _classification(row) == lane]
+    expected = _lane_rows(rows, lane)
     forbidden = [row for row in rows if _classification(row) not in {lane, 'UNKNOWN'}]
     incident_name_count = len(re.findall(r'(?mi)^[ \t]*Name\(s\):', body))
     if incident_name_count != len(expected):
@@ -273,7 +282,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
         if ticket not in expected_ticket_set:
             errors.append(f'{lane} body contains unexpected/unbound ticket: {ticket}')
     if [ticket for ticket in observed_tickets if ticket in expected_ticket_set] != expected_tickets:
-        errors.append(f'{lane} body incident order does not match ascending fixture order')
+        errors.append(f'{lane} body incident order does not match ascending date order')
 
     blocks: dict[str, str] = {}
     previous_end = 0
@@ -381,6 +390,9 @@ def score_final_response(
             errors.extend(_transfer_instruction_errors(transfer, ISAFE_URL))
             if _trailing_revisits_transfer_handling(trailing):
                 errors.append('content after SIPR Transfer Instructions revisits SIPR transfer handling')
+            leading = _prose_outside_blocks(text[:transfer_matches[0].start()], FINAL_LABELS)
+            if _trailing_revisits_transfer_handling(leading):
+                errors.append('content before SIPR Transfer Instructions revisits SIPR transfer handling')
     else:
         values: dict[str, str] = {}
         for label in ['Recipient', 'Subject', 'Message Draft']:

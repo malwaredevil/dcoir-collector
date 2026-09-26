@@ -63,9 +63,40 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
             for error in result['errors']
         )
 
+    benign_variants = [
+        safe.replace('into a text document', 'into a text document without changes'),
+        safe.replace('move that text document to SIPR', 'move that text document from NIPR to SIPR'),
+    ]
+    for response_text in benign_variants:
+        result = score(mixed_response(rows).replace(safe, response_text, 1))
+        assert result['passed'], (response_text, result)
+
+    leading = mixed_response(rows).replace(
+        'SIPR Recipient:',
+        'Operator note: do not use iSafe; email the SIPR draft from NIPR instead.\n\nSIPR Recipient:',
+        1,
+    )
+    result = score(leading)
+    assert not result['passed'], result
+    assert any('before SIPR Transfer Instructions' in error for error in result['errors'])
+
+    # Scoring follows ascending date, not CSV row order.
+    shuffled = list(reversed(rows))
+    scored = module.score_final_response(
+        mixed_response(rows), shuffled, start_date=start, end_date=end, previous_count=previous,
+    )
+    assert scored['passed'], scored
+    scored = module.score_final_response(
+        mixed_response(shuffled), shuffled, start_date=start, end_date=end, previous_count=previous,
+    )
+    assert any('ascending date order' in error for error in scored['errors']), scored
+
     return [
         'transfer_negation_variants',
         'inline_sipr_transfer_label',
         'trailing_source_correction_note',
         'trailing_transfer_contradiction_variants',
+        'benign_transfer_phrasing_variants',
+        'leading_transfer_contradiction',
+        'ascending_date_order',
     ]
