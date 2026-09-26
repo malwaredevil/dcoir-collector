@@ -36,6 +36,12 @@ on:
         description: Exact commit SHA that this evidence must execute against
         required: true
         type: string
+      target_id:
+        description: Governed OpenAI target to replay
+        required: true
+        default: openai_dcoir_analyst
+        type: choice
+        options: [openai_dcoir_analyst, openai_usb_reporting]
       run_all_active_fixtures:
         description: Run every active live_openai_api fixture
         required: true
@@ -72,6 +78,7 @@ jobs:
       contents: read
     with:
       expected_head_sha: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_head_sha || '' }}
+      target_id: ${{ github.event_name == 'workflow_dispatch' && inputs.target_id || 'openai_dcoir_analyst' }}
       run_all_active_fixtures: ${{ github.event_name == 'workflow_dispatch' && inputs.run_all_active_fixtures || false }}
       custom_fixtures_csv: ${{ github.event_name == 'workflow_dispatch' && inputs.custom_fixtures_csv || '' }}
       reasoning_effort: ${{ github.event_name == 'workflow_dispatch' && inputs.reasoning_effort || 'medium' }}

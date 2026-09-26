@@ -10,6 +10,10 @@ on:
       expected_head_sha:
         required: true
         type: string
+      target_id:
+        required: false
+        type: string
+        default: openai_dcoir_analyst
       run_all_active_fixtures:
         required: false
         type: boolean
@@ -48,6 +52,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DCOIR_OPENAI_PROJECT_ID: ${{ secrets.DCOIR_OPENAI_PROJECT_ID }}
       EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+      TARGET_ID: ${{ inputs.target_id }}
       RUN_ALL_ACTIVE_FIXTURES: ${{ inputs.run_all_active_fixtures }}
       CUSTOM_FIXTURES_CSV: ${{ inputs.custom_fixtures_csv }}
       REASONING_EFFORT: ${{ inputs.reasoning_effort }}
@@ -80,47 +85,120 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile \
-            project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py \
-            project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py \
-            project_sources/gemini/tools/lib/openai_dcoir_replay_package.py \
-            project_sources/gemini/tools/lib/openai_dcoir_replay_live.py
-          python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check
-          python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py
-          python project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py
+          case "$TARGET_ID" in
+            openai_dcoir_analyst)
+              python -m py_compile \
+                project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py \
+                project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py \
+                project_sources/gemini/tools/lib/openai_dcoir_replay_package.py \
+                project_sources/gemini/tools/lib/openai_dcoir_replay_live.py
+              python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check
+              python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py
+              python project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py
+              ;;
+            openai_usb_reporting)
+              python -m py_compile \
+                project_sources/gemini/tools/run_openai_usb_reporting_behavioral_replay.py \
+                project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py \
+                project_sources/gemini/tools/lib/openai_usb_replay_package.py \
+                project_sources/gemini/tools/lib/openai_dcoir_replay_live.py \
+                project_sources/agent_runtime/tools/score_usb_reporting_behavior.py
+              python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check
+              python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py
+              PYTHONPATH=project_sources/gemini/tools \
+                python project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py
+              ;;
+            *)
+              echo "Unsupported target_id: $TARGET_ID" >&2
+              exit 1
+              ;;
+          esac
 
       - name: Create output directory
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual
+          if [[ "$TARGET_ID" == "openai_usb_reporting" ]]; then
+            mkdir -p project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual
+          else
+            mkdir -p project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual
+          fi
 
-      - name: Run live OpenAI DCOIR behavioral replay
+      - name: Run live OpenAI behavioral replay
         shell: bash
         run: |
           set -euo pipefail
-          args=(
-            --fixtures-root project_sources/gemini/fixtures/behavioral_replay
-            --output-dir project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual
-            --custom-fixtures-csv "$CUSTOM_FIXTURES_CSV"
-            --reasoning-effort "$REASONING_EFFORT"
-            --max-output-tokens "$MAX_OUTPUT_TOKENS"
-          )
-          if [[ "$RUN_ALL_ACTIVE_FIXTURES" == "true" ]]; then
-            args+=(--run-all-active-fixtures)
-          fi
-          python project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py "${args[@]}"
+          case "$TARGET_ID" in
+            openai_dcoir_analyst)
+              args=(
+                --fixtures-root project_sources/gemini/fixtures/behavioral_replay
+                --output-dir project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual
+                --custom-fixtures-csv "$CUSTOM_FIXTURES_CSV"
+                --reasoning-effort "$REASONING_EFFORT"
+                --max-output-tokens "$MAX_OUTPUT_TOKENS"
+              )
+              if [[ "$RUN_ALL_ACTIVE_FIXTURES" == "true" ]]; then
+                args+=(--run-all-active-fixtures)
+              fi
+              python project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py "${args[@]}"
+              ;;
+            openai_usb_reporting)
+              python project_sources/gemini/tools/run_openai_usb_reporting_behavioral_replay.py \
+                --output-dir project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual \
+                --reasoning-effort "$REASONING_EFFORT" \
+                --max-output-tokens "$MAX_OUTPUT_TOKENS"
+              ;;
+          esac
+
+      - name: Build USB replay report section
+        if: ${{ always() && inputs.target_id == 'openai_usb_reporting' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual')
+          report_path = root / 'openai_usb_reporting_behavioral_replay_run_report.json'
+          out = root / 'chatgpt_workflow_report_section.md'
+          lines = ['## OpenAI USB Reporting Behavioral Replay']
+          if not report_path.is_file():
+              lines.append('No USB replay JSON report was produced.')
+          else:
+              data = json.loads(report_path.read_text(encoding='utf-8'))
+              lines.extend([
+                  f"- Target: `{data.get('target_id', 'openai_usb_reporting')}`",
+                  f"- Model: `{data.get('model_id', 'unknown')}`",
+                  f"- Workflow verdict: **{data.get('workflow_verdict', 'unknown')}**",
+              ])
+              if data.get('error'):
+                  lines.append(f"- Error: `{data['error']}`")
+              for item in data.get('results', []):
+                  lines.append(f"- `{item.get('fixture')}`: **{'pass' if item.get('passed') else 'fail'}**")
+                  for stage in ('clarification', 'final'):
+                      score = item.get(stage, {}).get('semantic_score', {})
+                      for error in score.get('errors', []):
+                          lines.append(f"  - {stage}: {error}")
+          out.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
 
       - name: Publish replay summary to job summary
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          report="project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual/chatgpt_workflow_report_section.md"
+          if [[ "$TARGET_ID" == "openai_usb_reporting" ]]; then
+            report="project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual/chatgpt_workflow_report_section.md"
+            label='OpenAI USB Reporting Behavioral Replay'
+          else
+            report="project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual/chatgpt_workflow_report_section.md"
+            label='OpenAI DCOIR Behavioral Replay'
+          fi
           if [[ -f "$report" ]]; then
             cat "$report" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo '## OpenAI DCOIR Behavioral Replay' >> "$GITHUB_STEP_SUMMARY"
+            echo "## $label" >> "$GITHUB_STEP_SUMMARY"
             echo 'No replay report section was produced.' >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -131,6 +209,7 @@ jobs:
           name: run-openai-dcoir-behavioral-replay-manual-results
           path: |
             project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual/**
+            project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual/**
           if-no-files-found: warn
           retention-days: 14
 
@@ -141,5 +220,6 @@ jobs:
           name: chatgpt-workflow-report-section
           path: |
             project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual/chatgpt_workflow_report_section.md
+            project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual/chatgpt_workflow_report_section.md
           if-no-files-found: warn
           retention-days: 14
