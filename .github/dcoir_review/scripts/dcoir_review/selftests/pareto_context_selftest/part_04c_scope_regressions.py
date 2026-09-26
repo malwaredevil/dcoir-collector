@@ -349,3 +349,78 @@ sibling_same_trusted_global_rebind_context = _scope_context(
     ]
 )
 assert "urllib" not in sibling_same_trusted_global_rebind_context.get(13, set()), sibling_same_trusted_global_rebind_context
+
+
+transitive_sibling_global_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "alias = urllib.request.urlopen",
+        "saved = urllib.request.urlopen",
+        "def poison_alias():",
+        "    global alias",
+        "    alias = custom_open",
+        "def rebind_saved():",
+        "    global saved",
+        "    saved = alias",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "poison_alias()",
+        "rebind_saved()",
+        "mutator()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in transitive_sibling_global_rebind_context.get(18, set()), transitive_sibling_global_rebind_context
+
+transitive_sibling_nonlocal_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "def outer():",
+        "    alias = urllib.request.urlopen",
+        "    saved = urllib.request.urlopen",
+        "    def poison_alias():",
+        "        nonlocal alias",
+        "        alias = custom_open",
+        "    def rebind_saved():",
+        "        nonlocal saved",
+        "        saved = alias",
+        "    def mutator():",
+        "        nonlocal saved",
+        "        urllib.request.urlopen = custom_open",
+        "        urllib.request.urlopen = saved",
+        "    poison_alias()",
+        "    rebind_saved()",
+        "    mutator()",
+        "outer()",
+        "def persist(user_path, data):",
+        '    return urllib.request.urlopen(user_path, "w").write(data)',
+    ]
+)
+assert "urllib" in transitive_sibling_nonlocal_rebind_context.get(20, set()), transitive_sibling_nonlocal_rebind_context
+
+transitive_same_trusted_global_rebind_context = _scope_context(
+    [
+        "import urllib.request",
+        "alias = urllib.request.urlopen",
+        "saved = urllib.request.urlopen",
+        "def refresh_alias():",
+        "    global alias",
+        "    alias = urllib.request.urlopen",
+        "def rebind_saved():",
+        "    global saved",
+        "    saved = alias",
+        "def mutator():",
+        "    global saved",
+        "    urllib.request.urlopen = custom_open",
+        "    urllib.request.urlopen = saved",
+        "refresh_alias()",
+        "rebind_saved()",
+        "mutator()",
+        "def fetch(request):",
+        "    return urllib.request.urlopen(request)",
+    ]
+)
+assert "urllib" not in transitive_same_trusted_global_rebind_context.get(18, set()), transitive_same_trusted_global_rebind_context
