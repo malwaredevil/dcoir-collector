@@ -36,6 +36,9 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
         safe + ' This transfer is not authorized.',
         safe + ' The direction above is rescinded.',
         safe + ' The direction above is nullified.',
+        safe + ' The above instruction is invalid.',
+        safe + ' This direction is no longer applicable.',
+        safe + ' The preceding instruction no longer applies.',
         safe.replace('and move that text document', 'and move that text document without moving that text document'),
     ]
     for response_text in unsafe_variants:

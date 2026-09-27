@@ -178,7 +178,9 @@ def _markdown_prefixed_incident_evidence(text: str) -> list[str]:
         stripped = _strip_md_presentation(candidate)
         if stripped == candidate:
             continue
-        if re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE) or stripped.casefold().startswith(labels):
+        if (re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE)
+                or stripped.casefold().startswith(labels)
+                or re.match(r'^[A-Za-z][A-Za-z0-9 ()/_-]{0,63}:', stripped)):
             errors.append(f'final response contains Markdown-prefixed incident evidence: {candidate}')
     return errors
 
@@ -395,9 +397,6 @@ def score_final_response(
         if len(transfer_matches) != 1:
             errors.append(f'expected exactly one SIPR Transfer Instructions label, found {len(transfer_matches)}')
         else:
-            # The instruction is the first paragraph after the label; later
-            # paragraphs are permitted source-correction notes, which must not
-            # revisit transfer handling.
             transfer, *rest = re.split(r'\n[ \t]*\n', text[transfer_matches[0].end():].strip(), maxsplit=1)
             trailing = rest[0] if rest else ''
             errors.extend(_transfer_instruction_errors(transfer, ISAFE_URL))

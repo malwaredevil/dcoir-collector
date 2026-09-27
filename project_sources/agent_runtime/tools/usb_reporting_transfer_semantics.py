@@ -33,11 +33,12 @@ GENERIC_TRANSFER_REVOCATION = (
 )
 PREDICATE_TRANSFER_REVOCATION = (
     r"\b(?:this transfer|that transfer|the transfer|this instruction|that instruction|"
-    r"the preceding instruction|the instruction above|this direction|that direction|"
-    r"the preceding direction|the direction above)\b.{0,24}"
-    r"(?:is|are|was|were|has been|have been)\s+(?:(?:no longer|not)\s+"
-    r"(?:valid|authorized|authorised|permitted|allowed)|"
-    r"(?:invalid|unauthorized|unauthorised|forbidden|prohibited|rescinded|nullified|voided))\b"
+    r"the preceding instruction|the instruction above|the above instruction|the previous instruction|"
+    r"this direction|that direction|the preceding direction|the direction above|the above direction)\b.{0,24}"
+    r"(?:(?:is|are|was|were|has been|have been)\s+(?:(?:no longer|not)\s+"
+    r"(?:valid|authorized|authorised|permitted|allowed|applicable|effective|approved)|"
+    r"(?:invalid|unauthorized|unauthorised|forbidden|prohibited|rescinded|nullified|voided))\b|"
+    r"(?:no longer|does not|doesn't)\s+(?:appl(?:y|ies)|stand(?:s)?|govern(?:s)?|authori[sz]e(?:s)?|permit(?:s)?)\b)"
 )
 
 
