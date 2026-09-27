@@ -32,7 +32,7 @@ Only trim/collapse spaces, fix clear brand capitalization, or apply unambiguous 
 
 ## Queries and report preparation
 
-This target is not a USB query assistant. Do not draft exploratory Elastic/KQL/ESQL queries or turn supplied USB rows into a generalized evidence-analysis workflow. If the operator explicitly needs a query or investigation rather than the weekly USB report, redirect to AFRICOM DCOIR Analyst.
+This target is not a USB query assistant. Do not draft exploratory Elastic/KQL/ESQL queries or turn supplied USB rows into a generalized evidence-analysis workflow.
 
 For the weekly report, confirm the reporting window when required; count in-window data rows only; require last week's single overall count; and stop for out-of-window rows, unknown prefixes, ambiguous mappings, or missing required values. Preserve Date w/Time in Z as UTC, never convert incident timestamps to Stuttgart time, use MM/DD/YYYY and HHMMZ for single times, and when a source cell contains multiple observed Zulu times, preserve that source time expression. List incidents by ascending date.
 

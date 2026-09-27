@@ -141,6 +141,9 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
         errors.append('SIPR transfer instructions contain contradictory or negated handling')
     if _has_unsafe_nipr_destination(text):
         errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
+    # Intelink iSafe is the only governed delivery path; any address or NIPRNet channel adds another.
+    if re.search(r'[\w.+-]+@[\w-]+(?:\.[\w-]+)+|\bniprnet\b', text):
+        errors.append('SIPR transfer instructions must not add another delivery address or NIPRNet channel')
     return errors
 
 

@@ -160,39 +160,6 @@ jobs:
               ;;
           esac
 
-      - name: Build USB replay report section
-        if: ${{ always() && inputs.target_id == 'openai_usb_reporting' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          root = Path('project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual')
-          report_path = root / 'openai_usb_reporting_behavioral_replay_run_report.json'
-          out = root / 'chatgpt_workflow_report_section.md'
-          lines = ['## OpenAI USB Reporting Behavioral Replay']
-          if not report_path.is_file():
-              lines.append('No USB replay JSON report was produced.')
-          else:
-              data = json.loads(report_path.read_text(encoding='utf-8'))
-              lines.extend([
-                  f"- Target: `{data.get('target_id', 'openai_usb_reporting')}`",
-                  f"- Model: `{data.get('model_id', 'unknown')}`",
-                  f"- Workflow verdict: **{data.get('workflow_verdict', 'unknown')}**",
-              ])
-              if data.get('error'):
-                  lines.append(f"- Error: `{data['error']}`")
-              for item in data.get('results', []):
-                  lines.append(f"- `{item.get('fixture')}`: **{'pass' if item.get('passed') else 'fail'}**")
-                  for stage in ('clarification', 'final'):
-                      score = item.get(stage, {}).get('semantic_score', {})
-                      for error in score.get('errors', []):
-                          lines.append(f"  - {stage}: {error}")
-          out.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-          PY
-
       - name: Publish replay summary to job summary
         if: always()
         shell: bash
@@ -207,6 +174,10 @@ jobs:
           fi
           if [[ -f "$report" ]]; then
             cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            # Stage the current target's section at a fixed single upload path so the
+            # reporter finds chatgpt_workflow_report_section.md at the artifact root.
+            mkdir -p project_sources/validation/out_openai_behavioral_replay_report_section
+            cp "$report" project_sources/validation/out_openai_behavioral_replay_report_section/chatgpt_workflow_report_section.md
           else
             echo "## $label" >> "$GITHUB_STEP_SUMMARY"
             echo 'No replay report section was produced.' >> "$GITHUB_STEP_SUMMARY"
@@ -228,8 +199,6 @@ jobs:
         uses: ./.github/actions/upload-chatgpt-artifact
         with:
           name: chatgpt-workflow-report-section
-          path: |
-            project_sources/validation/out_run_openai_dcoir_behavioral_replay_manual/chatgpt_workflow_report_section.md
-            project_sources/validation/out_run_openai_usb_reporting_behavioral_replay_manual/chatgpt_workflow_report_section.md
+          path: project_sources/validation/out_openai_behavioral_replay_report_section/chatgpt_workflow_report_section.md
           if-no-files-found: warn
           retention-days: 14

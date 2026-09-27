@@ -349,17 +349,20 @@ def _clause_has_referential_lane_separation(clause: str) -> bool:
 
 def has_execution_lane_separation(response_text: str) -> bool:
     semantic_status = analyze_semantics(response_text).execution_lane_separation_status()
-    if semantic_status is not None:
-        return semantic_status
-    clauses = list(_iter_clauses(response_text))
-    has_endpoint_lane, has_local_lane = _lane_presence(clauses)
-    if not (has_endpoint_lane and has_local_lane):
+    if semantic_status is False:
         return False
+    clauses = list(_iter_clauses(response_text))
+    # An explicit mix anywhere vetoes both semantic and lexical separation.
     if any(_clause_has_explicit_lane_mix(clause) for clause in clauses):
         return False
     if any(_clause_has_referential_lane_mix(clause) for clause in clauses):
         return False
     if _response_has_pronominal_shared_context_mix(clauses):
+        return False
+    if semantic_status is True:
+        return True
+    has_endpoint_lane, has_local_lane = _lane_presence(clauses)
+    if not (has_endpoint_lane and has_local_lane):
         return False
     normalized = normalize_text(response_text)
     m=re.search(r"\b(this|that|it)\s+is\s+(?:an?\s+)?endpoint\s+response[- ]action(?: syntax)?\s*,?\s+not\s+(?:a\s+)?local powershell\b",normalized)

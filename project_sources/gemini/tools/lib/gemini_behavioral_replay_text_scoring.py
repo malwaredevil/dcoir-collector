@@ -99,7 +99,9 @@ def _term_variants(term: str) -> List[str]:
 
 def _iter_term_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
     for variant in _term_variants(term):
-        pattern = re.compile(rf"(?<![a-z0-9_-]){re.escape(variant)}(?![a-z0-9_-])")
+        # Any whitespace run between tokens also matches raw, wrapped text.
+        body = r"\s+".join(re.escape(token) for token in variant.split())
+        pattern = re.compile(rf"(?<![a-z0-9_-]){body}(?![a-z0-9_-])")
         yield from pattern.finditer(text)
 
 
@@ -111,15 +113,19 @@ def _occurrence_is_quoted(text: str, start: int, end: int) -> bool:
     if before in QUOTE_CHARS and after == before:
         return True
 
-    # Double quotes and backticks can be paired reliably. Pair them in source
-    # order so a closing quote from one value cannot become the opener for the
-    # next value and incorrectly swallow intervening prose.
+    # Pair double quotes and backticks in source order. A pair marks a mention
+    # only when the marker ends the span or it is short inline code, so a stray
+    # delimiter cannot hide later asserted prose.
     for quote in ('"', '`'):
         positions = [index for index, char in enumerate(text) if char == quote]
         for offset in range(0, len(positions) - 1, 2):
             opener, closer = positions[offset], positions[offset + 1]
             if opener < start and end <= closer:
-                return True
+                trailing = text[end:closer]
+                if len(trailing) <= 4 and all(char in " ,.;:!?" for char in trailing):
+                    return True
+                if quote == '`' and closer - opener <= 80 and not re.search(r"[.!?]\s", text[opener:closer]):
+                    return True
 
     # Apostrophes are common in contractions, so only treat a single-quoted
     # marker as quoted when its opening quote is immediately adjacent and the

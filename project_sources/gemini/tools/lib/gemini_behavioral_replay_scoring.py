@@ -108,7 +108,16 @@ def _marker_only_in_bounded_rejection(response_text: str, marker: str) -> bool:
         frame = BOUNDED_UNVERIFIED_SCOPE.search(prefix)
         if frame:
             scope = prefix[frame.end():]
-            if not re.search(r"\b(?:but|however|yet|instead|so|therefore|thus|consequently)\b", scope):
+            # The frame governs only its own that-complement; a comma or
+            # coordinator followed by a new subject and verb is independent.
+            if not re.search(
+                r"\b(?:but|however|yet|instead|so|therefore|thus|consequently)\b"
+                r"|(?:,|\b(?:and|although|though|while|whereas)\b)\s*"
+                r"(?:(?:and|or|although|though|while|whereas)\s+)?"
+                r"(?:i|we|you|they|it|this|these|those|the(?:\s+[a-z0-9_-]+){1,4})\s+"
+                r"(?:is|are|was|were|has|have|will|would|should|must|can)\b",
+                scope,
+            ):
                 seen = True
                 continue
         if COORDINATED_NEGATION_SCOPE.search(prefix):

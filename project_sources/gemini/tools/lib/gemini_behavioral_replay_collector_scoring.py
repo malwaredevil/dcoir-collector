@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from typing import List
 
+from .gemini_behavioral_replay_lane_context import _clause_has_endpoint_lane, _clause_has_local_lane
 from .gemini_behavioral_replay_rejection_patterns import POST_ACTION_REJECTION_PATTERN
 from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
 from .gemini_behavioral_replay_text_scoring import (
@@ -12,9 +13,18 @@ from .gemini_behavioral_replay_text_scoring import (
     _occurrence_is_rejected_after,
 )
 
+_RETRIEVAL_WAIVER = re.compile(
+    r"\b(?:no need to|(?:do|does) not need to|(?:don't|dont|doesn't|doesnt) need to|"
+    r"without (?:waiting for|using)|ignor(?:e|ing)|skip(?:ping)?|guess(?:ing)?)\b"
+)
+
+
 def _has_standalone_local_collect(response_text: str) -> bool:
     for clause in _iter_clauses(response_text):
         if "execute --command" in clause or "powershell" not in clause:
+            continue
+        # A clause that places the command on the endpoint lane is not local collection.
+        if _clause_has_endpoint_lane(clause) and not _clause_has_local_lane(clause):
             continue
         for collect_flag in ("-quick collect-t1", "-mode collect"):
             if collect_flag not in clause:
@@ -28,13 +38,14 @@ def _has_standalone_local_collect(response_text: str) -> bool:
 
 
 def _has_endpoint_collect(response_text: str) -> bool:
-    return _has_assertive_phase(
-        response_text,
-        ["execute --command", "dcoir_collector.ps1", "-quick collect-t1"],
-    ) or _has_assertive_phase(
-        response_text,
-        ["execute --command", "dcoir_collector.ps1", "-mode collect"],
-    )
+    for clause in _iter_clauses(response_text):
+        # A clause that places execute --command in local PowerShell swaps the lanes.
+        if _clause_has_local_lane(clause) and not _clause_has_endpoint_lane(clause):
+            continue
+        for collect_flag in ("-quick collect-t1", "-mode collect"):
+            if _has_assertive_phase(clause, ["execute --command", "dcoir_collector.ps1", collect_flag]):
+                return True
+    return False
 
 
 def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool:
@@ -105,10 +116,21 @@ def collector_procedure_actionability_gaps(response_text: str) -> List[str]:
     if not (has_local_collect and has_endpoint_collect):
         gaps.append("execution_commands")
 
-    has_retrieval = _has_assertive_phase(response_text, ["get-file --path"]) or _has_assertive_phase(
-        response_text, ["get-file", "response action"]
+    # Retrieval must follow NEXT_GET_FILE; a waived source or guessed path is not governed retrieval.
+    clauses = list(_iter_clauses(response_text))
+    has_source = any(
+        "next_get_file" in clause and not _RETRIEVAL_WAIVER.search(clause)
+        and _has_assertive_phase(clause, ["next_get_file"])
+        for clause in clauses
     )
-    if "next_get_file" not in normalized or not has_retrieval:
+    has_retrieval = any(
+        not _RETRIEVAL_WAIVER.search(clause) and (
+            _has_assertive_phase(clause, ["get-file --path"])
+            or _has_assertive_phase(clause, ["get-file", "response action"])
+        )
+        for clause in clauses
+    )
+    if not (has_source and has_retrieval):
         gaps.append("retrieval")
 
     semantic_interpretation = analyze_semantics(response_text).interpretation_actionability_status()

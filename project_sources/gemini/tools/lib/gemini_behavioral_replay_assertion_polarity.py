@@ -89,6 +89,25 @@ _NEGATED_REJECTION = re.compile(
     re.I,
 )
 _CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")
+# A label such as "Not proven:" rejects the clause it introduces.
+_REJECTION_LABEL = re.compile(
+    r"\b(?:not\s+(?:proven|established|confirmed|verified|supported)|unproven|unsupported|unverified)\s*$",
+    re.I,
+)
+# A subordinator or a new finite verb between a negator and the marker starts a
+# new clause, so the earlier negator no longer governs the marker.
+_NEGATION_SCOPE_BREAK = re.compile(
+    r"\b(?:so|because|since|therefore|thus|hence|although|though|whereas|"
+    r"is|are|was|were|exists?|remains?)\b",
+    re.I,
+)
+# Verbs of saying, showing, or believing carry the negation into their complement.
+_NEGATION_COMPLEMENT = re.compile(
+    r"\b(?:that|shows?|showed|indicates?|indicated|proves?|proved|suggests?|suggested|"
+    r"supports?|establish(?:es)?|established|means?|meant|says?|said|states?|stated|"
+    r"confirms?|confirmed|claims?|claimed|believes?|believed|thinks?|assumes?|concludes?)\b",
+    re.I,
+)
 
 
 def normalized_surface(text: str) -> str:
@@ -146,10 +165,13 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
     if not negation:
         return False
     separators = list(_CLAUSE_SEPARATOR.finditer(prefix, negation.start()))
-    if separators:
-        clause = (prefix[separators[-1].end():] + target_tail).strip()
-        if INDEPENDENT_PREDICATE_START.match(clause):
-            return False
+    if separators and not _REJECTION_LABEL.search(prefix[:separators[-1].start()]):
+        # A colon or dash opens a new clause; only a negator inside it applies.
+        return _direct_negation_applies(prefix[separators[-1].end():], target_tail)
+    scope = prefix[_NEGATION_TOKEN.match(prefix, negation.start()).end():]
+    scope_break = _NEGATION_SCOPE_BREAK.search(scope)
+    if scope_break and not _NEGATION_COMPLEMENT.search(scope, 0, scope_break.start()):
+        return _direct_negation_applies(scope[scope_break.end():], target_tail)
     return True
 
 
@@ -181,7 +203,7 @@ def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
     target_tail = normalized[occurrence:min(len(normalized), occurrence_end + 80)]
     if _direct_negation_applies(prefix, target_tail):
         return False
-    if any(pattern.search(prefix) for pattern in _PREFIX_REJECTION_PATTERNS):
+    if any(_rejection_frame_applies(prefix, target_tail, pattern) for pattern in _PREFIX_REJECTION_PATTERNS):
         return False
     if _rejection_frame_applies(prefix, target_tail, CLAIM_REJECTION_FRAME):
         return False

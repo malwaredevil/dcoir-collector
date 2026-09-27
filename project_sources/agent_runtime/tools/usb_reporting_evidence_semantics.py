@@ -27,6 +27,11 @@ CORRECTION_LABELS = frozenset({
     'field', 'current value', 'suggested value',
     'correction', 'correction needed', 'source correction', 'source correction needed',
 })
+CORRECTION_PROSE = re.compile(
+    r'\b(?:source corrections?|corrections?|corrected|suggested value|current value|approv(?:e|al)|'
+    r'confirm(?:ation)?)\b', re.I,
+)
+CLOSING = 'Please let us know if there are any questions.'
 FIELD_LIKE = re.compile(r'^([A-Za-z][A-Za-z0-9 ()/_-]{0,63}):(.*)$')
 LABEL_CONNECTORS = frozenset({'a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'per', 'the', 'to', 'with'})
 TICKET_LINE = re.compile(r'(?:INCN|INCS)\S*', flags=re.IGNORECASE)
@@ -65,9 +70,40 @@ def presentation_wrapped_incident_evidence(text: str) -> list[str]:
         stripped = strip_presentation(candidate)
         if stripped == candidate:
             continue
+        if _is_correction_line(stripped):
+            continue
         if TICKET_LINE.fullmatch(stripped) or stripped.casefold().startswith(labels) or FIELD_LIKE.match(stripped):
             errors.append(f'final response contains Markdown-prefixed incident evidence: {candidate}')
     return errors
+
+
+def _is_correction_line(stripped: str) -> bool:
+    """A governed Field / Current Value / Suggested Value source-correction line."""
+    match = FIELD_LIKE.match(stripped)
+    return bool(match) and match.group(1).strip().casefold() in CORRECTION_LABELS
+
+
+def unexpected_prose_errors(prose: str) -> list[str]:
+    """Outside the drafts, only real source-correction content may appear."""
+    errors: list[str] = []
+    for line in prose.splitlines():
+        stripped = strip_presentation(line.strip())
+        if not stripped or _is_correction_line(stripped) or CORRECTION_PROSE.search(stripped):
+            continue
+        errors.append(f'final response contains prose outside the governed drafts: {line.strip()}')
+    return errors
+
+
+def body_line_errors(body: str, lane: str, opening: str | None) -> list[str]:
+    """Every non-blank draft body line must be the opening, an incident line, or the closing."""
+    labels = tuple(f'{label}:' for label in INCIDENT_LABELS)
+    allowed = {CLOSING} | ({opening} if opening else set())
+    return [
+        f'{lane} body contains free prose outside the governed template: {line.strip()}'
+        for line in body.splitlines()
+        if line.strip() and line.strip() not in allowed
+        and not line.lstrip(' \t').startswith(labels) and not TICKET_LINE.fullmatch(line.strip())
+    ]
 
 
 def _is_label_shaped(label: str) -> bool:

@@ -12,9 +12,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from usb_reporting_evidence_semantics import (
     FINAL_LABELS,
+    body_line_errors as _body_line_errors,
     incident_shape_errors as _incident_shape_errors,
     presentation_wrapped_incident_evidence as _presentation_wrapped_incident_evidence,
+    strip_presentation as _strip_presentation,
     unbound_field_like_evidence as _unbound_field_like_evidence,
+    unexpected_prose_errors as _unexpected_prose_errors,
 )
 from usb_reporting_transfer_semantics import (
     prose_outside_blocks as _prose_outside_blocks,
@@ -36,6 +39,16 @@ FORBIDDEN_SCAFFOLD = {
     'NEXT CONFIRMATION',
     'RECOMMENDATIONS',
 }
+# Incident label -> fixture column, in governed incident order.
+FIELD_COLUMNS = (
+    ('Name(s)', 'User'),
+    ('Location', 'Location'),
+    ('Computer Name', 'Computer Name'),
+    ('User Information', 'User Information'),
+    ('USB Device', 'USB Device'),
+    ('Serial Number', 'Serial Number'),
+    ('Network Connection', 'Network connection'),
+)
 # Closed vocabulary for the single governed prior-week overall-count request; any
 # other content word is an extra demand (data, credentials, recipients, actions).
 CLARIFICATION_VOCABULARY = frozenset('''
@@ -81,7 +94,7 @@ def _classification(row: dict[str, str]) -> str:
 def _forbidden_scaffold_errors(text: str) -> list[str]:
     errors: list[str] = []
     for line in text.splitlines():
-        stripped = line.strip()
+        stripped = _strip_presentation(line.strip())
         for heading in FORBIDDEN_SCAFFOLD:
             if re.match(rf'^{re.escape(heading)}(?:\s*:|\s*$)', stripped, flags=re.IGNORECASE):
                 errors.append(f'forbidden generic scaffold heading: {heading}')
@@ -167,16 +180,7 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
         'Date': sum(1 for row in rows if _expected_date_line(row) is not None),
         'Notes': sum(1 for row in rows if _value(row, 'Notes')),
     }
-    field_map = {
-        'Name(s)': 'User',
-        'Location': 'Location',
-        'Computer Name': 'Computer Name',
-        'User Information': 'User Information',
-        'USB Device': 'USB Device',
-        'Serial Number': 'Serial Number',
-        'Network Connection': 'Network connection',
-    }
-    for label, field in field_map.items():
+    for label, field in FIELD_COLUMNS:
         expected_counts[label] = sum(1 for row in rows if _value(row, field))
     expected_counts['Name(s)'] = len(rows)
 
@@ -188,12 +192,6 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
                 f'expected {expected_count}, found {observed_count}'
             )
     return errors
-
-
-def _count_phrase(count: int, noun: str = 'USB violation') -> str:
-    verb = 'was' if count == 1 else 'were'
-    suffix = '' if count == 1 else 's'
-    return f'there {verb} {count} {noun}{suffix}'
 
 
 def _subject(start_date: str, end_date: str) -> str:
@@ -233,15 +231,6 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     incident_name_count = len(re.findall(r'(?mi)^[ \t]*Name\(s\):', body))
     if incident_name_count != len(expected):
         errors.append(f'{lane} body incident count mismatch: expected {len(expected)}, saw {incident_name_count}')
-    required_fields = [
-        ('Name(s)', 'User'),
-        ('Location', 'Location'),
-        ('Computer Name', 'Computer Name'),
-        ('User Information', 'User Information'),
-        ('USB Device', 'USB Device'),
-        ('Serial Number', 'Serial Number'),
-        ('Network Connection', 'Network connection'),
-    ]
     expected_tickets = [_ticket(row) for row in expected]
     expected_ticket_set = set(expected_tickets)
     ticket_matches = list(re.finditer(r'(?mi)^[ \t]*((?:INCN|INCS)\S*)\s*$', body))
@@ -282,7 +271,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
                     f'{lane} body missing source date/time for ticket {ticket}: '
                     f'{expected_date} (found {date_values!r})'
                 )
-        for label, field in required_fields:
+        for label, field in FIELD_COLUMNS:
             value = _value(row, field)
             if not value:
                 continue
@@ -303,9 +292,10 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     if expected and not any(_value(row, 'Notes') for row in expected) and re.search(r'(?mi)^[ \t]*Notes:', body):
         errors.append(f'{lane} body must omit blank Notes lines')
     for row in forbidden:
-        ticket = _ticket(row)
-        if ticket and ticket in body:
-            errors.append(f'{lane} body leaks opposite-classification ticket: {ticket}')
+        for field in ('SNOW Ticket Number', 'User', 'Computer Name', 'Serial Number', 'Notes'):
+            value = _value(row, field)
+            if value and value in body and all(_value(own, field) != value for own in expected):
+                errors.append(f'{lane} body leaks opposite-classification {field}: {value}')
     if not body.rstrip().endswith('Please let us know if there are any questions.'):
         errors.append(f'{lane} body does not use the exact governed closing')
     return errors
@@ -352,8 +342,8 @@ def score_final_response(
             errors.append('NIPR body missing exact governed mixed opening/counts')
         if sipr_open and sipr_open not in sipr_body:
             errors.append('SIPR body missing exact governed opening/counts')
-        errors.extend(_row_errors(nipr_body, rows, 'NIPR'))
-        errors.extend(_row_errors(sipr_body, rows, 'SIPR'))
+        errors.extend(_row_errors(nipr_body, rows, 'NIPR') + _body_line_errors(nipr_body, 'NIPR', nipr_open))
+        errors.extend(_row_errors(sipr_body, rows, 'SIPR') + _body_line_errors(sipr_body, 'SIPR', sipr_open))
         transfer_matches = _label_matches(text, 'SIPR Transfer Instructions')
         if len(transfer_matches) != 1:
             errors.append(f'expected exactly one SIPR Transfer Instructions label, found {len(transfer_matches)}')
@@ -366,6 +356,7 @@ def score_final_response(
             leading = _prose_outside_blocks(text[:transfer_matches[0].start()], FINAL_LABELS)
             if _trailing_revisits_transfer_handling(leading):
                 errors.append('content before SIPR Transfer Instructions revisits SIPR transfer handling')
+            errors.extend(_unexpected_prose_errors(leading + '\n' + trailing))
     else:
         values: dict[str, str] = {}
         for label in ['Recipient', 'Subject', 'Message Draft']:
@@ -381,7 +372,8 @@ def score_final_response(
         opening, _ = _expected_openings(len(nipr), 0, previous_count, start_date, end_date)
         if opening not in body:
             errors.append('message body missing exact governed opening/counts')
-        errors.extend(_row_errors(body, rows, 'NIPR'))
+        errors.extend(_row_errors(body, rows, 'NIPR') + _body_line_errors(body, 'NIPR', opening))
+        errors.extend(_unexpected_prose_errors(_prose_outside_blocks(text, FINAL_LABELS)))
         for label in ['NIPR Recipient', 'SIPR Recipient', 'SIPR Message Draft', 'SIPR Transfer Instructions']:
             if _label_matches(text, label):
                 errors.append(f'NIPR-only response unexpectedly includes {label}:')
