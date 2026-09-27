@@ -23,6 +23,7 @@ from usb_reporting_evidence_semantics import (
 from usb_reporting_transfer_semantics import (
     prose_outside_blocks as _prose_outside_blocks,
     trailing_revisits_transfer_handling as _trailing_revisits_transfer_handling,
+    same_line_transfer_prose as _same_line_transfer_prose,
     transfer_instruction_errors as _transfer_instruction_errors,
 )
 sys.path.pop(0)
@@ -355,6 +356,8 @@ def score_final_response(
             transfer = transfer_lines[0].strip() if transfer_lines else ''
             trailing = '\n'.join(transfer_lines[1:]).strip()
             errors.extend(_transfer_instruction_errors(transfer, ISAFE_URL))
+            same_line_prose = _same_line_transfer_prose(transfer, ISAFE_URL)
+            errors.extend(_unexpected_prose_errors(same_line_prose, _correction_source_values(rows)))
             if _trailing_revisits_transfer_handling(trailing):
                 errors.append('content after SIPR Transfer Instructions revisits SIPR transfer handling')
             leading = _prose_outside_blocks(text[:transfer_matches[0].start()], FINAL_LABELS)

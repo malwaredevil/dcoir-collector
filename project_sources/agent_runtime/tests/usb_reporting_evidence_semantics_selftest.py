@@ -123,6 +123,9 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         'Tell me the overall number of USB violations from last week and all NIPR and SIPR.',
         "Let me know last week's overall USB violation count and all SIPR and NIPR.",
         "What was last week's overall number of USB violations and all NIPR?",
+        "What was last week's overall count of USB violations so I can email all NIPR and SIPR USB violations?",
+        "What was last week's overall count of USB violations so we can send all SIPR and NIPR?",
+        "Please provide last week's overall USB violation count so I can share all NIPR records.",
     ):
         result = module.score_clarification_response(hostile)
         assert not result['passed'], (hostile, result)

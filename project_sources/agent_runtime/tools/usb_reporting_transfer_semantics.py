@@ -72,6 +72,44 @@ def _normalized(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip().lower()
 
 
+def transfer_continuation_is_governed(text: str) -> bool:
+    """Return whether a same-line post-iSafe continuation is still transfer handling."""
+    normalized = _normalized(text)
+    if not normalized:
+        return True
+    context = re.search(
+        r'\b(?:sipr|isafe|text document|message draft|recipient|subject|nipr|'
+        r'unrelated|other|additional|extra|material|files?)\b',
+        normalized,
+    )
+    return bool(context and re.search(TRANSFER_ACTION, normalized))
+
+
+def same_line_transfer_prose(transfer: str, isafe_url: str) -> str:
+    """Return same-line content that is not governed transfer handling."""
+    protected = re.sub(re.escape(isafe_url), 'INTELINK_ISAFE_URL', transfer, flags=re.I)
+    fragments = [
+        fragment.strip(' .;')
+        for fragment in re.split(r'(?<=[.!?])\s+', protected)
+        if fragment.strip(' .;')
+    ]
+    residual = [
+        fragment.replace('INTELINK_ISAFE_URL', isafe_url)
+        for fragment in fragments
+        if not transfer_continuation_is_governed(fragment)
+    ]
+    unsupported = re.compile(
+        r'\b(?:correction|source correction|approval status)\s*:'
+        r'|\bapproval\s+status\b.{0,32}\b(?:approved|authorized|cleared|exempt|compliant)\b'
+        r'|\b(?:incidents?|devices?|violations?|users?)\b.{0,64}\b(?:approved|authorized|cleared|exempt|compliant)\b'
+        r'|\b(?:approved|authorized|cleared|exempt|compliant)\b.{0,64}\b(?:incidents?|devices?|violations?|users?)\b'
+        r'|\bno\s+policy\s+violation(?:\s+occurred)?\b',
+        re.I,
+    )
+    residual.extend(match.group(0) for match in unsupported.finditer(transfer))
+    return '\n'.join(dict.fromkeys(item for item in residual if item.strip()))
+
+
 def _clause_has_transfer_negation(clause: str) -> bool:
     if re.search(ANAPHORIC_REVOCATION, clause) or re.search(WITHOUT_TRANSFER_ACTION, clause):
         return True
