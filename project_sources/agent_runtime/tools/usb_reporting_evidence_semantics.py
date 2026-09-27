@@ -28,6 +28,7 @@ CORRECTION_LABELS = frozenset({
     'correction', 'correction needed', 'source correction', 'source correction needed',
 })
 FIELD_LIKE = re.compile(r'^([A-Za-z][A-Za-z0-9 ()/_-]{0,63}):(.*)$')
+LABEL_CONNECTORS = frozenset({'a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'per', 'the', 'to', 'with'})
 TICKET_LINE = re.compile(r'(?:INCN|INCS)\S*', flags=re.IGNORECASE)
 
 
@@ -69,6 +70,17 @@ def presentation_wrapped_incident_evidence(text: str) -> list[str]:
     return errors
 
 
+def _is_label_shaped(label: str) -> bool:
+    """Short leads are always labels; longer ones only when Title/UPPER case like a form field.
+
+    A long lead with ordinary lowercase words ("Move it to SIPR using Intelink iSafe") is prose.
+    """
+    words = label.split()
+    if len(words) <= 4:
+        return True
+    return all(word[0].isupper() or word[0].isdigit() or word in LABEL_CONNECTORS for word in words)
+
+
 def unbound_field_like_evidence(text: str) -> list[str]:
     """Reject field-like lines outside every fenced governed draft.
 
@@ -83,9 +95,9 @@ def unbound_field_like_evidence(text: str) -> list[str]:
         match = FIELD_LIKE.match(strip_presentation(line.strip()))
         if not match:
             continue
-        label = match.group(1).strip().casefold()
-        # Longer lead-ins are prose sentences (for example a split transfer line), not field labels.
-        if len(label.split()) > 4 or label in incident or label in CORRECTION_LABELS:
+        raw_label = match.group(1).strip()
+        label = raw_label.casefold()
+        if not _is_label_shaped(raw_label) or label in incident or label in CORRECTION_LABELS:
             continue
         if label in governed and not match.group(2).strip():
             continue

@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict, List
 
+from lib.gemini_behavioral_replay_prompt import behavioral_replay_prompt
 from lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VERSION
 from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
 
@@ -14,25 +15,7 @@ DEFAULT_API_BASE = "https://api.openai.com/v1/responses"
 
 
 def replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any]) -> str:
-    evidence = fixture.get("available_evidence_by_turn", {}).get(turn.get("turn_id"), [])
-    required = turn.get("required_markers", fixture.get("required_markers", []))
-    forbidden = turn.get("forbidden_markers", fixture.get("forbidden_markers", []))
-    return "\n\n".join([
-        "You are producing the next operator-facing answer for a governed DCOIR behavioral replay.",
-        "Return only the assistant answer text. Do not include JSON, scoring notes, hidden reasoning, or meta commentary.",
-        "Evidence discipline is mandatory: say what is checked, what is not checked, and avoid conclusions unsupported by listed evidence.",
-        "When a required phrase is true and natural, include it exactly so the replay can measure operator-facing behavior without weakening evidence boundaries.",
-        "Do not include any forbidden phrase unless you are clearly rejecting or negating that claim.",
-        f"Fixture: {fixture.get('fixture_id')}",
-        f"Scenario: {fixture.get('title')}",
-        "Available evidence for this turn:\n" + ("\n".join(f"- {x}" for x in evidence) or "- No additional evidence is available."),
-        "Allowed assumptions:\n" + ("\n".join(f"- {x}" for x in turn.get("allowed_assumptions", [])) or "- None."),
-        "Disallowed assumptions:\n" + ("\n".join(f"- {x}" for x in turn.get("disallowed_assumptions", [])) or "- None."),
-        "Expected behavior tags: " + (", ".join(turn.get("expected_behavior_tags", [])) or "none"),
-        "Required behavior markers to satisfy when accurate: " + (", ".join(required) or "none"),
-        "Forbidden claims to avoid or explicitly reject: " + (", ".join(forbidden) or "none"),
-        "User turn:\n" + str(turn.get("content", "")).strip(),
-    ])
+    return behavioral_replay_prompt(fixture, turn, replay_label="DCOIR behavioral replay")
 
 
 def build_request_body(
@@ -84,30 +67,50 @@ def call_openai_body(
     attempts: List[Dict[str, Any]] = []
     for attempt in range(1, args.max_retries + 1):
         started = time.monotonic()
+
+        def elapsed_ms() -> float:
+            return round((time.monotonic() - started) * 1000, 2)
+
         try:
             req = urllib.request.Request(args.api_base, data=body, headers=headers, method="POST")
             with urllib.request.urlopen(req, timeout=180) as response:
-                payload = json.loads(response.read().decode("utf-8"))
-                text = extract_text(payload)
-                attempts.append({"attempt": attempt, "status_code": response.status, "latency_ms": round((time.monotonic() - started) * 1000, 2)})
-                if payload.get("status", "completed") != "completed":
-                    return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}
-                if not text:
-                    return {"ok": False, "attempts": attempts, "error": "empty_output", "response_id": payload.get("id")}
-                return {"ok": True, "attempts": attempts, "response_text": text, "response_id": payload.get("id")}
+                status_code = response.status
+                raw = response.read()
         except urllib.error.HTTPError as exc:
             error_text = exc.read().decode("utf-8", errors="ignore")
-            attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": round((time.monotonic() - started) * 1000, 2), "error_body_excerpt": error_text[:1000]})
+            attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": elapsed_ms(), "error_body_excerpt": error_text[:1000]})
             if exc.code in {429, 500, 502, 503, 504} and attempt < args.max_retries:
                 time.sleep(args.retry_base_seconds * attempt)
                 continue
             return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": error_text[:4000]}
-        except Exception as exc:
-            attempts.append({"attempt": attempt, "latency_ms": round((time.monotonic() - started) * 1000, 2), "error": str(exc)})
+        except urllib.error.URLError as exc:
+            # urllib raises URLError only while sending the request, before any response
+            # exists, so the server has not produced a billable generation; retrying is safe.
+            attempts.append({"attempt": attempt, "latency_ms": elapsed_ms(), "error": str(exc.reason)})
             if attempt < args.max_retries:
                 time.sleep(args.retry_base_seconds * attempt)
                 continue
+            return {"ok": False, "attempts": attempts, "error": "connection_error"}
+        except TimeoutError:
+            # The request was sent and may already be generating (and billed); re-POSTing
+            # would create a duplicate generation that no logged response_id describes.
+            attempts.append({"attempt": attempt, "latency_ms": elapsed_ms(), "error": "read_timeout"})
+            return {"ok": False, "attempts": attempts, "error": "read_timeout"}
+        except Exception as exc:
+            attempts.append({"attempt": attempt, "latency_ms": elapsed_ms(), "error": str(exc)})
             return {"ok": False, "attempts": attempts, "error": str(exc)}
+
+        attempts.append({"attempt": attempt, "status_code": status_code, "latency_ms": elapsed_ms()})
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            return {"ok": False, "attempts": attempts, "error": "invalid_json"}
+        text = extract_text(payload)
+        if payload.get("status", "completed") != "completed":
+            return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}
+        if not text:
+            return {"ok": False, "attempts": attempts, "error": "empty_output", "response_id": payload.get("id")}
+        return {"ok": True, "attempts": attempts, "response_text": text, "response_id": payload.get("id")}
     return {"ok": False, "attempts": attempts, "error": "unknown"}
 
 

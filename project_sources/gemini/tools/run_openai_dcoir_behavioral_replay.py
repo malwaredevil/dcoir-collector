@@ -7,6 +7,11 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List
 
+from lib.gemini_behavioral_replay_prompt import (
+    MARKER_ASSISTED_UNCHECKED_EVIDENCE,
+    PRODUCTION_PROMPT_EQUIVALENT,
+    PROMPT_PROFILE,
+)
 from lib.gemini_behavioral_replay_runner import repo_root_from_script
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
 from lib.gemini_behavioral_replay_utils import mkdir, safe
@@ -50,7 +55,11 @@ def main() -> int:
         "baseline_model": "gpt-5.6-terra",
         "validation_messages": [],
         "checked_evidence": ["fixture index", "fixture definitions"],
-        "unchecked_evidence": ["Custom GPT WebUI host behavior", "Custom GPT proprietary Knowledge retrieval behavior"],
+        "unchecked_evidence": [
+            "Custom GPT WebUI host behavior",
+            "Custom GPT proprietary Knowledge retrieval behavior",
+            MARKER_ASSISTED_UNCHECKED_EVIDENCE,
+        ],
         "runtime_unavailable_results": [],
         "model_resolution": {
             "selection_source": "governed_openai_package",
@@ -133,8 +142,14 @@ def main() -> int:
         "api_call_success_count": ok,
         "api_call_failure_count": failed,
         "live_response_complete": bool(calls) and failed == 0,
-        "production_prompt_equivalent": "exact governed Instructions plus exact generated Knowledge projection and fixture replay prompt",
-        "live_environment_fidelity_gap": "Real GPT-5.6 Terra Responses API evidence with exact repository package; does not prove Custom GPT WebUI host or proprietary Knowledge-retrieval parity.",
+        "prompt_profile": PROMPT_PROFILE,
+        "production_prompt_equivalent": PRODUCTION_PROMPT_EQUIVALENT,
+        "live_environment_fidelity_gap": (
+            "Real GPT-5.6 Terra Responses API evidence with the exact repository Instructions and Knowledge, "
+            "driven by a marker-tuned fixture replay prompt that discloses the required and forbidden scorer markers. "
+            "It measures marker-assisted behavior, not unassisted operator-prompt behavior, and does not prove "
+            "Custom GPT WebUI host or proprietary Knowledge-retrieval parity."
+        ),
     })
     if bool(calls) and failed == 0:
         metadata["checked_evidence"].append("live OpenAI Responses API output")

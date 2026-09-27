@@ -39,9 +39,10 @@ FORBIDDEN_SCAFFOLD = {
 # Closed vocabulary for the single governed prior-week overall-count request; any
 # other content word is an extra demand (data, credentials, recipients, actions).
 CLARIFICATION_VOCABULARY = frozenset('''
-a and are before can could complete count did draft email final finalize for give how i in is it
-last many me need number of overall please previous prior provide report reported send share single
-so tell that the there this to total us usb violation violations was we week weekly were what you
+a all and are before can combined compose could complete count did draft drafts email emails final
+finalize finish for give how i in is it just know last let many me need number of overall please
+prepare previous prior provide report reported reports send share single so tell that the there this
+to total us usb violation violations was we week weekly were what with would write you
 '''.split())
 
 

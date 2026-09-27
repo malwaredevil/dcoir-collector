@@ -6,7 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Sequence
 
 from lib.gemini_behavioral_replay_runner import repo_root_from_script
 from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
@@ -15,6 +15,7 @@ from lib.openai_dcoir_replay_live import DEFAULT_API_BASE, call_openai_body
 from lib.openai_usb_replay_package import load_governed_openai_usb_package
 
 REPORT_NAME = 'openai_usb_reporting_behavioral_replay_run_report.json'
+REPORT_SECTION_NAME = 'chatgpt_workflow_report_section.md'
 TARGET_ID = 'openai_usb_reporting'
 DEFAULT_FIXTURES = (
     'project_sources/validation/fixtures/agent_runtime/usb_reporting/inputs/violations_sanitized_nipr.csv',
@@ -67,6 +68,43 @@ def _completion_prompt(previous_count: int, start_date: str, end_date: str) -> s
     )
 
 
+def _resolve_fixture_paths(repo_root: Path, requested: Sequence[str]) -> List[Path]:
+    """Validate every fixture before any billable API call is made."""
+    root = repo_root.resolve()
+    paths: List[Path] = []
+    for raw in requested:
+        path = (root / raw).resolve()
+        if not path.is_relative_to(root):
+            raise ValueError(f'USB replay fixture must be inside the repository: {raw}')
+        if not path.is_file():
+            raise ValueError(f'USB replay fixture does not exist: {raw}')
+        paths.append(path)
+    return paths
+
+
+def _md_code(value: object) -> str:
+    """Render untrusted text (model output echoed in scorer errors) as inert inline code."""
+    text = ' '.join(str(value).split()).replace('`', "'")
+    return f'`{text}`'
+
+
+def render_report_section(report: Dict[str, Any]) -> str:
+    lines = [
+        '## OpenAI USB Reporting Behavioral Replay',
+        f"- Target: {_md_code(report.get('target_id', TARGET_ID))}",
+        f"- Model: {_md_code(report.get('model_id', 'unknown'))}",
+        f"- Workflow verdict: **{'success' if report.get('workflow_verdict') == 'success' else 'failure'}**",
+    ]
+    if report.get('error'):
+        lines.append(f"- Error: {_md_code(report['error'])}")
+    for item in report.get('results', []):
+        lines.append(f"- {_md_code(item.get('fixture'))}: **{'pass' if item.get('passed') else 'fail'}**")
+        for stage in ('clarification', 'final'):
+            for error in item.get(stage, {}).get('semantic_score', {}).get('errors', []):
+                lines.append(f'  - {stage}: {_md_code(error)}')
+    return '\n'.join(lines) + '\n'
+
+
 def _safe_response(call: Dict[str, Any], api_key: str) -> str:
     text = str(call.get('response_text') or '') if call.get('ok') else ''
     if api_key and api_key in text:
@@ -91,7 +129,7 @@ def run_replay(
     if not api_key:
         raise RuntimeError('OpenAI replay credentials are not configured')
 
-    fixture_paths = [repo_root / path for path in (args.fixture or DEFAULT_FIXTURES)]
+    fixture_paths = _resolve_fixture_paths(repo_root, args.fixture or DEFAULT_FIXTURES)
     results: list[dict[str, Any]] = []
     overall = True
     for path in fixture_paths:
@@ -227,6 +265,7 @@ def main() -> int:
         }
     report = redact_report_value(report)
     (output / REPORT_NAME).write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    (output / REPORT_SECTION_NAME).write_text(render_report_section(report), encoding='utf-8')
     print(json.dumps(report, indent=2))
     return 0 if report.get('workflow_verdict') == 'success' else 1
 

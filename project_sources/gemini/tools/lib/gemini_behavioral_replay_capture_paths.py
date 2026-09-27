@@ -9,6 +9,8 @@ from typing import TextIO
 
 
 _CAPABILITY_AUTHORITY = object()
+# Anchored on this module's location (<repo>/project_sources/gemini/tools/lib), never the CWD.
+APPROVED_VALIDATION_ROOT = Path(__file__).resolve().parents[4] / "project_sources" / "validation"
 
 
 class PrivateCaptureRoot:
@@ -188,7 +190,7 @@ def _quarantine_and_cleanup(
 def allocate_private_capture_root(requested_output_dir: Path) -> PrivateCaptureRoot:
     _require_fd_capabilities()
     requested = requested_output_dir.resolve()
-    validation_root = Path("project_sources/validation").resolve()
+    validation_root = APPROVED_VALIDATION_ROOT
     temp_root = Path(tempfile.gettempdir()).resolve()
     if requested == validation_root or requested.is_relative_to(validation_root):
         validation_root.mkdir(parents=True, exist_ok=True)

@@ -276,6 +276,8 @@ def test_bounded_clarification_phrasings_pass() -> None:
         "Before I finalize the draft, what was last week\u2019s single overall USB violation count?",
         "Please provide last week's single overall USB violation count so I can complete the report.",
         "What was the total USB violation count reported last week?",
+        "Could you share last week's single overall USB violation count so I can finish the draft?",
+        "Please let me know last week's combined USB violation count so I can prepare the email.",
     ):
         result = module.score_clarification_response(text)
         assert result['passed'], (text, result)

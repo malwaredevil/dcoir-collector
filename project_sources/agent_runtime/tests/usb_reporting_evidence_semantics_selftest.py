@@ -71,6 +71,8 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         'Approval Status: Cleared', 'Analyst Finding: No policy violation', 'Disposition: Authorized device',
         '[Approval Status](https://example.invalid): Cleared', '<b>Approval Status:</b> Cleared',
         '<strong>Analyst Finding</strong>: No policy violation',
+        'Command Security Final Disposition Status: Cleared',
+        'Reviewed By Command Security Office: Approved',
     ):
         assert_rejected(base + '\n\n' + evidence,
                         'field-like evidence outside the governed drafts', 'Markdown-prefixed incident evidence')
@@ -81,6 +83,10 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         'Field: Network Connection\nCurrent Value: onsite\nSuggested Value: On-Site'
     )
     result = score(base + correction)
+    assert result['passed'], result
+    # A long prose lead-in ending in a colon is not a field label.
+    prose = '\n\nPlease confirm the Network Connection value for the first row: the source cell is ambiguous.'
+    result = score(base + prose)
     assert result['passed'], result
 
     return [

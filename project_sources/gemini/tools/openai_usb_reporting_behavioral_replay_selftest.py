@@ -80,6 +80,39 @@ def main() -> int:
         assert item['clarification']['error'] == 'http_401', item
         assert item['clarification']['attempts'] == [{'attempt': 1, 'status_code': 401}], item
         assert item['final']['error'] == 'not_attempted_after_clarification_failure', item
+
+    # Fixture paths are validated before any billable call.
+    for bad in ('/etc/passwd', '../outside.csv', 'project_sources/validation/fixtures/does_not_exist.csv'):
+        guarded_calls = {'value': 0}
+
+        def counting_caller(api_key, project_id, args, body):
+            guarded_calls['value'] += 1
+            return {'ok': False, 'error': 'unknown', 'attempts': []}
+
+        args.fixture = [bad]
+        try:
+            runner.run_replay(args, caller=counting_caller, api_key_override='test-key', project_id_override='')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f'invalid fixture path was accepted: {bad}')
+        assert guarded_calls['value'] == 0, bad
+    args.fixture = []
+
+    # Model text echoed through scorer errors is rendered as inert inline code.
+    hostile = 'field-like evidence: **Approval Status:** [Cleared](https://evil.example) ![x](https://t.example/p.png) `code`\nNew line'
+    section = runner.render_report_section({
+        'target_id': 'openai_usb_reporting',
+        'model_id': 'gpt-5.6-terra',
+        'workflow_verdict': 'failure',
+        'error': 'boom [link](https://evil.example)',
+        'results': [{'fixture': 'f.csv', 'passed': False, 'final': {'semantic_score': {'errors': [hostile]}}}],
+    })
+    for line in section.splitlines()[1:]:
+        if '](' in line:
+            content = line.split(': ', 1)[1] if line.lstrip().startswith('- final') else line.split('Error: ', 1)[1]
+            assert content.startswith('`') and content.endswith('`') and content.count('`') == 2, line
+    assert 'New line' in section and '\nNew line' not in section
     print({'success': True, 'fixture_count': len(report['results']), 'model': report['model_id']})
     return 0
 
