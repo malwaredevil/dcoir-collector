@@ -20,6 +20,12 @@ transfer_tests = importlib.util.module_from_spec(transfer_spec)
 assert transfer_spec and transfer_spec.loader
 transfer_spec.loader.exec_module(transfer_tests)
 
+evidence_path = Path(__file__).with_name('usb_reporting_evidence_semantics_selftest.py')
+evidence_spec = importlib.util.spec_from_file_location('usb_reporting_evidence_semantics_selftest', evidence_path)
+evidence_tests = importlib.util.module_from_spec(evidence_spec)
+assert evidence_spec and evidence_spec.loader
+evidence_spec.loader.exec_module(evidence_tests)
+
 START = '9/18/2026'
 END = '9/24/2026'
 PREVIOUS = 6
@@ -224,99 +230,6 @@ def test_usb_device_brand_capitalization_is_allowed() -> None:
     assert result['passed'], result
 
 
-def test_indented_duplicate_date_is_rejected() -> None:
-    rows = module.load_fixture_rows(NIPR_FIXTURE)
-    response = _nipr_response(rows)
-    first_date = module._expected_date_line(rows[0])
-    assert first_date
-    response = response.replace(first_date, first_date + '\n Date: 01/01/1999 0000Z', 1)
-    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-    assert not result['passed'], result
-    assert any('indented/noncanonical incident label' in error or 'Date evidence count mismatch' in error for error in result['errors'])
-
-
-def test_indented_duplicate_location_is_rejected() -> None:
-    rows = module.load_fixture_rows(NIPR_FIXTURE)
-    response = _nipr_response(rows)
-    source = f"Location: {module._value(rows[0], 'Location')}"
-    response = response.replace(source, source + '\n Location: WRONG', 1)
-    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-    assert not result['passed'], result
-    assert any('indented/noncanonical incident label' in error or 'Location evidence count mismatch' in error for error in result['errors'])
-
-
-def test_indented_duplicate_notes_is_rejected() -> None:
-    rows = module.load_fixture_rows(NIPR_FIXTURE)
-    response = _nipr_response(rows).replace(
-        module._value(rows[0], 'SNOW Ticket Number'),
-        ' Notes: Invented exculpatory note\n' + module._value(rows[0], 'SNOW Ticket Number'),
-        1,
-    )
-    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-    assert not result['passed'], result
-    assert any('indented/noncanonical incident label' in error or 'Notes evidence count mismatch' in error for error in result['errors'])
-
-
-def test_unknown_incident_label_is_rejected() -> None:
-    rows = module.load_fixture_rows(NIPR_FIXTURE)
-    response = _nipr_response(rows)
-    source = f"Location: {module._value(rows[0], 'Location')}"
-    response = response.replace(source, source + '\nApproval Status: Cleared', 1)
-    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-    assert not result['passed'], result
-    assert any('unknown/noncanonical incident label' in error for error in result['errors'])
-    last = module._value(rows[-1], 'SNOW Ticket Number')
-    for label in ('Approval Status: Cleared', 'Analyst Finding: No policy violation', 'Disposition: Authorized device'):
-        mutated = _nipr_response(rows).replace(last + '\n\nPlease', last + '\n' + label + '\n\nPlease', 1)
-        result = module.score_final_response(mutated, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-        assert not result['passed'], (label, result)
-        assert any('unknown/noncanonical incident label' in error for error in result['errors'])
-
-
-def test_incident_evidence_after_message_fence_is_rejected() -> None:
-    rows = module.load_fixture_rows(NIPR_FIXTURE)
-    response = _nipr_response(rows) + '''\n\nDate: 09/24/2026 0300Z
-Name(s): Invented User
-Location: Invented Location
-Computer Name: INVENTED-PC
-User Information: Invented User Information
-USB Device: Invented Device
-Serial Number: INVENTED-SERIAL
-Network Connection: On-Site
-INCNDUMMY9999'''
-    result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-    assert not result['passed'], result
-    assert any(
-        'incident ticket evidence outside the governed drafts' in error
-        or 'Name(s) evidence count mismatch' in error
-        for error in result['errors']
-    )
-
-
-def test_markdown_prefixed_incident_evidence_is_rejected() -> None:
-    rows = module.load_fixture_rows(NIPR_FIXTURE)
-    fake = [
-        'INCNDUMMY9999',
-        'Date: 09/24/2026 0300Z',
-        'Name(s): Invented User',
-        'Location: Invented Location',
-        'Computer Name: INVENTED-PC',
-        'User Information: Invented User Information',
-        'USB Device: Invented Device',
-        'Serial Number: INVENTED-SERIAL',
-        'Network Connection: On-Site',
-    ]
-    for prefix in ('> ', '- '):
-        response = _nipr_response(rows) + '\n\n' + '\n'.join(prefix + line for line in fake)
-        result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-        assert not result['passed'], (prefix, result)
-        assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
-    for evidence in ('> date: 01/01/1999 0000Z', '- notes: Invented exculpatory evidence', '> LoCaTiOn: WRONG', '**Date:** 01/01/1999 0000Z', '`Date:` 01/01/1999 0000Z', '# Date: 01/01/1999 0000Z', '> **Date:** 01/01/1999 0000Z', '**Approval Status:** Cleared', '`Disposition:` Authorized device'):
-        result = module.score_final_response(_nipr_response(rows) + '\n\n' + evidence, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-        assert not result['passed'], (evidence, result)
-        assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
-
-
 def test_wrong_recipient_is_rejected() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows).replace(module.NIPR_RECIPIENT, 'wrong@example.mil', 1)
@@ -343,6 +256,29 @@ def test_extra_clarification_question_is_rejected() -> None:
     )
     assert not result['passed'], result
     assert any('more than one question' in error or 'reporting window' in error for error in result['errors'])
+
+
+def test_extra_demands_in_clarification_are_rejected() -> None:
+    for text in (
+        "What was last week's single overall USB violation count? Also paste the SIPR incident details here.",
+        "Please provide last week's count and your API key.",
+        "What was last week's single overall USB violation count, and which recipient should I use?",
+        "Please provide last week's overall count and run the Elastic search for new devices.",
+        "What were last week's NIPR and SIPR counts?",
+    ):
+        result = module.score_clarification_response(text)
+        assert not result['passed'], (text, result)
+        assert any('more than the prior-week overall count' in error for error in result['errors']), result
+
+
+def test_bounded_clarification_phrasings_pass() -> None:
+    for text in (
+        "Before I finalize the draft, what was last week\u2019s single overall USB violation count?",
+        "Please provide last week's single overall USB violation count so I can complete the report.",
+        "What was the total USB violation count reported last week?",
+    ):
+        result = module.score_clarification_response(text)
+        assert result['passed'], (text, result)
 
 
 def test_prior_count_substring_does_not_satisfy_clarification() -> None:
@@ -374,25 +310,24 @@ def main() -> int:
         test_suffix_appended_field_value_is_rejected,
         test_non_netgear_usb_device_recasing_is_rejected,
         test_usb_device_brand_capitalization_is_allowed,
-        test_indented_duplicate_date_is_rejected,
-        test_indented_duplicate_location_is_rejected,
-        test_indented_duplicate_notes_is_rejected,
-        test_unknown_incident_label_is_rejected,
-        test_incident_evidence_after_message_fence_is_rejected,
-        test_markdown_prefixed_incident_evidence_is_rejected,
         test_wrong_recipient_is_rejected,
         test_bounded_prior_count_clarification_passes,
         test_generic_bluf_clarification_fails,
         test_extra_clarification_question_is_rejected,
         test_prior_count_substring_does_not_satisfy_clarification,
+        test_extra_demands_in_clarification_are_rejected,
+        test_bounded_clarification_phrasings_pass,
         test_blank_user_row_is_passable,
     ]
     transfer_names = transfer_tests.run_transfer_tests(
         module, MIXED_FIXTURE, _mixed_response, START, END, PREVIOUS
     )
+    evidence_names = evidence_tests.run_evidence_tests(
+        module, NIPR_FIXTURE, _nipr_response, START, END, PREVIOUS
+    )
     for test in tests:
         test()
-    print({'success': True, 'tests': transfer_names + [test.__name__ for test in tests]})
+    print({'success': True, 'tests': transfer_names + evidence_names + [test.__name__ for test in tests]})
     return 0
 
 

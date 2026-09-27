@@ -9,7 +9,8 @@ TRANSFER_NEGATION = (
 )
 TRANSFER_ACTION = (
     r"\b(?:transfer|transferring|send|sending|move|moving|copy|copying|upload|uploading|"
-    r"attach|attaching|route|routing|deliver|delivering|perform|performing|complete|completing)\b"
+    r"attach|attaching|route|routing|deliver|delivering|perform|performing|complete|completing|"
+    r"e-?mail|e-?mailing|transmit|transmitting|forward|forwarding|paste|pasting|submit|submitting)\b"
 )
 WITHOUT_TRANSFER_ACTION = (
     r"\bwithout\b(?:\s+\w+){0,3}\s+"
@@ -17,29 +18,54 @@ WITHOUT_TRANSFER_ACTION = (
     r"(?:\s+\w+){0,4}\s+(?:it|(?:that|the)\s+text\s+document|text\s+document|"
     r"(?:the\s+)?(?:sipr\s+)?(?:message\s+)?draft)\b"
 )
-# Hard NIPR destinations; on/in NIPR may be governed staging before an explicit move to SIPR.
-NIPR_DESTINATION = r"\b(?:to|into|onto|via|through|over)\s+(?:the\s+)?nipr\b"
+# The governed material versus explicitly unrelated material a restriction may exclude.
+GOVERNED_OBJECT = (
+    r"\b(?:it|text document|document|draft|sipr (?:recipient|subject|message draft)|"
+    r"transfer|instructions?)\b"
+)
+UNRELATED_OBJECT = r"\b(?:unrelated|other|additional|extra|non-governed|else)\b"
+# Hard NIPR destinations/channels; on/in NIPR may be governed staging before an explicit move to SIPR.
+NIPR_DESTINATION = (
+    r"\b(?:to|into|onto|via|through|over|using|by|within|across)\s+(?:the\s+)?nipr\b|"
+    r"\bnipr\s+(?:e-?mail|mail|inbox|channel)\b"
+)
 ANAPHORIC_REVOCATION = (
     r"\b(?:do not|don't|must not|shall not|should not|cannot|can't|never)\s+"
     r"(?:do\s+(?:so|that|it)|proceed|continue)\b|"
     r"\b(?:this|that|it)\s+(?:must not|shall not|should not|cannot|can't)\s+"
     r"(?:happen|occur|proceed|continue)\b"
 )
+REVOKED_STATE = (
+    r"(?:revoked|rescinded|nullified|voided|void|annulled|cancell?ed|withdrawn|overridden|overruled|"
+    r"reversed|superseded|retracted|countermanded|replaced|invalid|unauthori[sz]ed|forbidden|prohibited)"
+)
 GENERIC_TRANSFER_REVOCATION = (
-    r"\b(?:disregard|ignore|cancel|revoke|revoked|withdraw|override|reverse)\b"
+    r"\b(?:disregard|ignore|cancel|revoke|withdraw|override|overrule|reverse|supersede|retract|"
+    r"rescind|nullify|void|annul|countermand)\b"
     r".{0,48}\b(?:transfer|instruction|instructions|preceding|above)\b|"
-    r"\b(?:preceding|above)\b.{0,32}\b(?:instruction|instructions)\b.{0,24}"
-    r"\b(?:revoked|cancelled|canceled|withdrawn|overridden|reversed)\b"
+    r"\b(?:preceding|above)\b.{0,32}\b(?:instruction|instructions)\b.{0,24}\b" + REVOKED_STATE + r"\b"
+)
+TRANSFER_REFERENT = (
+    r"\b(?:this|that|these|those|the|above|preceding|previous|prior|earlier)\s+"
+    r"(?:(?:above|preceding|previous|prior|earlier|sipr|isafe|transfer)\s+){0,2}"
+    r"(?:transfer|instructions?|directions?|directives?|step|guidance)\b"
 )
 PREDICATE_TRANSFER_REVOCATION = (
-    r"\b(?:this transfer|that transfer|the transfer|this instruction|that instruction|"
-    r"the preceding instruction|the instruction above|the above instruction|the previous instruction|"
-    r"this direction|that direction|the preceding direction|the direction above|the above direction)\b.{0,24}"
-    r"(?:(?:is|are|was|were|has been|have been)\s+(?:(?:no longer|not)\s+"
-    r"(?:valid|authorized|authorised|permitted|allowed|applicable|effective|approved)|"
-    r"(?:invalid|unauthorized|unauthorised|forbidden|prohibited|rescinded|nullified|voided))\b|"
-    r"(?:no longer|does not|doesn't)\s+(?:appl(?:y|ies)|stand(?:s)?|govern(?:s)?|authori[sz]e(?:s)?|permit(?:s)?)\b)"
+    TRANSFER_REFERENT + r".{0,24}?"
+    r"(?:(?:is|are|was|were|has been|have been)\s+(?:(?:hereby|now|officially|formally)\s+)?"
+    r"(?:(?:no longer|not)\s+(?:valid|authorized|authorised|permitted|allowed|applicable|effective|"
+    r"approved|in effect)|" + REVOKED_STATE + r")\b|"
+    r"(?:no longer|does not|doesn't|do not|don't)\s+(?:appl(?:y|ies)|stand(?:s)?|govern(?:s)?|"
+    r"authori[sz]e(?:s)?|permit(?:s)?)\b)"
 )
+
+
+def _restricts_unrelated_material(complement: str) -> bool:
+    """A restriction whose object is only unrelated material does not revoke the transfer."""
+    complement = re.split(r"\b(?:and|but|or)\b", complement, maxsplit=1)[0]
+    if re.match(r"\s*to\s+(?:proceed|continue|occur|happen|go|take|be|start|begin)\b", complement):
+        return False
+    return bool(re.search(UNRELATED_OBJECT, complement)) and not re.search(GOVERNED_OBJECT, complement)
 
 
 def _normalized(text: str) -> str:
@@ -52,11 +78,21 @@ def _clause_has_transfer_negation(clause: str) -> bool:
     negation = re.search(TRANSFER_NEGATION, clause)
     if not negation:
         return False
-    return bool(re.search(TRANSFER_ACTION, clause[negation.end():]))
+    action = re.search(TRANSFER_ACTION, clause[negation.end():])
+    if not action:
+        return False
+    return not _restricts_unrelated_material(clause[negation.end() + action.end():])
+
+
+def _has_predicate_revocation(text: str) -> bool:
+    return any(
+        not _restricts_unrelated_material(text[match.end():].split('.', 1)[0])
+        for match in re.finditer(PREDICATE_TRANSFER_REVOCATION, text)
+    )
 
 
 def _has_transfer_contradiction(text: str) -> bool:
-    if re.search(GENERIC_TRANSFER_REVOCATION, text) or re.search(PREDICATE_TRANSFER_REVOCATION, text):
+    if re.search(GENERIC_TRANSFER_REVOCATION, text) or _has_predicate_revocation(text):
         return True
     return any(
         _clause_has_transfer_negation(clause)
@@ -117,7 +153,7 @@ def prose_outside_blocks(text: str, labels: set[str]) -> str:
 def trailing_revisits_transfer_handling(trailing: str) -> bool:
     text = _normalized(trailing)
     if (re.search(ANAPHORIC_REVOCATION, text) or re.search(GENERIC_TRANSFER_REVOCATION, text)
-            or re.search(PREDICATE_TRANSFER_REVOCATION, text)):
+            or _has_predicate_revocation(text)):
         return True
     if re.search(r'isafe|text document|sipr (?:recipient|subject|message draft)', text):
         return True

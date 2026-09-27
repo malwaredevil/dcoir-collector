@@ -20,6 +20,7 @@ from lib.gemini_behavioral_replay_capture_controls import (
 from lib.gemini_behavioral_replay_marker_precision import run_contextual_marker_precision_selftests
 from lib.gemini_behavioral_replay_precision_controls import (
     run_marker_frame_rejection_selftest,
+    run_negated_rejection_polarity_selftest,
     run_scorer_module_size_selftest,
 )
 from lib.gemini_behavioral_replay_live_regressions import run_live_regression_selftests
@@ -252,6 +253,7 @@ def main() -> int:
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_scorer_module_size_selftest()
     run_marker_frame_rejection_selftest()
+    run_negated_rejection_polarity_selftest()
     run_lane_separation_scoring_selftests()
     run_contextual_marker_precision_selftests()
     run_live_regression_selftests()

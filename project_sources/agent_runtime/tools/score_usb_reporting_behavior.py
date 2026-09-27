@@ -10,6 +10,12 @@ from typing import Any
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from usb_reporting_evidence_semantics import (
+    FINAL_LABELS,
+    incident_shape_errors as _incident_shape_errors,
+    presentation_wrapped_incident_evidence as _presentation_wrapped_incident_evidence,
+    unbound_field_like_evidence as _unbound_field_like_evidence,
+)
 from usb_reporting_transfer_semantics import (
     prose_outside_blocks as _prose_outside_blocks,
     trailing_revisits_transfer_handling as _trailing_revisits_transfer_handling,
@@ -30,23 +36,13 @@ FORBIDDEN_SCAFFOLD = {
     'NEXT CONFIRMATION',
     'RECOMMENDATIONS',
 }
-FINAL_LABELS = {
-    'Recipient', 'Subject', 'Message Draft',
-    'NIPR Recipient', 'NIPR Subject', 'NIPR Message Draft',
-    'SIPR Recipient', 'SIPR Subject', 'SIPR Message Draft',
-    'SIPR Transfer Instructions',
-}
-INCIDENT_LABELS = (
-    'Date',
-    'Name(s)',
-    'Location',
-    'Computer Name',
-    'User Information',
-    'USB Device',
-    'Serial Number',
-    'Network Connection',
-    'Notes',
-)
+# Closed vocabulary for the single governed prior-week overall-count request; any
+# other content word is an extra demand (data, credentials, recipients, actions).
+CLARIFICATION_VOCABULARY = frozenset('''
+a and are before can could complete count did draft email final finalize for give how i in is it
+last many me need number of overall please previous prior provide report reported send share single
+so tell that the there this to total us usb violation violations was we week weekly were what you
+'''.split())
 
 
 def _norm_header(value: str) -> str:
@@ -148,45 +144,9 @@ def _field_value_matches(label: str, expected: str, actual: str) -> bool:
         return actual == 'NETGEAR' + expected[len('NetGear'):]
     return False
 
-def _strip_md_presentation(text: str) -> str:
-    text = re.sub(r'^(?:(?:>\s*)|(?:[-*+]\s+)|(?:\d+[.)]\s+)|(?:#{1,6}\s+))+', '', text)
-    return text.strip('`*_~')
-
-
-def _incident_shape_errors(block: str, lane: str, ticket: str) -> list[str]:
-    errors: list[str] = []
-    for line in block.splitlines():
-        candidate = line.lstrip(' \t')
-        presented = _strip_md_presentation(candidate)
-        known_label = next((label for label in INCIDENT_LABELS if presented.startswith(f'{label}:')), None)
-        if known_label is not None:
-            if candidate != line or presented != candidate:
-                errors.append(f'{lane} body contains noncanonical incident label for ticket {ticket}: {candidate}')
-            continue
-        if re.match(r'^[A-Za-z][A-Za-z0-9 ()/_-]{0,63}:', presented):
-            errors.append(f'{lane} body contains unknown/noncanonical incident label for ticket {ticket}: {candidate}')
-        elif (candidate != line or presented != candidate) and re.fullmatch(r'(?:INCN|INCS)\S*', presented, flags=re.IGNORECASE):
-            errors.append(f'{lane} body contains noncanonical ticket line for ticket {ticket}: {candidate}')
-    return errors
-
-
-def _markdown_prefixed_incident_evidence(text: str) -> list[str]:
-    errors: list[str] = []
-    labels = tuple(f'{label}:'.casefold() for label in INCIDENT_LABELS)
-    for line in text.splitlines():
-        candidate = line.lstrip(' \t')
-        stripped = _strip_md_presentation(candidate)
-        if stripped == candidate:
-            continue
-        if (re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE)
-                or stripped.casefold().startswith(labels)
-                or re.match(r'^[A-Za-z][A-Za-z0-9 ()/_-]{0,63}:', stripped)):
-            errors.append(f'final response contains Markdown-prefixed incident evidence: {candidate}')
-    return errors
-
 
 def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> list[str]:
-    errors = _markdown_prefixed_incident_evidence(text)
+    errors = _presentation_wrapped_incident_evidence(text) + _unbound_field_like_evidence(text)
     expected_tickets = [
         _ticket(row)
         for lane in ('NIPR', 'SIPR')
@@ -445,6 +405,10 @@ def score_clarification_response(text: str) -> dict[str, Any]:
         errors.append('clarification response does not request the missing prior-week overall count')
     if text.count('?') > 1:
         errors.append('clarification response asks more than one question')
+    words = re.findall(r'[a-z]+', re.sub(r"['\u2019]s\b", '', lower))
+    extra = sorted({word for word in words if word not in CLARIFICATION_VOCABULARY})
+    if extra:
+        errors.append('clarification response requests more than the prior-week overall count: ' + ', '.join(extra))
     for forbidden in ('readiness', 'normalize', 'normalized', 'evidence set', 'source data received', 'query', 'reporting window', 'date range'):
         if forbidden in lower:
             errors.append(f'clarification response adds unrelated requirement: {forbidden}')
