@@ -13,13 +13,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from usb_reporting_evidence_semantics import (
     FINAL_LABELS,
     body_line_errors as _body_line_errors,
-    clarification_content_errors as _clarification_content_errors,
     incident_shape_errors as _incident_shape_errors,
     presentation_wrapped_incident_evidence as _presentation_wrapped_incident_evidence,
     strip_presentation as _strip_presentation,
     unbound_field_like_evidence as _unbound_field_like_evidence,
     unexpected_prose_errors as _unexpected_prose_errors,
 )
+from usb_reporting_clarification_semantics import clarification_content_errors as _clarification_content_errors
 from usb_reporting_transfer_semantics import (
     prose_outside_blocks as _prose_outside_blocks,
     trailing_revisits_transfer_handling as _trailing_revisits_transfer_handling,

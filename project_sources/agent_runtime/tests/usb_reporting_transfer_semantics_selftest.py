@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import itertools
+
 
 def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previous):
     rows = module.load_fixture_rows(mixed_fixture)
@@ -108,6 +110,48 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
             for error in hostile_result['errors']
         ), (hostile_transfer, hostile_result)
 
+    # Closed-contract adversarial matrix: punctuation, appositives, relative clauses,
+    # and insertion position must not turn arbitrary assertions into transfer semantics.
+    assertions = (
+        'the devices seem legitimate',
+        'the incidents appear legitimate',
+        'the violations look authorized',
+        'the users remain cleared',
+        'the devices appear compliant',
+        'no response action seems necessary',
+    )
+    wrappers = (
+        lambda assertion: f' — {assertion}.',
+        lambda assertion: f' ({assertion}).',
+        lambda assertion: f'; {assertion}.',
+        lambda assertion: f', {assertion}.',
+        lambda assertion: f': {assertion}.',
+        lambda assertion: f' [{assertion}].',
+        lambda assertion: f' **{assertion}**.',
+        lambda assertion: f' "{assertion}."',
+    )
+    generated_transfer_hostile = []
+    for assertion, wrapper in itertools.product(assertions, wrappers):
+        insertion = wrapper(assertion)
+        generated_transfer_hostile.extend((
+            safe + insertion,
+            safe.replace(' and move that text document', insertion + ' and move that text document'),
+            safe.replace(' using Intelink iSafe', insertion + ' using Intelink iSafe'),
+        ))
+    generated_transfer_hostile.extend((
+        safe + ' Copy the SIPR draft whose incidents appear legitimate.',
+        safe + ' Copy the SIPR draft which contains devices that seem legitimate.',
+        safe + ' Copying the SIPR draft, the devices seem legitimate.',
+    ))
+    for hostile_transfer in generated_transfer_hostile:
+        hostile_result = score(mixed_response(rows).replace(safe, hostile_transfer, 1))
+        assert not hostile_result['passed'], (hostile_transfer, hostile_result)
+        assert any(
+            'outside the governed transfer contract' in error
+            or 'prose outside the governed drafts' in error
+            for error in hostile_result['errors']
+        ), (hostile_transfer, hostile_result)
+
     correction_rows = [dict(row) for row in rows]
     correction_rows[0][module._norm_header('Network connection')] = 'onsite'
     correction = mixed_response(correction_rows) + (
@@ -191,6 +235,7 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
         'trailing_source_correction_note',
         'trailing_transfer_contradiction_variants',
         'benign_transfer_phrasing_variants',
+        f'generated_transfer_assertion_hostile_{len(generated_transfer_hostile)}',
         'leading_transfer_contradiction',
         'ascending_date_order',
     ]

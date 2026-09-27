@@ -93,63 +93,6 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
     assert not invented_result['passed'], invented_result
     assert any('invents Name(s)' in error for error in invented_result['errors']), invented_result
 
-    # The clarification gate accepts natural ways to request one prior-week overall count.
-    for text in (
-        'How many USB violations were reported last week?',
-        'What was the total number of USB violations last week?',
-        "What was last week's overall USB violation count (NIPR and SIPR combined)?",
-        "What was last week's overall USB violation count? I'll draft the report once I have it.",
-        "Before we finalize the draft, what was last week's single overall USB violation count?",
-        "After I get last week's overall USB violation count, I'll draft the report.",
-        "Once we have last week's overall USB violation count, we can finish the report.",
-        "What was last week's overall USB violation count?".replace(' ', '\u00a0', 1),
-    ):
-        result = module.score_clarification_response(text)
-        assert result['passed'], (text, result)
-    broad = module.score_clarification_response('Please send us all of the USB violation reports for last week so we can count.')
-    assert not broad['passed'], broad
-    for hostile in (
-        'Please email me all NIPR and SIPR USB violations for last week and the overall number.',
-        'Please write all NIPR and SIPR USB violations for last week and the overall number.',
-        'Please provide all USB violation records from last week and the combined total.',
-        'Please compose all NIPR and SIPR USB violations for last week and the overall number.',
-        'Please finalize all NIPR and SIPR USB violations for last week and the total count.',
-        'Please prepare all USB violation details from last week and the overall count.',
-        "What was last week's overall number of USB violations and email me all NIPR and SIPR USB violations?",
-        'Please email me the overall number and all NIPR and SIPR USB violations for last week?',
-        'Tell me all NIPR and SIPR USB violations from last week and the overall number.',
-        'Let me know all NIPR and SIPR USB violations from last week and the overall number.',
-        "What was last week's overall number of USB violations and tell me all NIPR and SIPR USB violations?",
-        'Tell me the overall number of USB violations from last week and all NIPR and SIPR violations.',
-        "Let me know last week's overall USB violation count and all NIPR and SIPR violations.",
-        "What was last week's overall USB violation count and all violations?",
-        'Tell me the overall number of USB violations from last week and all NIPR and SIPR.',
-        "Let me know last week's overall USB violation count and all SIPR and NIPR.",
-        "What was last week's overall number of USB violations and all NIPR?",
-        "What was last week's overall count of USB violations so I can email all NIPR and SIPR USB violations?",
-        "What was last week's overall count of USB violations so we can send all SIPR and NIPR?",
-        "Please provide last week's overall USB violation count so I can share all NIPR records.",
-        "What was last week's overall count of USB violations so I can tell you all NIPR and SIPR USB violations?",
-        "What was last week's overall count of USB violations so I can report all NIPR and SIPR USB violations?",
-        "What was last week's overall count of USB violations so I can complete all NIPR and SIPR USB violations?",
-        "What was last week's overall count of USB violations so we can tell you all SIPR and NIPR?",
-        "What was last week's overall count of USB violations so we can report all NIPR records.",
-        "What was last week's overall count of USB violations so I can complete all SIPR details.",
-    ):
-        result = module.score_clarification_response(hostile)
-        assert not result['passed'], (hostile, result)
-    for count_only in (
-        'Please provide the overall number of USB violations from last week.',
-        'Please give me the combined count of USB violations from last week.',
-        'Tell me the overall number of USB violations from last week.',
-        'Let me know the overall number of USB violations from last week.',
-        "What was last week's overall USB violation count? I'll draft the report once I have it.",
-        "Tell me last week's overall number of all NIPR and SIPR USB violations.",
-        "Tell me last week's overall number of all SIPR and NIPR USB violations.",
-    ):
-        result = module.score_clarification_response(count_only)
-        assert result['passed'], (count_only, result)
-
     # Only complete, source-backed Field / Current Value / Suggested Value correction records are allowed.
     correction_rows = [dict(row) for row in rows]
     correction_rows[0][module._norm_header('Network connection')] = 'onsite'
@@ -176,6 +119,5 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         'presentation_wrapped_incident_evidence',
         'unbound_field_like_evidence_after_fence',
         'governed_field_order_and_blank_identity',
-        'bounded_clarification_natural_phrasings',
         'governed_source_correction_note_allowed',
     ]

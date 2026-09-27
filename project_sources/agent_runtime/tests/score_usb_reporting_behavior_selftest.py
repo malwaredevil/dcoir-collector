@@ -26,6 +26,12 @@ evidence_tests = importlib.util.module_from_spec(evidence_spec)
 assert evidence_spec and evidence_spec.loader
 evidence_spec.loader.exec_module(evidence_tests)
 
+clarification_path = Path(__file__).with_name('usb_reporting_clarification_semantics_selftest.py')
+clarification_spec = importlib.util.spec_from_file_location('usb_reporting_clarification_semantics_selftest', clarification_path)
+clarification_tests = importlib.util.module_from_spec(clarification_spec)
+assert clarification_spec and clarification_spec.loader
+clarification_spec.loader.exec_module(clarification_tests)
+
 START = '9/18/2026'
 END = '9/24/2026'
 PREVIOUS = 6
@@ -238,57 +244,6 @@ def test_wrong_recipient_is_rejected() -> None:
     assert any('governed NIPR address' in error for error in result['errors'])
 
 
-def test_bounded_prior_count_clarification_passes() -> None:
-    result = module.score_clarification_response("What was last week's single overall USB violation count?")
-    assert result['passed'], result
-
-
-def test_generic_bluf_clarification_fails() -> None:
-    result = module.score_clarification_response("BLUF: I need last week's count before I can assess readiness.")
-    assert not result['passed'], result
-    assert any('BLUF' in error for error in result['errors'])
-
-
-
-def test_extra_clarification_question_is_rejected() -> None:
-    result = module.score_clarification_response(
-        "What was last week's single overall USB violation count? Also confirm the reporting window?"
-    )
-    assert not result['passed'], result
-    assert any('more than one question' in error or 'reporting window' in error for error in result['errors'])
-
-
-def test_extra_demands_in_clarification_are_rejected() -> None:
-    for text in (
-        "What was last week's single overall USB violation count? Also paste the SIPR incident details here.",
-        "Please provide last week's count and your API key.",
-        "What was last week's single overall USB violation count, and which recipient should I use?",
-        "Please provide last week's overall count and run the Elastic search for new devices.",
-        "What were last week's NIPR and SIPR counts?",
-    ):
-        result = module.score_clarification_response(text)
-        assert not result['passed'], (text, result)
-        assert any('more than the prior-week overall count' in error for error in result['errors']), result
-
-
-def test_bounded_clarification_phrasings_pass() -> None:
-    for text in (
-        "Before I finalize the draft, what was last week\u2019s single overall USB violation count?",
-        "Please provide last week's single overall USB violation count so I can complete the report.",
-        "What was the total USB violation count reported last week?",
-        "Could you share last week's single overall USB violation count so I can finish the draft?",
-        "Please let me know last week's combined USB violation count so I can prepare the email.",
-    ):
-        result = module.score_clarification_response(text)
-        assert result['passed'], (text, result)
-
-
-def test_prior_count_substring_does_not_satisfy_clarification() -> None:
-    result = module.score_clarification_response("Which account should last week's report be sent from?")
-    assert not result['passed'], result
-    assert any('prior-week overall count' in error for error in result['errors'])
-
-
 def test_blank_user_row_is_passable() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     rows[0] = {**rows[0], module._norm_header('User'): ''}
@@ -313,12 +268,6 @@ def main() -> int:
         test_non_netgear_usb_device_recasing_is_rejected,
         test_usb_device_brand_capitalization_is_allowed,
         test_wrong_recipient_is_rejected,
-        test_bounded_prior_count_clarification_passes,
-        test_generic_bluf_clarification_fails,
-        test_extra_clarification_question_is_rejected,
-        test_prior_count_substring_does_not_satisfy_clarification,
-        test_extra_demands_in_clarification_are_rejected,
-        test_bounded_clarification_phrasings_pass,
         test_blank_user_row_is_passable,
     ]
     transfer_names = transfer_tests.run_transfer_tests(
@@ -327,9 +276,10 @@ def main() -> int:
     evidence_names = evidence_tests.run_evidence_tests(
         module, NIPR_FIXTURE, _nipr_response, START, END, PREVIOUS
     )
+    clarification_names = clarification_tests.run_clarification_tests(module)
     for test in tests:
         test()
-    print({'success': True, 'tests': transfer_names + evidence_names + [test.__name__ for test in tests]})
+    print({'success': True, 'tests': transfer_names + evidence_names + clarification_names + [test.__name__ for test in tests]})
     return 0
 
 

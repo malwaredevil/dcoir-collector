@@ -72,68 +72,33 @@ def _normalized(text: str) -> str:
     return re.sub(r'\s+', ' ', text).strip().lower()
 
 
-def transfer_continuation_is_governed(text: str) -> bool:
-    """Return whether a same-line continuation contains only transfer handling."""
-    normalized = _normalized(text)
-    if not normalized:
-        return True
-    # Rationale/contrast clauses are never part of the closed transfer contract.
-    if re.search(
-        r'\b(?:because|since|although|though|whereas|while|if|unless|when|where|even if|even though|provided that|as long as)\b',
-        normalized,
-    ):
-        return False
-    context = re.search(
-        r'\b(?:sipr|isafe|text document|message draft|recipient|subject|nipr|'
-        r'unrelated|other|additional|extra|material|files?)\b',
-        normalized,
+def _governed_transfer_fullmatch(transfer: str, isafe_url: str) -> bool:
+    """Only certify the narrow transfer contract emitted by the governed producer."""
+    text = _normalized(transfer)
+    url = re.escape(isafe_url.lower())
+    core = (
+        r'copy the sipr recipient,\s*sipr subject,\s*and sipr message draft'
+        r'(?: without changes)? into a text document(?: without changes)?'
+        r'(?: (?:on|in) nipr)? and (?:then )?move '
+        r'(?:that text document|the text document|it)(?: from nipr)? to sipr '
+        r'using intelink isafe:\s*' + url
     )
-    return bool(context and re.search(TRANSFER_ACTION, normalized))
+    governed_suffix = (
+        r'(?:\.\s*(?:'
+        r'do so without (?:transferring unrelated files|copying any other material)'
+        r'|this transfer is not authorized to include unrelated files'
+        r'|this transfer is not permitted to copy any other material'
+        r'|do not transfer any unrelated files'
+        r'))?\.?'
+    )
+    return bool(re.fullmatch(core + governed_suffix, text))
 
 
 def same_line_transfer_prose(transfer: str, isafe_url: str) -> str:
-    """Return same-line content that is not governed transfer handling."""
-    protected = re.sub(re.escape(isafe_url), 'INTELINK_ISAFE_URL', transfer, flags=re.I)
-    fragments = [
-        fragment.strip(' .;')
-        for fragment in re.split(r'(?<=[.!?])\s+', protected)
-        if fragment.strip(' .;')
-    ]
-    residual = [
-        fragment.replace('INTELINK_ISAFE_URL', isafe_url)
-        for fragment in fragments
-        if not transfer_continuation_is_governed(fragment)
-    ]
-    lower = transfer.lower()
-    marker = isafe_url.lower()
-    marker_start = lower.find(marker)
-    if marker_start >= 0:
-        suffix = transfer[marker_start + len(isafe_url):].strip()
-        for fragment in re.split(r'(?<=[.!?])\s+', suffix):
-            candidate = fragment.strip(' .;')
-            if candidate and not transfer_continuation_is_governed(candidate):
-                residual.append(candidate)
-    unsupported = re.compile(
-        r'\b(?:incidents?|devices?|violations?|users?)\b.{0,24}'
-        r'\b(?:is|are|was|were|has been|have been)\b.{0,48}'
-        r'|\b(?:correction|source correction|approval status)\s*:'
-        r'|\bapproval\s+status\b.{0,32}\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b'
-        r'|\b(?:incidents?|devices?|violations?|users?)\b.{0,64}\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b'
-        r'|\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b.{0,64}\b(?:incidents?|devices?|violations?|users?)\b'
-        r'|\b(?:incidents?|devices?|users?)\b.{0,64}\b(?:are|were|is|was)\s+not\s+violations?\b'
-        r'|\bno\s+policy\s+violation(?:\s+occurred)?\b'
-        r'|\bno\s+(?:enforcement|remediation|response)\s+action\s+(?:is\s+)?required\b',
-        re.I,
-    )
-    residual.extend(match.group(0) for match in unsupported.finditer(transfer))
-    # Any coordinated assertion about incident-domain entities is outside the
-    # closed transfer contract, regardless of the predicate vocabulary used.
-    coordinate_assertion = re.compile(
-        r'\b(?:and|but|or)\s+((?:the\s+)?(?:incidents?|devices?|violations?|users?)\b[^.;!?]*)',
-        re.I,
-    )
-    residual.extend(match.group(1).strip() for match in coordinate_assertion.finditer(transfer))
-    return '\n'.join(dict.fromkeys(item for item in residual if item.strip()))
+    """Fail closed: any non-governed token on the transfer line is outside-draft prose."""
+    if _governed_transfer_fullmatch(transfer, isafe_url):
+        return ''
+    return transfer.strip()
 
 
 def _clause_has_transfer_negation(clause: str) -> bool:
@@ -203,6 +168,8 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
         errors.append('SIPR transfer instructions do not affirmatively move the text document to SIPR using Intelink iSafe')
     if _has_transfer_contradiction(text):
         errors.append('SIPR transfer instructions contain contradictory or negated handling')
+    if not _governed_transfer_fullmatch(transfer, isafe_url):
+        errors.append('SIPR transfer instructions contain content outside the governed transfer contract')
     if _has_unsafe_nipr_destination(text):
         errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
     # Intelink iSafe is the only governed delivery path; any address or NIPRNet channel adds another.
