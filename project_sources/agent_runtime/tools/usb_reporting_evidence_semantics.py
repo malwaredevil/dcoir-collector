@@ -46,7 +46,7 @@ CLARIFICATION_COUNT_REFERENCE = re.compile(
 )
 CLARIFICATION_TRAILING_SELF_ACTION = re.compile(
     r"\b(?:i(?:['’]ll|\s+will|\s+can)|we(?:['’]ll|\s+will|\s+can)|"
-    r"(?:before|after|once)\s+i|so\s+i)\b",
+    r"(?:before|after|once|so)\s+(?:i|we))\b",
     re.I,
 )
 CLARIFICATION_COUNT_OBJECT = re.compile(
@@ -58,7 +58,7 @@ CLARIFICATION_COUNT_OBJECT = re.compile(
     re.I,
 )
 CLARIFICATION_SELF_ACTION = re.compile(
-    r"(?:\b(?:before|after|once)\s+i|\bi(?:'ll|\s+will|\s+can)|"
+    r"(?:\b(?:before|after|once|so)\s+(?:i|we)|\bi(?:'ll|\s+will|\s+can)|"
     r"\bwe(?:'ll|\s+will|\s+can)|\blet\s+me)\s*$", re.I,
 )
 CLARIFICATION_SELF_CREATION = frozenset({'write', 'prepare', 'compose', 'finalize', 'finish', 'draft'})
@@ -73,8 +73,8 @@ CLARIFICATION_SELF_TRANSMISSION = frozenset({'email', 'send', 'share', 'provide'
 
 
 CLARIFICATION_VOCABULARY = frozenset('''
-a all and are before can combined compose could complete count counts did draft drafts email emails final
-finalize finish for from give have how i in is it just know last let ll many me need nipr number of once overall please
+a after all and are before can combined compose could complete count counts did draft drafts email emails final
+finalize finish for from get give have how i in is it just know last let ll many me need nipr number of once overall please
 prepare previous prior provide report reported reports send share single sipr so tell that the there this
 to total us usb violation violations was we week weekly were what with would write you
 '''.split())
@@ -104,6 +104,14 @@ def clarification_content_errors(text: str) -> list[str]:
             continue
         errors.append('clarification response requests more than the prior-week overall count: violation records')
         break
+    if self_action:
+        self_scope = lower[self_action.start():]
+        self_count_spans = [match.span() for match in CLARIFICATION_COUNT_REFERENCE.finditer(self_scope)]
+        for record in CLARIFICATION_SENSITIVE_RECORD_OBJECT.finditer(self_scope):
+            if any(start <= record.start() and record.end() <= end for start, end in self_count_spans):
+                continue
+            errors.append('clarification response requests more than the prior-week overall count: self-action on violation records')
+            break
     for action in CLARIFICATION_DELIVERY.finditer(lower):
         prefix = lower[max(0, action.start() - 24):action.start()]
         self_directed = bool(CLARIFICATION_SELF_ACTION.search(prefix))

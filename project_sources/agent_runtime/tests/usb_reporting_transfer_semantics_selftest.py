@@ -89,6 +89,15 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
         safe.replace(' and move that text document', ' and all listed devices were allowed, move that text document'),
         safe.replace(' and move that text document', ' and these incidents are not violations, move that text document'),
         safe.replace(' and move that text document', ' and no enforcement action is required, move that text document'),
+        safe + ' Copy the SIPR message draft because the devices are legitimate.',
+        safe + ' Move the text document because the incidents are legitimate.',
+        safe + ' Transfer the SIPR draft because the violations are dismissed.',
+        safe + ' Move the text document while the incidents remain dismissed.',
+        safe + ' Copy the SIPR draft if the devices appear legitimate.',
+        safe + ' Transfer the SIPR draft when the violations seem justified.',
+        safe + ' Move the text document unless the users remain cleared.',
+        safe + ' Copy the SIPR message draft, and the devices are legitimate.',
+        safe.replace(' and move that text document', ' and copy the SIPR draft because the devices are legitimate, then move that text document'),
     ]
     for hostile_transfer in same_line_disposition:
         hostile = mixed_response(rows).replace(safe, hostile_transfer, 1)

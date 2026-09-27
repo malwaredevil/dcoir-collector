@@ -73,10 +73,16 @@ def _normalized(text: str) -> str:
 
 
 def transfer_continuation_is_governed(text: str) -> bool:
-    """Return whether a same-line post-iSafe continuation is still transfer handling."""
+    """Return whether a same-line continuation contains only transfer handling."""
     normalized = _normalized(text)
     if not normalized:
         return True
+    # Rationale/contrast clauses are never part of the closed transfer contract.
+    if re.search(
+        r'\b(?:because|since|although|though|whereas|while|if|unless|when|where|even if|even though|provided that|as long as)\b',
+        normalized,
+    ):
+        return False
     context = re.search(
         r'\b(?:sipr|isafe|text document|message draft|recipient|subject|nipr|'
         r'unrelated|other|additional|extra|material|files?)\b',
@@ -108,7 +114,9 @@ def same_line_transfer_prose(transfer: str, isafe_url: str) -> str:
             if candidate and not transfer_continuation_is_governed(candidate):
                 residual.append(candidate)
     unsupported = re.compile(
-        r'\b(?:correction|source correction|approval status)\s*:'
+        r'\b(?:incidents?|devices?|violations?|users?)\b.{0,24}'
+        r'\b(?:is|are|was|were|has been|have been)\b.{0,48}'
+        r'|\b(?:correction|source correction|approval status)\s*:'
         r'|\bapproval\s+status\b.{0,32}\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b'
         r'|\b(?:incidents?|devices?|violations?|users?)\b.{0,64}\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b'
         r'|\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b.{0,64}\b(?:incidents?|devices?|violations?|users?)\b'
@@ -118,6 +126,13 @@ def same_line_transfer_prose(transfer: str, isafe_url: str) -> str:
         re.I,
     )
     residual.extend(match.group(0) for match in unsupported.finditer(transfer))
+    # Any coordinated assertion about incident-domain entities is outside the
+    # closed transfer contract, regardless of the predicate vocabulary used.
+    coordinate_assertion = re.compile(
+        r'\b(?:and|but|or)\s+((?:the\s+)?(?:incidents?|devices?|violations?|users?)\b[^.;!?]*)',
+        re.I,
+    )
+    residual.extend(match.group(1).strip() for match in coordinate_assertion.finditer(transfer))
     return '\n'.join(dict.fromkeys(item for item in residual if item.strip()))
 
 
