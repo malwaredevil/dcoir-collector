@@ -341,14 +341,18 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     ):
         raise SystemExit("OpenAI replay prompt must come from the shared behavioral replay prompt builder.")
     for scalar_key, scalar_value in (
-        ("speaker", None), ("speaker", []), ("speaker", "   "),
+        ("speaker", None), ("speaker", []), ("speaker", "   "), ("speaker", "assistant"),
         ("content", None), ("content", []), ("content", "   "),
         ("scoring_notes", None), ("scoring_notes", []), ("scoring_notes", "   "),
     ):
         malformed_scalar = json.loads(json.dumps(first_fixture))
         malformed_scalar["turns"][0][scalar_key] = scalar_value
         scalar_messages = validate_fixture_shape(malformed_scalar)
-        if not any(message.level == "error" and f"field {scalar_key} must be a non-empty string" in message.message for message in scalar_messages):
+        expected_scalar_error = (
+            "speaker must be 'user'" if scalar_key == "speaker" and scalar_value == "assistant"
+            else f"field {scalar_key} must be a non-empty string"
+        )
+        if not any(message.level == "error" and expected_scalar_error in message.message for message in scalar_messages):
             raise SystemExit(f"Malformed scalar turn field must fail schema validation: {scalar_key}={scalar_value!r}: {scalar_messages}")
         try:
             behavioral_replay_prompt(malformed_scalar, malformed_scalar["turns"][0], replay_label="DCOIR behavioral replay")

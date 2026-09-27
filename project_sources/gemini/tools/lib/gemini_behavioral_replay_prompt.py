@@ -34,7 +34,9 @@ def behavioral_replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any], *, r
     if not isinstance(evidence_by_turn, dict):
         raise ValueError("available_evidence_by_turn must be an object")
     turn_id = _required_text(turn.get("turn_id"), "turn_id")
-    _required_text(turn.get("speaker"), "speaker")
+    speaker = _required_text(turn.get("speaker"), "speaker")
+    if speaker != "user":
+        raise ValueError("speaker must be 'user' for operator replay turns")
     content = _required_text(turn.get("content"), "content")
     _required_text(turn.get("scoring_notes"), "scoring_notes")
     evidence = _string_items(evidence_by_turn.get(turn_id, []), "available evidence")

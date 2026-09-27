@@ -107,6 +107,8 @@ def validate_turn(turn: Any) -> List[ValidationMessage]:
                     f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must be a non-empty string",
                 )
             )
+    if isinstance(turn.get("speaker"), str) and turn.get("speaker").strip() and turn.get("speaker") != "user":
+        messages.append(ValidationMessage("error", "speaker must be 'user' for operator replay turns"))
     for key in (*TURN_LIST_KEYS, *OPTIONAL_TURN_LIST_KEYS):
         if key not in turn:
             continue
