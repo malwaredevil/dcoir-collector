@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import lib.openai_dcoir_replay_live as replay_live
+import lib.gemini_behavioral_replay_selection as replay_selection
 
 build_request_body = replay_live.build_request_body
 extract_text = replay_live.extract_text
@@ -15,7 +16,7 @@ make_pack = replay_live.make_pack
 from lib.gemini_behavioral_replay_prompt import behavioral_replay_prompt
 from lib.gemini_behavioral_replay_runner import load_fixture_entry, load_fixture_index, repo_root_from_script
 from lib.gemini_behavioral_replay_utils import safe_error
-from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
+from lib.gemini_behavioral_replay_schema import ValidationMessage, validate_fixture_shape, validate_response_pack_shape
 from lib.gemini_behavioral_replay_scoring import detect_anomalies, score_forbidden_markers, score_response_pack
 from lib.gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 from lib.gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
@@ -70,6 +71,20 @@ def main() -> int:
         raise SystemExit(f"Blank OpenAI fixture selection must fail closed, not select billable fixtures: {none_meta}")
 
     first_fixture = selected[0]["fixture"]
+    invalid_args = argparse.Namespace(**{**vars(args), "run_all_active_fixtures": False, "custom_fixtures_csv": first_fixture["fixture_id"]})
+    invalid_row = {
+        "fixture": first_fixture,
+        "validation_messages": [ValidationMessage("error", "synthetic fixture validation failure")],
+    }
+    with patch.object(replay_selection, "load_fixture_entry", return_value=invalid_row):
+        invalid_selected, invalid_meta = replay_selection.resolve_fixtures(
+            invalid_args, FIXTURES_ROOT.resolve(), Path(__file__)
+        )
+    if invalid_selected or invalid_meta.get("selected_fixtures_to_run"):
+        raise SystemExit(f"Schema-invalid fixture must not reach live replay execution: {invalid_meta}")
+    if not any("fixture validation failed" in row.get("reason", "") for row in invalid_meta.get("rejected_selected_fixtures", [])):
+        raise SystemExit(f"Schema-invalid fixture rejection reason was not preserved: {invalid_meta}")
+
     first_turn = first_fixture["turns"][0]
     body = build_request_body(package, first_fixture, first_turn, [], args)
     if body.get("model") != OPENAI_MODEL_ID or body.get("store") is not False or body.get("reasoning") != {"effort": "medium"}:
@@ -286,6 +301,16 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         first_fixture, first_fixture["turns"][0], replay_label="DCOIR behavioral replay"
     ):
         raise SystemExit("OpenAI replay prompt must come from the shared behavioral replay prompt builder.")
+    malformed_fixture = json.loads(json.dumps(first_fixture))
+    malformed_fixture["turns"][0]["allowed_assumptions"] = None
+    malformed_messages = validate_fixture_shape(malformed_fixture)
+    if not any(message.level == "error" and "allowed_assumptions must be a list" in message.message for message in malformed_messages):
+        raise SystemExit(f"Null list-valued fixture field must fail schema validation: {malformed_messages}")
+    safe_prompt = behavioral_replay_prompt(
+        malformed_fixture, malformed_fixture["turns"][0], replay_label="DCOIR behavioral replay"
+    )
+    if "Allowed assumptions:\n- None." not in safe_prompt:
+        raise SystemExit("Prompt builder must fail safely if malformed list-valued fixture data bypasses validation.")
     runner_source = (repo_root / "project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py").read_text(encoding="utf-8")
     for required_evidence_label in ("MARKER_ASSISTED_UNCHECKED_EVIDENCE,", '"prompt_profile": PROMPT_PROFILE'):
         if required_evidence_label not in runner_source:

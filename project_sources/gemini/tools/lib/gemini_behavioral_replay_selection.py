@@ -81,12 +81,23 @@ def resolve_fixtures(
             else:
                 rejected.append({"fixture_id": fid, "reason": rejection_reason(fid)})
 
-    loaded = [load_fixture_entry(repo_root, e) for e in entries if e.get("fixture_id") in set(selected)]
+    loaded: List[Dict[str, Any]] = []
+    for entry in entries:
+        fixture_id = entry.get("fixture_id")
+        if fixture_id not in set(selected):
+            continue
+        row = load_fixture_entry(repo_root, entry)
+        errors = [message.message for message in row.get("validation_messages", []) if message.level == "error"]
+        if errors:
+            rejected.append({"fixture_id": str(fixture_id), "reason": "fixture validation failed: " + "; ".join(errors)})
+            continue
+        loaded.append(row)
+    selected_to_run = [str(row.get("fixture", {}).get("fixture_id", "")) for row in loaded]
     return loaded, {
         "selection_source": source,
         "required_fixture_mode": required_fixture_mode,
         "active_fixtures": active,
-        "selected_fixtures_to_run": selected,
+        "selected_fixtures_to_run": selected_to_run,
         "rejected_selected_fixtures": rejected,
         "excluded_from_mode": excluded_from_mode,
         "excluded_from_live_api": excluded_from_live_api,
