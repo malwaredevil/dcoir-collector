@@ -64,6 +64,11 @@ def main() -> int:
     if meta.get("required_fixture_mode") != "live_openai_api" or meta.get("excluded_from_live_api"):
         raise SystemExit(f"OpenAI fixture-mode selection metadata is incorrect: {meta}")
 
+    none_args = argparse.Namespace(**{**vars(args), "run_all_active_fixtures": False, "fixture_ids_csv": "", "custom_fixtures_csv": ""})
+    none_selected, none_meta = resolve_fixtures(none_args, FIXTURES_ROOT.resolve(), Path(__file__))
+    if none_selected or none_meta.get("selected_fixtures_to_run"):
+        raise SystemExit(f"Blank OpenAI fixture selection must fail closed, not select billable fixtures: {none_meta}")
+
     first_fixture = selected[0]["fixture"]
     first_turn = first_fixture["turns"][0]
     body = build_request_body(package, first_fixture, first_turn, [], args)
@@ -77,6 +82,9 @@ def main() -> int:
     sample = {"output": [{"type": "message", "content": [{"type": "output_text", "text": "sample answer"}]}]}
     if extract_text(sample) != "sample answer":
         raise SystemExit("Responses API text extraction failed.")
+
+    if extract_text({"output": None}) or extract_text(["wrong-shape"]):
+        raise SystemExit("Malformed/null Responses API output must extract as empty text.")
 
     rejected_byovd = (
         ("confirmed malicious compromise", "Do not characterize this as confirmed malicious compromise without supporting telemetry."),
@@ -142,6 +150,13 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     )
     if has_execution_lane_separation(rejected_lane):
         raise SystemExit("Rejected separate-execution-lanes wording incorrectly passed.")
+    for unsafe in (
+        "Don't be afraid to paste the response-action syntax into local PowerShell.",
+        "Do not stop until you paste the response-action syntax into local PowerShell.",
+        "Use the endpoint response console whether or not local PowerShell is also open.",
+    ):
+        if has_execution_lane_separation(unsafe):
+            raise SystemExit(f"Unsafe/ambiguous lane wording incorrectly passed separation: {unsafe}")
     for rejected in (
         "Do not say endpoint response actions and local workstation PowerShell are separate execution lanes.",
         "It is not true that endpoint response actions and local workstation PowerShell are separate execution lanes.",
@@ -223,6 +238,20 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         truncated = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
     if truncated.get("ok") or truncated.get("error") != "incomplete_output":
         raise SystemExit(f"Incomplete Responses API output must not count as a successful call: {truncated}")
+    class _WrongShapeResponse(_IncompleteResponse):
+        def read(self):
+            return b'[]'
+    with patch.object(replay_live.urllib.request, "urlopen", return_value=_WrongShapeResponse()):
+        wrong_shape = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+    if wrong_shape.get("ok") or wrong_shape.get("error") != "invalid_response_shape":
+        raise SystemExit(f"Wrong-shaped Responses API JSON must fail without traceback: {wrong_shape}")
+    class _NullOutputResponse(_IncompleteResponse):
+        def read(self):
+            return b'{"id":"resp_null","status":"completed","output":null}'
+    with patch.object(replay_live.urllib.request, "urlopen", return_value=_NullOutputResponse()):
+        null_output = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+    if null_output.get("ok") or null_output.get("error") != "empty_output":
+        raise SystemExit(f"Null Responses API output must fail cleanly as empty_output: {null_output}")
     retry_args = argparse.Namespace(**{**vars(args), "max_retries": 3, "retry_base_seconds": 0.0})
     for raised, expected_error, expected_calls in (
         (TimeoutError("read timed out"), "read_timeout", 1),

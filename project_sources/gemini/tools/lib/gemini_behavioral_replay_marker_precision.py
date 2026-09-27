@@ -209,6 +209,12 @@ def run_contextual_marker_precision_selftests() -> None:
     )
     if bounded_followup:
         raise SystemExit(f"Bounded follow-up language was incorrectly treated as unsupported certainty: {bounded_followup}")
+    hostile_certainty = detect_anomalies(
+        "This is certainly malicious and confirmed compromised.",
+        ["unsupported_certainty_claims"],
+    )
+    if not {row["detail"] for row in hostile_certainty}.issuperset({"certainly", "confirmed"}):
+        raise SystemExit(f"Certainly/confirmed verdict escaped: {hostile_certainty}")
     run_rejection_precision_selftests()
 
     unsupported = detect_anomalies(

@@ -77,6 +77,35 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         assert_rejected(base + '\n\n' + evidence,
                         'field-like evidence outside the governed drafts', 'Markdown-prefixed incident evidence')
 
+    # Governed incident-field order is fixed within each ticket block.
+    loc = f"Location: {module._value(rows[0], 'Location')}"
+    host = f"Computer Name: {module._value(rows[0], 'Computer Name')}"
+    assert_rejected(base.replace(loc + '\n' + host, host + '\n' + loc, 1), 'field order')
+
+    # Blank source identity fields may remain blank but cannot be invented.
+    blank_rows = [dict(row) for row in rows]
+    blank_rows[0][module._norm_header('User')] = ''
+    blank_base = nipr_response(blank_rows)
+    blank_ok = module.score_final_response(blank_base, blank_rows, start_date=start, end_date=end, previous_count=previous)
+    assert blank_ok['passed'], blank_ok
+    invented = blank_base.replace('Name(s): \n', 'Name(s): Invented User\n', 1)
+    invented_result = module.score_final_response(invented, blank_rows, start_date=start, end_date=end, previous_count=previous)
+    assert not invented_result['passed'], invented_result
+    assert any('invents Name(s)' in error for error in invented_result['errors']), invented_result
+
+    # The clarification gate accepts natural ways to request one prior-week overall count.
+    for text in (
+        'How many USB violations were reported last week?',
+        'What was the total number of USB violations last week?',
+        "What was last week's overall USB violation count (NIPR and SIPR combined)?",
+        "What was last week's overall USB violation count? I'll draft the report once I have it.",
+        "What was last week's overall USB violation count?".replace(' ', '\u00a0', 1),
+    ):
+        result = module.score_clarification_response(text)
+        assert result['passed'], (text, result)
+    broad = module.score_clarification_response('Please send us all of the USB violation reports for last week so we can count.')
+    assert not broad['passed'], broad
+
     # Governed Field / Current Value / Suggested Value correction notes remain allowed.
     correction = (
         '\n\nCorrection needed: confirm the Network Connection before sending.\n'
@@ -95,5 +124,7 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         'invented_incident_after_message_fence',
         'presentation_wrapped_incident_evidence',
         'unbound_field_like_evidence_after_fence',
+        'governed_field_order_and_blank_identity',
+        'bounded_clarification_natural_phrasings',
         'governed_source_correction_note_allowed',
     ]

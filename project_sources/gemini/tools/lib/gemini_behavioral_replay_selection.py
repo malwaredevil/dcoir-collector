@@ -49,7 +49,7 @@ def resolve_fixtures(
     active = [e.get("fixture_id") for e in entries]
     checked = csv(args.fixture_ids_csv)
     if args.fixture_ids_csv is None and not checked:
-        checked = [args.fixture_id] if args.fixture_id else active
+        checked = [args.fixture_id] if args.fixture_id else ([] if args.mode == "openai_live" else active)
     custom = csv(args.custom_fixtures_csv)
     rejected: List[Dict[str, str]] = []
 

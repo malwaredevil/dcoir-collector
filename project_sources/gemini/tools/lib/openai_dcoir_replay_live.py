@@ -41,15 +41,17 @@ def build_request_body(
 
 
 def extract_text(payload: Dict[str, Any]) -> str:
+    if not isinstance(payload, dict):
+        return ""
     direct = payload.get("output_text")
     if isinstance(direct, str) and direct.strip():
         return direct.strip()
     out: List[str] = []
-    for item in payload.get("output", []):
-        if item.get("type") != "message":
+    for item in payload.get("output") or []:
+        if not isinstance(item, dict) or item.get("type") != "message":
             continue
-        for content in item.get("content", []):
-            if content.get("type") == "output_text" and isinstance(content.get("text"), str):
+        for content in item.get("content") or []:
+            if isinstance(content, dict) and content.get("type") == "output_text" and isinstance(content.get("text"), str):
                 out.append(content["text"])
     return "\n".join(out).strip()
 
@@ -105,6 +107,8 @@ def call_openai_body(
             payload = json.loads(raw.decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError):
             return {"ok": False, "attempts": attempts, "error": "invalid_json"}
+        if not isinstance(payload, dict):
+            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape"}
         text = extract_text(payload)
         if payload.get("status", "completed") != "completed":
             return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}

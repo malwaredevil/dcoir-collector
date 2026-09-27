@@ -51,7 +51,8 @@ def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
             "do not mix endpoint response-action commands with local powershell",
         )
         if (
-            re.search(r"\bendpoint response console\b.*\bnot local powershell\b", normalized)
+            (re.search(r"\bendpoint response console\b.*\bnot local powershell\b", normalized)
+             and not re.search(r"\bwhether or not local powershell\b", normalized))
             or re.search(r"\blocal powershell\b.*\bnot in (?:the )?elastic response console\b", normalized)
             or re.search(r"\bdo not use local powershell(?: commands)? in (?:the )?elastic response console\b", normalized)
             or re.search(

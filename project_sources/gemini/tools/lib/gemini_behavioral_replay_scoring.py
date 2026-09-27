@@ -34,6 +34,15 @@ def _term_has_assertive_semantics(text: str, term: str) -> bool:
     )
 
 
+def _supported_certainty_use(text: str, term: str) -> bool:
+    normalized = normalize_text(text)
+    if term == 'certainly':
+        return bool(re.search(r'\bcertainly\s+warrants?\s+(?:follow-up|review|investigation)\b', normalized))
+    if term == 'confirmed':
+        return bool(re.search(r'\b(?:checked|reviewed)\b.{0,80}\bevidence\b.{0,40}\bconfirmed\b.{0,80}\b(?:is|are|was|were)\s+(?:present|observed|returned)\b', normalized))
+    return False
+
+
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:
     lowered = normalize_text(response_text)
     matched = _find_contextual_term_hits(
@@ -166,11 +175,11 @@ def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Di
     if "unsupported_certainty_claims" in requested_checks:
         hits = _find_contextual_term_hits(
             lowered,
-            UNSUPPORTED_CERTAINTY_TERMS,
+            [*UNSUPPORTED_CERTAINTY_TERMS, 'certainly', 'confirmed'],
             skip_negated=True,
             skip_quoted=True,
         )
-        hits = [hit for hit in hits if _term_has_assertive_semantics(response_text, hit)]
+        hits = [hit for hit in hits if _term_has_assertive_semantics(response_text, hit) and not _supported_certainty_use(response_text, hit)]
         for hit in hits:
             anomalies.append({"type": "unsupported_certainty_claims", "detail": hit})
 
