@@ -265,6 +265,12 @@ def test_unknown_incident_label_is_rejected() -> None:
     result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
     assert not result['passed'], result
     assert any('unknown/noncanonical incident label' in error for error in result['errors'])
+    last = module._value(rows[-1], 'SNOW Ticket Number')
+    for label in ('Approval Status: Cleared', 'Analyst Finding: No policy violation', 'Disposition: Authorized device'):
+        mutated = _nipr_response(rows).replace(last + '\n\nPlease', last + '\n' + label + '\n\nPlease', 1)
+        result = module.score_final_response(mutated, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+        assert not result['passed'], (label, result)
+        assert any('unknown/noncanonical incident label' in error for error in result['errors'])
 
 
 def test_incident_evidence_after_message_fence_is_rejected() -> None:
@@ -304,6 +310,10 @@ def test_markdown_prefixed_incident_evidence_is_rejected() -> None:
         response = _nipr_response(rows) + '\n\n' + '\n'.join(prefix + line for line in fake)
         result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
         assert not result['passed'], (prefix, result)
+        assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
+    for evidence in ('> date: 01/01/1999 0000Z', '- notes: Invented exculpatory evidence', '> LoCaTiOn: WRONG'):
+        result = module.score_final_response(_nipr_response(rows) + '\n\n' + evidence, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+        assert not result['passed'], (evidence, result)
         assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
 
 

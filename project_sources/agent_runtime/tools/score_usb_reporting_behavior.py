@@ -175,13 +175,13 @@ def _incident_shape_errors(block: str, lane: str, ticket: str) -> list[str]:
 
 def _markdown_prefixed_incident_evidence(text: str) -> list[str]:
     errors: list[str] = []
-    labels = tuple(f'{label}:' for label in INCIDENT_LABELS)
+    labels = tuple(f'{label}:'.casefold() for label in INCIDENT_LABELS)
     for line in text.splitlines():
         candidate = line.lstrip(' \t')
         stripped = re.sub(r'^(?:(?:>\s*)|(?:[-*+]\s+)|(?:\d+[.)]\s+))+', '', candidate)
         if stripped == candidate:
             continue
-        if re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE) or stripped.startswith(labels):
+        if re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE) or stripped.casefold().startswith(labels):
             errors.append(f'final response contains Markdown-prefixed incident evidence: {candidate}')
     return errors
 
@@ -218,7 +218,7 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
     }
     for label, field in field_map.items():
         expected_counts[label] = sum(1 for row in rows if _value(row, field))
-    # Name(s) marks every incident, matching the per-lane incident count in _row_errors.
+    # Name(s) appears once per incident.
     expected_counts['Name(s)'] = len(rows)
 
     for label, expected_count in expected_counts.items():
@@ -303,6 +303,10 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
         ticket = match.group(1)
         blocks.setdefault(ticket, body[previous_end:match.end()])
         previous_end = match.end()
+    if ticket_matches:
+        errors.extend(_incident_shape_errors(
+            body[ticket_matches[-1].end():], lane, ticket_matches[-1].group(1)
+        ))
 
     for row in expected:
         ticket = _ticket(row)

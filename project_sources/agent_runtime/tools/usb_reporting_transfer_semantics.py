@@ -45,6 +45,8 @@ def _clause_has_transfer_negation(clause: str) -> bool:
 
 
 def _has_transfer_contradiction(text: str) -> bool:
+    if re.search(GENERIC_TRANSFER_REVOCATION, text):
+        return True
     return any(
         _clause_has_transfer_negation(clause)
         for clause in re.split(r'[.;!?]+', text)

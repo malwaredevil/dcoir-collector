@@ -30,6 +30,8 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
         safe + ' but do not do so.',
         safe + '. Do not do so.',
         safe + '. This must not happen.',
+        safe + ' Disregard the transfer instructions above.',
+        safe + ' The preceding instruction is revoked.',
     ]
     for response_text in unsafe_variants:
         result = score(mixed_response(rows).replace(safe, response_text, 1))
