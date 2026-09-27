@@ -13,21 +13,36 @@ MARKER_ASSISTED_UNCHECKED_EVIDENCE = (
 )
 
 
-def _string_items(value: Any) -> list[str]:
-    return [item for item in value if isinstance(item, str)] if isinstance(value, list) else []
+def _string_items(value: Any, field_name: str) -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError(f"{field_name} must be a list")
+    if any(not isinstance(item, str) or not item.strip() for item in value):
+        raise ValueError(f"{field_name} must contain only non-empty strings")
+    return value
 
 
 def behavioral_replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any], *, replay_label: str) -> str:
     fixture = fixture if isinstance(fixture, dict) else {}
     turn = turn if isinstance(turn, dict) else {}
     evidence_by_turn = fixture.get("available_evidence_by_turn", {})
-    turn_id = turn.get("turn_id") if isinstance(turn.get("turn_id"), str) else ""
-    evidence = _string_items(evidence_by_turn.get(turn_id, []) if isinstance(evidence_by_turn, dict) else [])
-    required = _string_items(turn.get("required_markers", fixture.get("required_markers", [])))
-    forbidden = _string_items(turn.get("forbidden_markers", fixture.get("forbidden_markers", [])))
-    allowed_assumptions = _string_items(turn.get("allowed_assumptions", []))
-    disallowed_assumptions = _string_items(turn.get("disallowed_assumptions", []))
-    expected_behavior_tags = _string_items(turn.get("expected_behavior_tags", []))
+    if not isinstance(evidence_by_turn, dict):
+        raise ValueError("available_evidence_by_turn must be an object")
+    raw_turn_id = turn.get("turn_id")
+    if raw_turn_id is not None and not isinstance(raw_turn_id, str):
+        raise ValueError("turn_id must be a string")
+    turn_id = raw_turn_id or ""
+    evidence = _string_items(evidence_by_turn.get(turn_id, []), "available evidence")
+    required = _string_items(turn.get("required_markers", fixture.get("required_markers", [])), "required_markers")
+    forbidden = _string_items(turn.get("forbidden_markers", fixture.get("forbidden_markers", [])), "forbidden_markers")
+    allowed_assumptions = _string_items(turn.get("allowed_assumptions", []), "allowed_assumptions")
+    disallowed_assumptions = _string_items(turn.get("disallowed_assumptions", []), "disallowed_assumptions")
+    expected_behavior_tags = _string_items(turn.get("expected_behavior_tags", []), "expected_behavior_tags")
+    evidence_text = "\n".join(f"- {x}" for x in evidence) if evidence else "- No additional evidence is available."
+    allowed_text = "\n".join(f"- {x}" for x in allowed_assumptions) if allowed_assumptions else "- None."
+    disallowed_text = "\n".join(f"- {x}" for x in disallowed_assumptions) if disallowed_assumptions else "- None."
+    expected_text = ", ".join(expected_behavior_tags) if expected_behavior_tags else "none"
+    required_text = ", ".join(required) if required else "none"
+    forbidden_text = ", ".join(forbidden) if forbidden else "none"
     return "\n\n".join([
         f"You are producing the next operator-facing answer for a governed {replay_label}.",
         "Return only the assistant answer text. Do not include JSON, scoring notes, hidden reasoning, or meta commentary.",
@@ -36,11 +51,11 @@ def behavioral_replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any], *, r
         "Do not include any forbidden phrase unless you are clearly rejecting or negating that claim.",
         f"Fixture: {fixture.get('fixture_id')}",
         f"Scenario: {fixture.get('title')}",
-        "Available evidence for this turn:\n" + ("\n".join(f"- {x}" for x in evidence) or "- No additional evidence is available."),
-        "Allowed assumptions:\n" + ("\n".join(f"- {x}" for x in allowed_assumptions) or "- None."),
-        "Disallowed assumptions:\n" + ("\n".join(f"- {x}" for x in disallowed_assumptions) or "- None."),
-        "Expected behavior tags: " + (", ".join(expected_behavior_tags) or "none"),
-        "Required behavior markers to satisfy when accurate: " + (", ".join(required) or "none"),
-        "Forbidden claims to avoid or explicitly reject: " + (", ".join(forbidden) or "none"),
+        "Available evidence for this turn:\n" + evidence_text,
+        "Allowed assumptions:\n" + allowed_text,
+        "Disallowed assumptions:\n" + disallowed_text,
+        "Expected behavior tags: " + expected_text,
+        "Required behavior markers to satisfy when accurate: " + required_text,
+        "Forbidden claims to avoid or explicitly reject: " + forbidden_text,
         "User turn:\n" + str(turn.get("content", "")).strip(),
     ])

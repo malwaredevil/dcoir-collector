@@ -109,11 +109,11 @@ def validate_turn(turn: Any) -> List[ValidationMessage]:
                     f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must be a list",
                 )
             )
-        elif any(not isinstance(item, str) for item in value):
+        elif any(not isinstance(item, str) or not item.strip() for item in value):
             messages.append(
                 ValidationMessage(
                     "error",
-                    f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must contain only strings",
+                    f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must contain only non-empty strings",
                 )
             )
     return messages
@@ -188,11 +188,11 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
                     f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must be a list",
                 )
             )
-        elif any(not isinstance(item, str) for item in value):
+        elif any(not isinstance(item, str) or not item.strip() for item in value):
             messages.append(
                 ValidationMessage(
                     "error",
-                    f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must contain only strings",
+                    f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must contain only non-empty strings",
                 )
             )
 
@@ -227,11 +227,11 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
                         f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} evidence for {turn_id} must be a list",
                     )
                 )
-            elif any(not isinstance(item, str) for item in evidence):
+            elif any(not isinstance(item, str) or not item.strip() for item in evidence):
                 messages.append(
                     ValidationMessage(
                         "error",
-                        f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} evidence for {turn_id} must contain only strings",
+                        f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} evidence for {turn_id} must contain only non-empty strings",
                     )
                 )
 

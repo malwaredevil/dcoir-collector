@@ -305,11 +305,13 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     malformed_messages = validate_fixture_shape(malformed_fixture)
     if not any(message.level == "error" and "allowed_assumptions must be a list" in message.message for message in malformed_messages):
         raise SystemExit(f"Null list-valued fixture field must fail schema validation: {malformed_messages}")
-    safe_prompt = behavioral_replay_prompt(
-        malformed_fixture, malformed_fixture["turns"][0], replay_label="DCOIR behavioral replay"
-    )
-    if "Allowed assumptions:\n- None." not in safe_prompt:
-        raise SystemExit("Prompt builder must fail safely if malformed list-valued fixture data bypasses validation.")
+    try:
+        behavioral_replay_prompt(malformed_fixture, malformed_fixture["turns"][0], replay_label="DCOIR behavioral replay")
+    except ValueError as exc:
+        if "allowed_assumptions must be a list" not in str(exc):
+            raise SystemExit(f"Prompt builder rejected malformed data with the wrong reason: {exc}")
+    else:
+        raise SystemExit("Prompt builder must fail closed if malformed list-valued fixture data bypasses validation.")
     malformed_structures = [
         ([None], "turn entry must be an object"),
         (["bad"], "turn entry must be an object"),
@@ -336,9 +338,27 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     malformed_markers = json.loads(json.dumps(first_fixture))
     malformed_markers["turns"][0]["required_markers"] = [None, 7]
     marker_messages = validate_fixture_shape(malformed_markers)
-    if not any(message.level == "error" and "required_markers must contain only strings" in message.message for message in marker_messages):
+    if not any(message.level == "error" and "required_markers must contain only non-empty strings" in message.message for message in marker_messages):
         raise SystemExit(f"Non-string marker elements must fail validation: {marker_messages}")
-    behavioral_replay_prompt(malformed_markers, malformed_markers["turns"][0], replay_label="DCOIR behavioral replay")
+    try:
+        behavioral_replay_prompt(malformed_markers, malformed_markers["turns"][0], replay_label="DCOIR behavioral replay")
+    except ValueError as exc:
+        if "required_markers must contain only non-empty strings" not in str(exc):
+            raise SystemExit(f"Prompt builder rejected malformed markers with the wrong reason: {exc}")
+    else:
+        raise SystemExit("Prompt builder must fail closed on malformed marker elements.")
+    whitespace_fixture = json.loads(json.dumps(first_fixture))
+    whitespace_fixture["turns"][0]["forbidden_markers"] = ["   "]
+    whitespace_messages = validate_fixture_shape(whitespace_fixture)
+    if not any(message.level == "error" and "forbidden_markers must contain only non-empty strings" in message.message for message in whitespace_messages):
+        raise SystemExit(f"Whitespace-only marker elements must fail validation: {whitespace_messages}")
+    try:
+        behavioral_replay_prompt(whitespace_fixture, whitespace_fixture["turns"][0], replay_label="DCOIR behavioral replay")
+    except ValueError as exc:
+        if "forbidden_markers must contain only non-empty strings" not in str(exc):
+            raise SystemExit(f"Prompt builder rejected whitespace markers with the wrong reason: {exc}")
+    else:
+        raise SystemExit("Prompt builder must fail closed on whitespace-only marker elements.")
     runner_source = (repo_root / "project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py").read_text(encoding="utf-8")
     for required_evidence_label in ("MARKER_ASSISTED_UNCHECKED_EVIDENCE,", '"prompt_profile": PROMPT_PROFILE'):
         if required_evidence_label not in runner_source:
