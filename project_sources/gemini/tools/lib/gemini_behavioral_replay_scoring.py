@@ -36,11 +36,28 @@ def _term_has_assertive_semantics(text: str, term: str) -> bool:
 
 def _supported_certainty_use(text: str, term: str) -> bool:
     normalized = normalize_text(text)
-    if term == 'certainly':
-        return bool(re.search(r'\bcertainly\s+warrants?\s+(?:follow-up|review|investigation)\b', normalized))
-    if term == 'confirmed':
-        return bool(re.search(r'\b(?:checked|reviewed)\b.{0,80}\bevidence\b.{0,40}\bconfirmed\b.{0,80}\b(?:is|are|was|were)\s+(?:present|observed|returned)\b', normalized))
-    return False
+    occurrences = [
+        occurrence for occurrence in _iter_term_occurrences(normalized, term)
+        if not _occurrence_is_quoted(normalized, occurrence.start(), occurrence.end())
+        and not _occurrence_is_negated(normalized, occurrence.start())
+    ]
+    if not occurrences:
+        return False
+    for occurrence in occurrences:
+        before = normalized[max(0, occurrence.start() - 140):occurrence.start()]
+        after = normalized[occurrence.start():occurrence.end() + 140]
+        if term == 'certainly':
+            if not re.match(r'certainly\s+warrants?\s+(?:follow-up|review|investigation)\b', after):
+                return False
+        elif term == 'confirmed':
+            if not (
+                re.search(r'\b(?:checked|reviewed)\b[^.!?]{0,100}\bevidence\b[^.!?]{0,60}$', before)
+                and re.match(r'confirmed\b[^.!?]{0,100}\b(?:is|are|was|were)\s+(?:present|observed|returned)\b', after)
+            ):
+                return False
+        else:
+            return False
+    return True
 
 
 def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, Any]:

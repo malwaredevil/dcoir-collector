@@ -126,8 +126,8 @@ _INTERPRETATION_SURFACES = (
 
 # Elastic response-action syntax named either generically or by its concrete commands.
 _RESPONSE_ACTION_COMMAND = r"(?:upload\s+--file|execute\s+--command|get-file\s+--path)"
-# "Do not forget/hesitate/fail to X" instructs X; it is not a prohibition.
-_PROHIBITION = r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b(?!\s+(?:forget|hesitate|fail|be\s+afraid|stop\s+until)\b)"
+# Double-negative/encouragement forms (for example, "do not hesitate to X") instruct X; they are not prohibitions.
+_PROHIBITION = r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b(?!\s+(?:forget|hesitate|fail|stop|avoid|refuse|decline|refrain|be\s+(?:afraid|reluctant|hesitant))\b)"
 
 _AFFIRMATIVE_MIX = re.compile(
     r"\b(?:paste|use|run|execute|wrap|mix|combine)\b[^.!?;\n]{0,120}"
