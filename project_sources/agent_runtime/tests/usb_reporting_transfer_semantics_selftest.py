@@ -27,6 +27,9 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
         safe + '. Rather than transfer the draft to SIPR, keep it on NIPR.',
         safe + '. Do not, however, actually perform this transfer; keep the draft on this workstation.',
         safe + '. Do not let anyone else on the team move the text document.',
+        safe + ' but do not do so.',
+        safe + '. Do not do so.',
+        safe + '. This must not happen.',
     ]
     for response_text in unsafe_variants:
         result = score(mixed_response(rows).replace(safe, response_text, 1))
@@ -56,6 +59,9 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
     trailing_variants = [
         'Actually, do not move the text document to SIPR; email it on NIPR instead.',
         'Hold off sending this draft to SIPR; route it through NIPR instead.',
+        'Disregard the transfer instructions above.',
+        'The preceding instruction is revoked.',
+        'Do not do so.',
     ]
     for trailing in trailing_variants:
         result = score(mixed_response(rows) + '\n\n' + trailing)

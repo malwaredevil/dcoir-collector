@@ -287,6 +287,26 @@ INCNDUMMY9999'''
     )
 
 
+def test_markdown_prefixed_incident_evidence_is_rejected() -> None:
+    rows = module.load_fixture_rows(NIPR_FIXTURE)
+    fake = [
+        'INCNDUMMY9999',
+        'Date: 09/24/2026 0300Z',
+        'Name(s): Invented User',
+        'Location: Invented Location',
+        'Computer Name: INVENTED-PC',
+        'User Information: Invented User Information',
+        'USB Device: Invented Device',
+        'Serial Number: INVENTED-SERIAL',
+        'Network Connection: On-Site',
+    ]
+    for prefix in ('> ', '- '):
+        response = _nipr_response(rows) + '\n\n' + '\n'.join(prefix + line for line in fake)
+        result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+        assert not result['passed'], (prefix, result)
+        assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
+
+
 def test_wrong_recipient_is_rejected() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     response = _nipr_response(rows).replace(module.NIPR_RECIPIENT, 'wrong@example.mil', 1)
@@ -349,6 +369,7 @@ def main() -> int:
         test_indented_duplicate_notes_is_rejected,
         test_unknown_incident_label_is_rejected,
         test_incident_evidence_after_message_fence_is_rejected,
+        test_markdown_prefixed_incident_evidence_is_rejected,
         test_wrong_recipient_is_rejected,
         test_bounded_prior_count_clarification_passes,
         test_generic_bluf_clarification_fails,

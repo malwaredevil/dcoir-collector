@@ -17,6 +17,18 @@ WITHOUT_TRANSFER_ACTION = (
 )
 # Only a NIPR destination is unsafe; "from NIPR to SIPR" is the governed direction.
 NIPR_DESTINATION = r"\b(?:to|into|onto|on|via|through|over|in)\s+(?:the\s+)?nipr\b"
+ANAPHORIC_REVOCATION = (
+    r"\b(?:do not|don't|must not|shall not|should not|cannot|can't|never)\s+"
+    r"(?:do\s+(?:so|that|it)|proceed|continue)\b|"
+    r"\b(?:this|that|it)\s+(?:must not|shall not|should not|cannot|can't)\s+"
+    r"(?:happen|occur|proceed|continue)\b"
+)
+GENERIC_TRANSFER_REVOCATION = (
+    r"\b(?:disregard|ignore|cancel|revoke|revoked|withdraw|override|reverse)\b"
+    r".{0,48}\b(?:transfer|instruction|instructions|preceding|above)\b|"
+    r"\b(?:preceding|above)\b.{0,32}\b(?:instruction|instructions)\b.{0,24}"
+    r"\b(?:revoked|cancelled|canceled|withdrawn|overridden|reversed)\b"
+)
 
 
 def _normalized(text: str) -> str:
@@ -24,7 +36,7 @@ def _normalized(text: str) -> str:
 
 
 def _clause_has_transfer_negation(clause: str) -> bool:
-    if re.search(WITHOUT_TRANSFER_ACTION, clause):
+    if re.search(ANAPHORIC_REVOCATION, clause) or re.search(WITHOUT_TRANSFER_ACTION, clause):
         return True
     negation = re.search(TRANSFER_NEGATION, clause)
     if not negation:
@@ -75,6 +87,8 @@ def prose_outside_blocks(text: str, labels: set[str]) -> str:
 
 def trailing_revisits_transfer_handling(trailing: str) -> bool:
     text = _normalized(trailing)
+    if re.search(ANAPHORIC_REVOCATION, text) or re.search(GENERIC_TRANSFER_REVOCATION, text):
+        return True
     if re.search(r'isafe|text document|sipr (?:recipient|subject|message draft)', text):
         return True
     return any(

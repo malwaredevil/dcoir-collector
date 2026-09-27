@@ -173,8 +173,21 @@ def _incident_shape_errors(block: str, lane: str, ticket: str) -> list[str]:
     return errors
 
 
-def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> list[str]:
+def _markdown_prefixed_incident_evidence(text: str) -> list[str]:
     errors: list[str] = []
+    labels = tuple(f'{label}:' for label in INCIDENT_LABELS)
+    for line in text.splitlines():
+        candidate = line.lstrip(' \t')
+        stripped = re.sub(r'^(?:(?:>\s*)|(?:[-*+]\s+)|(?:\d+[.)]\s+))+', '', candidate)
+        if stripped == candidate:
+            continue
+        if re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE) or stripped.startswith(labels):
+            errors.append(f'final response contains Markdown-prefixed incident evidence: {candidate}')
+    return errors
+
+
+def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> list[str]:
+    errors = _markdown_prefixed_incident_evidence(text)
     expected_tickets = [
         _ticket(row)
         for lane in ('NIPR', 'SIPR')
