@@ -124,9 +124,14 @@ _INTERPRETATION_SURFACES = (
     "security_high_signal_summary_path",
 )
 
+# Elastic response-action syntax named either generically or by its concrete commands.
+_RESPONSE_ACTION_COMMAND = r"(?:upload\s+--file|execute\s+--command|get-file\s+--path)"
+# "Do not forget/hesitate/fail to X" instructs X; it is not a prohibition.
+_PROHIBITION = r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b(?!\s+(?:forget|hesitate|fail)\b)"
+
 _AFFIRMATIVE_MIX = re.compile(
     r"\b(?:paste|use|run|execute|wrap|mix|combine)\b[^.!?;\n]{0,120}"
-    r"\b(?:elastic\s+)?(?:endpoint\s+)?response[- ]action(?:\s+commands?|\s+syntax|\s+wrapper)?\b"
+    r"(?:\b(?:elastic\s+)?(?:endpoint\s+)?response[- ]action(?:\s+commands?|\s+syntax|\s+wrapper)?\b|" + _RESPONSE_ACTION_COMMAND + r")"
     r"[^.!?;\n]{0,100}\b(?:with|into|interchangeably\s+with|in\s+(?:the\s+)?same\s+shell\s+as)\b"
     r"[^.!?;\n]{0,70}\b(?:local|workstation)\s+(?:workstation\s+)?powershell\b"
     r"|\b(?:endpoint\s+)?response[- ]action(?:\s+commands?|\s+syntax|\s+wrapper)?\b"
@@ -136,11 +141,12 @@ _AFFIRMATIVE_MIX = re.compile(
 )
 
 _PROHIBITED_CROSS_LANE = re.compile(
-    r"\b(?:do not|don't|dont|must not|should not|never|avoid)\b[^.!?;\n]{0,100}"
+    _PROHIBITION + r"[^.!?;\n]{0,100}"
     r"\b(?:paste|use|run|execute|wrap|mix|combine)\b[^.!?;\n]{0,120}"
-    r"\b(?:elastic\s+)?response[- ]action(?:\s+commands?|\s+syntax)?\b[^.!?;\n]{0,100}"
+    r"(?:\b(?:elastic\s+)?response[- ]action(?:\s+commands?|\s+syntax)?\b|" + _RESPONSE_ACTION_COMMAND + r")"
+    r"[^.!?;\n]{0,100}"
     r"\b(?:into|in|with|as)\b[^.!?;\n]{0,60}\b(?:local|workstation)\s+powershell\b"
-    r"|\b(?:do not|don't|dont|must not|should not|never|avoid)\b[^.!?;\n]{0,100}"
+    r"|" + _PROHIBITION + r"[^.!?;\n]{0,100}"
     r"\b(?:paste|use|run|execute|wrap|mix|combine)\b[^.!?;\n]{0,120}"
     r"\b(?:local|workstation)\s+powershell(?:\s+commands?|\s+syntax)?\b[^.!?;\n]{0,100}"
     r"\b(?:into|in|with|as)\b[^.!?;\n]{0,60}\b(?:elastic\s+)?(?:endpoint\s+)?response\s+console\b",

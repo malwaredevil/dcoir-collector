@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from .gemini_behavioral_replay_scoring import score_forbidden_markers, score_marker_presence
 
 SCORER_MODULE_CHARACTER_CEILING = 15000
@@ -81,3 +82,20 @@ def run_negated_rejection_polarity_selftest() -> None:
     ):
         if score_forbidden_markers(response, [marker])["hits"]:
             raise SystemExit(f"Rejected forbidden marker was scored as asserted: {response}")
+
+
+def run_elastic_command_lane_separation_selftest() -> None:
+    """Concrete Elastic command names count as response-action syntax (live Terra run 36308610507)."""
+    context = (
+        "Use the Elastic endpoint response console for execute --command. "
+        "Local workstation PowerShell runs the collector for testing. "
+    )
+    for sentence, expected in (
+        ("Do not use `upload --file` or `execute --command` in local PowerShell.", True),
+        ("Never paste get-file --path into local workstation PowerShell.", True),
+        ("Do not forget to use execute --command in local PowerShell.", False),
+        ("Never fail to run execute --command in local workstation PowerShell.", False),
+        ("Use execute --command with local PowerShell interchangeably.", False),
+    ):
+        if has_execution_lane_separation(context + sentence) is not expected:
+            raise SystemExit(f"Elastic command lane separation expected {expected}: {sentence}")
