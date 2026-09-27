@@ -50,6 +50,15 @@ FIELD_COLUMNS = (
     ('Serial Number', 'Serial Number'),
     ('Network Connection', 'Network connection'),
 )
+CORRECTION_FIELD_COLUMNS = (*FIELD_COLUMNS, ('Notes', 'Notes'))
+
+
+def _correction_source_values(rows: list[dict[str, str]]) -> dict[str, set[str]]:
+    return {
+        label.casefold(): {value for row in rows if (value := _value(row, column)).strip()}
+        for label, column in CORRECTION_FIELD_COLUMNS
+    }
+
 def _norm_header(value: str) -> str:
     return re.sub(r'[^a-z0-9]+', '', value.lower())
 
@@ -349,7 +358,7 @@ def score_final_response(
             leading = _prose_outside_blocks(text[:transfer_matches[0].start()], FINAL_LABELS)
             if _trailing_revisits_transfer_handling(leading):
                 errors.append('content before SIPR Transfer Instructions revisits SIPR transfer handling')
-            errors.extend(_unexpected_prose_errors(leading + '\n' + trailing))
+            errors.extend(_unexpected_prose_errors(leading + '\n' + trailing, _correction_source_values(rows)))
     else:
         values: dict[str, str] = {}
         for label in ['Recipient', 'Subject', 'Message Draft']:
@@ -366,7 +375,7 @@ def score_final_response(
         if opening not in body:
             errors.append('message body missing exact governed opening/counts')
         errors.extend(_row_errors(body, rows, 'NIPR') + _body_line_errors(body, 'NIPR', opening))
-        errors.extend(_unexpected_prose_errors(_prose_outside_blocks(text, FINAL_LABELS)))
+        errors.extend(_unexpected_prose_errors(_prose_outside_blocks(text, FINAL_LABELS), _correction_source_values(rows)))
         for label in ['NIPR Recipient', 'SIPR Recipient', 'SIPR Message Draft', 'SIPR Transfer Instructions']:
             if _label_matches(text, label):
                 errors.append(f'NIPR-only response unexpectedly includes {label}:')

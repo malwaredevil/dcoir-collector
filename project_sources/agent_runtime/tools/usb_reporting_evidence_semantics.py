@@ -23,14 +23,7 @@ INCIDENT_LABELS = (
 )
 # Governed Field / Current Value / Suggested Value source-correction labels and
 # correction leads are the only field-like lines permitted outside the drafts.
-CORRECTION_LABELS = frozenset({
-    'field', 'current value', 'suggested value',
-    'correction', 'correction needed', 'source correction', 'source correction needed',
-})
-CORRECTION_PROSE = re.compile(
-    r'\b(?:source corrections?|corrections?|corrected|suggested value|current value|approv(?:e|al)|'
-    r'confirm(?:ation)?)\b', re.I,
-)
+CORRECTION_LABELS = frozenset({'field', 'current value', 'suggested value'})
 CLOSING = 'Please let us know if there are any questions.'
 FIELD_LIKE = re.compile(r'^([A-Za-z][A-Za-z0-9 ()/_-]{0,63}):(.*)$')
 LABEL_CONNECTORS = frozenset({'a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'per', 'the', 'to', 'with'})
@@ -41,6 +34,18 @@ CLARIFICATION_RECORD_OBJECT = re.compile(
     r'\b(?:usb\s+violations?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
 )
 CLARIFICATION_COUNT_SCOPE = re.compile(r'\b(?:counts?|number|total|overall|combined|how\s+many)\b', re.I)
+CLARIFICATION_COUNT_OBJECT = re.compile(
+    r'^\s*(?:me\s+|us\s+)?(?:the\s+)?(?:(?:last|previous)\s+week(?:[\'’]s)?\s+)?'
+    r'(?:(?:single|overall|combined|total)\s+){0,2}(?:'
+    r'(?:number|count|total)(?:\s+of)?\s+(?:nipr\s+and\s+sipr\s+)?usb\s+violations?'
+    r'|(?:nipr\s+and\s+sipr\s+)?usb\s+violations?\s+(?:number|count|total)'
+    r')\b',
+    re.I,
+)
+CLARIFICATION_SELF_ACTION = re.compile(
+    r"(?:\b(?:before|after|once)\s+i|\bi(?:'ll|\s+will|\s+can)|"
+    r"\bwe(?:'ll|\s+will|\s+can)|\blet\s+me)\s*$", re.I,
+)
 
 
 CLARIFICATION_VOCABULARY = frozenset('''
@@ -67,13 +72,20 @@ def clarification_content_errors(text: str) -> list[str]:
         errors.append('clarification response requests more than the prior-week overall count: ' + ', '.join(extra))
     if re.search(r'\b(?:send|provide|share|give)(?:\s+[a-z]+){0,7}\s+(?:reports?|data|rows?|incidents?)\b', lower):
         errors.append('clarification response requests more than the prior-week overall count: source reports/data')
-    first_quantity = CLARIFICATION_COUNT_SCOPE.search(lower)
     for action in CLARIFICATION_DELIVERY.finditer(lower):
-        if first_quantity and action.start() > first_quantity.start():
+        prefix = lower[max(0, action.start() - 24):action.start()]
+        if CLARIFICATION_SELF_ACTION.search(prefix):
             continue
-        tail = lower[action.end():action.end() + 140]
-        record = CLARIFICATION_RECORD_OBJECT.search(tail)
-        if record and not CLARIFICATION_COUNT_SCOPE.search(tail[:record.start()]):
+        if action.group(0).lower() == 'draft' and re.search(r'\b(?:the|a|this|that)\s*$', prefix):
+            continue
+        tail = lower[action.end():action.end() + 180]
+        self_clause = re.search(r'\b(?:so|before|after|once)\s+(?:i|we)\b', tail)
+        object_tail = tail[:self_clause.start()] if self_clause else tail
+        record = CLARIFICATION_RECORD_OBJECT.search(object_tail)
+        if not record:
+            continue
+        count_object = CLARIFICATION_COUNT_OBJECT.match(object_tail)
+        if not count_object or CLARIFICATION_RECORD_OBJECT.search(object_tail[count_object.end():]):
             errors.append('clarification response requests more than the prior-week overall count: delivery or violation records')
             break
     if 'nipr' in lower and 'sipr' in lower and re.search(r'\bcounts\b', lower) and not re.search(r'\b(?:combined|overall)\b', lower):
@@ -134,14 +146,35 @@ def _is_correction_line(stripped: str) -> bool:
     return bool(match) and match.group(1).strip().casefold() in CORRECTION_LABELS
 
 
-def unexpected_prose_errors(prose: str) -> list[str]:
-    """Outside the drafts, only real source-correction content may appear."""
+def unexpected_prose_errors(
+    prose: str, correction_source_values: dict[str, set[str]] | None = None,
+) -> list[str]:
+    """Outside drafts, permit only complete source-backed correction records."""
     errors: list[str] = []
-    for line in prose.splitlines():
-        stripped = strip_presentation(line.strip())
-        if not stripped or _is_correction_line(stripped) or CORRECTION_PROSE.search(stripped):
+    lines = [strip_presentation(line.strip()) for line in prose.splitlines() if strip_presentation(line.strip())]
+    source_values = correction_source_values or {}
+    index = 0
+    while index < len(lines):
+        if index + 2 >= len(lines):
+            errors.append(f'final response contains prose outside the governed drafts: {lines[index]}')
+            break
+        parsed = [FIELD_LIKE.match(lines[index + offset]) for offset in range(3)]
+        labels = [item.group(1).strip().casefold() if item else '' for item in parsed]
+        if labels != ['field', 'current value', 'suggested value']:
+            errors.append(f'final response contains prose outside the governed drafts: {lines[index]}')
+            index += 1
             continue
-        errors.append(f'final response contains prose outside the governed drafts: {line.strip()}')
+        field = parsed[0].group(2).strip()
+        current = parsed[1].group(2).strip()
+        suggested = parsed[2].group(2).strip()
+        if not field or not current or not suggested:
+            errors.append('final response contains incomplete source correction values')
+        allowed_current = source_values.get(field.casefold())
+        if allowed_current is None:
+            errors.append(f'final response source correction uses unknown field: {field}')
+        elif current not in allowed_current:
+            errors.append(f'final response source correction current value is not source-backed: {field}: {current}')
+        index += 3
     return errors
 
 

@@ -112,6 +112,8 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         'Please compose all NIPR and SIPR USB violations for last week and the overall number.',
         'Please finalize all NIPR and SIPR USB violations for last week and the total count.',
         'Please prepare all USB violation details from last week and the overall count.',
+        "What was last week's overall number of USB violations and email me all NIPR and SIPR USB violations?",
+        'Please email me the overall number and all NIPR and SIPR USB violations for last week?',
     ):
         result = module.score_clarification_response(hostile)
         assert not result['passed'], (hostile, result)
@@ -122,17 +124,24 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         result = module.score_clarification_response(count_only)
         assert result['passed'], (count_only, result)
 
-    # Governed Field / Current Value / Suggested Value correction notes remain allowed.
-    correction = (
-        '\n\nCorrection needed: confirm the Network Connection before sending.\n'
-        'Field: Network Connection\nCurrent Value: onsite\nSuggested Value: On-Site'
+    # Only complete, source-backed Field / Current Value / Suggested Value correction records are allowed.
+    correction_rows = [dict(row) for row in rows]
+    correction_rows[0][module._norm_header('Network connection')] = 'onsite'
+    correction_base = nipr_response(correction_rows)
+    correction = '\n\nField: Network Connection\nCurrent Value: onsite\nSuggested Value: On-Site'
+    result = module.score_final_response(
+        correction_base + correction, correction_rows, start_date=start, end_date=end, previous_count=previous,
     )
-    result = score(base + correction)
     assert result['passed'], result
-    # A long prose lead-in ending in a colon is not a field label.
-    prose = '\n\nPlease confirm the Network Connection value for the first row: the source cell is ambiguous.'
-    result = score(base + prose)
-    assert result['passed'], result
+    for invented in (
+        'Correction: these incidents are not violations.',
+        'Source correction: all devices were authorized.',
+        'Approval status is cleared.',
+        'Correction needed: all users were cleared by leadership.',
+        'Field: Network Connection\nCurrent Value: INVENTED\nSuggested Value: On-Site',
+        'Please confirm the Network Connection value for the first row: the source cell is ambiguous.',
+    ):
+        assert_rejected(base + '\n\n' + invented, 'prose outside the governed drafts', 'incomplete source correction', 'not source-backed')
 
     return [
         'indented_duplicate_incident_fields',

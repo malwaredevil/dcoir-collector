@@ -46,7 +46,24 @@ TURN_LIST_KEYS = (
 )
 OPTIONAL_TURN_LIST_KEYS = ("required_markers", "forbidden_markers", "literal_forbidden_markers")
 TURN_TEXT_KEYS = ("speaker", "content", "scoring_notes")
-FIXTURE_LIST_KEYS = ("required_markers", "forbidden_markers")
+SUPPORTED_ANOMALY_CHECKS = frozenset({
+    "contradictory_next_steps",
+    "duplicate_final_sections",
+    "incomplete_collector_procedure_actionability",
+    "invented_tool_or_workflow",
+    "missing_execution_lane_separation",
+    "missing_state_gap_language",
+    "output_shape_drift",
+    "unsupported_certainty_claims",
+})
+OPTIONAL_TURN_LIST_KEYS = (*OPTIONAL_TURN_LIST_KEYS, "anomaly_checks")
+FIXTURE_TEXT_KEYS = ("fixture_id", "title", "system_surface")
+FIXTURE_INT_LIST_KEYS = ("source_issue_numbers", "source_pr_numbers")
+FIXTURE_STRING_LIST_KEYS = (
+    "scenario_tags", "expected_behaviors", "forbidden_behaviors",
+    "required_markers", "forbidden_markers", "expected_next_move_shapes", "anomaly_checks",
+)
+FIXTURE_DICT_KEYS = ("model_target_profile", "available_evidence_by_turn", "pass_thresholds", "report_expectations")
 
 
 REQUIRED_RESPONSE_PACK_KEYS = [
@@ -127,6 +144,25 @@ def validate_turn(turn: Any) -> List[ValidationMessage]:
                     f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must contain only non-empty strings",
                 )
             )
+    if "minimum_required_marker_ratio" in turn:
+        value = turn.get("minimum_required_marker_ratio")
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not 0 <= float(value) <= 1:
+            messages.append(ValidationMessage("error", "turn minimum_required_marker_ratio must be a number from 0 to 1"))
+    if "maximum_anomaly_count" in turn:
+        value = turn.get("maximum_anomaly_count")
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            messages.append(ValidationMessage("error", "turn maximum_anomaly_count must be a non-negative integer"))
+
+    anomaly_checks = turn.get("anomaly_checks")
+    if isinstance(anomaly_checks, list):
+        unknown_checks = sorted({item for item in anomaly_checks if isinstance(item, str) and item.strip()} - SUPPORTED_ANOMALY_CHECKS)
+        if unknown_checks:
+            messages.append(
+                ValidationMessage(
+                    "error",
+                    "turn anomaly_checks contains unsupported values: " + ", ".join(unknown_checks),
+                )
+            )
     return messages
 
 
@@ -142,6 +178,35 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
                 f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} is missing keys: {', '.join(missing)}",
             )
         )
+
+    for key in FIXTURE_TEXT_KEYS:
+        if key in fixture and (not isinstance(fixture.get(key), str) or not fixture.get(key).strip()):
+            messages.append(ValidationMessage("error", f"fixture field {key} must be a non-empty string"))
+    for key in FIXTURE_INT_LIST_KEYS:
+        if key not in fixture:
+            continue
+        value = fixture.get(key)
+        if not isinstance(value, list):
+            messages.append(ValidationMessage("error", f"fixture field {key} must be a list"))
+        elif any(isinstance(item, bool) or not isinstance(item, int) for item in value):
+            messages.append(ValidationMessage("error", f"fixture field {key} must contain only integers"))
+    for key in FIXTURE_STRING_LIST_KEYS:
+        if key not in fixture:
+            continue
+        value = fixture.get(key)
+        if not isinstance(value, list):
+            messages.append(ValidationMessage("error", f"fixture field {key} must be a list"))
+        elif any(not isinstance(item, str) or not item.strip() for item in value):
+            messages.append(ValidationMessage("error", f"fixture field {key} must contain only non-empty strings"))
+    if "artifact_inputs" in fixture:
+        artifact_inputs = fixture.get("artifact_inputs")
+        if not isinstance(artifact_inputs, list):
+            messages.append(ValidationMessage("error", "fixture field artifact_inputs must be a list"))
+        elif any(not isinstance(item, dict) for item in artifact_inputs):
+            messages.append(ValidationMessage("error", "fixture field artifact_inputs must contain only objects"))
+    for key in FIXTURE_DICT_KEYS:
+        if key in fixture and not isinstance(fixture.get(key), dict):
+            messages.append(ValidationMessage("error", f"fixture field {key} must be an object"))
 
     turns = fixture.get("turns", [])
     if not isinstance(turns, list) or not turns:
@@ -187,23 +252,35 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
                     f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} missing model_target_profile.{required_key}",
                 )
             )
+        elif not isinstance(model_target_profile.get(required_key), str) or not model_target_profile.get(required_key).strip():
+            messages.append(ValidationMessage("error", f"model_target_profile.{required_key} must be a non-empty string"))
 
-    for key in FIXTURE_LIST_KEYS:
-        if key not in fixture:
-            continue
-        value = fixture.get(key)
-        if not isinstance(value, list):
+    thresholds = fixture.get("pass_thresholds", {})
+    if isinstance(thresholds, dict):
+        ratio = thresholds.get("minimum_required_marker_ratio")
+        if ratio is not None and (isinstance(ratio, bool) or not isinstance(ratio, (int, float)) or not 0 <= float(ratio) <= 1):
+            messages.append(ValidationMessage("error", "pass_thresholds.minimum_required_marker_ratio must be a number from 0 to 1"))
+        for key in ("maximum_forbidden_marker_hits", "maximum_anomaly_count", "maximum_turn_anomaly_count"):
+            value = thresholds.get(key)
+            if value is not None and (isinstance(value, bool) or not isinstance(value, int) or value < 0):
+                messages.append(ValidationMessage("error", f"pass_thresholds.{key} must be a non-negative integer"))
+
+    report_expectations = fixture.get("report_expectations", {})
+    if isinstance(report_expectations, dict):
+        for key in ("require_json_summary", "require_markdown_report"):
+            if key in report_expectations and not isinstance(report_expectations.get(key), bool):
+                messages.append(ValidationMessage("error", f"report_expectations.{key} must be boolean"))
+        if "report_name" in report_expectations and (not isinstance(report_expectations.get("report_name"), str) or not report_expectations.get("report_name").strip()):
+            messages.append(ValidationMessage("error", "report_expectations.report_name must be a non-empty string"))
+
+    fixture_anomaly_checks = fixture.get("anomaly_checks")
+    if isinstance(fixture_anomaly_checks, list):
+        unknown_checks = sorted({item for item in fixture_anomaly_checks if isinstance(item, str) and item.strip()} - SUPPORTED_ANOMALY_CHECKS)
+        if unknown_checks:
             messages.append(
                 ValidationMessage(
                     "error",
-                    f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must be a list",
-                )
-            )
-        elif any(not isinstance(item, str) or not item.strip() for item in value):
-            messages.append(
-                ValidationMessage(
-                    "error",
-                    f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must contain only non-empty strings",
+                    "fixture anomaly_checks contains unsupported values: " + ", ".join(unknown_checks),
                 )
             )
 

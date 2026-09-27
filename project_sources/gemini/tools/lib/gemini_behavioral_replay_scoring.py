@@ -24,6 +24,7 @@ from .gemini_behavioral_replay_text_scoring import (
 )
 from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from .gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
+from .gemini_behavioral_replay_schema import SUPPORTED_ANOMALY_CHECKS
 
 def _term_has_assertive_semantics(text: str, term: str) -> bool:
     surface = str(text).lower()
@@ -185,9 +186,17 @@ def score_forbidden_markers(
     }
 
 
-def detect_anomalies(response_text: str, requested_checks: List[str]) -> List[Dict[str, str]]:
+def detect_anomalies(response_text: str, requested_checks: Any) -> List[Dict[str, str]]:
     lowered = normalize_text(response_text)
     anomalies: List[Dict[str, str]] = []
+    if not isinstance(requested_checks, list):
+        return [{"type": "invalid_anomaly_checks", "detail": "anomaly_checks must be a list"}]
+    invalid = [
+        item for item in requested_checks
+        if not isinstance(item, str) or not item.strip() or item not in SUPPORTED_ANOMALY_CHECKS
+    ]
+    if invalid:
+        return [{"type": "invalid_anomaly_checks", "detail": "invalid anomaly_checks"}]
 
     if "unsupported_certainty_claims" in requested_checks:
         hits = _find_contextual_term_hits(

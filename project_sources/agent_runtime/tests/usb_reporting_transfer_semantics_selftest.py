@@ -75,11 +75,14 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
     assert not result['passed'], result
     assert any('SIPR Transfer Instructions label' in error for error in result['errors'])
 
-    correction = mixed_response(rows) + (
-        '\n\nCorrection needed: the NIPR row has an ambiguous Network Connection; '
-        'do not send until the operator confirms it.'
+    correction_rows = [dict(row) for row in rows]
+    correction_rows[0][module._norm_header('Network connection')] = 'onsite'
+    correction = mixed_response(correction_rows) + (
+        '\n\nField: Network Connection\nCurrent Value: onsite\nSuggested Value: On-Site'
     )
-    result = score(correction)
+    result = module.score_final_response(
+        correction, correction_rows, start_date=start, end_date=end, previous_count=previous,
+    )
     assert result['passed'], result
 
     trailing_variants = [

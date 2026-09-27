@@ -361,6 +361,41 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         else:
             raise SystemExit(f"Prompt builder must fail closed on malformed scalar field {scalar_key}={scalar_value!r}")
 
+    for anomaly_value in (None, 7, "   ", [""], ["unknown_check"]):
+        malformed_anomaly = json.loads(json.dumps(first_fixture))
+        malformed_anomaly["turns"][0]["anomaly_checks"] = anomaly_value
+        anomaly_messages = validate_fixture_shape(malformed_anomaly)
+        if not any(message.level == "error" and "anomaly_checks" in message.message for message in anomaly_messages):
+            raise SystemExit(f"Malformed/unknown anomaly_checks must fail schema validation: {anomaly_value!r}: {anomaly_messages}")
+        anomaly_row = {"fixture": malformed_anomaly, "validation_messages": anomaly_messages}
+        with patch.object(replay_selection, "load_fixture_entry", return_value=anomaly_row):
+            anomaly_selected, anomaly_meta = replay_selection.resolve_fixtures(
+                invalid_args, FIXTURES_ROOT.resolve(), Path(__file__)
+            )
+        if anomaly_selected or anomaly_meta.get("selected_fixtures_to_run"):
+            raise SystemExit(f"Invalid anomaly_checks fixture must be rejected before live replay execution: {anomaly_meta}")
+    for fixture_key, bad_value in (
+        ("fixture_id", None),
+        ("title", []),
+        ("source_issue_numbers", "bad"),
+        ("scenario_tags", {}),
+        ("artifact_inputs", "bad"),
+        ("expected_behaviors", 7),
+        ("pass_thresholds", "bad"),
+        ("report_expectations", []),
+    ):
+        malformed_required = json.loads(json.dumps(first_fixture))
+        malformed_required[fixture_key] = bad_value
+        required_messages = validate_fixture_shape(malformed_required)
+        if not any(message.level == "error" and fixture_key in message.message for message in required_messages):
+            raise SystemExit(f"Malformed required fixture field must fail schema validation: {fixture_key}={bad_value!r}: {required_messages}")
+
+    malformed_fixture_anomaly = json.loads(json.dumps(first_fixture))
+    malformed_fixture_anomaly["anomaly_checks"] = ["unknown_check"]
+    fixture_anomaly_messages = validate_fixture_shape(malformed_fixture_anomaly)
+    if not any(message.level == "error" and "fixture anomaly_checks" in message.message for message in fixture_anomaly_messages):
+        raise SystemExit(f"Unknown fixture-level anomaly check must fail schema validation: {fixture_anomaly_messages}")
+
     malformed_fixture = json.loads(json.dumps(first_fixture))
     malformed_fixture["turns"][0]["allowed_assumptions"] = None
     malformed_messages = validate_fixture_shape(malformed_fixture)
