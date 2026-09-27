@@ -350,8 +350,10 @@ def score_final_response(
         if len(transfer_matches) != 1:
             errors.append(f'expected exactly one SIPR Transfer Instructions label, found {len(transfer_matches)}')
         else:
-            transfer, *rest = re.split(r'\n[ \t]*\n', text[transfer_matches[0].end():].strip(), maxsplit=1)
-            trailing = rest[0] if rest else ''
+            transfer_section = text[transfer_matches[0].end():].strip()
+            transfer_lines = transfer_section.splitlines()
+            transfer = transfer_lines[0].strip() if transfer_lines else ''
+            trailing = '\n'.join(transfer_lines[1:]).strip()
             errors.extend(_transfer_instruction_errors(transfer, ISAFE_URL))
             if _trailing_revisits_transfer_handling(trailing):
                 errors.append('content after SIPR Transfer Instructions revisits SIPR transfer handling')

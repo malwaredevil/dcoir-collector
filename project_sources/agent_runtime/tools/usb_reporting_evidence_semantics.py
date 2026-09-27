@@ -34,6 +34,21 @@ CLARIFICATION_RECORD_OBJECT = re.compile(
     r'\b(?:usb\s+violations?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
 )
 CLARIFICATION_COUNT_SCOPE = re.compile(r'\b(?:counts?|number|total|overall|combined|how\s+many)\b', re.I)
+CLARIFICATION_COUNT_REFERENCE = re.compile(
+    r"\b(?:"
+    r"how\s+many\s+(?:nipr\s+and\s+sipr\s+)?usb\s+violations?"
+    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:(?:single|overall|combined|total)\s+){0,2}"
+    r"(?:number|count|total)(?:\s+of)?\s+(?:all\s+)?(?:nipr\s+and\s+sipr\s+)?usb\s+violations?"
+    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:all\s+)?(?:nipr\s+and\s+sipr\s+)?"
+    r"usb\s+violations?\s+(?:(?:single|overall|combined|total)\s+){0,2}(?:number|count|total)"
+    r")\b",
+    re.I,
+)
+CLARIFICATION_TRAILING_SELF_ACTION = re.compile(
+    r"\b(?:i(?:['’]ll|\s+will|\s+can)|we(?:['’]ll|\s+will|\s+can)|"
+    r"(?:before|after|once)\s+i|so\s+i)\b",
+    re.I,
+)
 CLARIFICATION_COUNT_OBJECT = re.compile(
     r'^\s*(?:me\s+|us\s+)?(?:the\s+)?(?:(?:last|previous)\s+week(?:[\'’]s)?\s+)?'
     r'(?:(?:single|overall|combined|total)\s+){0,2}(?:'
@@ -72,6 +87,16 @@ def clarification_content_errors(text: str) -> list[str]:
         errors.append('clarification response requests more than the prior-week overall count: ' + ', '.join(extra))
     if re.search(r'\b(?:send|provide|share|give)(?:\s+[a-z]+){0,7}\s+(?:reports?|data|rows?|incidents?)\b', lower):
         errors.append('clarification response requests more than the prior-week overall count: source reports/data')
+    self_action = CLARIFICATION_TRAILING_SELF_ACTION.search(lower)
+    request_scope = lower[:self_action.start()] if self_action else lower
+    count_spans = [match.span() for match in CLARIFICATION_COUNT_REFERENCE.finditer(request_scope)]
+    for record in CLARIFICATION_RECORD_OBJECT.finditer(request_scope):
+        token = record.group(0).lower()
+        if token.startswith('usb violation'):
+            if any(start <= record.start() and record.end() <= end for start, end in count_spans):
+                continue
+        errors.append('clarification response requests more than the prior-week overall count: violation records')
+        break
     for action in CLARIFICATION_DELIVERY.finditer(lower):
         prefix = lower[max(0, action.start() - 24):action.start()]
         if CLARIFICATION_SELF_ACTION.search(prefix):

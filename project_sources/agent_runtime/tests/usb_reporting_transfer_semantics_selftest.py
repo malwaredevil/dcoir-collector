@@ -80,6 +80,18 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
     correction = mixed_response(correction_rows) + (
         '\n\nField: Network Connection\nCurrent Value: onsite\nSuggested Value: On-Site'
     )
+    for invented in (
+        'Approval status is cleared.',
+        'Correction: these incidents are not violations.',
+        'Source correction: all devices were authorized.',
+        'Field: Approval status\nCurrent Value: Pending\nSuggested Value: cleared.',
+    ):
+        hostile = mixed_response(rows) + '\n' + invented
+        hostile_result = module.score_final_response(
+            hostile, rows, start_date=start, end_date=end, previous_count=previous,
+        )
+        assert not hostile_result['passed'], (invented, hostile_result)
+
     result = module.score_final_response(
         correction, correction_rows, start_date=start, end_date=end, previous_count=previous,
     )
