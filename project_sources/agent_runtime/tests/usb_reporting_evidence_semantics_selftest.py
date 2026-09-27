@@ -105,6 +105,22 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         assert result['passed'], (text, result)
     broad = module.score_clarification_response('Please send us all of the USB violation reports for last week so we can count.')
     assert not broad['passed'], broad
+    for hostile in (
+        'Please email me all NIPR and SIPR USB violations for last week and the overall number.',
+        'Please write all NIPR and SIPR USB violations for last week and the overall number.',
+        'Please provide all USB violation records from last week and the combined total.',
+        'Please compose all NIPR and SIPR USB violations for last week and the overall number.',
+        'Please finalize all NIPR and SIPR USB violations for last week and the total count.',
+        'Please prepare all USB violation details from last week and the overall count.',
+    ):
+        result = module.score_clarification_response(hostile)
+        assert not result['passed'], (hostile, result)
+    for count_only in (
+        'Please provide the overall number of USB violations from last week.',
+        'Please give me the combined count of USB violations from last week.',
+    ):
+        result = module.score_clarification_response(count_only)
+        assert result['passed'], (count_only, result)
 
     # Governed Field / Current Value / Suggested Value correction notes remain allowed.
     correction = (

@@ -40,20 +40,43 @@ def build_request_body(
     }
 
 
-def extract_text(payload: Dict[str, Any]) -> str:
+def _extract_text_with_shape(payload: Any) -> tuple[str, bool]:
     if not isinstance(payload, dict):
-        return ""
+        return "", False
     direct = payload.get("output_text")
-    if isinstance(direct, str) and direct.strip():
-        return direct.strip()
+    if direct is not None:
+        if not isinstance(direct, str):
+            return "", False
+        if direct.strip():
+            return direct.strip(), True
+    raw_output = payload.get("output")
+    if raw_output is None:
+        return "", True
+    if not isinstance(raw_output, list):
+        return "", False
     out: List[str] = []
-    for item in payload.get("output") or []:
-        if not isinstance(item, dict) or item.get("type") != "message":
+    for item in raw_output:
+        if not isinstance(item, dict):
+            return "", False
+        if item.get("type") != "message":
             continue
-        for content in item.get("content") or []:
-            if isinstance(content, dict) and content.get("type") == "output_text" and isinstance(content.get("text"), str):
-                out.append(content["text"])
-    return "\n".join(out).strip()
+        raw_content = item.get("content")
+        if not isinstance(raw_content, list):
+            return "", False
+        for content in raw_content:
+            if not isinstance(content, dict):
+                return "", False
+            if content.get("type") == "output_text":
+                text = content.get("text")
+                if not isinstance(text, str):
+                    return "", False
+                out.append(text)
+    return "\n".join(out).strip(), True
+
+
+def extract_text(payload: Dict[str, Any]) -> str:
+    text, _ = _extract_text_with_shape(payload)
+    return text
 
 
 def call_openai_body(
@@ -109,9 +132,11 @@ def call_openai_body(
             return {"ok": False, "attempts": attempts, "error": "invalid_json"}
         if not isinstance(payload, dict):
             return {"ok": False, "attempts": attempts, "error": "invalid_response_shape"}
-        text = extract_text(payload)
         if payload.get("status", "completed") != "completed":
             return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}
+        text, response_shape_ok = _extract_text_with_shape(payload)
+        if not response_shape_ok:
+            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape", "response_id": payload.get("id")}
         if not text:
             return {"ok": False, "attempts": attempts, "error": "empty_output", "response_id": payload.get("id")}
         return {"ok": True, "attempts": attempts, "response_text": text, "response_id": payload.get("id")}

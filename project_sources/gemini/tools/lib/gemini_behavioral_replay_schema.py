@@ -45,6 +45,7 @@ TURN_LIST_KEYS = (
     "forbidden_behavior_tags",
 )
 OPTIONAL_TURN_LIST_KEYS = ("required_markers", "forbidden_markers", "literal_forbidden_markers")
+TURN_TEXT_KEYS = ("speaker", "content", "scoring_notes")
 FIXTURE_LIST_KEYS = ("required_markers", "forbidden_markers")
 
 
@@ -98,6 +99,14 @@ def validate_turn(turn: Any) -> List[ValidationMessage]:
     turn_id = turn.get("turn_id")
     if "turn_id" in turn and (not isinstance(turn_id, str) or not turn_id.strip()):
         messages.append(ValidationMessage("error", "turn_id must be a non-empty string"))
+    for key in TURN_TEXT_KEYS:
+        if key in turn and (not isinstance(turn.get(key), str) or not turn.get(key).strip()):
+            messages.append(
+                ValidationMessage(
+                    "error",
+                    f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must be a non-empty string",
+                )
+            )
     for key in (*TURN_LIST_KEYS, *OPTIONAL_TURN_LIST_KEYS):
         if key not in turn:
             continue

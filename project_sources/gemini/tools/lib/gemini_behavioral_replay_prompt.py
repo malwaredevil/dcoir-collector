@@ -21,16 +21,22 @@ def _string_items(value: Any, field_name: str) -> list[str]:
     return value
 
 
+def _required_text(value: Any, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty string")
+    return value
+
+
 def behavioral_replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any], *, replay_label: str) -> str:
     fixture = fixture if isinstance(fixture, dict) else {}
     turn = turn if isinstance(turn, dict) else {}
     evidence_by_turn = fixture.get("available_evidence_by_turn", {})
     if not isinstance(evidence_by_turn, dict):
         raise ValueError("available_evidence_by_turn must be an object")
-    raw_turn_id = turn.get("turn_id")
-    if raw_turn_id is not None and not isinstance(raw_turn_id, str):
-        raise ValueError("turn_id must be a string")
-    turn_id = raw_turn_id or ""
+    turn_id = _required_text(turn.get("turn_id"), "turn_id")
+    _required_text(turn.get("speaker"), "speaker")
+    content = _required_text(turn.get("content"), "content")
+    _required_text(turn.get("scoring_notes"), "scoring_notes")
     evidence = _string_items(evidence_by_turn.get(turn_id, []), "available evidence")
     required = _string_items(turn.get("required_markers", fixture.get("required_markers", [])), "required_markers")
     forbidden = _string_items(turn.get("forbidden_markers", fixture.get("forbidden_markers", [])), "forbidden_markers")
@@ -57,5 +63,5 @@ def behavioral_replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any], *, r
         "Expected behavior tags: " + expected_text,
         "Required behavior markers to satisfy when accurate: " + required_text,
         "Forbidden claims to avoid or explicitly reject: " + forbidden_text,
-        "User turn:\n" + str(turn.get("content", "")).strip(),
+        "User turn:\n" + content.strip(),
     ])

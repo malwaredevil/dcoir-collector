@@ -36,9 +36,16 @@ FIELD_LIKE = re.compile(r'^([A-Za-z][A-Za-z0-9 ()/_-]{0,63}):(.*)$')
 LABEL_CONNECTORS = frozenset({'a', 'an', 'and', 'at', 'by', 'for', 'in', 'of', 'on', 'or', 'per', 'the', 'to', 'with'})
 TICKET_LINE = re.compile(r'(?:INCN|INCS)\S*', flags=re.IGNORECASE)
 
+CLARIFICATION_DELIVERY = re.compile(r'\b(?:email|send|share|write|prepare|provide|give|compose|finalize|finish|draft)\b', re.I)
+CLARIFICATION_RECORD_OBJECT = re.compile(
+    r'\b(?:usb\s+violations?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
+)
+CLARIFICATION_COUNT_SCOPE = re.compile(r'\b(?:counts?|number|total|overall|combined|how\s+many)\b', re.I)
+
+
 CLARIFICATION_VOCABULARY = frozenset('''
 a all and are before can combined compose could complete count counts did draft drafts email emails final
-finalize finish for give have how i in is it just know last let ll many me need nipr number of once overall please
+finalize finish for from give have how i in is it just know last let ll many me need nipr number of once overall please
 prepare previous prior provide report reported reports send share single sipr so tell that the there this
 to total us usb violation violations was we week weekly were what with would write you
 '''.split())
@@ -60,6 +67,15 @@ def clarification_content_errors(text: str) -> list[str]:
         errors.append('clarification response requests more than the prior-week overall count: ' + ', '.join(extra))
     if re.search(r'\b(?:send|provide|share|give)(?:\s+[a-z]+){0,7}\s+(?:reports?|data|rows?|incidents?)\b', lower):
         errors.append('clarification response requests more than the prior-week overall count: source reports/data')
+    first_quantity = CLARIFICATION_COUNT_SCOPE.search(lower)
+    for action in CLARIFICATION_DELIVERY.finditer(lower):
+        if first_quantity and action.start() > first_quantity.start():
+            continue
+        tail = lower[action.end():action.end() + 140]
+        record = CLARIFICATION_RECORD_OBJECT.search(tail)
+        if record and not CLARIFICATION_COUNT_SCOPE.search(tail[:record.start()]):
+            errors.append('clarification response requests more than the prior-week overall count: delivery or violation records')
+            break
     if 'nipr' in lower and 'sipr' in lower and re.search(r'\bcounts\b', lower) and not re.search(r'\b(?:combined|overall)\b', lower):
         errors.append('clarification response requests more than the prior-week overall count: separate NIPR/SIPR counts')
     for forbidden in ('readiness', 'normalize', 'normalized', 'evidence set', 'source data received', 'query', 'reporting window', 'date range'):

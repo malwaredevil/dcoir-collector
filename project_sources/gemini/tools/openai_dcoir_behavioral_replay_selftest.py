@@ -84,6 +84,21 @@ def main() -> int:
     if not any("fixture validation failed" in row.get("reason", "") for row in invalid_meta.get("rejected_selected_fixtures", [])):
         raise SystemExit(f"Schema-invalid fixture rejection reason was not preserved: {invalid_meta}")
 
+    malformed_scalar_fixture = json.loads(json.dumps(first_fixture))
+    malformed_scalar_fixture["turns"][0]["content"] = None
+    malformed_scalar_row = {
+        "fixture": malformed_scalar_fixture,
+        "validation_messages": validate_fixture_shape(malformed_scalar_fixture),
+    }
+    with patch.object(replay_selection, "load_fixture_entry", return_value=malformed_scalar_row):
+        scalar_selected, scalar_meta = replay_selection.resolve_fixtures(
+            invalid_args, FIXTURES_ROOT.resolve(), Path(__file__)
+        )
+    if scalar_selected or scalar_meta.get("selected_fixtures_to_run"):
+        raise SystemExit(f"Malformed scalar fixture must be rejected before live replay execution: {scalar_meta}")
+    if not any("field content must be a non-empty string" in row.get("reason", "") for row in scalar_meta.get("rejected_selected_fixtures", [])):
+        raise SystemExit(f"Malformed scalar fixture rejection reason was not preserved: {scalar_meta}")
+
     first_turn = first_fixture["turns"][0]
     body = build_request_body(package, first_fixture, first_turn, [], args)
     if body.get("model") != OPENAI_MODEL_ID or body.get("store") is not False or body.get("reasoning") != {"effort": "medium"}:
@@ -99,6 +114,12 @@ def main() -> int:
 
     if extract_text({"output": None}) or extract_text(["wrong-shape"]):
         raise SystemExit("Malformed/null Responses API output must extract as empty text.")
+    for malformed_output in (1, True, {}, "bad"):
+        if extract_text({"status": "completed", "output": malformed_output}):
+            raise SystemExit(f"Malformed Responses API output container must extract as empty text: {malformed_output!r}")
+    for malformed_content in (1, True, {}, "bad"):
+        if extract_text({"status": "completed", "output": [{"type": "message", "content": malformed_content}]}):
+            raise SystemExit(f"Malformed Responses API content container must extract as empty text: {malformed_content!r}")
 
     rejected_byovd = (
         ("confirmed malicious compromise", "Do not characterize this as confirmed malicious compromise without supporting telemetry."),
@@ -277,6 +298,25 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         null_output = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
     if null_output.get("ok") or null_output.get("error") != "empty_output":
         raise SystemExit(f"Null Responses API output must fail cleanly as empty_output: {null_output}")
+    for malformed_payload in (
+        {"id": "resp_num", "status": "completed", "output": 1},
+        {"id": "resp_bool", "status": "completed", "output": True},
+        {"id": "resp_obj", "status": "completed", "output": {}},
+        {"id": "resp_nested_num", "status": "completed", "output": [{"type": "message", "content": 1}]},
+        {"id": "resp_nested_bool", "status": "completed", "output": [{"type": "message", "content": True}]},
+        {"id": "resp_nested_obj", "status": "completed", "output": [{"type": "message", "content": {}}]},
+        {"id": "resp_output_item", "status": "completed", "output": [1]},
+        {"id": "resp_content_item", "status": "completed", "output": [{"type": "message", "content": [1]}]},
+        {"id": "resp_text_type", "status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": 7}]}]},
+        {"id": "resp_direct_type", "status": "completed", "output_text": 7, "output": []},
+    ):
+        class _MalformedShapeResponse(_IncompleteResponse):
+            def read(self, payload=malformed_payload):
+                return json.dumps(payload).encode("utf-8")
+        with patch.object(replay_live.urllib.request, "urlopen", return_value=_MalformedShapeResponse()):
+            malformed_shape = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+        if malformed_shape.get("ok") or malformed_shape.get("error") != "invalid_response_shape":
+            raise SystemExit(f"Malformed nested Responses API shape must fail cleanly: {malformed_payload!r}: {malformed_shape}")
     retry_args = argparse.Namespace(**{**vars(args), "max_retries": 3, "retry_base_seconds": 0.0})
     for raised, expected_error, expected_calls in (
         (TimeoutError("read timed out"), "read_timeout", 1),
@@ -300,6 +340,23 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         first_fixture, first_fixture["turns"][0], replay_label="DCOIR behavioral replay"
     ):
         raise SystemExit("OpenAI replay prompt must come from the shared behavioral replay prompt builder.")
+    for scalar_key, scalar_value in (
+        ("speaker", None), ("speaker", []), ("speaker", "   "),
+        ("content", None), ("content", []), ("content", "   "),
+        ("scoring_notes", None), ("scoring_notes", []), ("scoring_notes", "   "),
+    ):
+        malformed_scalar = json.loads(json.dumps(first_fixture))
+        malformed_scalar["turns"][0][scalar_key] = scalar_value
+        scalar_messages = validate_fixture_shape(malformed_scalar)
+        if not any(message.level == "error" and f"field {scalar_key} must be a non-empty string" in message.message for message in scalar_messages):
+            raise SystemExit(f"Malformed scalar turn field must fail schema validation: {scalar_key}={scalar_value!r}: {scalar_messages}")
+        try:
+            behavioral_replay_prompt(malformed_scalar, malformed_scalar["turns"][0], replay_label="DCOIR behavioral replay")
+        except ValueError:
+            pass
+        else:
+            raise SystemExit(f"Prompt builder must fail closed on malformed scalar field {scalar_key}={scalar_value!r}")
+
     malformed_fixture = json.loads(json.dumps(first_fixture))
     malformed_fixture["turns"][0]["allowed_assumptions"] = None
     malformed_messages = validate_fixture_shape(malformed_fixture)
@@ -329,7 +386,13 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         raise SystemExit(f"Null model_target_profile must fail validation: {profile_messages}")
     if not any(message.level == "error" for message in validate_fixture_shape([])):
         raise SystemExit("Non-object fixture root must fail validation without raising.")
-    behavioral_replay_prompt({}, None, replay_label="DCOIR behavioral replay")
+    try:
+        behavioral_replay_prompt({}, None, replay_label="DCOIR behavioral replay")
+    except ValueError as exc:
+        if "turn_id must be a non-empty string" not in str(exc):
+            raise SystemExit(f"Empty fixture/turn must fail closed with the expected reason: {exc}")
+    else:
+        raise SystemExit("Empty fixture/turn must fail closed before prompt construction.")
     malformed_turn_id = json.loads(json.dumps(first_fixture))
     malformed_turn_id["turns"][0]["turn_id"] = []
     turn_id_messages = validate_fixture_shape(malformed_turn_id)
