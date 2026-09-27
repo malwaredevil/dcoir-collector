@@ -134,6 +134,11 @@ on:
         default: openai_dcoir_analyst
         type: choice
         options: [openai_dcoir_analyst, openai_usb_reporting]
+      openai_custom_fixtures_csv:
+        description: Optional comma-separated OpenAI replay fixture IDs; blank runs all active OpenAI fixtures
+        required: false
+        default: ""
+        type: string
       openai_reasoning_effort:
         description: OpenAI replay reasoning effort when run_openai_dcoir_replay is true
         required: true
@@ -195,8 +200,8 @@ jobs:
     with:
       expected_head_sha: ${{ github.sha }}
       target_id: ${{ inputs.openai_target_id || 'openai_dcoir_analyst' }}
-      run_all_active_fixtures: ${{ github.event_name != 'workflow_dispatch' || inputs.run_all_active_fixtures }}
-      custom_fixtures_csv: ${{ inputs.custom_fixtures_csv || '' }}
+      run_all_active_fixtures: ${{ inputs.openai_custom_fixtures_csv == '' }}
+      custom_fixtures_csv: ${{ inputs.openai_custom_fixtures_csv || '' }}
       reasoning_effort: ${{ inputs.openai_reasoning_effort || 'medium' }}
       max_output_tokens: ${{ inputs.openai_max_output_tokens || '' }}
     secrets:
