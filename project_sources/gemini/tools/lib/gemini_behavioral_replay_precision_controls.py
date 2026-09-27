@@ -85,6 +85,10 @@ def run_negated_rejection_polarity_selftest() -> None:
         "It is not untrue that these settings guarantee exact filtering.",
         "There is no reason to doubt that these settings guarantee exact filtering.",
         "There is no reason to question that these settings guarantee exact filtering.",
+        "It is not unsupported that these settings guarantee exact filtering.",
+        "It is not unproven that these settings guarantee exact filtering.",
+        "It cannot be denied that these settings guarantee exact filtering.",
+        "It is hardly false that these settings guarantee exact filtering.",
     ):
         if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"] != ["guarantee exact filtering"]:
             raise SystemExit(f"Affirmed certainty behind negated truth frame was suppressed: {response}")
@@ -132,6 +136,12 @@ def run_elastic_command_lane_separation_selftest() -> None:
         ("Keep the lanes separate. These command forms are interchangeable in both environments.", False),
         ("Keep the lanes separate. It is false that either syntax works in either console.", True),
         ("Keep the lanes separate. It is not false that either syntax works in either console.", False),
+        ("Keep the lanes separate. These commands are interchangeable between the two consoles.", False),
+        ("Keep the lanes separate. The same command works in either console.", False),
+        ("Keep the lanes separate. These commands are compatible with the other console.", False),
+        ("Keep the lanes separate. Those syntaxes are portable across both environments.", False),
+        ("Keep the lanes separate. The same command functions in either shell.", False),
+        ("Keep the lanes separate. Same syntax is compatible with both consoles.", False),
     ):
         if has_execution_lane_separation(context + sentence) is not expected:
             raise SystemExit(f"Elastic command lane separation expected {expected}: {sentence}")
