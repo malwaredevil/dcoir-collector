@@ -5,15 +5,15 @@ from typing import Iterable, List
 
 
 from .gemini_behavioral_replay_rejection_patterns import (
-    NEGATION_PATTERN,
     POST_MARKER_EVIDENCE_BOUNDARY_PATTERN,
     POST_MARKER_REJECTION_NOUN_PHRASE,
     POST_MARKER_REJECTION_PATTERN,
     PRE_MARKER_REJECTION_FRAME_PATTERN,
-    REJECTED_ASSERTION_PATTERN,
     REJECTION_SCOPE_LIMIT,
 )
 from .gemini_behavioral_replay_semantic_assertions import occurrence_is_backtick_wrapped
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated as _occurrence_is_negated
+from .gemini_behavioral_replay_assertion_polarity import prefix_has_affirming_negated_truth_frame
 
 UNSUPPORTED_CERTAINTY_TERMS = [
     "definitely",
@@ -140,12 +140,6 @@ def _occurrence_is_quoted(text: str, start: int, end: int) -> bool:
     return False
 
 
-def _occurrence_is_negated(text: str, start: int) -> bool:
-    context = text[max(0, start - 40):start]
-    context = re.sub(r"[*_]+", "", context)
-    return bool(NEGATION_PATTERN.search(context) or REJECTED_ASSERTION_PATTERN.search(context))
-
-
 _COORDINATED_AFFIRMATIVE_PREDICATE = re.compile(
     r"^(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
     r"(?:guarantees?|guaranteed|confirms|confirmed|claims|claimed|states|stated|asserts|asserted|"
@@ -219,6 +213,8 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     )
     context = text[max(clause_start + 1, start - 220):start]
     context = re.sub(r"[*_`]+", "", context)
+    if prefix_has_affirming_negated_truth_frame(context):
+        return False
     contrasts = list(
         re.finditer(r"\b(?:but|however|yet|nevertheless|instead(?!\s+of\b))\b", context)
     )

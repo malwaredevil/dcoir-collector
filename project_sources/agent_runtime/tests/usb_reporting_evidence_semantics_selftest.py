@@ -102,15 +102,29 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         correction_base + correction, correction_rows, start_date=start, end_date=end, previous_count=previous,
     )
     assert result['passed'], result
+    netgear_row = next(row for row in rows if module._value(row, 'USB Device').startswith('NetGear'))
+    netgear_current = module._value(netgear_row, 'USB Device')
+    netgear_suggested = 'NETGEAR' + netgear_current[len('NetGear'):]
+    netgear_correction = (
+        '\n\nField: USB Device'
+        f'\nCurrent Value: {netgear_current}'
+        f'\nSuggested Value: {netgear_suggested}'
+    )
+    netgear_result = module.score_final_response(
+        base + netgear_correction, rows, start_date=start, end_date=end, previous_count=previous,
+    )
+    assert netgear_result['passed'], netgear_result
     for invented in (
         'Correction: these incidents are not violations.',
         'Source correction: all devices were authorized.',
         'Approval status is cleared.',
         'Correction needed: all users were cleared by leadership.',
         'Field: Network Connection\nCurrent Value: INVENTED\nSuggested Value: On-Site',
+        'Field: Location\nCurrent Value: Dummy Location 01\nSuggested Value: All incidents were authorized and no policy violation occurred.',
+        'Field: Location\nCurrent Value: Dummy Location 01\nSuggested Value: Cleared',
         'Please confirm the Network Connection value for the first row: the source cell is ambiguous.',
     ):
-        assert_rejected(base + '\n\n' + invented, 'prose outside the governed drafts', 'incomplete source correction', 'not source-backed')
+        assert_rejected(base + '\n\n' + invented, 'prose outside the governed drafts', 'incomplete source correction', 'not source-backed', 'not a provable normalization')
 
     return [
         'indented_duplicate_incident_fields',

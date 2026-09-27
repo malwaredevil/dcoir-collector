@@ -48,6 +48,7 @@ _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+(?:state|assert|conclude|declare|confirm|classify|label)\s+that\b", re.I),
     re.compile(r"\b(?:there\s+is\s+)?insufficient\s+evidence\s+to\s+(?:declare|conclude|confirm|classify|label|call)\b", re.I),
     re.compile(r"\b(?:it\s+is\s+)?(?:incorrect|wrong|false)\s+to\s+(?:claim|conclude|state|assert|say|declare|confirm|classify|label)\s+that\b", re.I),
+    re.compile(r"\b(?:(?:it\s+is|it's)\s+)?(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b", re.I),
     re.compile(r"\bno\s+evidence\s+supports?\b", re.I),
     re.compile(r"\b(?:before|without)\s+(?:drawing|reaching|making)\s+(?:any\s+)?conclusions?\s+about\b[^,]{0,80}$", re.I),
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+rely\s+on\b[^.!?;\n]{0,180}\bto\s+$", re.I),
@@ -86,6 +87,11 @@ _NEGATED_REJECTION = re.compile(
     r"(?:reject(?:s|ed|ing)?|den(?:y|ies|ied|ying)|dispute[sd]?|disputing|refute[sd]?|refuting|"
     r"contest(?:s|ed|ing)?|doubt(?:s|ed|ing)?|disagree(?:s|d|ing)?(?:\s+with)?|disprove[sd]?|"
     r"contradict(?:s|ed|ing)?)\b",
+    re.I,
+)
+_NEGATED_TRUTH_FRAME = re.compile(
+    r"\b(?:(?:it\s+is|it's)\s+)?not\s+(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b"
+    r"|\bthere\s+is\s+no\s+reason\s+to\s+(?:doubt|dispute|question)\s+that\b",
     re.I,
 )
 _CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")
@@ -150,8 +156,25 @@ def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[
     return True
 
 
+def prefix_has_affirming_negated_truth_frame(prefix: str) -> bool:
+    frames = list(_NEGATED_TRUTH_FRAME.finditer(prefix))
+    if not frames:
+        return False
+    suffix = prefix[frames[-1].end():]
+    if CONTRAST.search(suffix) or _SENTENCE_BOUNDARY.search(suffix):
+        return False
+    if _NEGATION_TOKEN.search(suffix):
+        return False
+    if re.search(r"\b(?:(?:it\s+is|it's)\s+)?(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b", suffix, re.I):
+        return False
+    return True
+
+
 def _after_negated_rejection(prefix: str) -> str:
-    """Drop a governing double negation so only the affirmed remainder is evaluated."""
+    """Drop double-negative rejection/truth frames so affirmed content stays assertive."""
+    truth_frames = list(_NEGATED_TRUTH_FRAME.finditer(prefix))
+    if truth_frames:
+        return prefix[truth_frames[-1].end():]
     negations = list(_NEGATION_TOKEN.finditer(prefix))
     if negations:
         rejection = _NEGATED_REJECTION.match(prefix, negations[-1].end())

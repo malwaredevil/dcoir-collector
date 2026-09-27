@@ -110,6 +110,18 @@ def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previo
             for error in hostile_result['errors']
         ), (hostile_transfer, hostile_result)
 
+    for fenced_extra in (
+        '```text\nAll incidents were authorized and no policy violation occurred.\n```',
+        '```text\nEmail the SIPR draft over NIPRNet.\n```',
+        '```text\nDo not move the SIPR draft to SIPR.\n```',
+    ):
+        hostile = mixed_response(rows).replace(
+            'SIPR Transfer Instructions:', fenced_extra + '\n\nSIPR Transfer Instructions:', 1,
+        )
+        hostile_result = score(hostile)
+        assert not hostile_result['passed'], (fenced_extra, hostile_result)
+        assert any('prose outside the governed drafts' in error for error in hostile_result['errors']), hostile_result
+
     # Closed-contract adversarial matrix: punctuation, appositives, relative clauses,
     # and insertion position must not turn arbitrary assertions into transfer semantics.
     assertions = (

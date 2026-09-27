@@ -12,6 +12,8 @@ from .gemini_behavioral_replay_assertion_polarity import (
     occurrence_is_assertive_polarity,
 )
 
+from .gemini_behavioral_replay_lane_equivalence import has_affirmative_cross_lane_equivalence
+
 
 _ENDPOINT_CONTEXT = re.compile(
     r"\b(?:elastic\s+)?(?:endpoint\s+)?response(?:[- ]action)?\s+(?:console|syntax|wrapper|commands?)\b"
@@ -243,6 +245,9 @@ class SemanticAnalysis:
         if not (has_endpoint and has_local):
             return None
         if _AMBIGUOUS_LOCAL_TARGET.search(normalized):
+            return False
+
+        if has_affirmative_cross_lane_equivalence(normalized):
             return False
 
         for mix in _AFFIRMATIVE_MIX.finditer(normalized):

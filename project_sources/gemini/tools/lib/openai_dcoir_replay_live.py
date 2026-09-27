@@ -43,35 +43,40 @@ def build_request_body(
 def _extract_text_with_shape(payload: Any) -> tuple[str, bool]:
     if not isinstance(payload, dict):
         return "", False
+
     direct = payload.get("output_text")
-    if direct is not None:
-        if not isinstance(direct, str):
-            return "", False
-        if direct.strip():
-            return direct.strip(), True
-    raw_output = payload.get("output")
-    if raw_output is None:
-        return "", True
-    if not isinstance(raw_output, list):
+    if direct is not None and not isinstance(direct, str):
         return "", False
-    out: List[str] = []
-    for item in raw_output:
-        if not isinstance(item, dict):
+    direct_text = direct.strip() if isinstance(direct, str) else ""
+
+    raw_output = payload.get("output")
+    nested_parts: List[str] = []
+    if raw_output is not None:
+        if not isinstance(raw_output, list):
             return "", False
-        if item.get("type") != "message":
-            continue
-        raw_content = item.get("content")
-        if not isinstance(raw_content, list):
-            return "", False
-        for content in raw_content:
-            if not isinstance(content, dict):
+        for item in raw_output:
+            if not isinstance(item, dict):
                 return "", False
-            if content.get("type") == "output_text":
-                text = content.get("text")
-                if not isinstance(text, str):
+            if item.get("type") != "message":
+                continue
+            raw_content = item.get("content")
+            if not isinstance(raw_content, list):
+                return "", False
+            for content in raw_content:
+                if not isinstance(content, dict):
                     return "", False
-                out.append(text)
-    return "\n".join(out).strip(), True
+                if content.get("type") == "output_text":
+                    text = content.get("text")
+                    if not isinstance(text, str):
+                        return "", False
+                    nested_parts.append(text)
+    nested_text = "\n".join(nested_parts).strip()
+
+    # When both representations are populated, they must agree. A convenience
+    # field must never shelter malformed or conflicting nested provider output.
+    if direct_text and nested_text and direct_text != nested_text:
+        return "", False
+    return direct_text or nested_text, True
 
 
 def extract_text(payload: Dict[str, Any]) -> str:

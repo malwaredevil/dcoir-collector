@@ -3,16 +3,18 @@ from __future__ import annotations
 from pathlib import Path
 
 from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
-from .gemini_behavioral_replay_scoring import score_forbidden_markers, score_marker_presence
+from .gemini_behavioral_replay_scoring import detect_anomalies, score_forbidden_markers, score_marker_presence
 
 SCORER_MODULE_CHARACTER_CEILING = 15000
 SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_text_scoring.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_negation_context.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_rejection_patterns.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_rejection_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_context.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_scoring.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_collector_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_semantics.py"),
@@ -78,6 +80,27 @@ def run_negated_rejection_polarity_selftest() -> None:
         if score_forbidden_markers(response, [marker])["hits"] != [marker]:
             raise SystemExit(f"Affirmed forbidden marker was suppressed: {response}")
     for response in (
+        "It is not false that these settings guarantee exact filtering.",
+        "It is not incorrect that these settings guarantee exact filtering.",
+        "It is not untrue that these settings guarantee exact filtering.",
+        "There is no reason to doubt that these settings guarantee exact filtering.",
+        "There is no reason to question that these settings guarantee exact filtering.",
+    ):
+        if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"] != ["guarantee exact filtering"]:
+            raise SystemExit(f"Affirmed certainty behind negated truth frame was suppressed: {response}")
+        if not detect_anomalies(response, ["unsupported_certainty_claims"]):
+            raise SystemExit(f"Certainty anomaly behind negated truth frame was suppressed: {response}")
+
+    for response in (
+        "It is not false that one setting is documented, but it is false that these settings guarantee exact filtering.",
+        "It is not false that one setting is documented, but these settings do not guarantee exact filtering.",
+    ):
+        if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"]:
+            raise SystemExit(f"Stale negated-truth frame leaked across a later rejection: {response}")
+        if detect_anomalies(response, ["unsupported_certainty_claims"]):
+            raise SystemExit(f"Stale negated-truth frame leaked into certainty anomaly scoring: {response}")
+
+    for response in (
         "We do not reject benign use, and we cannot claim this is high confidence malicious.",
         "What is not proven: high confidence malicious.",
         "I do not dispute the driver finding, but we cannot label this high confidence malicious.",
@@ -98,6 +121,17 @@ def run_elastic_command_lane_separation_selftest() -> None:
         ("Do not forget to use execute --command in local PowerShell.", False),
         ("Never fail to run execute --command in local workstation PowerShell.", False),
         ("Use execute --command with local PowerShell interchangeably.", False),
+        ("Do not mix the two lanes. Nevertheless, either kind of command can be executed in the other console.", False),
+        ("Keep the lanes separate. Either command form works in both environments.", False),
+        ("Keep the lanes separate. Both command forms work in either environment.", False),
+        ("Keep the lanes separate. Either syntax works in either console.", False),
+        ("Keep the lanes separate. Both syntaxes are valid in both environments.", False),
+        ("Keep the lanes separate. Either command syntax is supported in either console.", False),
+        ("Keep the lanes separate. Each command form works in both shells.", False),
+        ("Keep the lanes separate. Any syntax is valid in either execution context.", False),
+        ("Keep the lanes separate. These command forms are interchangeable in both environments.", False),
+        ("Keep the lanes separate. It is false that either syntax works in either console.", True),
+        ("Keep the lanes separate. It is not false that either syntax works in either console.", False),
     ):
         if has_execution_lane_separation(context + sentence) is not expected:
             raise SystemExit(f"Elastic command lane separation expected {expected}: {sentence}")

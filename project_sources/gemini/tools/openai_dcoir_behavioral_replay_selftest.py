@@ -309,6 +309,10 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         {"id": "resp_content_item", "status": "completed", "output": [{"type": "message", "content": [1]}]},
         {"id": "resp_text_type", "status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": 7}]}]},
         {"id": "resp_direct_type", "status": "completed", "output_text": 7, "output": []},
+        {"id": "resp_direct_nested_num", "status": "completed", "output_text": "safe", "output": 1},
+        {"id": "resp_direct_nested_content_bool", "status": "completed", "output_text": "safe", "output": [{"type": "message", "content": True}]},
+        {"id": "resp_direct_nested_text_num", "status": "completed", "output_text": "safe", "output": [{"type": "message", "content": [{"type": "output_text", "text": 123}]}]},
+        {"id": "resp_direct_conflict", "status": "completed", "output_text": "safe", "output": [{"type": "message", "content": [{"type": "output_text", "text": "different"}]}]},
     ):
         class _MalformedShapeResponse(_IncompleteResponse):
             def read(self, payload=malformed_payload):
@@ -317,6 +321,14 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
             malformed_shape = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
         if malformed_shape.get("ok") or malformed_shape.get("error") != "invalid_response_shape":
             raise SystemExit(f"Malformed nested Responses API shape must fail cleanly: {malformed_payload!r}: {malformed_shape}")
+    consistent_dual = replay_live._extract_text_with_shape({
+        "status": "completed",
+        "output_text": "safe",
+        "output": [{"type": "message", "content": [{"type": "output_text", "text": "safe"}]}],
+    })
+    if consistent_dual != ("safe", True):
+        raise SystemExit(f"Consistent direct/nested Responses output must remain valid: {consistent_dual}")
+
     retry_args = argparse.Namespace(**{**vars(args), "max_retries": 3, "retry_base_seconds": 0.0})
     for raised, expected_error, expected_calls in (
         (TimeoutError("read timed out"), "read_timeout", 1),

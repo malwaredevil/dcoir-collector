@@ -179,8 +179,13 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
 
 
 def prose_outside_blocks(text: str, labels: set[str]) -> str:
-    """Free prose left after removing fenced code blocks and governed label lines."""
-    text = re.sub(r'(?ms)^```[^\n]*\n.*?^```[ \t]*$', '', text)
+    """Free prose left after removing only label-owned governed fenced blocks."""
+    for label in sorted(labels, key=len, reverse=True):
+        text = re.sub(
+            rf'(?ms)^{re.escape(label)}:[ \t]*\n```[^\n]*\n.*?^```[ \t]*$',
+            '',
+            text,
+        )
     return '\n'.join(line for line in text.splitlines() if line.strip().rstrip(':') not in labels)
 
 

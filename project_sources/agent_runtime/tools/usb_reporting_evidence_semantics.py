@@ -79,6 +79,35 @@ def _is_correction_line(stripped: str) -> bool:
     return bool(match) and match.group(1).strip().casefold() in CORRECTION_LABELS
 
 
+def _collapsed(value: str) -> str:
+    return re.sub(r'\s+', ' ', value).strip()
+
+
+def _network_connection_suggestion(current: str) -> str | None:
+    normalized = re.sub(r'[^a-z0-9]+', '', current.casefold())
+    if normalized == 'onsite':
+        return 'On-Site'
+    if normalized in {'offsite', 'vpn', 'offsitevpn'}:
+        return 'Off-Site/VPN'
+    return None
+
+
+def _suggested_value_is_legitimate(field: str, current: str, suggested: str) -> bool:
+    """Only certify corrections derivable from the exact source value."""
+    current_collapsed = _collapsed(current)
+    suggested_collapsed = _collapsed(suggested)
+    if suggested != suggested_collapsed:
+        return False
+    if current_collapsed != current and suggested == current_collapsed:
+        return True
+    field_key = field.casefold()
+    if field_key == 'usb device' and current_collapsed.startswith('NetGear'):
+        return suggested == 'NETGEAR' + current_collapsed[len('NetGear'):]
+    if field_key == 'network connection':
+        return suggested == _network_connection_suggestion(current)
+    return False
+
+
 def unexpected_prose_errors(
     prose: str, correction_source_values: dict[str, set[str]] | None = None,
 ) -> list[str]:
@@ -107,6 +136,8 @@ def unexpected_prose_errors(
             errors.append(f'final response source correction uses unknown field: {field}')
         elif current not in allowed_current:
             errors.append(f'final response source correction current value is not source-backed: {field}: {current}')
+        elif not _suggested_value_is_legitimate(field, current, suggested):
+            errors.append(f'final response source correction suggested value is not a provable normalization: {field}: {suggested}')
         index += 3
     return errors
 

@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 
 COUNT_REFERENCE = re.compile(
     r"\b(?:"
-    r"how\s+many\s+(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?"
-    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:(?:single|overall|combined|total)\s+){0,2}"
-    r"(?:number|count|total)(?:\s+of)?\s+(?:all\s+)?(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?"
-    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:all\s+)?(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?"
-    r"usb\s+violations?\s+(?:(?:single|overall|combined|total)\s+){0,2}(?:number|count|total)"
+    r"how\s+many\s+(?:(?:all\s+)?(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?"
+    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?"
+    r"(?:(?:single|overall|combined|total)\s+){0,2}"
+    r"(?:(?:all\s+)?(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?"
+    r"usb\s+violations?\s+(?:number|count|total)"
+    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?"
+    r"(?:(?:single|overall|combined|total)\s+){0,2}"
+    r"(?:number|count|total)(?:\s+of)?\s+"
+    r"(?:(?:all\s+)?(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?"
     r")\b",
     re.I,
 )
+
 COUNT_QUALIFIER = re.compile(
     r"\s*\(\s*(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+combined|"
     r"combined\s+(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr))\s*\)",
@@ -36,11 +42,22 @@ BENIGN_COUNT_POSSESSION = re.compile(
     r"(?:(?:single|overall|combined|total)\s+){0,2}count)$",
     re.I,
 )
-REQUEST_FRAME_WORDS = frozenset("""
-a are can combined could count counts did for from give how is know last let many me need number of overall
-please previous prior provide reported share single tell the there to total us was week weekly were what with would you
-""".split())
-
+GOVERNED_SURFACE = re.compile(
+    r"(?:"
+    r"<count> were reported (?:last|previous) week[?.]"
+    r"|what was (?:the )?(?:(?:last|previous) week(?:['’]s)? )?(?:(?:single|overall|combined|total) ){0,2}"
+    r"<count>(?: (?:reported )?(?:last|previous) week)?(?: <self>)?[?.]"
+    r"|(?:(?:please )?(?:provide|give me|let me know)|tell me|could you share) (?:the )?"
+    r"(?:(?:last|previous) week(?:['’]s)? )?(?:(?:single|overall|combined|total) ){0,2}"
+    r"<count>(?: from (?:last|previous) week)?(?: <self>)?[?.]"
+    r"|<self>, what was (?:the )?(?:(?:last|previous) week(?:['’]s)? )?"
+    r"(?:(?:single|overall|combined|total) ){0,2}<count>[?.]"
+    r"|<self>, <self>[?.]"
+    r"|what was (?:the )?(?:(?:last|previous) week(?:['’]s)? )?"
+    r"(?:(?:single|overall|combined|total) ){0,2}<count>[?] <self>[.]"
+    r")",
+    re.I,
+)
 
 
 def _count_spans(text: str) -> list[tuple[int, int]]:
@@ -91,26 +108,35 @@ def _self_action_clauses(text: str) -> tuple[list[tuple[int, int]], list[str]]:
     return governed_spans, errors
 
 
-def _merge_spans(spans: list[tuple[int, int]]) -> list[tuple[int, int]]:
-    merged: list[tuple[int, int]] = []
-    for start, end in sorted(spans):
+def _owned_surface(
+    text: str,
+    count_spans: list[tuple[int, int]],
+    self_action_spans: list[tuple[int, int]],
+) -> str:
+    """Replace governed spans with typed placeholders and preserve all other syntax."""
+    spans = [(start, end, 'count') for start, end in count_spans]
+    spans.extend((start, end, 'self') for start, end in self_action_spans)
+    merged: list[tuple[int, int, str]] = []
+    for start, end, kind in sorted(spans):
         if merged and start <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            old_start, old_end, old_kind = merged[-1]
+            merged[-1] = (
+                old_start,
+                max(old_end, end),
+                'self' if 'self' in (old_kind, kind) else 'count',
+            )
         else:
-            merged.append((start, end))
-    return merged
-
-
-def _residual_words(text: str, owned_spans: list[tuple[int, int]]) -> list[str]:
-    residual = text
-    for start, end in reversed(_merge_spans(owned_spans)):
-        residual = residual[:start] + (' ' * (end - start)) + residual[end:]
-    residual = re.sub(r"(?<=\w)['’]s\b", '', residual)
-    return re.findall(r'[a-z]+', residual)
+            merged.append((start, end, kind))
+    surface = text
+    for start, end, kind in reversed(merged):
+        surface = surface[:start] + f'<{kind}>' + surface[end:]
+    surface = re.sub(r'\s+', ' ', surface).strip()
+    return re.sub(r'\s+([,.;!?])', r'\1', surface)
 
 
 def clarification_content_errors(text: str) -> list[str]:
-    lower = re.sub(r'\s+', ' ', text.lower().replace('\u00a0', ' ')).strip()
+    normalized = unicodedata.normalize('NFKC', str(text)).replace('\u00a0', ' ')
+    lower = re.sub(r'\s+', ' ', normalized.casefold()).strip()
     errors: list[str] = []
 
     prior_week = bool(re.search(r"\b(?:last|previous)\s+week(?:['’]s)?\b", lower))
@@ -128,14 +154,13 @@ def clarification_content_errors(text: str) -> list[str]:
     self_action_spans, self_action_errors = _self_action_clauses(lower)
     errors.extend(self_action_errors)
 
-    # Closed ownership rule: once the one governed count expression and any
-    # validated benign self-action are removed, only neutral request framing may
-    # remain. This rejects new record synonyms, punctuation tricks, and extra
-    # operational demands without maintaining separate noun/verb blacklists.
-    residual = _residual_words(lower, count_spans + self_action_spans)
-    extra = sorted({word for word in residual if word not in REQUEST_FRAME_WORDS})
-    if extra:
-        errors.append('clarification response requests more than the prior-week overall count: unowned language: ' + ', '.join(extra))
+    # Closed sentence grammar: after replacing owned count/self-action spans,
+    # the entire remaining surface must be one of the governed request shapes.
+    # NFKC normalization makes compatibility characters visible to that grammar;
+    # non-Latin or otherwise unowned content cannot disappear during tokenization.
+    surface = _owned_surface(lower, count_spans, self_action_spans)
+    if not GOVERNED_SURFACE.fullmatch(surface):
+        errors.append('clarification response requests more than the prior-week overall count: ungoverned request structure')
 
     if 'nipr' in lower and 'sipr' in lower and re.search(r'\bcounts\b', lower) and not re.search(r'\b(?:combined|overall)\b', lower):
         errors.append('clarification response requests more than the prior-week overall count: separate NIPR/SIPR counts')
