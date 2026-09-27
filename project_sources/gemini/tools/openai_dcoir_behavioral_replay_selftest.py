@@ -329,6 +329,17 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     if not any(message.level == "error" for message in validate_fixture_shape([])):
         raise SystemExit("Non-object fixture root must fail validation without raising.")
     behavioral_replay_prompt({}, None, replay_label="DCOIR behavioral replay")
+    malformed_turn_id = json.loads(json.dumps(first_fixture))
+    malformed_turn_id["turns"][0]["turn_id"] = []
+    turn_id_messages = validate_fixture_shape(malformed_turn_id)
+    if not any(message.level == "error" and "turn_id must be a non-empty string" in message.message for message in turn_id_messages):
+        raise SystemExit(f"Unhashable turn_id must fail validation without raising: {turn_id_messages}")
+    malformed_markers = json.loads(json.dumps(first_fixture))
+    malformed_markers["turns"][0]["required_markers"] = [None, 7]
+    marker_messages = validate_fixture_shape(malformed_markers)
+    if not any(message.level == "error" and "required_markers must contain only strings" in message.message for message in marker_messages):
+        raise SystemExit(f"Non-string marker elements must fail validation: {marker_messages}")
+    behavioral_replay_prompt(malformed_markers, malformed_markers["turns"][0], replay_label="DCOIR behavioral replay")
     runner_source = (repo_root / "project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py").read_text(encoding="utf-8")
     for required_evidence_label in ("MARKER_ASSISTED_UNCHECKED_EVIDENCE,", '"prompt_profile": PROMPT_PROFILE'):
         if required_evidence_label not in runner_source:

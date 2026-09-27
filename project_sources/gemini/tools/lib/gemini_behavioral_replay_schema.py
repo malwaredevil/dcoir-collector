@@ -95,12 +95,25 @@ def validate_turn(turn: Any) -> List[ValidationMessage]:
                 f"turn {turn.get('turn_id', '<missing-turn-id>')} is missing keys: {', '.join(missing)}",
             )
         )
+    turn_id = turn.get("turn_id")
+    if "turn_id" in turn and (not isinstance(turn_id, str) or not turn_id.strip()):
+        messages.append(ValidationMessage("error", "turn_id must be a non-empty string"))
     for key in (*TURN_LIST_KEYS, *OPTIONAL_TURN_LIST_KEYS):
-        if key in turn and not isinstance(turn.get(key), list):
+        if key not in turn:
+            continue
+        value = turn.get(key)
+        if not isinstance(value, list):
             messages.append(
                 ValidationMessage(
                     "error",
                     f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must be a list",
+                )
+            )
+        elif any(not isinstance(item, str) for item in value):
+            messages.append(
+                ValidationMessage(
+                    "error",
+                    f"turn {turn.get('turn_id', '<missing-turn-id>')} field {key} must contain only strings",
                 )
             )
     return messages
@@ -135,6 +148,8 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
             if not isinstance(turn, dict):
                 continue
             turn_id = turn.get("turn_id")
+            if not isinstance(turn_id, str) or not turn_id.strip():
+                continue
             if turn_id in seen_turn_ids:
                 messages.append(
                     ValidationMessage(
@@ -163,11 +178,21 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
             )
 
     for key in FIXTURE_LIST_KEYS:
-        if key in fixture and not isinstance(fixture.get(key), list):
+        if key not in fixture:
+            continue
+        value = fixture.get(key)
+        if not isinstance(value, list):
             messages.append(
                 ValidationMessage(
                     "error",
                     f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must be a list",
+                )
+            )
+        elif any(not isinstance(item, str) for item in value):
+            messages.append(
+                ValidationMessage(
+                    "error",
+                    f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} field {key} must contain only strings",
                 )
             )
 
@@ -184,6 +209,8 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
         if not isinstance(turn, dict):
             continue
         turn_id = turn.get("turn_id")
+        if not isinstance(turn_id, str) or not turn_id.strip():
+            continue
         if turn_id not in evidence_by_turn:
             messages.append(
                 ValidationMessage(
@@ -191,13 +218,22 @@ def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
                     f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} has no available_evidence_by_turn entry for {turn_id}",
                 )
             )
-        elif not isinstance(evidence_by_turn.get(turn_id), list):
-            messages.append(
-                ValidationMessage(
-                    "error",
-                    f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} evidence for {turn_id} must be a list",
+        else:
+            evidence = evidence_by_turn.get(turn_id)
+            if not isinstance(evidence, list):
+                messages.append(
+                    ValidationMessage(
+                        "error",
+                        f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} evidence for {turn_id} must be a list",
+                    )
                 )
-            )
+            elif any(not isinstance(item, str) for item in evidence):
+                messages.append(
+                    ValidationMessage(
+                        "error",
+                        f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} evidence for {turn_id} must contain only strings",
+                    )
+                )
 
     if not fixture.get("required_markers"):
         messages.append(
