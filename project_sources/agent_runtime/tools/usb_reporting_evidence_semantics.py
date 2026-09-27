@@ -31,15 +31,15 @@ TICKET_LINE = re.compile(r'(?:INCN|INCS)\S*', flags=re.IGNORECASE)
 
 CLARIFICATION_DELIVERY = re.compile(r'\b(?:email|send|share|write|prepare|provide|give|compose|finalize|finish|draft)\b', re.I)
 CLARIFICATION_RECORD_OBJECT = re.compile(
-    r'\b(?:usb\s+violations?|violations?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
+    r'\b(?:usb\s+violations?|violations?|all\s+(?:nipr|sipr)(?:\s+and\s+(?:nipr|sipr))?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
 )
 CLARIFICATION_COUNT_SCOPE = re.compile(r'\b(?:counts?|number|total|overall|combined|how\s+many)\b', re.I)
 CLARIFICATION_COUNT_REFERENCE = re.compile(
     r"\b(?:"
-    r"how\s+many\s+(?:nipr\s+and\s+sipr\s+)?usb\s+violations?"
+    r"how\s+many\s+(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?"
     r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:(?:single|overall|combined|total)\s+){0,2}"
-    r"(?:number|count|total)(?:\s+of)?\s+(?:all\s+)?(?:nipr\s+and\s+sipr\s+)?usb\s+violations?"
-    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:all\s+)?(?:nipr\s+and\s+sipr\s+)?"
+    r"(?:number|count|total)(?:\s+of)?\s+(?:all\s+)?(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?"
+    r"|(?:(?:last|previous)\s+week(?:['’]s)?\s+)?(?:all\s+)?(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?"
     r"usb\s+violations?\s+(?:(?:single|overall|combined|total)\s+){0,2}(?:number|count|total)"
     r")\b",
     re.I,
@@ -52,8 +52,8 @@ CLARIFICATION_TRAILING_SELF_ACTION = re.compile(
 CLARIFICATION_COUNT_OBJECT = re.compile(
     r'^\s*(?:me\s+|us\s+)?(?:the\s+)?(?:(?:last|previous)\s+week(?:[\'’]s)?\s+)?'
     r'(?:(?:single|overall|combined|total)\s+){0,2}(?:'
-    r'(?:number|count|total)(?:\s+of)?\s+(?:nipr\s+and\s+sipr\s+)?usb\s+violations?'
-    r'|(?:nipr\s+and\s+sipr\s+)?usb\s+violations?\s+(?:number|count|total)'
+    r'(?:number|count|total)(?:\s+of)?\s+(?:all\s+)?(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?'
+    r'|(?:(?:nipr\s+and\s+sipr|sipr\s+and\s+nipr)\s+)?usb\s+violations?\s+(?:number|count|total)'
     r')\b',
     re.I,
 )
@@ -91,10 +91,8 @@ def clarification_content_errors(text: str) -> list[str]:
     request_scope = lower[:self_action.start()] if self_action else lower
     count_spans = [match.span() for match in CLARIFICATION_COUNT_REFERENCE.finditer(request_scope)]
     for record in CLARIFICATION_RECORD_OBJECT.finditer(request_scope):
-        token = record.group(0).lower()
-        if token.startswith('usb violation'):
-            if any(start <= record.start() and record.end() <= end for start, end in count_spans):
-                continue
+        if any(start <= record.start() and record.end() <= end for start, end in count_spans):
+            continue
         errors.append('clarification response requests more than the prior-week overall count: violation records')
         break
     for action in CLARIFICATION_DELIVERY.finditer(lower):
