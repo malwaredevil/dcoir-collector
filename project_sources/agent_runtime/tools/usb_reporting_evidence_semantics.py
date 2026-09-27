@@ -31,7 +31,7 @@ TICKET_LINE = re.compile(r'(?:INCN|INCS)\S*', flags=re.IGNORECASE)
 
 CLARIFICATION_DELIVERY = re.compile(r'\b(?:email|send|share|write|prepare|provide|give|compose|finalize|finish|draft)\b', re.I)
 CLARIFICATION_RECORD_OBJECT = re.compile(
-    r'\b(?:usb\s+violations?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
+    r'\b(?:usb\s+violations?|violations?|violation\s+(?:records?|details?)|reports?|data|rows?|incidents?|records?|details?)\b', re.I,
 )
 CLARIFICATION_COUNT_SCOPE = re.compile(r'\b(?:counts?|number|total|overall|combined|how\s+many)\b', re.I)
 CLARIFICATION_COUNT_REFERENCE = re.compile(
