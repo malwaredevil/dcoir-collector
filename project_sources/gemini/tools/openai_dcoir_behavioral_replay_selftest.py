@@ -311,6 +311,24 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     )
     if "Allowed assumptions:\n- None." not in safe_prompt:
         raise SystemExit("Prompt builder must fail safely if malformed list-valued fixture data bypasses validation.")
+    malformed_structures = [
+        ([None], "turn entry must be an object"),
+        (["bad"], "turn entry must be an object"),
+    ]
+    for turns_value, expected_error in malformed_structures:
+        malformed = json.loads(json.dumps(first_fixture))
+        malformed["turns"] = turns_value
+        messages = validate_fixture_shape(malformed)
+        if not any(message.level == "error" and expected_error in message.message for message in messages):
+            raise SystemExit(f"Malformed turn structure must fail validation: {messages}")
+    malformed_profile = json.loads(json.dumps(first_fixture))
+    malformed_profile["model_target_profile"] = None
+    profile_messages = validate_fixture_shape(malformed_profile)
+    if not any(message.level == "error" and "model_target_profile must be an object" in message.message for message in profile_messages):
+        raise SystemExit(f"Null model_target_profile must fail validation: {profile_messages}")
+    if not any(message.level == "error" for message in validate_fixture_shape([])):
+        raise SystemExit("Non-object fixture root must fail validation without raising.")
+    behavioral_replay_prompt({}, None, replay_label="DCOIR behavioral replay")
     runner_source = (repo_root / "project_sources/gemini/tools/run_openai_dcoir_behavioral_replay.py").read_text(encoding="utf-8")
     for required_evidence_label in ("MARKER_ASSISTED_UNCHECKED_EVIDENCE,", '"prompt_profile": PROMPT_PROFILE'):
         if required_evidence_label not in runner_source:

@@ -18,6 +18,8 @@ def _list_items(value: Any) -> list[Any]:
 
 
 def behavioral_replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any], *, replay_label: str) -> str:
+    fixture = fixture if isinstance(fixture, dict) else {}
+    turn = turn if isinstance(turn, dict) else {}
     evidence_by_turn = fixture.get("available_evidence_by_turn", {})
     evidence = _list_items(evidence_by_turn.get(turn.get("turn_id"), []) if isinstance(evidence_by_turn, dict) else [])
     required = _list_items(turn.get("required_markers", fixture.get("required_markers", [])))

@@ -83,8 +83,10 @@ def missing_keys(payload: Dict[str, Any], required_keys: List[str]) -> List[str]
     return [key for key in required_keys if key not in payload]
 
 
-def validate_turn(turn: Dict[str, Any]) -> List[ValidationMessage]:
+def validate_turn(turn: Any) -> List[ValidationMessage]:
     messages: List[ValidationMessage] = []
+    if not isinstance(turn, dict):
+        return [ValidationMessage("error", "turn entry must be an object")]
     missing = missing_keys(turn, REQUIRED_TURN_KEYS)
     if missing:
         messages.append(
@@ -104,8 +106,10 @@ def validate_turn(turn: Dict[str, Any]) -> List[ValidationMessage]:
     return messages
 
 
-def validate_fixture_shape(fixture: Dict[str, Any]) -> List[ValidationMessage]:
+def validate_fixture_shape(fixture: Any) -> List[ValidationMessage]:
     messages: List[ValidationMessage] = []
+    if not isinstance(fixture, dict):
+        return [ValidationMessage("error", "fixture must be an object")]
     missing = missing_keys(fixture, REQUIRED_FIXTURE_KEYS)
     if missing:
         messages.append(
@@ -128,6 +132,8 @@ def validate_fixture_shape(fixture: Dict[str, Any]) -> List[ValidationMessage]:
         for turn in turns:
             for message in validate_turn(turn):
                 messages.append(message)
+            if not isinstance(turn, dict):
+                continue
             turn_id = turn.get("turn_id")
             if turn_id in seen_turn_ids:
                 messages.append(
@@ -139,6 +145,14 @@ def validate_fixture_shape(fixture: Dict[str, Any]) -> List[ValidationMessage]:
             seen_turn_ids.add(turn_id)
 
     model_target_profile = fixture.get("model_target_profile", {})
+    if not isinstance(model_target_profile, dict):
+        messages.append(
+            ValidationMessage(
+                "error",
+                f"fixture {fixture.get('fixture_id', '<missing-fixture-id>')} model_target_profile must be an object",
+            )
+        )
+        model_target_profile = {}
     for required_key in ("reference_baseline", "simulated_production", "default_live_target"):
         if required_key not in model_target_profile:
             messages.append(
@@ -167,6 +181,8 @@ def validate_fixture_shape(fixture: Dict[str, Any]) -> List[ValidationMessage]:
         )
         evidence_by_turn = {}
     for turn in turns if isinstance(turns, list) else []:
+        if not isinstance(turn, dict):
+            continue
         turn_id = turn.get("turn_id")
         if turn_id not in evidence_by_turn:
             messages.append(
