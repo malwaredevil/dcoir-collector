@@ -98,12 +98,23 @@ def same_line_transfer_prose(transfer: str, isafe_url: str) -> str:
         for fragment in fragments
         if not transfer_continuation_is_governed(fragment)
     ]
+    lower = transfer.lower()
+    marker = isafe_url.lower()
+    marker_start = lower.find(marker)
+    if marker_start >= 0:
+        suffix = transfer[marker_start + len(isafe_url):].strip()
+        for fragment in re.split(r'(?<=[.!?])\s+', suffix):
+            candidate = fragment.strip(' .;')
+            if candidate and not transfer_continuation_is_governed(candidate):
+                residual.append(candidate)
     unsupported = re.compile(
         r'\b(?:correction|source correction|approval status)\s*:'
-        r'|\bapproval\s+status\b.{0,32}\b(?:approved|authorized|cleared|exempt|compliant)\b'
-        r'|\b(?:incidents?|devices?|violations?|users?)\b.{0,64}\b(?:approved|authorized|cleared|exempt|compliant)\b'
-        r'|\b(?:approved|authorized|cleared|exempt|compliant)\b.{0,64}\b(?:incidents?|devices?|violations?|users?)\b'
-        r'|\bno\s+policy\s+violation(?:\s+occurred)?\b',
+        r'|\bapproval\s+status\b.{0,32}\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b'
+        r'|\b(?:incidents?|devices?|violations?|users?)\b.{0,64}\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b'
+        r'|\b(?:approved|authorized|cleared|exempt|compliant|allowed|permitted)\b.{0,64}\b(?:incidents?|devices?|violations?|users?)\b'
+        r'|\b(?:incidents?|devices?|users?)\b.{0,64}\b(?:are|were|is|was)\s+not\s+violations?\b'
+        r'|\bno\s+policy\s+violation(?:\s+occurred)?\b'
+        r'|\bno\s+(?:enforcement|remediation|response)\s+action\s+(?:is\s+)?required\b',
         re.I,
     )
     residual.extend(match.group(0) for match in unsupported.finditer(transfer))
