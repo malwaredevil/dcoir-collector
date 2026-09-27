@@ -148,28 +148,25 @@ def _field_value_matches(label: str, expected: str, actual: str) -> bool:
         return actual == 'NETGEAR' + expected[len('NetGear'):]
     return False
 
+def _strip_md_presentation(text: str) -> str:
+    text = re.sub(r'^(?:(?:>\s*)|(?:[-*+]\s+)|(?:\d+[.)]\s+)|(?:#{1,6}\s+))+', '', text)
+    return text.strip('`*_~')
+
+
 def _incident_shape_errors(block: str, lane: str, ticket: str) -> list[str]:
     errors: list[str] = []
     for line in block.splitlines():
         candidate = line.lstrip(' \t')
-        known_label = next(
-            (label for label in INCIDENT_LABELS if candidate.startswith(f'{label}:')),
-            None,
-        )
+        presented = _strip_md_presentation(candidate)
+        known_label = next((label for label in INCIDENT_LABELS if presented.startswith(f'{label}:')), None)
         if known_label is not None:
-            if candidate != line:
-                errors.append(
-                    f'{lane} body contains indented/noncanonical incident label '
-                    f'for ticket {ticket}: {candidate}'
-                )
+            if candidate != line or presented != candidate:
+                errors.append(f'{lane} body contains noncanonical incident label for ticket {ticket}: {candidate}')
             continue
-        if re.match(r'^[A-Za-z][A-Za-z0-9 ()/_-]{0,63}:', candidate):
-            errors.append(
-                f'{lane} body contains unknown/noncanonical incident label '
-                f'for ticket {ticket}: {candidate}'
-            )
-        elif candidate != line and re.fullmatch(r'(?:INCN|INCS)\S*', candidate, flags=re.IGNORECASE):
-            errors.append(f'{lane} body contains indented/noncanonical ticket line for ticket {ticket}: {candidate}')
+        if re.match(r'^[A-Za-z][A-Za-z0-9 ()/_-]{0,63}:', presented):
+            errors.append(f'{lane} body contains unknown/noncanonical incident label for ticket {ticket}: {candidate}')
+        elif (candidate != line or presented != candidate) and re.fullmatch(r'(?:INCN|INCS)\S*', presented, flags=re.IGNORECASE):
+            errors.append(f'{lane} body contains noncanonical ticket line for ticket {ticket}: {candidate}')
     return errors
 
 
@@ -178,7 +175,7 @@ def _markdown_prefixed_incident_evidence(text: str) -> list[str]:
     labels = tuple(f'{label}:'.casefold() for label in INCIDENT_LABELS)
     for line in text.splitlines():
         candidate = line.lstrip(' \t')
-        stripped = re.sub(r'^(?:(?:>\s*)|(?:[-*+]\s+)|(?:\d+[.)]\s+))+', '', candidate)
+        stripped = _strip_md_presentation(candidate)
         if stripped == candidate:
             continue
         if re.fullmatch(r'(?:INCN|INCS)\S*', stripped, flags=re.IGNORECASE) or stripped.casefold().startswith(labels):
@@ -218,7 +215,6 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
     }
     for label, field in field_map.items():
         expected_counts[label] = sum(1 for row in rows if _value(row, field))
-    # Name(s) appears once per incident.
     expected_counts['Name(s)'] = len(rows)
 
     for label, expected_count in expected_counts.items():

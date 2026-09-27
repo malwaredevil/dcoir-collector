@@ -14,9 +14,11 @@ TRANSFER_ACTION = (
 WITHOUT_TRANSFER_ACTION = (
     r"\bwithout\b(?:\s+\w+){0,3}\s+"
     r"(?:moving|transferring|sending|uploading|copying|attaching|routing|delivering)\b"
+    r"(?:\s+\w+){0,4}\s+(?:it|(?:that|the)\s+text\s+document|text\s+document|"
+    r"(?:the\s+)?(?:sipr\s+)?(?:message\s+)?draft)\b"
 )
-# Only a NIPR destination is unsafe; "from NIPR to SIPR" is the governed direction.
-NIPR_DESTINATION = r"\b(?:to|into|onto|on|via|through|over|in)\s+(?:the\s+)?nipr\b"
+# Hard NIPR destinations; on/in NIPR may be governed staging before an explicit move to SIPR.
+NIPR_DESTINATION = r"\b(?:to|into|onto|via|through|over)\s+(?:the\s+)?nipr\b"
 ANAPHORIC_REVOCATION = (
     r"\b(?:do not|don't|must not|shall not|should not|cannot|can't|never)\s+"
     r"(?:do\s+(?:so|that|it)|proceed|continue)\b|"
@@ -28,6 +30,14 @@ GENERIC_TRANSFER_REVOCATION = (
     r".{0,48}\b(?:transfer|instruction|instructions|preceding|above)\b|"
     r"\b(?:preceding|above)\b.{0,32}\b(?:instruction|instructions)\b.{0,24}"
     r"\b(?:revoked|cancelled|canceled|withdrawn|overridden|reversed)\b"
+)
+PREDICATE_TRANSFER_REVOCATION = (
+    r"\b(?:this transfer|that transfer|the transfer|this instruction|that instruction|"
+    r"the preceding instruction|the instruction above|this direction|that direction|"
+    r"the preceding direction|the direction above)\b.{0,24}"
+    r"(?:is|are|was|were|has been|have been)\s+(?:(?:no longer|not)\s+"
+    r"(?:valid|authorized|authorised|permitted|allowed)|"
+    r"(?:invalid|unauthorized|unauthorised|forbidden|prohibited|rescinded|nullified|voided))\b"
 )
 
 
@@ -45,13 +55,29 @@ def _clause_has_transfer_negation(clause: str) -> bool:
 
 
 def _has_transfer_contradiction(text: str) -> bool:
-    if re.search(GENERIC_TRANSFER_REVOCATION, text):
+    if re.search(GENERIC_TRANSFER_REVOCATION, text) or re.search(PREDICATE_TRANSFER_REVOCATION, text):
         return True
     return any(
         _clause_has_transfer_negation(clause)
         for clause in re.split(r'[.;!?]+', text)
         if clause.strip()
     )
+
+
+def _has_unsafe_nipr_destination(text: str) -> bool:
+    if re.search(NIPR_DESTINATION, text):
+        return True
+    for match in re.finditer(r'\b(?:on|in)\s+(?:the\s+)?nipr\b', text):
+        before = text[max(0, match.start() - 32):match.start()]
+        after = text[match.end():]
+        staged_document = re.search(r'\btext document\s*$', before)
+        governed_move = re.search(
+            r'\bmove\b.{0,64}\b(?:that text document|the text document|it)\b'
+            r'.{0,48}\bto sipr\b.{0,64}\bintelink isafe\b', after,
+        )
+        if not (staged_document and governed_move):
+            return True
+    return False
 
 
 def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
@@ -76,7 +102,7 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
         errors.append('SIPR transfer instructions do not affirmatively move the text document to SIPR using Intelink iSafe')
     if _has_transfer_contradiction(text):
         errors.append('SIPR transfer instructions contain contradictory or negated handling')
-    if re.search(NIPR_DESTINATION, text):
+    if _has_unsafe_nipr_destination(text):
         errors.append('SIPR transfer instructions must not direct SIPR content into NIPR')
     return errors
 
@@ -89,7 +115,8 @@ def prose_outside_blocks(text: str, labels: set[str]) -> str:
 
 def trailing_revisits_transfer_handling(trailing: str) -> bool:
     text = _normalized(trailing)
-    if re.search(ANAPHORIC_REVOCATION, text) or re.search(GENERIC_TRANSFER_REVOCATION, text):
+    if (re.search(ANAPHORIC_REVOCATION, text) or re.search(GENERIC_TRANSFER_REVOCATION, text)
+            or re.search(PREDICATE_TRANSFER_REVOCATION, text)):
         return True
     if re.search(r'isafe|text document|sipr (?:recipient|subject|message draft)', text):
         return True

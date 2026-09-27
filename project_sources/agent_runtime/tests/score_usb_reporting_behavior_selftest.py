@@ -311,7 +311,7 @@ def test_markdown_prefixed_incident_evidence_is_rejected() -> None:
         result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
         assert not result['passed'], (prefix, result)
         assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
-    for evidence in ('> date: 01/01/1999 0000Z', '- notes: Invented exculpatory evidence', '> LoCaTiOn: WRONG'):
+    for evidence in ('> date: 01/01/1999 0000Z', '- notes: Invented exculpatory evidence', '> LoCaTiOn: WRONG', '**Date:** 01/01/1999 0000Z', '`Date:` 01/01/1999 0000Z', '# Date: 01/01/1999 0000Z', '> **Date:** 01/01/1999 0000Z'):
         result = module.score_final_response(_nipr_response(rows) + '\n\n' + evidence, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
         assert not result['passed'], (evidence, result)
         assert any('Markdown-prefixed incident evidence' in error for error in result['errors'])
