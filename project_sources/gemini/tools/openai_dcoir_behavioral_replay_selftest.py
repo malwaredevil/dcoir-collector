@@ -20,7 +20,6 @@ from lib.gemini_behavioral_replay_schema import ValidationMessage, validate_fixt
 from lib.gemini_behavioral_replay_scoring import detect_anomalies, score_forbidden_markers, score_response_pack
 from lib.gemini_behavioral_replay_collector_scoring import collector_procedure_actionability_gaps
 from lib.gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
-from lib.gemini_behavioral_replay_selection import resolve_fixtures
 from lib.openai_dcoir_replay_package import OPENAI_MODEL_ID, load_governed_openai_package
 from lib.gemini_behavioral_replay_workflow_report import redact_report_value
 
@@ -58,7 +57,7 @@ def main() -> int:
         raise SystemExit("Governed Terra package identity or Knowledge count is incorrect.")
 
     args = _args()
-    selected, meta = resolve_fixtures(args, FIXTURES_ROOT.resolve(), Path(__file__))
+    selected, meta = replay_selection.resolve_fixtures(args, FIXTURES_ROOT.resolve(), Path(__file__))
     selected_ids = {row["fixture"]["fixture_id"] for row in selected}
     if selected_ids != set(GOOD_PACKS):
         raise SystemExit(f"live_openai_api fixture set drifted: {sorted(selected_ids)}")
@@ -66,7 +65,7 @@ def main() -> int:
         raise SystemExit(f"OpenAI fixture-mode selection metadata is incorrect: {meta}")
 
     none_args = argparse.Namespace(**{**vars(args), "run_all_active_fixtures": False, "fixture_ids_csv": "", "custom_fixtures_csv": ""})
-    none_selected, none_meta = resolve_fixtures(none_args, FIXTURES_ROOT.resolve(), Path(__file__))
+    none_selected, none_meta = replay_selection.resolve_fixtures(none_args, FIXTURES_ROOT.resolve(), Path(__file__))
     if none_selected or none_meta.get("selected_fixtures_to_run"):
         raise SystemExit(f"Blank OpenAI fixture selection must fail closed, not select billable fixtures: {none_meta}")
 
