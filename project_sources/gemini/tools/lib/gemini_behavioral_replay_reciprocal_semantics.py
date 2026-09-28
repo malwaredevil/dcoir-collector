@@ -11,7 +11,7 @@ _PREDICATE = (
 )
 
 RECIPROCAL = (
-    rf"(?:vice\s+versa|conversely|reciprocally"
+    rf"(?:vice\s+versa|conversely|reciprocally|(?:and\s+)?the\s+reverse"
     rf"|{_REFERENT}\s+{_PREDICATE}"
     rf"|(?:this|that|the)\s+relation(?:ship)?\s+is\s+{_AFFIRM_MOD}reciprocal)"
 )
