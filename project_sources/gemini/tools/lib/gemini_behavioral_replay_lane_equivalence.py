@@ -30,10 +30,11 @@ _RECIPROCAL = (
     r"in\s+both\s+directions)"
 )
 _RECIPROCAL_REJECTION_AFTER = re.compile(
-    r"^\s*,?\s*(?:(?:this|that|the)(?:\s+(?:relation|relationship|converse|reverse))?\s+)?"
-    r"(?:(?:is\s+(?:not(?:\s+necessarily)?\s+true|false|denied))"
+    r"^\s*,?\s*(?:(?:this|that|the)(?:\s+(?:relation|relationship|converse|reverse|direction))?\s+)?"
+    r"(?:(?:is\s+(?:not(?:\s+necessarily)?\s+(?:true|reciprocal)|false|denied|one-way|asymmetric))"
     r"|(?:also\s+)?does(?:n't|\s+not)(?:\s+necessarily)?\s+(?:hold|apply)"
-    r"|(?:may|might|could|would|should)\s+(?:not\s+)?(?:be\s+true|hold|apply))\b",
+    r"|(?:may|might|could|would|should)\s+(?:not\s+)?(?:be\s+true|hold|apply))\b"
+    r"|^\s*,?\s*no\s+(?:reciprocal|reverse)\s+(?:relation|relationship)\b",
     re.I,
 )
 _CAPABILITY_COMPLEMENT_EQUIV = (
