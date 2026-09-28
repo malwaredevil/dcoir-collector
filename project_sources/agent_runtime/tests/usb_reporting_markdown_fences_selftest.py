@@ -64,4 +64,27 @@ def run_markdown_fence_tests(
         result = module.score_final_response(enclosed, mixed_rows, start_date=start, end_date=end, previous_count=previous)
         assert not result['passed'], (outer, result)
     names.append('enclosing_markdown_fence_ownership')
+
+    wrong_mode_prose = 'All incidents were authorized and no policy violation occurred.'
+    nipr_expected = {'Recipient', 'Subject', 'Message Draft'}
+    for label in sorted(module.FINAL_LABELS - nipr_expected):
+        hostile = nipr + f'\n\n{label}:\n\`\`\`text\n{wrong_mode_prose}\n\`\`\`'
+        result = module.score_final_response(hostile, nipr_rows, start_date=start, end_date=end, previous_count=previous)
+        assert not result['passed'], (label, result)
+        assert any('outside active NIPR-only schema' in error for error in result['errors']), (label, result)
+
+    mixed_expected = {
+        'NIPR Recipient', 'NIPR Subject', 'NIPR Message Draft',
+        'SIPR Recipient', 'SIPR Subject', 'SIPR Message Draft', 'SIPR Transfer Instructions',
+    }
+    for label in sorted(module.FINAL_LABELS - mixed_expected):
+        hostile = mixed.replace(
+            'SIPR Transfer Instructions:',
+            f'{label}:\n\`\`\`text\n{wrong_mode_prose}\n\`\`\`\n\nSIPR Transfer Instructions:',
+            1,
+        )
+        result = module.score_final_response(hostile, mixed_rows, start_date=start, end_date=end, previous_count=previous)
+        assert not result['passed'], (label, result)
+        assert any('outside active mixed schema' in error for error in result['errors']), (label, result)
+    names.append('mode_specific_final_field_ownership')
     return names

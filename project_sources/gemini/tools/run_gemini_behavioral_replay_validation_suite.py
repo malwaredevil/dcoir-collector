@@ -25,6 +25,7 @@ from lib.gemini_behavioral_replay_precision_controls import (
     run_scorer_module_size_selftest,
 )
 from lib.gemini_behavioral_replay_live_regressions import run_live_regression_selftests
+from lib.gemini_behavioral_replay_fixture_schema_precision import run_fixture_schema_precision_selftest
 
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
 
@@ -252,6 +253,7 @@ def main() -> int:
         ]
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
+    run_fixture_schema_precision_selftest()
     run_scorer_module_size_selftest()
     run_marker_frame_rejection_selftest()
     run_negated_rejection_polarity_selftest()

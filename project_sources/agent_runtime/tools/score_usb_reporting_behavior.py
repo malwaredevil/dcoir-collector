@@ -309,6 +309,23 @@ def score_final_response(
     sipr = [row for row in rows if _classification(row) == 'SIPR']
     errors.extend(_global_incident_evidence_errors(text, rows))
     mixed = bool(sipr)
+    if mixed:
+        expected_fenced_labels = {
+            'NIPR Recipient', 'NIPR Subject', 'NIPR Message Draft',
+            'SIPR Recipient', 'SIPR Subject', 'SIPR Message Draft',
+        }
+        expected_labels = expected_fenced_labels | {'SIPR Transfer Instructions'}
+        mode_name = 'mixed'
+    else:
+        expected_fenced_labels = {'Recipient', 'Subject', 'Message Draft'}
+        expected_labels = expected_fenced_labels
+        mode_name = 'NIPR-only'
+    for label in sorted(FINAL_LABELS - expected_labels):
+        count = len(_label_matches(text, label))
+        if count:
+            errors.append(
+                f'final response includes label outside active {mode_name} schema: {label}: (found {count})'
+            )
     expected_first = 'NIPR Recipient:' if mixed else 'Recipient:'
     first = next((line.strip() for line in text.splitlines() if line.strip()), '')
     if first != expected_first:
@@ -350,7 +367,7 @@ def score_final_response(
             errors.extend(_unexpected_prose_errors(same_line_prose, _correction_source_values(rows)))
             if _trailing_revisits_transfer_handling(trailing):
                 errors.append('content after SIPR Transfer Instructions revisits SIPR transfer handling')
-            leading = _prose_outside_blocks(text[:transfer_matches[0].start()], FINAL_LABELS)
+            leading = _prose_outside_blocks(text[:transfer_matches[0].start()], expected_fenced_labels)
             if _trailing_revisits_transfer_handling(leading):
                 errors.append('content before SIPR Transfer Instructions revisits SIPR transfer handling')
             errors.extend(_unexpected_prose_errors(leading + '\n' + trailing, _correction_source_values(rows)))
@@ -370,10 +387,9 @@ def score_final_response(
         if opening not in body:
             errors.append('message body missing exact governed opening/counts')
         errors.extend(_row_errors(body, rows, 'NIPR') + _body_line_errors(body, 'NIPR', opening))
-        errors.extend(_unexpected_prose_errors(_prose_outside_blocks(text, FINAL_LABELS), _correction_source_values(rows)))
-        for label in ['NIPR Recipient', 'SIPR Recipient', 'SIPR Message Draft', 'SIPR Transfer Instructions']:
-            if _label_matches(text, label):
-                errors.append(f'NIPR-only response unexpectedly includes {label}:')
+        errors.extend(_unexpected_prose_errors(
+            _prose_outside_blocks(text, expected_fenced_labels), _correction_source_values(rows)
+        ))
     return {
         'passed': not errors,
         'errors': errors,

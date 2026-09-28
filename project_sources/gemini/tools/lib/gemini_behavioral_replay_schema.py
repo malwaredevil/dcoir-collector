@@ -61,7 +61,7 @@ FIXTURE_TEXT_KEYS = ("fixture_id", "title", "system_surface")
 FIXTURE_INT_LIST_KEYS = ("source_issue_numbers", "source_pr_numbers")
 FIXTURE_STRING_LIST_KEYS = (
     "scenario_tags", "expected_behaviors", "forbidden_behaviors",
-    "required_markers", "forbidden_markers", "expected_next_move_shapes", "anomaly_checks",
+    "required_markers", "forbidden_markers", "literal_forbidden_markers", "expected_next_move_shapes", "anomaly_checks",
 )
 FIXTURE_DICT_KEYS = ("model_target_profile", "available_evidence_by_turn", "pass_thresholds", "report_expectations")
 
