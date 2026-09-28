@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 
 from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_reciprocal_semantics import RECIPROCAL, reciprocal_suffix_rejects
 
 _LANE = r"(?:console|shell|environment|execution\s+context)"
 _LANES = r"(?:consoles|shells|environments|execution\s+contexts)"
@@ -21,26 +22,6 @@ _CAPABILITY_OBJECT = r"(?:(?:(?:supported|available|accepted)[-\s]+)?commands?|(
 _CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+(?:the\s+same|matching)|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal|matching|(?:completely|fully)\s+overlapping)\s+{_CAPABILITY_OBJECT}"
 _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
 _CAPABILITY_RELATION = r"(?:support(?:ed|s)?|accept(?:ed|s)?|allow(?:ed|s)?|expos(?:e|ed|es)|provid(?:e|ed|es)|availab(?:le|ility))"
-_RECIPROCAL = (
-    r"(?:vice\s+versa|conversely|"
-    r"(?:the\s+)?converse\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?(?:holds?|applies?)(?:\s+as\s+well)?)|"
-    r"(?:and\s+the\s+reverse|the\s+reverse(?:\s+implication)?\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?(?:holds?|applies?)))|"
-    r"(?:the\s+)?same\s+(?:holds?|applies?)\s+(?:the\s+)?other\s+way(?:\s+around)?|"
-    r"(?:the\s+)?implication\s+(?:goes?|holds?|applies?)\s+(?:both\s+ways|in\s+both\s+directions)|"
-    r"(?:this|that|the\s+(?:same\s+)?relation(?:ship)?)\s+(?:(?:also\s+)?(?:applies|holds)\s+)?in\s+reverse(?:\s+too)?|"
-    r"(?:this|that|the)\s+relation(?:ship)?\s+is\s+reciprocal|"
-    r"in\s+both\s+directions)"
-)
-_RECIPROCAL_REJECTION_AFTER = re.compile(
-    r"^\s*,?\s*(?:(?:this|that|the)(?:\s+(?:relation|relationship|converse|reverse|direction))?\s+)?"
-    r"(?:(?:is\s+(?:(?:definitely|clearly|certainly|absolutely|plainly)\s+)*(?:false|denied|one-way|asymmetric))"
-    r"|is\s+(?:by\s+no\s+means|not(?:\s+(?:always|necessarily|universally|generally|strictly|fully|actually|really))?)\s+(?:true|reciprocal|bidirectional|symmetric)"
-    r"|(?:also\s+)?does(?:n't|\s+not)\s+(?:(?:always|necessarily|universally|generally|strictly|fully|actually|really)\s+)?(?:hold|apply)"
-    r"|(?:may|might|could|would|should)\s+(?:not\s+)?(?:be\s+true|hold|apply)"
-    r"|is\s+(?:probably|possibly|perhaps|apparently|seemingly|likely)\s+(?:true|reciprocal|bidirectional))\b"
-    r"|^\s*,?\s*no\s+(?:reciprocal|reverse)\s+(?:relation|relationship)\b",
-    re.I,
-)
 _CAPABILITY_COMPLEMENT_EQUIV = (
     rf"(?:no\s+commands?\s+(?:is|are)\s+(?:unique|exclusive)\s+to\s+(?:either|one)\s+{_LANE}"
     rf"|(?:the\s+two|both)\s+{_LANES}\s+(?:have|support)\s+no\s+(?:unique|exclusive)\s+commands?"
@@ -73,7 +54,7 @@ _PATTERNS = (
         rf"\b(?:(?:every|all)\s+commands?[^.!?\n]{{0,90}}\b{_CAPABILITY_RELATION}\b"
         rf"|(?:(?:the\s+)?(?:local|endpoint)|one|either)?\s*(?:shell|console|environment)[^.!?\n]{{0,60}}\b{_CAPABILITY_VERB}\b"
         rf"[^.!?\n]{{0,90}}\b(?:commands?|syntax(?:es)?)\b)"
-        rf"[^!?\n]{{0,100}}(?:,|;|\band\b|\.)?\s*(?P<reciprocal>{_RECIPROCAL})\b",
+        rf"[^!?\n]{{0,100}}(?:,|;|\band\b|\.)?\s*(?P<reciprocal>{RECIPROCAL})\b",
         re.I,
     ),
     # Equal/shared command capability or identical supported-command sets.
@@ -201,7 +182,7 @@ def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
         if not occurrence_is_assertive_polarity(text, reciprocal_start, reciprocal_end):
             return False
         reciprocal_suffix = text[reciprocal_end:min(len(text), reciprocal_end + 80)]
-        if _RECIPROCAL_REJECTION_AFTER.match(reciprocal_suffix):
+        if reciprocal_suffix_rejects(reciprocal_suffix):
             return False
         return True
     markers = list(_RELATION_MARKER.finditer(local))
