@@ -14,12 +14,12 @@
   "description_character_ceiling": 300,
   "editor": {
     "name": "AFRICOM USB Reporting",
-    "description": "Static USB reporting assistant for AFRICOM weekly USB evidence review, query drafting, result normalization, readiness checks, and operator-confirmed report drafting.",
+    "description": "Narrow AFRICOM weekly USB violations report composer that converts supplied rows into governed NIPR/SIPR email drafts without generic analyst scaffolding.",
     "conversation_starters": [
-      "Prepare the weekly USB reporting evidence checklist for this date range.",
-      "Draft one Elastic query for USB device activity in this reporting window.",
-      "Normalize these pasted USB event rows into report-ready findings.",
-      "Check whether this USB evidence set is ready for final report drafting."
+      "Turn this USB violations CSV into the weekly report email draft.",
+      "Prepare the NIPR-only weekly USB violations email from these rows.",
+      "Prepare the split NIPR/SIPR weekly USB violations emails from these rows.",
+      "Check what required USB report information is missing from these rows."
     ]
   },
   "capabilities": {
@@ -35,17 +35,60 @@
     "persistent_cross_conversation_memory": false
   },
   "coverage": [
-    {"id": "prime.chunk.00", "sections": ["identity_scope"]},
-    {"id": "prime.chunk.01", "sections": ["identity_scope", "capability_boundaries"]},
-    {"id": "prime.chunk.03", "sections": ["identity_scope", "queries_report_preparation"]},
-    {"id": "prime.chunk.04", "sections": ["authority_evidence_lanes"]},
-    {"id": "prime.chunk.08", "sections": ["conclusions_output"]},
-    {"id": "prime.chunk.11", "sections": ["authority_evidence_lanes", "usb_reporting_workflow"]},
-    {"id": "prime.chunk.15", "sections": ["identity_scope", "conclusions_output"]},
-    {"id": "prime.chunk.17", "sections": ["identity_scope", "queries_report_preparation"]},
-    {"id": "prime.chunk.20", "sections": ["identity_scope", "capability_boundaries"]},
-    {"id": "sub_agent.10", "sections": ["conclusions_output"]},
-    {"id": "sub_agent.11", "sections": ["usb_reporting_workflow", "conclusions_output"]}
+    {
+      "id": "prime.chunk.00",
+      "sections": [
+        "identity_scope"
+      ]
+    },
+    {
+      "id": "prime.chunk.01",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "prime.chunk.04",
+      "sections": [
+        "authority_evidence_lanes"
+      ]
+    },
+    {
+      "id": "prime.chunk.11",
+      "sections": [
+        "authority_evidence_lanes",
+        "usb_reporting_workflow"
+      ]
+    },
+    {
+      "id": "prime.chunk.15",
+      "sections": [
+        "identity_scope",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.17",
+      "sections": [
+        "identity_scope",
+        "queries_report_preparation"
+      ]
+    },
+    {
+      "id": "prime.chunk.20",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "sub_agent.11",
+      "sections": [
+        "usb_reporting_workflow",
+        "conclusions_output"
+      ]
+    }
   ],
   "generated_outputs": {
     "instructions": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",

@@ -12,6 +12,7 @@ RUNNER_MODE_TO_FIXTURE_MODE = {
     "deterministic": "deterministic",
     "live": "live_gemini",
     "fallback": "fallback_emulation",
+    "openai_live": "live_openai_api",
 }
 
 
@@ -34,26 +35,29 @@ def resolve_fixtures(
         for e in all_active_entries
         if required_fixture_mode not in e.get("mode_support", [])
     ]
+    eligibility_key = {"live": "live_api_eligible", "openai_live": "openai_api_eligible"}.get(args.mode)
     excluded_from_live_api = [
         e.get("fixture_id")
         for e in all_active_entries
-        if args.mode == "live" and not e.get("live_api_eligible", True)
+        if eligibility_key and not e.get(eligibility_key, True)
     ]
-    if args.mode == "live":
-        entries = [e for e in mode_eligible_entries if e.get("live_api_eligible", True)]
+    if eligibility_key:
+        entries = [e for e in mode_eligible_entries if e.get(eligibility_key, True)]
     else:
         entries = mode_eligible_entries
 
     active = [e.get("fixture_id") for e in entries]
     checked = csv(args.fixture_ids_csv)
     if args.fixture_ids_csv is None and not checked:
-        checked = [args.fixture_id] if args.fixture_id else active
+        checked = [args.fixture_id] if args.fixture_id else ([] if args.mode == "openai_live" else active)
     custom = csv(args.custom_fixtures_csv)
     rejected: List[Dict[str, str]] = []
 
     def rejection_reason(fid: str) -> str:
         if args.mode == "live" and fid in excluded_from_live_api:
             return "not eligible for raw live Gemini API replay"
+        if args.mode == "openai_live" and fid in excluded_from_live_api:
+            return "not eligible for live OpenAI API replay"
         if fid in excluded_from_mode:
             return f"does not support runner mode {args.mode!r} ({required_fixture_mode})"
         return "not in active fixture index"
@@ -77,12 +81,23 @@ def resolve_fixtures(
             else:
                 rejected.append({"fixture_id": fid, "reason": rejection_reason(fid)})
 
-    loaded = [load_fixture_entry(repo_root, e) for e in entries if e.get("fixture_id") in set(selected)]
+    loaded: List[Dict[str, Any]] = []
+    for entry in entries:
+        fixture_id = entry.get("fixture_id")
+        if fixture_id not in set(selected):
+            continue
+        row = load_fixture_entry(repo_root, entry)
+        errors = [message.message for message in row.get("validation_messages", []) if message.level == "error"]
+        if errors:
+            rejected.append({"fixture_id": str(fixture_id), "reason": "fixture validation failed: " + "; ".join(errors)})
+            continue
+        loaded.append(row)
+    selected_to_run = [str(row.get("fixture", {}).get("fixture_id", "")) for row in loaded]
     return loaded, {
         "selection_source": source,
         "required_fixture_mode": required_fixture_mode,
         "active_fixtures": active,
-        "selected_fixtures_to_run": selected,
+        "selected_fixtures_to_run": selected_to_run,
         "rejected_selected_fixtures": rejected,
         "excluded_from_mode": excluded_from_mode,
         "excluded_from_live_api": excluded_from_live_api,

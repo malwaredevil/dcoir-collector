@@ -183,11 +183,6 @@
       "id": "usb_reporting_core",
       "target_id": "openai_usb_reporting",
       "purpose": "USB reporting role and output contract."
-    },
-    {
-      "id": "usb_query_reference",
-      "target_id": "openai_usb_reporting",
-      "purpose": "Minimal Elastic query and field reference for USB reports."
     }
   ],
   "ioc_enrichment_contract": {
@@ -367,8 +362,7 @@
       "split_disposition": null,
       "applies_to": [
         "gemini_dcoir_agent",
-        "openai_dcoir_analyst",
-        "openai_usb_reporting"
+        "openai_dcoir_analyst"
       ],
       "target_dispositions": {
         "gemini_dcoir_agent": {
@@ -384,10 +378,10 @@
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
-          "mode": "adapt",
-          "owner": "project_sources/agent_runtime/tools/build_openai_usb_reporting.py",
-          "generated_output": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
-          "notes": "Retain only the USB-reporting-relevant portion."
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Generic analyst response/report behavior is intentionally excluded; sub_agent.11 owns the narrow USB report workflow."
         }
       },
       "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
@@ -619,8 +613,7 @@
       "split_disposition": null,
       "applies_to": [
         "gemini_dcoir_agent",
-        "openai_dcoir_analyst",
-        "openai_usb_reporting"
+        "openai_dcoir_analyst"
       ],
       "target_dispositions": {
         "gemini_dcoir_agent": {
@@ -636,10 +629,10 @@
           "notes": "Flatten behavior into static Instructions and governed knowledge projections."
         },
         "openai_usb_reporting": {
-          "mode": "adapt",
-          "owner": "project_sources/agent_runtime/tools/build_openai_usb_reporting.py",
-          "generated_output": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
-          "notes": "Retain only the USB-reporting-relevant portion."
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Generic analyst response/report behavior is intentionally excluded; sub_agent.11 owns the narrow USB report workflow."
         }
       },
       "provider_specific_differences": "Gemini retains Prime orchestration; OpenAI targets receive flattened, capability-gated adaptations.",
@@ -1723,8 +1716,7 @@
       "split_disposition": null,
       "applies_to": [
         "gemini_dcoir_agent",
-        "openai_dcoir_analyst",
-        "openai_usb_reporting"
+        "openai_dcoir_analyst"
       ],
       "target_dispositions": {
         "gemini_dcoir_agent": {
@@ -1740,10 +1732,10 @@
           "notes": "Compile specialist responsibilities into one GPT without pretending sub-agents exist."
         },
         "openai_usb_reporting": {
-          "mode": "adapt",
-          "owner": "project_sources/agent_runtime/tools/build_openai_usb_reporting.py",
-          "generated_output": "project_sources/agent_runtime/generated/packages/openai_usb_reporting/Instructions.md",
-          "notes": "Compile reporting and output-contract behavior into the USB GPT."
+          "mode": "exclude",
+          "owner": "provider_adapter",
+          "generated_output": null,
+          "notes": "Generic analyst response/report behavior is intentionally excluded; sub_agent.11 owns the narrow USB report workflow."
         }
       },
       "provider_specific_differences": "Gemini keeps physical specialists; OpenAI targets compile applicable responsibilities into a single static instruction surface.",
@@ -2411,12 +2403,11 @@
       "split_disposition": null,
       "applies_to": [
         "gemini_dcoir_agent",
-        "openai_dcoir_analyst",
-        "openai_usb_reporting"
+        "openai_dcoir_analyst"
       ],
       "gemini_attachment_disposition": "include_direct_from_canonical_source",
       "openai_dcoir_projection_group": "dcoir_elastic_ops",
-      "openai_usb_projection_group": "usb_query_reference",
+      "openai_usb_projection_group": null,
       "source_boundary_hash_required": true,
       "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
       "consolidation_validation": [
@@ -2504,12 +2495,11 @@
       "split_disposition": null,
       "applies_to": [
         "gemini_dcoir_agent",
-        "openai_dcoir_analyst",
-        "openai_usb_reporting"
+        "openai_dcoir_analyst"
       ],
       "gemini_attachment_disposition": "include_direct_from_canonical_source",
       "openai_dcoir_projection_group": "dcoir_core",
-      "openai_usb_projection_group": "usb_reporting_core",
+      "openai_usb_projection_group": null,
       "source_boundary_hash_required": true,
       "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
       "consolidation_validation": [
@@ -2701,12 +2691,11 @@
       "split_disposition": null,
       "applies_to": [
         "gemini_dcoir_agent",
-        "openai_dcoir_analyst",
-        "openai_usb_reporting"
+        "openai_dcoir_analyst"
       ],
       "gemini_attachment_disposition": "include_direct_from_canonical_source",
       "openai_dcoir_projection_group": "dcoir_elastic_reference",
-      "openai_usb_projection_group": "usb_query_reference",
+      "openai_usb_projection_group": null,
       "source_boundary_hash_required": true,
       "duplicate_or_overlap_notes": "Validate headings and source-boundary markers during projection; do not silently deduplicate normative text.",
       "consolidation_validation": [

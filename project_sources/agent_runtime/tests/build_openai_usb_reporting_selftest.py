@@ -12,6 +12,8 @@ ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
 RELEASE_REPORTER = ROOT / 'project_sources/agent_runtime/tools/report_agent_release_parity.py'
 RELEASE_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
+USB_SEMANTIC_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'
+USB_LIVE_REPLAY_SELFTEST = ROOT / 'project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py'
 SPEC = importlib.util.spec_from_file_location('build_openai_usb_reporting', SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise SystemExit('Unable to load build_openai_usb_reporting.py')
@@ -82,8 +84,8 @@ def test_materialize_and_check() -> None:
             check=False,
         )
         assert not errors, report
-        assert report['behavior_coverage_count'] == 11
-        assert report['knowledge_file_count'] == 2
+        assert report['behavior_coverage_count'] == 8
+        assert report['knowledge_file_count'] == 1
         errors, report = module.build_package(
             repo,
             repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
@@ -172,18 +174,18 @@ def test_knowledge_drift_is_rejected() -> None:
         td.cleanup()
 
 
-def test_missing_confirmation_marker_is_rejected() -> None:
+def test_missing_primary_task_marker_is_rejected() -> None:
     td, repo = stage_repo()
     try:
         instructions = repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Instructions.md'
         text = instructions.read_text(encoding='utf-8')
-        instructions.write_text(text.replace('require operator confirmation before final report drafting', ''), encoding='utf-8')
+        instructions.write_text(text.replace('Your only job is to convert operator-provided weekly USB violation data', ''), encoding='utf-8')
         errors, _ = module.build_package(
             repo,
             repo / 'project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Adapter_Manifest.json',
             check=True,
         )
-        assert any('require operator confirmation' in error for error in errors), errors
+        assert any('Your only job is to convert operator-provided weekly USB violation data' in error for error in errors), errors
     finally:
         td.cleanup()
 
@@ -414,6 +416,16 @@ def test_lone_surrogate_description_fails_closed() -> None:
         td.cleanup()
 
 
+
+def test_usb_reporting_semantic_contract() -> None:
+    selftest = load_module(USB_SEMANTIC_SELFTEST, 'score_usb_reporting_behavior_selftest')
+    assert selftest.main() == 0
+
+
+def test_openai_usb_live_replay_harness() -> None:
+    selftest = load_module(USB_LIVE_REPLAY_SELFTEST, 'openai_usb_reporting_behavioral_replay_selftest')
+    assert selftest.main() == 0
+
 def test_unified_release_parity_report() -> None:
     selftest = load_module(RELEASE_SELFTEST, 'report_agent_release_parity_selftest')
     assert selftest.main() == 0
@@ -440,7 +452,7 @@ def main() -> int:
         test_behavior_coverage_order_is_rejected,
         test_behavior_source_hash_drift_is_rejected,
         test_knowledge_drift_is_rejected,
-        test_missing_confirmation_marker_is_rejected,
+        test_missing_primary_task_marker_is_rejected,
         test_stale_generated_file_is_rejected,
         test_generated_root_symlink_is_rejected,
         test_generated_root_symlink_loop_is_reported_without_crash,
@@ -454,6 +466,8 @@ def main() -> int:
         test_whitespace_conversation_starter_is_rejected,
         test_non_bmp_instruction_uses_webui_safe_counting,
         test_lone_surrogate_description_fails_closed,
+        test_usb_reporting_semantic_contract,
+        test_openai_usb_live_replay_harness,
         test_unified_release_parity_report,
     ]
     for test in tests:

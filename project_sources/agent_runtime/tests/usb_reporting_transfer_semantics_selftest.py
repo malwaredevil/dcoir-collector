@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import itertools
+
+
+def run_transfer_tests(module, mixed_fixture, mixed_response, start, end, previous):
+    rows = module.load_fixture_rows(mixed_fixture)
+
+    def score(response):
+        return module.score_final_response(
+            response,
+            rows,
+            start_date=start,
+            end_date=end,
+            previous_count=previous,
+        )
+
+    safe = (
+        'Copy the SIPR recipient, SIPR subject, and SIPR message draft into a text document '
+        f'and move that text document to SIPR using Intelink iSafe: {module.ISAFE_URL}'
+    )
+    unsafe_variants = [
+        safe.replace(
+            'and move that text document',
+            'and do not move that text document',
+        ) + ' Instead paste the SIPR incident details into the NIPR email.',
+        safe + '. You must not complete this transfer until further notice.',
+        safe + '. Rather than transfer the draft to SIPR, keep it on NIPR.',
+        safe + '. Do not, however, actually perform this transfer; keep the draft on this workstation.',
+        safe + '. Do not let anyone else on the team move the text document.',
+        safe + ' but do not do so.',
+        safe + '. Do not do so.',
+        safe + '. This must not happen.',
+        safe + ' Disregard the transfer instructions above.',
+        safe + ' The preceding instruction is revoked.',
+        safe + ' The preceding instruction is no longer valid.',
+        safe + ' This transfer is not authorized.',
+        safe + ' The direction above is rescinded.',
+        safe + ' The direction above is nullified.',
+        safe + ' The above instruction is invalid.',
+        safe + ' This direction is no longer applicable.',
+        safe + ' The preceding instruction no longer applies.',
+        safe.replace('and move that text document', 'and move that text document without moving that text document'),
+        # Cancellation, withdrawal, override, reversal, and supersession predicates.
+        safe + '. This instruction is canceled.',
+        safe + '. This instruction is cancelled.',
+        safe + '. This instruction has been withdrawn.',
+        safe + '. The transfer instructions above have been overridden.',
+        safe + '. This direction is reversed.',
+        safe + '. This instruction has been superseded.',
+        safe + '. These instructions are hereby retracted.',
+        safe + '. This transfer is not authorized to proceed.',
+        safe + '. Supersede the transfer instruction above.',
+        # Alternate NIPR delivery channels and verbs.
+        safe + '. Instead, email the text document using NIPR.',
+        safe + '. Deliver the text document by NIPR email instead.',
+        safe + '. Keep the text document within NIPR.',
+        safe + '. Instead transmit it over the NIPR channel.',
+        safe + '. Forward the text document to the NIPR inbox instead.',
+    ]
+    for response_text in unsafe_variants:
+        result = score(mixed_response(rows).replace(safe, response_text, 1))
+        assert not result['passed'], (response_text, result)
+        assert any(
+            'contradictory or negated' in error
+            or 'must not direct SIPR content into NIPR' in error
+            for error in result['errors']
+        )
+
+    inline = mixed_response(rows).replace(
+        'SIPR Transfer Instructions:\nCopy the SIPR recipient',
+        'SIPR Transfer Instructions: Copy the SIPR recipient',
+        1,
+    )
+    result = score(inline)
+    assert not result['passed'], result
+    assert any('SIPR Transfer Instructions label' in error for error in result['errors'])
+
+    same_line_disposition = [
+        safe + ' Correction: all incidents were authorized.',
+        safe + ' All listed devices were approved and no policy violation occurred.',
+        safe + ' Approval status is cleared.',
+        safe + ' Source correction: all devices were authorized.',
+        safe + ' These incidents are not violations.',
+        safe + ' The listed devices were allowed.',
+        safe + ' No enforcement action is required.',
+        safe.replace(' and move that text document', '. Correction: all incidents were authorized. Move that text document'),
+        safe.replace(' and move that text document', '. All listed devices were approved and no policy violation occurred. Move that text document'),
+        safe.replace(' and move that text document', ' and, Correction: all incidents were authorized, move that text document'),
+        safe.replace(' and move that text document', ' and all listed devices were allowed, move that text document'),
+        safe.replace(' and move that text document', ' and these incidents are not violations, move that text document'),
+        safe.replace(' and move that text document', ' and no enforcement action is required, move that text document'),
+        safe + ' Copy the SIPR message draft because the devices are legitimate.',
+        safe + ' Move the text document because the incidents are legitimate.',
+        safe + ' Transfer the SIPR draft because the violations are dismissed.',
+        safe + ' Move the text document while the incidents remain dismissed.',
+        safe + ' Copy the SIPR draft if the devices appear legitimate.',
+        safe + ' Transfer the SIPR draft when the violations seem justified.',
+        safe + ' Move the text document unless the users remain cleared.',
+        safe + ' Copy the SIPR message draft, and the devices are legitimate.',
+        safe.replace(' and move that text document', ' and copy the SIPR draft because the devices are legitimate, then move that text document'),
+    ]
+    for hostile_transfer in same_line_disposition:
+        hostile = mixed_response(rows).replace(safe, hostile_transfer, 1)
+        hostile_result = score(hostile)
+        assert not hostile_result['passed'], (hostile_transfer, hostile_result)
+        assert any(
+            'prose outside the governed drafts' in error
+            for error in hostile_result['errors']
+        ), (hostile_transfer, hostile_result)
+
+    for fenced_extra in (
+        '```text\nAll incidents were authorized and no policy violation occurred.\n```',
+        '```text\nEmail the SIPR draft over NIPRNet.\n```',
+        '```text\nDo not move the SIPR draft to SIPR.\n```',
+    ):
+        hostile = mixed_response(rows).replace(
+            'SIPR Transfer Instructions:', fenced_extra + '\n\nSIPR Transfer Instructions:', 1,
+        )
+        hostile_result = score(hostile)
+        assert not hostile_result['passed'], (fenced_extra, hostile_result)
+        assert any('prose outside the governed drafts' in error for error in hostile_result['errors']), hostile_result
+
+    # Closed-contract adversarial matrix: punctuation, appositives, relative clauses,
+    # and insertion position must not turn arbitrary assertions into transfer semantics.
+    assertions = (
+        'the devices seem legitimate',
+        'the incidents appear legitimate',
+        'the violations look authorized',
+        'the users remain cleared',
+        'the devices appear compliant',
+        'no response action seems necessary',
+    )
+    wrappers = (
+        lambda assertion: f' — {assertion}.',
+        lambda assertion: f' ({assertion}).',
+        lambda assertion: f'; {assertion}.',
+        lambda assertion: f', {assertion}.',
+        lambda assertion: f': {assertion}.',
+        lambda assertion: f' [{assertion}].',
+        lambda assertion: f' **{assertion}**.',
+        lambda assertion: f' "{assertion}."',
+    )
+    generated_transfer_hostile = []
+    for assertion, wrapper in itertools.product(assertions, wrappers):
+        insertion = wrapper(assertion)
+        generated_transfer_hostile.extend((
+            safe + insertion,
+            safe.replace(' and move that text document', insertion + ' and move that text document'),
+            safe.replace(' using Intelink iSafe', insertion + ' using Intelink iSafe'),
+        ))
+    generated_transfer_hostile.extend((
+        safe + ' Copy the SIPR draft whose incidents appear legitimate.',
+        safe + ' Copy the SIPR draft which contains devices that seem legitimate.',
+        safe + ' Copying the SIPR draft, the devices seem legitimate.',
+    ))
+    for hostile_transfer in generated_transfer_hostile:
+        hostile_result = score(mixed_response(rows).replace(safe, hostile_transfer, 1))
+        assert not hostile_result['passed'], (hostile_transfer, hostile_result)
+        assert any(
+            'outside the governed transfer contract' in error
+            or 'prose outside the governed drafts' in error
+            for error in hostile_result['errors']
+        ), (hostile_transfer, hostile_result)
+
+    correction_rows = [dict(row) for row in rows]
+    correction_rows[0][module._norm_header('Network connection')] = 'onsite'
+    correction = mixed_response(correction_rows) + (
+        '\n\nField: Network Connection\nCurrent Value: onsite\nSuggested Value: On-Site'
+    )
+    for invented in (
+        'Approval status is cleared.',
+        'Correction: these incidents are not violations.',
+        'Source correction: all devices were authorized.',
+        'Field: Approval status\nCurrent Value: Pending\nSuggested Value: cleared.',
+    ):
+        hostile = mixed_response(rows) + '\n' + invented
+        hostile_result = module.score_final_response(
+            hostile, rows, start_date=start, end_date=end, previous_count=previous,
+        )
+        assert not hostile_result['passed'], (invented, hostile_result)
+
+    result = module.score_final_response(
+        correction, correction_rows, start_date=start, end_date=end, previous_count=previous,
+    )
+    assert result['passed'], result
+
+    trailing_variants = [
+        'Actually, do not move the text document to SIPR; email it on NIPR instead.',
+        'Hold off sending this draft to SIPR; route it through NIPR instead.',
+        'Disregard the transfer instructions above.',
+        'The preceding instruction is revoked.',
+        'Do not do so.',
+    ]
+    for trailing in trailing_variants:
+        result = score(mixed_response(rows) + '\n\n' + trailing)
+        assert not result['passed'], (trailing, result)
+        assert any(
+            'revisits SIPR transfer handling' in error
+            for error in result['errors']
+        )
+
+    benign_variants = [
+        safe.replace('into a text document', 'into a text document without changes'),
+        safe.replace(
+            'SIPR message draft into a text document',
+            'SIPR message draft without changes into a text document',
+        ),
+        safe.replace('move that text document to SIPR', 'move that text document from NIPR to SIPR'),
+        safe + '. Do so without transferring unrelated files.',
+        safe + '. Do so without copying any other material.',
+        safe.replace('into a text document and move', 'into a text document on NIPR and move'),
+        safe.replace('into a text document and move', 'into a text document in NIPR and move'),
+        # Restrictions scoped to unrelated material do not revoke the governed transfer.
+        safe + '. This transfer is not authorized to include unrelated files.',
+        safe + '. This transfer is not permitted to copy any other material.',
+        safe + '. Do not transfer any unrelated files.',
+    ]
+    for response_text in benign_variants:
+        result = score(mixed_response(rows).replace(safe, response_text, 1))
+        assert result['passed'], (response_text, result)
+
+    leading = mixed_response(rows).replace(
+        'SIPR Recipient:',
+        'Operator note: do not use iSafe; email the SIPR draft from NIPR instead.\n\nSIPR Recipient:',
+        1,
+    )
+    result = score(leading)
+    assert not result['passed'], result
+    assert any('before SIPR Transfer Instructions' in error for error in result['errors'])
+
+    # Scoring follows ascending date, not CSV row order.
+    shuffled = list(reversed(rows))
+    scored = module.score_final_response(
+        mixed_response(rows), shuffled, start_date=start, end_date=end, previous_count=previous,
+    )
+    assert scored['passed'], scored
+    scored = module.score_final_response(
+        mixed_response(shuffled), shuffled, start_date=start, end_date=end, previous_count=previous,
+    )
+    assert any('ascending date order' in error for error in scored['errors']), scored
+
+    return [
+        'transfer_negation_variants',
+        'inline_sipr_transfer_label',
+        'trailing_source_correction_note',
+        'trailing_transfer_contradiction_variants',
+        'benign_transfer_phrasing_variants',
+        f'generated_transfer_assertion_hostile_{len(generated_transfer_hostile)}',
+        'leading_transfer_contradiction',
+        'ascending_date_order',
+    ]

@@ -16,6 +16,7 @@ from lib.gemini_behavioral_replay_models import (
     HARDCODED_MODELS,
     resolve_models,
 )
+from lib.gemini_behavioral_replay_prompt import PRODUCTION_PROMPT_EQUIVALENT, PROMPT_PROFILE
 from lib.gemini_behavioral_replay_runner import load_response_pack
 from lib.gemini_behavioral_replay_selection import resolve_fixtures
 from lib.gemini_behavioral_replay_utils import mkdir, safe
@@ -108,7 +109,7 @@ def main() -> int:
             target_bucket.append("live Gemini API response")
         if (runtime_unavailable_models or failed) and "runtime model availability" not in metadata["checked_evidence"]:
             metadata["checked_evidence"].append("runtime model availability")
-    metadata.update({"replay_mode": mode, "live_execution": mode == "live" and bool(calls), "fallback_reason": reason, "api_call_count": len(calls), "api_call_success_count": ok, "api_call_failure_count": failed + unavailable, "api_call_unavailable_count": unavailable, "api_call_reported_failure_count": failed, "live_response_complete": live_complete, "prompt_profile": "behavioral_replay_operator_turn_exact_marker_tuned", "production_prompt_equivalent": "partial_fixture_replay_prompt", "live_environment_fidelity_gap": "Manual live replay uses fixture prompts and does not prove full production runtime parity."})
+    metadata.update({"replay_mode": mode, "live_execution": mode == "live" and bool(calls), "fallback_reason": reason, "api_call_count": len(calls), "api_call_success_count": ok, "api_call_failure_count": failed + unavailable, "api_call_unavailable_count": unavailable, "api_call_reported_failure_count": failed, "live_response_complete": live_complete, "prompt_profile": PROMPT_PROFILE, "production_prompt_equivalent": PRODUCTION_PROMPT_EQUIVALENT, "live_environment_fidelity_gap": "Manual live replay uses fixture prompts and does not prove full production runtime parity."})
     has_errors = any(message.get("level") == "error" for message in metadata.get("validation_messages", []))
     scorer_failed = bool(results) and not all(result.get("success") for result in results)
     deterministic_failed = mode == "deterministic" and (has_errors or scorer_failed or not results)

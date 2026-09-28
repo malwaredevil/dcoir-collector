@@ -78,7 +78,7 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         self.assertEqual([], errors)
         self.assertTrue(report['success'])
         self.assertEqual(30, report['behavior_coverage_count'])
-        self.assertEqual(21, report['behavioral_case_count'])
+        self.assertEqual(22, report['behavioral_case_count'])
         self.assertEqual(7, report['knowledge_file_count'])
         self.assertEqual(3, report['generated_file_count'])
 

@@ -24,7 +24,7 @@ EXPECTED_INSTRUCTION_CHARACTER_CEILING = 8000
 EXPECTED_DESCRIPTION_CHARACTER_CEILING = 300
 EXPECTED_KNOWLEDGE_FILES = 7
 EXPECTED_BEHAVIOR_ITEMS = 30
-EXPECTED_CASES = 21
+EXPECTED_CASES = 22
 EXPECTED_PATHS = {
     'source_contract': 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
     'behavior_module_manifest': 'project_sources/agent_runtime/Behavior_Module_Manifest.json',
@@ -281,6 +281,13 @@ def _validate_instructions(
         errors.append(
             'Instructions exceed character ceiling: '
             f'{instruction_character_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
+        )
+    # The release package counts WebUI paste-safe characters after CRLF expansion.
+    paste_safe_count = _webui_character_count(text.replace('\r\n', '\n').replace('\n', '\r\n'))
+    if paste_safe_count > EXPECTED_INSTRUCTION_CHARACTER_CEILING:
+        errors.append(
+            'Instructions exceed paste-safe character ceiling after CRLF expansion: '
+            f'{paste_safe_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
         )
     for section_id, heading in SECTION_HEADINGS.items():
         if text.count(heading) != 1:

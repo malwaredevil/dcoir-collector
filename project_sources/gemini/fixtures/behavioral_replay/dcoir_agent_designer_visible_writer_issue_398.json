@@ -1,22 +1,24 @@
 {
   "schema_version": "gemini_behavioral_replay_fixture_v1",
   "fixture_id": "dcoir_agent_designer_visible_writer_issue_398",
-  "title": "Agent Designer one-visible-final-writer and duplicate-output suppression",
+  "title": "AI Augmenting one-visible-final-writer and duplicate-output suppression",
   "source_issue_numbers": [398, 184],
   "source_pr_numbers": [448],
   "scenario_tags": [
     "agent_designer_capture",
+    "openai_webui_capture",
     "prime_routing",
     "output_contract",
     "single_visible_writer",
     "internal_dialogue_suppression",
     "duplicate_output_suppression"
   ],
-  "system_surface": "Deployed Gemini Enterprise Agent Designer DCOIR Prime plus specialist topology",
+  "system_surface": "AI Augmenting DCOIR assistant: deployed Gemini Agent Designer or AFRICOM DCOIR Analyst OpenAI WebUI GPT, scored only for shared operator-visible semantics",
   "model_target_profile": {
     "reference_baseline": "Gemini 3.1 Pro Agent Designer production baseline",
     "simulated_production": "Gemini 3.1 Pro Agent Designer production baseline",
-    "default_live_target": "Gemini 3.1 Pro Agent Designer production baseline"
+    "default_live_target": "Gemini 3.1 Pro Agent Designer production baseline",
+    "openai_webui_target": "GPT-5.6 Terra AFRICOM DCOIR Analyst"
   },
   "turns": [
     {
@@ -140,5 +142,6 @@
     "require_json_summary": true,
     "require_markdown_report": true,
     "report_name": "gemini_behavioral_replay_run_report"
-  }
+  },
+  "capture_target_surfaces": ["gemini_agent_designer", "openai_dcoir_analyst"]
 }
