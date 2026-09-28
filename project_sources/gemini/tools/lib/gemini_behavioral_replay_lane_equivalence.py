@@ -21,11 +21,17 @@ _CAPABILITY_OBJECT = r"(?:(?:(?:supported|available|accepted)[-\s]+)?commands?|(
 _CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+(?:the\s+same|matching)|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal|matching|(?:completely|fully)\s+overlapping)\s+{_CAPABILITY_OBJECT}"
 _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
 _CAPABILITY_RELATION = r"(?:support(?:ed|s)?|accept(?:ed|s)?|allow(?:ed|s)?|expos(?:e|ed|es)|provid(?:e|ed|es)|availab(?:le|ility))"
-_RECIPROCAL = r"(?:vice\s+versa|conversely|and\s+the\s+reverse|the\s+reverse\s+is\s+also\s+true|in\s+both\s+directions)"
-_RECIPROCAL_MARKER = re.compile(rf"\b{_RECIPROCAL}\b", re.I)
+_RECIPROCAL = (
+    r"(?:vice\s+versa|conversely|"
+    r"(?:the\s+)?converse(?:\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?holds?))?|"
+    r"(?:and\s+)?the\s+reverse(?:\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?holds?))?|"
+    r"(?:this|that|the\s+(?:same\s+)?relation(?:ship)?)\s+(?:(?:also\s+)?(?:applies|holds)\s+)?in\s+reverse(?:\s+too)?|"
+    r"(?:this|that|the)\s+relation(?:ship)?\s+is\s+reciprocal|"
+    r"in\s+both\s+directions)"
+)
 _RECIPROCAL_REJECTION_AFTER = re.compile(
     r"^\s*(?:is\s+(?:not(?:\s+necessarily)?\s+true|false|denied)"
-    r"|does\s+not(?:\s+necessarily)?\s+(?:hold|apply))\b",
+    r"|(?:also\s+)?does(?:n't|\s+not)(?:\s+necessarily)?\s+(?:hold|apply))\b",
     re.I,
 )
 _CAPABILITY_COMPLEMENT_EQUIV = (
@@ -60,7 +66,7 @@ _PATTERNS = (
         rf"\b(?:(?:every|all)\s+commands?[^.!?\n]{{0,90}}\b{_CAPABILITY_RELATION}\b"
         rf"|(?:(?:the\s+)?(?:local|endpoint)|one|either)?\s*(?:shell|console|environment)[^.!?\n]{{0,60}}\b{_CAPABILITY_VERB}\b"
         rf"[^.!?\n]{{0,90}}\b(?:commands?|syntax(?:es)?)\b)"
-        rf"[^!?\n]{{0,100}}(?:,|;|\band\b|\.)?\s*{_RECIPROCAL}\b",
+        rf"[^!?\n]{{0,100}}(?:,|;|\band\b|\.)?\s*(?P<reciprocal>{_RECIPROCAL})\b",
         re.I,
     ),
     # Equal/shared command capability or identical supported-command sets.
@@ -181,16 +187,16 @@ _PATTERNS = (
 def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
     """Evaluate polarity at the actual equivalence predicate, not unrelated sentence negation."""
     local = match.group(0)
-    reciprocals = list(_RECIPROCAL_MARKER.finditer(local))
-    if reciprocals:
-        reciprocal = reciprocals[-1]
-        reciprocal_start = match.start() + reciprocal.start()
-        reciprocal_end = match.start() + reciprocal.end()
+    reciprocal_text = match.groupdict().get("reciprocal")
+    if reciprocal_text is not None:
+        reciprocal_start = match.start("reciprocal")
+        reciprocal_end = match.end("reciprocal")
         if not occurrence_is_assertive_polarity(text, reciprocal_start, reciprocal_end):
             return False
         reciprocal_suffix = text[reciprocal_end:min(len(text), reciprocal_end + 80)]
         if _RECIPROCAL_REJECTION_AFTER.match(reciprocal_suffix):
             return False
+        return True
     markers = list(_RELATION_MARKER.finditer(local))
     if not markers:
         return occurrence_is_assertive_polarity(text, match.start(), match.end())

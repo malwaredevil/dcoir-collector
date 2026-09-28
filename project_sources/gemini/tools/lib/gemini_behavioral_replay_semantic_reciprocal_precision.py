@@ -22,6 +22,11 @@ def run_reciprocal_capability_selftest() -> None:
         "Every command supported by one console is supported by the other, not merely documented, and vice versa.",
         "Every command accepted by one shell is accepted by the other, not merely approved, and conversely.",
         "The local shell supports all commands available in the endpoint console, not merely documented commands, and vice versa.",
+        "Every command supported by one console is supported by the other, although their manuals are not identical, and vice versa.",
+        "Every command supported by one console is supported by the other. The converse is true.",
+        "Every command supported by one console is supported by the other. The converse also holds.",
+        "Every command supported by one console is supported by the other. This applies in reverse too.",
+        "Every command supported by one console is supported by the other. The relationship is reciprocal.",
     )
     safe = (
         "Every command supported by the endpoint console is supported by the local shell.",
@@ -30,6 +35,10 @@ def run_reciprocal_capability_selftest() -> None:
         "Every command supported by one console is supported by the other, and not vice versa.",
         "Every command supported by one console is supported by the other, but vice versa does not necessarily hold.",
         "Every command supported by one console is supported by the other, but conversely is false.",
+        "Every command supported by one console is supported by the other. The converse is not true.",
+        "Every command supported by one console is supported by the other. The converse does not hold.",
+        "Every command supported by one console is supported by the other. This does not apply in reverse.",
+        "Every command supported by one console is supported by the other. The relationship is not reciprocal.",
         "The reverse is not true: the endpoint console has commands the local shell lacks.",
         "The command sets only partially overlap across both consoles.",
         "No documentation exists, but commands supported by one console are not necessarily supported by the other.",
@@ -57,6 +66,10 @@ def run_truth_frame_modifier_selftest() -> None:
         "There was not any credible question that these settings guarantee exact filtering.",
         "There is not any doubt that these settings guarantee exact filtering.",
         "The input is not available, but it is not doubtful that these settings guarantee exact filtering.",
+        "It is not remotely doubtful that these settings guarantee exact filtering.",
+        "It is not at all doubtful that these settings guarantee exact filtering.",
+        "It is not seriously open to question that these settings guarantee exact filtering.",
+        "There is not even the slightest doubt that these settings guarantee exact filtering.",
     )
     rejected = tuple(text.replace("guarantee exact filtering", "do not guarantee exact filtering") for text in asserted) + (
         "It is not doubtful that one setting is documented, but these settings do not guarantee exact filtering.",
