@@ -4,14 +4,14 @@ import re
 
 _DIRECTION = r"(?:the\s+other\s+way(?:\s+around)?|in\s+reverse(?:\s+too)?|both\s+ways|in\s+both\s+directions)"
 _AFFIRM_MOD = r"(?:(?:also|definitely|clearly|certainly|explicitly|actually|really|indeed)\s+)*"
-_REFERENT = r"(?:the\s+(?:same|converse|reverse(?:\s+implication)?|implication|relation(?:ship)?|rule)|this|that|it)"
+_REFERENT = r"(?:the\s+(?:same|converse|reverse(?:\s+(?:implication|relation(?:ship)?|direction))?|implication|relation(?:ship)?|rule)|this|that|it)"
 _PREDICATE = (
     rf"(?:is\s+{_AFFIRM_MOD}true(?:\s+{_DIRECTION})?"
     rf"|{_AFFIRM_MOD}(?:holds?|applies?|works?|goes?)(?:\s+as\s+well)?(?:\s+{_DIRECTION})?)"
 )
 
 RECIPROCAL = (
-    rf"(?:vice\s+versa|conversely|reciprocally|(?:and\s+)?the\s+reverse|in\s+both\s+directions|both\s+ways"
+    rf"(?:vice\s+versa|conversely|reciprocally|(?:and\s+)?the\s+reverse(?!\s+(?:implication|relation(?:ship)?|direction)\b)|in\s+both\s+directions|both\s+ways"
     rf"|{_REFERENT}\s+{_PREDICATE}"
     rf"|(?:this|that|the)\s+relation(?:ship)?\s+is\s+{_AFFIRM_MOD}reciprocal)"
 )
