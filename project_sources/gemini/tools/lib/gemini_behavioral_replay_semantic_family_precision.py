@@ -31,6 +31,11 @@ def run_reciprocal_variant_family_selftest() -> None:
         "Endpoint response-action syntax is interchangeable with local PowerShell.",
         "The consoles are interchangeable for these commands.",
         "Commands work the same in both shells.",
+        "Commands are mutually supported across the endpoint console and local PowerShell.",
+        "The two execution lanes have identical command capabilities.",
+        "Whatever works in the endpoint console works in local PowerShell, and conversely.",
+        "Each execution lane accepts every command the other lane does.",
+        "The endpoint console and local PowerShell each accept the other lane's commands.",
     )
     safe = (
         _ONE_WAY + ", but not vice-versa.",
@@ -50,6 +55,12 @@ def run_reciprocal_variant_family_selftest() -> None:
         "Endpoint response-action output and local PowerShell output are the same format.",
         "The consoles are not interchangeable.",
         "Commands do not work the same in both shells.",
+        "Commands are not mutually supported across the endpoint console and local PowerShell.",
+        "The two execution lanes do not have identical command capabilities.",
+        "Whatever works in the endpoint console works in local PowerShell, but not conversely.",
+        "Each execution lane accepts its documented commands, but not every command the other lane does.",
+        "Each execution lane does not accept every command the other lane does.",
+        "The endpoint console and local PowerShell do not each accept the other lane's commands.",
     )
     for response in unsafe:
         if has_execution_lane_separation(_LANE_CONTEXT + response):

@@ -6,9 +6,10 @@ from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive
 from .gemini_behavioral_replay_reciprocal_semantics import (
     RECIPROCAL, reciprocal_prefix_rejects, reciprocal_suffix_rejects,
 )
+from .gemini_behavioral_replay_lane_equivalence_extended import EXTENDED_PATTERNS
 
-_LANE = r"(?:console|shell|environment|execution\s+context)"
-_LANES = r"(?:consoles|shells|environments|execution\s+contexts)"
+_LANE = r"(?:console|shell|environment|execution\s+(?:context|lane))"
+_LANES = r"(?:consoles|shells|environments|execution\s+(?:contexts|lanes))"
 _COMMAND = r"(?:command|commands|command\s+execution|command\s+forms?|command\s+syntax|command\s+syntaxes|syntax|syntaxes|form|forms)"
 _CROSS_ENV = (
     rf"(?:(?:the\s+)?other\s+{_LANE}|"
@@ -179,13 +180,13 @@ _PATTERNS = (
     ),
     # Mirrored implication: what runs/works in one lane also runs/works in the other.
     re.compile(
-        rf"\b(?:what|anything|any\s+command|a\s+command|commands?\s+that)\b[^.!?;\n]{{0,60}}\b{_EXECUTE}\b[^.!?;\n]{{0,50}}\bin\s+one\s+{_LANE}\b"
+        rf"\b(?:what|whatever|anything|any\s+command|a\s+command|commands?\s+that)\b[^.!?;\n]{{0,60}}\b{_EXECUTE}\b[^.!?;\n]{{0,50}}\bin\s+one\s+{_LANE}\b"
         rf"[^.!?;\n]{{0,100}}\b(?:also\s+)?{_EXECUTE}\b[^.!?;\n]{{0,50}}\bin\s+(?:the\s+)?other\s+{_LANE}\b"
         rf"|\bif\b[^.!?;\n]{{0,80}}\b(?:command|syntax|form)\b[^.!?;\n]{{0,50}}\b{_EXECUTE}\b[^.!?;\n]{{0,50}}\bin\s+one\s+{_LANE}\b"
         rf"[^.!?;\n]{{0,100}}\b(?:then\s+)?(?:it|that\s+(?:command|syntax|form))\b[^.!?;\n]{{0,30}}\b{_EXECUTE}\b[^.!?;\n]{{0,50}}\bin\s+(?:the\s+)?other\s+{_LANE}\b",
         re.I,
     ),
-)
+) + EXTENDED_PATTERNS
 
 
 def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
