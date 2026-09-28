@@ -20,6 +20,7 @@ SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_semantics.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_precision_controls.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_semantic_precision.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_semantic_reciprocal_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_controls.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_paths.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_adversarial.py"),

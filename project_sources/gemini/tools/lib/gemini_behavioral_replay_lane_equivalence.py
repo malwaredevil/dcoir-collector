@@ -20,6 +20,13 @@ _RELATION_NOUN = r"(?:equivalence|parity|interchangeability|compatibility|samene
 _CAPABILITY_OBJECT = r"(?:(?:(?:supported|available|accepted)[-\s]+)?commands?|(?:supported[-\s]+)?command\s+(?:sets?|capabilit(?:y|ies)|repertoires?|availability|inventor(?:y|ies))|sets?\s+of\s+commands?)"
 _CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+(?:the\s+same|matching)|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal|matching|(?:completely|fully)\s+overlapping)\s+{_CAPABILITY_OBJECT}"
 _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
+_CAPABILITY_RELATION = r"(?:support(?:ed|s)?|accept(?:ed|s)?|allow(?:ed|s)?|expos(?:e|ed|es)|provid(?:e|ed|es)|availab(?:le|ility))"
+_RECIPROCAL = r"(?:vice\s+versa|conversely|and\s+the\s+reverse|the\s+reverse\s+is\s+also\s+true|in\s+both\s+directions)"
+_NEGATED_RECIPROCAL = re.compile(
+    rf"\b(?:not|never|isn't|is\s+not|doesn't|does\s+not)\b[^.!?;\n]{{0,30}}{_RECIPROCAL}\b"
+    rf"|\b{_RECIPROCAL}\b[^.!?;\n]{{0,30}}\b(?:is\s+not\s+true|is\s+denied|does\s+not\s+hold)\b",
+    re.I,
+)
 _CAPABILITY_COMPLEMENT_EQUIV = (
     rf"(?:no\s+commands?\s+(?:is|are)\s+(?:unique|exclusive)\s+to\s+(?:either|one)\s+{_LANE}"
     rf"|(?:the\s+two|both)\s+{_LANES}\s+(?:have|support)\s+no\s+(?:unique|exclusive)\s+commands?"
@@ -46,6 +53,15 @@ _RELATION_MARKER = re.compile(
 
 
 _PATTERNS = (
+    # A one-way capability relation plus an affirmative discourse-level
+    # reciprocal establishes equality without repeating the reverse clause.
+    re.compile(
+        rf"\b(?:(?:every|all)\s+commands?[^.!?\n]{{0,90}}\b{_CAPABILITY_RELATION}\b"
+        rf"|(?:(?:the\s+)?(?:local|endpoint)|one|either)?\s*(?:shell|console|environment)[^.!?\n]{{0,60}}\b{_CAPABILITY_VERB}\b"
+        rf"[^.!?\n]{{0,90}}\b(?:commands?|syntax(?:es)?)\b)"
+        rf"[^!?\n]{{0,100}}(?:,|;|\band\b|\.)?\s*{_RECIPROCAL}\b",
+        re.I,
+    ),
     # Equal/shared command capability or identical supported-command sets.
     re.compile(
         rf"\b(?:the\s+two|both)\s+{_LANES}\b[^.!?;\n]{{0,60}}\b{_CAPABILITY_VERB}\b"
@@ -164,6 +180,9 @@ _PATTERNS = (
 def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
     """Evaluate polarity at the actual equivalence predicate, not unrelated sentence negation."""
     local = match.group(0)
+    polarity_surface = text[match.start():min(len(text), match.end() + 40)]
+    if _NEGATED_RECIPROCAL.search(polarity_surface):
+        return False
     markers = list(_RELATION_MARKER.finditer(local))
     if not markers:
         return occurrence_is_assertive_polarity(text, match.start(), match.end())

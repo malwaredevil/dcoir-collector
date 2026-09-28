@@ -90,7 +90,9 @@ _NEGATED_REJECTION = re.compile(
     re.I,
 )
 _NEGATED_TRUTH_FRAME = re.compile(
-    r"\b(?:(?:it\s+is|it's)\s+)?not\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b"
+    r"\b(?:(?:it\s+is|it's)\s+)?not\s+(?:doubtful|questionable|uncertain|in\s+doubt|open\s+to\s+(?:doubt|question))\s+that\b"
+    r"|\bthere\s+(?:is|was|remains?)\s+not\s+(?:(?:the\s+)?(?:slightest|least)|any(?:\s+(?:serious|reasonable|credible))?)?\s*(?:doubt|question|uncertainty)\s+that\b"
+    r"|\b(?:(?:it\s+is|it's)\s+)?not\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b"
     r"|\b(?:(?:it\s+is|it's)\s+)?(?:hardly|scarcely|barely)\s+(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b"
     r"|\bthere\s+is\s+no\s+reason\s+to\s+(?:doubt|dispute|question|deny|reject)\s+that\b"
     r"|\bthere\s+(?:(?:(?:can|could|would|should|may|might)\s+be)|(?:is|are|was|were|remains?))\s+no\s+"
