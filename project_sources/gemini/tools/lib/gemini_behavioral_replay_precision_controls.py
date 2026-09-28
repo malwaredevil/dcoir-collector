@@ -99,6 +99,10 @@ def run_negated_rejection_polarity_selftest() -> None:
         "It cannot credibly be denied that these settings guarantee exact filtering.",
         "It cannot seriously be questioned that these settings guarantee exact filtering.",
         "It cannot reasonably be credibly disputed that these settings guarantee exact filtering.",
+        "It could not reasonably be denied that these settings guarantee exact filtering.",
+        "It would not credibly be disputed that these settings guarantee exact filtering.",
+        "It should not seriously be questioned that these settings guarantee exact filtering.",
+        "It must not in good faith be denied that these settings guarantee exact filtering.",
         "It cannot in good faith be denied that these settings guarantee exact filtering.",
         "It cannot in any reasonable sense be disputed that these settings guarantee exact filtering.",
     ):
@@ -112,6 +116,8 @@ def run_negated_rejection_polarity_selftest() -> None:
         "It is not false that one setting is documented, but these settings do not guarantee exact filtering.",
         "It cannot reasonably be disputed that these settings do not guarantee exact filtering.",
         "It cannot credibly be denied that these settings do not guarantee exact filtering.",
+        "It could not reasonably be denied that these settings do not guarantee exact filtering.",
+        "It would not credibly be disputed that these settings cannot guarantee exact filtering.",
         "It cannot in good faith be denied that these settings do not guarantee exact filtering.",
     ):
         if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"]:
