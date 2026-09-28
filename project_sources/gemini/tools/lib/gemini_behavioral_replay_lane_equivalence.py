@@ -17,15 +17,23 @@ _EQUIVALENT = r"(?:the\s+same|same|equal|equivalent|identical|indistinguishable|
 _EQUIVALENT_MANNER = r"(?:the\s+same|same|equally|identically|equivalently|indistinguishably|interchangeably|compatibly)"
 _EXECUTE = r"(?:run|runs|running|execute|executes|executing|work|works|working|function|functions|functioning|use|uses|using)"
 _RELATION_NOUN = r"(?:equivalence|parity|interchangeability|compatibility|sameness|identity)"
-_CAPABILITY_OBJECT = r"(?:(?:supported\s+)?commands?|(?:supported\s+)?command\s+(?:sets?|capabilit(?:y|ies)|repertoires?|availability)|sets?\s+of\s+commands?)"
-_CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+the\s+same|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal)\s+{_CAPABILITY_OBJECT}"
+_CAPABILITY_OBJECT = r"(?:(?:(?:supported|available|accepted)[-\s]+)?commands?|(?:supported[-\s]+)?command\s+(?:sets?|capabilit(?:y|ies)|repertoires?|availability|inventor(?:y|ies))|sets?\s+of\s+commands?)"
+_CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+(?:the\s+same|matching)|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal|matching|(?:completely|fully)\s+overlapping)\s+{_CAPABILITY_OBJECT}"
 _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
+_CAPABILITY_COMPLEMENT_EQUIV = (
+    rf"(?:no\s+commands?\s+(?:is|are)\s+(?:unique|exclusive)\s+to\s+(?:either|one)\s+{_LANE}"
+    rf"|(?:the\s+two|both)\s+{_LANES}\s+(?:have|support)\s+no\s+(?:unique|exclusive)\s+commands?"
+    rf"|neither\s+{_LANE}\s+(?:has|supports)\s+commands?\s+(?:that\s+)?(?:the\s+)?other\s+"
+    rf"(?:lacks|does\s+not\s+have|doesn't\s+have))"
+)
 _RELATION_MARKER = re.compile(
     rf"\b(?:"
     rf"(?:no|zero)\s+(?:(?:meaningful|material|practical|operational)\s+)?(?:difference|distinction)"
     rf"|{_RELATION_NOUN}|{_EQUIVALENT}|{_EQUIVALENT_MANNER}"
     rf"|{_CAPABILITY_EQUIV}"
     rf"|(?:equals?|matches?)"
+    rf"|(?:coincide(?:s)?|(?:completely|fully)\s+overlap(?:s)?)"
+    rf"|{_CAPABILITY_COMPLEMENT_EQUIV}"
     rf"|(?:can|may|could)\s+be\s+(?:run|executed|used|substituted|interchanged|swapped|replaced)"
     rf"|(?:is|are|remain|seem)\s+{_EQUIVALENT}"
     rf"|(?:works?|runs?|executes?|functions?)"
@@ -52,7 +60,21 @@ _PATTERNS = (
         rf"[^.!?;\n]{{0,60}}\b(?:is|are|remain)\b[^.!?;\n]{{0,30}}\b{_EQUIVALENT}\b"
         rf"|\b(?:the\s+)?{_CAPABILITY_OBJECT}\s+(?:in|of)\s+(?:one|either)\s+{_LANE}\b"
         rf"[^.!?;\n]{{0,80}}\b(?:equals?|matches?|is\s+(?:the\s+same\s+as|identical\s+to|equivalent\s+to))\b"
-        rf"[^.!?;\n]{{0,80}}\b(?:the\s+)?(?:set\s+)?(?:supported\s+)?commands?\s+(?:in|of)\s+(?:the\s+)?other\s+{_LANE}\b",
+        rf"[^.!?;\n]{{0,80}}\b(?:the\s+)?(?:set\s+)?(?:supported\s+)?commands?\s+(?:in|of)\s+(?:the\s+)?other\s+{_LANE}\b"
+        rf"|\b(?:(?:their|the)\s+)?{_CAPABILITY_OBJECT}\b[^.!?;\n]{{0,60}}"
+        rf"\b(?:coincide(?:s)?|match(?:es)?|(?:completely|fully)\s+overlap(?:s)?)\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:across|between)\s+(?:the\s+two|both)\s+{_LANES}\b"
+        rf"|\b{_CAPABILITY_COMPLEMENT_EQUIV}\b",
+        re.I,
+    ),
+    # Explicit equality of the command set supported by one lane and the other.
+    re.compile(
+        rf"\b(?:the\s+)?set\s+of\s+commands?\s+(?:supported|available|accepted)\s+(?:by|in)\s+(?:one|either)\s+{_LANE}\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:equals?|matches?|is\s+(?:the\s+same\s+as|identical\s+to|equivalent\s+to))\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:the\s+)?set(?:\s+of\s+commands?)?\s+(?:supported|available|accepted)\s+(?:by|in)\s+(?:the\s+)?other\s+{_LANE}\b"
+        rf"|\bcommands?\s+(?:supported|available|accepted)\s+(?:by|in)\s+(?:one|either)\s+{_LANE}\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:are|remain)\s+(?:exactly\s+)?(?:the\s+same|identical|equal)\s+as\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:commands?\s+)?(?:supported|available|accepted)\s+(?:by|in)\s+(?:the\s+)?other\s+{_LANE}\b",
         re.I,
     ),
     # Bidirectional command availability collapses the lane capability sets.
