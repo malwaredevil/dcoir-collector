@@ -8,8 +8,8 @@ from .gemini_behavioral_replay_reciprocal_semantics import (
 )
 from .gemini_behavioral_replay_lane_equivalence_extended import EXTENDED_PATTERNS
 
-_LANE = r"(?:console|shell|environment|execution\s+(?:context|lane))"
-_LANES = r"(?:consoles|shells|environments|execution\s+(?:contexts|lanes))"
+_LANE = r"(?:console|shell|environment|execution\s+context)"
+_LANES = r"(?:consoles|shells|environments|execution\s+contexts)"
 _COMMAND = r"(?:command|commands|command\s+execution|command\s+forms?|command\s+syntax|command\s+syntaxes|syntax|syntaxes|form|forms)"
 _CROSS_ENV = (
     rf"(?:(?:the\s+)?other\s+{_LANE}|"

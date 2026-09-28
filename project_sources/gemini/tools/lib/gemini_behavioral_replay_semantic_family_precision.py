@@ -58,8 +58,8 @@ def run_reciprocal_variant_family_selftest() -> None:
         "Commands are not mutually supported across the endpoint console and local PowerShell.",
         "The two execution lanes do not have identical command capabilities.",
         "Whatever works in the endpoint console works in local PowerShell, but not conversely.",
-        "Each execution lane accepts its documented commands, but not every command the other lane does.",
-        "Each execution lane does not accept every command the other lane does.",
+        "Each execution lane accepts its documented commands, but not every command the other execution lane does.",
+        "Each execution lane does not accept every command the other execution lane does.",
         "The endpoint console and local PowerShell do not each accept the other lane's commands.",
     )
     for response in unsafe:

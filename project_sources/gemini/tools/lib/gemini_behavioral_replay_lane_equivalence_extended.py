@@ -18,6 +18,7 @@ _SUBJECT = r"(?:what|whatever|anything|any\s+command|a\s+command|commands?\s+tha
 EXTENDED_PATTERNS = (
     re.compile(
         rf"\b{_PAIR}\s+(?:have|share|support|accept)\s+{_CAPABILITY_EQUIV}\b"
+        rf"|\b(?:the\s+)?(?:two|both)\s+execution\s+lanes?\s+(?:both\s+)?(?:have|share|support|accept)\s+{_CAPABILITY_EQUIV}\b"
         rf"|\b{_PAIR}\s+each\s+(?:supports?|accepts?|allows?|exposes?|provides?|offers?)\s+"
         rf"(?:all\s+|every\s+|any\s+)?(?:the\s+)?other(?:\s+(?:execution\s+)?lane)?['’]s\s+commands?\b"
         rf"|\beach\s+execution\s+(?:lane|context)\s+(?:supports?|accepts?|allows?|exposes?|provides?|offers?)\s+"
