@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from . import gemini_behavioral_replay_semantic_precision as _semantic_precision
 from .gemini_behavioral_replay_scoring import score_marker_presence
 
 SCORER_MODULE_CHARACTER_CEILING = 15000
@@ -41,6 +42,16 @@ SCORER_MODULE_SIZE_EXEMPTIONS = {
     Path("project_sources/agent_runtime/tools/score_usb_reporting_behavior.py"): 20000,
     Path("project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py"): 16500,
 }
+
+
+def run_elastic_command_lane_separation_selftest() -> None:
+    """Compatibility facade for the extracted semantic-precision self-test."""
+    _semantic_precision.run_elastic_command_lane_separation_selftest()
+
+
+def run_negated_rejection_polarity_selftest() -> None:
+    """Compatibility facade for the extracted semantic-precision self-test."""
+    _semantic_precision.run_negated_rejection_polarity_selftest()
 
 
 def run_scorer_module_size_selftest() -> None:
