@@ -32,3 +32,8 @@ project_sources/collector/fixtures/blind_artifacts/**
 
 # Workflow reporter generated local output
 chatgpt_workflow_report_section/
+
+# Claude Code local-only state: desktop app worktrees and personal settings.
+.claude/worktrees/
+.claude/settings.local.json
+CLAUDE.local.md
