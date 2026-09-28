@@ -34,10 +34,9 @@ def run_reciprocal_variant_family_selftest() -> None:
         "Commands are mutually supported across the endpoint console and local PowerShell.",
         "The two execution lanes have identical command capabilities.",
         "Whatever works in the endpoint console works in local PowerShell, and conversely.",
+        "Whatever works in the endpoint console works in local PowerShell, but not conversely.",
         "Each execution lane accepts every command the other lane does.",
         "The endpoint console and local PowerShell each accept the other lane's commands.",
-    )
-    safe = (
         _ONE_WAY + ", but not vice-versa.",
         _ONE_WAY + ", but vice\u2011versa does not hold.",
         _ONE_WAY + ", but not the other way round.",
@@ -47,6 +46,8 @@ def run_reciprocal_variant_family_selftest() -> None:
         _ONE_WAY + ", which is not true in reverse.",
         _ONE_WAY + "; the relation is not symmetric.",
         _ONE_WAY + "; the relationship is one-way, not bidirectional.",
+    )
+    safe = (
         "Each console supports every command it documents, but the other console does not.",
         "Each console supports every command that the other console does not support.",
         "The endpoint console and local PowerShell are not interchangeable.",
@@ -57,7 +58,6 @@ def run_reciprocal_variant_family_selftest() -> None:
         "Commands do not work the same in both shells.",
         "Commands are not mutually supported across the endpoint console and local PowerShell.",
         "The two execution lanes do not have identical command capabilities.",
-        "Whatever works in the endpoint console works in local PowerShell, but not conversely.",
         "Each execution lane accepts its documented commands, but not every command the other execution lane does.",
         "Each execution lane does not accept every command the other execution lane does.",
         "The endpoint console and local PowerShell do not each accept the other lane's commands.",

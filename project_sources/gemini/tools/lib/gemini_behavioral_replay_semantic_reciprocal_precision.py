@@ -42,8 +42,6 @@ def run_reciprocal_capability_selftest() -> None:
         "Every command supported by one console is supported by the other. The same definitely holds the other way around.",
         "Every command supported by one console is supported by the other. It works both ways.",
         "Every command supported by one console is supported by the other. The relationship is clearly reciprocal.",
-    )
-    safe = (
         "Every command supported by the endpoint console is supported by the local shell.",
         "Every command supported by the endpoint console is supported locally, but not vice versa.",
         "Every command supported by one console is supported by the other, but vice versa is not true.",
@@ -78,6 +76,8 @@ def run_reciprocal_capability_selftest() -> None:
         "Every command supported by one console is supported by the other. The implication does not go both ways.",
         "Every command supported by one console is supported by the other. The implication probably goes both ways.",
         "Every command supported by one console is supported by the other. The same probably holds the other way around.",
+    )
+    safe = (
         "The reverse is not true: the endpoint console has commands the local shell lacks.",
         "The command sets only partially overlap across both consoles.",
         "No documentation exists, but commands supported by one console are not necessarily supported by the other.",

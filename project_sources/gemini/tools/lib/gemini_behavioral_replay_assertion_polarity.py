@@ -53,6 +53,7 @@ _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:(?:it\s+is|it's)\s+)?(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b", re.I),
     re.compile(r"\bno\s+evidence\s+supports?\b", re.I),
     re.compile(r"\b(?:before|without)\s+(?:drawing|reaching|making)\s+(?:any\s+)?conclusions?\s+about\b[^,]{0,80}$", re.I),
+    re.compile(r"\bwithout\s+(?:making|rendering|treating)\b[^.!?;,\n]{0,120}$", re.I),
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+rely\s+on\b[^.!?;\n]{0,180}\bto\s+$", re.I),
     re.compile(r"\b(?:do not|don't|dont|does not|doesn't|doesnt|cannot|can't|can not|should not|must not)\b[^.!?;\n]{0,180}\b(?:provide|establish|offer|create|supply)\b[^.!?;\n]{0,180}$", re.I),
 )

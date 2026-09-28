@@ -63,6 +63,14 @@ _CLAUSE_RELATIONS = tuple(re.compile(pattern, re.I) for pattern in (
     rf"(?:{_PAIR}|{_A}[^.!?;\n]{{0,60}}{_B}|{_B}[^.!?;\n]{{0,60}}{_A})[^.!?;\n]{{0,60}}\b(?P<rel>interchangeabl[ey])",
     rf"(?:{_A}|{_B})[^.!?;\n]{{0,60}}\b(?P<rel>interchangeabl[ey])\s+(?:with|to)\s+(?:the\s+)?(?:{_A}|{_B})",
     rf"\b(?P<rel>(?:swap|interchange|substitute)\s+(?:the\s+)?(?:{_A}|{_B}){_TAIL}\s+(?:for|with|and)\s+(?:the\s+)?(?:{_A}|{_B}){_TAIL})\s+(?:freely|whenever|at\s+will|as\s+(?:needed|you\s+(?:like|wish|prefer))|any\s*time|either\s+way)",
+    # Inverse containment wording: one lane contains the other's command set.
+    rf"\b(?:the\s+)?{_B}{_TAIL}\s+(?P<rel>contains?|includes?|covers?)\s+(?:all\s+of\s+)?(?:the\s+)?{_A}(?:['’]s)?\s+(?:command\s+)?(?:sets?|commands)(?:\s+as\s+(?:a\s+)?subset)?\b",
+    rf"\b(?:the\s+)?{_A}{_TAIL}\s+(?P<rel>contains?|includes?|covers?)\s+(?:all\s+of\s+)?(?:the\s+)?{_B}(?:['’]s)?\s+(?:command\s+)?(?:sets?|commands)(?:\s+as\s+(?:a\s+)?subset)?\b",
+    # Blanket one-way containment is also a lane-boundary violation. The two
+    # lanes can wrap/transport a shell payload explicitly, but neither lane's
+    # command vocabulary is a general subset of the other.
+    r"\b(?:every|all|any)\s+commands?\s+(?:supported|available|accepted|allowed|exposed|provided)\s+(?:by|in)\s+(?:one|either)\s+(?:console|shell|environment|execution\s+lane)\s+(?P<rel>(?:is|are)\s+(?:also\s+)?(?:supported|available|accepted|allowed|exposed|provided))\s+(?:by|in)\s+(?:the\s+)?other(?:\s+(?:console|shell|environment|execution\s+lane))?\b",
+    rf"\b(?:every|all|any)\s+commands?\s+(?:supported|available|accepted|allowed|exposed|provided)\s+(?:by|in)\s+(?:the\s+)?{_A}{_TAIL}\s+(?P<rel>(?:is|are)\s+(?:also\s+)?(?:supported|available|accepted|allowed|exposed|provided))\s+locally\b",
     # Double-negative equivalence: no command separates the lanes.
     r"\b(?P<rel>neither\s+(?:execution\s+)?(?:lane|console|shell)\s+lacks)\b[^.!?;\n]{0,40}\bthe\s+other",
     r"\b(?P<rel>(?:each|either)\s+(?:execution\s+)?(?:lane|console|shell)['’]s\s+command\s+sets?\s+(?:contains|includes|covers|equals|matches))\s+the\s+other",
@@ -147,4 +155,8 @@ def has_composed_lane_equivalence(text: str) -> bool:
         for direction, patterns in _CONTAINMENT.items():
             if any(_asserted(text, offset, match) for pattern in patterns for match in pattern.finditer(clause)):
                 directions.add(direction)
-    return len(directions) == 2
+    # Any blanket command-set containment across the endpoint and local lanes
+    # collapses the governed syntax boundary. A response action may explicitly
+    # wrap a PowerShell payload, but that does not make either lane's command
+    # set a subset/superset of the other.
+    return bool(directions)
