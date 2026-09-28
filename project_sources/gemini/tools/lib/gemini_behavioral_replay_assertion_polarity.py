@@ -74,13 +74,13 @@ _CERTAINTY_NEGATED_ACTION_TAIL = re.compile(
 
 _DIRECT_NEGATION = re.compile(
     r"\b(?:do not|don't|dont|does not|doesn't|doesnt|did not|cannot|can't|can not|"
-    r"should not|must not|will not|would not|never|no|not)\b"
+    r"should not|must not|will not|would not|never|nobody|no\s+one|no|not)\b"
     r"(?:(?!\b(?:and|or)\b)[^.!?;,\n]){0,80}$",
     re.I,
 )
 _NEGATION_TOKEN = re.compile(
     r"\b(?:do not|don't|dont|does not|doesn't|doesnt|did not|cannot|can't|can not|"
-    r"should not|must not|will not|would not|never|no|not)\b",
+    r"should not|must not|will not|would not|never|nobody|no\s+one|no|not)\b",
     re.I,
 )
 # Negating a rejection ("do not reject", "cannot deny", "no doubt") affirms what follows.
@@ -88,7 +88,24 @@ _NEGATED_REJECTION = re.compile(
     r"\s+(?:(?:the|any|a|this|that)\s+)?"
     r"(?:reject(?:s|ed|ing)?|den(?:y|ies|ied|ying)|dispute[sd]?|disputing|refute[sd]?|refuting|"
     r"contest(?:s|ed|ing)?|doubt(?:s|ed|ing)?|disagree(?:s|d|ing)?(?:\s+with)?|disprove[sd]?|"
-    r"contradict(?:s|ed|ing)?)\b",
+    r"contradict(?:s|ed|ing)?|fail(?:s|ed|ing)?\s+to)\b",
+    re.I,
+)
+# Asserting that a negated proposition is false affirms it ("it is false that X does not ...").
+_FALSITY_FRAME = re.compile(
+    r"\b(?:false|incorrect|untrue|wrong|inaccurate|not\s+(?:true|correct|accurate|the\s+case))"
+    r"(?:\s+to\s+(?:say|claim|state|assert|suggest)(?:\s+that)?|\s+that)\b",
+    re.I,
+)
+_INNER_NEGATION = re.compile(
+    r"\b(?:do not|don't|dont|does not|doesn't|doesnt|did not|didn't|cannot|can't|can not|"
+    r"will not|won't|never|not|fail(?:s|ed)?\s+to)\b(?:(?!\b(?:and|or)\b)[^.!?;,\n]){0,60}$",
+    re.I,
+)
+# Litotes: a negated failure affirms the action ("never fail to guarantee").
+_LITOTES = re.compile(
+    r"\b(?:never|not|cannot|can't|can not|don't|doesn't|didn't|won't|wouldn't)\s+"
+    r"(?:[a-z]+ly\s+)?fail(?:s|ed)?\s+to\s*$",
     re.I,
 )
 _FOCUS_NEGATION = re.compile(
@@ -158,7 +175,22 @@ def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[
     return True
 
 
+def _falsity_cancels_inner_negation(prefix: str) -> bool:
+    frames = list(_FALSITY_FRAME.finditer(prefix))
+    # An outer negation in the same sentence ("do not claim it is false that ...") keeps the rejection.
+    if not frames or _NEGATION_TOKEN.search(re.split(r"[.!?;\n]", prefix[:frames[-1].start()])[-1]):
+        return False
+    scope = prefix[frames[-1].end():]
+    inner = _INNER_NEGATION.search(scope)
+    # The negation must sit inside the falsity frame's own complement clause.
+    return bool(inner) and not re.search(
+        r"[,:]|\b(?:and|or|but|so|because|since|while|whereas|however|yet)\b", scope[:inner.start()], re.I
+    )
+
+
 def prefix_has_affirming_negated_truth_frame(prefix: str) -> bool:
+    if _LITOTES.search(prefix) or _falsity_cancels_inner_negation(prefix):
+        return True
     frames = list(_NEGATED_TRUTH_FRAME.finditer(prefix))
     if not frames:
         return False
@@ -230,6 +262,8 @@ def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
     prefix = _after_negated_rejection(prefix)
 
     target_tail = normalized[occurrence:min(len(normalized), occurrence_end + 80)]
+    if _falsity_cancels_inner_negation(prefix):
+        return True
     if _direct_negation_applies(prefix, target_tail):
         return False
     if any(_rejection_frame_applies(prefix, target_tail, pattern) for pattern in _PREFIX_REJECTION_PATTERNS):

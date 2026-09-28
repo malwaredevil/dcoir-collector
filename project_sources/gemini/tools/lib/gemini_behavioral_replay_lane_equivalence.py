@@ -3,10 +3,9 @@ from __future__ import annotations
 import re
 
 from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
-from .gemini_behavioral_replay_reciprocal_semantics import (
-    RECIPROCAL, reciprocal_prefix_rejects, reciprocal_suffix_rejects,
-)
+from .gemini_behavioral_replay_reciprocal_semantics import RECIPROCAL, reciprocal_is_assertive
 from .gemini_behavioral_replay_lane_equivalence_extended import EXTENDED_PATTERNS
+from .gemini_behavioral_replay_lane_relation_composition import has_composed_lane_equivalence
 
 _LANE = r"(?:console|shell|environment|execution\s+context)"
 _LANES = r"(?:consoles|shells|environments|execution\s+contexts)"
@@ -55,8 +54,7 @@ _RELATION_MARKER = re.compile(
 
 
 _PATTERNS = (
-    # A one-way capability relation plus an affirmative discourse-level
-    # reciprocal establishes equality without repeating the reverse clause.
+    # One-way capability relation plus an affirmative reciprocal means equality.
     re.compile(
         rf"\b(?:(?:every|all)\s+commands?[^.!?\n]{{0,90}}\b{_CAPABILITY_RELATION}\b"
         rf"|(?:(?:the\s+)?(?:local|endpoint)|one|either)?\s*(?:shell|console|environment)[^.!?\n]{{0,60}}\b{_CAPABILITY_VERB}\b"
@@ -191,33 +189,17 @@ _PATTERNS = (
 
 def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
     """Evaluate polarity at the actual equivalence predicate, not unrelated sentence negation."""
-    local = match.group(0)
-    reciprocal_text = match.groupdict().get("reciprocal")
-    if reciprocal_text is not None:
-        reciprocal_start = match.start("reciprocal")
-        reciprocal_end = match.end("reciprocal")
-        reciprocal_prefix = text[max(match.start(), reciprocal_start - 80):reciprocal_start]
-        if reciprocal_prefix_rejects(reciprocal_prefix):
-            return False
-        if not occurrence_is_assertive_polarity(text, reciprocal_start, reciprocal_end):
-            return False
-        reciprocal_suffix = text[reciprocal_end:min(len(text), reciprocal_end + 80)]
-        if reciprocal_suffix_rejects(reciprocal_suffix):
-            return False
-        return True
-    markers = list(_RELATION_MARKER.finditer(local))
-    if not markers:
-        return occurrence_is_assertive_polarity(text, match.start(), match.end())
-    relation = markers[-1]
-    return occurrence_is_assertive_polarity(
-        text,
-        match.start() + relation.start(),
-        match.start() + relation.end(),
-    )
+    if match.groupdict().get("reciprocal") is not None:
+        return reciprocal_is_assertive(text, match)
+    markers = list(_RELATION_MARKER.finditer(match.group(0)))
+    start = match.start() + markers[-1].start() if markers else match.start()
+    end = match.start() + markers[-1].end() if markers else match.end()
+    # Frames before the whole relation ("do not assume A and B are ...") count too.
+    return occurrence_is_assertive_polarity(text, match.start(), end) and occurrence_is_assertive_polarity(text, start, end)
 
 
 def has_affirmative_cross_lane_equivalence(text: str) -> bool:
-    return any(
+    return has_composed_lane_equivalence(text) or any(
         _relation_is_assertive(text, match)
         for pattern in _PATTERNS
         for match in pattern.finditer(text)

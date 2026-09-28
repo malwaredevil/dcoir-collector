@@ -20,6 +20,7 @@ _MOD = rf"(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}}"
 _WORD = r"(?:(?:[a-z][a-z-]{1,24})\s+)"
 _ADVERB = r"(?:(?:[a-z][a-z-]{1,24}ly|in\s+good\s+faith|in\s+any\s+(?:reasonable|serious|credible)\s+sense)\s+)"
 _IT_BE = r"(?:(?:it\s+(?:is|was|has\s+been|had\s+been|will\s+be|remains)|it['’]s)\s+)?"
+_IT_NOT = r"(?:it\s+(?:is|was|would\s+be)\s+not|it\s+(?:isn['’]t|wasn['’]t|wouldn['’]t\s+be)|it['’]s\s+not)"
 _NEG = rf"(?:not|never|by\s+no\s+means)\s+{_MOD}"
 # Doubt vocabulary. "arguable" is deliberately absent: "not arguable that X" rejects X.
 _DOUBT_STATE = (
@@ -59,8 +60,15 @@ _NEG_PASSIVE = (
     rf"(?:(?:cannot|can't|can\s+not|could\s+not|couldn't|would\s+not|wouldn't|should\s+not|shouldn't|"
     rf"must\s+not|mustn't)\s+{_ADVERB}{{0,3}}be"
     r"|(?:is|are|was|were)\s+(?:not|never)|isn't|aren't|wasn't|weren't"
-    r"|(?:has|have|had)\s+(?:not|never)\s+been|hasn't\s+been|haven't\s+been|hadn't\s+been)"
+    r"|(?:has|have|had)\s+(?:not|never)\s+been|hasn't\s+been|haven't\s+been|hadn't\s+been"
+    r"|(?<=it)['’]s\s+(?:not|never)\s+been)"
 )
+# Negated factive/evaluative frames ("no secret", "not surprising") presuppose their complement.
+_FACTIVE = (
+    rf"(?:{_IT_BE}(?:no\s+|not\s+(?:an?\s+|any\s+)?)(?:surprise|secret|coincidence|accident|mystery|exaggeration|overstatement)"
+    rf"|{_IT_BE}not\s+(?:surprising|coincidental|accidental)|no\s+wonder)"
+)
+_SAY = r"(?:\s+to\s+(?:say|claim|state|note|conclude))?"
 # "there is no doubt these settings ..." may omit "that" before a complement subject.
 _BARE_COMPLEMENT = (
     r"(?=\s+(?!(?:about|over|of|as|to|whether|if|regarding|concerning|on|for|in|at|left|remaining|"
@@ -71,8 +79,10 @@ NEGATED_TRUTH_FRAME = re.compile(
     rf"\b{_IT_BE}{_NEG}{_DOUBT_STATE}\s+that\b"
     rf"|\b{_THERE}\s+{_NEG}(?:(?:the\s+)?(?:slightest|least)|any(?:\s+(?:serious|reasonable|credible|material|meaningful))?)?"
     rf"\s*{_DOUBT_NOUN}\s+{_PROPOSITION}that\b"
-    rf"|\b{_IT_BE}not\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|"
-    rf"unsubstantiated|unfounded)\s+that\b"
+    rf"|\b(?:{_IT_BE}not|{_IT_NOT})\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|"
+    rf"unsubstantiated|unfounded)(?:\s+that\b|\s+to\s+(?:say|claim|state|conclude)(?:\s+that\b|{_BARE_COMPLEMENT}))"
+    rf"|\b{_FACTIVE}{_SAY}(?:\s+that\b|{_BARE_COMPLEMENT})"
+    rf"|\b{_NEG_AUX}\s+(?:forget|overlook|ignore|neglect|dismiss)\s+{_PROPOSITION}that\b"
     rf"|\b{_IT_BE}(?:hardly|scarcely|barely)\s+(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b"
     rf"|\b{_THERE}\s+no\s+reason\s+to\s+{_DOUBT_VERB}\s+that\b"
     rf"|\b{_THERE}\s+no\s+{_WORD}{{0,3}}{_DOUBT_NOUN}(?:\s+{_PROPOSITION}that\b|{_BARE_COMPLEMENT})"
@@ -84,8 +94,8 @@ NEGATED_TRUTH_FRAME = re.compile(
     rf"|\b{_NEG_PASSIVE}\s+{_ADVERB}{{0,3}}{_DOUBT_PARTICIPLE}\s+that\b"
     rf"|\b{_NOBODY}\s+(?:(?:can|could|would|should|may|might|will)\s+)?"
     rf"(?:(?:reasonably|possibly|credibly|seriously|honestly|really|actually|genuinely|even|ever)\s+){{0,2}}"
-    rf"(?:{_DOUBT_VERB}|{_DOUBT_VERB_FINITE})\s+{_PROPOSITION}that\b"
+    rf"(?:{_DOUBT_VERB}|{_DOUBT_VERB_FINITE})(?:\s+{_PROPOSITION}that\b|\s+whether\b|{_BARE_COMPLEMENT})"
     rf"|\b{_NOBODY}\s+(?:has|had)\s+(?:any\s+)?(?:reason|basis|grounds?)\s+to\s+{_DOUBT_VERB}\s+{_PROPOSITION}that\b"
-    rf"|\b{_NEG_AUX}\s+(?:(?:[a-z][a-z-]{{1,24}}ly|really|even|ever)\s+){{0,2}}{_DOUBT_VERB}\s+{_PROPOSITION}that\b",
+    rf"|\b{_NEG_AUX}\s+(?:(?:[a-z][a-z-]{{1,24}}ly|really|even|ever)\s+){{0,2}}{_DOUBT_VERB}(?:\s+{_PROPOSITION}that\b|{_BARE_COMPLEMENT})",
     re.I,
 )

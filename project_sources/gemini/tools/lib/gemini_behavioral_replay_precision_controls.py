@@ -16,6 +16,8 @@ SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence_extended.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_relation_composition.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_composition_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_collector_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_semantics.py"),

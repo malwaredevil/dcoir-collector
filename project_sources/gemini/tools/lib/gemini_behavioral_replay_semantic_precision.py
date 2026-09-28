@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .gemini_behavioral_replay_lane_scoring import has_execution_lane_separation
 from .gemini_behavioral_replay_scoring import detect_anomalies, score_forbidden_markers
+from .gemini_behavioral_replay_lane_composition_precision import run_lane_composition_precision_selftest
 from .gemini_behavioral_replay_semantic_family_precision import (
     run_reciprocal_variant_family_selftest,
     run_truth_frame_family_selftest,
@@ -104,6 +105,7 @@ def run_elastic_command_lane_separation_selftest() -> None:
     """Concrete Elastic command names count as response-action syntax (live Terra run 36308610507)."""
     run_reciprocal_capability_selftest()
     run_reciprocal_variant_family_selftest()
+    run_lane_composition_precision_selftest()
     context = (
         "Use the Elastic endpoint response console for execute --command. "
         "Local workstation PowerShell runs the collector for testing. "
