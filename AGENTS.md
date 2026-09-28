@@ -182,6 +182,35 @@ The ChatGPT webUI agent core-instruction reference snapshot lives at `.github/ag
 
 Do not claim the ChatGPT webUI agent can automatically update this repository on session boot. If webUI instruction parity matters, require explicit current-core readback from the operator or live configured surface, then update/read back the repo reference and any related Supabase `ircore` records.
 
+## Claude Code local-session adapter
+
+The operator approved the following durable exceptions on 2026-09-28 for Claude Code sessions (CLI, desktop app Code tab, and IDE extensions) that have a local repository checkout and authenticated local Git/GitHub tooling. These exceptions apply only to Claude Code operating through that local lane. They do not apply to Codex, ChatGPT WebUI, connector-only sessions, Replit Agent, Gemini, or any other IDE, LLM, or agent runtime.
+
+Instruction loading:
+
+* The repository-root `CLAUDE.md` only imports this file (`@AGENTS.md`). Keep Claude Code-specific repository guidance in this section, not in `CLAUDE.md`, so this file stays the single authority surface.
+* Personal, uncommitted Claude Code preferences belong in `CLAUDE.local.md`, `.claude/settings.local.json`, or user-level settings. They are ignored by Git and must not contradict this file.
+* Claude Code auto memory is supplemental continuity only, under the same posture as the memory folder. It must not become a competing policy, routing, or registry surface.
+
+Same exceptions as the Codex local-session operator adapter:
+
+* Claude Code may use local file edits, local validation, `git`, `gh`, and available authenticated tooling instead of the ChatGPT WebUI GitHub connector or ChatGPT staging workflows.
+* Claude Code does not need to create or invoke named `Prog`, `Adva`, or `Codi` review personas or subagents. Claude Code remains responsible for implementing carefully, reviewing its own diff, and running validation proportionate to risk. It may use its own review subagents or review skills when an independent pass is warranted.
+* Claude Code does not need to post `/dcoir-review`, `/or-review`, or `/openrouter-review` or an equivalent slash-command review as a prerequisite for its own completion, readiness recommendation, or PR work.
+* Claude Code does not need an external `@codex` review as a prerequisite for its own completion, readiness recommendation, or PR work. Any comment that invokes the literal `@codex` handle still requires the exact proposed text and explicit current-session operator approval.
+* These exceptions remove redundant self-invocation and WebUI connector ceremony only. They do not waive branch protection, explicit workflow-mutation approval, required tests, GitHub Actions readback, review-thread disposition, source/readback evidence, secrets handling, label rules, operator approval to merge or move a governed draft PR to ready, or other safety boundaries that materially protect the repository.
+* If Claude Code identifies another step that appears specific to ChatGPT WebUI or redundant in the local Claude Code lane, it should explain the step and its tradeoff and obtain operator approval before treating it as a durable exception.
+
+Claude Code-specific mechanics:
+
+* Claude Code does not discover skills under `.agents/skills`. When the `ircore` helper skills are relevant, read their `SKILL.md` files directly or follow the Supabase startup-pack and validation/readback rules in this file. Do not copy them into `.claude/skills` unless the operator approves a governed change.
+* On a local host without a `/workspace` tree, call the canonical Supabase functions directly with the canonical project ID and schema through the available Supabase connector. Do not create a `/workspace` tree on the host merely to satisfy the pointer-file shapes, and do not treat the missing pointer files as a startup blocker in that case.
+* Desktop app worktrees live under `.claude/worktrees/` and are local, ignored scratch checkouts. Never commit them or treat their state as GitHub source truth.
+* On a Windows host, local `powershell.exe` (confirm `$PSVersionTable.PSVersion` is 5.1) may provide early Windows PowerShell 5.1 evidence. The `windows-powershell-51.yml` workflow remains the evidence of record for governed readiness claims.
+* The desktop app may bind a PR and report its CI and review activity. Treat those notices as signals and read back live GitHub state before claiming check results or thread disposition.
+
+The general review-gate language elsewhere in this file remains authoritative for other runtimes. When reporting Claude Code-local work, state that the Claude Code local-session adapter applied instead of reporting the skipped WebUI-only gates as evidence gaps.
+
 ## Replit Agent adapter
 
 Replit Agent accesses this repository using the `GITHUB_PAT` secret available
