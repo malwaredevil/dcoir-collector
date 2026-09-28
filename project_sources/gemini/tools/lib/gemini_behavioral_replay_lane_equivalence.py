@@ -3,7 +3,9 @@ from __future__ import annotations
 import re
 
 from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
-from .gemini_behavioral_replay_reciprocal_semantics import RECIPROCAL, reciprocal_suffix_rejects
+from .gemini_behavioral_replay_reciprocal_semantics import (
+    RECIPROCAL, reciprocal_prefix_rejects, reciprocal_suffix_rejects,
+)
 
 _LANE = r"(?:console|shell|environment|execution\s+context)"
 _LANES = r"(?:consoles|shells|environments|execution\s+contexts)"
@@ -179,6 +181,9 @@ def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
     if reciprocal_text is not None:
         reciprocal_start = match.start("reciprocal")
         reciprocal_end = match.end("reciprocal")
+        reciprocal_prefix = text[max(match.start(), reciprocal_start - 80):reciprocal_start]
+        if reciprocal_prefix_rejects(reciprocal_prefix):
+            return False
         if not occurrence_is_assertive_polarity(text, reciprocal_start, reciprocal_end):
             return False
         reciprocal_suffix = text[reciprocal_end:min(len(text), reciprocal_end + 80)]

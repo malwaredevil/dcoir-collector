@@ -20,6 +20,13 @@ _LOCAL_REFERENT = r"(?:(?:this|that|the)(?:\s+(?:relation|relationship|converse|
 _STRONG_MOD = r"(?:(?:definitely|clearly|certainly|absolutely|plainly|explicitly|actually|really)\s+)*"
 _LIMITER = r"(?:always|necessarily|universally|generally|strictly|fully|actually|really)"
 _EPISTEMIC = r"(?:probably|possibly|perhaps|apparently|seemingly|likely)"
+_PREFIX_NONASSERTIVE = re.compile(
+    r"(?:\b(?:may|might|could|would|should)\s+(?:not\s+)?(?:be\s+true|hold|apply|work|go)"
+    r"|\b(?:do|does|did)\s+not\s+(?:(?:always|necessarily|universally|generally)\s+)?(?:hold|apply|work|go)"
+    r"|\b(?:probably|possibly|perhaps|apparently|seemingly|likely)\s+(?:holds?|applies?|works?|goes?))\s*$",
+    re.I,
+)
+
 _REJECTION = re.compile(
     rf"^\s*[,;]?\s*(?:but\s+)?{_LOCAL_REFERENT}(?:"
     rf"is\s+{_STRONG_MOD}(?:false|denied|one-way|asymmetric)"
@@ -32,6 +39,10 @@ _REJECTION = re.compile(
     rf")",
     re.I,
 )
+
+
+def reciprocal_prefix_rejects(prefix: str) -> bool:
+    return bool(_PREFIX_NONASSERTIVE.search(prefix))
 
 
 def reciprocal_suffix_rejects(suffix: str) -> bool:
