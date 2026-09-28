@@ -93,7 +93,13 @@ _NEGATED_TRUTH_FRAME = re.compile(
     r"\b(?:(?:it\s+is|it's)\s+)?not\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b"
     r"|\b(?:(?:it\s+is|it's)\s+)?(?:hardly|scarcely|barely)\s+(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b"
     r"|\bthere\s+is\s+no\s+reason\s+to\s+(?:doubt|dispute|question|deny|reject)\s+that\b"
-    r"|\b(?:cannot|can't|can\s+not)\s+be\s+(?:denied|disputed|doubted|questioned|rejected)\s+that\b",
+    r"|\b(?:cannot|can't|can\s+not)\s+be\s+(?:denied|disputed|doubted|questioned|rejected)\s+that\b"
+    r"|\b(?:no\s+one|nobody|not\s+one(?:\s+[a-z0-9_-]+){0,3}|not\s+a\s+single(?:\s+[a-z0-9_-]+){0,3}|no(?:\s+[a-z0-9_-]+){1,5})\s+"
+    r"(?:can|could|would|should|may|might)\s+(?:(?:reasonably|possibly|credibly|seriously|honestly)\s+){0,2}"
+    r"(?:deny|dispute|doubt|question|reject|refute|contest|contradict)\s+(?:(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b"
+    r"|\b(?:no\s+one|nobody|not\s+one(?:\s+[a-z0-9_-]+){0,3}|not\s+a\s+single(?:\s+[a-z0-9_-]+){0,3}|no(?:\s+[a-z0-9_-]+){1,5})\s+"
+    r"has\s+(?:any\s+)?(?:reason|basis|grounds?)\s+to\s+(?:deny|dispute|doubt|question|reject|refute|contest|contradict)\s+"
+    r"(?:(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b",
     re.I,
 )
 _CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")

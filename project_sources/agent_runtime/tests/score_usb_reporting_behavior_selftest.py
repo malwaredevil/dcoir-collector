@@ -93,6 +93,30 @@ def test_positive_mixed_email_construction() -> None:
     assert result['nipr_count'] == 5 and result['sipr_count'] == 2
 
 
+def test_markdown_fence_lengths_are_structural() -> None:
+    for fixture, builder in ((NIPR_FIXTURE, _nipr_response), (MIXED_FIXTURE, _mixed_response)):
+        rows = module.load_fixture_rows(fixture)
+        base = builder(rows)
+        for opener_len in (4, 5):
+            hostile = base.replace('```text', '`' * opener_len + 'text', 1)
+            result = module.score_final_response(hostile, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+            assert not result['passed'], (opener_len, result)
+            assert any('matching fence' in error for error in result['errors']), result
+        for fence_len in (4, 5):
+            valid = base.replace('```', '`' * fence_len)
+            result = module.score_final_response(valid, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+            assert result['passed'], (fence_len, result)
+        tilde = base.replace('```', '~~~')
+        result = module.score_final_response(tilde, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+        assert not result['passed'], result
+        longer_close = base.replace('\n```\n', '\n````\n', 1)
+        result = module.score_final_response(longer_close, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+        assert result['passed'], result
+        bad_info = base.replace('```text', '```te`xt', 1)
+        result = module.score_final_response(bad_info, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+        assert not result['passed'], result
+
+
 def test_marker_only_email_shape_is_rejected() -> None:
     rows = module.load_fixture_rows(NIPR_FIXTURE)
     fake = f'''Recipient:\n```text\n{module.NIPR_RECIPIENT}\n```\nSubject:\n```text\n{module._subject(START, END)}\n```\nMessage Draft:\n```text\nFor the week of {START} - {END} there were 7 reported USB violations. Last week there were 6. See below for details.\nDate: [Date] [Time]Z\nName(s): [User]\nLocation: [Location]\nPlease let us know if there are any questions.\n```'''
@@ -255,6 +279,7 @@ def main() -> int:
     tests = [
         test_positive_nipr_email_construction,
         test_positive_mixed_email_construction,
+        test_markdown_fence_lengths_are_structural,
         test_marker_only_email_shape_is_rejected,
         test_bluf_scaffolding_is_rejected_even_with_valid_email,
         test_mixed_classification_leakage_is_rejected,

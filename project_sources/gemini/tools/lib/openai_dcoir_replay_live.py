@@ -137,7 +137,10 @@ def call_openai_body(
             return {"ok": False, "attempts": attempts, "error": "invalid_json"}
         if not isinstance(payload, dict):
             return {"ok": False, "attempts": attempts, "error": "invalid_response_shape"}
-        if payload.get("status", "completed") != "completed":
+        status = payload.get("status")
+        if not isinstance(status, str):
+            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape", "response_id": payload.get("id")}
+        if status != "completed":
             return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}
         text, response_shape_ok = _extract_text_with_shape(payload)
         if not response_shape_ok:

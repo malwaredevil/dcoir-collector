@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 
+from usb_reporting_markdown_fences import strip_label_owned_fences
+
 TRANSFER_NEGATION = (
     r"\b(?:do not|don't|must not|shall not|should not|cannot|can't|no longer|never|avoid|"
     r"instead(?: of)?|rather than|refrain from|skip|hold off)\b"
@@ -179,13 +181,8 @@ def transfer_instruction_errors(transfer: str, isafe_url: str) -> list[str]:
 
 
 def prose_outside_blocks(text: str, labels: set[str]) -> str:
-    """Free prose left after removing only label-owned governed fenced blocks."""
-    for label in sorted(labels, key=len, reverse=True):
-        text = re.sub(
-            rf'(?ms)^{re.escape(label)}:[ \t]*\n```[^\n]*\n.*?^```[ \t]*$',
-            '',
-            text,
-        )
+    """Free prose left after removing only structurally valid label-owned fences."""
+    text = strip_label_owned_fences(text, labels)
     return '\n'.join(line for line in text.splitlines() if line.strip().rstrip(':') not in labels)
 
 

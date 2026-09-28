@@ -284,6 +284,21 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         truncated = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
     if truncated.get("ok") or truncated.get("error") != "incomplete_output":
         raise SystemExit(f"Incomplete Responses API output must not count as a successful call: {truncated}")
+    for status_payload, expected_error in (
+        ({"id": "resp_missing_status", "output_text": "safe"}, "invalid_response_shape"),
+        ({"id": "resp_null_status", "status": None, "output_text": "safe"}, "invalid_response_shape"),
+        ({"id": "resp_bool_status", "status": True, "output_text": "safe"}, "invalid_response_shape"),
+        ({"id": "resp_num_status", "status": 1, "output_text": "safe"}, "invalid_response_shape"),
+        ({"id": "resp_unknown_status", "status": "mystery", "output_text": "safe"}, "incomplete_output"),
+    ):
+        class _StatusResponse(_IncompleteResponse):
+            def read(self, payload=status_payload):
+                return json.dumps(payload).encode("utf-8")
+        with patch.object(replay_live.urllib.request, "urlopen", return_value=_StatusResponse()):
+            status_result = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+        if status_result.get("ok") or status_result.get("error") != expected_error:
+            raise SystemExit(f"Malformed/missing Responses status must fail before scoring: {status_payload!r}: {status_result}")
+
     class _WrongShapeResponse(_IncompleteResponse):
         def read(self):
             return b'[]'

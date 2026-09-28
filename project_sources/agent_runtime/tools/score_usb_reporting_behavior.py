@@ -20,6 +20,7 @@ from usb_reporting_evidence_semantics import (
     unexpected_prose_errors as _unexpected_prose_errors,
 )
 from usb_reporting_clarification_semantics import clarification_content_errors as _clarification_content_errors
+from usb_reporting_markdown_fences import extract_label_owned_fence as _extract_label_owned_fence
 from usb_reporting_transfer_semantics import (
     prose_outside_blocks as _prose_outside_blocks,
     trailing_revisits_transfer_handling as _trailing_revisits_transfer_handling,
@@ -104,23 +105,12 @@ def _forbidden_scaffold_errors(text: str) -> list[str]:
 
 
 def _label_matches(text: str, label: str) -> list[re.Match[str]]:
-    return list(re.finditer(rf'(?m)^{re.escape(label)}:\s*$', text))
+    return list(re.finditer(rf'(?m)^{re.escape(label)}:[ \t]*$', text))
 
 
 def _extract_fenced_value(text: str, label: str) -> tuple[str | None, list[str]]:
-    errors: list[str] = []
-    matches = _label_matches(text, label)
-    if len(matches) != 1:
-        return None, [f'expected exactly one {label}: label, found {len(matches)}']
-    rest = text[matches[0].end():]
-    start = re.match(r'\s*\n```[^\n]*\n', rest)
-    if not start:
-        return None, [f'{label}: is not followed by one fenced block']
-    body_start = start.end()
-    end = rest.find('\n```', body_start)
-    if end < 0:
-        return None, [f'{label}: fenced block is not closed']
-    return rest[body_start:end].strip('\n'), errors
+    value, _span, errors = _extract_label_owned_fence(text, label)
+    return value, errors
 
 
 def _expected_date_line(row: dict[str, str]) -> str | None:

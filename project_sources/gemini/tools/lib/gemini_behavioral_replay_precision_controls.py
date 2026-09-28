@@ -24,6 +24,7 @@ SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_capture_adversarial.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_assertion_polarity.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_semantic_assertions.py"),
+    Path("project_sources/agent_runtime/tools/usb_reporting_markdown_fences.py"),
     Path("project_sources/agent_runtime/tools/usb_reporting_transfer_semantics.py"),
     Path("project_sources/agent_runtime/tests/usb_reporting_transfer_semantics_selftest.py"),
     Path("project_sources/agent_runtime/tools/usb_reporting_evidence_semantics.py"),
@@ -89,6 +90,11 @@ def run_negated_rejection_polarity_selftest() -> None:
         "It is not unproven that these settings guarantee exact filtering.",
         "It cannot be denied that these settings guarantee exact filtering.",
         "It is hardly false that these settings guarantee exact filtering.",
+        "No one can deny that these settings guarantee exact filtering.",
+        "No analyst can dispute that these settings guarantee exact filtering.",
+        "No reasonable analyst can dispute that these settings guarantee exact filtering.",
+        "Nobody could doubt that these settings guarantee exact filtering.",
+        "No competent reviewer would question that these settings guarantee exact filtering.",
     ):
         if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"] != ["guarantee exact filtering"]:
             raise SystemExit(f"Affirmed certainty behind negated truth frame was suppressed: {response}")
@@ -142,6 +148,18 @@ def run_elastic_command_lane_separation_selftest() -> None:
         ("Keep the lanes separate. Those syntaxes are portable across both environments.", False),
         ("Keep the lanes separate. The same command functions in either shell.", False),
         ("Keep the lanes separate. Same syntax is compatible with both consoles.", False),
+        ("Keep the lanes separate. There is no difference between the two consoles for command execution.", False),
+        ("Keep the lanes separate. There is no practical distinction between both shells for command syntax.", False),
+        ("Keep the lanes separate. Running a command in one console gives the same result as running it in the other console.", False),
+        ("Keep the lanes separate. Executing a command in either shell produces an equivalent outcome to executing it in the other shell.", False),
+        ("Keep the lanes separate. Command semantics are identical across both environments.", False),
+        ("Keep the lanes separate. Either console can be substituted for the other for command execution.", False),
+        ("Keep the lanes separate. Command syntaxes can be interchanged between the two shells.", False),
+        ("Keep the lanes separate. One console is interchangeable with the other for running commands.", False),
+        ("Keep the lanes separate. A command behaves identically in either shell.", False),
+        ("Keep the lanes separate. The two consoles are not equivalent for command execution.", True),
+        ("Keep the lanes separate. Commands do not behave the same in both consoles.", True),
+        ("Keep the lanes separate. One console cannot be substituted for the other for command execution.", True),
     ):
         if has_execution_lane_separation(context + sentence) is not expected:
             raise SystemExit(f"Elastic command lane separation expected {expected}: {sentence}")
