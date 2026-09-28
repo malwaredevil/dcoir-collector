@@ -23,15 +23,17 @@ _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|expo
 _CAPABILITY_RELATION = r"(?:support(?:ed|s)?|accept(?:ed|s)?|allow(?:ed|s)?|expos(?:e|ed|es)|provid(?:e|ed|es)|availab(?:le|ility))"
 _RECIPROCAL = (
     r"(?:vice\s+versa|conversely|"
-    r"(?:the\s+)?converse(?:\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?holds?))?|"
-    r"(?:and\s+)?the\s+reverse(?:\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?holds?))?|"
+    r"(?:the\s+)?converse\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?holds?)|"
+    r"(?:and\s+the\s+reverse|the\s+reverse\s+(?:is\s+(?:also\s+)?true|(?:also\s+)?holds?))|"
     r"(?:this|that|the\s+(?:same\s+)?relation(?:ship)?)\s+(?:(?:also\s+)?(?:applies|holds)\s+)?in\s+reverse(?:\s+too)?|"
     r"(?:this|that|the)\s+relation(?:ship)?\s+is\s+reciprocal|"
     r"in\s+both\s+directions)"
 )
 _RECIPROCAL_REJECTION_AFTER = re.compile(
-    r"^\s*(?:is\s+(?:not(?:\s+necessarily)?\s+true|false|denied)"
-    r"|(?:also\s+)?does(?:n't|\s+not)(?:\s+necessarily)?\s+(?:hold|apply))\b",
+    r"^\s*,?\s*(?:(?:this|that|the)(?:\s+(?:relation|relationship|converse|reverse))?\s+)?"
+    r"(?:(?:is\s+(?:not(?:\s+necessarily)?\s+true|false|denied))"
+    r"|(?:also\s+)?does(?:n't|\s+not)(?:\s+necessarily)?\s+(?:hold|apply)"
+    r"|(?:may|might|could|would|should)\s+(?:not\s+)?(?:be\s+true|hold|apply))\b",
     re.I,
 )
 _CAPABILITY_COMPLEMENT_EQUIV = (
