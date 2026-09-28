@@ -97,6 +97,20 @@ def main() -> int:
         else:
             raise AssertionError(f'invalid fixture path was accepted: {bad}')
         assert guarded_calls['value'] == 0, bad
+    # A header-only later fixture fails before the first fixture's billable calls.
+    import tempfile
+    with tempfile.TemporaryDirectory(dir=ROOT) as scratch:
+        header_only = Path(scratch) / 'header_only.csv'
+        header_only.write_text(semantic.NIPR_FIXTURE.read_text(encoding='utf-8-sig').splitlines()[0] + '\n', encoding='utf-8')
+        guarded_calls = {'value': 0}
+        args.fixture = [str(semantic.NIPR_FIXTURE.relative_to(ROOT)), str(header_only.relative_to(ROOT))]
+        try:
+            runner.run_replay(args, caller=counting_caller, api_key_override='test-key', project_id_override='')
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('header-only USB fixture was accepted')
+        assert guarded_calls['value'] == 0, 'USB fixtures must be parsed before any billable call'
     args.fixture = []
 
     # Model text echoed through scorer errors is rendered as inert inline code.

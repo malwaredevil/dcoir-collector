@@ -105,6 +105,12 @@ def main() -> int:
         metadata["validation_messages"].append({"level": "error", "message": "One or more selected OpenAI replay fixtures were rejected."})
     if not fixtures:
         metadata["validation_messages"].append({"level": "error", "message": "No active live_openai_api fixtures were selected."})
+    if rejected or not fixtures:
+        # Fail closed before any billable call: a partial run cannot produce a passing verdict.
+        metadata["workflow_verdict"] = "failure"
+        metadata["unchecked_evidence"].append("live OpenAI Responses API output")
+        write_reports(output_dir, [], metadata, report_label=REPORT_LABEL, report_filename=REPORT_NAME, report_markdown_filename="openai_dcoir_behavioral_replay_run_report.md")
+        return 1
 
     api_key = os.environ.get(args.api_key_env, "").strip() or os.environ.get(args.fallback_api_key_env, "").strip()
     project_id = os.environ.get(args.project_id_env, "").strip()

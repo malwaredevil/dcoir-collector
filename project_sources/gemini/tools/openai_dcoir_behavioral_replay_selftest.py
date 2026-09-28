@@ -524,6 +524,19 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     if "supersecret" in redacted or "password=" in redacted:
         raise SystemExit("Workflow report redaction retained raw provider error-body content.")
 
+    # A rejected fixture selection fails closed before any billable Responses API call.
+    import os
+    import sys
+    import tempfile
+    import run_openai_dcoir_behavioral_replay as dcoir_runner
+    billable_calls = []
+    with tempfile.TemporaryDirectory() as scratch, patch.object(dcoir_runner, "make_pack", lambda fixture, *rest: billable_calls.append(fixture) or {}), \
+            patch.dict(os.environ, {"DCOIR_OPENAI_API_KEY": "test-key"}), \
+            patch.object(sys, "argv", ["run", "--fixtures-root", str(FIXTURES_ROOT), "--output-dir", scratch,
+                                       "--custom-fixtures-csv", f"{sorted(selected_ids)[0]},not_a_governed_fixture"]):
+        if dcoir_runner.main() != 1 or billable_calls:
+            raise SystemExit("OpenAI DCOIR replay made provider calls despite a rejected fixture selection.")
+
     print(json.dumps({"success": True, "model": OPENAI_MODEL_ID, "fixture_count": len(selected_ids), "knowledge_file_count": len(package["knowledge_files"])}, indent=2))
     return 0
 

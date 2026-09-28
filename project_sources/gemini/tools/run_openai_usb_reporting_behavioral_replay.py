@@ -130,11 +130,14 @@ def run_replay(
         raise RuntimeError('OpenAI replay credentials are not configured')
 
     fixture_paths = _resolve_fixture_paths(repo_root, args.fixture or DEFAULT_FIXTURES)
+    # Parse every fixture before the first billable call so a malformed later fixture fails fast.
+    fixtures = [(path, path.read_text(encoding='utf-8-sig'), scorer.load_fixture_rows(path)) for path in fixture_paths]
+    empty = [str(path) for path, _, rows in fixtures if not rows]
+    if empty:
+        raise ValueError(f'USB replay fixture has no data rows: {", ".join(empty)}')
     results: list[dict[str, Any]] = []
     overall = True
-    for path in fixture_paths:
-        csv_text = path.read_text(encoding='utf-8-sig')
-        rows = scorer.load_fixture_rows(path)
+    for path, csv_text, rows in fixtures:
         history: List[Dict[str, str]] = []
 
         first_user = _initial_prompt(csv_text, args.start_date, args.end_date)
