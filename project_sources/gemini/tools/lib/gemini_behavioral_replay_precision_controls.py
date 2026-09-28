@@ -2,11 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .gemini_behavioral_replay_semantic_precision import (
-    run_elastic_command_lane_separation_selftest,
-    run_negated_rejection_polarity_selftest,
-)
-
 from .gemini_behavioral_replay_scoring import score_marker_presence
 
 SCORER_MODULE_CHARACTER_CEILING = 15000
