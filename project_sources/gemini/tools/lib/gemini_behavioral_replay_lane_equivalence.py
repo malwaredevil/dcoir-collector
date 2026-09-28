@@ -13,14 +13,19 @@ _CROSS_ENV = (
     rf"(?:either|each|any)\s+(?:execution\s+)?{_LANE}|"
     rf"the\s+two\s+{_LANES})"
 )
-_EQUIVALENT = r"(?:the\s+same|same|equivalent|identical|indistinguishable|interchangeable|compatible|substitutable|portable)"
-_EQUIVALENT_MANNER = r"(?:the\s+same|same|identically|equivalently|indistinguishably|interchangeably|compatibly)"
+_EQUIVALENT = r"(?:the\s+same|same|equal|equivalent|identical|indistinguishable|interchangeable|compatible|substitutable|portable)"
+_EQUIVALENT_MANNER = r"(?:the\s+same|same|equally|identically|equivalently|indistinguishably|interchangeably|compatibly)"
 _EXECUTE = r"(?:run|runs|running|execute|executes|executing|work|works|working|function|functions|functioning|use|uses|using)"
 _RELATION_NOUN = r"(?:equivalence|parity|interchangeability|compatibility|sameness|identity)"
+_CAPABILITY_OBJECT = r"(?:(?:supported\s+)?commands?|(?:supported\s+)?command\s+(?:sets?|capabilit(?:y|ies)|repertoires?|availability)|sets?\s+of\s+commands?)"
+_CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+the\s+same|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal)\s+{_CAPABILITY_OBJECT}"
+_CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
 _RELATION_MARKER = re.compile(
     rf"\b(?:"
     rf"(?:no|zero)\s+(?:(?:meaningful|material|practical|operational)\s+)?(?:difference|distinction)"
     rf"|{_RELATION_NOUN}|{_EQUIVALENT}|{_EQUIVALENT_MANNER}"
+    rf"|{_CAPABILITY_EQUIV}"
+    rf"|(?:equals?|matches?)"
     rf"|(?:can|may|could)\s+be\s+(?:run|executed|used|substituted|interchanged|swapped|replaced)"
     rf"|(?:is|are|remain|seem)\s+{_EQUIVALENT}"
     rf"|(?:works?|runs?|executes?|functions?)"
@@ -33,6 +38,36 @@ _RELATION_MARKER = re.compile(
 
 
 _PATTERNS = (
+    # Equal/shared command capability or identical supported-command sets.
+    re.compile(
+        rf"\b(?:the\s+two|both)\s+{_LANES}\b[^.!?;\n]{{0,60}}\b{_CAPABILITY_VERB}\b"
+        rf"[^.!?;\n]{{0,50}}\b{_CAPABILITY_EQUIV}\b"
+        rf"|\b(?:supported|available|accepted|exposed|provided|offered)\s+{_COMMAND}\b"
+        rf"[^.!?;\n]{{0,60}}\b(?:is|are|remain)\b[^.!?;\n]{{0,30}}\b(?:the\s+same|identical|equal)\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:across|between|in)\s+(?:the\s+two|both)\s+{_LANES}\b"
+        rf"|\b(?:command\s+(?:sets?|capabilit(?:y|ies)|availability)|supported\s+commands?)\b"
+        rf"[^.!?;\n]{{0,60}}\b(?:is|are|remain)\b[^.!?;\n]{{0,30}}\b(?:the\s+same|identical|equal)\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:across|between)\s+(?:the\s+two|both)\s+{_LANES}\b"
+        rf"|\b(?:the\s+)?{_CAPABILITY_OBJECT}\s+of\s+(?:the\s+two|both)\s+{_LANES}\b"
+        rf"[^.!?;\n]{{0,60}}\b(?:is|are|remain)\b[^.!?;\n]{{0,30}}\b{_EQUIVALENT}\b"
+        rf"|\b(?:the\s+)?{_CAPABILITY_OBJECT}\s+(?:in|of)\s+(?:one|either)\s+{_LANE}\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:equals?|matches?|is\s+(?:the\s+same\s+as|identical\s+to|equivalent\s+to))\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:the\s+)?(?:set\s+)?(?:supported\s+)?commands?\s+(?:in|of)\s+(?:the\s+)?other\s+{_LANE}\b",
+        re.I,
+    ),
+    # Bidirectional command availability collapses the lane capability sets.
+    re.compile(
+        rf"\b(?:any|every)\s+command\b[^.!?;\n]{{0,50}}\b(?:supported|available|accepted|allowed|exposed|provided)\b"
+        rf"[^.!?;\n]{{0,50}}\bin\s+(?:one|either)\s+{_LANE}\b[^.!?;\n]{{0,100}}"
+        rf"\b(?:also\s+)?(?:supported|available|accepted|allowed|exposed|provided)\b"
+        rf"[^.!?;\n]{{0,50}}\bin\s+(?:the\s+)?other\s+{_LANE}\b"
+        rf"|\b(?:the\s+two|both)\s+{_LANES}\b[^.!?;\n]{{0,80}}\b(?:support|accept|allow|expose|provide)\b"
+        rf"[^.!?;\n]{{0,40}}\beach\s+other['’]s\s+commands\b"
+        rf"|\beach\s+{_LANE}\b[^.!?;\n]{{0,60}}\b(?:support|accept|allow|expose|provide)s?\b"
+        rf"[^.!?;\n]{{0,40}}\b(?:all|every)\s+(?:command|commands)\b[^.!?;\n]{{0,50}}\b(?:supported|available|accepted|allowed|exposed|provided)\b"
+        rf"[^.!?;\n]{{0,30}}\bby\s+(?:the\s+)?other\s+{_LANE}\b",
+        re.I,
+    ),
     # Nominal/existential lane-equivalence relations tied to command execution.
     re.compile(
         rf"\b(?:there\s+(?:is|exists)\s+(?:an?\s+)?{_RELATION_NOUN}\s+between\s+(?:the\s+two|both)\s+{_LANES}"

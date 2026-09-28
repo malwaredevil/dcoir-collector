@@ -32,6 +32,12 @@ clarification_tests = importlib.util.module_from_spec(clarification_spec)
 assert clarification_spec and clarification_spec.loader
 clarification_spec.loader.exec_module(clarification_tests)
 
+markdown_path = Path(__file__).with_name('usb_reporting_markdown_fences_selftest.py')
+markdown_spec = importlib.util.spec_from_file_location('usb_reporting_markdown_fences_selftest', markdown_path)
+markdown_tests = importlib.util.module_from_spec(markdown_spec)
+assert markdown_spec and markdown_spec.loader
+markdown_spec.loader.exec_module(markdown_tests)
+
 START = '9/18/2026'
 END = '9/24/2026'
 PREVIOUS = 6
@@ -91,41 +97,6 @@ def test_positive_mixed_email_construction() -> None:
     result = module.score_final_response(_mixed_response(rows), rows, start_date=START, end_date=END, previous_count=PREVIOUS)
     assert result['passed'], result
     assert result['nipr_count'] == 5 and result['sipr_count'] == 2
-
-
-def test_markdown_fence_lengths_are_structural() -> None:
-    for fixture, builder in ((NIPR_FIXTURE, _nipr_response), (MIXED_FIXTURE, _mixed_response)):
-        rows = module.load_fixture_rows(fixture)
-        base = builder(rows)
-        for opener_len in (4, 5):
-            hostile = base.replace('```text', '`' * opener_len + 'text', 1)
-            result = module.score_final_response(hostile, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-            assert not result['passed'], (opener_len, result)
-            assert any('matching fence' in error for error in result['errors']), result
-        for fence_len in (4, 5):
-            valid = base.replace('```', '`' * fence_len)
-            result = module.score_final_response(valid, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-            assert result['passed'], (fence_len, result)
-        tilde = base.replace('```', '~~~')
-        result = module.score_final_response(tilde, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-        assert not result['passed'], result
-        longer_close = base.replace('\n```\n', '\n````\n', 1)
-        result = module.score_final_response(longer_close, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-        assert result['passed'], result
-        bad_info = base.replace('```text', '```te`xt', 1)
-        result = module.score_final_response(bad_info, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-        assert not result['passed'], result
-        for indent in ('\t', ' \t', '  \t', '   \t'):
-            bad_open = base.replace('```text', indent + '```text', 1)
-            result = module.score_final_response(bad_open, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-            assert not result['passed'], (repr(indent), result)
-            bad_both = bad_open.replace('\n```\n', '\n' + indent + '```\n', 1)
-            result = module.score_final_response(bad_both, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-            assert not result['passed'], (repr(indent), result)
-        for spaces in (' ', '  ', '   '):
-            valid_indent = base.replace('```text', spaces + '```text', 1).replace('\n```\n', '\n' + spaces + '```\n', 1)
-            result = module.score_final_response(valid_indent, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
-            assert result['passed'], (repr(spaces), result)
 
 
 def test_marker_only_email_shape_is_rejected() -> None:
@@ -290,7 +261,6 @@ def main() -> int:
     tests = [
         test_positive_nipr_email_construction,
         test_positive_mixed_email_construction,
-        test_markdown_fence_lengths_are_structural,
         test_marker_only_email_shape_is_rejected,
         test_bluf_scaffolding_is_rejected_even_with_valid_email,
         test_mixed_classification_leakage_is_rejected,
@@ -313,9 +283,12 @@ def main() -> int:
         module, NIPR_FIXTURE, _nipr_response, START, END, PREVIOUS
     )
     clarification_names = clarification_tests.run_clarification_tests(module)
+    markdown_names = markdown_tests.run_markdown_fence_tests(
+        module, NIPR_FIXTURE, MIXED_FIXTURE, _nipr_response, _mixed_response, START, END, PREVIOUS
+    )
     for test in tests:
         test()
-    print({'success': True, 'tests': transfer_names + evidence_names + clarification_names + [test.__name__ for test in tests]})
+    print({'success': True, 'tests': transfer_names + evidence_names + clarification_names + markdown_names + [test.__name__ for test in tests]})
     return 0
 
 

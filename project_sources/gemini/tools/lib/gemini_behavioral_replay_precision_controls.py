@@ -31,6 +31,7 @@ SCORER_MODULES = [
     Path("project_sources/agent_runtime/tools/usb_reporting_clarification_semantics.py"),
     Path("project_sources/agent_runtime/tests/usb_reporting_evidence_semantics_selftest.py"),
     Path("project_sources/agent_runtime/tests/usb_reporting_clarification_semantics_selftest.py"),
+    Path("project_sources/agent_runtime/tests/usb_reporting_markdown_fences_selftest.py"),
 ]
 
 # Recorded AGENTS.md connector-size exemptions. Each is capped near its current
@@ -103,6 +104,10 @@ def run_negated_rejection_polarity_selftest() -> None:
         "It would not credibly be disputed that these settings guarantee exact filtering.",
         "It should not seriously be questioned that these settings guarantee exact filtering.",
         "It must not in good faith be denied that these settings guarantee exact filtering.",
+        "There can be no credible dispute that these settings guarantee exact filtering.",
+        "There is no serious question that these settings guarantee exact filtering.",
+        "There is no denying that these settings guarantee exact filtering.",
+        "There remains no room for doubt that these settings guarantee exact filtering.",
         "It cannot in good faith be denied that these settings guarantee exact filtering.",
         "It cannot in any reasonable sense be disputed that these settings guarantee exact filtering.",
     ):
@@ -118,6 +123,8 @@ def run_negated_rejection_polarity_selftest() -> None:
         "It cannot credibly be denied that these settings do not guarantee exact filtering.",
         "It could not reasonably be denied that these settings do not guarantee exact filtering.",
         "It would not credibly be disputed that these settings cannot guarantee exact filtering.",
+        "There can be no credible dispute that these settings do not guarantee exact filtering.",
+        "There is no serious question that these settings cannot guarantee exact filtering.",
         "It cannot in good faith be denied that these settings do not guarantee exact filtering.",
     ):
         if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"]:
@@ -172,6 +179,12 @@ def run_elastic_command_lane_separation_selftest() -> None:
         ("Keep the lanes separate. Command syntaxes can be interchanged between the two shells.", False),
         ("Keep the lanes separate. One console is interchangeable with the other for running commands.", False),
         ("Keep the lanes separate. A command behaves identically in either shell.", False),
+        ("Keep the lanes separate. Both consoles support exactly the same commands.", False),
+        ("Keep the lanes separate. The two consoles expose identical command sets.", False),
+        ("Keep the lanes separate. Command capabilities are equal across both environments.", False),
+        ("Keep the lanes separate. Any command supported in one console is also supported in the other console.", False),
+        ("Keep the lanes separate. Both consoles do not support the same commands.", True),
+        ("Keep the lanes separate. Command capabilities are not equal across both environments.", True),
         ("Keep the lanes separate. There is equivalence between the two consoles for command execution.", False),
         ("Keep the lanes separate. The two consoles have parity for command execution.", False),
         ("Keep the lanes separate. Interchangeability exists between the two shells for command syntax.", False),

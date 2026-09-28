@@ -2,56 +2,89 @@
 from __future__ import annotations
 
 import re
+from typing import NamedTuple
 
-_OPEN = re.compile(r'(?m)^(?P<indent> {0,3})(?P<fence>`{3,})(?P<info>[^\r\n]*)\r?$')
+_ANY_OPEN = re.compile(r'^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>[^\r\n]*)$')
+_LINE = re.compile(r'[^\r\n]*(?:\r\n|\r|\n|$)')
 
 
-def _matching_close(text: str, start: int, marker: str, min_len: int) -> re.Match[str] | None:
+class _Fence(NamedTuple):
+    open_start: int
+    body_start: int
+    close_start: int | None
+    end: int
+    marker: str
+    marker_len: int
+
+
+def _line_content(raw: str) -> str:
+    if raw.endswith('\r\n'):
+        return raw[:-2]
+    if raw.endswith(('\r', '\n')):
+        return raw[:-1]
+    return raw
+
+
+def _closing_line(line: str, marker: str, min_len: int) -> bool:
     char = re.escape(marker)
-    close = re.compile(rf'(?m)^ {{0,3}}(?P<fence>{char}{{{min_len},}})[ \t]*\r?$')
-    return close.search(text, start)
+    return bool(re.fullmatch(rf' {{0,3}}{char}{{{min_len},}}[ \t]*', line))
+
+
+def _top_level_fences(text: str) -> list[_Fence]:
+    """Parse rendered top-level CommonMark-style fences once, including tildes."""
+    fences: list[_Fence] = []
+    current: tuple[int, int, str, int] | None = None
+    for line_match in _LINE.finditer(text):
+        if line_match.start() == line_match.end():
+            continue
+        line = _line_content(line_match.group(0))
+        if current is not None:
+            open_start, body_start, marker, marker_len = current
+            if _closing_line(line, marker, marker_len):
+                fences.append(_Fence(open_start, body_start, line_match.start(), line_match.end(), marker, marker_len))
+                current = None
+            continue
+        opener = _ANY_OPEN.fullmatch(line)
+        if not opener:
+            continue
+        raw_fence = opener.group('fence')
+        if raw_fence.startswith('`') and '`' in opener.group('info'):
+            continue
+        current = (line_match.start(), line_match.end(), raw_fence[0], len(raw_fence))
+    if current is not None:
+        open_start, body_start, marker, marker_len = current
+        fences.append(_Fence(open_start, body_start, None, len(text), marker, marker_len))
+    return fences
+
+
+def _inside_fence(position: int, fences: list[_Fence]) -> bool:
+    return any(fence.open_start <= position < fence.end for fence in fences)
 
 
 def extract_label_owned_fence(text: str, label: str) -> tuple[str | None, tuple[int, int] | None, list[str]]:
-    """Return one Markdown fence owned by an exact standalone label.
-
-    Opening fences must use backticks with length >=3. The closing fence must
-    use backticks and be at least as long as the opener,
-    matching CommonMark fence semantics closely enough for fail-closed scoring.
-    """
-    matches = list(re.finditer(rf'(?m)^{re.escape(label)}:[ \t]*$', text))
+    """Return one top-level governed backtick fence owned by an exact label."""
+    fences = _top_level_fences(text)
+    raw_matches = re.finditer(rf'(?m)^{re.escape(label)}:[ \t]*$', text)
+    matches = [match for match in raw_matches if not _inside_fence(match.start(), fences)]
     if len(matches) != 1:
-        return None, None, [f'expected exactly one {label}: label, found {len(matches)}']
+        return None, None, [f'expected exactly one top-level {label}: label, found {len(matches)}']
     label_match = matches[0]
     rest_start = label_match.end()
-    opener = re.match(r'\r?\n', text[rest_start:])
-    if not opener:
+    newline = re.match(r'\r\n|\r|\n', text[rest_start:])
+    if not newline:
         return None, None, [f'{label}: is not followed by one fenced block']
-    open_search_start = rest_start + opener.end()
-    open_match = _OPEN.match(text, open_search_start)
-    if not open_match:
+    expected_open = rest_start + newline.end()
+    owned = next((fence for fence in fences if fence.open_start == expected_open and fence.marker == '`'), None)
+    if owned is None:
         return None, None, [f'{label}: is not followed by one fenced block']
-    if '`' in open_match.group('info'):
-        return None, None, [f'{label}: backtick fenced block info string cannot contain backticks']
-    marker = open_match.group('fence')[0]
-    marker_len = len(open_match.group('fence'))
-    body_start = open_match.end()
-    if body_start < len(text) and text[body_start:body_start + 2] == '\r\n':
-        body_start += 2
-    elif body_start < len(text) and text[body_start] == '\n':
-        body_start += 1
-    else:
-        return None, None, [f'{label}: fenced block opener must end with a newline']
-    close_match = _matching_close(text, body_start, marker, marker_len)
-    if not close_match:
+    if owned.close_start is None:
         return None, None, [f'{label}: fenced block is not closed with a matching fence']
-    body = text[body_start:close_match.start()].rstrip('\r\n')
-    span_end = close_match.end()
-    return body, (label_match.start(), span_end), []
+    body = text[owned.body_start:owned.close_start].rstrip('\r\n')
+    return body, (label_match.start(), owned.end), []
 
 
 def strip_label_owned_fences(text: str, labels: set[str]) -> str:
-    """Remove only structurally valid fences owned by exact governed labels."""
+    """Remove only structurally valid top-level fences owned by governed labels."""
     spans: list[tuple[int, int]] = []
     for label in sorted(labels, key=len, reverse=True):
         value, span, errors = extract_label_owned_fence(text, label)
