@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import re
 
+from .gemini_behavioral_replay_truth_frame_semantics import TRUTH_FRAME_MODIFIER
+
 
 CONTRAST = re.compile(r"\b(?:but|however|yet|nevertheless|instead)\b", re.I)
 
@@ -89,10 +91,9 @@ _NEGATED_REJECTION = re.compile(
     r"contradict(?:s|ed|ing)?)\b",
     re.I,
 )
-_TRUTH_FRAME_MODIFIER = r"(?:remotely|seriously|reasonably|credibly|genuinely|meaningfully|materially|substantially|particularly|especially|really|even|at\s+all|in\s+the\s+least)"
 _NEGATED_TRUTH_FRAME = re.compile(
-    rf"\b(?:(?:it\s+is|it's)\s+)?(?:not\s+(?:(?:{_TRUTH_FRAME_MODIFIER})\s+){{0,3}}|by\s+no\s+means\s+)(?:doubtful|questionable|uncertain|in\s+doubt|open\s+to\s+(?:(?:serious|reasonable|credible|real|meaningful|material)\s+)?(?:doubt|question))\s+that\b"
-    rf"|\bthere\s+(?:is|was|remains?)\s+(?:not\s+(?:(?:{_TRUTH_FRAME_MODIFIER})\s+){{0,3}}|by\s+no\s+means\s+)(?:(?:the\s+)?(?:slightest|least)|any(?:\s+(?:serious|reasonable|credible))?)?\s*(?:doubt|question|uncertainty)\s+that\b"
+    rf"\b(?:(?:it\s+is|it's)\s+)?(?:not\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}}|by\s+no\s+means\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}})(?:doubtful|questionable|uncertain|in\s+doubt|open\s+to\s+(?:(?:any|the)\s+)?(?:(?:serious|reasonable|credible|real|meaningful|material|substantial|slightest)\s+)?(?:doubt|question))\s+that\b"
+    rf"|\bthere\s+(?:is|was|remains?)\s+(?:not\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}}|by\s+no\s+means\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}})(?:(?:the\s+)?(?:slightest|least)|any(?:\s+(?:serious|reasonable|credible|material|meaningful))?)?\s*(?:doubt|question|uncertainty)\s+that\b"
     r"|\b(?:(?:it\s+is|it's)\s+)?not\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b"
     r"|\b(?:(?:it\s+is|it's)\s+)?(?:hardly|scarcely|barely)\s+(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b"
     r"|\bthere\s+is\s+no\s+reason\s+to\s+(?:doubt|dispute|question|deny|reject)\s+that\b"

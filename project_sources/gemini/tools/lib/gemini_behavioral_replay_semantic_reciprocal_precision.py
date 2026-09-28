@@ -107,6 +107,11 @@ def run_truth_frame_modifier_selftest() -> None:
         "It is not even remotely open to serious question that these settings guarantee exact filtering.",
         "It is not at all open to reasonable doubt that these settings guarantee exact filtering.",
         "There is by no means any doubt that these settings guarantee exact filtering.",
+        "It is not by any means doubtful that these settings guarantee exact filtering.",
+        "It is not in any meaningful sense doubtful that these settings guarantee exact filtering.",
+        "It is by no means even remotely doubtful that these settings guarantee exact filtering.",
+        "It is not even remotely open to any serious question that these settings guarantee exact filtering.",
+        "There is by no means even the slightest doubt that these settings guarantee exact filtering.",
     )
     rejected = tuple(text.replace("guarantee exact filtering", "do not guarantee exact filtering") for text in asserted) + (
         "It is not doubtful that one setting is documented, but these settings do not guarantee exact filtering.",
