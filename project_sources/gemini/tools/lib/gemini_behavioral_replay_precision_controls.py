@@ -95,6 +95,12 @@ def run_negated_rejection_polarity_selftest() -> None:
         "No reasonable analyst can dispute that these settings guarantee exact filtering.",
         "Nobody could doubt that these settings guarantee exact filtering.",
         "No competent reviewer would question that these settings guarantee exact filtering.",
+        "It cannot reasonably be disputed that these settings guarantee exact filtering.",
+        "It cannot credibly be denied that these settings guarantee exact filtering.",
+        "It cannot seriously be questioned that these settings guarantee exact filtering.",
+        "It cannot reasonably be credibly disputed that these settings guarantee exact filtering.",
+        "It cannot in good faith be denied that these settings guarantee exact filtering.",
+        "It cannot in any reasonable sense be disputed that these settings guarantee exact filtering.",
     ):
         if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"] != ["guarantee exact filtering"]:
             raise SystemExit(f"Affirmed certainty behind negated truth frame was suppressed: {response}")
@@ -104,6 +110,9 @@ def run_negated_rejection_polarity_selftest() -> None:
     for response in (
         "It is not false that one setting is documented, but it is false that these settings guarantee exact filtering.",
         "It is not false that one setting is documented, but these settings do not guarantee exact filtering.",
+        "It cannot reasonably be disputed that these settings do not guarantee exact filtering.",
+        "It cannot credibly be denied that these settings do not guarantee exact filtering.",
+        "It cannot in good faith be denied that these settings do not guarantee exact filtering.",
     ):
         if score_forbidden_markers(response, ["guarantee exact filtering"])["hits"]:
             raise SystemExit(f"Stale negated-truth frame leaked across a later rejection: {response}")
@@ -157,6 +166,14 @@ def run_elastic_command_lane_separation_selftest() -> None:
         ("Keep the lanes separate. Command syntaxes can be interchanged between the two shells.", False),
         ("Keep the lanes separate. One console is interchangeable with the other for running commands.", False),
         ("Keep the lanes separate. A command behaves identically in either shell.", False),
+        ("Keep the lanes separate. There is equivalence between the two consoles for command execution.", False),
+        ("Keep the lanes separate. The two consoles have parity for command execution.", False),
+        ("Keep the lanes separate. Interchangeability exists between the two shells for command syntax.", False),
+        ("Keep the lanes separate. Command execution has parity across both consoles.", False),
+        ("Keep the lanes separate. Both command forms are not documented but can be run in both consoles.", False),
+        ("Keep the lanes separate. Both command forms are not approved yet are compatible with both consoles.", False),
+        ("Keep the lanes separate. There is no equivalence between the two consoles for command execution.", True),
+        ("Keep the lanes separate. The two consoles do not have parity for command execution.", True),
         ("Keep the lanes separate. The two consoles are not equivalent for command execution.", True),
         ("Keep the lanes separate. Commands do not behave the same in both consoles.", True),
         ("Keep the lanes separate. One console cannot be substituted for the other for command execution.", True),

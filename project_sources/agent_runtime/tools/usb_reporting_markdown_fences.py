@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import re
 
-_OPEN = re.compile(r'(?m)^(?P<indent>[ \t]{0,3})(?P<fence>`{3,})(?P<info>[^\r\n]*)\r?$')
+_OPEN = re.compile(r'(?m)^(?P<indent> {0,3})(?P<fence>`{3,})(?P<info>[^\r\n]*)\r?$')
 
 
 def _matching_close(text: str, start: int, marker: str, min_len: int) -> re.Match[str] | None:
     char = re.escape(marker)
-    close = re.compile(rf'(?m)^[ \t]{{0,3}}(?P<fence>{char}{{{min_len},}})[ \t]*\r?$')
+    close = re.compile(rf'(?m)^ {{0,3}}(?P<fence>{char}{{{min_len},}})[ \t]*\r?$')
     return close.search(text, start)
 
 

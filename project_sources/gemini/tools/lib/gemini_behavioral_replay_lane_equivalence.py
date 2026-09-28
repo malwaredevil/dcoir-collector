@@ -16,12 +16,36 @@ _CROSS_ENV = (
 _EQUIVALENT = r"(?:the\s+same|same|equivalent|identical|indistinguishable|interchangeable|compatible|substitutable|portable)"
 _EQUIVALENT_MANNER = r"(?:the\s+same|same|identically|equivalently|indistinguishably|interchangeably|compatibly)"
 _EXECUTE = r"(?:run|runs|running|execute|executes|executing|work|works|working|function|functions|functioning|use|uses|using)"
-_LOCAL_RELATION_NEGATION = re.compile(
-    r"\b(?:not|never|cannot|can't|can\s+not|do\s+not|does\s+not|did\s+not|is\s+not|are\s+not|was\s+not|were\s+not|neither)\b",
+_RELATION_NOUN = r"(?:equivalence|parity|interchangeability|compatibility|sameness|identity)"
+_RELATION_MARKER = re.compile(
+    rf"\b(?:"
+    rf"(?:no|zero)\s+(?:(?:meaningful|material|practical|operational)\s+)?(?:difference|distinction)"
+    rf"|{_RELATION_NOUN}|{_EQUIVALENT}|{_EQUIVALENT_MANNER}"
+    rf"|(?:can|may|could)\s+be\s+(?:run|executed|used|substituted|interchanged|swapped|replaced)"
+    rf"|(?:is|are|remain|seem)\s+{_EQUIVALENT}"
+    rf"|(?:works?|runs?|executes?|functions?)"
+    rf"|(?:behave|behaves|perform|performs)\s+(?:{_EQUIVALENT}|{_EQUIVALENT_MANNER})"
+    rf"|(?:gives?|produces?|yields?|returns?)\s+(?:the\s+same|an?\s+equivalent|an?\s+identical)\s+(?:result|outcome|effect|behavior|semantics?)"
+    rf"|(?:substituted|interchanged|swapped|replaced)"
+    rf")\b",
     re.I,
 )
 
+
 _PATTERNS = (
+    # Nominal/existential lane-equivalence relations tied to command execution.
+    re.compile(
+        rf"\b(?:there\s+(?:is|exists)\s+(?:an?\s+)?{_RELATION_NOUN}\s+between\s+(?:the\s+two|both)\s+{_LANES}"
+        rf"|(?:the\s+two|both)\s+{_LANES}\s+(?:have|share|show|exhibit|possess)\s+(?:an?\s+)?{_RELATION_NOUN}"
+        rf"|{_RELATION_NOUN}\s+(?:exists|holds|applies)\s+between\s+(?:the\s+two|both)\s+{_LANES})\b"
+        rf"[^.!?;\n]{{0,100}}\b(?:for|in|with\s+respect\s+to)\s+{_COMMAND}\b",
+        re.I,
+    ),
+    re.compile(
+        rf"\b{_COMMAND}\b[^.!?;\n]{{0,60}}\b(?:has|shows|exhibits|maintains)\s+(?:an?\s+)?{_RELATION_NOUN}\b"
+        rf"[^.!?;\n]{{0,80}}\b(?:across|between)\s+(?:the\s+two|both)\s+{_LANES}\b",
+        re.I,
+    ),
     # Predicate compatibility attached to command/syntax subjects.
     re.compile(
         rf"\b(?:either|both|each|any|all|these|those|the\s+two)[^.!?;\n]{{0,50}}{_COMMAND}\b"
@@ -80,11 +104,23 @@ _PATTERNS = (
 )
 
 
+def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
+    """Evaluate polarity at the actual equivalence predicate, not unrelated sentence negation."""
+    local = match.group(0)
+    markers = list(_RELATION_MARKER.finditer(local))
+    if not markers:
+        return occurrence_is_assertive_polarity(text, match.start(), match.end())
+    relation = markers[-1]
+    return occurrence_is_assertive_polarity(
+        text,
+        match.start() + relation.start(),
+        match.start() + relation.end(),
+    )
+
+
 def has_affirmative_cross_lane_equivalence(text: str) -> bool:
-    for pattern in _PATTERNS:
-        for match in pattern.finditer(text):
-            if _LOCAL_RELATION_NEGATION.search(match.group(0)):
-                continue
-            if occurrence_is_assertive_polarity(text, match.start(), match.end()):
-                return True
-    return False
+    return any(
+        _relation_is_assertive(text, match)
+        for pattern in _PATTERNS
+        for match in pattern.finditer(text)
+    )

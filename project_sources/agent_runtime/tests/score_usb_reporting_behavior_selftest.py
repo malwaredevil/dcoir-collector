@@ -115,6 +115,17 @@ def test_markdown_fence_lengths_are_structural() -> None:
         bad_info = base.replace('```text', '```te`xt', 1)
         result = module.score_final_response(bad_info, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
         assert not result['passed'], result
+        for indent in ('\t', ' \t', '  \t', '   \t'):
+            bad_open = base.replace('```text', indent + '```text', 1)
+            result = module.score_final_response(bad_open, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+            assert not result['passed'], (repr(indent), result)
+            bad_both = bad_open.replace('\n```\n', '\n' + indent + '```\n', 1)
+            result = module.score_final_response(bad_both, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+            assert not result['passed'], (repr(indent), result)
+        for spaces in (' ', '  ', '   '):
+            valid_indent = base.replace('```text', spaces + '```text', 1).replace('\n```\n', '\n' + spaces + '```\n', 1)
+            result = module.score_final_response(valid_indent, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
+            assert result['passed'], (repr(spaces), result)
 
 
 def test_marker_only_email_shape_is_rejected() -> None:

@@ -299,6 +299,32 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         if status_result.get("ok") or status_result.get("error") != expected_error:
             raise SystemExit(f"Malformed/missing Responses status must fail before scoring: {status_payload!r}: {status_result}")
 
+    for id_payload in (
+        {"status": "completed", "output_text": "safe"},
+        {"id": None, "status": "completed", "output_text": "safe"},
+        {"id": "", "status": "completed", "output_text": "safe"},
+        {"id": "response_123", "status": "completed", "output_text": "safe"},
+        {"id": True, "status": "completed", "output_text": "safe"},
+        {"id": 7, "status": "completed", "output_text": "safe"},
+        {"id": [], "status": "completed", "output_text": "safe"},
+        {"id": {}, "status": "completed", "output_text": "safe"},
+    ):
+        class _IdResponse(_IncompleteResponse):
+            def read(self, payload=id_payload):
+                return json.dumps(payload).encode("utf-8")
+        with patch.object(replay_live.urllib.request, "urlopen", return_value=_IdResponse()):
+            id_result = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+        if id_result.get("ok") or id_result.get("error") != "invalid_response_shape":
+            raise SystemExit(f"Malformed/missing Responses id must fail before scoring: {id_payload!r}: {id_result}")
+
+    class _ValidIdResponse(_IncompleteResponse):
+        def read(self):
+            return b'{"id":"resp_abc123","status":"completed","output_text":"safe"}'
+    with patch.object(replay_live.urllib.request, "urlopen", return_value=_ValidIdResponse()):
+        valid_id = replay_live.call_openai_body("test-key", "", args, {"model": OPENAI_MODEL_ID})
+    if not valid_id.get("ok") or valid_id.get("response_id") != "resp_abc123":
+        raise SystemExit(f"Valid Responses id must remain accepted: {valid_id}")
+
     class _WrongShapeResponse(_IncompleteResponse):
         def read(self):
             return b'[]'

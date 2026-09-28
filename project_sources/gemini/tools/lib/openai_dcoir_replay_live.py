@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -12,6 +13,7 @@ from lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VE
 from lib.gemini_behavioral_replay_utils import safe_attempts, safe_error
 
 DEFAULT_API_BASE = "https://api.openai.com/v1/responses"
+_RESPONSE_ID = re.compile(r"^resp_[A-Za-z0-9_-]+$")
 
 
 def replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any]) -> str:
@@ -137,17 +139,20 @@ def call_openai_body(
             return {"ok": False, "attempts": attempts, "error": "invalid_json"}
         if not isinstance(payload, dict):
             return {"ok": False, "attempts": attempts, "error": "invalid_response_shape"}
+        response_id = payload.get("id")
         status = payload.get("status")
         if not isinstance(status, str):
-            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape", "response_id": payload.get("id")}
+            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape"}
         if status != "completed":
-            return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": payload.get("id")}
+            return {"ok": False, "attempts": attempts, "error": "incomplete_output", "response_id": response_id if isinstance(response_id, str) else None}
+        if not isinstance(response_id, str) or not _RESPONSE_ID.fullmatch(response_id):
+            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape"}
         text, response_shape_ok = _extract_text_with_shape(payload)
         if not response_shape_ok:
-            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape", "response_id": payload.get("id")}
+            return {"ok": False, "attempts": attempts, "error": "invalid_response_shape", "response_id": response_id}
         if not text:
-            return {"ok": False, "attempts": attempts, "error": "empty_output", "response_id": payload.get("id")}
-        return {"ok": True, "attempts": attempts, "response_text": text, "response_id": payload.get("id")}
+            return {"ok": False, "attempts": attempts, "error": "empty_output", "response_id": response_id}
+        return {"ok": True, "attempts": attempts, "response_text": text, "response_id": response_id}
     return {"ok": False, "attempts": attempts, "error": "unknown"}
 
 
