@@ -22,9 +22,10 @@ _CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+(?:the\s+same|matching)|(?:the
 _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
 _CAPABILITY_RELATION = r"(?:support(?:ed|s)?|accept(?:ed|s)?|allow(?:ed|s)?|expos(?:e|ed|es)|provid(?:e|ed|es)|availab(?:le|ility))"
 _RECIPROCAL = r"(?:vice\s+versa|conversely|and\s+the\s+reverse|the\s+reverse\s+is\s+also\s+true|in\s+both\s+directions)"
-_NEGATED_RECIPROCAL = re.compile(
-    rf"\b(?:not|never|isn't|is\s+not|doesn't|does\s+not)\b[^.!?;\n]{{0,30}}{_RECIPROCAL}\b"
-    rf"|\b{_RECIPROCAL}\b[^.!?;\n]{{0,30}}\b(?:is\s+not\s+true|is\s+denied|does\s+not\s+hold)\b",
+_RECIPROCAL_MARKER = re.compile(rf"\b{_RECIPROCAL}\b", re.I)
+_RECIPROCAL_REJECTION_AFTER = re.compile(
+    r"^\s*(?:is\s+(?:not(?:\s+necessarily)?\s+true|false|denied)"
+    r"|does\s+not(?:\s+necessarily)?\s+(?:hold|apply))\b",
     re.I,
 )
 _CAPABILITY_COMPLEMENT_EQUIV = (
@@ -180,9 +181,16 @@ _PATTERNS = (
 def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
     """Evaluate polarity at the actual equivalence predicate, not unrelated sentence negation."""
     local = match.group(0)
-    polarity_surface = text[match.start():min(len(text), match.end() + 40)]
-    if _NEGATED_RECIPROCAL.search(polarity_surface):
-        return False
+    reciprocals = list(_RECIPROCAL_MARKER.finditer(local))
+    if reciprocals:
+        reciprocal = reciprocals[-1]
+        reciprocal_start = match.start() + reciprocal.start()
+        reciprocal_end = match.start() + reciprocal.end()
+        if not occurrence_is_assertive_polarity(text, reciprocal_start, reciprocal_end):
+            return False
+        reciprocal_suffix = text[reciprocal_end:min(len(text), reciprocal_end + 80)]
+        if _RECIPROCAL_REJECTION_AFTER.match(reciprocal_suffix):
+            return False
     markers = list(_RELATION_MARKER.finditer(local))
     if not markers:
         return occurrence_is_assertive_polarity(text, match.start(), match.end())
