@@ -20,6 +20,10 @@ _EQUIVALENT = r"(?:the\s+same|same|equal|equivalent|identical|indistinguishable|
 _EQUIVALENT_MANNER = r"(?:the\s+same|same|equally|identically|equivalently|indistinguishably|interchangeably|compatibly)"
 _EXECUTE = r"(?:run|runs|running|execute|executes|executing|work|works|working|function|functions|functioning|use|uses|using)"
 _RELATION_NOUN = r"(?:equivalence|parity|interchangeability|compatibility|sameness|identity)"
+_LANE_TAIL = r"(?:\s+(?:response(?:-action)?|action|console|commands?|syntax|wrappers?|lanes?|shells?|sessions?)){0,3}"
+_ENDPOINT_REF = rf"(?:(?:elastic\s+)?endpoint|response[- ]action|(?:elastic\s+)?response\s+console){_LANE_TAIL}"
+_LOCAL_REF = rf"(?:local|workstation)\s+(?:workstation\s+)?(?:powershell|shell|console){_LANE_TAIL}"
+_EQUIV_PRED = rf"(?:(?:fully|completely|effectively|essentially|basically|functionally|entirely)\s+)?{_EQUIVALENT}"
 _CAPABILITY_OBJECT = r"(?:(?:(?:supported|available|accepted)[-\s]+)?commands?|(?:supported[-\s]+)?command\s+(?:sets?|capabilit(?:y|ies)|repertoires?|availability|inventor(?:y|ies))|sets?\s+of\s+commands?)"
 _CAPABILITY_EQUIV = rf"(?:(?:exactly|precisely)\s+(?:the\s+same|matching)|(?:the\s+)?(?:exact|precise)\s+same|all\s+the\s+same|the\s+same|identical|equal|matching|(?:completely|fully)\s+overlapping)\s+{_CAPABILITY_OBJECT}"
 _CAPABILITY_VERB = r"(?:support|supports|accept|accepts|allow|allows|expose|exposes|provide|provides|offer|offers|have|has|implement|implements|recognize|recognizes)"
@@ -99,8 +103,9 @@ _PATTERNS = (
         rf"|\b(?:the\s+two|both)\s+{_LANES}\b[^.!?;\n]{{0,80}}\b(?:support|accept|allow|expose|provide)\b"
         rf"[^.!?;\n]{{0,40}}\beach\s+other['’]s\s+commands\b"
         rf"|\beach\s+{_LANE}\b[^.!?;\n]{{0,60}}\b(?:support|accept|allow|expose|provide)s?\b"
-        rf"[^.!?;\n]{{0,40}}\b(?:all|every)\s+(?:command|commands)\b[^.!?;\n]{{0,50}}\b(?:supported|available|accepted|allowed|exposed|provided)\b"
-        rf"[^.!?;\n]{{0,30}}\bby\s+(?:the\s+)?other\s+{_LANE}\b",
+        rf"[^.!?;\n]{{0,40}}\b(?:all|every|any)\s+(?:command|commands)\b(?:[^.!?;\n]{{0,50}}\b(?:supported|available|accepted|allowed|exposed|provided)\b"
+        rf"[^.!?;\n]{{0,30}}\bby\s+(?:the\s+)?other\s+{_LANE}\b|\s+(?:(?:that|which)\s+)?the\s+other(?:\s+{_LANE}|\s+one)?\s+"
+        rf"(?:{_CAPABILITY_VERB}|does)\b(?!\s+not\b|n['’]t\b))",
         re.I,
     ),
     # Nominal/existential lane-equivalence relations tied to command execution.
@@ -140,7 +145,7 @@ _PATTERNS = (
     ),
     # Command behavior/result equivalence across lanes.
     re.compile(
-        rf"\b{_COMMAND}\b[^.!?;\n]{{0,60}}\b(?:behave|behaves|perform|performs|produce|produces|yield|yields|give|gives|return|returns|is|are)\b"
+        rf"\b{_COMMAND}\b[^.!?;\n]{{0,60}}\b(?:behave|behaves|perform|performs|produce|produces|yield|yields|give|gives|return|returns|is|are|{_EXECUTE})\b"
         rf"[^.!?;\n]{{0,40}}\b(?:{_EQUIVALENT}|{_EQUIVALENT_MANNER})\b(?:\s+(?:result|results|outcome|outcomes|effect|effects|behavior|semantics))?"
         rf"[^.!?;\n]{{0,80}}\b(?:in|across|between)\s+{_CROSS_ENV}\b"
         rf"|\b(?:result|results|outcome|outcomes|behavior|semantics)\s+of\s+{_COMMAND}\b[^.!?;\n]{{0,60}}\b(?:is|are)\b[^.!?;\n]{{0,30}}\b{_EQUIVALENT}\b[^.!?;\n]{{0,80}}\b(?:in|across|between)\s+{_CROSS_ENV}\b",
@@ -161,6 +166,15 @@ _PATTERNS = (
         rf"|\b(?:one|either)\s+{_LANE}\b[^.!?;\n]{{0,80}}\b(?:can|may|could)\s+be\s+(?:substituted|interchanged|swapped|replaced)\b[^.!?;\n]{{0,40}}\b(?:for|with)\s+(?:the\s+)?other\b"
         rf"|\b(?:substitute|interchange|swap|replace)\s+(?:one|either)\s+{_LANE}\b[^.!?;\n]{{0,40}}\b(?:for|with)\s+(?:the\s+)?other\b"
         rf"|\b(?:commands?|syntaxes?|forms?)\b[^.!?;\n]{{0,80}}\b(?:can|may|could)\s+be\s+(?:substituted|interchanged|swapped)\b[^.!?;\n]{{0,80}}\b(?:between|across)\s+(?:the\s+two|both|either)\s+{_LANES}\b",
+        re.I,
+    ),
+    # The named endpoint and local lanes, or the lane pair, asserted equivalent.
+    re.compile(
+        rf"\b{_ENDPOINT_REF}\s+and\s+(?:the\s+)?{_LOCAL_REF}\s+(?:are|remain|seem)\s+{_EQUIV_PRED}\b"
+        rf"|\b{_LOCAL_REF}\s+and\s+(?:the\s+)?{_ENDPOINT_REF}\s+(?:are|remain|seem)\s+{_EQUIV_PRED}\b"
+        rf"|\b{_ENDPOINT_REF}\s+(?:is|remains|seems)\s+{_EQUIV_PRED}\s+(?:with|to|as)\s+(?:the\s+)?{_LOCAL_REF}"
+        rf"|\b{_LOCAL_REF}\s+(?:is|remains|seems)\s+{_EQUIV_PRED}\s+(?:with|to|as)\s+(?:the\s+)?{_ENDPOINT_REF}"
+        rf"|\b(?:the\s+)?(?:two\s+)?(?:consoles|shells|execution\s+(?:lanes|contexts))\s+(?:are|remain|seem)\s+{_EQUIV_PRED}\b",
         re.I,
     ),
     # Mirrored implication: what runs/works in one lane also runs/works in the other.

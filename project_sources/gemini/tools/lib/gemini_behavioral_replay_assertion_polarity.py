@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 
-from .gemini_behavioral_replay_truth_frame_semantics import TRUTH_FRAME_MODIFIER
+from .gemini_behavioral_replay_truth_frame_semantics import NEGATED_TRUTH_FRAME as _NEGATED_TRUTH_FRAME
 
 
 CONTRAST = re.compile(r"\b(?:but|however|yet|nevertheless|instead)\b", re.I)
@@ -91,36 +91,9 @@ _NEGATED_REJECTION = re.compile(
     r"contradict(?:s|ed|ing)?)\b",
     re.I,
 )
-_NEGATED_TRUTH_FRAME = re.compile(
-    rf"\b(?:(?:it\s+is|it's)\s+)?(?:not\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}}|by\s+no\s+means\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}})(?:doubtful|questionable|uncertain|in\s+doubt|open\s+to\s+(?:(?:any|the)\s+)?(?:(?:serious|reasonable|credible|real|meaningful|material|substantial|slightest)\s+)?(?:doubt|question))\s+that\b"
-    rf"|\bthere\s+(?:is|was|remains?)\s+(?:not\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}}|by\s+no\s+means\s+(?:(?:{TRUTH_FRAME_MODIFIER})\s+){{0,3}})(?:(?:the\s+)?(?:slightest|least)|any(?:\s+(?:serious|reasonable|credible|material|meaningful))?)?\s*(?:doubt|question|uncertainty)\s+that\b"
-    r"|\b(?:(?:it\s+is|it's)\s+)?not\s+(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b"
-    r"|\b(?:(?:it\s+is|it's)\s+)?(?:hardly|scarcely|barely)\s+(?:false|incorrect|untrue|wrong|inaccurate)\s+that\b"
-    r"|\bthere\s+is\s+no\s+reason\s+to\s+(?:doubt|dispute|question|deny|reject)\s+that\b"
-    r"|\bthere\s+(?:(?:(?:can|could|would|should|may|might)\s+be)|(?:is|are|was|were|remains?))\s+no\s+"
-    r"(?:(?:[a-z][a-z-]{1,24})\s+){0,3}(?:disputes?|doubts?|questions?|debates?|controvers(?:y|ies)|uncertaint(?:y|ies))\s+"
-    r"(?:(?:(?:about|over)\s+)?(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b"
-    r"|\bthere\s+(?:cannot|can't|can\s+not|could\s+not|couldn't|would\s+not|wouldn't|should\s+not|shouldn't|must\s+not|mustn't|is\s+not|isn't|are\s+not|aren't|was\s+not|wasn't|were\s+not|weren't)\s+"
-    r"(?:(?:[a-z][a-z-]{1,24}ly)\s+){0,2}(?:be\s+)?(?:any|an?|one)\s+"
-    r"(?:(?:[a-z][a-z-]{1,24})\s+){0,3}(?:disputes?|doubts?|questions?|debates?|controvers(?:y|ies)|uncertaint(?:y|ies))\s+"
-    r"(?:(?:(?:about|over)\s+)?(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b"
-    r"|\bthere\s+(?:(?:(?:can|could|would|should|may|might)\s+be)|(?:is|are|was|were|remains?))\s+no\s+"
-    r"(?:denying|disputing|doubting|questioning|rejecting|refuting|contesting|contradicting)\s+"
-    r"(?:(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b"
-    r"|\bthere\s+(?:(?:(?:can|could|would|should|may|might)\s+be)|(?:is|are|was|were|remains?))\s+no\s+"
-    r"(?:(?:[a-z][a-z-]{1,24})\s+){0,3}(?:room|basis|grounds?|way)\s+"
-    r"(?:(?:for|to)\s+|on\s+which\s+to\s+)(?:(?:[a-z][a-z-]{1,24})\s+){0,2}"
-    r"(?:doubt|dispute|question|deny|reject|refute|contest|contradict)\s+"
-    r"(?:(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b"
-    r"|\b(?:cannot|can't|can\s+not|could\s+not|couldn't|would\s+not|wouldn't|should\s+not|shouldn't|must\s+not|mustn't)\s+"
-    r"(?:(?:(?:[a-z][a-z-]{1,24}ly)|(?:in\s+good\s+faith)|(?:in\s+any\s+(?:reasonable|serious|credible)\s+sense))\s+){0,3}be\s+"
-    r"(?:(?:(?:[a-z][a-z-]{1,24}ly)|(?:in\s+good\s+faith)|(?:in\s+any\s+(?:reasonable|serious|credible)\s+sense))\s+){0,3}(?:denied|disputed|doubted|questioned|rejected|refuted|contested|contradicted)\s+that\b"
-    r"|\b(?:no\s+one|nobody|not\s+one(?:\s+[a-z0-9_-]+){0,3}|not\s+a\s+single(?:\s+[a-z0-9_-]+){0,3}|no(?:\s+[a-z0-9_-]+){1,5})\s+"
-    r"(?:can|could|would|should|may|might)\s+(?:(?:reasonably|possibly|credibly|seriously|honestly)\s+){0,2}"
-    r"(?:deny|dispute|doubt|question|reject|refute|contest|contradict)\s+(?:(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b"
-    r"|\b(?:no\s+one|nobody|not\s+one(?:\s+[a-z0-9_-]+){0,3}|not\s+a\s+single(?:\s+[a-z0-9_-]+){0,3}|no(?:\s+[a-z0-9_-]+){1,5})\s+"
-    r"has\s+(?:any\s+)?(?:reason|basis|grounds?)\s+to\s+(?:deny|dispute|doubt|question|reject|refute|contest|contradict)\s+"
-    r"(?:(?:the\s+)?(?:fact|claim|assertion|proposition)\s+)?that\b",
+_FOCUS_NEGATION = re.compile(
+    r"not\s+(?:only|just|merely|simply)\s+"
+    r"(?:do|does|did|is|are|was|were|will|would|can|could|has|have|had|should|must)\b",
     re.I,
 )
 _CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")
@@ -216,6 +189,10 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
     negation = _DIRECT_NEGATION.search(prefix)
     if not negation:
         return False
+    focus = _FOCUS_NEGATION.match(prefix, negation.start())
+    if focus:
+        # "Not only do X ..." inverts an affirmative clause; it negates nothing.
+        return _direct_negation_applies(prefix[focus.end():], target_tail)
     separators = list(_CLAUSE_SEPARATOR.finditer(prefix, negation.start()))
     if separators and not _REJECTION_LABEL.search(prefix[:separators[-1].start()]):
         # A colon or dash opens a new clause; only a negator inside it applies.
