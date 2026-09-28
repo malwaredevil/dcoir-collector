@@ -68,7 +68,7 @@ def run_markdown_fence_tests(
     wrong_mode_prose = 'All incidents were authorized and no policy violation occurred.'
     nipr_expected = {'Recipient', 'Subject', 'Message Draft'}
     for label in sorted(module.FINAL_LABELS - nipr_expected):
-        hostile = nipr + f'\n\n{label}:\n\`\`\`text\n{wrong_mode_prose}\n\`\`\`'
+        hostile = nipr + f'\n\n{label}:\n```text\n{wrong_mode_prose}\n```'
         result = module.score_final_response(hostile, nipr_rows, start_date=start, end_date=end, previous_count=previous)
         assert not result['passed'], (label, result)
         assert any('outside active NIPR-only schema' in error for error in result['errors']), (label, result)
@@ -80,7 +80,7 @@ def run_markdown_fence_tests(
     for label in sorted(module.FINAL_LABELS - mixed_expected):
         hostile = mixed.replace(
             'SIPR Transfer Instructions:',
-            f'{label}:\n\`\`\`text\n{wrong_mode_prose}\n\`\`\`\n\nSIPR Transfer Instructions:',
+            f'{label}:\n```text\n{wrong_mode_prose}\n```\n\nSIPR Transfer Instructions:',
             1,
         )
         result = module.score_final_response(hostile, mixed_rows, start_date=start, end_date=end, previous_count=previous)
