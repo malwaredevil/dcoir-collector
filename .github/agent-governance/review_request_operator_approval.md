@@ -31,7 +31,7 @@ No approval means no DCOIR Review request.
 
 ## Sequencing
 
-When another governance rule says that `/dcoir-review`, `/or-review`, or `/openrouter-review` is the next review gate after Prog/Adva/Codi or after a finding is fixed, interpret that as **the next gate that may be proposed to the operator**. It is not permission to post the command automatically.
+When another governance rule says that `/dcoir-review`, `/or-review`, or `/openrouter-review` is the next review gate after Prog/Adva or after a finding is fixed, interpret that as **the next gate that may be proposed to the operator**. It is not permission to post the command automatically.
 
 After an operator-approved DCOIR Review request is posted, use the normal readback discipline for the command comment, workflow/run, reviewed head, model/context metadata, review output, and findings. If a rerun is needed, stop and obtain fresh approval for the exact rerun request before posting it.
 
