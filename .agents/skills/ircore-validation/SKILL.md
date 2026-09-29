@@ -142,10 +142,10 @@ Check these first:
 5. mutation reported complete even though only draft content exists
 6. GitHub work-item gateway functions skipped for governed issue/PR work
 7. Prog/Adva skipped when applicable without waiver, unavailable-worker explanation, or not-applicable reason
-9. `/dcoir-review` posted, confirmed, or rerun without operator approval of that exact proposed command in the current session
-10. external `@codex` PR comment posted or confirmed without operator approval of the exact proposed comment text in the current session
-11. GitHub Copilot review requested without explicit operator approval when the operator did not manually trigger it
-12. direct agent-instruction update performed without exact operator approval and post-update GitHub readback
+8. `/dcoir-review` posted, confirmed, or rerun without operator approval of that exact proposed command in the current session
+9. external `@codex` PR comment posted or confirmed without operator approval of the exact proposed comment text in the current session
+10. GitHub Copilot review requested without explicit operator approval when the operator did not manually trigger it
+11. direct agent-instruction update performed without exact operator approval and post-update GitHub readback
 
 ## Output Contract
 
