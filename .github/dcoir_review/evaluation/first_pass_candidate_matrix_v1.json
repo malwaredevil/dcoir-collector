@@ -39,6 +39,16 @@
       "role": "current whole-PR premium detector control"
     },
     {
+      "id": "opus5-xhigh-no-temp",
+      "model": "anthropic/claude-opus-5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "xhigh",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier_control",
+      "role": "evaluation-only Opus 5 xhigh compatibility probe with sampling temperature omitted"
+    },
+    {
       "id": "opus5-high",
       "model": "anthropic/claude-opus-5",
       "provider_family": "anthropic",
