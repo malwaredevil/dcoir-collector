@@ -36,20 +36,55 @@ def main() -> None:
     cases = evaluation.load_cases(matrix)
     candidates = evaluation.selected_candidates(matrix, "all")
 
-    assert [item["id"] for item in candidates] == [
+    expected_candidate_ids = [
         "opus5-xhigh-control",
         "opus5-high",
         "sonnet5-high",
+        "opus5.5-xhigh",
+        "sonnet5.5-high",
+        "gpt6.1-sol-high",
+        "gpt6.1-sol-pro",
+        "gpt6-astra-xhigh",
+        "qwen3.8-max",
+        "glm5.3-high",
+        "gemini3.8-flash-high",
+        "glm5.3-flash-high",
+        "gpt6-luna-high",
+        "deepseek-v4.1-flash",
+        "kimi-k2.6",
+        "auto-max",
+        "pareto-code-080",
+    ]
+    assert [item["id"] for item in candidates] == expected_candidate_ids
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "incumbents")] == [
+        "opus5-xhigh-control",
+        "opus5-high",
+        "sonnet5-high",
+    ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "routine")] == [
+        "sonnet5-high",
+        "sonnet5.5-high",
+        "gemini3.8-flash-high",
+        "glm5.3-flash-high",
+        "gpt6-luna-high",
+        "deepseek-v4.1-flash",
+        "kimi-k2.6",
+    ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "gpt6-luna-high,glm5.3-flash-high")] == [
+        "gpt6-luna-high",
+        "glm5.3-flash-high",
     ]
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
     assert len(generalized) == 12
     assert sum(case["expected"] == "finding" for case in generalized) == 10
     assert sum(case["expected"] == "clean" for case in generalized) == 2
-    assert len(naturalistic) == 2
+    assert len(naturalistic) == 4
     assert {case["id"] for case in naturalistic} == {
         "pr448-lane-separation-binding",
         "pr448-numbered-lifecycle-duplicate",
+        "pr581-usb-ticket-field-binding",
+        "pr581-usb-complete-field-value",
     }
 
     old_key = os.environ.pop("OPENROUTER_API_KEY", None)
@@ -58,7 +93,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 42
+        assert plan["case_counts"]["planned_total_requests"] == 272
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -81,6 +116,8 @@ def main() -> None:
         "allow_fallbacks": True,
         "require_parameters": True,
         "sort": "price",
+        "zdr": True,
+        "data_collection": "deny",
     }
     assert control_payload["plugins"] == [{"id": "response-healing", "enabled": True}]
     assert control_payload["tools"] == []
@@ -100,6 +137,29 @@ def main() -> None:
     assert sonnet_payload["model"] == "anthropic/claude-sonnet-5"
     assert sonnet_payload["reasoning"]["effort"] == "high"
     assert "temperature" not in sonnet_payload
+
+    auto = evaluation.candidate_by_id(matrix, "auto-max")
+    auto_payload = evaluation.build_payload(auto, lane_case, system_prompt, schema, contract)
+    assert auto_payload["model"] == "openrouter/auto"
+    assert auto_payload["plugins"] == [
+        {"id": "auto-router", "cost_tier": "max"},
+        {"id": "response-healing", "enabled": True},
+    ]
+    assert "reasoning" not in auto_payload
+
+    pareto = evaluation.candidate_by_id(matrix, "pareto-code-080")
+    pareto_payload = evaluation.build_payload(pareto, lane_case, system_prompt, schema, contract)
+    assert pareto_payload["plugins"] == [
+        {"id": "pareto-router", "min_coding_score": 0.8},
+        {"id": "response-healing", "enabled": True},
+    ]
+
+    duplicate_selector_failed = False
+    try:
+        evaluation.selected_candidates(matrix, "sonnet5-high,sonnet5-high")
+    except ValueError:
+        duplicate_selector_failed = True
+    assert duplicate_selector_failed
 
     invalid_temperature = dict(sonnet)
     invalid_temperature["temperature"] = 2.1
@@ -192,6 +252,40 @@ def main() -> None:
     }
     assert request_result["pipeline"][0]["name"] == "response-healing"
 
+    # Malformed responses and transport failures must remain reportable, with
+    # billed usage preserved and without repeating the paid request.
+    for broken_content in ("not json", "null", '{"wrong": []}'):
+        malformed = dict(fake_payload)
+        malformed["choices"] = [{"message": {"content": broken_content}}]
+        failure = evaluation.call_openrouter(
+            control_payload, "unit-test-key", timeout_seconds=9,
+            opener=lambda *args, **kwargs: FakeResponse(malformed),
+        )
+        assert failure["ok"] is False
+        assert failure["usage"]["cost_usd"] == 0.0125
+    def timed_out(*args, **kwargs):
+        raise TimeoutError("unit-test-key must never appear in report")
+    failure = evaluation.call_openrouter(
+        control_payload, "unit-test-key", timeout_seconds=9, opener=timed_out,
+    )
+    assert failure["ok"] is False
+    assert "unit-test-key" not in json.dumps(failure)
+    for malformed in (None, [], {"choices": []}, {"usage": {"cost": "bad"}}):
+        failure = evaluation.call_openrouter(
+            control_payload, "unit-test-key", timeout_seconds=9,
+            opener=lambda *args, **kwargs: FakeResponse(malformed),
+        )
+        assert failure["ok"] is False
+    passing_rows = [
+        {"case_id": case["id"], "corpus": case["corpus"],
+         "request": {"ok": True},
+         "score": {"expected": case["expected"], "correct": True}}
+        for case in cases
+    ]
+    assert evaluation.aggregate_candidate(control, passing_rows)["quality"]["acceptance_eligible_quality_floor"]
+    for incomplete in ([], passing_rows[:1], passing_rows[:-1], passing_rows + passing_rows[:1]):
+        assert not evaluation.aggregate_candidate(control, incomplete)["quality"]["acceptance_eligible_quality_floor"]
+
     scored = evaluation.score_case(lane_case, request_result)
     assert scored["correct"] is True
     assert scored["ambiguous"] is False
@@ -260,7 +354,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "3 candidates, 12 controlled cases, 2 frozen naturalistic cases, candidate-specific temperature, billed failures included, no network/publication"
+        "17 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 

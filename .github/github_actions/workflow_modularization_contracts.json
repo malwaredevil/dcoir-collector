@@ -1,13 +1,13 @@
 {
   "composite_action_count": 19,
-  "existing_workflow_count": 31,
+  "existing_workflow_count": 32,
   "governing_issue": 194,
   "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
   "inventory_outputs": {
     "json": ".github/github_actions/workflow_inventory.json",
     "markdown": ".github/github_actions/workflow_inventory.md"
   },
-  "primary_workflow_count": 31,
+  "primary_workflow_count": 32,
   "required_contract_families": [
     "static-validation",
     "required-surfaces",
@@ -33,10 +33,11 @@
     "maintenance-audit",
     "windows-powershell-51",
     "codeql-security",
+    "dcoir-model-benchmark",
     "openrouter-pr-review",
     "openai-dcoir-behavioral-replay"
   ],
-  "reusable_workflow_count": 30,
+  "reusable_workflow_count": 31,
   "schema_version": "dcoir_workflow_modularization_contracts_v1",
   "workflow_contracts": [
     {
@@ -218,6 +219,16 @@
       "risk": "medium",
       "rollback": "Remove the OpenAI deployment package entry/reusable workflows and retain the existing target-specific builders and manual WebUI procedure.",
       "target_architecture": "One operator-triggered entry workflow calls a family-specific reusable workflow that runs the governed agent-runtime validation contract, unified static parity reporting, deterministic two-target delivery assembly, direct artifact surfacing, evidence upload, and ChatGPT workflow report section without mutating live OpenAI targets."
+    },
+    {
+      "acceptance_evidence": "No-network plan output, exact candidate/request count, ZDR and data_collection=deny request contract, paid-live double confirmation and max-request cap, exact-head JSON/Markdown artifacts, workflow run/job readback, and proof that production model configuration and GitHub review publication remain unchanged.",
+      "contract_family": "dcoir-model-benchmark",
+      "family": "DCOIR Review model benchmark",
+      "file": ".github/workflows/manual-dcoir-review-model-benchmark.yml",
+      "migration_status": "active",
+      "risk": "medium",
+      "rollback": "Remove the benchmark entry/reusable workflow pair and continue using the existing no-publication evaluator script directly until the workflow contract is corrected.",
+      "target_architecture": "Thin operator-dispatch entry workflow plus reusable DCOIR model-benchmark module. Candidate model IDs and groups remain version-controlled non-secret configuration; the reusable module owns deterministic self-tests, no-network planning, bounded paid-live OpenRouter evaluation, privacy/provider controls, human-readable summary output, and durable artifacts without changing production DCOIR Review configuration."
     },
     {
       "acceptance_evidence": "Live/model comparison report and secret handling.",
