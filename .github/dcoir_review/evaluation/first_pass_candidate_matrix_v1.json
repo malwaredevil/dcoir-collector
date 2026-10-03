@@ -19,35 +19,193 @@
     "notes": [
       "Request-level provider sorting is pinned so mutable workspace defaults cannot confound candidate comparisons.",
       "Response Healing is explicitly enabled to preserve the current structured-output control environment while making it reproducible.",
-      "No server tools, AutoRouter, Pareto Router, GitHub publication, branch write, or remediation capability is used by the evaluation request.",
+      "Candidate-specific router plugins are permitted only in the evaluation matrix; production promotion remains fixed-model unless separately approved.",
       "Response caching is disabled so repeated controls cannot be satisfied by a prior cached completion. Provider-native prompt caching, if any, is recorded separately from usage metadata.",
-      "Sampling parameters are candidate-specific: preserve production-like temperature 0.2 for Opus controls, but omit temperature for models whose OpenRouter supported-parameters contract does not accept it under require_parameters=true."
+      "Sampling/reasoning parameters are candidate-specific and omitted when the candidate does not declare them, preserving require_parameters=true compatibility."
     ]
   },
   "candidates": [
     {
       "id": "opus5-xhigh-control",
       "model": "anthropic/claude-opus-5",
+      "provider_family": "anthropic",
       "reasoning_effort": "xhigh",
       "temperature": 0.2,
       "max_tokens": null,
-      "role": "current-model/current-effort control"
+      "benchmark_role": "frontier_control",
+      "role": "current whole-PR premium detector control"
     },
     {
       "id": "opus5-high",
       "model": "anthropic/claude-opus-5",
+      "provider_family": "anthropic",
       "reasoning_effort": "high",
       "temperature": 0.2,
       "max_tokens": null,
-      "role": "same-model lower-reasoning candidate"
+      "benchmark_role": "frontier_control",
+      "role": "same incumbent at lower reasoning"
     },
     {
       "id": "sonnet5-high",
       "model": "anthropic/claude-sonnet-5",
+      "provider_family": "anthropic",
       "reasoning_effort": "high",
       "temperature": null,
       "max_tokens": null,
-      "role": "lower-cost routine first-pass worker candidate"
+      "benchmark_role": "routine_control",
+      "role": "current routine per-file first-pass control"
+    },
+    {
+      "id": "opus5.5-xhigh",
+      "model": "anthropic/claude-opus-5.5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "xhigh",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "direct Opus 5 successor and premium detector candidate"
+    },
+    {
+      "id": "sonnet5.5-high",
+      "model": "anthropic/claude-sonnet-5.5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "direct Sonnet 5 successor and routine-review candidate"
+    },
+    {
+      "id": "gpt6.1-sol-high",
+      "model": "openai/gpt-6.1-sol",
+      "provider_family": "openai",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current OpenAI Sol-tier premium detector/challenger candidate"
+    },
+    {
+      "id": "gpt6.1-sol-pro",
+      "model": "openai/gpt-6.1-sol-pro",
+      "provider_family": "openai",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "fixed pro-reasoning premium candidate for hardest semantic stages"
+    },
+    {
+      "id": "gpt6-astra-xhigh",
+      "model": "openai/gpt-6-astra",
+      "provider_family": "openai",
+      "reasoning_effort": "xhigh",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "quality-ceiling escalation/adjudication candidate"
+    },
+    {
+      "id": "qwen3.8-max",
+      "model": "qwen/qwen3.8-max-0902",
+      "provider_family": "qwen",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "cross-family premium code-review candidate"
+    },
+    {
+      "id": "glm5.3-high",
+      "model": "z-ai/glm-5.3",
+      "provider_family": "z-ai",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "cross-family long-context software-engineering candidate"
+    },
+    {
+      "id": "gemini3.8-flash-high",
+      "model": "google/gemini-3.8-flash",
+      "provider_family": "google",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "high-quality high-volume per-file candidate"
+    },
+    {
+      "id": "glm5.3-flash-high",
+      "model": "z-ai/glm-5.3-flash",
+      "provider_family": "z-ai",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "very-low-cost high-volume per-file candidate"
+    },
+    {
+      "id": "gpt6-luna-high",
+      "model": "openai/gpt-6-luna",
+      "provider_family": "openai",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "low-cost OpenAI high-volume per-file candidate"
+    },
+    {
+      "id": "deepseek-v4.1-flash",
+      "model": "deepseek/deepseek-v4.1-flash",
+      "provider_family": "deepseek",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "low-cost coding-focused high-volume candidate"
+    },
+    {
+      "id": "kimi-k2.6",
+      "model": "moonshotai/kimi-k2.6",
+      "provider_family": "moonshotai",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "bounded cross-family coding/agentic candidate"
+    },
+    {
+      "id": "auto-max",
+      "model": "openrouter/auto",
+      "provider_family": "openrouter-router",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "router",
+      "role": "current Auto Router at max quality tier; evaluation-only mutable route",
+      "plugins": [
+        {
+          "id": "auto-router",
+          "cost_tier": "max"
+        }
+      ]
+    },
+    {
+      "id": "pareto-code-080",
+      "model": "openrouter/pareto-code",
+      "provider_family": "openrouter-router",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "router",
+      "role": "Pareto coding router control; evaluation-only mutable route",
+      "plugins": [
+        {
+          "id": "pareto-router",
+          "min_coding_score": 0.8
+        }
+      ]
     }
   ],
   "naturalistic_cases": [
@@ -61,7 +219,12 @@
       "source": "def has_execution_lane_separation(response_text):\n    for clause in _iter_clauses(response_text):\n        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):\n            continue\n        positive_separation = bool(_find_contextual_term_hits(clause, ['separate', 'different lane', 'distinct lane'], skip_negated=True, skip_quoted=True))\n        explicit_no_mix = bool(_find_contextual_term_hits(clause, ['do not mix', \"don't mix\", 'dont mix', 'must not mix', 'should not mix'], skip_negated=True, skip_quoted=True))\n        if positive_separation or explicit_no_mix:\n            return True\n    return False",
       "counterexample": "Use a separate log folder, but run endpoint response-action commands and local PowerShell in the same shell.",
       "review_contract": "Separation/no-mix evidence must be bound to the relationship between the endpoint and local execution lanes; unrelated uses of 'separate' must not satisfy the lane-separation invariant.",
-      "finding_match_terms": ["lane", "separat", "same shell", "bind"]
+      "finding_match_terms": [
+        "lane",
+        "separat",
+        "same shell",
+        "bind"
+      ]
     },
     {
       "id": "pr448-numbered-lifecycle-duplicate",
@@ -73,7 +236,83 @@
       "source": "AMBIGUOUS_LIST_SECTION_HEADERS = {'retrieve', 'interpret', 'cleanup'}\n\ndef _final_section_header_for_line(line):\n    normalized = _normalized_header_line(line)\n    is_list_prefixed = _line_is_list_prefixed(line)\n    if normalized in FINAL_SECTION_HEADERS:\n        if is_list_prefixed and normalized in AMBIGUOUS_LIST_SECTION_HEADERS:\n            return None\n        return normalized\n    for header in FINAL_SECTION_HEADERS:\n        if is_list_prefixed and header in AMBIGUOUS_LIST_SECTION_HEADERS:\n            continue\n        if re.match(rf'^{re.escape(header)}\\s*[:\\-–—]\\s*.+$', normalized):\n            return header\n    return None\n\ndef duplicate_final_sections(response_text):\n    counts = {header: 0 for header in FINAL_SECTION_HEADERS}\n    for line in str(response_text).splitlines():\n        header = _final_section_header_for_line(line)\n        if header is not None:\n            counts[header] += 1\n    return [header for header, count in counts.items() if count > 1]",
       "counterexample": "1. Retrieve: obtain the collection bundle.\n2. Interpret: review the analyst surfaces.\n3. Cleanup: use the emitted cleanup command.\n4. Retrieve: obtain the collection bundle again.\n5. Interpret: repeat the interpretation.\n6. Cleanup: repeat cleanup guidance.",
       "review_contract": "Numbered procedure syntax must not make semantically duplicated Retrieve, Interpret, or Cleanup final sections invisible to duplicate-output detection.",
-      "finding_match_terms": ["duplicate", "retrieve", "interpret", "cleanup", "numbered", "list"]
+      "finding_match_terms": [
+        "duplicate",
+        "retrieve",
+        "interpret",
+        "cleanup",
+        "numbered",
+        "list"
+      ]
     }
-  ]
+  ],
+  "catalog_snapshot": {
+    "as_of": "2026-10-03",
+    "purpose": "Issue #591 reusable OpenRouter model-selection benchmark snapshot. Candidate model IDs are version-controlled non-secret configuration; OPENROUTER_API_KEY remains the only credential.",
+    "notes": [
+      "Generic/public benchmarks are discovery signals only; DCOIR-specific corpus results decide promotion.",
+      "Mutable routers are evaluation-only and must record the actually served model/provider through Router Metadata.",
+      "No benchmark candidate automatically changes production DCOIR Review configuration."
+    ]
+  },
+  "candidate_groups": {
+    "incumbents": [
+      "opus5-xhigh-control",
+      "opus5-high",
+      "sonnet5-high"
+    ],
+    "frontier": [
+      "opus5-xhigh-control",
+      "opus5.5-xhigh",
+      "gpt6.1-sol-high",
+      "gpt6.1-sol-pro",
+      "gpt6-astra-xhigh",
+      "qwen3.8-max",
+      "glm5.3-high"
+    ],
+    "routine": [
+      "sonnet5-high",
+      "sonnet5.5-high",
+      "gemini3.8-flash-high",
+      "glm5.3-flash-high",
+      "gpt6-luna-high",
+      "deepseek-v4.1-flash",
+      "kimi-k2.6"
+    ],
+    "routers": [
+      "auto-max",
+      "pareto-code-080"
+    ],
+    "recommended": [
+      "opus5-xhigh-control",
+      "sonnet5-high",
+      "opus5.5-xhigh",
+      "sonnet5.5-high",
+      "gpt6.1-sol-high",
+      "gpt6.1-sol-pro",
+      "gpt6-astra-xhigh",
+      "gemini3.8-flash-high",
+      "glm5.3-flash-high",
+      "gpt6-luna-high"
+    ],
+    "all": [
+      "opus5-xhigh-control",
+      "opus5-high",
+      "sonnet5-high",
+      "opus5.5-xhigh",
+      "sonnet5.5-high",
+      "gpt6.1-sol-high",
+      "gpt6.1-sol-pro",
+      "gpt6-astra-xhigh",
+      "qwen3.8-max",
+      "glm5.3-high",
+      "gemini3.8-flash-high",
+      "glm5.3-flash-high",
+      "gpt6-luna-high",
+      "deepseek-v4.1-flash",
+      "kimi-k2.6",
+      "auto-max",
+      "pareto-code-080"
+    ]
+  }
 }
