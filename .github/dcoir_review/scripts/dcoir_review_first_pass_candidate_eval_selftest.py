@@ -79,10 +79,12 @@ def main() -> None:
     assert len(generalized) == 12
     assert sum(case["expected"] == "finding" for case in generalized) == 10
     assert sum(case["expected"] == "clean" for case in generalized) == 2
-    assert len(naturalistic) == 2
+    assert len(naturalistic) == 4
     assert {case["id"] for case in naturalistic} == {
         "pr448-lane-separation-binding",
         "pr448-numbered-lifecycle-duplicate",
+        "pr581-usb-ticket-field-binding",
+        "pr581-usb-complete-field-value",
     }
 
     old_key = os.environ.pop("OPENROUTER_API_KEY", None)
@@ -91,7 +93,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 238
+        assert plan["case_counts"]["planned_total_requests"] == 272
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -318,7 +320,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "17 candidates, reusable groups/router plugins, 12 controlled cases, 2 frozen naturalistic cases, billed failures included, no network/publication"
+        "17 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 
