@@ -174,6 +174,8 @@ def build_payload(
         "allow_fallbacks": bool(request_contract.get("allow_fallbacks", True)),
         "require_parameters": bool(request_contract.get("require_parameters", True)),
         "sort": str(request_contract.get("provider_sort", "price")),
+        "zdr": bool(request_contract.get("zdr", True)),
+        "data_collection": str(request_contract.get("data_collection", "deny")),
     }
     raw_plugins = candidate.get("plugins", [])
     if raw_plugins is None:
