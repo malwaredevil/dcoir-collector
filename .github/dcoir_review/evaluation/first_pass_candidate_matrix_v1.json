@@ -247,6 +247,47 @@
         "numbered",
         "list"
       ]
+    },
+    {
+      "id": "pr581-usb-ticket-field-binding",
+      "expected": "finding",
+      "defect_class": "naturalistic-ticket-field-binding",
+      "source_ref": "malwaredevil/dcoir-collector@dc80b8da5cadb25a6ae632524a5bc6142aed30d3:project_sources/agent_runtime/tools/score_usb_reporting_behavior.py",
+      "evidence_ref": "PR #581 External Codex discussion 4111447973 / resolving commit 21d39536d237bac4742a64afc8485362a77e900e",
+      "dcoir_historical_disposition": "missed",
+      "source": "def _row_errors(body, rows, lane):\n    errors = []\n    expected = [row for row in rows if _classification(row) == lane]\n    required_fields = [\n        ('Name(s)', 'User'),\n        ('Location', 'Location'),\n        ('Computer Name', 'Computer Name'),\n        ('User Information', 'User Information'),\n        ('USB Device', 'USB Device'),\n        ('Serial Number', 'Serial Number'),\n        ('Network Connection', 'Network connection'),\n    ]\n    for row in expected:\n        ticket = _ticket(row)\n        ticket_matches = list(re.finditer(rf'(?m)^{re.escape(ticket)}\\\\s*$', body))\n        if len(ticket_matches) != 1:\n            errors.append(f'{lane} body must contain ticket exactly once: {ticket}')\n        expected_date = _expected_date_line(row)\n        if expected_date not in body:\n            errors.append(f'{lane} body missing source date/time: {expected_date}')\n        for label, field in required_fields:\n            value = _value(row, field)\n            if not value:\n                continue\n            expected_line = f'{label}: {value}'\n            if label == 'USB Device':\n                found = expected_line.casefold() in body.casefold()\n            else:\n                found = expected_line in body\n            if not found:\n                errors.append(f'{lane} body missing source value {label}: {value}')\n    return errors",
+      "counterexample": "Two same-lane incident blocks remain in correct ticket order, but `Name(s): Dummy User 01` and `Name(s): Dummy User 02` are swapped between the blocks. Every expected value still appears somewhere in the full body, so this implementation returns no field error even though the evidence is bound to the wrong incident.",
+      "review_contract": "Each source date and incident field must be validated only inside the ticket-delimited block for that exact source row. Presence somewhere else in the message cannot satisfy the incident contract.",
+      "finding_match_terms": [
+        "ticket",
+        "block",
+        "bind",
+        "incident",
+        "field",
+        "body",
+        "swap"
+      ]
+    },
+    {
+      "id": "pr581-usb-complete-field-value",
+      "expected": "finding",
+      "defect_class": "naturalistic-complete-field-value",
+      "source_ref": "malwaredevil/dcoir-collector@21d39536d237bac4742a64afc8485362a77e900e:project_sources/agent_runtime/tools/score_usb_reporting_behavior.py",
+      "evidence_ref": "PR #581 External Codex discussion 4111578838 / resolving head dde4cbbe31436cc84f8a7ade4692939019029291",
+      "dcoir_historical_disposition": "missed",
+      "source": "def _row_errors(body, rows, lane):\n    errors = []\n    expected = [row for row in rows if _classification(row) == lane]\n    ticket_matches = list(re.finditer(r'(?mi)^((?:INCN|INCS)\\\\S*)\\\\s*$', body))\n    blocks = {}\n    previous_end = 0\n    for match in ticket_matches:\n        ticket = match.group(1)\n        blocks.setdefault(ticket, body[previous_end:match.end()])\n        previous_end = match.end()\n\n    for row in expected:\n        ticket = _ticket(row)\n        block = blocks.get(ticket, '')\n        for label, field in required_fields:\n            value = _value(row, field)\n            if not value:\n                continue\n            expected_line = f'{label}: {value}'\n            found = expected_line.casefold() in block.casefold() if label == 'USB Device' else expected_line in block\n            if not found:\n                errors.append(f'{lane} body missing source value {label} for ticket {ticket}: {value}')\n    return errors",
+      "counterexample": "Within the correct ticket block, change `Name(s): Dummy User 01` to `Name(s): Dummy User 01 WRONG`; substring membership still accepts the expected prefix. Likewise, arbitrary case-folding permits `USB Device: LOGI BOLT RECEIVER` when the source is `Logi Bolt Receiver`, even though only the specific leading `NetGear` to `NETGEAR` brand cleanup is governed.",
+      "review_contract": "Ticket-bound labeled fields must compare the complete parsed field value, not substring membership. USB Device matching must be exact except for the narrowly governed leading NetGear-to-NETGEAR capitalization exception.",
+      "finding_match_terms": [
+        "complete",
+        "field",
+        "value",
+        "substring",
+        "suffix",
+        "case",
+        "netgear",
+        "ticket"
+      ]
     }
   ],
   "catalog_snapshot": {
@@ -297,25 +338,6 @@
       "gemini3.8-flash-high",
       "glm5.3-flash-high",
       "gpt6-luna-high"
-    ],
-    "all": [
-      "opus5-xhigh-control",
-      "opus5-high",
-      "sonnet5-high",
-      "opus5.5-xhigh",
-      "sonnet5.5-high",
-      "gpt6.1-sol-high",
-      "gpt6.1-sol-pro",
-      "gpt6-astra-xhigh",
-      "qwen3.8-max",
-      "glm5.3-high",
-      "gemini3.8-flash-high",
-      "glm5.3-flash-high",
-      "gpt6-luna-high",
-      "deepseek-v4.1-flash",
-      "kimi-k2.6",
-      "auto-max",
-      "pareto-code-080"
     ]
   },
   "excluded_candidates": [
