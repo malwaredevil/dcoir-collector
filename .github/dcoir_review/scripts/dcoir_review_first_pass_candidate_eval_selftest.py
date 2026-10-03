@@ -50,10 +50,13 @@ def main() -> None:
         "gpt6-astra-xhigh",
         "qwen3.8-max",
         "glm5.3-high",
+        "deepseek-v4-pro-0813-high",
+        "kimi-k3",
         "gemini3.8-flash-high",
         "glm5.3-flash-high",
         "gpt6-luna-high",
         "deepseek-v4.1-flash",
+        "mimo-v2.6-flash",
         "kimi-k2.6",
         "auto-max",
         "pareto-code-080",
@@ -71,6 +74,7 @@ def main() -> None:
         "glm5.3-flash-high",
         "gpt6-luna-high",
         "deepseek-v4.1-flash",
+        "mimo-v2.6-flash",
         "kimi-k2.6",
     ]
     assert [item["id"] for item in evaluation.selected_candidates(matrix, "gpt6-luna-high,glm5.3-flash-high")] == [
@@ -81,6 +85,13 @@ def main() -> None:
         "opus5-xhigh-no-temp",
         "opus5.5-xhigh",
     ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "deepseek-v4-pro-0813-high,kimi-k3,mimo-v2.6-flash")] == [
+        "deepseek-v4-pro-0813-high",
+        "kimi-k3",
+        "mimo-v2.6-flash",
+    ]
+    recommended_ids = {item["id"] for item in evaluation.selected_candidates(matrix, "recommended")}
+    assert {"deepseek-v4-pro-0813-high", "kimi-k3", "mimo-v2.6-flash"}.isdisjoint(recommended_ids)
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
     assert len(generalized) == 12
@@ -100,7 +111,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 288
+        assert plan["case_counts"]["planned_total_requests"] == 336
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -374,7 +385,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "18 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
+        "21 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 
