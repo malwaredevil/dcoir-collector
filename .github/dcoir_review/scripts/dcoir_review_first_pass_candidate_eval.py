@@ -61,6 +61,23 @@ def load_matrix() -> dict[str, Any]:
     required = {"opus5-xhigh-control", "opus5-high", "sonnet5-high"}
     if not required.issubset(set(ids)):
         raise ValueError(f"Candidate matrix is missing required candidates: {sorted(required - set(ids))}")
+    if any(not candidate_id for candidate_id in ids) or len(ids) != len(set(ids)):
+        raise ValueError("Candidate ids must be present and unique")
+    groups = matrix.get("candidate_groups")
+    if not isinstance(groups, dict) or not groups:
+        raise ValueError("Candidate matrix has no candidate_groups")
+    known = set(ids)
+    for group_name, group_ids in groups.items():
+        if not isinstance(group_name, str) or not group_name.strip():
+            raise ValueError("Candidate group names must be non-empty strings")
+        if not isinstance(group_ids, list) or not group_ids:
+            raise ValueError(f"Candidate group {group_name!r} must contain at least one candidate")
+        normalized = [str(item).strip() for item in group_ids]
+        if any(not item for item in normalized) or len(normalized) != len(set(normalized)):
+            raise ValueError(f"Candidate group {group_name!r} contains blank or duplicate ids")
+        unknown = sorted(set(normalized) - known)
+        if unknown:
+            raise ValueError(f"Candidate group {group_name!r} contains unknown ids: {unknown}")
     return matrix
 
 
@@ -96,9 +113,24 @@ def candidate_by_id(matrix: dict[str, Any], candidate_id: str) -> dict[str, Any]
 
 
 def selected_candidates(matrix: dict[str, Any], value: str) -> list[dict[str, Any]]:
-    if value == "all":
-        return [dict(item) for item in matrix.get("candidates", []) if isinstance(item, dict)]
-    return [candidate_by_id(matrix, value)]
+    selector = str(value or "").strip()
+    if not selector:
+        raise ValueError("Candidate selector must not be empty")
+    groups = matrix.get("candidate_groups") if isinstance(matrix.get("candidate_groups"), dict) else {}
+    if selector == "all":
+        requested_ids = [str(item["id"]) for item in matrix.get("candidates", []) if isinstance(item, dict)]
+    elif selector in groups:
+        requested_ids = [str(item).strip() for item in groups[selector]]
+    else:
+        requested_ids = [item.strip() for item in selector.split(",") if item.strip()]
+    if not requested_ids:
+        raise ValueError("Candidate selector resolved to no candidates")
+    if len(requested_ids) != len(set(requested_ids)):
+        raise ValueError("Candidate selector contains duplicate ids")
+    try:
+        return [candidate_by_id(matrix, candidate_id) for candidate_id in requested_ids]
+    except KeyError as exc:
+        raise ValueError(f"Unknown candidate id: {exc.args[0]}") from exc
 
 
 def build_case_prompt(case: dict[str, Any]) -> str:
@@ -143,6 +175,27 @@ def build_payload(
         "require_parameters": bool(request_contract.get("require_parameters", True)),
         "sort": str(request_contract.get("provider_sort", "price")),
     }
+    raw_plugins = candidate.get("plugins", [])
+    if raw_plugins is None:
+        raw_plugins = []
+    if not isinstance(raw_plugins, list):
+        raise ValueError(f"Candidate {candidate['id']} plugins must be a list")
+    plugins: list[dict[str, Any]] = []
+    seen_plugin_ids: set[str] = set()
+    for raw_plugin in raw_plugins:
+        if not isinstance(raw_plugin, dict):
+            raise ValueError(f"Candidate {candidate['id']} plugin entries must be objects")
+        plugin = dict(raw_plugin)
+        plugin_id = str(plugin.get("id", "") or "").strip()
+        if not plugin_id:
+            raise ValueError(f"Candidate {candidate['id']} plugin id must not be empty")
+        if plugin_id == "response-healing":
+            raise ValueError("Candidate plugins must not override the governed response-healing plugin")
+        if plugin_id in seen_plugin_ids:
+            raise ValueError(f"Candidate {candidate['id']} contains duplicate plugin id {plugin_id!r}")
+        seen_plugin_ids.add(plugin_id)
+        plugins.append(plugin)
+    plugins.append({"id": "response-healing", "enabled": True})
     payload: dict[str, Any] = {
         "model": model,
         "messages": [
@@ -154,7 +207,7 @@ def build_payload(
             "json_schema": {"name": "openrouter_pr_review", "strict": True, "schema": review_schema},
         },
         "provider": provider,
-        "plugins": [{"id": "response-healing", "enabled": True}],
+        "plugins": plugins,
         "tools": [],
         "stream": False,
     }
@@ -487,7 +540,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--candidate",
         default="all",
-        help="Candidate id from first_pass_candidate_matrix_v1.json, or 'all' (default).",
+        help="Candidate id, candidate group, comma-separated ids, or 'all' (default).",
     )
     parser.add_argument(
         "--case",
