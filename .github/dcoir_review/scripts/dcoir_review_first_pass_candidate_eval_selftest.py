@@ -114,6 +114,8 @@ def main() -> None:
         "allow_fallbacks": True,
         "require_parameters": True,
         "sort": "price",
+        "zdr": True,
+        "data_collection": "deny",
     }
     assert control_payload["plugins"] == [{"id": "response-healing", "enabled": True}]
     assert control_payload["tools"] == []
