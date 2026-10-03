@@ -41,6 +41,12 @@ Generic OpenRouter rankings and public benchmarks are discovery inputs only. DCO
 
 The matrix uses the current Auto Router `cost_tier` contract rather than the legacy numeric cost/quality compatibility setting. Router Metadata must identify the served model/provider so a mutable router result remains auditable.
 
+## Data handling
+
+Every benchmark request sets `provider.zdr=true` and `data_collection=deny`. If a model has no endpoint that satisfies those rules, it fails compatibility instead of silently weakening the data-handling policy.
+
+Candidates that are known to require retention can be recorded under `excluded_candidates` so the research decision remains visible without sending the DCOIR corpus to them.
+
 ## Safety
 
 - Plan mode makes zero paid inference calls.
