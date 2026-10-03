@@ -21,8 +21,11 @@
       "Response Healing is explicitly enabled to preserve the current structured-output control environment while making it reproducible.",
       "Candidate-specific router plugins are permitted only in the evaluation matrix; production promotion remains fixed-model unless separately approved.",
       "Response caching is disabled so repeated controls cannot be satisfied by a prior cached completion. Provider-native prompt caching, if any, is recorded separately from usage metadata.",
-      "Sampling/reasoning parameters are candidate-specific and omitted when the candidate does not declare them, preserving require_parameters=true compatibility."
-    ]
+      "Sampling/reasoning parameters are candidate-specific and omitted when the candidate does not declare them, preserving require_parameters=true compatibility.",
+      "Every benchmark request requires provider.zdr=true and data_collection=deny. A candidate with no eligible endpoint fails the governed compatibility screen rather than weakening privacy for the comparison."
+    ],
+    "zdr": true,
+    "data_collection": "deny"
   },
   "candidates": [
     {
