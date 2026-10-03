@@ -139,6 +139,26 @@
       "role": "cross-family long-context software-engineering candidate"
     },
     {
+      "id": "deepseek-v4-pro-0813-high",
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "provider_family": "deepseek",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current DeepSeek frontier long-context coding/reasoning candidate"
+    },
+    {
+      "id": "kimi-k3",
+      "model": "moonshotai/kimi-k3",
+      "provider_family": "moonshotai",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current long-horizon large-repository coding and agentic candidate"
+    },
+    {
       "id": "gemini3.8-flash-high",
       "model": "google/gemini-3.8-flash",
       "provider_family": "google",
@@ -177,6 +197,16 @@
       "max_tokens": null,
       "benchmark_role": "routine",
       "role": "low-cost coding-focused high-volume candidate"
+    },
+    {
+      "id": "mimo-v2.6-flash",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "provider_family": "xiaomi",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "current low-cost high-volume long-context coding/agentic candidate"
     },
     {
       "id": "kimi-k2.6",
@@ -322,7 +352,9 @@
       "gpt6.1-sol-pro",
       "gpt6-astra-xhigh",
       "qwen3.8-max",
-      "glm5.3-high"
+      "glm5.3-high",
+      "deepseek-v4-pro-0813-high",
+      "kimi-k3"
     ],
     "routine": [
       "sonnet5-high",
@@ -331,6 +363,7 @@
       "glm5.3-flash-high",
       "gpt6-luna-high",
       "deepseek-v4.1-flash",
+      "mimo-v2.6-flash",
       "kimi-k2.6"
     ],
     "routers": [
