@@ -32,6 +32,8 @@ class FakeResponse:
 
 
 def main() -> None:
+    from dcoir_review_benchmark_diagnostics_selftest import run_tests
+    run_tests()
     matrix = evaluation.load_matrix()
     cases = evaluation.load_cases(matrix)
     candidates = evaluation.selected_candidates(matrix, "all")

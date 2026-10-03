@@ -20,6 +20,8 @@ from typing import Any
 import urllib.error
 import urllib.request
 
+from dcoir_review_benchmark_diagnostics import provider_error_details, retry_after_seconds
+
 
 DCOIR_ROOT = Path(__file__).resolve().parents[1]
 MATRIX_PATH = DCOIR_ROOT / "evaluation" / "first_pass_candidate_matrix_v1.json"
@@ -318,9 +320,11 @@ def call_openrouter(
         try:
             with opener(request, timeout=timeout_seconds) as response:
                 status = int(getattr(response, "status", 200) or 200)
+                result["retry_after_seconds"] = retry_after_seconds(getattr(response, "headers", None))
                 raw = response.read().decode("utf-8")
         except urllib.error.HTTPError as exc:
             status = int(exc.code)
+            result["retry_after_seconds"] = retry_after_seconds(exc.headers)
             raw = exc.read().decode("utf-8", errors="replace")
         decoded = json.loads(raw)
         if not isinstance(decoded, dict):
@@ -334,17 +338,19 @@ def call_openrouter(
             "openrouter_metadata": metadata,
             "pipeline": pipeline_summary(metadata),
         })
+        if status >= 400 or "error" in data:
+            result["error"] = "provider-error"
+            result["error_details"] = provider_error_details(data, api_key)
         # Keep billing evidence even when the completion cannot be parsed.
         result["usage"] = usage_summary(data)
         result["selected_provider"] = selected_provider(metadata)
-        if status >= 400 or "error" in data:
-            result["error"] = "provider-error"
-        else:
+        if "error" not in result:
             result["result"] = parse_content(data)
             result["ok"] = True
     except (OSError, ValueError, TypeError, AttributeError, OverflowError) as exc:
         # Do not include exception text: providers can echo request credentials.
-        result["error"] = type(exc).__name__
+        result.setdefault("error", type(exc).__name__)
+        result["diagnostic_error"] = type(exc).__name__
     result["http_status"] = status
     result["latency_seconds"] = time.monotonic() - started
     return result

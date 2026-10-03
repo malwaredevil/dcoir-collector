@@ -55,3 +55,22 @@ Candidates that are known to require retention can be recorded under `excluded_c
 - The benchmark has no GitHub review publication path.
 - The benchmark never mutates production DCOIR Review model configuration.
 - DCOIR Review does not review changes to itself; normal independent-review governance still applies to benchmark implementation changes.
+
+## Diagnosing failed requests
+
+A successful workflow means the comparison completed, not that every model passed.
+Inspect each failed case in `benchmark_live.json`: `http_status` is the transport
+status; `error_details.code` and `error_details.error_type` describe provider
+failures, including errors returned inside HTTP 200 responses. The report also
+retains allowlisted provider name/code, bounded sanitized messages and numeric
+`retry_after_seconds` when available. Credential-bearing fields are omitted.
+Raw provider bodies, arbitrary error metadata and exception text are not saved.
+These diagnostics do not automatically retry or authorize more paid requests.
+
+The first paid run (37138598449, merged source `6128da2da`) reported $1.836283887
+across 160 requests. Six configurations passed the 16-case scorer; Opus 5 had
+16 HTTP 404 failures, both GPT-6.1 configurations had six error-bearing HTTP 200
+responses, and Luna had one scored miss. That older report discarded provider
+error details, so it cannot establish the failure causes. It is preliminary
+evidence, not a production promotion decision. A future run must use the fixed
+diagnostic collector and separately approved paid scope.
