@@ -42,6 +42,7 @@ on:
       - 21 Validation - Gemini Production-Like Harness
       - 06 Operator - Gemini Behavioral Replay
       - 07 Operator - OpenAI DCOIR Behavioral Replay
+      - 08 Operator - DCOIR Review Model Benchmark
       - 41 Automation - Dependency Review
       - 40 Automation - Dependabot Auto-Merge
       - 30 Maintenance - Scheduled Health Check
