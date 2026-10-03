@@ -1,0 +1,229 @@
+# DCOIR REUSABLE WORKFLOW CONTRACT
+# Source entry workflow: manual-dcoir-review-model-benchmark.yml
+# Purpose: run deterministic benchmark validation, calculate paid request count, and optionally execute the governed no-publication OpenRouter model comparison.
+name: 99 Module - DCOIR Review Model Benchmark
+run-name: Module DCOIR Review Model Benchmark | ${{ github.workflow }} | #${{ github.run_number }}
+
+on:
+  workflow_call:
+    inputs:
+      caller_event_name:
+        required: false
+        type: string
+        default: workflow_call
+      candidate_selector:
+        required: false
+        type: string
+        default: recommended
+      case_ids_csv:
+        required: false
+        type: string
+        default: ""
+      execute_live:
+        required: false
+        type: boolean
+        default: false
+      confirm_paid_execution:
+        required: false
+        type: boolean
+        default: false
+      max_requests:
+        required: false
+        type: string
+        default: "200"
+      timeout_seconds:
+        required: false
+        type: string
+        default: "300"
+    outputs: {}
+    secrets:
+      OPENROUTER_API_KEY:
+        description: OpenRouter credential used only by explicitly confirmed paid-live execution.
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      CANDIDATE_SELECTOR: ${{ inputs.candidate_selector }}
+      CASE_IDS_CSV: ${{ inputs.case_ids_csv }}
+      EXECUTE_LIVE: ${{ inputs.execute_live }}
+      CONFIRM_PAID_EXECUTION: ${{ inputs.confirm_paid_execution }}
+      MAX_REQUESTS: ${{ inputs.max_requests }}
+      TIMEOUT_SECONDS: ${{ inputs.timeout_seconds }}
+      OUT_DIR: project_sources/validation/out_dcoir_review_model_benchmark
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up workflow runtime
+        uses: ./.github/actions/setup-workflow-runtime
+        with:
+          python-version: "3.11"
+
+      - name: Validate benchmark Python
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
+            .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
+
+      - name: Validate execution inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$MAX_REQUESTS" =~ ^[1-9][0-9]*$ ]] || { echo "max_requests must be a positive integer" >&2; exit 2; }
+          [[ "$TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || { echo "timeout_seconds must be a positive integer" >&2; exit 2; }
+          if [[ "$EXECUTE_LIVE" == "true" && "$CONFIRM_PAID_EXECUTION" != "true" ]]; then
+            echo "Paid-live execution requires confirm_paid_execution=true." >&2
+            exit 2
+          fi
+
+      - name: Build no-network benchmark plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          case_args=()
+          if [[ -n "$CASE_IDS_CSV" ]]; then
+            IFS=',' read -r -a raw_cases <<< "$CASE_IDS_CSV"
+            for raw_case in "${raw_cases[@]}"; do
+              case_id="$(printf '%s' "$raw_case" | xargs)"
+              [[ -n "$case_id" ]] || continue
+              [[ "$case_id" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "Invalid case id: $case_id" >&2; exit 2; }
+              case_args+=(--case "$case_id")
+            done
+          fi
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+            --candidate "$CANDIDATE_SELECTOR" \
+            --timeout-seconds "$TIMEOUT_SECONDS" \
+            --output "$OUT_DIR/benchmark_plan.json" \
+            "${case_args[@]}"
+          python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
+            --input "$OUT_DIR/benchmark_plan.json" \
+            --output "$OUT_DIR/benchmark_plan_summary.md"
+
+      - name: Enforce paid request cap
+        if: ${{ inputs.execute_live }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          planned_requests="$(python -c 'import json; print(json.load(open("project_sources/validation/out_dcoir_review_model_benchmark/benchmark_plan.json", encoding="utf-8"))["case_counts"]["planned_total_requests"])')"
+          echo "planned_paid_requests=$planned_requests"
+          if (( planned_requests > MAX_REQUESTS )); then
+            echo "Refusing paid run: $planned_requests planned requests exceeds max_requests=$MAX_REQUESTS." >&2
+            exit 2
+          fi
+
+      - name: Run paid-live benchmark
+        if: ${{ inputs.execute_live }}
+        shell: bash
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          set -euo pipefail
+          [[ -n "$OPENROUTER_API_KEY" ]] || { echo "OPENROUTER_API_KEY is required for paid-live execution." >&2; exit 2; }
+          case_args=()
+          if [[ -n "$CASE_IDS_CSV" ]]; then
+            IFS=',' read -r -a raw_cases <<< "$CASE_IDS_CSV"
+            for raw_case in "${raw_cases[@]}"; do
+              case_id="$(printf '%s' "$raw_case" | xargs)"
+              [[ -n "$case_id" ]] || continue
+              case_args+=(--case "$case_id")
+            done
+          fi
+          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+            --candidate "$CANDIDATE_SELECTOR" \
+            --timeout-seconds "$TIMEOUT_SECONDS" \
+            --execute-live \
+            --output "$OUT_DIR/benchmark_live.json" \
+            "${case_args[@]}"
+          python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
+            --input "$OUT_DIR/benchmark_live.json" \
+            --output "$OUT_DIR/benchmark_live_summary.md"
+
+      - name: Write benchmark run metadata
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          out = Path(os.environ["OUT_DIR"])
+          payload = {
+              "schema_version": "dcoir_review_model_benchmark_run_metadata_v1",
+              "github_sha": os.environ.get("GITHUB_SHA", ""),
+              "github_ref": os.environ.get("GITHUB_REF", ""),
+              "candidate_selector": os.environ.get("CANDIDATE_SELECTOR", ""),
+              "case_ids_csv": os.environ.get("CASE_IDS_CSV", ""),
+              "execute_live": os.environ.get("EXECUTE_LIVE", "").lower() == "true",
+              "max_requests": int(os.environ.get("MAX_REQUESTS", "0") or 0),
+              "timeout_seconds": int(os.environ.get("TIMEOUT_SECONDS", "0") or 0),
+              "production_config_mutated": False,
+              "github_review_published": False,
+          }
+          (out / "run_metadata.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Prepare ChatGPT workflow report section
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT_DIR"
+          section="$OUT_DIR/chatgpt_workflow_report_section.md"
+          {
+            echo "## DCOIR Review model benchmark"
+            echo
+            echo "- exact_head: $GITHUB_SHA"
+            echo "- candidate_selector: $CANDIDATE_SELECTOR"
+            echo "- case_ids_csv: ${CASE_IDS_CSV:-all}"
+            echo "- paid_live: $EXECUTE_LIVE"
+            echo "- max_requests: $MAX_REQUESTS"
+            echo
+            if [[ "$EXECUTE_LIVE" == "true" && -f "$OUT_DIR/benchmark_live_summary.md" ]]; then
+              cat "$OUT_DIR/benchmark_live_summary.md"
+            elif [[ -f "$OUT_DIR/benchmark_plan_summary.md" ]]; then
+              cat "$OUT_DIR/benchmark_plan_summary.md"
+            else
+              echo "No benchmark summary was produced. Inspect the workflow logs and uploaded artifact."
+            fi
+          } > "$section"
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: dcoir-review-model-benchmark
+          path: |
+            project_sources/validation/out_dcoir_review_model_benchmark/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload ChatGPT workflow report section
+        if: always()
+        uses: ./.github/actions/upload-chatgpt-artifact
+        with:
+          name: chatgpt-workflow-report-section
+          path: |
+            project_sources/validation/out_dcoir_review_model_benchmark/chatgpt_workflow_report_section.md
+          if-no-files-found: warn
+          retention-days: 30
