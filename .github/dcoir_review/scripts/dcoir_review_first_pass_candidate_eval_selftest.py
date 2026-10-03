@@ -40,6 +40,7 @@ def main() -> None:
 
     expected_candidate_ids = [
         "opus5-xhigh-control",
+        "opus5-xhigh-no-temp",
         "opus5-high",
         "sonnet5-high",
         "opus5.5-xhigh",
@@ -95,7 +96,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 272
+        assert plan["case_counts"]["planned_total_requests"] == 288
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -129,6 +130,19 @@ def main() -> None:
     assert control_payload["response_format"]["type"] == "json_schema"
     assert "max_tokens" not in control_payload
     assert "session_id" not in control_payload
+
+    no_temp = evaluation.candidate_by_id(matrix, "opus5-xhigh-no-temp")
+    no_temp_payload = evaluation.build_payload(no_temp, lane_case, system_prompt, schema, contract)
+    assert no_temp_payload["model"] == "anthropic/claude-opus-5"
+    assert no_temp_payload["provider"] == control_payload["provider"]
+    assert no_temp_payload["plugins"] == control_payload["plugins"]
+    assert no_temp_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
+    assert "temperature" not in no_temp_payload
+    assert "max_tokens" not in no_temp_payload
+    assert no_temp_payload["response_format"]["type"] == "json_schema"
+    assert "opus5-xhigh-no-temp" not in {
+        item["id"] for item in evaluation.selected_candidates(matrix, "recommended")
+    }
 
     high = evaluation.candidate_by_id(matrix, "opus5-high")
     high_payload = evaluation.build_payload(high, lane_case, system_prompt, schema, contract)
@@ -356,7 +370,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "17 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
+        "18 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 
