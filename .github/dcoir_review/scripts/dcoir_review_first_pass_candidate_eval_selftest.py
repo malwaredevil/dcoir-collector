@@ -77,6 +77,10 @@ def main() -> None:
         "gpt6-luna-high",
         "glm5.3-flash-high",
     ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "opus5-xhigh-no-temp,opus5.5-xhigh")] == [
+        "opus5-xhigh-no-temp",
+        "opus5.5-xhigh",
+    ]
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
     assert len(generalized) == 12
