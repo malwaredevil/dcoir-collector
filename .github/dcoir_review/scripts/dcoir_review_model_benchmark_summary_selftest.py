@@ -22,8 +22,8 @@ def main() -> None:
             "case_counts": {"planned_total_requests": 28},
         }
     )
-    assert "paid_network_calls: \`0\`" in plan
-    assert "planned_requests_if_live: \`28\`" in plan
+    assert "paid_network_calls: `0`" in plan
+    assert "planned_requests_if_live: `28`" in plan
 
     live = target.render(
         {

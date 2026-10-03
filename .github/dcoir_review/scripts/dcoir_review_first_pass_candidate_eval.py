@@ -311,44 +311,43 @@ def call_openrouter(
         method="POST",
         headers=request_headers(api_key),
     )
+    data: dict[str, Any] = {}
+    status = 0
+    result: dict[str, Any] = {"ok": False, "requested_model": str(payload.get("model", ""))}
     try:
-        with opener(request, timeout=timeout_seconds) as response:
-            raw = response.read().decode("utf-8")
-            status = int(getattr(response, "status", 200) or 200)
-    except urllib.error.HTTPError as exc:
-        raw = exc.read().decode("utf-8", errors="replace")
-        elapsed = time.monotonic() - started
         try:
-            error_data = json.loads(raw)
-        except json.JSONDecodeError:
-            error_data = {"error": {"message": raw[:1000]}}
-        metadata = error_data.get("openrouter_metadata") if isinstance(error_data.get("openrouter_metadata"), dict) else {}
-        return {
-            "ok": False,
-            "http_status": int(exc.code),
-            "latency_seconds": elapsed,
-            "error": error_data.get("error", error_data),
+            with opener(request, timeout=timeout_seconds) as response:
+                status = int(getattr(response, "status", 200) or 200)
+                raw = response.read().decode("utf-8")
+        except urllib.error.HTTPError as exc:
+            status = int(exc.code)
+            raw = exc.read().decode("utf-8", errors="replace")
+        decoded = json.loads(raw)
+        if not isinstance(decoded, dict):
+            raise ValueError("Response must be an object")
+        data = decoded
+        metadata = data.get("openrouter_metadata")
+        metadata = metadata if isinstance(metadata, dict) else {}
+        result.update({
+            "generation_id": str(data.get("id", "") or ""),
+            "served_model": str(data.get("model", "") or ""),
             "openrouter_metadata": metadata,
-            "selected_provider": selected_provider(metadata),
             "pipeline": pipeline_summary(metadata),
-        }
-    elapsed = time.monotonic() - started
-    data = json.loads(raw)
-    parsed = parse_content(data)
-    metadata = data.get("openrouter_metadata") if isinstance(data.get("openrouter_metadata"), dict) else {}
-    return {
-        "ok": True,
-        "http_status": status,
-        "latency_seconds": elapsed,
-        "generation_id": str(data.get("id", "") or ""),
-        "requested_model": str(payload.get("model", "") or ""),
-        "served_model": str(data.get("model", payload.get("model", "")) or ""),
-        "selected_provider": selected_provider(metadata),
-        "openrouter_metadata": metadata,
-        "pipeline": pipeline_summary(metadata),
-        "usage": usage_summary(data),
-        "result": parsed,
-    }
+        })
+        # Keep billing evidence even when the completion cannot be parsed.
+        result["usage"] = usage_summary(data)
+        result["selected_provider"] = selected_provider(metadata)
+        if status >= 400 or "error" in data:
+            result["error"] = "provider-error"
+        else:
+            result["result"] = parse_content(data)
+            result["ok"] = True
+    except (OSError, ValueError, TypeError, AttributeError, OverflowError) as exc:
+        # Do not include exception text: providers can echo request credentials.
+        result["error"] = type(exc).__name__
+    result["http_status"] = status
+    result["latency_seconds"] = time.monotonic() - started
+    return result
 
 
 def finding_text(findings: list[Any]) -> str:
@@ -441,8 +440,15 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
     controlled_detected = sum(1 for item in controlled_findings if item["score"].get("correct"))
     controlled_clean_correct = sum(1 for item in controlled_clean if item["score"].get("correct"))
     naturalistic_detected = sum(1 for item in naturalistic if item["score"].get("correct"))
+    expected_case_ids = {str(case["id"]) for case in load_cases(load_matrix())}
+    actual_case_ids = [str(item["case_id"]) for item in case_results]
+    complete_corpus = (
+        set(actual_case_ids) == expected_case_ids
+        and len(actual_case_ids) == len(expected_case_ids)
+    )
     acceptance_eligible = (
-        not request_errors
+        complete_corpus
+        and not request_errors
         and not ambiguous
         and controlled_detected == len(controlled_findings)
         and controlled_clean_correct == len(controlled_clean)
@@ -451,6 +457,7 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
     return {
         "candidate": candidate,
         "quality": {
+            "complete_corpus": complete_corpus,
             "controlled_known_errors_detected": controlled_detected,
             "controlled_known_errors_total": len(controlled_findings),
             "controlled_clean_correct": controlled_clean_correct,

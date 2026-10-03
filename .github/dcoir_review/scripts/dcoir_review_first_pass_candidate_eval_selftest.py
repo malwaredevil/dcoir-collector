@@ -252,6 +252,40 @@ def main() -> None:
     }
     assert request_result["pipeline"][0]["name"] == "response-healing"
 
+    # Malformed responses and transport failures must remain reportable, with
+    # billed usage preserved and without repeating the paid request.
+    for broken_content in ("not json", "null", '{"wrong": []}'):
+        malformed = dict(fake_payload)
+        malformed["choices"] = [{"message": {"content": broken_content}}]
+        failure = evaluation.call_openrouter(
+            control_payload, "unit-test-key", timeout_seconds=9,
+            opener=lambda *args, **kwargs: FakeResponse(malformed),
+        )
+        assert failure["ok"] is False
+        assert failure["usage"]["cost_usd"] == 0.0125
+    def timed_out(*args, **kwargs):
+        raise TimeoutError("unit-test-key must never appear in report")
+    failure = evaluation.call_openrouter(
+        control_payload, "unit-test-key", timeout_seconds=9, opener=timed_out,
+    )
+    assert failure["ok"] is False
+    assert "unit-test-key" not in json.dumps(failure)
+    for malformed in (None, [], {"choices": []}, {"usage": {"cost": "bad"}}):
+        failure = evaluation.call_openrouter(
+            control_payload, "unit-test-key", timeout_seconds=9,
+            opener=lambda *args, **kwargs: FakeResponse(malformed),
+        )
+        assert failure["ok"] is False
+    passing_rows = [
+        {"case_id": case["id"], "corpus": case["corpus"],
+         "request": {"ok": True},
+         "score": {"expected": case["expected"], "correct": True}}
+        for case in cases
+    ]
+    assert evaluation.aggregate_candidate(control, passing_rows)["quality"]["acceptance_eligible_quality_floor"]
+    for incomplete in ([], passing_rows[:1], passing_rows[:-1], passing_rows + passing_rows[:1]):
+        assert not evaluation.aggregate_candidate(control, incomplete)["quality"]["acceptance_eligible_quality_floor"]
+
     scored = evaluation.score_case(lane_case, request_result)
     assert scored["correct"] is True
     assert scored["ambiguous"] is False

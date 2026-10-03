@@ -25,16 +25,16 @@ def render(report: dict[str, Any]) -> str:
     lines = [
         "# DCOIR Review model benchmark",
         "",
-        f"- mode: \`{_cell(mode)}\`",
-        f"- no_publication: \`{bool(report.get('no_publication', False))}\`",
+        f"- mode: `{_cell(mode)}`",
+        f"- no_publication: `{bool(report.get('no_publication', False))}`",
     ]
     if mode == "plan-no-network":
         counts = report.get("case_counts") if isinstance(report.get("case_counts"), dict) else {}
         lines.extend(
             [
-                "- paid_network_calls: \`0\`",
-                f"- planned_requests_if_live: \`{int(counts.get('planned_total_requests', 0) or 0)}\`",
-                f"- candidates: \`{', '.join(str(item) for item in report.get('candidate_ids', []))}\`",
+                "- paid_network_calls: `0`",
+                f"- planned_requests_if_live: `{int(counts.get('planned_total_requests', 0) or 0)}`",
+                f"- candidates: `{', '.join(str(item) for item in report.get('candidate_ids', []))}`",
                 "",
                 "Plan mode makes no OpenRouter inference calls. Re-run with the governed paid-live opt-in only after reviewing this request count.",
                 "",
@@ -86,7 +86,7 @@ def render(report: dict[str, Any]) -> str:
     lines.extend(["", "## Eligible candidates", ""])
     if eligible:
         for candidate_id, cost in sorted(eligible, key=lambda item: (item[1], item[0])):
-            lines.append(f"- \`{_cell(candidate_id)}\` — quality floor passed; measured cost \`{cost:.6f} USD\`")
+            lines.append(f"- `{_cell(candidate_id)}` — quality floor passed; measured cost `{cost:.6f} USD`")
     else:
         lines.append("- None passed the complete quality floor.")
 
