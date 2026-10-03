@@ -314,5 +314,13 @@
       "auto-max",
       "pareto-code-080"
     ]
-  }
+  },
+  "excluded_candidates": [
+    {
+      "model": "anthropic/claude-fable-5.1",
+      "provider_family": "anthropic",
+      "disposition": "excluded_pending_governance",
+      "reason": "OpenRouter states that using Claude Fable 5.1 requires data retention for safety/compliance monitoring and does not allow zero-data-retention. Do not send the governed DCOIR benchmark corpus to this model unless that data-handling posture is separately approved."
+    }
+  ]
 }
