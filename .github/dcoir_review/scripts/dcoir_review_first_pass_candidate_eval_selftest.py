@@ -36,10 +36,43 @@ def main() -> None:
     cases = evaluation.load_cases(matrix)
     candidates = evaluation.selected_candidates(matrix, "all")
 
-    assert [item["id"] for item in candidates] == [
+    expected_candidate_ids = [
         "opus5-xhigh-control",
         "opus5-high",
         "sonnet5-high",
+        "opus5.5-xhigh",
+        "sonnet5.5-high",
+        "gpt6.1-sol-high",
+        "gpt6.1-sol-pro",
+        "gpt6-astra-xhigh",
+        "qwen3.8-max",
+        "glm5.3-high",
+        "gemini3.8-flash-high",
+        "glm5.3-flash-high",
+        "gpt6-luna-high",
+        "deepseek-v4.1-flash",
+        "kimi-k2.6",
+        "auto-max",
+        "pareto-code-080",
+    ]
+    assert [item["id"] for item in candidates] == expected_candidate_ids
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "incumbents")] == [
+        "opus5-xhigh-control",
+        "opus5-high",
+        "sonnet5-high",
+    ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "routine")] == [
+        "sonnet5-high",
+        "sonnet5.5-high",
+        "gemini3.8-flash-high",
+        "glm5.3-flash-high",
+        "gpt6-luna-high",
+        "deepseek-v4.1-flash",
+        "kimi-k2.6",
+    ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "gpt6-luna-high,glm5.3-flash-high")] == [
+        "gpt6-luna-high",
+        "glm5.3-flash-high",
     ]
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
@@ -58,7 +91,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 42
+        assert plan["case_counts"]["planned_total_requests"] == 238
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -100,6 +133,29 @@ def main() -> None:
     assert sonnet_payload["model"] == "anthropic/claude-sonnet-5"
     assert sonnet_payload["reasoning"]["effort"] == "high"
     assert "temperature" not in sonnet_payload
+
+    auto = evaluation.candidate_by_id(matrix, "auto-max")
+    auto_payload = evaluation.build_payload(auto, lane_case, system_prompt, schema, contract)
+    assert auto_payload["model"] == "openrouter/auto"
+    assert auto_payload["plugins"] == [
+        {"id": "auto-router", "cost_tier": "max"},
+        {"id": "response-healing", "enabled": True},
+    ]
+    assert "reasoning" not in auto_payload
+
+    pareto = evaluation.candidate_by_id(matrix, "pareto-code-080")
+    pareto_payload = evaluation.build_payload(pareto, lane_case, system_prompt, schema, contract)
+    assert pareto_payload["plugins"] == [
+        {"id": "pareto-router", "min_coding_score": 0.8},
+        {"id": "response-healing", "enabled": True},
+    ]
+
+    duplicate_selector_failed = False
+    try:
+        evaluation.selected_candidates(matrix, "sonnet5-high,sonnet5-high")
+    except ValueError:
+        duplicate_selector_failed = True
+    assert duplicate_selector_failed
 
     invalid_temperature = dict(sonnet)
     invalid_temperature["temperature"] = 2.1
@@ -260,7 +316,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "3 candidates, 12 controlled cases, 2 frozen naturalistic cases, candidate-specific temperature, billed failures included, no network/publication"
+        "17 candidates, reusable groups/router plugins, 12 controlled cases, 2 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 
