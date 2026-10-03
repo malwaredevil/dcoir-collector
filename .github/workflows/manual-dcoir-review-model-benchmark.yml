@@ -1,0 +1,86 @@
+# DCOIR WORKFLOW OPERATOR NOTES
+# Workflow key:
+# - workflow-evaluation-manual-dcoir-review-model-benchmark-0001
+# Purpose:
+# - Run the reusable DCOIR Review model-selection benchmark in no-network plan mode or explicitly confirmed paid-live mode.
+# Use when:
+# - Use when comparing incumbent and candidate OpenRouter models/routers against the governed DCOIR evaluation corpus.
+# Do not use when:
+# - Do not use as a production DCOIR Review invocation, PR gate, or automatic model-promotion mechanism.
+# Trigger model:
+# - workflow_dispatch only; paid-live execution additionally requires execute_live=true and confirm_paid_execution=true.
+# Required inputs:
+# - candidate_selector accepts a named candidate group, one candidate id, or comma-separated candidate ids.
+# - case_ids_csv optionally narrows the governed corpus.
+# - max_requests caps paid requests before any live call is made.
+# Required secrets/config:
+# - OPENROUTER_API_KEY is required only for paid-live execution. Model IDs are version-controlled non-secret configuration.
+# Runtime dependencies:
+# - Uses the DCOIR first-pass candidate evaluator, benchmark summary renderer, and first_pass_candidate_matrix_v1.json.
+# Expected outputs/readback:
+# - Plan/live JSON, human-readable benchmark summary, run metadata, and ChatGPT workflow report-section artifacts.
+# Safety notes:
+# - Plan mode makes zero OpenRouter inference calls. The workflow never publishes a GitHub review or mutates production model configuration.
+# Maintenance notes:
+# - Add or retire candidate models in the version-controlled evaluation matrix rather than creating GitHub Secrets for model names.
+# Authority routing:
+# - GitHub is canonical for workflow/source truth. Supabase ircore owns operational routing/readback.
+name: 08 Operator - DCOIR Review Model Benchmark
+run-name: DCOIR Review Model Benchmark | ${{ inputs.candidate_selector || 'recommended' }} | live=${{ inputs.execute_live || false }} | #${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_selector:
+        description: Named group, one candidate id, or comma-separated candidate ids
+        required: true
+        default: recommended
+        type: string
+      case_ids_csv:
+        description: Optional comma-separated case ids; blank runs the complete current corpus
+        required: false
+        default: ""
+        type: string
+      execute_live:
+        description: Make paid OpenRouter inference calls
+        required: true
+        default: false
+        type: boolean
+      confirm_paid_execution:
+        description: Required second confirmation when execute_live is true
+        required: true
+        default: false
+        type: boolean
+      max_requests:
+        description: Maximum paid inference requests allowed for this run
+        required: true
+        default: "200"
+        type: string
+      timeout_seconds:
+        description: Timeout per OpenRouter request
+        required: true
+        default: "300"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dcoir-review-model-benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    uses: ./.github/workflows/reusable-manual-dcoir-review-model-benchmark.yml
+    permissions:
+      contents: read
+    with:
+      caller_event_name: ${{ github.event_name }}
+      candidate_selector: ${{ inputs.candidate_selector || 'recommended' }}
+      case_ids_csv: ${{ inputs.case_ids_csv || '' }}
+      execute_live: ${{ inputs.execute_live || false }}
+      confirm_paid_execution: ${{ inputs.confirm_paid_execution || false }}
+      max_requests: ${{ inputs.max_requests || '200' }}
+      timeout_seconds: ${{ inputs.timeout_seconds || '300' }}
+    secrets:
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
