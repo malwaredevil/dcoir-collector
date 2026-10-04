@@ -633,6 +633,19 @@ def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str
     }
 
 
+def _percentile(values: list[float], fraction: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = (len(ordered) - 1) * float(fraction)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = position - lower
+    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
+
+
 def aggregate_candidate(
     candidate: dict[str, Any],
     case_results: list[dict[str, Any]],
@@ -650,7 +663,11 @@ def aggregate_candidate(
         for item in case_results
         if isinstance(item["request"].get("usage"), dict)
     ]
-    total_latency = sum(float(item["request"].get("latency_seconds", 0.0) or 0.0) for item in case_results)
+    latencies = [
+        float(item["request"].get("latency_seconds", 0.0) or 0.0)
+        for item in case_results
+    ]
+    total_latency = sum(latencies)
     totals = {
         "request_count": len(case_results),
         "successful_request_count": sum(1 for item in case_results if item["request"].get("ok")),
@@ -662,6 +679,8 @@ def aggregate_candidate(
         "total_tokens": sum(int(row.get("total_tokens", 0) or 0) for row in usage_rows),
         "exact_cost_usd": round(sum(float(row.get("cost_usd", 0.0) or 0.0) for row in usage_rows), 9),
         "serial_wall_seconds": round(total_latency, 3),
+        "p50_request_seconds": round(_percentile(latencies, 0.50), 3),
+        "p95_request_seconds": round(_percentile(latencies, 0.95), 3),
     }
     controlled_detected = sum(1 for item in controlled_findings if item["score"].get("correct"))
     controlled_clean_correct = sum(1 for item in controlled_clean if item["score"].get("correct"))
