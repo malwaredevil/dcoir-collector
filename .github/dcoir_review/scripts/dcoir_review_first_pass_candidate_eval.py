@@ -633,7 +633,12 @@ def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str
     }
 
 
-def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, Any]]) -> dict[str, Any]:
+def aggregate_candidate(
+    candidate: dict[str, Any],
+    case_results: list[dict[str, Any]],
+    *,
+    selection_complete: bool | None = None,
+) -> dict[str, Any]:
     generalized = [item for item in case_results if item["corpus"] == "generalized-controlled"]
     naturalistic = [item for item in case_results if item["corpus"] == "naturalistic-known-defect"]
     controlled_findings = [item for item in generalized if item["score"]["expected"] == "finding"]
@@ -661,24 +666,28 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
     controlled_detected = sum(1 for item in controlled_findings if item["score"].get("correct"))
     controlled_clean_correct = sum(1 for item in controlled_clean if item["score"].get("correct"))
     naturalistic_detected = sum(1 for item in naturalistic if item["score"].get("correct"))
-    expected_case_ids = {str(case["id"]) for case in load_cases(load_matrix())}
     actual_case_ids = [str(item["case_id"]) for item in case_results]
-    complete_corpus = (
-        set(actual_case_ids) == expected_case_ids
-        and len(actual_case_ids) == len(expected_case_ids)
-    )
+    if selection_complete is None:
+        expected_case_ids = {str(case["id"]) for case in load_cases(load_matrix())}
+        complete_corpus = (
+            set(actual_case_ids) == expected_case_ids
+            and len(actual_case_ids) == len(expected_case_ids)
+        )
+    else:
+        complete_corpus = bool(selection_complete)
+    correct_case_count = sum(1 for item in case_results if item["score"].get("correct"))
     acceptance_eligible = (
         complete_corpus
         and not request_errors
         and not ambiguous
-        and controlled_detected == len(controlled_findings)
-        and controlled_clean_correct == len(controlled_clean)
-        and naturalistic_detected == len(naturalistic)
+        and correct_case_count == len(case_results)
     )
     return {
         "candidate": candidate,
         "quality": {
             "complete_corpus": complete_corpus,
+            "selected_case_count": len(case_results),
+            "correct_case_count": correct_case_count,
             "controlled_known_errors_detected": controlled_detected,
             "controlled_known_errors_total": len(controlled_findings),
             "controlled_clean_correct": controlled_clean_correct,
