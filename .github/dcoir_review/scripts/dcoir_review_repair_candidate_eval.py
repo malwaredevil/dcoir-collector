@@ -190,6 +190,27 @@ def _candidate_config(review: Any, candidate: dict[str, Any]) -> Any:
     return config
 
 
+def _candidate_payload_builder(base_builder: Any, candidate: dict[str, Any]) -> Any:
+    """Apply only the selected candidate's benchmark request-shape overrides."""
+    candidate_model = str(candidate.get("model", "") or "").strip()
+    candidate_temperature = candidate.get("temperature")
+
+    def build(prompt: str, schema: dict[str, Any], config: Any, ignored_providers: Any, model: Any) -> dict[str, Any]:
+        payload = base_builder(prompt, schema, config, ignored_providers, model)
+        if str(model or "").strip() != candidate_model:
+            return payload
+        if candidate_temperature is None:
+            payload.pop("temperature", None)
+        else:
+            value = float(candidate_temperature)
+            if not 0.0 <= value <= 2.0:
+                raise ValueError(f"Candidate {candidate.get('id')} temperature must be between 0 and 2")
+            payload["temperature"] = value
+        return payload
+
+    return build
+
+
 def _verified_finding(v21: Any, case: dict[str, Any]) -> dict[str, Any]:
     return {
         "title": case["title"],
@@ -284,8 +305,10 @@ def _run_case(review: Any, v21: Any, repair: Any, v36: Any, candidate: dict[str,
     file_map = dict(case["files"])
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
+    original_builder = review.hardened.build_openrouter_payload
     review.fetch_pr_file_text = lambda _gh, path, _head: file_map[path]
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
+    review.hardened.build_openrouter_payload = _candidate_payload_builder(original_builder, candidate)
     started = time.monotonic()
     try:
         right_index = review.base.build_diff_line_index(case["diff"])
@@ -304,11 +327,13 @@ def _run_case(review: Any, v21: Any, repair: Any, v36: Any, candidate: dict[str,
         error = ""
     except Exception as exc:
         item = {}
-        score = {"correct": False, "unsafe_accept": False, "outcome": "request-error", "reason": type(exc).__name__}
-        error = type(exc).__name__
+        detail = f"{type(exc).__name__}: {str(exc)[:500]}"
+        score = {"correct": False, "unsafe_accept": False, "outcome": "request-error", "reason": detail}
+        error = detail
     finally:
         review.fetch_pr_file_text = original_fetch
         review.hardened.write_debug_json_artifact_safely = original_debug
+        review.hardened.build_openrouter_payload = original_builder
     elapsed = time.monotonic() - started
     return {
         "case_id": case["id"],
