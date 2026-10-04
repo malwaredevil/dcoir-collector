@@ -126,6 +126,8 @@ def _run_case(review: Any, v21: Any, v36: Any, candidate: dict[str, Any], spec: 
     author = spec["author"]
     file_cache = dict(case["files"])
     prompt = v36._repair_critic_prompt(review, finding, author, file_cache, config)
+    original_builder = review.hardened.build_openrouter_payload
+    review.hardened.build_openrouter_payload = repair_eval._candidate_payload_builder(original_builder, candidate)
     started = time.monotonic()
     try:
         raw, model_used, service_tier = review.hardened.openrouter_review(
@@ -143,9 +145,11 @@ def _run_case(review: Any, v21: Any, v36: Any, candidate: dict[str, Any], spec: 
         service_tier = ""
         accepted = False
         confidence = 0.0
-        reason = type(exc).__name__
+        reason = f"{type(exc).__name__}: {str(exc)[:500]}"
         scored = {"correct": False, "unsafe_accept": False}
-        error = type(exc).__name__
+        error = reason
+    finally:
+        review.hardened.build_openrouter_payload = original_builder
     elapsed = time.monotonic() - started
     return {
         "case_id": spec["id"],
