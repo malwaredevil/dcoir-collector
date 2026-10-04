@@ -47,6 +47,8 @@ def main() -> None:
         "opus5.5-xhigh-prod-temp",
         "sonnet5.5-high",
         "sonnet5.5-high-prod-temp",
+        "gpt5.6-sol-pro-control",
+        "gpt5.6-terra-xhigh-control",
         "gpt6.1-sol-high",
         "gpt6.1-sol-pro",
         "gpt6-astra-xhigh",
@@ -96,6 +98,10 @@ def main() -> None:
         "kimi-k3",
         "mimo-v2.6-flash",
     ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "gpt5.6-sol-pro-control,gpt5.6-terra-xhigh-control")] == [
+        "gpt5.6-sol-pro-control",
+        "gpt5.6-terra-xhigh-control",
+    ]
     advisor = evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5")
     assert advisor["explicit_only"] is True
     assert "mimo-v2.6-flash-advisor-opus5.5" not in {
@@ -134,7 +140,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 432
+        assert plan["case_counts"]["planned_total_requests"] == 464
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -487,7 +493,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "27 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
+        "29 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 
