@@ -69,6 +69,34 @@ def main() -> None:
     assert "| good | routine | PASS | 0 | 0 | 0 | 0.010000 | 2.500 | 1.000 | 1.500 |" in live
     assert "quality floor passed" in live
     assert "does not change production models" in live
+
+    repair = target.render(
+        {
+            "benchmark_stage": "repair",
+            "mode": "live-no-publication",
+            "no_publication": True,
+            "candidates": [
+                {
+                    "candidate": {"id": "repair-good", "benchmark_role": "repair-author"},
+                    "quality": {
+                        "acceptance_eligible_quality_floor": True,
+                        "repair_failure_case_ids": [],
+                        "unsafe_accept_case_ids": [],
+                        "request_error_case_ids": [],
+                    },
+                    "economics": {
+                        "cost_measured": False,
+                        "serial_wall_seconds": 4.0,
+                        "p50_request_seconds": 4.0,
+                        "p95_request_seconds": 4.0,
+                    },
+                }
+            ],
+        }
+    )
+    assert "Repair failures" in repair and "Unsafe accepts" in repair
+    assert "| repair-good | repair-author | PASS | 0 | 0 | 0 | n/a | 4.000 | 4.000 | 4.000 |" in repair
+    assert "cost not measured by this production-path probe" in repair
     print("dcoir_review_model_benchmark_summary_selftest passed")
 
 

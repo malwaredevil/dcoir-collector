@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: recommended
+      benchmark_stage:
+        required: false
+        type: string
+        default: first-pass
       case_ids_csv:
         required: false
         type: string
@@ -51,6 +55,7 @@ jobs:
       contents: read
     env:
       CANDIDATE_SELECTOR: ${{ inputs.candidate_selector }}
+      BENCHMARK_STAGE: ${{ inputs.benchmark_stage }}
       CASE_IDS_CSV: ${{ inputs.case_ids_csv }}
       EXECUTE_LIVE: ${{ inputs.execute_live }}
       CONFIRM_PAID_EXECUTION: ${{ inputs.confirm_paid_execution }}
@@ -75,9 +80,12 @@ jobs:
           python -m py_compile \
             .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
             .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval_selftest.py \
             .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
             .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
 
       - name: Validate execution inputs
@@ -86,6 +94,7 @@ jobs:
           set -euo pipefail
           [[ "$MAX_REQUESTS" =~ ^[1-9][0-9]*$ ]] || { echo "max_requests must be a positive integer" >&2; exit 2; }
           [[ "$TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || { echo "timeout_seconds must be a positive integer" >&2; exit 2; }
+          [[ "$BENCHMARK_STAGE" == "first-pass" || "$BENCHMARK_STAGE" == "repair" ]] || { echo "benchmark_stage must be first-pass or repair" >&2; exit 2; }
           if [[ "$EXECUTE_LIVE" == "true" && "$CONFIRM_PAID_EXECUTION" != "true" ]]; then
             echo "Paid-live execution requires confirm_paid_execution=true." >&2
             exit 2
@@ -106,7 +115,9 @@ jobs:
               case_args+=(--case "$case_id")
             done
           fi
-          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+          evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
+          if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
+          python "$evaluator" \
             --candidate "$CANDIDATE_SELECTOR" \
             --timeout-seconds "$TIMEOUT_SECONDS" \
             --output "$OUT_DIR/benchmark_plan.json" \
@@ -144,7 +155,9 @@ jobs:
               case_args+=(--case "$case_id")
             done
           fi
-          python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py \
+          evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
+          if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
+          python "$evaluator" \
             --candidate "$CANDIDATE_SELECTOR" \
             --timeout-seconds "$TIMEOUT_SECONDS" \
             --execute-live \
@@ -170,6 +183,7 @@ jobs:
               "github_sha": os.environ.get("GITHUB_SHA", ""),
               "github_ref": os.environ.get("GITHUB_REF", ""),
               "candidate_selector": os.environ.get("CANDIDATE_SELECTOR", ""),
+              "benchmark_stage": os.environ.get("BENCHMARK_STAGE", "first-pass"),
               "case_ids_csv": os.environ.get("CASE_IDS_CSV", ""),
               "execute_live": os.environ.get("EXECUTE_LIVE", "").lower() == "true",
               "max_requests": int(os.environ.get("MAX_REQUESTS", "0") or 0),
@@ -195,6 +209,7 @@ jobs:
             echo
             echo "- exact_head: $GITHUB_SHA"
             echo "- candidate_selector: $CANDIDATE_SELECTOR"
+            echo "- benchmark_stage: $BENCHMARK_STAGE"
             echo "- case_ids_csv: ${CASE_IDS_CSV:-all}"
             echo "- paid_live: $EXECUTE_LIVE"
             echo "- max_requests: $MAX_REQUESTS"
