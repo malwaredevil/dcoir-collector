@@ -269,6 +269,26 @@
       "role": "low-cost coding-focused high-volume candidate"
     },
     {
+      "id": "mimo-v2.6-pro-xhigh",
+      "model": "xiaomi/mimo-v2.6-pro",
+      "provider_family": "xiaomi",
+      "reasoning_effort": "xhigh",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current Xiaomi flagship long-context premium coding/review candidate"
+    },
+    {
+      "id": "mimo-v2.6-pro-xhigh-prod-temp",
+      "model": "xiaomi/mimo-v2.6-pro",
+      "provider_family": "xiaomi",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped MiMo Pro probe with premium reasoning and generic temperature"
+    },
+    {
       "id": "mimo-v2.6-flash",
       "model": "xiaomi/mimo-v2.6-flash",
       "provider_family": "xiaomi",
