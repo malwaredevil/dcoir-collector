@@ -51,8 +51,8 @@ def render(report: dict[str, Any]) -> str:
             "",
             "Quality is a hard gate: lower cost or latency never compensates for a known-defect miss, false positive, ambiguous result, or request error.",
             "",
-            "| Candidate | Role | Quality floor | FN | FP | Errors | Cost USD | Serial seconds |",
-            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: |",
+            "| Candidate | Role | Quality floor | FN | FP | Errors | Cost USD | Serial seconds | p50 sec | p95 sec |",
+            "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     eligible: list[tuple[str, float]] = []
@@ -78,6 +78,8 @@ def render(report: dict[str, Any]) -> str:
                     str(len(quality.get("request_error_case_ids", []) or [])),
                     f"{float(economics.get('exact_cost_usd', 0.0) or 0.0):.6f}",
                     f"{float(economics.get('serial_wall_seconds', 0.0) or 0.0):.3f}",
+                    f"{float(economics.get('p50_request_seconds', 0.0) or 0.0):.3f}",
+                    f"{float(economics.get('p95_request_seconds', 0.0) or 0.0):.3f}",
                 ]
             )
             + " |"
