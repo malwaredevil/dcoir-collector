@@ -3,7 +3,21 @@
 Date: 2026-10-04  
 Issue: https://github.com/malwaredevil/dcoir-collector/issues/591  
 Evaluation branch: `issue-591-current-candidate-refresh`  
-Status: **benchmark decision package complete; production configuration has not been changed by this report**
+Status: **benchmark decision package complete; recommended production refresh implemented on the evaluation branch and pending governed PR validation/review**
+
+## Implementation status
+
+The approved implementation preserves the benchmarked stage separation:
+
+- Whole-PR premium and semantic adjudication now prefer `anthropic/claude-opus-5.5`.
+- Routine per-file review now uses `anthropic/claude-sonnet-5.5` at high reasoning.
+- The independent challenger remains `openai/gpt-5.6-sol-pro`.
+- Repair authoring is independently governed as `openai/gpt-5.6-terra` -> `anthropic/claude-sonnet-5.5`, rather than inheriting the detector stack.
+- Cross-family critic routing remains independent, with Anthropic critic roles upgraded to Opus 5.5 / Sonnet 5.5.
+- Claude 5/5.5 adaptive-reasoning request shapes omit generic `temperature` while preserving `provider.require_parameters=true`.
+- Auto, Advisor, Fusion, Subagent, Batch, Response Caching, Ori, and tool-use experiments remain outside the production authority path.
+
+No production review invocation, external reviewer request, or additional paid benchmark is authorized by this implementation status.
 
 ## Executive decision
 

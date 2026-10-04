@@ -135,8 +135,9 @@ def prepare_candidate(
         file_cache[path] = module.fetch_pr_file_text(gh, path, head_sha)
 
     prompt = v36._repair_author_prompt(module, finding, file_cache[path], pr_diff, head_sha, config)
+    author_config = repair_policy.build_repair_author_config(config)
     raw, author_model, author_tier = module.hardened.openrouter_review(
-        prompt, v36.REPAIR_SET_AUTHOR_SCHEMA, config, reporter=None
+        prompt, v36.REPAIR_SET_AUTHOR_SCHEMA, author_config, reporter=None
     )
     module.hardened.write_debug_json_artifact_safely(
         config,

@@ -535,8 +535,9 @@ def _build_repair_set_for_finding(
         file_cache[path] = module.fetch_pr_file_text(gh, path, head_sha)
 
     author_prompt = _repair_author_prompt(module, finding, file_cache[path], pr_diff, head_sha, config)
+    author_config = repair_policy.build_repair_author_config(config)
     author_raw, author_model, author_tier = module.hardened.openrouter_review(
-        author_prompt, REPAIR_SET_AUTHOR_SCHEMA, config, reporter=None
+        author_prompt, REPAIR_SET_AUTHOR_SCHEMA, author_config, reporter=None
     )
     module.hardened.write_debug_json_artifact_safely(
         config,

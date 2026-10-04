@@ -40,7 +40,7 @@ def main() -> None:
     assert "scope binding" in system_prompt.lower()
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
-    assert config.model_stack[0] == "anthropic/claude-opus-5"
+    assert config.model_stack[0] == "anthropic/claude-opus-5.5"
     assert "openai/gpt-5.6-sol-pro" in config.model_stack
     assert config.per_file_review_max_files >= config.max_files
     assert config.max_files >= 100
@@ -74,8 +74,8 @@ def main() -> None:
         [],
         config.model_stack[0],
     )
-    assert payload["model"] == "anthropic/claude-opus-5"
-    assert payload["temperature"] == 0.2
+    assert payload["model"] == "anthropic/claude-opus-5.5"
+    assert "temperature" not in payload
     assert payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
 
     # OpenRouter's OpenAI *-pro SKUs already encode reasoning.mode=pro.  GPT-5
@@ -89,7 +89,10 @@ def main() -> None:
     assert v32._model_uses_openai_gpt5_reasoning("openai/gpt-5.6-sol-pro") is True
     assert v32._model_uses_openai_gpt5_reasoning("openai/gpt-5.6-sol") is True
     assert v32._model_uses_openai_gpt5_reasoning("openai/gpt-4.1") is False
-    assert v32._model_uses_openai_gpt5_reasoning("anthropic/claude-opus-5") is False
+    assert v32._model_uses_openai_gpt5_reasoning("anthropic/claude-opus-5.5") is False
+    assert v32._model_uses_anthropic_adaptive_reasoning("anthropic/claude-opus-5.5") is True
+    assert v32._model_uses_anthropic_adaptive_reasoning("anthropic/claude-sonnet-5.5") is True
+    assert v32._model_uses_anthropic_adaptive_reasoning("openai/gpt-5.6-sol") is False
 
     # v32 contributes an explicit payload transformation; it no longer owns a
     # runtime payload-builder wrapper or stored-original shim.
@@ -101,12 +104,25 @@ def main() -> None:
     assert "temperature" not in direct_pro
     assert "reasoning" not in direct_pro
     direct_opus = v32.apply_reasoning_payload_policy(
-        {"temperature": 0.2}, config, "anthropic/claude-opus-5"
+        {"temperature": 0.2}, config, "anthropic/claude-opus-5.5"
     )
-    assert direct_opus["temperature"] == 0.2
+    assert "temperature" not in direct_opus
     assert direct_opus["reasoning"] == {
         "enabled": True,
         "effort": "xhigh",
+        "exclude": True,
+    }
+    repair_projection = SimpleNamespace(
+        review_reasoning_effort="xhigh",
+        dcoir_reasoning_effort_by_model={"anthropic/claude-sonnet-5.5": "high"},
+    )
+    direct_sonnet = v32.apply_reasoning_payload_policy(
+        {"temperature": 0.2}, repair_projection, "anthropic/claude-sonnet-5.5"
+    )
+    assert "temperature" not in direct_sonnet
+    assert direct_sonnet["reasoning"] == {
+        "enabled": True,
+        "effort": "high",
         "exclude": True,
     }
 

@@ -1,7 +1,7 @@
 """Stable DCOIR Review stage-local first-pass routing projection.
 
 The #485 calibration showed that routine per-file first-pass review can use
-Claude Sonnet 5 at high reasoning with a 32,768-token output cap and price-sorted
+Claude Sonnet 5.5 at high reasoning with a 32,768-token output cap and price-sorted
 provider selection while the mature premium challenger, adjudicator, verifier,
 and escalation stages remain on their existing Opus/Sol contracts.
 
@@ -10,7 +10,7 @@ onto a shallow copy only for ``review_single_file_context``. The shared global
 configuration is left unchanged for every later semantic stage. The projected
 payload enables Response Healing explicitly, preserves strict structured output
 and ``require_parameters=true``, and omits generic sampling temperature for
-Sonnet 5. Generic hardened-provider controls capture request evidence and enforce
+Sonnet 5.5. Generic hardened-provider controls capture request evidence and enforce
 stop/object response contracts without bypassing the mature request-wrapper
 chain.
 
@@ -41,7 +41,12 @@ def _optional_string_list(value: Any) -> list[str]:
 
 def _is_claude_sonnet_5(model: Any) -> bool:
     value = str(model or "").strip().lower().split(":", 1)[0]
-    return value == "anthropic/claude-sonnet-5" or value.startswith("anthropic/claude-sonnet-5-")
+    return value in {
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-sonnet-5.5",
+    } or value.startswith(
+        ("anthropic/claude-sonnet-5-", "anthropic/claude-sonnet-5.5-")
+    )
 
 
 def project_per_file_review_config(config: Any) -> Any:

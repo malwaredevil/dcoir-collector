@@ -22,6 +22,7 @@ from pathlib import Path
 import sys
 from typing import Any
 
+from dcoir_review import repair as repair_policy
 from dcoir_review import repair_support as support
 
 
@@ -187,8 +188,9 @@ def build_repair_for_finding(
 
     author_prompt = repair._repair_author_prompt(module, finding, path, line, original, file_text, config)
     try:
+        author_config = repair_policy.build_repair_author_config(config)
         author_raw, author_model, author_tier = hardened.openrouter_review(
-            author_prompt, repair.REPAIR_AUTHOR_SCHEMA, config, reporter=None
+            author_prompt, repair.REPAIR_AUTHOR_SCHEMA, author_config, reporter=None
         )
     except Exception as exc:
         item = _stage_failure(module, config, ordinal, finding, path, line, "author-call", exc)

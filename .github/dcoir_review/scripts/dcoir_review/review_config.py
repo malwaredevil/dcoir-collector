@@ -14,7 +14,7 @@ DEFAULT_CONFIRMATION_MODELS = ("openai/gpt-5.6-sol-pro",)
 DEFAULT_REASONING_EFFORT = "xhigh"
 DEFAULT_VERIFIER_REPAIR_LIMIT = 12
 DEFAULT_ADJUDICATION_MODELS = (
-    "anthropic/claude-opus-5",
+    "anthropic/claude-opus-5.5",
     "openai/gpt-5.6-sol-pro",
 )
 DEFAULT_ADJUDICATION_MAX_FINDINGS = 8

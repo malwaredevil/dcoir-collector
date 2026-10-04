@@ -12,13 +12,23 @@ import copy
 from typing import Any
 
 
+PRIMARY_REPAIR_AUTHOR_MODEL = "openai/gpt-5.6-terra"
+FALLBACK_REPAIR_AUTHOR_MODEL = "anthropic/claude-sonnet-5.5"
 PRIMARY_CRITIC_MODEL = "openai/gpt-5.6-terra"
-FALLBACK_CRITIC_MODEL = "anthropic/claude-sonnet-5"
+FALLBACK_CRITIC_MODEL = "anthropic/claude-sonnet-5.5"
 OPENAI_CROSS_FAMILY_CRITIC_MODEL = "openai/gpt-5.6-sol-pro"
 OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = PRIMARY_CRITIC_MODEL
-ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5"
+ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL = "anthropic/claude-opus-5.5"
 ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = FALLBACK_CRITIC_MODEL
 GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL = "google/gemini-3.1-pro-preview"
+REPAIR_REASONING_EFFORT_BY_MODEL = {
+    PRIMARY_REPAIR_AUTHOR_MODEL: "xhigh",
+    FALLBACK_REPAIR_AUTHOR_MODEL: "high",
+    PRIMARY_CRITIC_MODEL: "xhigh",
+    ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL: "xhigh",
+    ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL: "high",
+}
+AUTHOR_SESSION_SUFFIX = "repair-author"
 CRITIC_SESSION_SUFFIX = "repair-critic"
 REPAIR_CANDIDATE_HARD_CAP = 12
 
@@ -43,47 +53,53 @@ def repair_synthesis_budget(config: Any) -> int:
     return min(configured, inline_limit)
 
 
-def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
-    """Return the canonical critic config while preserving established routing."""
-    critic_config = copy.copy(config)
-    served_author = str(author_model or "").strip().lower()
-    if served_author:
-        # Keep critic independence by staying entirely in the opposite model
-        # family, but do not make one provider/model endpoint a single point of
-        # failure. The ordered fallback remains cross-family relative to the
-        # served repair author and therefore preserves the independent gate.
-        if served_author.startswith("openai/"):
-            critic_models = [
-                ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
-                ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
-                GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
-            ]
-        else:
-            critic_models = [
-                OPENAI_CROSS_FAMILY_CRITIC_MODEL,
-                OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
-            ]
-        if hasattr(critic_config, "model"):
-            critic_config.model = critic_models[0]
-        if hasattr(critic_config, "model_stack"):
-            critic_config.model_stack = critic_models
-        if hasattr(critic_config, "fallback_models"):
-            critic_config.fallback_models = []
-        if hasattr(critic_config, "openrouter_route"):
-            critic_config.openrouter_route = ""
-        if hasattr(critic_config, "openrouter_service_tier"):
-            critic_config.openrouter_service_tier = ""
-        return critic_config
-
-    # The older no-author repair-support contract retains its governed direct
-    # Terra/Sonnet stack. Consolidation must not silently change either policy.
-    critic_config.model = PRIMARY_CRITIC_MODEL
-    critic_config.model_stack = [PRIMARY_CRITIC_MODEL, FALLBACK_CRITIC_MODEL]
-    critic_config.fallback_models = []
-    critic_config.openrouter_route = ""
-    critic_config.openrouter_service_tier = ""
+def _apply_repair_request_policy(config: Any, models: list[str], session_suffix: str) -> Any:
+    projected = copy.copy(config)
+    projected.model = models[0]
+    projected.model_stack = list(models)
+    projected.fallback_models = []
+    projected.openrouter_route = ""
+    projected.openrouter_service_tier = ""
+    projected.dcoir_reasoning_effort_by_model = {
+        model: REPAIR_REASONING_EFFORT_BY_MODEL[model]
+        for model in models
+        if model in REPAIR_REASONING_EFFORT_BY_MODEL
+    }
     base_prefix = str(
         getattr(config, "openrouter_session_id_prefix", "") or "dcoir-review"
     ).strip()
-    critic_config.openrouter_session_id_prefix = f"{base_prefix}-{CRITIC_SESSION_SUFFIX}"
-    return critic_config
+    projected.openrouter_session_id_prefix = f"{base_prefix}-{session_suffix}"
+    return projected
+
+
+def build_repair_author_config(config: Any) -> Any:
+    """Return the governed repair-author stack independently of detector routing."""
+    return _apply_repair_request_policy(
+        config,
+        [PRIMARY_REPAIR_AUTHOR_MODEL, FALLBACK_REPAIR_AUTHOR_MODEL],
+        AUTHOR_SESSION_SUFFIX,
+    )
+
+
+def build_repair_critic_config(config: Any, author_model: str = "") -> Any:
+    """Return the canonical critic config while preserving cross-family routing."""
+    served_author = str(author_model or "").strip().lower()
+    if served_author.startswith("openai/"):
+        critic_models = [
+            ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+            ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ]
+    elif served_author:
+        critic_models = [
+            OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ]
+    else:
+        critic_models = [PRIMARY_CRITIC_MODEL, FALLBACK_CRITIC_MODEL]
+
+    return _apply_repair_request_policy(
+        config,
+        critic_models,
+        CRITIC_SESSION_SUFFIX,
+    )
