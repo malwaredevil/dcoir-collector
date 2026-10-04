@@ -309,7 +309,8 @@
       "role": "synthetic-only Advisor mechanics/value probe; MiMo executor with pinned Opus 5.5 semantic advisor",
       "explicit_only": true,
       "allowed_case_ids": [
-        "serialized-marker-variant"
+        "serialized-marker-variant",
+        "prmutation--prmut-security-title-shell-injection"
       ],
       "tool_choice": "required",
       "tools": [
