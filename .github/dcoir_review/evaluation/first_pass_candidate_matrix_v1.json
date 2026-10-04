@@ -259,6 +259,31 @@
       "role": "current low-cost high-volume long-context coding/agentic candidate"
     },
     {
+      "id": "mimo-v2.6-flash-advisor-opus5.5",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "provider_family": "xiaomi",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "orchestration_experiment",
+      "role": "synthetic-only Advisor mechanics/value probe; MiMo executor with pinned Opus 5.5 semantic advisor",
+      "explicit_only": true,
+      "allowed_case_ids": [
+        "serialized-marker-variant"
+      ],
+      "tool_choice": "required",
+      "tools": [
+        {
+          "type": "openrouter:advisor",
+          "parameters": {
+            "name": "semantic-reviewer",
+            "model": "anthropic/claude-opus-5.5",
+            "instructions": "Independently assess the supplied implementation and correctness contract. Identify only demonstrable semantic defects and give concise evidence to the executor."
+          }
+        }
+      ]
+    },
+    {
       "id": "mimo-v2.6-flash-prod-high-temp",
       "model": "xiaomi/mimo-v2.6-flash",
       "provider_family": "xiaomi",
