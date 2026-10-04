@@ -37,7 +37,7 @@ on:
         default: recommended
         type: string
       benchmark_stage:
-        description: Benchmark stage (first-pass or repair)
+        description: Benchmark stage (first-pass, repair, or repair-critic)
         required: true
         default: first-pass
         type: string
