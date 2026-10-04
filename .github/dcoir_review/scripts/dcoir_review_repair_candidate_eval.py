@@ -118,8 +118,44 @@ def _coordinated_fixture() -> dict[str, Any]:
     }
 
 
+def _historical_false_positive_fixture() -> dict[str, Any]:
+    path = "project_sources/gemini/tools/lib/openai_dcoir_replay_live.py"
+    file_text = "from __future__ import annotations\n\nimport argparse\nimport json\nimport re\nimport time\nimport urllib.error\nimport urllib.request\nfrom typing import Any, Dict, List\n\nfrom lib.gemini_behavioral_replay_prompt import behavioral_replay_prompt\nfrom lib.gemini_behavioral_replay_schema import EXPECTED_RESPONSE_PACK_SCHEMA_VERSION\nfrom lib.gemini_behavioral_replay_utils import safe_attempts, safe_error\n\nDEFAULT_API_BASE = \"https://api.openai.com/v1/responses\"\n_RESPONSE_ID = re.compile(r\"^resp_[A-Za-z0-9_-]+$\")\n\n\ndef replay_prompt(fixture: Dict[str, Any], turn: Dict[str, Any]) -> str:\n    return behavioral_replay_prompt(fixture, turn, replay_label=\"DCOIR behavioral replay\")\n\n\ndef build_request_body(\n    package: Dict[str, Any],\n    fixture: Dict[str, Any],\n    turn: Dict[str, Any],\n    history: List[Dict[str, str]],\n    args: argparse.Namespace,\n) -> Dict[str, Any]:\n    messages: List[Dict[str, str]] = [\n        {\"role\": \"developer\", \"content\": package[\"knowledge_context\"]},\n        *history,\n        {\"role\": \"user\", \"content\": replay_prompt(fixture, turn)},\n    ]\n    return {\n        \"model\": package[\"model_id\"],\n        \"instructions\": package[\"instructions\"],\n        \"input\": messages,\n        \"reasoning\": {\"effort\": args.reasoning_effort},\n        \"max_output_tokens\": args.max_output_tokens,\n        \"store\": False,\n    }\n\n\ndef _extract_text_with_shape(payload: Any) -> tuple[str, bool]:\n    if not isinstance(payload, dict):\n        return \"\", False\n\n    direct = payload.get(\"output_text\")\n    if direct is not None and not isinstance(direct, str):\n        return \"\", False\n    direct_text = direct.strip() if isinstance(direct, str) else \"\"\n\n    raw_output = payload.get(\"output\")\n    nested_parts: List[str] = []\n    if raw_output is not None:\n        if not isinstance(raw_output, list):\n            return \"\", False\n        for item in raw_output:\n            if not isinstance(item, dict):\n                return \"\", False\n            if item.get(\"type\") != \"message\":\n                continue\n            raw_content = item.get(\"content\")\n            if not isinstance(raw_content, list):\n                return \"\", False\n            for content in raw_content:\n                if not isinstance(content, dict):\n                    return \"\", False\n                if content.get(\"type\") == \"output_text\":\n                    text = content.get(\"text\")\n                    if not isinstance(text, str):\n                        return \"\", False\n                    nested_parts.append(text)\n    nested_text = \"\\n\".join(nested_parts).strip()\n\n    # When both representations are populated, they must agree. A convenience\n    # field must never shelter malformed or conflicting nested provider output.\n    if direct_text and nested_text and direct_text != nested_text:\n        return \"\", False\n    return direct_text or nested_text, True\n\n\ndef extract_text(payload: Dict[str, Any]) -> str:\n    text, _ = _extract_text_with_shape(payload)\n    return text\n\n\ndef call_openai_body(\n    api_key: str,\n    project_id: str,\n    args: argparse.Namespace,\n    body_payload: Dict[str, Any],\n) -> Dict[str, Any]:\n    body = json.dumps(body_payload).encode(\"utf-8\")\n    headers = {\"Content-Type\": \"application/json\", \"Authorization\": f\"Bearer {api_key}\"}\n    if project_id:\n        headers[\"OpenAI-Project\"] = project_id\n    attempts: List[Dict[str, Any]] = []\n    for attempt in range(1, args.max_retries + 1):\n        started = time.monotonic()\n\n        def elapsed_ms() -> float:\n            return round((time.monotonic() - started) * 1000, 2)\n\n        try:\n            req = urllib.request.Request(args.api_base, data=body, headers=headers, method=\"POST\")\n            with urllib.request.urlopen(req, timeout=180) as response:\n                status_code = response.status\n                raw = response.read()\n        except urllib.error.HTTPError as exc:\n            error_text = exc.read().decode(\"utf-8\", errors=\"ignore\")\n            attempts.append({\"attempt\": attempt, \"status_code\": exc.code, \"latency_ms\": elapsed_ms(), \"error_body_excerpt\": error_text[:1000]})\n            if exc.code in {429, 500, 502, 503, 504} and attempt < args.max_retries:\n                time.sleep(args.retry_base_seconds * attempt)\n                continue\n            return {\"ok\": False, \"attempts\": attempts, \"error\": f\"http_{exc.code}\", \"error_body\": error_text[:4000]}\n        except urllib.error.URLError as exc:\n            # urllib raises URLError only while sending the request, before any response\n            # exists, so the server has not produced a billable generation; retrying is safe.\n            attempts.append({\"attempt\": attempt, \"latency_ms\": elapsed_ms(), \"error\": str(exc.reason)})\n            if attempt < args.max_retries:\n                time.sleep(args.retry_base_seconds * attempt)\n                continue\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"connection_error\"}\n        except TimeoutError:\n            # The request was sent and may already be generating (and billed); re-POSTing\n            # would create a duplicate generation that no logged response_id describes.\n            attempts.append({\"attempt\": attempt, \"latency_ms\": elapsed_ms(), \"error\": \"read_timeout\"})\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"read_timeout\"}\n        except Exception as exc:\n            attempts.append({\"attempt\": attempt, \"latency_ms\": elapsed_ms(), \"error\": str(exc)})\n            return {\"ok\": False, \"attempts\": attempts, \"error\": str(exc)}\n\n        attempts.append({\"attempt\": attempt, \"status_code\": status_code, \"latency_ms\": elapsed_ms()})\n        try:\n            payload = json.loads(raw.decode(\"utf-8\"))\n        except (UnicodeDecodeError, json.JSONDecodeError):\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"invalid_json\"}\n        if not isinstance(payload, dict):\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"invalid_response_shape\"}\n        response_id = payload.get(\"id\")\n        status = payload.get(\"status\")\n        if not isinstance(status, str):\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"invalid_response_shape\"}\n        if status != \"completed\":\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"incomplete_output\", \"response_id\": response_id if isinstance(response_id, str) else None}\n        if not isinstance(response_id, str) or not _RESPONSE_ID.fullmatch(response_id):\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"invalid_response_shape\"}\n        text, response_shape_ok = _extract_text_with_shape(payload)\n        if not response_shape_ok:\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"invalid_response_shape\", \"response_id\": response_id}\n        if not text:\n            return {\"ok\": False, \"attempts\": attempts, \"error\": \"empty_output\", \"response_id\": response_id}\n        return {\"ok\": True, \"attempts\": attempts, \"response_text\": text, \"response_id\": response_id}\n    return {\"ok\": False, \"attempts\": attempts, \"error\": \"unknown\"}\n\n\n\ndef call_openai(\n    api_key: str,\n    project_id: str,\n    args: argparse.Namespace,\n    package: Dict[str, Any],\n    fixture: Dict[str, Any],\n    turn: Dict[str, Any],\n    history: List[Dict[str, str]],\n) -> Dict[str, Any]:\n    return call_openai_body(\n        api_key,\n        project_id,\n        args,\n        build_request_body(package, fixture, turn, history, args),\n    )\n\ndef make_pack(\n    fixture: Dict[str, Any],\n    args: argparse.Namespace,\n    package: Dict[str, Any],\n    api_key: str,\n    project_id: str,\n) -> Dict[str, Any]:\n    turns: List[Dict[str, str]] = []\n    calls: List[Dict[str, Any]] = []\n    history: List[Dict[str, str]] = []\n    prior_failure = False\n    for turn in fixture.get(\"turns\", []):\n        if prior_failure:\n            # Later turns would be conditioned on a failure placeholder, so skip the call.\n            turns.append({\"turn_id\": turn.get(\"turn_id\"), \"assistant_response\": \"LIVE_OPENAI_REPLAY_NOT_ATTEMPTED: not_attempted_after_prior_failure\"})\n            continue\n        call = call_openai(api_key, project_id, args, package, fixture, turn, history)\n        if call.get(\"ok\"):\n            response = str(call.get(\"response_text\") or \"\")\n            if api_key and api_key in response:\n                response = \"[redacted-secret-output]\"\n        else:\n            response = f\"LIVE_OPENAI_REPLAY_CALL_FAILED: {safe_error(call.get('error')) or 'unknown'}\"\n            prior_failure = True\n        calls.append({\n            \"fixture_id\": fixture.get(\"fixture_id\"),\n            \"model_name\": package[\"model_id\"],\n            \"turn_id\": turn.get(\"turn_id\"),\n            \"ok\": bool(call.get(\"ok\")),\n            \"attempts\": safe_attempts(call.get(\"attempts\", [])),\n            \"error\": safe_error(call.get(\"error\")),\n            \"response_id\": call.get(\"response_id\"),\n        })\n        turns.append({\"turn_id\": turn.get(\"turn_id\"), \"assistant_response\": str(response)})\n        history.extend([\n            {\"role\": \"user\", \"content\": replay_prompt(fixture, turn)},\n            {\"role\": \"assistant\", \"content\": str(response)},\n        ])\n    return {\n        \"schema_version\": EXPECTED_RESPONSE_PACK_SCHEMA_VERSION,\n        \"fixture_id\": fixture.get(\"fixture_id\"),\n        \"mode\": \"live_openai_api\",\n        \"model_name\": package[\"model_id\"],\n        \"turns\": turns,\n        \"metadata\": {\"live_execution\": True, \"turn_calls\": calls, \"reasoning_effort\": args.reasoning_effort},\n    }\n"
+    diff = (
+        "diff --git a/" + path + " b/" + path + "\n"
+        "--- /dev/null\n"
+        "+++ b/" + path + "\n"
+        "@@ -0,0 +1," + str(len(file_text.splitlines())) + " @@\n"
+        + "".join("+" + line + "\n" for line in file_text.splitlines())
+    )
+    return {
+        "id": "repair-pr581-urlopen-false-positive",
+        "path": path,
+        "line": 108,
+        "files": {path: file_text},
+        "title": "Python writes to a request-controlled filesystem path",
+        "body": (
+            "Historical PR #581 finding: This write may use a request-controlled path. "
+            "Resolve and verify the destination is inside the governed output directory."
+        ),
+        "evidence": (
+            "Historical DCOIR Review discussion r4085149271 anchored this finding at line 108 "
+            "of reviewed commit 4c142c3b06648d41887768271f9745fd27e0aadf."
+        ),
+        "validation": (
+            "python3 -m py_compile project_sources/gemini/tools/lib/openai_dcoir_replay_live.py; "
+            "bandit -r project_sources/gemini/tools/lib/openai_dcoir_replay_live.py"
+        ),
+        "expected_edits": [],
+        "expected_outcome": "defect-absent-suppressed",
+        "historical_review_comment_id": 4085149271,
+        "historical_reviewed_commit": "4c142c3b06648d41887768271f9745fd27e0aadf",
+        "diff": diff,
+    }
+
+
 def load_cases() -> list[dict[str, Any]]:
-    return [_single_line_fixture(), _coordinated_fixture()]
+    return [_single_line_fixture(), _coordinated_fixture(), _historical_false_positive_fixture()]
 
 
 def select_cases(requested: list[str]) -> list[dict[str, Any]]:
@@ -206,12 +242,17 @@ def score_item(item: dict[str, Any], case: dict[str, Any], repair: Any, v36: Any
         ],
         key=lambda item: (item["path"], item["start_line"], item["end_line"], item["replacement"]),
     )
-    correct_edit = (
-        outcome == v36.REPAIR_SET_OUTCOME
-        and bool(marker.get("critic_accepted"))
-        and actual == expected
-    )
-    unsafe_accept = outcome == v36.REPAIR_SET_OUTCOME and not correct_edit
+    expected_outcome = str(case.get("expected_outcome", v36.REPAIR_SET_OUTCOME) or v36.REPAIR_SET_OUTCOME)
+    if expected_outcome == "defect-absent-suppressed":
+        correct_edit = outcome == expected_outcome and not edits
+        unsafe_accept = outcome == v36.REPAIR_SET_OUTCOME
+    else:
+        correct_edit = (
+            outcome == v36.REPAIR_SET_OUTCOME
+            and bool(marker.get("critic_accepted"))
+            and actual == expected
+        )
+        unsafe_accept = outcome == v36.REPAIR_SET_OUTCOME and not correct_edit
     return {
         "correct": correct_edit,
         "unsafe_accept": unsafe_accept,
