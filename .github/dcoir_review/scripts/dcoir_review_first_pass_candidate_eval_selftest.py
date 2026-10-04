@@ -126,6 +126,12 @@ def main() -> None:
     schema = evaluation.load_json(evaluation.REVIEW_SCHEMA_PATH)
     contract = matrix["request_contract"]
     lane_case = next(case for case in naturalistic if case["id"] == "pr448-lane-separation-binding")
+    assert "def _iter_clauses" in lane_case["source"]
+    assert "def _clause_has_endpoint_lane" in lane_case["source"]
+    assert "def _clause_has_local_lane" in lane_case["source"]
+    assert "False accept:" in lane_case["counterexample"]
+    assert "False reject:" in lane_case["counterexample"]
+    assert "response scope" in lane_case["review_contract"]
 
     control = evaluation.candidate_by_id(matrix, "opus5-xhigh-control")
     control_payload = evaluation.build_payload(control, lane_case, system_prompt, schema, contract)
