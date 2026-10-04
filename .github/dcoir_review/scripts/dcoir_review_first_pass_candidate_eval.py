@@ -107,6 +107,118 @@ def load_cases(matrix: dict[str, Any]) -> list[dict[str, Any]]:
     return cases
 
 
+PRODUCTION_SUITE_SELECTORS = {
+    "prmutation-all": ("pr-mutation", "prmutation--"),
+    "prprecision-all": ("pr-precision-v12", "prprecision--"),
+    "multilang-all": ("multilang-adversarial", "multilang--"),
+}
+
+
+def _load_production_suite_cases(suite: str) -> list[dict[str, Any]]:
+    if suite == "pr-mutation":
+        import dcoir_review_pr_mutation_eval as mutation
+
+        raw_cases = mutation.load_cases()
+    elif suite == "pr-precision-v12":
+        import dcoir_review_pr_precision_eval_v12 as precision_v12
+
+        raw_cases = precision_v12.load_v12_cases()
+    elif suite == "multilang-adversarial":
+        import dcoir_review_multilang_adversarial_eval as adversarial
+
+        _, raw_cases = adversarial.load_cases()
+    else:
+        raise ValueError(f"Unknown production evaluation suite: {suite}")
+    cases: list[dict[str, Any]] = []
+    prefix = next(
+        prefix_value
+        for suite_value, prefix_value in PRODUCTION_SUITE_SELECTORS.values()
+        if suite_value == suite
+    )
+    for raw in raw_cases:
+        item = dict(raw)
+        original_id = str(item.get("id", "")).strip()
+        if not original_id:
+            raise ValueError(f"{suite}: every case must have an id")
+        item["_suite"] = suite
+        item["_suite_original_id"] = original_id
+        item["id"] = f"{prefix}{original_id}"
+        item["corpus"] = suite
+        if suite in {"pr-mutation", "pr-precision-v12"}:
+            item["expected"] = "finding" if list(item.get("expected_findings", [])) else "clean"
+        cases.append(item)
+    ids = [str(item["id"]) for item in cases]
+    if len(ids) != len(set(ids)):
+        raise ValueError(f"{suite}: namespaced case ids must be unique")
+    return cases
+
+
+def resolve_case_selection(
+    matrix: dict[str, Any],
+    requested_ids: list[str],
+) -> tuple[list[dict[str, Any]], bool]:
+    standard_cases = load_cases(matrix)
+    if not requested_ids:
+        return standard_cases, True
+
+    standard_map = {str(item["id"]): item for item in standard_cases}
+    suite_cache: dict[str, list[dict[str, Any]]] = {}
+    selected: list[dict[str, Any]] = []
+    selected_by_scope: dict[str, set[str]] = {}
+    full_by_scope: dict[str, set[str]] = {}
+
+    def add_case(scope: str, case: dict[str, Any], full_ids: set[str]) -> None:
+        case_id = str(case["id"])
+        if any(str(existing["id"]) == case_id for existing in selected):
+            raise ValueError(f"Duplicate selected case id: {case_id}")
+        selected.append(case)
+        selected_by_scope.setdefault(scope, set()).add(case_id)
+        full_by_scope.setdefault(scope, set()).update(full_ids)
+
+    for requested in requested_ids:
+        value = str(requested).strip()
+        if not value:
+            continue
+        if value in standard_map:
+            add_case("standard", dict(standard_map[value]), set(standard_map))
+            continue
+        if value in PRODUCTION_SUITE_SELECTORS:
+            suite, _ = PRODUCTION_SUITE_SELECTORS[value]
+            suite_cases = suite_cache.setdefault(suite, _load_production_suite_cases(suite))
+            full_ids = {str(item["id"]) for item in suite_cases}
+            for case in suite_cases:
+                add_case(suite, dict(case), full_ids)
+            continue
+
+        matched = False
+        for _, (suite, prefix) in PRODUCTION_SUITE_SELECTORS.items():
+            if not value.startswith(prefix):
+                continue
+            suite_cases = suite_cache.setdefault(suite, _load_production_suite_cases(suite))
+            suite_map = {str(item["id"]): item for item in suite_cases}
+            if value not in suite_map:
+                raise ValueError(f"Unknown {suite} case id: {value}")
+            add_case(suite, dict(suite_map[value]), set(suite_map))
+            matched = True
+            break
+        if not matched:
+            raise ValueError(f"Unknown case id: {value}")
+
+    if not selected:
+        raise ValueError("Case selection is empty")
+    complete = all(selected_by_scope[scope] == full_by_scope[scope] for scope in selected_by_scope)
+    return selected, complete
+
+
+def _suite_case_for_delegate(case: dict[str, Any]) -> dict[str, Any]:
+    delegated = dict(case)
+    delegated["id"] = str(case.get("_suite_original_id", case.get("id", "")))
+    delegated.pop("_suite", None)
+    delegated.pop("_suite_original_id", None)
+    delegated.pop("corpus", None)
+    return delegated
+
+
 def candidate_by_id(matrix: dict[str, Any], candidate_id: str) -> dict[str, Any]:
     for item in matrix.get("candidates", []):
         if isinstance(item, dict) and item.get("id") == candidate_id:
