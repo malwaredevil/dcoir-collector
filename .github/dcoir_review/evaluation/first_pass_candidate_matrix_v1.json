@@ -79,6 +79,16 @@
       "role": "direct Opus 5 successor and premium detector candidate"
     },
     {
+      "id": "opus5.5-xhigh-prod-temp",
+      "model": "anthropic/claude-opus-5.5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped premium probe with generic temperature retained"
+    },
+    {
       "id": "sonnet5.5-high",
       "model": "anthropic/claude-sonnet-5.5",
       "provider_family": "anthropic",
@@ -87,6 +97,16 @@
       "max_tokens": null,
       "benchmark_role": "routine",
       "role": "direct Sonnet 5 successor and routine-review candidate"
+    },
+    {
+      "id": "sonnet5.5-high-prod-temp",
+      "model": "anthropic/claude-sonnet-5.5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped routine probe with generic temperature retained"
     },
     {
       "id": "gpt6.1-sol-high",
@@ -119,6 +139,16 @@
       "role": "quality-ceiling escalation/adjudication candidate"
     },
     {
+      "id": "gpt6-astra-xhigh-prod-temp",
+      "model": "openai/gpt-6-astra",
+      "provider_family": "openai",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped GPT-6 premium probe with generic temperature retained"
+    },
+    {
       "id": "qwen3.8-max",
       "model": "qwen/qwen3.8-max-0902",
       "provider_family": "qwen",
@@ -137,6 +167,16 @@
       "max_tokens": null,
       "benchmark_role": "frontier",
       "role": "cross-family long-context software-engineering candidate"
+    },
+    {
+      "id": "glm5.3-high-prod-temp",
+      "model": "z-ai/glm-5.3",
+      "provider_family": "z-ai",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped frontier probe with generic temperature retained"
     },
     {
       "id": "deepseek-v4-pro-0813-high",
@@ -189,6 +229,16 @@
       "role": "low-cost OpenAI high-volume per-file candidate"
     },
     {
+      "id": "gpt6-luna-high-prod-temp",
+      "model": "openai/gpt-6-luna",
+      "provider_family": "openai",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped routine GPT-6 probe with generic temperature retained"
+    },
+    {
       "id": "deepseek-v4.1-flash",
       "model": "deepseek/deepseek-v4.1-flash",
       "provider_family": "deepseek",
@@ -207,6 +257,16 @@
       "max_tokens": null,
       "benchmark_role": "routine",
       "role": "current low-cost high-volume long-context coding/agentic candidate"
+    },
+    {
+      "id": "mimo-v2.6-flash-prod-high-temp",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "provider_family": "xiaomi",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped routine probe with high reasoning and generic temperature"
     },
     {
       "id": "kimi-k2.6",
