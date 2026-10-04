@@ -200,6 +200,46 @@ def build_payload(
         seen_plugin_ids.add(plugin_id)
         plugins.append(plugin)
     plugins.append({"id": "response-healing", "enabled": True})
+
+    raw_tools = candidate.get("tools", [])
+    if raw_tools is None:
+        raw_tools = []
+    if not isinstance(raw_tools, list):
+        raise ValueError(f"Candidate {candidate['id']} tools must be a list")
+    tools: list[dict[str, Any]] = []
+    for raw_tool in raw_tools:
+        if not isinstance(raw_tool, dict):
+            raise ValueError(f"Candidate {candidate['id']} tool entries must be objects")
+        tool = dict(raw_tool)
+        if tool.get("type") != "openrouter:advisor":
+            raise ValueError(
+                f"Candidate {candidate['id']} may use only the evaluation-whitelisted openrouter:advisor tool"
+            )
+        parameters = tool.get("parameters")
+        if not isinstance(parameters, dict):
+            raise ValueError(f"Candidate {candidate['id']} advisor parameters must be an object")
+        advisor_model = str(parameters.get("model", "") or "").strip()
+        if not advisor_model or advisor_model.startswith("~"):
+            raise ValueError(
+                f"Candidate {candidate['id']} advisor model must be a pinned non-alias model id"
+            )
+        unsupported_parameter_keys = set(parameters) - {"model", "name", "instructions"}
+        if unsupported_parameter_keys:
+            raise ValueError(
+                f"Candidate {candidate['id']} advisor parameters contain unsupported keys: "
+                + ", ".join(sorted(unsupported_parameter_keys))
+            )
+        tools.append(tool)
+
+    tool_choice = candidate.get("tool_choice")
+    if tool_choice is not None:
+        if not tools:
+            raise ValueError(f"Candidate {candidate['id']} tool_choice requires a configured tool")
+        if tool_choice not in {"auto", "required", "none"}:
+            raise ValueError(
+                f"Candidate {candidate['id']} tool_choice must be auto, required, or none"
+            )
+
     payload: dict[str, Any] = {
         "model": model,
         "messages": [
@@ -212,9 +252,11 @@ def build_payload(
         },
         "provider": provider,
         "plugins": plugins,
-        "tools": [],
+        "tools": tools,
         "stream": False,
     }
+    if tool_choice is not None:
+        payload["tool_choice"] = tool_choice
     temperature = candidate.get("temperature")
     if temperature is not None:
         temperature_value = float(temperature)
