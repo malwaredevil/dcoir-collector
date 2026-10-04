@@ -47,7 +47,7 @@ def render(report: dict[str, Any]) -> str:
     if not isinstance(candidates, list):
         raise ValueError("Live benchmark report is missing candidates")
 
-    if stage == "repair":
+    if stage.startswith("repair"):
         quality_note = "Quality is a hard gate: lower latency never compensates for an incomplete repair, unsafe accepted repair, or request error."
         header = "| Candidate | Role | Quality floor | Repair failures | Unsafe accepts | Errors | Cost USD | Serial seconds | p50 sec | p95 sec |"
     else:
@@ -65,7 +65,7 @@ def render(report: dict[str, Any]) -> str:
         is_eligible = bool(quality.get("acceptance_eligible_quality_floor", False))
         cost_measured = bool(economics.get("cost_measured", True))
         exact_cost = float(economics.get("exact_cost_usd", 0.0) or 0.0)
-        if stage == "repair":
+        if stage.startswith("repair"):
             first_failures = quality.get("repair_failure_case_ids", []) or []
             second_failures = quality.get("unsafe_accept_case_ids", []) or []
         else:
