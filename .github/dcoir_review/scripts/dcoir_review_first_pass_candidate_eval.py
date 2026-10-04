@@ -554,7 +554,35 @@ def finding_text(findings: list[Any]) -> str:
 
 
 def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str, Any]:
+    suite = str(case.get("_suite", "") or "")
     expected = str(case.get("expected", ""))
+    if suite in {"pr-mutation", "pr-precision-v12"}:
+        import dcoir_review_pr_mutation_eval as mutation
+
+        raw = dict(mutation.score_case(_suite_case_for_delegate(case), request_result))
+        original_disposition = str(raw.get("disposition", "") or "")
+        correct = bool(raw.get("correct"))
+        if original_disposition == "request-error":
+            normalized_disposition = "request-error"
+        elif correct:
+            normalized_disposition = "clean" if expected == "clean" else "finding-detected"
+        elif expected == "clean":
+            normalized_disposition = "false-positive"
+        elif int(raw.get("detected_findings", 0) or 0) < int(raw.get("expected_findings", 0) or 0):
+            normalized_disposition = "false-negative"
+        else:
+            normalized_disposition = "extra-findings"
+        raw["suite_disposition"] = original_disposition
+        raw["expected"] = expected
+        raw["correct"] = correct
+        raw["ambiguous"] = normalized_disposition == "extra-findings"
+        raw["disposition"] = normalized_disposition
+        return raw
+    if suite == "multilang-adversarial":
+        import dcoir_review_multilang_adversarial_eval as adversarial
+
+        return adversarial.score_case(_suite_case_for_delegate(case), request_result)
+
     if not request_result.get("ok"):
         return {
             "expected": expected,
