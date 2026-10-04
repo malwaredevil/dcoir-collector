@@ -26,7 +26,7 @@ REPORT_SCHEMA = "dcoir_review_repair_candidate_eval_report_v1"
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "openrouter-pr-review-pareto.yml"
 
 
-def _fixture() -> dict[str, Any]:
+def _single_line_fixture() -> dict[str, Any]:
     path = "evaluation/repair_probe.py"
     file_text = (
         "def is_recent(age_minutes: int) -> bool:\n"
@@ -37,8 +37,19 @@ def _fixture() -> dict[str, Any]:
         "id": "repair-upper-bound-one-line",
         "path": path,
         "line": 3,
-        "file_text": file_text,
-        "expected_replacement": "    return age_minutes >= 0 and age_minutes <= 60",
+        "files": {path: file_text},
+        "title": "Upper-bound comparison is inverted",
+        "body": "The documented inclusive 0..60 range is contradicted by a >= 60 upper-bound comparison.",
+        "evidence": "The docstring requires 0 through 60 inclusive, but the changed line uses age_minutes >= 60.",
+        "validation": "python -m py_compile evaluation/repair_probe.py",
+        "expected_edits": [
+            {
+                "path": path,
+                "start_line": 3,
+                "end_line": 3,
+                "replacement": "    return age_minutes >= 0 and age_minutes <= 60",
+            }
+        ],
         "diff": (
             "diff --git a/evaluation/repair_probe.py b/evaluation/repair_probe.py\n"
             "--- a/evaluation/repair_probe.py\n"
@@ -51,8 +62,64 @@ def _fixture() -> dict[str, Any]:
     }
 
 
+def _coordinated_fixture() -> dict[str, Any]:
+    path = "evaluation/repair_pair.py"
+    file_text = (
+        "def cache_is_recent(age_minutes: int) -> bool:\n"
+        "    \"\"\"Return True when cache age is between 0 and 60 inclusive.\"\"\"\n"
+        "    return age_minutes >= 0 and age_minutes >= 60\n"
+        "\n"
+        "def retry_is_recent(age_minutes: int) -> bool:\n"
+        "    \"\"\"Return True when retry age is between 0 and 60 inclusive.\"\"\"\n"
+        "    return age_minutes >= 0 and age_minutes >= 60\n"
+    )
+    return {
+        "id": "repair-coordinated-two-edit",
+        "path": path,
+        "line": 3,
+        "files": {path: file_text},
+        "title": "Both recent-age upper bounds are inverted",
+        "body": (
+            "The two changed helpers implement the same documented inclusive 0..60 contract, "
+            "but both use >= 60 for the upper bound. A complete repair must correct both changed comparisons."
+        ),
+        "evidence": (
+            "Both docstrings require 0 through 60 inclusive, while the changed cache and retry lines "
+            "each use age_minutes >= 60 as the upper-bound term."
+        ),
+        "validation": "python -m py_compile evaluation/repair_pair.py",
+        "expected_edits": [
+            {
+                "path": path,
+                "start_line": 3,
+                "end_line": 3,
+                "replacement": "    return age_minutes >= 0 and age_minutes <= 60",
+            },
+            {
+                "path": path,
+                "start_line": 7,
+                "end_line": 7,
+                "replacement": "    return age_minutes >= 0 and age_minutes <= 60",
+            },
+        ],
+        "diff": (
+            "diff --git a/evaluation/repair_pair.py b/evaluation/repair_pair.py\n"
+            "--- a/evaluation/repair_pair.py\n"
+            "+++ b/evaluation/repair_pair.py\n"
+            "@@ -1,7 +1,7 @@\n"
+            " def cache_is_recent(age_minutes: int) -> bool:\n"
+            "     \"\"\"Return True when cache age is between 0 and 60 inclusive.\"\"\"\n"
+            "+    return age_minutes >= 0 and age_minutes >= 60\n"
+            " \n"
+            " def retry_is_recent(age_minutes: int) -> bool:\n"
+            "     \"\"\"Return True when retry age is between 0 and 60 inclusive.\"\"\"\n"
+            "+    return age_minutes >= 0 and age_minutes >= 60\n"
+        ),
+    }
+
+
 def load_cases() -> list[dict[str, Any]]:
-    return [_fixture()]
+    return [_single_line_fixture(), _coordinated_fixture()]
 
 
 def select_cases(requested: list[str]) -> list[dict[str, Any]]:
@@ -89,20 +156,20 @@ def _candidate_config(review: Any, candidate: dict[str, Any]) -> Any:
 
 def _verified_finding(v21: Any, case: dict[str, Any]) -> dict[str, Any]:
     return {
-        "title": "Upper-bound comparison is inverted",
+        "title": case["title"],
         "severity": "high",
         "confidence": 1.0,
         "path": case["path"],
         "line": case["line"],
-        "body": "The documented inclusive 0..60 range is contradicted by a >= 60 upper-bound comparison.",
+        "body": case["body"],
         "suggested_replacement": "",
-        "validation": "python -m py_compile evaluation/repair_probe.py",
+        "validation": case["validation"],
         v21.VERIFIER_MARKER: {
             "mode": "model-judge",
             "supported": True,
             "confidence": 0.99,
-            "evidence": "The docstring requires 0 through 60 inclusive, but the changed line uses age_minutes >= 60.",
-            "reason": "The changed line contradicts the local function contract.",
+            "evidence": case["evidence"],
+            "reason": case["body"],
             "model_used": "benchmark-verifier",
             "head_sha": "benchmark-head",
             "line": case["line"],
@@ -114,15 +181,35 @@ def score_item(item: dict[str, Any], case: dict[str, Any], repair: Any, v36: Any
     marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
     outcome = str(marker.get("outcome", "") or "")
     edits = marker.get("edits") if isinstance(marker.get("edits"), list) else []
-    expected = case["expected_replacement"]
+    expected = sorted(
+        [
+            {
+                "path": str(edit["path"]),
+                "start_line": int(edit["start_line"]),
+                "end_line": int(edit["end_line"]),
+                "replacement": str(edit["replacement"]),
+            }
+            for edit in case["expected_edits"]
+        ],
+        key=lambda item: (item["path"], item["start_line"], item["end_line"], item["replacement"]),
+    )
+    actual = sorted(
+        [
+            {
+                "path": str(edit.get("path", "")),
+                "start_line": int(edit.get("start_line", 0) or 0),
+                "end_line": int(edit.get("end_line", 0) or 0),
+                "replacement": str(edit.get("replacement", "") or ""),
+            }
+            for edit in edits
+            if isinstance(edit, dict)
+        ],
+        key=lambda item: (item["path"], item["start_line"], item["end_line"], item["replacement"]),
+    )
     correct_edit = (
         outcome == v36.REPAIR_SET_OUTCOME
         and bool(marker.get("critic_accepted"))
-        and len(edits) == 1
-        and edits[0].get("path") == case["path"]
-        and int(edits[0].get("start_line", 0) or 0) == case["line"]
-        and int(edits[0].get("end_line", 0) or 0) == case["line"]
-        and edits[0].get("replacement") == expected
+        and actual == expected
     )
     unsafe_accept = outcome == v36.REPAIR_SET_OUTCOME and not correct_edit
     return {
@@ -153,7 +240,7 @@ def _percentile(values: list[float], pct: float) -> float:
 
 def _run_case(review: Any, v21: Any, repair: Any, v36: Any, candidate: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
     config = _candidate_config(review, candidate)
-    file_map = {case["path"]: case["file_text"]}
+    file_map = dict(case["files"])
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
     review.fetch_pr_file_text = lambda _gh, path, _head: file_map[path]
@@ -277,3 +364,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+[executed on device: JOHNZ_ZEPH (03460125-3055-454f-8769-64b8b7c16fa5)]
