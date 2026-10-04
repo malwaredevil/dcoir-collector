@@ -44,19 +44,25 @@ def main() -> None:
         "opus5-high",
         "sonnet5-high",
         "opus5.5-xhigh",
+        "opus5.5-xhigh-prod-temp",
         "sonnet5.5-high",
+        "sonnet5.5-high-prod-temp",
         "gpt6.1-sol-high",
         "gpt6.1-sol-pro",
         "gpt6-astra-xhigh",
+        "gpt6-astra-xhigh-prod-temp",
         "qwen3.8-max",
         "glm5.3-high",
+        "glm5.3-high-prod-temp",
         "deepseek-v4-pro-0813-high",
         "kimi-k3",
         "gemini3.8-flash-high",
         "glm5.3-flash-high",
         "gpt6-luna-high",
+        "gpt6-luna-high-prod-temp",
         "deepseek-v4.1-flash",
         "mimo-v2.6-flash",
+        "mimo-v2.6-flash-prod-high-temp",
         "kimi-k2.6",
         "auto-max",
         "pareto-code-080",
@@ -90,6 +96,15 @@ def main() -> None:
         "kimi-k3",
         "mimo-v2.6-flash",
     ]
+    compatibility_selector = "opus5.5-xhigh-prod-temp,sonnet5.5-high-prod-temp,gpt6-astra-xhigh-prod-temp,glm5.3-high-prod-temp,gpt6-luna-high-prod-temp,mimo-v2.6-flash-prod-high-temp"
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, compatibility_selector)] == [
+        "opus5.5-xhigh-prod-temp",
+        "sonnet5.5-high-prod-temp",
+        "gpt6-astra-xhigh-prod-temp",
+        "glm5.3-high-prod-temp",
+        "gpt6-luna-high-prod-temp",
+        "mimo-v2.6-flash-prod-high-temp",
+    ]
     recommended_ids = {item["id"] for item in evaluation.selected_candidates(matrix, "recommended")}
     assert {"deepseek-v4-pro-0813-high", "kimi-k3", "mimo-v2.6-flash"}.isdisjoint(recommended_ids)
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
@@ -111,7 +126,7 @@ def main() -> None:
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 336
+        assert plan["case_counts"]["planned_total_requests"] == 432
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -164,6 +179,24 @@ def main() -> None:
     assert "opus5-xhigh-no-temp" not in {
         item["id"] for item in evaluation.selected_candidates(matrix, "recommended")
     }
+
+    compatibility_ids = {
+        "opus5.5-xhigh-prod-temp",
+        "sonnet5.5-high-prod-temp",
+        "gpt6-astra-xhigh-prod-temp",
+        "glm5.3-high-prod-temp",
+        "gpt6-luna-high-prod-temp",
+        "mimo-v2.6-flash-prod-high-temp",
+    }
+    assert compatibility_ids.isdisjoint({
+        item["id"] for item in evaluation.selected_candidates(matrix, "recommended")
+    })
+    for compatibility_id in compatibility_ids:
+        probe = evaluation.candidate_by_id(matrix, compatibility_id)
+        probe_payload = evaluation.build_payload(probe, lane_case, system_prompt, schema, contract)
+        assert probe_payload["temperature"] == 0.2
+        assert probe_payload["reasoning"]["enabled"] is True
+        assert probe_payload["reasoning"]["effort"] in {"high", "xhigh"}
 
     high = evaluation.candidate_by_id(matrix, "opus5-high")
     high_payload = evaluation.build_payload(high, lane_case, system_prompt, schema, contract)
@@ -391,7 +424,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "21 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
+        "27 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 
