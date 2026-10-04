@@ -303,20 +303,13 @@ DCOIR Review has a small, explicit tool surface.
 | Batch/Response Cache | not used for governed live review |
 | Ori Eval | not integrated |
 
-## Proposed production implementation scope
+## Remaining post-implementation validation and review scope
 
-No production change is made by this report. If the operator approves implementation, the intended bounded change is:
+The production refresh is implemented on this evaluation branch. The remaining work is validation and governed review, not approval to implement:
 
-1. Re-anchor the evaluation branch to current `main`.
-2. Update the production model configuration for Opus 5.5 / Sonnet 5.5.
-3. Add/adjust the canonical reasoning payload policy to remove unsupported temperature for promoted Anthropic adaptive-reasoning requests.
-4. Add a canonical repair-author model policy rather than inheriting the global detector stack.
-5. Update repair critic constants to Opus 5.5 / Sonnet 5.5 where those are the Anthropic critic roles; keep Sol Pro/Terra.
-6. Preserve every existing verifier, exact-head, publication, and independence gate.
-7. Add/update selftests for model mapping, request shape, cross-family critic routing, and rollback.
-8. Run exact-head repository validation.
-9. Run a controlled post-change review/repair replay and capture real stage telemetry, including repair-author cost.
-10. Complete the governed independent-review gates before readiness/merge.
+1. Complete exact-head repository validation for the production model mapping, request shape, repair-author routing, critic routing, and rollback behavior.
+2. Run a controlled post-change review/repair replay and capture real stage telemetry, including repair-author cost, only when separately authorized.
+3. Complete the governed independent-review gates before readiness or merge.
 
 ## Rollback target
 
@@ -334,4 +327,4 @@ Implementation should keep the rollback as a small model/config/policy revert ra
 
 **Paid benchmarking is complete.**
 
-The next step is not another model tournament. The next step is an operator decision on whether to implement the recommended production mapping above. After implementation, only validation/replay/review evidence should remain before closing #591 and returning to product work.
+No further model tournament or implementation decision is needed. Complete validation and governed review; only after those gates pass can #591 be considered for closure and product work resume.

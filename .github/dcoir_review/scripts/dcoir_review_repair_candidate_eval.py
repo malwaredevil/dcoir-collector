@@ -322,6 +322,7 @@ def _run_case(review: Any, v21: Any, repair: Any, v36: Any, candidate: dict[str,
             right_index,
             config,
             dict(file_map),
+            author_config_override=config,
         )
         score = score_item(item, case, repair, v36)
         error = ""

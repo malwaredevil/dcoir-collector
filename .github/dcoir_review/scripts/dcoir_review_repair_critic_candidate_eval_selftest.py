@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import dcoir_review_repair_critic_candidate_eval as target
 
 
@@ -24,6 +26,56 @@ def main() -> None:
     )
     assert plan["case_counts"]["selected_cases"] == 3
     assert plan["case_counts"]["planned_total_requests"] == 6
+
+    try:
+        target.run_live([], [], timeout_seconds=0)
+    except ValueError as exc:
+        assert "positive" in str(exc)
+    else:
+        raise AssertionError("nonpositive request timeout should fail before live execution")
+
+    captured_configs = []
+
+    def base_builder(_prompt, _schema, _config, _ignored, model):
+        return {"model": model}
+
+    def fake_openrouter_review(_prompt, _schema, config, reporter=None):
+        captured_configs.append(config)
+        return {"accepted": True}, "vendor/a", ""
+
+    review = SimpleNamespace(
+        hardened=SimpleNamespace(
+            build_openrouter_payload=base_builder,
+            openrouter_review=fake_openrouter_review,
+        )
+    )
+    v21 = SimpleNamespace(VERIFIER_MARKER="_verifier")
+    v36 = SimpleNamespace(
+        REPAIR_SET_CRITIC_SCHEMA={},
+        _repair_critic_prompt=lambda *_args: "critic prompt",
+        _parse_critic=lambda raw, _hardened: (raw["accepted"], 0.99, "accepted"),
+    )
+    original_candidate_config = target._candidate_config
+    target._candidate_config = lambda _review, _candidate: SimpleNamespace(
+        model="vendor/a",
+        model_stack=["vendor/a"],
+        fallback_models=[],
+        openrouter_route="",
+        openrouter_service_tier="",
+        openrouter_session_id_prefix="benchmark",
+    )
+    try:
+        target._run_case(
+            review,
+            v21,
+            v36,
+            {"id": "a", "model": "vendor/a"},
+            cases[0],
+            timeout_seconds=37,
+        )
+    finally:
+        target._candidate_config = original_candidate_config
+    assert captured_configs[0].openrouter_request_timeout_seconds == 37
 
     def base_builder(_prompt, _schema, _config, _ignored, model):
         return {"model": model, "temperature": 0.2}

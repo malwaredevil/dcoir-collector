@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import copy
 import importlib
 from pathlib import Path
 
@@ -235,6 +236,12 @@ def main() -> None:
     review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
     pipeline_reporter = _PipelineReporter()
+    benchmark_author_config = copy.copy(config)
+    benchmark_author_config.model = "openai/gpt-6-astra"
+    benchmark_author_config.model_stack = ["openai/gpt-6-astra"]
+    benchmark_author_config.fallback_models = []
+    benchmark_author_config.openrouter_route = ""
+    benchmark_author_config.openrouter_service_tier = ""
     try:
         pipeline_result = review.synthesize_fixes_for_findings(
             [pipeline_finding],
@@ -243,6 +250,18 @@ def main() -> None:
             {},
             config,
             pipeline_reporter,
+        )
+        v36._build_repair_set_for_finding(
+            review,
+            1,
+            pipeline_finding,
+            _FakeGH(),
+            "deadbeef",
+            pipeline_diff,
+            review.base.build_diff_line_index(pipeline_diff),
+            config,
+            {"probe.py": "x = 1\ny = 2\nz = x + y\n"},
+            author_config_override=benchmark_author_config,
         )
     finally:
         repair.synthesize_verified_repairs = original_public_synth
@@ -259,8 +278,22 @@ def main() -> None:
     assert pipeline_marker["native_suggestion_count"] == 1
     assert pipeline_marker["author_model"] == "anthropic/claude-opus-5"
     assert pipeline_marker["critic_model"] == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
-    assert model_calls[0][0] == "DCOIR Verified Repair Set Author"
+    assert model_calls[0] == (
+        "DCOIR Verified Repair Set Author",
+        repair_policy.build_repair_author_config(config).model_stack,
+    )
     assert model_calls[1] == (
+        "DCOIR Verified Repair Set Critic",
+        [
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ],
+    )
+    assert model_calls[2] == (
+        "DCOIR Verified Repair Set Author",
+        ["openai/gpt-6-astra"],
+    )
+    assert model_calls[3] == (
         "DCOIR Verified Repair Set Critic",
         [
             repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,

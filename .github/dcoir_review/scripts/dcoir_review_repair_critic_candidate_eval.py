@@ -119,9 +119,17 @@ def score_response(expected_accept: bool, accepted: bool) -> dict[str, bool]:
     }
 
 
-def _run_case(review: Any, v21: Any, v36: Any, candidate: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
+def _run_case(
+    review: Any,
+    v21: Any,
+    v36: Any,
+    candidate: dict[str, Any],
+    spec: dict[str, Any],
+    timeout_seconds: int,
+) -> dict[str, Any]:
     case = spec["case"]
     config = _candidate_config(review, candidate)
+    config.openrouter_request_timeout_seconds = timeout_seconds
     finding = repair_eval._verified_finding(v21, case)
     author = spec["author"]
     file_cache = dict(case["files"])
@@ -179,7 +187,13 @@ def _percentile(values: list[float], pct: float) -> float:
     return ordered[lo] + (ordered[hi] - ordered[lo]) * fraction
 
 
-def run_live(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[str, Any]:
+def run_live(
+    candidates: list[dict[str, Any]],
+    cases: list[dict[str, Any]],
+    timeout_seconds: int = 300,
+) -> dict[str, Any]:
+    if timeout_seconds <= 0:
+        raise ValueError("Request timeout must be a positive number of seconds")
     if not os.environ.get("OPENROUTER_API_KEY", "").strip():
         raise RuntimeError("OPENROUTER_API_KEY is required only for --execute-live")
     review = importlib.import_module("openrouter_pr_review_pareto_context")
@@ -189,7 +203,10 @@ def run_live(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> d
 
     rows: list[dict[str, Any]] = []
     for candidate in candidates:
-        results = [_run_case(review, v21, v36, candidate, spec) for spec in cases]
+        results = [
+            _run_case(review, v21, v36, candidate, spec, timeout_seconds)
+            for spec in cases
+        ]
         failures = [
             row["case_id"]
             for row in results
@@ -253,12 +270,17 @@ def main() -> int:
     parser.add_argument("--execute-live", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    del args.timeout_seconds
+    if args.timeout_seconds <= 0:
+        parser.error("--timeout-seconds must be a positive number of seconds")
 
     matrix = first_pass.load_matrix()
     candidates = first_pass.selected_candidates(matrix, args.candidate)
     cases = select_cases([str(item).strip() for item in args.case if str(item).strip()])
-    report = run_live(candidates, cases) if args.execute_live else plan(candidates, cases)
+    report = (
+        run_live(candidates, cases, timeout_seconds=args.timeout_seconds)
+        if args.execute_live
+        else plan(candidates, cases)
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True))
