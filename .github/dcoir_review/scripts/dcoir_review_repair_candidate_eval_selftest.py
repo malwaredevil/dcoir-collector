@@ -31,6 +31,7 @@ def main() -> None:
     assert [case["id"] for case in cases] == [
         "repair-upper-bound-one-line",
         "repair-coordinated-two-edit",
+        "repair-pr581-urlopen-false-positive",
     ]
 
     selected = repair_eval.select_cases(["repair-coordinated-two-edit"])
@@ -46,7 +47,7 @@ def main() -> None:
     repair = SimpleNamespace(REPAIR_MARKER="_repair")
     v36 = SimpleNamespace(REPAIR_SET_OUTCOME="verified-repair-set")
 
-    for case in cases:
+    for case in cases[:2]:
         item = {"_repair": _marker_from_expected(case)}
         score = repair_eval.score_item(item, case, repair, v36)
         assert score["correct"] is True and score["unsafe_accept"] is False
@@ -55,6 +56,17 @@ def main() -> None:
         bad = {"_repair": dict(item["_repair"], edits=partial_edits)}
         score = repair_eval.score_item(bad, case, repair, v36)
         assert score["correct"] is False and score["unsafe_accept"] is True
+
+    historical = cases[2]
+    suppressed = {"_repair": {"outcome": "defect-absent-suppressed", "edits": []}}
+    score = repair_eval.score_item(suppressed, historical, repair, v36)
+    assert score["correct"] is True and score["unsafe_accept"] is False
+
+    bad_patch = {"_repair": {"outcome": "verified-repair-set", "critic_accepted": True, "edits": [
+        {"path": historical["path"], "start_line": historical["line"], "end_line": historical["line"], "replacement": "pass"}
+    ]}}
+    score = repair_eval.score_item(bad_patch, historical, repair, v36)
+    assert score["correct"] is False and score["unsafe_accept"] is True
 
     print("dcoir_review_repair_candidate_eval_selftest passed")
 
