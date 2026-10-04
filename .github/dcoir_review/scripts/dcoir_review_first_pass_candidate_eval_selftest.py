@@ -140,6 +140,57 @@ def main() -> None:
         "pr581-usb-complete-field-value",
     }
 
+    production_suite_expectations = {
+        "prmutation-all": (12, "prmutation--", "pr-mutation"),
+        "prprecision-all": (10, "prprecision--", "pr-precision-v12"),
+        "multilang-all": (40, "multilang--", "multilang-adversarial"),
+    }
+    for selector, (expected_count, prefix, suite_name) in production_suite_expectations.items():
+        suite_cases, suite_complete = evaluation.resolve_case_selection(matrix, [selector])
+        assert suite_complete is True
+        assert len(suite_cases) == expected_count
+        assert all(str(case["id"]).startswith(prefix) for case in suite_cases)
+        assert all(case["_suite"] == suite_name for case in suite_cases)
+        suite_plan = evaluation.plan_report(matrix, suite_cases, candidates[:1])
+        assert suite_plan["mode"] == "plan-no-network"
+        assert suite_plan["network_calls"] == 0
+        assert suite_plan["no_publication"] is True
+        assert suite_plan["case_counts"]["production_shaped_cases"] == expected_count
+        assert suite_plan["case_counts"]["planned_total_requests"] == expected_count
+        subset, subset_complete = evaluation.resolve_case_selection(matrix, [suite_cases[0]["id"]])
+        assert len(subset) == 1
+        assert subset_complete is False
+
+    mutation_cases, _ = evaluation.resolve_case_selection(matrix, ["prmutation-all"])
+    mutation_prompt = evaluation.build_case_prompt(mutation_cases[0])
+    assert "Repository: DCOIR-Collector/dcoir-collector" in mutation_prompt
+    assert "Unified diff:" in mutation_prompt
+    assert "expected_findings" not in mutation_prompt
+    assert "ground_truth" not in mutation_prompt.lower()
+    mutation_error_score = evaluation.score_case(
+        mutation_cases[0],
+        {"ok": False},
+    )
+    assert mutation_error_score["expected"] in {"finding", "clean"}
+    assert mutation_error_score["disposition"] == "request-error"
+
+    precision_cases, _ = evaluation.resolve_case_selection(matrix, ["prprecision-all"])
+    precision_prompt = evaluation.build_case_prompt(precision_cases[0])
+    assert "Repository: DCOIR-Collector/dcoir-collector" in precision_prompt
+    assert "Trusted repository guidance:" in precision_prompt
+    precision_clean_score = evaluation.score_case(
+        precision_cases[0],
+        {"ok": True, "result": {"findings": []}},
+    )
+    assert precision_clean_score["expected"] == "clean"
+    assert precision_clean_score["correct"] is True
+    assert precision_clean_score["disposition"] == "clean"
+
+    multilang_cases, _ = evaluation.resolve_case_selection(matrix, ["multilang-all"])
+    multilang_prompt = evaluation.build_case_prompt(multilang_cases[0])
+    assert "Evaluation-only adversarial first-pass semantic review case." in multilang_prompt
+    assert "ground-truth" not in multilang_prompt.lower()
+
     old_key = os.environ.pop("OPENROUTER_API_KEY", None)
     try:
         plan = evaluation.plan_report(matrix, cases, candidates)
