@@ -189,7 +189,8 @@ def main() -> None:
     multilang_cases, _ = evaluation.resolve_case_selection(matrix, ["multilang-all"])
     multilang_prompt = evaluation.build_case_prompt(multilang_cases[0])
     assert "Evaluation-only adversarial first-pass semantic review case." in multilang_prompt
-    assert "ground-truth" not in multilang_prompt.lower()
+    assert "finding_term_groups" not in multilang_prompt
+    assert "_suite_original_id" not in multilang_prompt
 
     old_key = os.environ.pop("OPENROUTER_API_KEY", None)
     try:
