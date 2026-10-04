@@ -725,6 +725,9 @@ def plan_report(matrix: dict[str, Any], cases: list[dict[str, Any]], candidates:
             "generalized_expected_findings": sum(1 for item in generalized if item.get("expected") == "finding"),
             "generalized_expected_clean": sum(1 for item in generalized if item.get("expected") == "clean"),
             "naturalistic_known_defects": len(naturalistic),
+            "production_shaped_cases": sum(
+                1 for item in cases if str(item.get("_suite", "") or "")
+            ),
             "total_per_candidate": len(cases),
             "planned_total_requests": len(cases) * len(candidates),
         },
@@ -738,6 +741,7 @@ def run_live(
     candidates: list[dict[str, Any]],
     *,
     timeout_seconds: int,
+    selection_complete: bool | None = None,
 ) -> dict[str, Any]:
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
@@ -766,7 +770,9 @@ def run_live(
                     "score": score,
                 }
             )
-        candidate_reports.append(aggregate_candidate(candidate, case_results))
+        candidate_reports.append(
+            aggregate_candidate(candidate, case_results, selection_complete=selection_complete)
+        )
     return {
         "schema_version": REPORT_SCHEMA,
         "mode": "live-no-publication",
@@ -804,22 +810,25 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(list(sys.argv[1:] if argv is None else argv))
     matrix = load_matrix()
-    cases = load_cases(matrix)
     candidates = selected_candidates(matrix, args.candidate)
-    if args.case:
-        wanted = set(args.case)
-        available = {str(item["id"]) for item in cases}
-        missing = sorted(wanted - available)
-        if missing:
-            raise SystemExit(f"Unknown case id(s): {', '.join(missing)}")
-        cases = [item for item in cases if item["id"] in wanted]
+    try:
+        cases, selection_complete = resolve_case_selection(matrix, list(args.case))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if not cases:
         raise SystemExit("No evaluation cases selected")
 
     if args.execute_live:
-        report = run_live(matrix, cases, candidates, timeout_seconds=max(1, args.timeout_seconds))
+        report = run_live(
+            matrix,
+            cases,
+            candidates,
+            timeout_seconds=max(1, args.timeout_seconds),
+            selection_complete=selection_complete,
+        )
     else:
         report = plan_report(matrix, cases, candidates)
+        report["selection_complete"] = selection_complete
 
     rendered = json.dumps(report, indent=2, sort_keys=True)
     if args.output is not None:
