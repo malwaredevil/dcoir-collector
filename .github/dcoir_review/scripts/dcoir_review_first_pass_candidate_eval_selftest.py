@@ -96,6 +96,14 @@ def main() -> None:
         "kimi-k3",
         "mimo-v2.6-flash",
     ]
+    advisor = evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5")
+    assert advisor["explicit_only"] is True
+    assert "mimo-v2.6-flash-advisor-opus5.5" not in {
+        item["id"] for item in evaluation.selected_candidates(matrix, "all")
+    }
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "mimo-v2.6-flash-advisor-opus5.5")] == [
+        "mimo-v2.6-flash-advisor-opus5.5"
+    ]
     compatibility_selector = "opus5.5-xhigh-prod-temp,sonnet5.5-high-prod-temp,gpt6-astra-xhigh-prod-temp,glm5.3-high-prod-temp,gpt6-luna-high-prod-temp,mimo-v2.6-flash-prod-high-temp"
     assert [item["id"] for item in evaluation.selected_candidates(matrix, compatibility_selector)] == [
         "opus5.5-xhigh-prod-temp",
@@ -140,6 +148,61 @@ def main() -> None:
     system_prompt = evaluation.SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     schema = evaluation.load_json(evaluation.REVIEW_SCHEMA_PATH)
     contract = matrix["request_contract"]
+    serialized_case = next(case for case in generalized if case["id"] == "serialized-marker-variant")
+    advisor_payload = evaluation.build_payload(
+        evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5"),
+        serialized_case,
+        system_prompt,
+        schema,
+        contract,
+    )
+    assert advisor_payload["model"] == "xiaomi/mimo-v2.6-flash"
+    assert advisor_payload["tool_choice"] == "required"
+    assert advisor_payload["tools"] == [{
+        "type": "openrouter:advisor",
+        "parameters": {
+            "name": "semantic-reviewer",
+            "model": "anthropic/claude-opus-5.5",
+            "instructions": "Independently assess the supplied implementation and correctness contract. Identify only demonstrable semantic defects and give concise evidence to the executor.",
+        },
+    }]
+    evaluation.validate_candidate_case_scope(
+        evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5"),
+        [serialized_case],
+    )
+    try:
+        evaluation.validate_candidate_case_scope(
+            evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5"),
+            [next(case for case in generalized if case["id"] != "serialized-marker-variant")],
+        )
+    except ValueError as exc:
+        assert "evaluation-scoped" in str(exc)
+    else:
+        raise AssertionError("Advisor probe must fail closed outside its synthetic case allowlist")
+
+    invalid_tool_candidate = dict(evaluation.candidate_by_id(matrix, "mimo-v2.6-flash"))
+    invalid_tool_candidate["id"] = "invalid-tool"
+    invalid_tool_candidate["tools"] = [{"type": "openrouter:shell"}]
+    try:
+        evaluation.build_payload(invalid_tool_candidate, serialized_case, system_prompt, schema, contract)
+    except ValueError as exc:
+        assert "openrouter:advisor" in str(exc)
+    else:
+        raise AssertionError("Non-Advisor server tools must fail closed in this evaluator")
+
+    alias_advisor_candidate = dict(evaluation.candidate_by_id(matrix, "mimo-v2.6-flash"))
+    alias_advisor_candidate["id"] = "alias-advisor"
+    alias_advisor_candidate["tools"] = [{
+        "type": "openrouter:advisor",
+        "parameters": {"model": "~anthropic/claude-opus-latest"},
+    }]
+    try:
+        evaluation.build_payload(alias_advisor_candidate, serialized_case, system_prompt, schema, contract)
+    except ValueError as exc:
+        assert "pinned non-alias" in str(exc)
+    else:
+        raise AssertionError("Mutable Advisor model aliases must fail closed")
+
     lane_case = next(case for case in naturalistic if case["id"] == "pr448-lane-separation-binding")
     assert "def _iter_clauses" in lane_case["source"]
     assert "def _clause_has_endpoint_lane" in lane_case["source"]
