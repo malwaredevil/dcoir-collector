@@ -25,6 +25,15 @@ def main() -> None:
     assert plan["case_counts"]["selected_cases"] == 3
     assert plan["case_counts"]["planned_total_requests"] == 6
 
+    def base_builder(_prompt, _schema, _config, _ignored, model):
+        return {"model": model, "temperature": 0.2}
+
+    no_temp = target.repair_eval._candidate_payload_builder(
+        base_builder,
+        {"id": "astra", "model": "openai/gpt-6-astra", "temperature": None},
+    )
+    assert "temperature" not in no_temp("", {}, None, [], "openai/gpt-6-astra")
+
     complete = cases[0]["author"]["edits"]
     partial = cases[1]["author"]["edits"]
     extra = cases[2]["author"]["edits"]
