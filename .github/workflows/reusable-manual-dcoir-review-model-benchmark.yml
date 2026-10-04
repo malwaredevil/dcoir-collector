@@ -82,10 +82,13 @@ jobs:
             .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py \
             .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py \
             .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval_selftest.py \
             .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
             .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
 
       - name: Validate execution inputs
@@ -94,7 +97,7 @@ jobs:
           set -euo pipefail
           [[ "$MAX_REQUESTS" =~ ^[1-9][0-9]*$ ]] || { echo "max_requests must be a positive integer" >&2; exit 2; }
           [[ "$TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || { echo "timeout_seconds must be a positive integer" >&2; exit 2; }
-          [[ "$BENCHMARK_STAGE" == "first-pass" || "$BENCHMARK_STAGE" == "repair" ]] || { echo "benchmark_stage must be first-pass or repair" >&2; exit 2; }
+          [[ "$BENCHMARK_STAGE" == "first-pass" || "$BENCHMARK_STAGE" == "repair" || "$BENCHMARK_STAGE" == "repair-critic" ]] || { echo "benchmark_stage must be first-pass, repair, or repair-critic" >&2; exit 2; }
           if [[ "$EXECUTE_LIVE" == "true" && "$CONFIRM_PAID_EXECUTION" != "true" ]]; then
             echo "Paid-live execution requires confirm_paid_execution=true." >&2
             exit 2
@@ -117,6 +120,7 @@ jobs:
           fi
           evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
           if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
+          if [[ "$BENCHMARK_STAGE" == "repair-critic" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py; fi
           python "$evaluator" \
             --candidate "$CANDIDATE_SELECTOR" \
             --timeout-seconds "$TIMEOUT_SECONDS" \
@@ -157,6 +161,7 @@ jobs:
           fi
           evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
           if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
+          if [[ "$BENCHMARK_STAGE" == "repair-critic" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py; fi
           python "$evaluator" \
             --candidate "$CANDIDATE_SELECTOR" \
             --timeout-seconds "$TIMEOUT_SECONDS" \
