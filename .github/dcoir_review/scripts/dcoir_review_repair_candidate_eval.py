@@ -16,8 +16,10 @@ import os
 from pathlib import Path
 import statistics
 import time
+from types import SimpleNamespace
 from typing import Any
 
+from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_first_pass_candidate_eval as first_pass
 
@@ -182,23 +184,34 @@ def _candidate_config(review: Any, candidate: dict[str, Any]) -> Any:
     config = copy.copy(review.load_pareto_context_config(str(CONFIG_PATH)))
     config.model = model
     config.model_stack = [model]
-    effort = str(candidate.get("reasoning_effort", "") or "").strip()
-    if effort:
-        config.review_reasoning_effort = effort
+    # One billed request per model attempt keeps the plan's request count a true
+    # upper bound for the workflow's paid request cap, matching the first-pass
+    # evaluator. The candidate's reasoning shape is applied per request by
+    # _candidate_payload_builder so critic requests keep the production shape.
+    config.openrouter_max_attempts = 1
     config.openrouter_session_id_prefix = "dcoir-review-repair-benchmark"
     config.debug = False
     return config
 
 
 def _candidate_payload_builder(base_builder: Any, candidate: dict[str, Any]) -> Any:
-    """Apply only the selected candidate's benchmark request-shape overrides."""
+    """Apply only the selected candidate's benchmark request-shape overrides.
+
+    The candidate's declared temperature and reasoning effort mirror the
+    first-pass evaluator's request shape; other models are left untouched.
+    """
     candidate_model = str(candidate.get("model", "") or "").strip()
     candidate_temperature = candidate.get("temperature")
+    candidate_effort = str(candidate.get("reasoning_effort", "") or "").strip()
 
     def build(prompt: str, schema: dict[str, Any], config: Any, ignored_providers: Any, model: Any) -> dict[str, Any]:
         payload = base_builder(prompt, schema, config, ignored_providers, model)
         if str(model or "").strip() != candidate_model:
             return payload
+        if candidate_effort:
+            payload["reasoning"] = {"enabled": True, "effort": candidate_effort, "exclude": True}
+        else:
+            payload.pop("reasoning", None)
         if candidate_temperature is None:
             payload.pop("temperature", None)
         else:
@@ -300,8 +313,17 @@ def _percentile(values: list[float], pct: float) -> float:
     return ordered[lo] + (ordered[hi] - ordered[lo]) * fraction
 
 
-def _run_case(review: Any, v21: Any, repair: Any, v36: Any, candidate: dict[str, Any], case: dict[str, Any]) -> dict[str, Any]:
+def _run_case(
+    review: Any,
+    v21: Any,
+    repair: Any,
+    v36: Any,
+    candidate: dict[str, Any],
+    case: dict[str, Any],
+    timeout_seconds: int,
+) -> dict[str, Any]:
     config = _candidate_config(review, candidate)
+    config.openrouter_request_timeout_seconds = timeout_seconds
     file_map = dict(case["files"])
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
@@ -346,7 +368,13 @@ def _run_case(review: Any, v21: Any, repair: Any, v36: Any, candidate: dict[str,
     }
 
 
-def run_live(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[str, Any]:
+def run_live(
+    candidates: list[dict[str, Any]],
+    cases: list[dict[str, Any]],
+    timeout_seconds: int = 300,
+) -> dict[str, Any]:
+    if timeout_seconds <= 0:
+        raise ValueError("Request timeout must be a positive number of seconds")
     if not os.environ.get("OPENROUTER_API_KEY", "").strip():
         raise RuntimeError("OPENROUTER_API_KEY is required only for --execute-live")
     review = importlib.import_module("openrouter_pr_review_pareto_context")
@@ -357,7 +385,10 @@ def run_live(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> d
 
     rows: list[dict[str, Any]] = []
     for candidate in candidates:
-        case_results = [_run_case(review, v21, repair, v36, candidate, case) for case in cases]
+        case_results = [
+            _run_case(review, v21, repair, v36, candidate, case, timeout_seconds)
+            for case in cases
+        ]
         failures = [r["case_id"] for r in case_results if not r["score"].get("correct") and not r["score"].get("unsafe_accept") and not r.get("error")]
         unsafe = [r["case_id"] for r in case_results if r["score"].get("unsafe_accept")]
         errors = [r["case_id"] for r in case_results if r.get("error")]
@@ -394,6 +425,14 @@ def run_live(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> d
     }
 
 
+def max_requests_per_case(candidate: dict[str, Any]) -> int:
+    """Worst-case billed requests for one case: one author call plus every critic fallback."""
+    critic_config = repair_policy.build_repair_critic_config(
+        SimpleNamespace(), str(candidate.get("model", "") or "")
+    )
+    return 1 + len(critic_config.model_stack)
+
+
 def plan(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "schema_version": REPORT_SCHEMA,
@@ -404,7 +443,10 @@ def plan(candidates: list[dict[str, Any]], cases: list[dict[str, Any]]) -> dict[
         "case_ids": [str(case["id"]) for case in cases],
         "case_counts": {
             "selected_cases": len(cases),
-            "planned_total_requests": len(candidates) * len(cases) * 2,
+            "planned_total_requests": sum(
+                max_requests_per_case(candidate) for candidate in candidates
+            )
+            * len(cases),
         },
     }
 
@@ -417,12 +459,17 @@ def main() -> int:
     parser.add_argument("--execute-live", action="store_true")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    del args.timeout_seconds
+    if args.timeout_seconds <= 0:
+        parser.error("--timeout-seconds must be a positive number of seconds")
 
     matrix = first_pass.load_matrix()
     candidates = first_pass.selected_candidates(matrix, args.candidate)
     cases = select_cases([str(item).strip() for item in args.case if str(item).strip()])
-    report = run_live(candidates, cases) if args.execute_live else plan(candidates, cases)
+    report = (
+        run_live(candidates, cases, timeout_seconds=args.timeout_seconds)
+        if args.execute_live
+        else plan(candidates, cases)
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2, sort_keys=True))

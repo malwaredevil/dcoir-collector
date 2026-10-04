@@ -11,6 +11,7 @@ operator-controlled action outside this script; normal invocation without
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
 from pathlib import Path
@@ -113,20 +114,26 @@ PRODUCTION_SUITE_SELECTORS = {
     "multilang-all": ("multilang-adversarial", "multilang--"),
 }
 
+# The production-shaped suite evaluators reuse this module's request and scoring
+# primitives (they import it as ``base``). Resolve them by name at call time so
+# this module never statically imports a module that imports it back.
+_MUTATION_EVAL_MODULE = "dcoir_review_pr_mutation_eval"
+_PRECISION_EVAL_MODULE = "dcoir_review_pr_precision_eval"
+_PRECISION_V12_EVAL_MODULE = "dcoir_review_pr_precision_eval_v12"
+_MULTILANG_EVAL_MODULE = "dcoir_review_multilang_adversarial_eval"
+
+
+def _suite_module(module_name: str) -> Any:
+    return importlib.import_module(module_name)
+
 
 def _load_production_suite_cases(suite: str) -> list[dict[str, Any]]:
     if suite == "pr-mutation":
-        import dcoir_review_pr_mutation_eval as mutation
-
-        raw_cases = mutation.load_cases()
+        raw_cases = _suite_module(_MUTATION_EVAL_MODULE).load_cases()
     elif suite == "pr-precision-v12":
-        import dcoir_review_pr_precision_eval_v12 as precision_v12
-
-        raw_cases = precision_v12.load_v12_cases()
+        raw_cases = _suite_module(_PRECISION_V12_EVAL_MODULE).load_v12_cases()
     elif suite == "multilang-adversarial":
-        import dcoir_review_multilang_adversarial_eval as adversarial
-
-        _, raw_cases = adversarial.load_cases()
+        _, raw_cases = _suite_module(_MULTILANG_EVAL_MODULE).load_cases()
     else:
         raise ValueError(f"Unknown production evaluation suite: {suite}")
     cases: list[dict[str, Any]] = []
@@ -269,16 +276,13 @@ def validate_candidate_case_scope(candidate: dict[str, Any], cases: list[dict[st
 def build_case_prompt(case: dict[str, Any]) -> str:
     suite = str(case.get("_suite", "") or "")
     if suite == "pr-mutation":
-        import dcoir_review_pr_mutation_eval as mutation
-
+        mutation = _suite_module(_MUTATION_EVAL_MODULE)
         return mutation.build_pr_prompt(_suite_case_for_delegate(case))
     if suite == "pr-precision-v12":
-        import dcoir_review_pr_precision_eval as precision
-
+        precision = _suite_module(_PRECISION_EVAL_MODULE)
         return precision.build_pr_prompt(_suite_case_for_delegate(case))
     if suite == "multilang-adversarial":
-        import dcoir_review_multilang_adversarial_eval as adversarial
-
+        adversarial = _suite_module(_MULTILANG_EVAL_MODULE)
         return adversarial.build_case_prompt(_suite_case_for_delegate(case))
 
     case_id = str(case["id"])
@@ -557,8 +561,7 @@ def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str
     suite = str(case.get("_suite", "") or "")
     expected = str(case.get("expected", ""))
     if suite in {"pr-mutation", "pr-precision-v12"}:
-        import dcoir_review_pr_mutation_eval as mutation
-
+        mutation = _suite_module(_MUTATION_EVAL_MODULE)
         raw = dict(mutation.score_case(_suite_case_for_delegate(case), request_result))
         original_disposition = str(raw.get("disposition", "") or "")
         correct = bool(raw.get("correct"))
@@ -579,8 +582,7 @@ def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str
         raw["disposition"] = normalized_disposition
         return raw
     if suite == "multilang-adversarial":
-        import dcoir_review_multilang_adversarial_eval as adversarial
-
+        adversarial = _suite_module(_MULTILANG_EVAL_MODULE)
         return adversarial.score_case(_suite_case_for_delegate(case), request_result)
 
     if not request_result.get("ok"):

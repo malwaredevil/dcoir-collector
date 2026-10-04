@@ -271,6 +271,9 @@ def main() -> None:
     assert "def _iter_clauses" in lane_case["source"]
     assert "def _clause_has_endpoint_lane" in lane_case["source"]
     assert "def _clause_has_local_lane" in lane_case["source"]
+    # The frozen specimen must reproduce the referenced source's clause splitter
+    # exactly; a double-escaped regex would inject an unrelated defect.
+    assert 're.split(r"(?:\\r?\\n)+|(?<=[.!?;])\\s+", str(text))' in lane_case["source"]
     assert "False accept:" in lane_case["counterexample"]
     assert "False reject:" in lane_case["counterexample"]
     assert "response scope" in lane_case["review_contract"]
