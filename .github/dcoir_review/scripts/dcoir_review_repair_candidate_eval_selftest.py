@@ -61,5 +61,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-[executed on device: JOHNZ_ZEPH (03460125-3055-454f-8769-64b8b7c16fa5)]
