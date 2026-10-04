@@ -120,7 +120,11 @@ def selected_candidates(matrix: dict[str, Any], value: str) -> list[dict[str, An
         raise ValueError("Candidate selector must not be empty")
     groups = matrix.get("candidate_groups") if isinstance(matrix.get("candidate_groups"), dict) else {}
     if selector == "all":
-        requested_ids = [str(item["id"]) for item in matrix.get("candidates", []) if isinstance(item, dict)]
+        requested_ids = [
+            str(item["id"])
+            for item in matrix.get("candidates", [])
+            if isinstance(item, dict) and not bool(item.get("explicit_only", False))
+        ]
     elif selector in groups:
         requested_ids = [str(item).strip() for item in groups[selector]]
     else:
@@ -133,6 +137,21 @@ def selected_candidates(matrix: dict[str, Any], value: str) -> list[dict[str, An
         return [candidate_by_id(matrix, candidate_id) for candidate_id in requested_ids]
     except KeyError as exc:
         raise ValueError(f"Unknown candidate id: {exc.args[0]}") from exc
+
+
+def validate_candidate_case_scope(candidate: dict[str, Any], cases: list[dict[str, Any]]) -> None:
+    allowed = candidate.get("allowed_case_ids")
+    if allowed is None:
+        return
+    if not isinstance(allowed, list) or not allowed or any(not isinstance(item, str) or not item.strip() for item in allowed):
+        raise ValueError(f"Candidate {candidate['id']} allowed_case_ids must be a non-empty string list")
+    allowed_ids = {item.strip() for item in allowed}
+    outside = [str(case["id"]) for case in cases if str(case["id"]) not in allowed_ids]
+    if outside:
+        raise ValueError(
+            f"Candidate {candidate['id']} is evaluation-scoped and cannot run cases: "
+            + ", ".join(outside)
+        )
 
 
 def build_case_prompt(case: dict[str, Any]) -> str:
@@ -528,6 +547,8 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
 
 
 def plan_report(matrix: dict[str, Any], cases: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    for candidate in candidates:
+        validate_candidate_case_scope(candidate, cases)
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
     return {
@@ -558,6 +579,8 @@ def run_live(
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY is required only for --execute-live")
+    for candidate in candidates:
+        validate_candidate_case_scope(candidate, cases)
     system_prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     review_schema = load_json(REVIEW_SCHEMA_PATH)
     request_contract = matrix["request_contract"]
