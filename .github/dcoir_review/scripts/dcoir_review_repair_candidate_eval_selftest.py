@@ -44,6 +44,24 @@ def main() -> None:
     )
     assert plan["case_counts"]["planned_total_requests"] == 4
 
+    def base_builder(_prompt, _schema, _config, _ignored, model):
+        return {"model": model, "temperature": 0.2}
+
+    no_temp = repair_eval._candidate_payload_builder(
+        base_builder,
+        {"id": "astra", "model": "openai/gpt-6-astra", "temperature": None},
+    )
+    author_payload = no_temp("", {}, None, [], "openai/gpt-6-astra")
+    critic_payload = no_temp("", {}, None, [], "anthropic/claude-opus-5")
+    assert "temperature" not in author_payload
+    assert critic_payload["temperature"] == 0.2
+
+    explicit_temp = repair_eval._candidate_payload_builder(
+        base_builder,
+        {"id": "prod", "model": "openai/gpt-6-astra", "temperature": 0.7},
+    )
+    assert explicit_temp("", {}, None, [], "openai/gpt-6-astra")["temperature"] == 0.7
+
     repair = SimpleNamespace(REPAIR_MARKER="_repair")
     v36 = SimpleNamespace(REPAIR_SET_OUTCOME="verified-repair-set")
 
