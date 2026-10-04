@@ -267,6 +267,20 @@ def validate_candidate_case_scope(candidate: dict[str, Any], cases: list[dict[st
 
 
 def build_case_prompt(case: dict[str, Any]) -> str:
+    suite = str(case.get("_suite", "") or "")
+    if suite == "pr-mutation":
+        import dcoir_review_pr_mutation_eval as mutation
+
+        return mutation.build_pr_prompt(_suite_case_for_delegate(case))
+    if suite == "pr-precision-v12":
+        import dcoir_review_pr_precision_eval as precision
+
+        return precision.build_pr_prompt(_suite_case_for_delegate(case))
+    if suite == "multilang-adversarial":
+        import dcoir_review_multilang_adversarial_eval as adversarial
+
+        return adversarial.build_case_prompt(_suite_case_for_delegate(case))
+
     case_id = str(case["id"])
     source = str(case.get("source", ""))
     probe = str(case.get("counterexample", ""))
