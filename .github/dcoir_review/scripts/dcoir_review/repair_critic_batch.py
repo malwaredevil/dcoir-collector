@@ -10,6 +10,7 @@ from dcoir_review import repair as repair_policy
 from dcoir_review import repair_support as repair
 from dcoir_review import review_telemetry_state
 from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_prompts
 import dcoir_review_required_runtime_patch_v36 as v36
 from dcoir_review import repair_candidate as repair_stage
 
@@ -70,7 +71,7 @@ def batch_prompt(module: Any, pending: list[dict[str, Any]], file_cache: dict[st
             },
             "repair_set": author,
         }
-        context = v36._critic_context(module, file_cache, author["edits"], config)
+        context = repair_set_prompts.critic_context(module, file_cache, author["edits"], config)
         encoded = module.base.sanitize_text(json.dumps(payload, ensure_ascii=False, indent=2), config)
         sections.append(
             f"## Candidate {item['critic_item_id']}\n```json\n{encoded}\n```\n\n"
@@ -192,7 +193,7 @@ def run_group(
     if len(group) == 1:
         item = group[0]
         critic_config = repair_policy.build_repair_critic_config(config, item["author_model"])
-        prompt = v36._repair_critic_prompt(module, item["finding"], item["author"], file_cache, config)
+        prompt = repair_set_prompts.critic_prompt(module, item["finding"], item["author"], file_cache, config)
         try:
             raw, model, tier = module.hardened.openrouter_review(
                 prompt, repair_set_contract.CRITIC_SCHEMA, critic_config, reporter=None

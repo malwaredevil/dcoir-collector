@@ -21,6 +21,7 @@ def main() -> None:
     entrypoint.apply_runtime_patches(review)
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
+    repair_set_prompts = importlib.import_module("dcoir_review.repair_set_prompts")
     contract = importlib.import_module("dcoir_review.repair_contract")
 
     assert getattr(review, contract.APPLIED_MARKER, False) is True
@@ -100,7 +101,7 @@ def main() -> None:
     )
     assert accepted is True and confidence == 0.95
 
-    prompt = v36._repair_author_prompt(review, finding, "def f():\n    old_call()\n", "", "deadbeef", config)
+    prompt = repair_set_prompts.author_prompt(review, finding, "def f():\n    old_call()\n", "", "deadbeef", config)
     for phrase in ("EVERY edit MUST contain all six fields", "purpose", "confidence", "independent cross-family critic"):
         assert phrase in prompt
 
@@ -215,13 +216,14 @@ def main() -> None:
     v36_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
     repair_set_contract_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_contract.py").read_text(encoding="utf-8")
     assert "repair_contract.normalize_author_metadata" in repair_set_contract_source
-    assert "repair_contract.append_author_contract" in v36_source
-    assert "repair_contract.append_critic_contract" in v36_source
+    repair_set_prompts_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_prompts.py").read_text(encoding="utf-8")
+    assert "repair_contract.append_author_contract" in repair_set_prompts_source
+    assert "repair_contract.append_critic_contract" in repair_set_prompts_source
 
-    prompt_before = v36._repair_author_prompt
+    prompt_before = repair_set_prompts.author_prompt
     parse_before = v36._parse_author
     contract.apply_pareto_context_module(review)
-    assert v36._repair_author_prompt is prompt_before
+    assert repair_set_prompts.author_prompt is prompt_before
     assert v36._parse_author is parse_before
 
     print("dcoir_review_repair_contract_selftest passed")

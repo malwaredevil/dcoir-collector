@@ -13,6 +13,7 @@ from dcoir_review import repair_support as repair
 from dcoir_review import repair_precision
 from dcoir_review import repair_set_contract
 from dcoir_review import repair_set_edits
+from dcoir_review import repair_set_prompts
 import dcoir_review_required_runtime_patch_v36 as v36
 
 VERSION = "v56"
@@ -136,7 +137,7 @@ def prepare_candidate(
     if path not in file_cache:
         file_cache[path] = module.fetch_pr_file_text(gh, path, head_sha)
 
-    prompt = v36._repair_author_prompt(module, finding, file_cache[path], pr_diff, head_sha, config)
+    prompt = repair_set_prompts.author_prompt(module, finding, file_cache[path], pr_diff, head_sha, config)
     author_config = repair_policy.build_repair_author_config(config)
     raw, author_model, author_tier = module.hardened.openrouter_review(
         prompt, repair_set_contract.AUTHOR_SCHEMA, author_config, reporter=None

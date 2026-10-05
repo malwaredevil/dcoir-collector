@@ -133,7 +133,7 @@ def _run_case(
     finding = repair_eval._verified_finding(v21, case)
     author = spec["author"]
     file_cache = dict(case["files"])
-    prompt = v36._repair_critic_prompt(review, finding, author, file_cache, config)
+    prompt = repair_set_prompts.critic_prompt(review, finding, author, file_cache, config)
     original_builder = review.hardened.build_openrouter_payload
     review.hardened.build_openrouter_payload = repair_eval._candidate_payload_builder(original_builder, candidate)
     started = time.monotonic()
@@ -200,6 +200,7 @@ def run_live(
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
+    repair_set_prompts = importlib.import_module("dcoir_review.repair_set_prompts")
 
     rows: list[dict[str, Any]] = []
     for candidate in candidates:
