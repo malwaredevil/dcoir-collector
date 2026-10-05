@@ -29,13 +29,10 @@ from typing import Any
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import repair as repair_policy
-from dcoir_review import repair_contract
 from dcoir_review import repair_pipeline as repair
 from dcoir_review import repair_precision
 from dcoir_review import finding_comment_policy
 from dcoir_review import repair_set_contract
-from dcoir_review import repair_set_edits
-from dcoir_review import repair_set_prompts
 from dcoir_review import repair_set_results
 from dcoir_review import repair_set_builder
 
@@ -43,25 +40,11 @@ from dcoir_review import repair_set_builder
 VERSION = repair_set_contract.MARKER_VERSION
 APPLIED_MARKER = "_dcoir_review_v36_applied"
 REPAIR_SET_OUTCOME = repair_set_contract.REPAIR_SET_OUTCOME
-NO_SAFE_REPAIR_OUTCOME = repair_set_contract.NO_SAFE_REPAIR_OUTCOME
-MAX_EDITS_PER_REPAIR = repair_set_contract.MAX_EDITS_PER_REPAIR
-MAX_EDIT_RANGE_LINES = repair_set_contract.MAX_EDIT_RANGE_LINES
-MAX_EDIT_TEXT_CHARS = repair_set_contract.MAX_EDIT_TEXT_CHARS
-MAX_TOTAL_REPLACEMENT_CHARS = repair_set_edits.MAX_TOTAL_REPLACEMENT_CHARS
-AUTHOR_MIN_CONFIDENCE = repair_set_contract.AUTHOR_MIN_CONFIDENCE
-CRITIC_MIN_CONFIDENCE = repair_set_contract.CRITIC_MIN_CONFIDENCE
-REPAIR_SET_AUTHOR_SCHEMA = repair_set_contract.AUTHOR_SCHEMA
-REPAIR_SET_CRITIC_SCHEMA = repair_set_contract.CRITIC_SCHEMA
 
 _path_line = repair._path_line
-_parse_author = repair_set_contract.parse_author
-_parse_critic = repair_set_contract.parse_critic
-_repair_critic_config = repair_set_contract.build_critic_config
 
 
 
-_apply_edits_to_files = repair_set_edits.apply_edits_to_files
-_annotate_native_eligibility = repair_set_edits.annotate_native_eligibility
 
 
 

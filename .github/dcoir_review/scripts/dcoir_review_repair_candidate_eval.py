@@ -22,6 +22,7 @@ from typing import Any
 from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review import repair_set_builder
+from dcoir_review import repair_set_contract
 import dcoir_review_first_pass_candidate_eval as first_pass
 
 
@@ -248,7 +249,7 @@ def _verified_finding(v21: Any, case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def score_item(item: dict[str, Any], case: dict[str, Any], repair: Any, v36: Any) -> dict[str, Any]:
+def score_item(item: dict[str, Any], case: dict[str, Any], repair: Any) -> dict[str, Any]:
     marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
     outcome = str(marker.get("outcome", "") or "")
     edits = marker.get("edits") if isinstance(marker.get("edits"), list) else []
@@ -277,17 +278,17 @@ def score_item(item: dict[str, Any], case: dict[str, Any], repair: Any, v36: Any
         ],
         key=lambda item: (item["path"], item["start_line"], item["end_line"], item["replacement"]),
     )
-    expected_outcome = str(case.get("expected_outcome", v36.REPAIR_SET_OUTCOME) or v36.REPAIR_SET_OUTCOME)
+    expected_outcome = str(case.get("expected_outcome", repair_set_contract.REPAIR_SET_OUTCOME) or repair_set_contract.REPAIR_SET_OUTCOME)
     if expected_outcome == "defect-absent-suppressed":
         correct_edit = outcome == expected_outcome and not edits
-        unsafe_accept = outcome == v36.REPAIR_SET_OUTCOME
+        unsafe_accept = outcome == repair_set_contract.REPAIR_SET_OUTCOME
     else:
         correct_edit = (
-            outcome == v36.REPAIR_SET_OUTCOME
+            outcome == repair_set_contract.REPAIR_SET_OUTCOME
             and bool(marker.get("critic_accepted"))
             and actual == expected
         )
-        unsafe_accept = outcome == v36.REPAIR_SET_OUTCOME and not correct_edit
+        unsafe_accept = outcome == repair_set_contract.REPAIR_SET_OUTCOME and not correct_edit
     return {
         "correct": correct_edit,
         "unsafe_accept": unsafe_accept,
@@ -318,7 +319,6 @@ def _run_case(
     review: Any,
     v21: Any,
     repair: Any,
-    v36: Any,
     candidate: dict[str, Any],
     case: dict[str, Any],
     timeout_seconds: int,
@@ -347,7 +347,7 @@ def _run_case(
             dict(file_map),
             author_config_override=config,
         )
-        score = score_item(item, case, repair, v36)
+        score = score_item(item, case, repair)
         error = ""
     except Exception as exc:
         item = {}
@@ -382,12 +382,11 @@ def run_live(
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
 
     rows: list[dict[str, Any]] = []
     for candidate in candidates:
         case_results = [
-            _run_case(review, v21, repair, v36, candidate, case, timeout_seconds)
+            _run_case(review, v21, repair, candidate, case, timeout_seconds)
             for case in cases
         ]
         failures = [r["case_id"] for r in case_results if not r["score"].get("correct") and not r["score"].get("unsafe_accept") and not r.get("error")]

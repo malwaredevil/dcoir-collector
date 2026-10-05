@@ -15,6 +15,7 @@ from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review import repair_set_prompts
+from dcoir_review import repair_set_contract
 import dcoir_review_first_pass_candidate_eval as first_pass
 import dcoir_review_repair_candidate_eval as repair_eval
 
@@ -123,7 +124,6 @@ def score_response(expected_accept: bool, accepted: bool) -> dict[str, bool]:
 def _run_case(
     review: Any,
     v21: Any,
-    v36: Any,
     candidate: dict[str, Any],
     spec: dict[str, Any],
     timeout_seconds: int,
@@ -141,11 +141,11 @@ def _run_case(
     try:
         raw, model_used, service_tier = review.hardened.openrouter_review(
             prompt,
-            v36.REPAIR_SET_CRITIC_SCHEMA,
+            repair_set_contract.CRITIC_SCHEMA,
             config,
             reporter=None,
         )
-        accepted, confidence, reason = v36._parse_critic(raw, review.hardened)
+        accepted, confidence, reason = repair_set_contract.parse_critic(raw, review.hardened)
         scored = score_response(bool(spec["expected_accept"]), accepted)
         error = ""
     except Exception as exc:
@@ -200,12 +200,11 @@ def run_live(
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
 
     rows: list[dict[str, Any]] = []
     for candidate in candidates:
         results = [
-            _run_case(review, v21, v36, candidate, spec, timeout_seconds)
+            _run_case(review, v21, candidate, spec, timeout_seconds)
             for spec in cases
         ]
         failures = [

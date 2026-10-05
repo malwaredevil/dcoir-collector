@@ -11,6 +11,8 @@ from dcoir_review import repair as repair_policy
 from dcoir_review import repair_precision
 from dcoir_review import repair_set_results
 from dcoir_review import repair_set_builder
+from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_edits
 from dcoir_review import finding_verifier
 from dcoir_review import finding_comment_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
@@ -43,15 +45,15 @@ def main() -> None:
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
-    assert set(v36.REPAIR_SET_AUTHOR_SCHEMA["properties"]["action"]["enum"]) == {"repair_set", "no_safe_repair"}
-    assert v36.REPAIR_SET_AUTHOR_SCHEMA["properties"]["edits"]["maxItems"] >= 3
-    critic_after_opus = v36._repair_critic_config(config, "anthropic/claude-opus-5")
+    assert set(repair_set_contract.AUTHOR_SCHEMA["properties"]["action"]["enum"]) == {"repair_set", "no_safe_repair"}
+    assert repair_set_contract.AUTHOR_SCHEMA["properties"]["edits"]["maxItems"] >= 3
+    critic_after_opus = repair_set_contract.build_critic_config(config, "anthropic/claude-opus-5")
     assert critic_after_opus.model_stack == [
         repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
         repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
     ]
     assert critic_after_opus.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
-    critic_after_sol = v36._repair_critic_config(config, "openai/gpt-5.6-sol-pro")
+    critic_after_sol = repair_set_contract.build_critic_config(config, "openai/gpt-5.6-sol-pro")
     assert critic_after_sol.model_stack == [
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
@@ -69,7 +71,7 @@ def main() -> None:
 
     files = {"probe.py": "x = 1\ny = 2\nz = x + y\n"}
     edits = [_edit("probe.py", 1, 2, "x = 1\ny = 2", "x = 2\ny = 3", "correct both inputs")]
-    updated, reason = v36._apply_edits_to_files(files, edits)
+    updated, reason = repair_set_edits.apply_edits_to_files(files, edits)
     assert reason == ""
     assert updated["probe.py"].startswith("x = 2\ny = 3\n")
 
@@ -77,7 +79,7 @@ def main() -> None:
         _edit("probe.py", 1, 1, "x = 1", "x = 10", "first range"),
         _edit("probe.py", 3, 3, "z = x + y", "z = (x + y) * 2", "second range"),
     ]
-    updated, reason = v36._apply_edits_to_files(files, edits)
+    updated, reason = repair_set_edits.apply_edits_to_files(files, edits)
     assert reason == ""
     assert "x = 10" in updated["probe.py"] and "* 2" in updated["probe.py"]
 
@@ -86,24 +88,24 @@ def main() -> None:
         _edit("a.py", 1, 1, "VALUE = 1", "VALUE = 2", "producer"),
         _edit("b.py", 2, 2, "RESULT = VALUE", "RESULT = VALUE * 2", "consumer"),
     ]
-    updated, reason = v36._apply_edits_to_files(files2, edits2)
+    updated, reason = repair_set_edits.apply_edits_to_files(files2, edits2)
     assert reason == "" and set(updated) == {"a.py", "b.py"}
 
     overlapping = [
         _edit("probe.py", 1, 2, "x = 1\ny = 2", "x = 2\ny = 3"),
         _edit("probe.py", 2, 3, "y = 2\nz = x + y", "y = 4\nz = x + y"),
     ]
-    _updated, reason = v36._apply_edits_to_files(files, overlapping)
+    _updated, reason = repair_set_edits.apply_edits_to_files(files, overlapping)
     assert "overlapping" in reason
     stale = [_edit("probe.py", 1, 1, "x = 999", "x = 2")]
-    _updated, reason = v36._apply_edits_to_files(files, stale)
+    _updated, reason = repair_set_edits.apply_edits_to_files(files, stale)
     assert "did not match exact head text" in reason
     broken = [_edit("probe.py", 1, 1, "x = 1", "if (")]
-    _updated, reason = v36._apply_edits_to_files(files, broken)
+    _updated, reason = repair_set_edits.apply_edits_to_files(files, broken)
     assert "Python syntax invalid" in reason
 
     right_lines = {("probe.py", 1): 1, ("probe.py", 2): 2, ("probe.py", 3): 3, ("other.py", 5): 4}
-    annotated = v36._annotate_native_eligibility(
+    annotated = repair_set_edits.annotate_native_eligibility(
         [
             _edit("probe.py", 1, 3, "a\nb\nc", "d\ne\nf"),
             _edit("other.py", 5, 5, "old", "new"),

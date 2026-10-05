@@ -7,6 +7,7 @@ import importlib
 from pathlib import Path
 
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_set_contract
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -25,8 +26,8 @@ def main() -> None:
     contract = importlib.import_module("dcoir_review.repair_contract")
 
     assert getattr(review, contract.APPLIED_MARKER, False) is True
-    assert v36.AUTHOR_MIN_CONFIDENCE == 0.0
-    assert v36.CRITIC_MIN_CONFIDENCE == 0.95
+    assert repair_set_contract.AUTHOR_MIN_CONFIDENCE == 0.0
+    assert repair_set_contract.CRITIC_MIN_CONFIDENCE == 0.95
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
@@ -60,7 +61,7 @@ def main() -> None:
         "rationale": "The exact counterexample is removed.",
         "validation": "python3 -m py_compile probe.py",
     }
-    parsed = v36._parse_author(live_shape, finding, review.hardened)
+    parsed = repair_set_contract.parse_author(live_shape, finding, review.hardened)
     assert parsed["action"] == "repair_set"
     assert parsed["confidence"] == 0.0
     assert parsed["edits"][0]["purpose"].startswith("Repair verified finding:")
@@ -69,7 +70,7 @@ def main() -> None:
     # exact proposal from reaching the independent critic.
     low_conf_shape = dict(live_shape)
     low_conf_shape["confidence"] = 0.78
-    parsed_low = v36._parse_author(low_conf_shape, finding, review.hardened)
+    parsed_low = repair_set_contract.parse_author(low_conf_shape, finding, review.hardened)
     assert parsed_low["action"] == "repair_set"
     assert parsed_low["confidence"] == 0.78
 
@@ -86,17 +87,17 @@ def main() -> None:
         }
     ]
     try:
-        v36._parse_author(malformed, finding, review.hardened)
+        repair_set_contract.parse_author(malformed, finding, review.hardened)
     except review.hardened.ReviewQualityError as exc:
         assert "repository-relative" in str(exc)
     else:
         raise AssertionError("v38 forgave a structurally invalid repair path")
 
-    accepted, confidence, _reason = v36._parse_critic(
+    accepted, confidence, _reason = repair_set_contract.parse_critic(
         {"accepted": True, "confidence": 0.94, "reason": "plausible"}, review.hardened
     )
     assert accepted is False and confidence == 0.94
-    accepted, confidence, _reason = v36._parse_critic(
+    accepted, confidence, _reason = repair_set_contract.parse_critic(
         {"accepted": True, "confidence": 0.95, "reason": "independently proven"}, review.hardened
     )
     assert accepted is True and confidence == 0.95
@@ -208,9 +209,9 @@ def main() -> None:
         "merge_pull_request",
         "repair_contract_original",
         "v36._repair_author_prompt =",
-        "v36._parse_author =",
+        "repair_set_contract.parse_author =",
         "v36._repair_critic_prompt =",
-        "v36._parse_critic =",
+        "repair_set_contract.parse_critic =",
     ):
         assert forbidden not in source
     v36_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
@@ -221,10 +222,10 @@ def main() -> None:
     assert "repair_contract.append_critic_contract" in repair_set_prompts_source
 
     prompt_before = repair_set_prompts.author_prompt
-    parse_before = v36._parse_author
+    parse_before = repair_set_contract.parse_author
     contract.apply_pareto_context_module(review)
     assert repair_set_prompts.author_prompt is prompt_before
-    assert v36._parse_author is parse_before
+    assert repair_set_contract.parse_author is parse_before
 
     print("dcoir_review_repair_contract_selftest passed")
 

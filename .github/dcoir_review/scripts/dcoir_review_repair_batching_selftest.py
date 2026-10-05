@@ -8,6 +8,7 @@ import importlib
 import re
 
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_set_contract
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -91,7 +92,6 @@ def main() -> None:
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair_pipeline = importlib.import_module("dcoir_review.repair_pipeline")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     v53 = importlib.import_module("dcoir_review.repair_admission")
     from dcoir_review import review_telemetry as telemetry
     v56 = importlib.import_module("dcoir_review.repair_batching")
@@ -213,7 +213,6 @@ def main() -> None:
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
     original_v53 = v53.synthesize_verified_repair_sets
-    original_v36_critic_config = v36._repair_critic_config
 
     calls: list[tuple[str, str, str]] = []
     debug: list[tuple[str, dict]] = []
@@ -229,11 +228,8 @@ def main() -> None:
     def fake_debug(cfg, path, payload):
         debug.append((path, dict(payload)))
 
-    def forbidden_v36_critic_config(*args, **kwargs):
-        raise AssertionError("active v56 critic routing bypassed canonical dcoir_review.repair policy")
-
     def fake_openrouter(prompt, schema, cfg, reporter=None):
-        if schema is v36.REPAIR_SET_AUTHOR_SCHEMA:
+        if schema is repair_set_contract.AUTHOR_SCHEMA:
             match = re.search(r"Primary finding anchor: ([^:]+):1", prompt)
             assert match, prompt[:500]
             path = match.group(1)
@@ -257,7 +253,7 @@ def main() -> None:
                     for item_id in reversed(ids)
                 ]
             }, str(cfg.model), "default"
-        if schema is v36.REPAIR_SET_CRITIC_SCHEMA:
+        if schema is repair_set_contract.CRITIC_SCHEMA:
             assert cfg.model == cfg.model_stack[0]
             if cfg.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL:
                 assert cfg.model_stack == [
@@ -279,7 +275,6 @@ def main() -> None:
     review.hardened.openrouter_review = fake_openrouter
     review.fetch_pr_file_text = fake_fetch
     review.hardened.write_debug_json_artifact_safely = fake_debug
-    v36._repair_critic_config = forbidden_v36_critic_config
     try:
         # Three compatible authors keep three independent author calls but collapse
         # three canonical opposite-family critics into one identity-keyed batch. Reversed
@@ -304,8 +299,8 @@ def main() -> None:
         assert sum(1 for call in calls if call[0] == "batch-critic") == 1
         assert sum(1 for call in calls if call[0] == "single-critic") == 0
         markers = [item[repair_pipeline.REPAIR_MARKER] for item in result]
-        assert all(marker["outcome"] == v36.REPAIR_SET_OUTCOME for marker in markers)
-        assert all(marker["version"] == v36.VERSION for marker in markers)
+        assert all(marker["outcome"] == repair_set_contract.REPAIR_SET_OUTCOME for marker in markers)
+        assert all(marker["version"] == repair_set_contract.MARKER_VERSION for marker in markers)
         assert all(marker["critic_batch_version"] == v56.VERSION for marker in markers)
         assert all(marker["critic_accepted"] is True for marker in markers)
         assert all(marker["critic_batch_size"] == 3 for marker in markers)
@@ -456,7 +451,7 @@ def main() -> None:
         )
         assert [call[0] for call in calls] == ["author", "single-critic"], calls
         assert result[0][repair_pipeline.REPAIR_MARKER]["critic_batch_size"] == 1
-        assert result[0][repair_pipeline.REPAIR_MARKER]["version"] == v36.VERSION
+        assert result[0][repair_pipeline.REPAIR_MARKER]["version"] == repair_set_contract.MARKER_VERSION
 
         # The governed config exposes an operator rollback switch. Explicit disable
         # delegates to the exact v53 implementation rather than partially entering
@@ -473,7 +468,6 @@ def main() -> None:
         assert sentinel == [True]
         config.repair_critic_batching_enabled = True
     finally:
-        v36._repair_critic_config = original_v36_critic_config
         v53.synthesize_verified_repair_sets = original_v53
         v21.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_review
