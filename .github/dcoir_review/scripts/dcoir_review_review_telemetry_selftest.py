@@ -229,7 +229,7 @@ def critic_schema() -> dict:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.execution_policy_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v53"
+    assert entrypoint.execution_policy_patch_module_names[-1] == "dcoir_review.review_orchestration"
     from dcoir_review import review_telemetry as telemetry
 
     # Production config initialization now uses the stable telemetry owner.

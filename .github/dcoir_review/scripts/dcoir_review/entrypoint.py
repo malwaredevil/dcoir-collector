@@ -106,13 +106,12 @@ class DcoirReviewEntrypoint:
     # provider/publication protection and the legacy optional prompt-review request. Stable structured-result recovery
     # preserves those guards while specializing deterministic structured-output
     # recovery and bounded near-threshold disposition. v53 then restores the
-    # configured repair-synthesis confidence floor before v36 can spend repair-
-    # author/critic calls, while leaving verified finding publication unchanged.
+    # Repair-confidence admission is consumed directly by the terminal repair owner
+    # rather than installed as another runtime override.
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review.review_scope_guard',
         'dcoir_review.prompt_review_scope_guard',
         'dcoir_review.review_orchestration',
-        'dcoir_review_required_runtime_patch_v53',
     )
     # Telemetry overlays are deliberately outside execution-policy ordering
     # invariants. v54 owns request-path usage/provider/recovery telemetry after the

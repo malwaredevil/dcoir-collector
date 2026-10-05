@@ -438,6 +438,12 @@ The historical runtime layers retain their private classifier helpers where thos
 
 The structured-result recovery layer no longer wraps `review_quality_retry_reason` or stores a prior callable. The two historical prior-function shims for quality-gate and structured-disposition retry logic are removed. Runtime ownership tests require exactly one production replacement, final ownership by `dcoir_review.quality_gate`, and no stored retry-history callables, while the quality-gate and structured-result recovery selftests preserve summary-only retry, near-threshold pending disposition, fail-closed malformed finding, feature-gate, and risk-sentinel behavior.
 
+### Canonical repair-confidence admission ownership
+
+Historical v53 production ownership is retired. `dcoir_review.repair_admission` owns the configured repair-confidence admission policy and remains a pure helper consumed by the final repair synthesis owner; it no longer installs another runtime override. `dcoir_review.repair` owns the repair-count budget and the verifier-supported budget-deferred representation, while the persisted `v33`/`v53` repair-marker and metrics schema values remain compatibility/provenance data only.
+
+The final v56 batching owner consumes `repair_admission` directly for disabled-batching fallback, confidence-floor checks, deferred outcomes, counters, and metrics. This removes the v53 production root and one cross-generation v33 dependency without changing publication eligibility or the later author/critic/exact-head gates. Runtime guards reject reintroduction of the numbered v53 source.
+
 ### Canonical semantic-context ownership
 
 Historical v46 production ownership is retired. `dcoir_review.semantic_context` is installed explicitly by `dcoir_review.review_orchestration` and owns semantic-context projection/cache wrappers plus the canonical semantic-context lifecycle stage. `dcoir_review.semantic_context_runtime` owns exact-head package construction and cache keys, `dcoir_review.adaptive_semantic_budget` owns fail-safe budget selection, and `dcoir_review.semantic_context_contract` owns the durable package/budget contract values and stable runtime attribute names.

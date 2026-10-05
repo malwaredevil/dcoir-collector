@@ -1,4 +1,4 @@
-"""DCOIR Review v53 configured repair-confidence execution gate.
+"""Canonical configured repair-confidence admission policy for DCOIR Review.
 
 The governed configuration has long separated finding publication confidence
 from repair-synthesis confidence. The legacy fix-synthesis path honored
@@ -7,7 +7,7 @@ v33/v36 verified-repair replacement accidentally reduced repair eligibility to
 only an enabled/count budget. That allowed verifier-supported findings below
 the configured repair floor to enter the expensive repair-author/critic tail.
 
-v53 restores the existing policy boundary without changing finding publication:
+This owner preserves the existing policy boundary without changing finding publication:
 
 * every verifier-supported finding remains publishable;
 * only findings with a finite numeric confidence at or above the configured
@@ -32,12 +32,11 @@ from typing import Any
 from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
-import dcoir_review_required_runtime_patch_v33 as v33
+from dcoir_review import repair as repair_policy
 import dcoir_review_required_runtime_patch_v36 as v36
 
 
-VERSION = "v53"
-APPLIED_MARKER = "_dcoir_review_v53_applied"
+VERSION = "v53"  # Persisted repair-marker compatibility value.
 CONFIDENCE_DEFERRED_OUTCOME = "verified-repair-confidence-deferred"
 METRICS_SCHEMA_VERSION = "dcoir_review_repair_v53_metrics_v1"
 
@@ -72,7 +71,7 @@ def finding_confidence(finding: dict[str, Any]) -> float | None:
     return value
 
 
-def _confidence_deferred_verified_finding(
+def confidence_deferred_verified_finding(
     raw: dict[str, Any],
     ordinal: int,
     floor: float,
@@ -110,7 +109,7 @@ def _confidence_deferred_verified_finding(
     return finding
 
 
-def _repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
+def repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
     marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
     outcome = str(marker.get("outcome", "") or "")
     counters = {
@@ -141,7 +140,7 @@ def _repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
     return counters
 
 
-def _write_metrics(
+def write_repair_metrics(
     module: Any,
     config: Any,
     *,
@@ -210,19 +209,19 @@ def synthesize_verified_repair_sets(
     if pr_number <= 0:
         raise module.hardened.ReviewQualityError("DCOIR v53 repair stage could not determine the PR number")
 
-    repair_budget = v33.repair_synthesis_budget(config)
+    repair_budget = repair_policy.repair_synthesis_budget(config)
     floor = repair_confidence_floor(config)
     enabled = bool(getattr(config, "fix_synthesis_enabled", True))
     confidence_values = [finding_confidence(raw) for raw in verified]
     confidence_qualified = sum(1 for value in confidence_values if value is not None and value >= floor)
 
     if not enabled:
-        repaired = [v33._deferred_verified_finding(raw, ordinal) for ordinal, raw in enumerate(verified, start=1)]
+        repaired = [repair_policy.budget_deferred_verified_finding(raw, ordinal, repair) for ordinal, raw in enumerate(verified, start=1)]
         reporter.update(
             "repair-v53",
             f"verified={len(verified)}; repair synthesis disabled; repair_attempts=0; budget_deferred={len(verified)}",
         )
-        _write_metrics(
+        write_repair_metrics(
             module,
             config,
             head_sha=head_sha,
@@ -269,12 +268,12 @@ def synthesize_verified_repair_sets(
 
     for ordinal, (raw, confidence) in enumerate(zip(verified, confidence_values), start=1):
         if confidence is None or confidence < floor:
-            repaired.append(_confidence_deferred_verified_finding(raw, ordinal, floor, confidence))
+            repaired.append(confidence_deferred_verified_finding(raw, ordinal, floor, confidence))
             continue
 
         eligible_seen += 1
         if eligible_seen > repair_budget:
-            repaired.append(v33._deferred_verified_finding(raw, ordinal))
+            repaired.append(repair_policy.budget_deferred_verified_finding(raw, ordinal, repair))
             continue
 
         attempts += 1
@@ -298,7 +297,7 @@ def synthesize_verified_repair_sets(
                 f"repair-set stage failed closed: {type(exc).__name__}: {str(exc)[:500]}",
             )
 
-        counters = _repair_result_counters(item)
+        counters = repair_result_counters(item)
         repair_sets += counters["repair_sets"]
         native_blocks += counters["native_blocks"]
         guidance_blocks += counters["guidance_blocks"]
@@ -318,7 +317,7 @@ def synthesize_verified_repair_sets(
             f"budget_deferred={budget_deferred_total}"
         ),
     )
-    _write_metrics(
+    write_repair_metrics(
         module,
         config,
         head_sha=head_sha,
@@ -340,12 +339,14 @@ def synthesize_verified_repair_sets(
     return repaired
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, APPLIED_MARKER, False):
-        return
-
-    # the canonical repair pipeline's public synthesis wrapper resolves this symbol dynamically. v30's
-    # suppression wrapper therefore remains outside this replacement, while v36
-    # continues to own every repair attempt's author/critic/exact-head mechanics.
-    repair.synthesize_verified_repairs = synthesize_verified_repair_sets
-    setattr(module, APPLIED_MARKER, True)
+__all__ = [
+    "CONFIDENCE_DEFERRED_OUTCOME",
+    "METRICS_SCHEMA_VERSION",
+    "VERSION",
+    "confidence_deferred_verified_finding",
+    "finding_confidence",
+    "repair_confidence_floor",
+    "repair_result_counters",
+    "synthesize_verified_repair_sets",
+    "write_repair_metrics",
+]

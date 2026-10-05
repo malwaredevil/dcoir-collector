@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic regression checks for DCOIR Review v53 repair gating."""
+"""Deterministic regression checks for canonical repair-confidence admission."""
 
 from __future__ import annotations
 
@@ -59,23 +59,22 @@ def marker(repair, item: dict) -> dict:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.execution_policy_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v53"
+    assert "dcoir_review_required_runtime_patch_v53" not in entrypoint.execution_policy_patch_module_names
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v33 = importlib.import_module("dcoir_review_required_runtime_patch_v33")
+    repair_policy = importlib.import_module("dcoir_review.repair")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
-    v53 = importlib.import_module("dcoir_review_required_runtime_patch_v53")
-    assert getattr(review, v53.APPLIED_MARKER, False) is True
+    admission = importlib.import_module("dcoir_review.repair_admission")
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.fix_synthesis_min_confidence == 0.80
-    assert v53.repair_confidence_floor(config) == 0.80
-    assert v53.finding_confidence({"confidence": True}) is None
-    assert v53.finding_confidence({"confidence": "nan"}) is None
-    assert v53.finding_confidence({"confidence": 1.2}) is None
+    assert admission.repair_confidence_floor(config) == 0.80
+    assert admission.finding_confidence({"confidence": True}) is None
+    assert admission.finding_confidence({"confidence": "nan"}) is None
+    assert admission.finding_confidence({"confidence": 1.2}) is None
 
     original_verify = v21.verify_findings_for_publication
     original_build = v36._build_repair_set_for_finding
@@ -121,7 +120,7 @@ def main() -> None:
             metrics.append((path, dict(payload)))
 
     v21.verify_findings_for_publication = fake_verify
-    repair.synthesize_verified_repairs = v53.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = admission.synthesize_verified_repair_sets
     v36._build_repair_set_for_finding = fake_build
     review.hardened.write_debug_json_artifact_safely = fake_debug
     try:
@@ -151,13 +150,13 @@ def main() -> None:
         first = marker(repair, result[0])
         second = marker(repair, result[1])
         third = marker(repair, result[2])
-        assert first["outcome"] == v53.CONFIDENCE_DEFERRED_OUTCOME
+        assert first["outcome"] == admission.CONFIDENCE_DEFERRED_OUTCOME
         assert first["finding_confidence"] == 0.79
         assert first["repair_confidence_floor"] == 0.80
         assert result[0]["suggested_replacement"] == ""
         assert result[0]["_detector_suggested_replacement"] == "detector output must never be trusted"
         assert second["outcome"] == v36.REPAIR_SET_OUTCOME
-        assert third["outcome"] == v33.DEFERRED_OUTCOME
+        assert third["outcome"] == repair_policy.BUDGET_DEFERRED_OUTCOME
         assert calls == [(2, 0.80, "", "also untrusted")], calls
         assert gh.diff_calls == 1
         assert metrics[-1][1]["repair_confidence_qualified"] == 2
@@ -182,7 +181,7 @@ def main() -> None:
             reporter,
         )
         assert len(result) == 4
-        assert all(marker(repair, item)["outcome"] == v53.CONFIDENCE_DEFERRED_OUTCOME for item in result)
+        assert all(marker(repair, item)["outcome"] == admission.CONFIDENCE_DEFERRED_OUTCOME for item in result)
         assert calls == []
         assert gh.diff_calls == 0
         assert metrics[-1][1]["repair_confidence_deferred"] == 4
@@ -204,7 +203,7 @@ def main() -> None:
             reporter,
         )
         assert len(result) == 2
-        assert all(marker(repair, item)["outcome"] == v33.DEFERRED_OUTCOME for item in result)
+        assert all(marker(repair, item)["outcome"] == repair_policy.BUDGET_DEFERRED_OUTCOME for item in result)
         assert calls == []
         assert gh.diff_calls == 0
         assert metrics[-1][1]["repair_synthesis_enabled"] is False
@@ -243,7 +242,7 @@ def main() -> None:
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     print(
-        "dcoir_review_required_runtime_patch_v53_selftest passed: configured repair confidence floor "
+        "dcoir_review_repair_admission_selftest passed: configured repair confidence floor "
         "gates only repair synthesis while verified findings remain publishable"
     )
 

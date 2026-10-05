@@ -11,9 +11,9 @@ from typing import Any
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_pipeline as repair
-import dcoir_review_required_runtime_patch_v33 as v33
+from dcoir_review import repair as repair_policy
 import dcoir_review_required_runtime_patch_v36 as v36
-import dcoir_review_required_runtime_patch_v53 as v53
+from dcoir_review import repair_admission
 import dcoir_review_required_runtime_patch_v56_batch as batch
 import dcoir_review_required_runtime_patch_v56_repair as repair_stage
 
@@ -44,7 +44,7 @@ def synthesize_verified_repair_sets(
         or not bool(getattr(config, "fix_synthesis_enabled", True))
         or max_items <= 1
     ):
-        return v53.synthesize_verified_repair_sets(module, findings, gh, pr, schema, config, reporter)
+        return repair_admission.synthesize_verified_repair_sets(module, findings, gh, pr, schema, config, reporter)
 
     del schema
     verified = v21.verify_findings_for_publication(module, findings, gh, pr, config, reporter)
@@ -57,9 +57,9 @@ def synthesize_verified_repair_sets(
     if not head_sha or pr_number <= 0:
         raise module.hardened.ReviewQualityError("DCOIR v56 repair stage could not determine PR identity")
 
-    repair_budget = v33.repair_synthesis_budget(config)
-    floor = v53.repair_confidence_floor(config)
-    confidences = [v53.finding_confidence(raw) for raw in verified]
+    repair_budget = repair_policy.repair_synthesis_budget(config)
+    floor = repair_admission.repair_confidence_floor(config)
+    confidences = [repair_admission.finding_confidence(raw) for raw in verified]
     qualified = sum(1 for value in confidences if value is not None and value >= floor)
     attempt_target = min(qualified, repair_budget)
     confidence_deferred = len(verified) - qualified
@@ -83,13 +83,13 @@ def synthesize_verified_repair_sets(
 
     for ordinal, (raw, confidence) in enumerate(zip(verified, confidences), start=1):
         if confidence is None or confidence < floor:
-            repaired_by_ordinal[ordinal] = v53._confidence_deferred_verified_finding(
+            repaired_by_ordinal[ordinal] = repair_admission.confidence_deferred_verified_finding(
                 raw, ordinal, floor, confidence
             )
             continue
         eligible_seen += 1
         if eligible_seen > repair_budget:
-            repaired_by_ordinal[ordinal] = v33._deferred_verified_finding(raw, ordinal)
+            repaired_by_ordinal[ordinal] = repair_policy.budget_deferred_verified_finding(raw, ordinal, repair)
             continue
 
         attempts += 1
@@ -140,7 +140,7 @@ def synthesize_verified_repair_sets(
         )
     }
     for item in repaired:
-        for key, value in v53._repair_result_counters(item).items():
+        for key, value in repair_admission.repair_result_counters(item).items():
             counters[key] += value
 
     reporter.update(
@@ -161,7 +161,7 @@ def synthesize_verified_repair_sets(
             f"repair_sets={counters['repair_sets']}; declined={counters['declined']}"
         ),
     )
-    v53._write_metrics(
+    repair_admission.write_repair_metrics(
         module,
         config,
         head_sha=head_sha,

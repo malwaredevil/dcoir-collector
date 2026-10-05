@@ -77,6 +77,7 @@ DIRECT_IMPORT_MODULES = (
     "publication_disposition.py",
     "quality_gate.py",
     "repair.py",
+    "repair_admission.py",
     "repair_contract.py",
     "repair_pipeline.py",
     "repair_reliability.py",
@@ -273,6 +274,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     )
     assert "dcoir_review_required_runtime_patch_v46" not in numbered, (
         "retired v46 production owner reappeared"
+    )
+    assert "dcoir_review_required_runtime_patch_v53" not in numbered, (
+        "retired v53 production owner reappeared"
     )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
@@ -620,6 +624,7 @@ def assert_canonical_per_file_prompt_ownership() -> None:
         "dcoir_review_required_runtime_patch_v46_budget.py",
         "dcoir_review_required_runtime_patch_v46_context.py",
         "dcoir_review_required_runtime_patch_v46_contract.py",
+        "dcoir_review_required_runtime_patch_v53.py",
     ):
         assert not (SCRIPTS / retired_path).exists(), retired_path
 

@@ -95,7 +95,7 @@ def main() -> None:
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair_pipeline = importlib.import_module("dcoir_review.repair_pipeline")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
-    v53 = importlib.import_module("dcoir_review_required_runtime_patch_v53")
+    v53 = importlib.import_module("dcoir_review.repair_admission")
     from dcoir_review import review_telemetry as telemetry
     v56 = importlib.import_module("dcoir_review_required_runtime_patch_v56")
     batch = importlib.import_module("dcoir_review_required_runtime_patch_v56_batch")

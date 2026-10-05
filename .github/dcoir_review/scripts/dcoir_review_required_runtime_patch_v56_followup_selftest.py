@@ -70,7 +70,7 @@ def main() -> None:
     entrypoint.apply_runtime_patches(review)
 
     v21 = importlib.import_module("dcoir_review.finding_verifier")
-    v53 = importlib.import_module("dcoir_review_required_runtime_patch_v53")
+    v53 = importlib.import_module("dcoir_review.repair_admission")
     v56 = importlib.import_module("dcoir_review_required_runtime_patch_v56")
     batch = importlib.import_module("dcoir_review_required_runtime_patch_v56_batch")
     repair = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
@@ -85,8 +85,8 @@ def main() -> None:
     original_verify = v21.verify_findings_for_publication
     original_prepare = repair.prepare_candidate
     original_run_group = batch.run_group
-    original_counters = v53._repair_result_counters
-    original_write_metrics = v53._write_metrics
+    original_counters = v53.repair_result_counters
+    original_write_metrics = v53.write_repair_metrics
     original_debug = review.hardened.write_debug_json_artifact_safely
 
     debug: list[tuple[str, dict]] = []
@@ -127,8 +127,8 @@ def main() -> None:
     v21.verify_findings_for_publication = fake_verify
     repair.prepare_candidate = fake_prepare
     batch.run_group = fake_run_group
-    v53._repair_result_counters = fake_counters
-    v53._write_metrics = lambda *args, **kwargs: None
+    v53.repair_result_counters = fake_counters
+    v53.write_repair_metrics = lambda *args, **kwargs: None
     review.hardened.write_debug_json_artifact_safely = fake_debug
     try:
         result = v56.synthesize_verified_repair_sets(
@@ -149,8 +149,8 @@ def main() -> None:
         v21.verify_findings_for_publication = original_verify
         repair.prepare_candidate = original_prepare
         batch.run_group = original_run_group
-        v53._repair_result_counters = original_counters
-        v53._write_metrics = original_write_metrics
+        v53.repair_result_counters = original_counters
+        v53.write_repair_metrics = original_write_metrics
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     # Prove reversed batch output is mapped by critic_item_id, not list position.

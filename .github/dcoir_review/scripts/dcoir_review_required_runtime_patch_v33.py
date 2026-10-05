@@ -24,7 +24,6 @@ write capability.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
@@ -35,7 +34,7 @@ from dcoir_review import repair_pipeline as repair
 VERSION = "v33"
 APPLIED_MARKER = "_dcoir_review_v33_applied"
 REPAIR_STORAGE = "_dcoir_review_v33_original_synthesize_verified_repairs"
-DEFERRED_OUTCOME = "verified-repair-budget-deferred"
+DEFERRED_OUTCOME = repair_policy.BUDGET_DEFERRED_OUTCOME
 
 
 
@@ -51,25 +50,9 @@ def repair_synthesis_budget(config: Any) -> int:
 
 
 def _deferred_verified_finding(raw: dict[str, Any], ordinal: int) -> dict[str, Any]:
-    finding = repair._strip_legacy_model_finding_provenance(raw)
-    path, line = repair._path_line(finding)
-    finding["suggested_replacement"] = ""
-    finding["fix_guidance"] = {
-        "language": Path(path).suffix.lstrip(".") or "text",
-        "notes": (
-            "Verifier-supported finding; one-click repair synthesis was not attempted "
-            "because the configured repair budget was exhausted."
-        ),
-    }
-    finding[repair.REPAIR_MARKER] = {
-        "version": VERSION,
-        "outcome": DEFERRED_OUTCOME,
-        "path": path,
-        "line": line,
-        "ordinal": ordinal,
-        "reason": "configured fix_synthesis_max_findings budget exhausted",
-    }
-    return finding
+    """Compatibility delegate to the canonical repair policy owner."""
+
+    return repair_policy.budget_deferred_verified_finding(raw, ordinal, repair)
 
 
 def _patch_verified_repair_budget(module: Any) -> None:

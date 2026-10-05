@@ -39,7 +39,6 @@ def main() -> None:
         "dcoir_review.review_scope_guard",
         "dcoir_review.prompt_review_scope_guard",
         "dcoir_review.review_orchestration",
-        "dcoir_review_required_runtime_patch_v53",
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
