@@ -35,214 +35,34 @@ from dcoir_review import repair_contract
 from dcoir_review import repair_pipeline as repair
 from dcoir_review import repair_precision
 from dcoir_review import finding_comment_policy
+from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_edits
 
 
-VERSION = "v36"
+VERSION = repair_set_contract.MARKER_VERSION
 APPLIED_MARKER = "_dcoir_review_v36_applied"
-REPAIR_SET_OUTCOME = "verified-repair-set"
-NO_SAFE_REPAIR_OUTCOME = "verified-no-safe-repair-set"
-MAX_EDITS_PER_REPAIR = 6
-MAX_EDIT_RANGE_LINES = 80
-MAX_EDIT_TEXT_CHARS = 12000
-MAX_TOTAL_REPLACEMENT_CHARS = 24000
+REPAIR_SET_OUTCOME = repair_set_contract.REPAIR_SET_OUTCOME
+NO_SAFE_REPAIR_OUTCOME = repair_set_contract.NO_SAFE_REPAIR_OUTCOME
+MAX_EDITS_PER_REPAIR = repair_set_contract.MAX_EDITS_PER_REPAIR
+MAX_EDIT_RANGE_LINES = repair_set_contract.MAX_EDIT_RANGE_LINES
+MAX_EDIT_TEXT_CHARS = repair_set_contract.MAX_EDIT_TEXT_CHARS
+MAX_TOTAL_REPLACEMENT_CHARS = repair_set_edits.MAX_TOTAL_REPLACEMENT_CHARS
 MAX_DIFF_CONTEXT_CHARS = 60000
 MAX_CRITIC_CONTEXT_CHARS = 70000
 MAX_REPAIR_STATUS_NOTE_CHARS = 4000
-AUTHOR_MIN_CONFIDENCE = repair_contract.AUTHOR_MIN_CONFIDENCE
-CRITIC_MIN_CONFIDENCE = repair_contract.CRITIC_MIN_CONFIDENCE
+AUTHOR_MIN_CONFIDENCE = repair_set_contract.AUTHOR_MIN_CONFIDENCE
+CRITIC_MIN_CONFIDENCE = repair_set_contract.CRITIC_MIN_CONFIDENCE
+REPAIR_SET_AUTHOR_SCHEMA = repair_set_contract.AUTHOR_SCHEMA
+REPAIR_SET_CRITIC_SCHEMA = repair_set_contract.CRITIC_SCHEMA
 
-
-REPAIR_SET_AUTHOR_SCHEMA: dict[str, Any] = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "DCOIR Verified Repair Set Author",
-    "type": "object",
-    "additionalProperties": False,
-    "required": [
-        "defect_present",
-        "action",
-        "edits",
-        "confidence",
-        "display_title",
-        "display_body",
-        "rationale",
-        "validation",
-    ],
-    "properties": {
-        "defect_present": {"type": "boolean"},
-        "action": {"type": "string", "enum": ["repair_set", "no_safe_repair"]},
-        "edits": {
-            "type": "array",
-            "maxItems": MAX_EDITS_PER_REPAIR,
-            "items": {
-                "type": "object",
-                "additionalProperties": False,
-                "required": ["path", "start_line", "end_line", "original", "replacement", "purpose"],
-                "properties": {
-                    "path": {"type": "string", "minLength": 1, "maxLength": 400},
-                    "start_line": {"type": "integer", "minimum": 1},
-                    "end_line": {"type": "integer", "minimum": 1},
-                    "original": {"type": "string", "maxLength": MAX_EDIT_TEXT_CHARS},
-                    "replacement": {"type": "string", "maxLength": MAX_EDIT_TEXT_CHARS},
-                    "purpose": {"type": "string", "minLength": 1, "maxLength": 600},
-                },
-            },
-        },
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "display_title": {"type": "string", "maxLength": 160},
-        "display_body": {"type": "string", "maxLength": 2200},
-        "rationale": {"type": "string", "maxLength": 2200},
-        "validation": {"type": "string", "maxLength": 2200},
-    },
-}
-
-REPAIR_SET_CRITIC_SCHEMA: dict[str, Any] = {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "title": "DCOIR Verified Repair Set Critic",
-    "type": "object",
-    "additionalProperties": False,
-    "required": ["accepted", "confidence", "reason"],
-    "properties": {
-        "accepted": {"type": "boolean"},
-        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-        "reason": {"type": "string", "maxLength": 2200},
-    },
-}
-
-
-def _bounded(text: Any, limit: int) -> str:
-    value = str(text or "")
-    if len(value) <= limit:
-        return value
-    marker = "\n...[truncated by DCOIR repair-set budget]"
-    return value[: max(0, limit - len(marker))] + marker
-
-
-def _path_line(finding: dict[str, Any]) -> tuple[str, int]:
-    return repair._path_line(finding)
-
-
-def _file_block(file_text: str, start_line: int, end_line: int) -> str:
-    lines = file_text.splitlines()
-    if start_line <= 0 or end_line < start_line or end_line > len(lines):
-        return ""
-    return "\n".join(lines[start_line - 1 : end_line])
-
-
-def _normalized_newlines(text: str) -> str:
-    return str(text or "").replace("\r\n", "\n").replace("\r", "\n")
-
-
-def _validate_edit_shape(edit: dict[str, Any]) -> str:
-    path = str(edit.get("path", "") or "").strip()
-    try:
-        start = int(edit.get("start_line", 0) or 0)
-        end = int(edit.get("end_line", 0) or 0)
-    except (TypeError, ValueError):
-        return "edit line range was not numeric"
-    original = _normalized_newlines(str(edit.get("original", "") or ""))
-    replacement = _normalized_newlines(str(edit.get("replacement", "") or ""))
-    if not path:
-        return "edit path was empty"
-    if path.startswith("/") or ".." in Path(path).parts:
-        return "edit path was not repository-relative"
-    if start <= 0 or end < start:
-        return "edit line range was invalid"
-    if end - start + 1 > MAX_EDIT_RANGE_LINES:
-        return f"edit range exceeded {MAX_EDIT_RANGE_LINES} lines"
-    if len(original) > MAX_EDIT_TEXT_CHARS or len(replacement) > MAX_EDIT_TEXT_CHARS:
-        return "edit text exceeded the bounded repair-set limit"
-    if any(token in original or token in replacement for token in ("```", "~~~", "\x00")):
-        return "edit contained an unsafe suggestion-fence or NUL token"
-    expected_original_lines = end - start + 1
-    if len(original.splitlines()) != expected_original_lines:
-        return "edit original block line count did not match its declared range"
-    if replacement == original:
-        return "edit did not materially change the selected block"
-    if not str(edit.get("purpose", "") or "").strip():
-        return "edit purpose was empty"
-    return ""
-
-
-def _parse_author(result: Any, finding: dict[str, Any], hardened: Any) -> dict[str, Any]:
-    result = repair_contract.normalize_author_metadata(result, finding)
-    if not isinstance(result, dict):
-        raise hardened.ReviewQualityError("DCOIR repair-set author returned a non-object result")
-    if not isinstance(result.get("defect_present"), bool):
-        raise hardened.ReviewQualityError("DCOIR repair-set author omitted boolean defect_present")
-    action = str(result.get("action", "") or "").strip()
-    if action not in {"repair_set", "no_safe_repair"}:
-        raise hardened.ReviewQualityError("DCOIR repair-set author returned an invalid action")
-    confidence = repair_contract.validated_author_confidence(
-        result, hardened, stage="repair-set author"
-    )
-    raw_edits = result.get("edits")
-    if not isinstance(raw_edits, list):
-        raise hardened.ReviewQualityError("DCOIR repair-set author returned a non-list edits value")
-    if len(raw_edits) > MAX_EDITS_PER_REPAIR:
-        raise hardened.ReviewQualityError("DCOIR repair-set author exceeded the edit-count limit")
-
-    fallback_path, fallback_line = _path_line(finding)
-    fallback_title, fallback_body = repair._fallback_display(finding, fallback_path, fallback_line)
-    parsed_edits: list[dict[str, Any]] = []
-    for raw in raw_edits:
-        if not isinstance(raw, dict):
-            raise hardened.ReviewQualityError("DCOIR repair-set author returned a non-object edit")
-        try:
-            start_line = int(raw.get("start_line", 0) or 0)
-            end_line = int(raw.get("end_line", 0) or 0)
-        except (TypeError, ValueError) as exc:
-            raise hardened.ReviewQualityError("DCOIR repair-set author returned non-numeric edit range") from exc
-        edit = {
-            "path": str(raw.get("path", "") or "").strip(),
-            "start_line": start_line,
-            "end_line": end_line,
-            "original": _normalized_newlines(str(raw.get("original", "") or "")),
-            "replacement": _normalized_newlines(str(raw.get("replacement", "") or "")),
-            "purpose": str(raw.get("purpose", "") or "").strip(),
-        }
-        reason = _validate_edit_shape(edit)
-        if reason:
-            raise hardened.ReviewQualityError(f"DCOIR repair-set author returned invalid edit: {reason}")
-        parsed_edits.append(edit)
-
-    defect_present = bool(result["defect_present"])
-    if not defect_present:
-        action = "no_safe_repair"
-        parsed_edits = []
-    if action == "repair_set" and (confidence < AUTHOR_MIN_CONFIDENCE or not parsed_edits):
-        action = "no_safe_repair"
-        parsed_edits = []
-    if action == "no_safe_repair":
-        parsed_edits = []
-
-    return {
-        "defect_present": defect_present,
-        "action": action,
-        "edits": parsed_edits,
-        "confidence": confidence,
-        "display_title": str(result.get("display_title", "") or fallback_title).strip()[:160] or fallback_title,
-        "display_body": str(result.get("display_body", "") or fallback_body).strip()[:2200] or fallback_body,
-        "rationale": str(result.get("rationale", "") or "").strip()[:2200],
-        "validation": str(result.get("validation", "") or "").strip()[:2200],
-    }
-
-
-def _parse_critic(result: Any, hardened: Any) -> tuple[bool, float, str]:
-    if not isinstance(result, dict):
-        raise hardened.ReviewQualityError("DCOIR repair-set critic returned a non-object result")
-    accepted = result.get("accepted")
-    if not isinstance(accepted, bool):
-        raise hardened.ReviewQualityError("DCOIR repair-set critic returned invalid accepted value")
-    confidence = repair_contract.validated_critic_confidence(result, hardened)
-    reason = str(result.get("reason", "") or "").strip()
-    if accepted and confidence < CRITIC_MIN_CONFIDENCE:
-        return False, confidence, reason or "Repair-set critic confidence was below threshold."
-    return accepted, confidence, reason
-
-
-def _repair_critic_config(config: Any, author_model: str) -> Any:
-    """Compatibility delegate to the canonical repair critic policy."""
-    return repair_policy.build_repair_critic_config(config, author_model)
+_bounded = lambda text, limit: str(text or "") if len(str(text or "")) <= limit else str(text or "")[: max(0, limit - len("\n...[truncated by DCOIR repair-set budget]"))] + "\n...[truncated by DCOIR repair-set budget]"
+_path_line = repair._path_line
+_file_block = repair_set_edits.file_block
+_normalized_newlines = repair_set_edits.normalized_newlines
+_validate_edit_shape = repair_set_edits.validate_edit_shape
+_parse_author = repair_set_contract.parse_author
+_parse_critic = repair_set_contract.parse_critic
+_repair_critic_config = repair_set_contract.build_critic_config
 
 
 def _repair_author_prompt(
@@ -402,70 +222,8 @@ Exact head-file context for proposed target files:
     return repair_contract.append_critic_contract(repair._sanitize_prompt(module, prompt, config))
 
 
-def _apply_edits_to_files(file_cache: dict[str, str], edits: list[dict[str, Any]]) -> tuple[dict[str, str], str]:
-    by_path: dict[str, list[dict[str, Any]]] = {}
-    total_replacement = 0
-    for edit in edits:
-        reason = _validate_edit_shape(edit)
-        if reason:
-            return {}, reason
-        total_replacement += len(edit["replacement"])
-        by_path.setdefault(edit["path"], []).append(edit)
-    if total_replacement > MAX_TOTAL_REPLACEMENT_CHARS:
-        return {}, "repair set exceeded the total replacement-character budget"
-
-    updated_files: dict[str, str] = {}
-    for path, path_edits in by_path.items():
-        if path not in file_cache:
-            return {}, f"repair target file was not fetched: {path}"
-        original_text = file_cache[path]
-        lines = original_text.splitlines()
-        ordered = sorted(path_edits, key=lambda item: (item["start_line"], item["end_line"]))
-        previous_end = 0
-        for edit in ordered:
-            start = edit["start_line"]
-            end = edit["end_line"]
-            if start <= previous_end:
-                return {}, f"repair set contains overlapping ranges in {path}"
-            previous_end = end
-            actual = _file_block(original_text, start, end)
-            if actual != edit["original"]:
-                return {}, f"repair original block did not match exact head text at {path}:{start}-{end}"
-
-        mutated = list(lines)
-        for edit in sorted(path_edits, key=lambda item: item["start_line"], reverse=True):
-            replacement_lines = edit["replacement"].splitlines()
-            mutated[edit["start_line"] - 1 : edit["end_line"]] = replacement_lines
-        candidate = "\n".join(mutated)
-        if original_text.endswith("\n"):
-            candidate += "\n"
-        suffix = Path(path).suffix.lower()
-        if suffix == ".py":
-            try:
-                ast.parse(candidate, filename=path)
-            except SyntaxError as exc:
-                return {}, f"repair set made Python syntax invalid in {path} at line {exc.lineno or 0}"
-        elif suffix == ".json":
-            try:
-                json.loads(candidate)
-            except json.JSONDecodeError as exc:
-                return {}, f"repair set made JSON invalid in {path} at line {exc.lineno}"
-        updated_files[path] = candidate
-    return updated_files, ""
-
-
-def _annotate_native_eligibility(edits: list[dict[str, Any]], right_line_index: dict[tuple[str, int], int]) -> list[dict[str, Any]]:
-    annotated: list[dict[str, Any]] = []
-    for ordinal, raw in enumerate(edits, start=1):
-        edit = dict(raw)
-        native = all((edit["path"], line) in right_line_index for line in range(edit["start_line"], edit["end_line"] + 1))
-        edit["edit_ordinal"] = ordinal
-        edit["native_suggestion"] = native
-        if not native:
-            edit["native_reason"] = "one or more selected lines are not commentable on the PR right-side diff"
-        annotated.append(edit)
-    return annotated
-
+_apply_edits_to_files = repair_set_edits.apply_edits_to_files
+_annotate_native_eligibility = repair_set_edits.annotate_native_eligibility
 
 def _declined_item(
     finding: dict[str, Any],

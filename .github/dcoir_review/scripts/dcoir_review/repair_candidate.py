@@ -11,6 +11,8 @@ from typing import Any
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_support as repair
 from dcoir_review import repair_precision
+from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_edits
 import dcoir_review_required_runtime_patch_v36 as v36
 
 VERSION = "v56"
@@ -18,12 +20,12 @@ MAX_ANCHOR_RECOVERY_LINE_DRIFT = 12
 
 
 def _exact_original_locations(file_text: str, original: str) -> list[tuple[int, int]]:
-    original = v36._normalized_newlines(original)
+    original = repair_set_edits.normalized_newlines(original)
     original_lines = original.splitlines()
-    if not original_lines or len(original_lines) > v36.MAX_EDIT_RANGE_LINES:
+    if not original_lines or len(original_lines) > repair_set_contract.MAX_EDIT_RANGE_LINES:
         return []
     canonical_original = "\n".join(original_lines)
-    lines = v36._normalized_newlines(file_text).splitlines()
+    lines = repair_set_edits.normalized_newlines(file_text).splitlines()
     width = len(original_lines)
     matches: list[tuple[int, int]] = []
     for offset in range(0, len(lines) - width + 1):
@@ -49,13 +51,13 @@ def recover_author_edit_anchors(
         if not isinstance(edit, dict):
             continue
         path = str(edit.get("path", "") or "").strip()
-        original = v36._normalized_newlines(str(edit.get("original", "") or ""))
+        original = repair_set_edits.normalized_newlines(str(edit.get("original", "") or ""))
         if (
             not path
             or path.startswith("/")
             or ".." in Path(path).parts
             or not original
-            or len(original) > v36.MAX_EDIT_TEXT_CHARS
+            or len(original) > repair_set_contract.MAX_EDIT_TEXT_CHARS
             or any(token in original for token in ("```", "~~~", "\x00"))
         ):
             continue
@@ -137,7 +139,7 @@ def prepare_candidate(
     prompt = v36._repair_author_prompt(module, finding, file_cache[path], pr_diff, head_sha, config)
     author_config = repair_policy.build_repair_author_config(config)
     raw, author_model, author_tier = module.hardened.openrouter_review(
-        prompt, v36.REPAIR_SET_AUTHOR_SCHEMA, author_config, reporter=None
+        prompt, repair_set_contract.AUTHOR_SCHEMA, author_config, reporter=None
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
@@ -153,13 +155,13 @@ def prepare_candidate(
             f"responses/repair-v56/{ordinal:02d}-author-anchor-recovery.json",
             {"changes": anchor_changes},
         )
-    author = v36._parse_author(normalized_raw, finding, module.hardened)
+    author = repair_set_contract.parse_author(normalized_raw, finding, module.hardened)
 
     if author["defect_present"] is False:
         outcome = (
             repair_precision.SUPPRESSED_OUTCOME
             if author["confidence"] >= repair_precision.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE
-            else v36.NO_SAFE_REPAIR_OUTCOME
+            else repair_set_contract.NO_SAFE_REPAIR_OUTCOME
         )
         return (
             v36._declined_item(
@@ -201,7 +203,7 @@ def prepare_candidate(
                     None,
                 )
 
-    _updated, reason = v36._apply_edits_to_files(file_cache, author["edits"])
+    _updated, reason = repair_set_edits.apply_edits_to_files(file_cache, author["edits"])
     if reason:
         return (
             v36._declined_item(
@@ -239,7 +241,7 @@ def finalize_candidate(
     author = pending["author"]
     accepted, confidence, reason, critic_failed_closed = decision
     if not accepted:
-        outcome = "repair-stage-failed-closed" if critic_failed_closed else v36.NO_SAFE_REPAIR_OUTCOME
+        outcome = "repair-stage-failed-closed" if critic_failed_closed else repair_set_contract.NO_SAFE_REPAIR_OUTCOME
         item = v36._declined_item(
             finding,
             author,
@@ -258,7 +260,7 @@ def finalize_candidate(
         )
         return item
 
-    _updated, final_reason = v36._apply_edits_to_files(file_cache, author["edits"])
+    _updated, final_reason = repair_set_edits.apply_edits_to_files(file_cache, author["edits"])
     if final_reason:
         item = v36._declined_item(
             finding,
@@ -278,7 +280,7 @@ def finalize_candidate(
         )
         return item
 
-    edits = v36._annotate_native_eligibility(author["edits"], right_line_index)
+    edits = repair_set_edits.annotate_native_eligibility(author["edits"], right_line_index)
     native_count = sum(1 for edit in edits if edit["native_suggestion"])
     path, line = repair._path_line(finding)
     item = repair._strip_legacy_model_finding_provenance(finding)
@@ -289,9 +291,9 @@ def finalize_candidate(
     if author["validation"]:
         item["validation"] = author["validation"]
     item[repair.REPAIR_MARKER] = {
-        "version": v36.VERSION,
+        "version": repair_set_contract.MARKER_VERSION,
         "critic_batch_version": VERSION,
-        "outcome": v36.REPAIR_SET_OUTCOME,
+        "outcome": repair_set_contract.REPAIR_SET_OUTCOME,
         "repair_set_id": f"R{pending['ordinal']:02d}",
         "path": path,
         "line": line,

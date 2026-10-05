@@ -33,6 +33,7 @@ from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_support as repair
 from dcoir_review import repair_precision
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_set_contract
 import dcoir_review_required_runtime_patch_v36 as v36
 
 
@@ -121,7 +122,7 @@ def repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
         "critic_rejected": 0,
         "postcritic_declined": 0,
     }
-    if outcome == v36.REPAIR_SET_OUTCOME:
+    if outcome == repair_set_contract.REPAIR_SET_OUTCOME:
         counters["repair_sets"] = 1
         counters["native_blocks"] = int(marker.get("native_suggestion_count", 0) or 0)
         counters["guidance_blocks"] = int(marker.get("guidance_edit_count", 0) or 0)

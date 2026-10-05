@@ -9,6 +9,7 @@ from typing import Any
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_support as repair
 from dcoir_review import review_telemetry_state
+from dcoir_review import repair_set_contract
 import dcoir_review_required_runtime_patch_v36 as v36
 from dcoir_review import repair_candidate as repair_stage
 
@@ -86,7 +87,7 @@ For EACH repair set, accepted=true requires all existing v36/v38 rules:
 - every edit is necessary, complete, exact, and semantically appropriate;
 - no unrelated cleanup, speculative change, stale range, or omitted companion edit exists;
 - unrelated behavior is preserved and the set is safe for human application;
-- confidence is numeric in 0.0..1.0 and accepted=true requires confidence >= {v36.CRITIC_MIN_CONFIDENCE:.2f}.
+- confidence is numeric in 0.0..1.0 and accepted=true requires confidence >= {repair_set_contract.CRITIC_MIN_CONFIDENCE:.2f}.
 
 Judge candidates independently. Never invent, omit, rename, or duplicate
 critic_item_id values. One candidate's disposition must not affect another.
@@ -161,7 +162,7 @@ def parse_batch(raw: Any, pending: list[dict[str, Any]], hardened: Any) -> dict[
             )
             continue
         try:
-            accepted, confidence, reason = v36._parse_critic(item, hardened)
+            accepted, confidence, reason = repair_set_contract.parse_critic(item, hardened)
             parsed[item_id] = (accepted, confidence, reason, False)
         except Exception as exc:
             parsed[item_id] = (
@@ -194,9 +195,9 @@ def run_group(
         prompt = v36._repair_critic_prompt(module, item["finding"], item["author"], file_cache, config)
         try:
             raw, model, tier = module.hardened.openrouter_review(
-                prompt, v36.REPAIR_SET_CRITIC_SCHEMA, critic_config, reporter=None
+                prompt, repair_set_contract.CRITIC_SCHEMA, critic_config, reporter=None
             )
-            accepted, confidence, reason = v36._parse_critic(raw, module.hardened)
+            accepted, confidence, reason = repair_set_contract.parse_critic(raw, module.hardened)
             decision = (accepted, confidence, reason, False)
         except Exception as exc:
             raw, model, tier = {}, item["critic_model"], ""

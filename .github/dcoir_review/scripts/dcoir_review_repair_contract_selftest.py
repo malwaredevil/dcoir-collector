@@ -213,7 +213,8 @@ def main() -> None:
     ):
         assert forbidden not in source
     v36_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
-    assert "repair_contract.normalize_author_metadata" in v36_source
+    repair_set_contract_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_contract.py").read_text(encoding="utf-8")
+    assert "repair_contract.normalize_author_metadata" in repair_set_contract_source
     assert "repair_contract.append_author_contract" in v36_source
     assert "repair_contract.append_critic_contract" in v36_source
 
