@@ -34,6 +34,7 @@ from dcoir_review import repair_support as repair
 from dcoir_review import repair_precision
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_results
 import dcoir_review_required_runtime_patch_v36 as v36
 
 
@@ -292,7 +293,7 @@ def synthesize_verified_repair_sets(
                 file_cache,
             )
         except Exception as exc:
-            item = v36._declined_item(
+            item = repair_set_results.declined_item(
                 finding,
                 None,
                 f"repair-set stage failed closed: {type(exc).__name__}: {str(exc)[:500]}",

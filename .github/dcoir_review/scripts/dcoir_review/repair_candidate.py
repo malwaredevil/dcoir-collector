@@ -12,6 +12,7 @@ from dcoir_review import repair as repair_policy
 from dcoir_review import repair_support as repair
 from dcoir_review import repair_precision
 from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_results
 from dcoir_review import repair_set_edits
 from dcoir_review import repair_set_prompts
 import dcoir_review_required_runtime_patch_v36 as v36
@@ -165,7 +166,7 @@ def prepare_candidate(
             else repair_set_contract.NO_SAFE_REPAIR_OUTCOME
         )
         return (
-            v36._declined_item(
+            repair_set_results.declined_item(
                 finding,
                 author,
                 author["rationale"] or "repair author concluded the defect is absent",
@@ -177,7 +178,7 @@ def prepare_candidate(
         )
     if author["action"] != "repair_set":
         return (
-            v36._declined_item(
+            repair_set_results.declined_item(
                 finding,
                 author,
                 author["rationale"] or "repair author could not prove a safe complete repair set",
@@ -194,7 +195,7 @@ def prepare_candidate(
                 file_cache[target] = module.fetch_pr_file_text(gh, target, head_sha)
             except Exception as exc:
                 return (
-                    v36._declined_item(
+                    repair_set_results.declined_item(
                         finding,
                         author,
                         f"could not read repair target {target} at reviewed head: {str(exc)[:300]}",
@@ -207,7 +208,7 @@ def prepare_candidate(
     _updated, reason = repair_set_edits.apply_edits_to_files(file_cache, author["edits"])
     if reason:
         return (
-            v36._declined_item(
+            repair_set_results.declined_item(
                 finding, author, reason, author_model=author_model, author_tier=author_tier
             ),
             None,
@@ -243,7 +244,7 @@ def finalize_candidate(
     accepted, confidence, reason, critic_failed_closed = decision
     if not accepted:
         outcome = "repair-stage-failed-closed" if critic_failed_closed else repair_set_contract.NO_SAFE_REPAIR_OUTCOME
-        item = v36._declined_item(
+        item = repair_set_results.declined_item(
             finding,
             author,
             reason or "independent repair-set critic rejected the coordinated repair",
@@ -263,7 +264,7 @@ def finalize_candidate(
 
     _updated, final_reason = repair_set_edits.apply_edits_to_files(file_cache, author["edits"])
     if final_reason:
-        item = v36._declined_item(
+        item = repair_set_results.declined_item(
             finding,
             author,
             final_reason,

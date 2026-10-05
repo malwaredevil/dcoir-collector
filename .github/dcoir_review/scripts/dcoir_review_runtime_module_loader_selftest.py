@@ -90,6 +90,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_set_contract.py",
     "repair_set_edits.py",
     "repair_set_prompts.py",
+    "repair_set_results.py",
     "semantic_adjudication.py",
     "semantic_adjudication_confidence.py",
     "semantic_candidate_identity.py",

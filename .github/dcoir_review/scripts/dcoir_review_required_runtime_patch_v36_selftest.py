@@ -9,6 +9,7 @@ from pathlib import Path
 
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_precision
+from dcoir_review import repair_set_results
 from dcoir_review import finding_verifier
 from dcoir_review import finding_comment_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
@@ -316,19 +317,19 @@ def main() -> None:
         "display_title": "No defect",
         "display_body": "The alleged defect is absent.",
     }
-    suppressed = v36._declined_item(finding, absent_author, "exact evidence disproves the claim")
+    suppressed = repair_set_results.declined_item(finding, absent_author, "exact evidence disproves the claim")
     assert suppressed[repair.REPAIR_MARKER]["outcome"] == repair_precision.SUPPRESSED_OUTCOME
 
     critic_reason = "critic rejected companion test because " + ("evidence " * 260) + "remains incomplete"
-    declined = v36._declined_item(finding, None, critic_reason)
+    declined = repair_set_results.declined_item(finding, None, critic_reason)
     repair_note = declined["fix_guidance"]["notes"]
     assert critic_reason in repair_note
     assert repair_note.endswith(".")
 
-    oversized_reason = "x" * (v36.MAX_REPAIR_STATUS_NOTE_CHARS + 1000)
-    bounded_declined = v36._declined_item(finding, None, oversized_reason)
+    oversized_reason = "x" * (repair_set_results.MAX_REPAIR_STATUS_NOTE_CHARS + 1000)
+    bounded_declined = repair_set_results.declined_item(finding, None, oversized_reason)
     bounded_note = bounded_declined["fix_guidance"]["notes"]
-    assert len(bounded_note) <= v36.MAX_REPAIR_STATUS_NOTE_CHARS
+    assert len(bounded_note) <= repair_set_results.MAX_REPAIR_STATUS_NOTE_CHARS
     assert bounded_note.endswith("...[truncated by DCOIR repair-set budget]")
 
     publisher_before = review.build_review_comments_for_finding

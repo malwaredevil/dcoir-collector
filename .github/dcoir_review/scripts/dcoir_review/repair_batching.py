@@ -12,6 +12,7 @@ from typing import Any
 from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_support as repair
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_set_results
 import dcoir_review_required_runtime_patch_v36 as v36
 from dcoir_review import repair_admission
 from dcoir_review import repair_critic_batch as batch
@@ -102,7 +103,7 @@ def synthesize_verified_repair_sets(
             elif candidate is not None:
                 pending.append(candidate)
         except Exception as exc:
-            repaired_by_ordinal[ordinal] = v36._declined_item(
+            repaired_by_ordinal[ordinal] = repair_set_results.declined_item(
                 finding,
                 None,
                 f"repair-set stage failed closed: {type(exc).__name__}: {str(exc)[:500]}",

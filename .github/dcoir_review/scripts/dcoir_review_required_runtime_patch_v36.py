@@ -25,7 +25,6 @@ This overlay never writes to the pull-request branch.
 from __future__ import annotations
 
 import ast
-from pathlib import Path
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
@@ -37,6 +36,7 @@ from dcoir_review import finding_comment_policy
 from dcoir_review import repair_set_contract
 from dcoir_review import repair_set_edits
 from dcoir_review import repair_set_prompts
+from dcoir_review import repair_set_results
 
 
 VERSION = repair_set_contract.MARKER_VERSION
@@ -47,13 +47,11 @@ MAX_EDITS_PER_REPAIR = repair_set_contract.MAX_EDITS_PER_REPAIR
 MAX_EDIT_RANGE_LINES = repair_set_contract.MAX_EDIT_RANGE_LINES
 MAX_EDIT_TEXT_CHARS = repair_set_contract.MAX_EDIT_TEXT_CHARS
 MAX_TOTAL_REPLACEMENT_CHARS = repair_set_edits.MAX_TOTAL_REPLACEMENT_CHARS
-MAX_REPAIR_STATUS_NOTE_CHARS = 4000
 AUTHOR_MIN_CONFIDENCE = repair_set_contract.AUTHOR_MIN_CONFIDENCE
 CRITIC_MIN_CONFIDENCE = repair_set_contract.CRITIC_MIN_CONFIDENCE
 REPAIR_SET_AUTHOR_SCHEMA = repair_set_contract.AUTHOR_SCHEMA
 REPAIR_SET_CRITIC_SCHEMA = repair_set_contract.CRITIC_SCHEMA
 
-_bounded = lambda text, limit: str(text or "") if len(str(text or "")) <= limit else str(text or "")[: max(0, limit - len("\n...[truncated by DCOIR repair-set budget]"))] + "\n...[truncated by DCOIR repair-set budget]"
 _path_line = repair._path_line
 _parse_author = repair_set_contract.parse_author
 _parse_critic = repair_set_contract.parse_critic
@@ -63,54 +61,6 @@ _repair_critic_config = repair_set_contract.build_critic_config
 
 _apply_edits_to_files = repair_set_edits.apply_edits_to_files
 _annotate_native_eligibility = repair_set_edits.annotate_native_eligibility
-
-def _declined_item(
-    finding: dict[str, Any],
-    author: dict[str, Any] | None,
-    reason: str,
-    *,
-    outcome: str = NO_SAFE_REPAIR_OUTCOME,
-    author_model: str = "",
-    author_tier: str = "",
-) -> dict[str, Any]:
-    item = repair._strip_legacy_model_finding_provenance(finding)
-    path, line = _path_line(item)
-    title, body = repair._fallback_display(item, path, line)
-    if author and author.get("defect_present") is not False:
-        title = str(author.get("display_title", "") or title)[:160]
-        body = str(author.get("display_body", "") or body)[:2200]
-    item["title"] = title
-    item["body"] = body
-    item["suggested_replacement"] = ""
-    status_note = (
-        "DCOIR Review verified the finding. A native coordinated repair was not published because "
-        + (reason or "the repair-set pipeline could not prove a safe complete repair")
-        + "."
-    )
-    item["fix_guidance"] = {
-        "language": Path(path).suffix.lstrip(".") or "text",
-        "notes": _bounded(status_note, MAX_REPAIR_STATUS_NOTE_CHARS),
-    }
-    item[repair.REPAIR_MARKER] = {
-        "version": VERSION,
-        "outcome": outcome,
-        "path": path,
-        "line": line,
-        "author_model": author_model,
-        "author_service_tier": author_tier,
-        "author_confidence": float(author.get("confidence", 0) or 0) if author else 0.0,
-        "reason": reason[:800],
-    }
-    if author and author.get("defect_present") is False:
-        item[repair.REPAIR_MARKER].update(
-            {
-                "defect_present": False,
-                "defect_presence_confidence": float(author.get("confidence", 0) or 0),
-            }
-        )
-        if float(author.get("confidence", 0) or 0) >= repair_precision.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE:
-            item[repair.REPAIR_MARKER]["outcome"] = repair_precision.SUPPRESSED_OUTCOME
-    return item
 
 
 def _build_repair_set_for_finding(
@@ -148,7 +98,7 @@ def _build_repair_set_for_finding(
     author = _parse_author(author_raw, finding, module.hardened)
 
     if author["defect_present"] is False:
-        return _declined_item(
+        return repair_set_results.declined_item(
             finding,
             author,
             author["rationale"] or "repair author concluded the defect is absent",
@@ -157,7 +107,7 @@ def _build_repair_set_for_finding(
             author_tier=author_tier,
         )
     if author["action"] != "repair_set":
-        return _declined_item(
+        return repair_set_results.declined_item(
             finding,
             author,
             author["rationale"] or "repair author could not prove a safe complete repair set",
@@ -171,7 +121,7 @@ def _build_repair_set_for_finding(
             try:
                 file_cache[target] = module.fetch_pr_file_text(gh, target, head_sha)
             except Exception as exc:
-                return _declined_item(
+                return repair_set_results.declined_item(
                     finding,
                     author,
                     f"could not read repair target {target} at reviewed head: {str(exc)[:300]}",
@@ -181,7 +131,7 @@ def _build_repair_set_for_finding(
 
     _updated, precheck_reason = _apply_edits_to_files(file_cache, author["edits"])
     if precheck_reason:
-        return _declined_item(
+        return repair_set_results.declined_item(
             finding,
             author,
             precheck_reason,
@@ -201,7 +151,7 @@ def _build_repair_set_for_finding(
     )
     accepted, critic_confidence, critic_reason = _parse_critic(critic_raw, module.hardened)
     if not accepted:
-        item = _declined_item(
+        item = repair_set_results.declined_item(
             finding,
             author,
             critic_reason or "independent repair-set critic rejected the coordinated repair",
@@ -215,7 +165,7 @@ def _build_repair_set_for_finding(
 
     _updated, final_reason = _apply_edits_to_files(file_cache, author["edits"])
     if final_reason:
-        item = _declined_item(
+        item = repair_set_results.declined_item(
             finding,
             author,
             final_reason,
@@ -323,7 +273,7 @@ def synthesize_verified_repair_sets(
                 file_cache,
             )
         except Exception as exc:
-            item = _declined_item(finding, None, f"repair-set stage failed closed: {type(exc).__name__}: {str(exc)[:500]}")
+            item = repair_set_results.declined_item(finding, None, f"repair-set stage failed closed: {type(exc).__name__}: {str(exc)[:500]}")
         marker = item.get(repair.REPAIR_MARKER) if isinstance(item.get(repair.REPAIR_MARKER), dict) else {}
         if marker.get("outcome") == REPAIR_SET_OUTCOME:
             repair_sets += 1
