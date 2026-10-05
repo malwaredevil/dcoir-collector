@@ -305,7 +305,7 @@ def test_stable_owner_composition() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     verifier = importlib.import_module("dcoir_review.finding_verifier")
-    v33 = importlib.import_module("dcoir_review_required_runtime_patch_v33")
+    repair_policy = importlib.import_module("dcoir_review.repair")
     semantic = importlib.import_module("dcoir_review.semantic_evidence_hardening")
     publication = importlib.import_module("dcoir_review.publication_disposition")
     gate = importlib.import_module("dcoir_review.verified_finding_gate")
@@ -313,19 +313,16 @@ def test_stable_owner_composition() -> None:
 
     assert verifier.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
     assert verifier.verifier_candidate_limit(config) == 12
-    assert v33.verifier_candidate_limit(config) == verifier.verifier_candidate_limit(config)
 
     # Verification capacity follows the publication surface, not the more
     # expensive repair-synthesis budget. Non-default limits must stay separated.
     config.max_inline_comments = 10
     config.fix_synthesis_max_findings = 3
     assert verifier.verifier_candidate_limit(config) == 10
-    assert v33.verifier_candidate_limit(config) == 10
-    assert v33.repair_synthesis_budget(config) == 3
+    assert repair_policy.repair_synthesis_budget(config) == 3
 
     config.max_inline_comments = 20
     assert verifier.verifier_candidate_limit(config) == verifier.VERIFIER_CANDIDATE_HARD_CAP
-    assert not hasattr(v33, "VERIFIER_STORAGE")
     assert not hasattr(semantic, "VERIFIER_STORAGE")
     assert not hasattr(publication, "_VERIFIER_STORAGE")
     assert not hasattr(gate, "_VERIFIER_STORAGE")

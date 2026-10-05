@@ -34,7 +34,6 @@ from dcoir_review import repair as repair_policy
 from dcoir_review import repair_contract
 from dcoir_review import repair_pipeline as repair
 import dcoir_review_required_runtime_patch_v30 as v30
-import dcoir_review_required_runtime_patch_v33 as v33
 
 
 VERSION = "v36"
@@ -695,7 +694,7 @@ def synthesize_verified_repair_sets(
         raise module.hardened.ReviewQualityError("DCOIR v36 repair stage could not determine the PR number")
     pr_diff = gh.get_pr_diff(pr_number)
     right_line_index = module.base.build_diff_line_index(pr_diff)
-    repair_budget = v33.repair_synthesis_budget(config)
+    repair_budget = repair_policy.repair_synthesis_budget(config)
     repair_count = min(len(verified), repair_budget)
     deferred_count = len(verified) - repair_count
     reporter.update(
@@ -711,7 +710,7 @@ def synthesize_verified_repair_sets(
     declined = 0
     for ordinal, raw in enumerate(verified, start=1):
         if ordinal > repair_count:
-            repaired.append(v33._deferred_verified_finding(raw, ordinal))
+            repaired.append(repair_policy.budget_deferred_verified_finding(raw, ordinal, repair))
             continue
         finding = repair._strip_legacy_model_finding_provenance(raw)
         try:

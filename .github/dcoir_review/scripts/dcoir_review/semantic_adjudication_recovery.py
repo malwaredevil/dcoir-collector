@@ -11,11 +11,11 @@ This stable owner preserves the versioned v44 helper unchanged and replaces only
 narrow: only an unrelated valid-JSON object with none of the flat-finding fields
 may fall back to already-structured hypotheses from the same escalation. Those
 hypotheses must satisfy the existing publication-candidate semantic contract,
-pass the active production ranking boundary, and are hard-capped to v33's current
+pass the active production ranking boundary, and are hard-capped to the canonical current
 verifier capacity. The rejected adjudicator object is never interpreted or
 persisted.
 
-Every recovered hypothesis still flows through the existing exact-head v21/v33
+Every recovered hypothesis still flows through the existing exact-head canonical
 verifier and all downstream publication/repair gates. No additional model call,
 provider/routing change, retry change, confidence synthesis, branch write, or
 automatic remediation is introduced.
@@ -27,7 +27,7 @@ import copy
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v33 as v33
+from dcoir_review import finding_verifier
 from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import semantic_adjudication_confidence as confidence
@@ -159,7 +159,7 @@ def _recover_upstream_hypotheses(
 
     deduped = _dedupe_upstream_hypotheses(usable)
     ranked = module.rank_findings_for_required_budget(deduped, config)
-    verifier_capacity = v33.verifier_candidate_limit(config)
+    verifier_capacity = finding_verifier.verifier_candidate_limit(config)
     selected = [dict(item) for item in ranked if isinstance(item, dict)][:verifier_capacity]
     if not selected:
         return None

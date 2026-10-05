@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
-import dcoir_review_required_runtime_patch_v33 as v33
+from dcoir_review import finding_verifier
 from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import candidate_escalation_execution as execution
 from dcoir_review import candidate_escalation_scope as scope
@@ -193,7 +193,7 @@ def main() -> None:
     assert getattr(execution, recovery.RUN_STORAGE) is original
 
     cfg = config()
-    assert v33.verifier_candidate_limit(cfg) == 12
+    assert finding_verifier.verifier_candidate_limit(cfg) == 12
 
     # Canonical envelopes remain on the historical v37/v35 path.
     canonical = {"summary": "canonical", "findings": [finding(1, "canonical")]}
