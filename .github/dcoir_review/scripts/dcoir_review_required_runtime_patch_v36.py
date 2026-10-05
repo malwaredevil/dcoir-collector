@@ -58,7 +58,6 @@ REPAIR_SET_CRITIC_SCHEMA = repair_set_contract.CRITIC_SCHEMA
 _bounded = lambda text, limit: str(text or "") if len(str(text or "")) <= limit else str(text or "")[: max(0, limit - len("\n...[truncated by DCOIR repair-set budget]"))] + "\n...[truncated by DCOIR repair-set budget]"
 _path_line = repair._path_line
 _normalized_newlines = repair_set_edits.normalized_newlines
-_validate_edit_shape = repair_set_edits.validate_edit_shape
 _parse_author = repair_set_contract.parse_author
 _parse_critic = repair_set_contract.parse_critic
 _repair_critic_config = repair_set_contract.build_critic_config
