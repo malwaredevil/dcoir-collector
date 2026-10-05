@@ -14,6 +14,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 from dcoir_review import structured_result_disposition as structured_disposition
 from dcoir_review import progress_reporting
+from dcoir_review import review_telemetry_state
 
 
 class FakeResponse:
@@ -677,20 +678,20 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
         telemetry.summarize_sink = original_summarize
 
     # Loader-side telemetry initialization and patch wiring are best-effort too.
-    original_ensure = telemetry.ensure_sink
+    original_ensure = review_telemetry_state.ensure_sink
     def broken_ensure(_config):
         raise RuntimeError("synthetic telemetry sink failure")
-    telemetry.ensure_sink = broken_ensure
+    review_telemetry_state.ensure_sink = broken_ensure
     try:
-        # Loader-side initialization now belongs to canonical review_config, not telemetry.
-        # Exercise the real canonical production loader while sink creation is broken.
+        # Loader-side initialization belongs to canonical review_config and now
+        # depends only on the telemetry-state leaf to avoid an import cycle.
         fallback_config = review.load_pareto_context_config(
             ".github/dcoir_review/openrouter-pr-review-pareto.yml"
         )
         assert fallback_config.debug is False
         assert telemetry.telemetry_error_count(fallback_config) >= 1
     finally:
-        telemetry.ensure_sink = original_ensure
+        review_telemetry_state.ensure_sink = original_ensure
 
     # Provider-side attempt telemetry itself is bounded and prompt-free.
     provider_probe = copy.copy(production_config)
