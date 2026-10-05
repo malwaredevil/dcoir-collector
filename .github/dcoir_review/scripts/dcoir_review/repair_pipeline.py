@@ -7,6 +7,7 @@ set of hooks here until their responsibilities are retired into stable owners.
 
 from __future__ import annotations
 
+import importlib
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,7 @@ from dcoir_review import repair_support as support
 from dcoir_review import finding_verifier
 
 VERSION = "repair"
-REPAIR_MARKER = "_dcoir_repair"
+REPAIR_MARKER = support.REPAIR_MARKER
 AUTHOR_MIN_CONFIDENCE = 0.90
 CRITIC_MIN_CONFIDENCE = 0.90
 MAX_REPAIR_CANDIDATES = 6
@@ -133,74 +134,15 @@ def synthesize_verified_repairs(
     config: Any,
     reporter: Any,
 ) -> list[dict[str, Any]]:
-    del schema
-    verified = finding_verifier.verify_findings_for_publication(module, findings, gh, pr, config, reporter)
-    if not verified:
-        reporter.update("repair", "no verifier-supported findings required repair")
-        return []
-    if len(verified) > MAX_REPAIR_CANDIDATES:
-        raise module.hardened.ReviewQualityError(
-            f"DCOIR repair candidate count {len(verified)} exceeds bounded limit {MAX_REPAIR_CANDIDATES}"
-        )
+    """Run the canonical verified-repair path through stable batching ownership."""
 
-    head_sha = str(pr.get("head", {}).get("sha", "") or "").strip()
-    if not head_sha:
-        raise module.hardened.ReviewQualityError("DCOIR repair stage could not determine the PR head SHA")
+    # Import lazily because repair_batching consumes helper exports from this
+    # module. Runtime composition no longer replaces this callable.
+    repair_batching = importlib.import_module("dcoir_review.repair_batching")
 
-    reporter.update("repair", f"authoring and independently critiquing {len(verified)} verified repair(s)")
-    file_cache: dict[str, str] = {}
-    repaired: list[dict[str, Any]] = []
-    native = 0
-    declined = 0
-    for ordinal, raw in enumerate(verified, start=1):
-        finding = _strip_legacy_model_finding_provenance(raw)
-        path, _line = _path_line(finding)
-        if path not in file_cache:
-            file_cache[path] = module.fetch_pr_file_text(gh, path, head_sha)
-        try:
-            item = _build_repair_for_finding(module, ordinal, finding, file_cache[path], config)
-        except Exception as exc:
-            # Finding publication remains useful even when repair generation is
-            # unavailable; applyable suggestions fail closed, not findings.
-            item = finding
-            path, line = _path_line(item)
-            title, body = support._fallback_display(item, path, line)
-            item["title"] = title
-            item["body"] = body
-            item["suggested_replacement"] = ""
-            item["fix_guidance"] = {
-                "language": Path(path).suffix.lstrip(".") or "text",
-                "notes": "Verified finding; one-click repair was withheld because the repair pipeline failed closed.",
-            }
-            item[REPAIR_MARKER] = {
-                "version": VERSION,
-                "outcome": "repair-stage-failed-closed",
-                "path": path,
-                "line": line,
-                "reason": str(exc)[:600],
-            }
-        if item.get(REPAIR_MARKER, {}).get("outcome") == "native-suggestion":
-            native += 1
-        else:
-            declined += 1
-        repaired.append(item)
-
-    reporter.update(
-        "repair",
-        f"verified={len(repaired)}; native_suggestions={native}; fallback_or_declined={declined}",
+    return repair_batching.synthesize_verified_repair_sets(
+        module, findings, gh, pr, schema, config, reporter
     )
-    module.hardened.write_debug_json_artifact_safely(
-        config,
-        "metadata/repair-metrics.json",
-        {
-            "schema_version": "dcoir_review_repair_metrics_v1",
-            "head_sha": head_sha,
-            "verified_findings": len(repaired),
-            "native_suggestions": native,
-            "fallback_or_declined": declined,
-        },
-    )
-    return repaired
 
 
 def _render_repair(module: Any, finding: dict[str, Any], config: Any) -> str:

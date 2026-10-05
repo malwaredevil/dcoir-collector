@@ -78,6 +78,9 @@ DIRECT_IMPORT_MODULES = (
     "quality_gate.py",
     "repair.py",
     "repair_admission.py",
+    "repair_batching.py",
+    "repair_candidate.py",
+    "repair_critic_batch.py",
     "repair_contract.py",
     "repair_pipeline.py",
     "repair_reliability.py",
@@ -370,7 +373,7 @@ def assert_canonical_config_loader_ownership() -> None:
         "dcoir_review/verified_finding_gate.py",
         "dcoir_review/semantic_candidate_identity.py",
         "dcoir_review/per_file_routing.py",
-        "dcoir_review_required_runtime_patch_v56.py",
+        "dcoir_review/repair_batching.py",
     )
     for relative in former_config_owners:
         source = (SCRIPTS / relative).read_text(encoding="utf-8")

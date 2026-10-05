@@ -902,13 +902,6 @@ def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
 
-    # the canonical repair pipeline's public synthesis wrapper resolves this symbol dynamically; v30's
-    # defect-absence suppression wrapper remains outside it and therefore keeps
-    # its publication semantics.
-    repair.synthesize_verified_repairs = lambda mod, findings, gh, pr, schema, config, reporter: synthesize_verified_repair_sets(
-        mod, findings, gh, pr, schema, config, reporter
-    )
-
     if not hasattr(module, "build_review_comments_for_finding"):
         raise RuntimeError("DCOIR v36 requires the repair-set publication expansion seam")
     module.build_review_comments_for_finding = lambda finding, model_used, config: build_review_comments_for_finding(

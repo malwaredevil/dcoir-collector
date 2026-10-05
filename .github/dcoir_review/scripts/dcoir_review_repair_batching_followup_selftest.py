@@ -71,9 +71,9 @@ def main() -> None:
 
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     v53 = importlib.import_module("dcoir_review.repair_admission")
-    v56 = importlib.import_module("dcoir_review_required_runtime_patch_v56")
-    batch = importlib.import_module("dcoir_review_required_runtime_patch_v56_batch")
-    repair = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
+    v56 = importlib.import_module("dcoir_review.repair_batching")
+    batch = importlib.import_module("dcoir_review.repair_critic_batch")
+    repair = importlib.import_module("dcoir_review.repair_candidate")
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     config.fix_synthesis_enabled = True
@@ -247,7 +247,7 @@ def main() -> None:
         repair.finalize_candidate = original_finalize
 
     print(
-        "dcoir_review_required_runtime_patch_v56_followup_selftest passed: recursive split telemetry and reversed identity dispositions remain exact"
+        "dcoir_review.repair_batching_followup_selftest passed: recursive split telemetry and reversed identity dispositions remain exact"
     )
 
 

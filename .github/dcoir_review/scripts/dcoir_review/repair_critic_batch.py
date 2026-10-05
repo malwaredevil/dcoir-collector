@@ -1,4 +1,4 @@
-"""Bounded identity-safe batch critic helpers for DCOIR Review v56."""
+"""Bounded identity-safe repair-critic batch execution for DCOIR Review."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import math
 from typing import Any
 
 from dcoir_review import repair as repair_policy
-from dcoir_review import repair_pipeline as repair
+from dcoir_review import repair_support as repair
 from dcoir_review import review_telemetry_state
 import dcoir_review_required_runtime_patch_v36 as v36
-import dcoir_review_required_runtime_patch_v56_repair as repair_stage
+from dcoir_review import repair_candidate as repair_stage
 
 MAX_BATCH_ITEMS = 8
 MAX_BATCH_PROMPT_CHARS = 120000

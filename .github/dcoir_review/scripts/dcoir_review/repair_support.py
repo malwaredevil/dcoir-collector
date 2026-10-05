@@ -17,6 +17,7 @@ from dcoir_review import finding_verifier_contract as verifier_contract
 
 AUTHOR_MIN_CONFIDENCE = 0.90
 CRITIC_MIN_CONFIDENCE = 0.90
+REPAIR_MARKER = "_dcoir_repair"
 
 def _path_line(finding: dict[str, Any]) -> tuple[str, int]:
     path = str(finding.get("path", "") or "").strip()

@@ -222,8 +222,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_repair_admission_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_review_telemetry_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_recovery_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v56_followup_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_batching_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_repair_batching_followup_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_final_adjudication_policy_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_provider_transport_retry_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py

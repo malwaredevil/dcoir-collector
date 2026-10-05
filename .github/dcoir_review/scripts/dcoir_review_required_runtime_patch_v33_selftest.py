@@ -20,112 +20,41 @@ class _Reporter:
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert "dcoir_review_required_runtime_patch_v33" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33") < entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening")
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
+    repair_policy = importlib.import_module("dcoir_review.repair")
     v33 = importlib.import_module("dcoir_review_required_runtime_patch_v33")
 
     assert getattr(review, v33.APPLIED_MARKER, False) is True
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
 
-    # Canonical configuration keeps the governed repair budget, while
-    # the canonical verifier owns the separate 12-candidate verification ceiling.
+    # v33 is now compatibility policy only. Canonical owners hold both limits.
     assert v21.VERIFIER_MAX_MODEL_FINDINGS == 12
     assert repair.MAX_REPAIR_CANDIDATES == 12
-    assert v21.verifier_candidate_limit(config) == 12
-    assert v33.verifier_candidate_limit(config) == 12
-    assert v33.repair_synthesis_budget(config) == 12
+    assert v33.verifier_candidate_limit(config) == v21.verifier_candidate_limit(config) == 12
+    assert v33.repair_synthesis_budget(config) == repair_policy.repair_synthesis_budget(config) == 12
     assert v21.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
-    assert not hasattr(v33, "VERIFIER_STORAGE")
+    assert not hasattr(v33, "REPAIR_STORAGE")
+    assert not hasattr(repair, "_dcoir_review_v33_original_synthesize_verified_repairs")
 
-    # The production budget now reaches the full 12-finding publication ceiling.
-    # Lower custom budgets remain supported and still defer rather than erase findings.
+    # Applying v33 repeatedly may mark compatibility but must never replace synthesis.
+    synth_before = repair.synthesize_verified_repairs
+    v33.apply_pareto_context_module(review)
+    v33.apply_pareto_context_module(review)
+    assert repair.synthesize_verified_repairs is synth_before
+    assert repair.synthesize_verified_repairs.__module__ == "dcoir_review.repair_pipeline"
+
+    # Budget deferral remains canonical and fail-closed in the stable policy owner.
     config.fix_synthesis_max_findings = 8
-
-    candidates = [
-        {
-            "title": f"candidate-{index}",
-            "severity": "medium",
-            "confidence": 0.91,
-            "path": "probe.py",
-            "line": index,
-            "body": "semantic candidate",
-            "validation": "focused regression",
-        }
-        for index in range(1, 10)
-    ]
-
-    # Prove v33's own budget-separation contract in isolation. Later repair
-    # overlays (currently v36 coordinated repair sets) legitimately require
-    # additional PR context such as the PR number/diff and must not make this
-    # historical v33 regression accidentally test their newer responsibilities.
-    active_repair = repair.synthesize_verified_repairs
-    v33._patch_verified_repair_budget(review)
-    v33_repair = repair.synthesize_verified_repairs
-
-    original_verify = v21.verify_findings_for_publication
-    original_build = repair._build_repair_for_finding
-    original_fetch = review.fetch_pr_file_text
-    original_debug = review.hardened.write_debug_json_artifact_safely
-    repair_calls: list[int] = []
-
-    def return_nine(*args, **kwargs):
-        return [dict(item) for item in candidates]
-
-    def fake_build(mod: Any, ordinal: int, finding: dict[str, Any], file_text: str, cfg: Any):
-        repair_calls.append(ordinal)
-        item = dict(finding)
-        item[repair.REPAIR_MARKER] = {
-            "version": "test",
-            "outcome": "no-safe-single-line-fix",
-            "path": finding["path"],
-            "line": finding["line"],
-        }
-        item["suggested_replacement"] = ""
-        return item
-
-    v21.verify_findings_for_publication = return_nine
-    repair._build_repair_for_finding = fake_build
-    review.fetch_pr_file_text = lambda *args, **kwargs: "probe = True\n"
-    review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
-    reporter = _Reporter()
-    try:
-        repaired = v33_repair(
-            review,
-            candidates,
-            object(),
-            {"head": {"sha": "deadbeef"}},
-            {},
-            config,
-            reporter,
-        )
-    finally:
-        v21.verify_findings_for_publication = original_verify
-        repair._build_repair_for_finding = original_build
-        repair.synthesize_verified_repairs = active_repair
-        review.fetch_pr_file_text = original_fetch
-        review.hardened.write_debug_json_artifact_safely = original_debug
-
-    assert len(repaired) == 9
-    assert repair_calls == list(range(1, 9))
-    deferred = [item for item in repaired if item.get(repair.REPAIR_MARKER, {}).get("outcome") == v33.DEFERRED_OUTCOME]
-    assert len(deferred) == 1
-    assert deferred[0]["line"] == 9
-    assert deferred[0]["suggested_replacement"] == ""
-    assert "repair budget was exhausted" in deferred[0]["fix_guidance"]["notes"]
-
-    # Applying v33 repeatedly must not stack wrappers or overwrite the active
-    # later-version repair implementation.
-    verifier_before = v21.verify_findings_for_publication
-    repair_before = repair.synthesize_verified_repairs
-    v33.apply_pareto_context_module(review)
-    v33.apply_pareto_context_module(review)
-    assert v21.verify_findings_for_publication is verifier_before
-    assert repair.synthesize_verified_repairs is repair_before
+    assert v33.repair_synthesis_budget(config) == 8
+    raw = {"title": "candidate-9", "path": "probe.py", "line": 9, "confidence": 0.91}
+    deferred = repair_policy.budget_deferred_verified_finding(raw, 9, repair)
+    assert deferred[repair.REPAIR_MARKER]["outcome"] == v33.DEFERRED_OUTCOME
+    assert deferred["suggested_replacement"] == ""
+    assert "repair budget was exhausted" in deferred["fix_guidance"]["notes"]
 
     print("dcoir_review_required_runtime_patch_v33_selftest passed")
 

@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
-from dcoir_review import repair_pipeline as repair
+from dcoir_review import repair_support as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 from dcoir_review import repair as repair_policy
 import dcoir_review_required_runtime_patch_v36 as v36

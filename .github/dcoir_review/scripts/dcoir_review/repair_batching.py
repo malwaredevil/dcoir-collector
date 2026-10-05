@@ -1,4 +1,4 @@
-"""DCOIR Review v56 bounded independent repair-critic batching.
+"""Canonical bounded independent repair-critic batching for DCOIR Review.
 
 Independently authored repair sets keep their existing exact-head checks and
 cross-family critic gate. Compatible critic candidates are evaluated together
@@ -10,15 +10,14 @@ from __future__ import annotations
 from typing import Any
 
 from dcoir_review import finding_verifier as v21
-from dcoir_review import repair_pipeline as repair
+from dcoir_review import repair_support as repair
 from dcoir_review import repair as repair_policy
 import dcoir_review_required_runtime_patch_v36 as v36
 from dcoir_review import repair_admission
-import dcoir_review_required_runtime_patch_v56_batch as batch
-import dcoir_review_required_runtime_patch_v56_repair as repair_stage
+from dcoir_review import repair_critic_batch as batch
+from dcoir_review import repair_candidate as repair_stage
 
 VERSION = "v56"
-APPLIED_MARKER = "_dcoir_review_v56_applied"
 def _batch_limit(config: Any) -> int:
     raw = getattr(config, "repair_critic_batch_max_findings", batch.MAX_BATCH_ITEMS)
     try:
@@ -193,9 +192,3 @@ def synthesize_verified_repair_sets(
     )
     return repaired
 
-
-def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, APPLIED_MARKER, False):
-        return
-    repair.synthesize_verified_repairs = synthesize_verified_repair_sets
-    setattr(module, APPLIED_MARKER, True)

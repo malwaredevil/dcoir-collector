@@ -123,12 +123,11 @@ class DcoirReviewEntrypoint:
     # verified-finding completion overrides with v54 terminal run telemetry while
     # inheriting the existing base/review-scope reporter behavior. Provider
     # transport retry follows that owner, then stable semantic-adjudication
-    # recovery and the remaining v56-v57 post-telemetry guards.
+    # recovery and the remaining post-telemetry guards.
     post_telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review.progress_reporting',
         'dcoir_review.provider_transport_retry',
         'dcoir_review.semantic_adjudication_recovery',
-        'dcoir_review_required_runtime_patch_v56',
         'dcoir_review.final_adjudication_policy',
         'dcoir_review.provider_review',
     )

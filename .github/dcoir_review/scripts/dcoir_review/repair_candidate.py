@@ -1,4 +1,4 @@
-"""Preparation and finalization helpers for DCOIR Review v56 critic batching."""
+"""Repair candidate preparation, anchor recovery, and finalization helpers."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from dcoir_review import repair as repair_policy
-from dcoir_review import repair_pipeline as repair
+from dcoir_review import repair_support as repair
 import dcoir_review_required_runtime_patch_v30 as v30
 import dcoir_review_required_runtime_patch_v36 as v36
 

@@ -175,13 +175,12 @@ def main() -> None:
         "dcoir_review.progress_reporting",
         "dcoir_review.provider_transport_retry",
     )
-    assert post_telemetry[-4:] == (
+    assert post_telemetry[-3:] == (
         "dcoir_review.semantic_adjudication_recovery",
-        "dcoir_review_required_runtime_patch_v56",
         "dcoir_review.final_adjudication_policy",
         "dcoir_review.provider_review",
     )
-    assert post_telemetry.index("dcoir_review.semantic_adjudication_recovery") < post_telemetry.index("dcoir_review_required_runtime_patch_v56")
+    assert post_telemetry.index("dcoir_review.semantic_adjudication_recovery") < post_telemetry.index("dcoir_review.final_adjudication_policy")
 
     # Stable recovery preserves the v44 helper.
     original = getattr(execution, recovery.RUN_STORAGE, None) or execution.run_adjudicator

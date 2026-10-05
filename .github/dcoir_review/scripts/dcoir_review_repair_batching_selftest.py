@@ -83,12 +83,9 @@ def _author(path: str) -> dict:
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     post_telemetry = entrypoint.post_telemetry_patch_module_names
-    assert "dcoir_review_required_runtime_patch_v56" in post_telemetry
+    assert "dcoir_review.repair_batching" not in post_telemetry
     assert "dcoir_review.final_adjudication_policy" in post_telemetry
     assert "dcoir_review.provider_review" in post_telemetry
-    assert post_telemetry.index("dcoir_review_required_runtime_patch_v56") < post_telemetry.index(
-        "dcoir_review.final_adjudication_policy"
-    ) < post_telemetry.index("dcoir_review.provider_review")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
@@ -97,10 +94,10 @@ def main() -> None:
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     v53 = importlib.import_module("dcoir_review.repair_admission")
     from dcoir_review import review_telemetry as telemetry
-    v56 = importlib.import_module("dcoir_review_required_runtime_patch_v56")
-    batch = importlib.import_module("dcoir_review_required_runtime_patch_v56_batch")
-    repair_stage = importlib.import_module("dcoir_review_required_runtime_patch_v56_repair")
-    assert getattr(review, v56.APPLIED_MARKER, False) is True
+    v56 = importlib.import_module("dcoir_review.repair_batching")
+    batch = importlib.import_module("dcoir_review.repair_critic_batch")
+    repair_stage = importlib.import_module("dcoir_review.repair_candidate")
+    assert repair_pipeline.synthesize_verified_repairs.__module__ == "dcoir_review.repair_pipeline"
 
     class _RecoveryModule:
         fetch_pr_file_text = staticmethod(
@@ -484,7 +481,7 @@ def main() -> None:
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     print(
-        "dcoir_review_required_runtime_patch_v56_selftest passed: config rollback, strict identity schema, pre-truncation splitting, publication compatibility, and canonical cross-family critic gates remain intact"
+        "dcoir_review.repair_batching_selftest passed: config rollback, strict identity schema, pre-truncation splitting, publication compatibility, and canonical cross-family critic gates remain intact"
     )
 
 
