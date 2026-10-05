@@ -232,7 +232,6 @@ def test_verifier_capacity_is_independent_from_repair_budget(review, verifier) -
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     config.max_inline_comments = 10
     config.fix_synthesis_max_findings = 3
-    config.dcoir_v32_verifier_repair_limit = 3
 
     source = "\n".join(f"value_{index} = {index}" for index in range(1, 11)) + "\n"
     findings = [
@@ -313,7 +312,6 @@ def test_stable_owner_composition() -> None:
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
 
     assert verifier.verify_findings_for_publication.__module__ == "dcoir_review.finding_verifier"
-    assert config.dcoir_v32_verifier_repair_limit == 12
     assert verifier.verifier_candidate_limit(config) == 12
     assert v33.verifier_candidate_limit(config) == verifier.verifier_candidate_limit(config)
 
@@ -321,7 +319,6 @@ def test_stable_owner_composition() -> None:
     # expensive repair-synthesis budget. Non-default limits must stay separated.
     config.max_inline_comments = 10
     config.fix_synthesis_max_findings = 3
-    config.dcoir_v32_verifier_repair_limit = 3
     assert verifier.verifier_candidate_limit(config) == 10
     assert v33.verifier_candidate_limit(config) == 10
     assert v33.repair_synthesis_budget(config) == 3

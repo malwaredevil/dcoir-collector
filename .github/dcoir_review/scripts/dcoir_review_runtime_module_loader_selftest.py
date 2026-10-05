@@ -31,6 +31,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES: dict[str, int] = {}
 # or package marker (__init__.py). This keeps orphan detection fail-closed
 # without forcing ordinary helper/selftest modules into LAYER_SEGMENTS.
 DIRECT_IMPORT_MODULES = (
+    "adversarial_confirmation.py",
     "adversarial_prompt_policy.py",
     "entrypoint.py",
     "final_adjudication_policy.py",
@@ -57,6 +58,7 @@ DIRECT_IMPORT_MODULES = (
     "prompt_review_scope_guard.py",
     "review_scope_guard.py",
     "review_config.py",
+    "reasoning_policy.py",
     "review_orchestration.py",
     "review_telemetry.py",
     "review_telemetry_events.py",
@@ -251,6 +253,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     assert "dcoir_review_required_runtime_patch_v57" not in numbered, (
         "retired v57 production owner reappeared"
     )
+    assert "dcoir_review_required_runtime_patch_v32" not in numbered, (
+        "retired v32 production owner reappeared"
+    )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
@@ -337,7 +342,6 @@ def assert_canonical_config_loader_ownership() -> None:
     assert "review_config.apply_review_config(config, data, hardened)" in base
 
     former_config_owners = (
-        "dcoir_review_required_runtime_patch_v32.py",
         "dcoir_review_required_runtime_patch_v35.py",
         "dcoir_review_required_runtime_patch_v44.py",
         "dcoir_review/publication_disposition.py",
@@ -548,9 +552,9 @@ def assert_canonical_per_file_prompt_ownership() -> None:
     policy_path = SCRIPTS / "dcoir_review" / "adversarial_prompt_policy.py"
     assert policy_path.is_file(), "current adversarial prompt policy owner is missing"
 
-    v32_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v32.py").read_text(encoding="utf-8")
-    assert "def _patch_per_file_prompt(" not in v32_source
-    assert "_dcoir_review_v32_original_build_per_file_review_prompt" not in v32_source
+    assert not (SCRIPTS / "dcoir_review_required_runtime_patch_v32.py").exists(), (
+        "retired v32 source reappeared"
+    )
 
     evidence_source = (SCRIPTS / "dcoir_review" / "semantic_evidence_hardening.py").read_text(encoding="utf-8")
     assert "def _patch_v32_prompt_blocks(" not in evidence_source
@@ -674,13 +678,13 @@ def assert_canonical_sanitize_text_ownership() -> None:
 def assert_canonical_payload_builder_ownership() -> None:
     from dcoir_review import per_file_review
 
-    v32_source = (SCRIPTS / "dcoir_review_required_runtime_patch_v32.py").read_text(
+    reasoning_source = (SCRIPTS / "dcoir_review" / "reasoning_policy.py").read_text(
         encoding="utf-8"
     )
-    assert "hardened.build_openrouter_payload =" not in v32_source
-    assert "module.build_openrouter_payload =" not in v32_source
-    assert "_dcoir_review_v32_original_build_openrouter_payload" not in v32_source
-    assert "def apply_reasoning_payload_policy(" in v32_source
+    assert "hardened.build_openrouter_payload =" not in reasoning_source
+    assert "module.build_openrouter_payload =" not in reasoning_source
+    assert "original_build_openrouter_payload" not in reasoning_source
+    assert "def apply_reasoning_payload_policy(" in reasoning_source
 
     routing_source = (SCRIPTS / "dcoir_review" / "per_file_routing.py").read_text(
         encoding="utf-8"
@@ -841,7 +845,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
 
     former_hybrid_owners = (
         "dcoir_review/quality_gate.py",
-        "dcoir_review_required_runtime_patch_v32.py",
+        "dcoir_review/adversarial_confirmation.py",
         "dcoir_review_required_runtime_patch_v35.py",
         "dcoir_review/semantic_adjudication_confidence.py",
         "dcoir_review/semantic_review_ledger_hooks.py",

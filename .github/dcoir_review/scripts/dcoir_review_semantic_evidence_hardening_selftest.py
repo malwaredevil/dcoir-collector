@@ -26,7 +26,7 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
-    v32 = importlib.import_module("dcoir_review_required_runtime_patch_v32")
+    prompt_policy = importlib.import_module("dcoir_review.adversarial_prompt_policy")
     semantic_evidence = importlib.import_module("dcoir_review.semantic_evidence_hardening")
 
     assert getattr(review, semantic_evidence.APPLIED_MARKER, False) is True
@@ -39,8 +39,8 @@ def main() -> None:
     # The stable owner strengthens both primary and independent prompts without teaching a
     # PR-specific answer. The audit is structural: call-site defaults, every OR
     # branch, and rejected/mentioned propositions must be examined.
-    assert semantic_evidence.PREDICATE_AUDIT_BLOCK in v32.ADVERSARIAL_SEMANTIC_BLOCK
-    assert semantic_evidence.PREDICATE_AUDIT_BLOCK in v32.INDEPENDENT_CONFIRMATION_BLOCK
+    assert semantic_evidence.PREDICATE_AUDIT_BLOCK in prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK
+    assert semantic_evidence.PREDICATE_AUDIT_BLOCK in prompt_policy.INDEPENDENT_CONFIRMATION_BLOCK
     assert "omitted defaults" in semantic_evidence.PREDICATE_AUDIT_BLOCK
     assert "Audit each OR branch independently" in semantic_evidence.PREDICATE_AUDIT_BLOCK
     assert "rejected proposition" in semantic_evidence.PREDICATE_AUDIT_BLOCK
@@ -110,13 +110,13 @@ def main() -> None:
     # Re-applying the stable stage owner is a no-op; canonical verifier ownership
     # and prompt blocks must remain stable.
     verifier_before = v21.verify_findings_for_publication
-    semantic_before = v32.ADVERSARIAL_SEMANTIC_BLOCK
-    confirmation_before = v32.INDEPENDENT_CONFIRMATION_BLOCK
+    semantic_before = prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK
+    confirmation_before = prompt_policy.INDEPENDENT_CONFIRMATION_BLOCK
     semantic_evidence.apply_pareto_context_module(review)
     semantic_evidence.apply_pareto_context_module(review)
     assert v21.verify_findings_for_publication is verifier_before
-    assert v32.ADVERSARIAL_SEMANTIC_BLOCK == semantic_before
-    assert v32.INDEPENDENT_CONFIRMATION_BLOCK == confirmation_before
+    assert prompt_policy.ADVERSARIAL_SEMANTIC_BLOCK == semantic_before
+    assert prompt_policy.INDEPENDENT_CONFIRMATION_BLOCK == confirmation_before
 
     print("dcoir_review_semantic_evidence_hardening_selftest passed")
 

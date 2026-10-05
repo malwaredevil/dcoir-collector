@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v32 as v32
+from dcoir_review import adversarial_confirmation
 import dcoir_review_required_runtime_patch_v35 as v35
 from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import semantic_adjudication_confidence as confidence
@@ -28,14 +28,11 @@ def run_challenger(
     context_scope: str,
 ) -> tuple[dict[str, Any], str, str]:
     staged = copy.copy(config)
-    models = v32._as_string_list(
-        getattr(config, "adversarial_confirmation_model_stack", None),
-        v32.DEFAULT_CONFIRMATION_MODELS,
-    )
+    models = adversarial_confirmation.confirmation_models(config)
     staged.model_stack = models
     staged.model = models[0]
     prompt = prompt_with_budget(
-        f"{v32.INDEPENDENT_CONFIRMATION_BLOCK}\n\n{evidence}",
+        f"{adversarial_confirmation.INDEPENDENT_CONFIRMATION_BLOCK}\n\n{evidence}",
         staged,
         "\n\n[v44 challenger evidence truncated by reviewer budget]",
     )

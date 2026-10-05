@@ -90,7 +90,7 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "broad-quality-retry"
             if (
-                filename == "dcoir_review_required_runtime_patch_v32.py"
+                filename == "adversarial_confirmation.py"
                 and function in (
                     "openrouter_review_with_hybrid_first_pass",
                     "adversarial_confirmation_stage",
@@ -109,7 +109,7 @@ def _callsite_stage_label(prompt: Any) -> str:
                 return "semantic-adjudicator"
             if (
                 filename in (
-                    "dcoir_review_required_runtime_patch_v32.py",
+                    "adversarial_confirmation.py",
                     "dcoir_review_required_runtime_patch_v44_execution.py",
                 )
                 and function == "run_challenger"

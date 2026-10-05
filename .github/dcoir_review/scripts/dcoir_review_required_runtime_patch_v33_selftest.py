@@ -20,7 +20,7 @@ class _Reporter:
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert "dcoir_review_required_runtime_patch_v33" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v32") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33")
+    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33") < entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening")
     assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v33") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
@@ -32,7 +32,7 @@ def main() -> None:
     assert getattr(review, v33.APPLIED_MARKER, False) is True
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
 
-    # v32's compatibility constants remain at the governed repair budget, while
+    # Canonical configuration keeps the governed repair budget, while
     # the canonical verifier owns the separate 12-candidate verification ceiling.
     assert v21.VERIFIER_MAX_MODEL_FINDINGS == 12
     assert repair.MAX_REPAIR_CANDIDATES == 12

@@ -57,7 +57,6 @@ class DcoirReviewEntrypoint:
         # admit the candidate to v21 verification; verifier support remains mandatory
         # before repair/publication. v31 stays
         # terminal for this historical semantic-patch chain.
-        'dcoir_review_required_runtime_patch_v32',
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review.semantic_evidence_hardening',
         'dcoir_review_required_runtime_patch_v35',

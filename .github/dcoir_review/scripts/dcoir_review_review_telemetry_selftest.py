@@ -417,7 +417,7 @@ def adversarial_confirmation_stage(prompt, schema, config):
     confirmation_prompt = prompt
     return telemetry.classify_stage(prompt, schema, config)
 """,
-            "dcoir_review_required_runtime_patch_v32.py",
+            "adversarial_confirmation.py",
             "exec",
         ),
         namespace,

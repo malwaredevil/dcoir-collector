@@ -11,7 +11,7 @@ configuration is left unchanged for every later semantic stage. The projected
 payload enables Response Healing explicitly and preserves strict structured
 output and ``require_parameters=true``. Sampling-temperature and reasoning
 request shape for every stage, including omission of generic temperature for
-Claude 5/5.5 adaptive reasoning, is owned by the v32 reasoning payload policy
+Claude 5/5.5 adaptive reasoning, is owned by the canonical reasoning payload policy
 applied first in ``build_openrouter_payload``. Generic hardened-provider controls
 capture request evidence and enforce stop/object response contracts without
 bypassing the mature request-wrapper chain.
@@ -26,7 +26,7 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v32 as reasoning_policy
+from dcoir_review import reasoning_policy
 
 
 RESPONSE_HEALING_PLUGIN_ID = "response-healing"

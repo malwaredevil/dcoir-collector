@@ -113,7 +113,6 @@ def _apply_adversarial_confirmation(config: Any, data: dict[str, Any], hardened:
 
     finding_verifier.VERIFIER_MAX_MODEL_FINDINGS = verifier_repair_limit
     repair_pipeline.MAX_REPAIR_CANDIDATES = verifier_repair_limit
-    config.dcoir_v32_verifier_repair_limit = verifier_repair_limit
 
 
 def _apply_semantic_adjudication(config: Any, data: dict[str, Any], hardened: Any) -> None:

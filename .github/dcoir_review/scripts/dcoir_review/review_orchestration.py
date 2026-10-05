@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from dcoir_review import adversarial_confirmation
 from dcoir_review import quality_gate
 from dcoir_review import review_scope_guard_hooks
 from dcoir_review import semantic_adjudication_confidence
@@ -16,7 +17,6 @@ from dcoir_review import semantic_result_reuse
 from dcoir_review import semantic_review_ledger_hooks
 from dcoir_review import structured_result_disposition
 from dcoir_review import structured_result_recovery
-import dcoir_review_required_runtime_patch_v32 as v32
 import dcoir_review_required_runtime_patch_v35 as v35
 import dcoir_review_required_runtime_patch_v44 as v44
 import dcoir_review_required_runtime_patch_v46 as v46
@@ -40,7 +40,7 @@ STAGE_ORDER = (
 def _stage_builders() -> tuple[tuple[str, Callable[[Any, Any], Any]], ...]:
     return (
         (STAGE_ORDER[0], quality_gate.build_quality_gate_stage),
-        (STAGE_ORDER[1], v32.build_adversarial_confirmation_stage),
+        (STAGE_ORDER[1], adversarial_confirmation.build_adversarial_confirmation_stage),
         (STAGE_ORDER[2], v35.build_semantic_adjudication_stage),
         (STAGE_ORDER[3], semantic_adjudication_confidence.build_semantic_adjudication_confidence_stage),
         (STAGE_ORDER[4], semantic_review_ledger_hooks.build_semantic_review_ledger_stage),
