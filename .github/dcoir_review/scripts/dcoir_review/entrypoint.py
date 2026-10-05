@@ -39,19 +39,19 @@ class DcoirReviewEntrypoint:
         'dcoir_review.sentinel_selection',
         'dcoir_review_required_runtime_patch_v30',
         'dcoir_review.finding_comment_render',
-        # v32 owns adversarial model/prompt/hybrid review behavior. v33 then
-        # separates pre-publication verification capacity from the bounded
-        # repair budget. v34 strengthens predicate/call-site recall, blank-anchor
-        # evidence handling, and debug lifecycle readback. v35 adds a bounded
-        # final semantic adjudicator plus falsification-first verifier guidance.
+        # v33 separates pre-publication verification capacity from the bounded
+        # repair budget. Stable semantic evidence and canonical finding verification
+        # preserve predicate/call-site recall, blank-anchor evidence, and
+        # falsification-first verifier guidance. Semantic adjudication and its
+        # confidence normalization are composed explicitly by review_orchestration.
         # v36 upgrades verified repairs from one exact line to bounded coordinated
         # edit sets (multi-line, non-contiguous, and cross-file) while keeping
         # human-only application. The stable semantic-adjudication normalizer preserves the adjudicator's valid
-        # flat-single-finding compatibility shape before v35 capping/publication.
+        # flat-single-finding compatibility shape before canonical adjudication capping/publication.
         # v38 makes repair-author confidence advisory, normalizes only missing
         # explanatory repair metadata, and raises the independent critic hard
         # acceptance threshold while preserving exact-head structural checks.
-        # Stable semantic-adjudication confidence compatibility handles one additional
+        # Semantic-adjudication confidence normalization handles one additional
         # provider-schema seam: when an otherwise complete semantic-adjudication
         # finding omits confidence, it assigns only the configured normal floor to
         # admit the candidate to v21 verification; verifier support remains mandatory
@@ -59,11 +59,9 @@ class DcoirReviewEntrypoint:
         # terminal for this historical semantic-patch chain.
         'dcoir_review_required_runtime_patch_v33',
         'dcoir_review.semantic_evidence_hardening',
-        'dcoir_review_required_runtime_patch_v35',
         'dcoir_review_required_runtime_patch_v36',
         'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review.repair_contract',
-        'dcoir_review.semantic_adjudication_confidence',
         'dcoir_review_required_runtime_patch_v31',
     )
     # Architecture-B responsibilities are deliberately outside the historical semantic

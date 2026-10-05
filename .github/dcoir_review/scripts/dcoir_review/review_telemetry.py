@@ -99,7 +99,7 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "independent-challenger"
             if (
-                filename == "dcoir_review_required_runtime_patch_v35.py"
+                filename == "semantic_adjudication.py"
                 and function in (
                     "openrouter_review_with_hybrid_first_pass",
                     "semantic_adjudication_stage",
@@ -117,7 +117,7 @@ def _callsite_stage_label(prompt: Any) -> str:
                 return "independent-challenger"
             if (
                 filename in (
-                    "dcoir_review_required_runtime_patch_v35.py",
+                    "semantic_adjudication.py",
                     "dcoir_review_required_runtime_patch_v44_execution.py",
                 )
                 and function == "run_adjudicator"

@@ -434,7 +434,7 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
     prompt = wrapper_prompt
     return telemetry.classify_stage(prompt, schema, config)
 """,
-            "dcoir_review_required_runtime_patch_v35.py",
+            "semantic_adjudication.py",
             "exec",
         ),
         namespace,

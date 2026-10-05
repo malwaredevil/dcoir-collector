@@ -78,6 +78,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_reliability.py",
     "repair_render.py",
     "repair_support.py",
+    "semantic_adjudication.py",
     "semantic_adjudication_confidence.py",
     "semantic_candidate_identity.py",
     "semantic_candidate_identity_hooks.py",
@@ -256,6 +257,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     assert "dcoir_review_required_runtime_patch_v32" not in numbered, (
         "retired v32 production owner reappeared"
     )
+    assert "dcoir_review_required_runtime_patch_v35" not in numbered, (
+        "retired v35 production owner reappeared"
+    )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
@@ -342,7 +346,6 @@ def assert_canonical_config_loader_ownership() -> None:
     assert "review_config.apply_review_config(config, data, hardened)" in base
 
     former_config_owners = (
-        "dcoir_review_required_runtime_patch_v35.py",
         "dcoir_review_required_runtime_patch_v44.py",
         "dcoir_review/publication_disposition.py",
         "dcoir_review_required_runtime_patch_v46.py",
@@ -846,7 +849,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
     former_hybrid_owners = (
         "dcoir_review/quality_gate.py",
         "dcoir_review/adversarial_confirmation.py",
-        "dcoir_review_required_runtime_patch_v35.py",
+        "dcoir_review/semantic_adjudication.py",
         "dcoir_review/semantic_adjudication_confidence.py",
         "dcoir_review/semantic_review_ledger_hooks.py",
         "dcoir_review/semantic_result_reuse.py",

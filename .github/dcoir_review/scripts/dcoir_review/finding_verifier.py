@@ -32,6 +32,16 @@ CONTEXT_SENSITIVE_CORE_KINDS = frozenset(
     {getattr(v16.v11, "PYTHON_PATH_WRITE", "python_path_write")}
 )
 
+VERIFIER_FALSIFICATION_BLOCK = """
+Falsification-first verification requirements:
+- Treat the candidate as an adversarial hypothesis and first try to prove it false.
+- Set supported=true only when the exact code permits a minimal counterexample that triggers the claimed bad behavior.
+- Your evidence must identify the relevant predicate/control-flow path and explain why surrounding guards in the supplied file do not block that counterexample.
+- If the claim depends on an unseen loader, another unseen file, an assumed runtime convention, or external/downstream impact not shown by supplied evidence, set supported=false.
+- Do not reject a defect solely because the changed file is labeled test, fixture, benchmark, or non-production. If the bad behavior is directly executable or demonstrable within the supplied changed code, verify that local defect on its proven scope; require consuming evidence only for claims beyond that scope.
+- Do not support a finding merely because the proposed fix would be reasonable; verify defect presence, not fix desirability.
+""".strip()
+
 VERIFIER_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "title": "DCOIR Candidate Finding Verifier",
@@ -154,7 +164,8 @@ Full head-file context:
 {visible_file}
 ```
 """.strip()
-    return base.sanitize_text(prompt, config)
+    combined = f"{prompt}\n\n{VERIFIER_FALSIFICATION_BLOCK}"
+    return base.sanitize_text(combined, config)
 
 
 def _parse_verifier_result(result: Any, hardened: Any) -> tuple[bool, float, str, str]:

@@ -6,7 +6,7 @@ import copy
 from typing import Any
 
 from dcoir_review import adversarial_confirmation
-import dcoir_review_required_runtime_patch_v35 as v35
+from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import semantic_adjudication_confidence as confidence
 import dcoir_review_required_runtime_patch_v44_scope as scope
@@ -71,28 +71,25 @@ def run_adjudicator(
     context_scope: str,
 ) -> tuple[dict[str, Any], str, str]:
     staged = copy.copy(config)
-    models = v35._as_string_list(
-        getattr(config, "semantic_adjudication_model_stack", None),
-        v35.DEFAULT_ADJUDICATION_MODELS,
-    )
+    models = adjudication.adjudication_models(config)
     staged.model_stack = models
     staged.model = models[0]
     max_findings = int(
         getattr(
             config,
             "semantic_adjudication_max_findings",
-            v35.DEFAULT_ADJUDICATION_MAX_FINDINGS,
+            adjudication.DEFAULT_ADJUDICATION_MAX_FINDINGS,
         )
     )
     digest_chars = int(
         getattr(
             config,
             "semantic_adjudication_candidate_digest_chars",
-            v35.DEFAULT_CANDIDATE_DIGEST_CHARS,
+            adjudication.DEFAULT_CANDIDATE_DIGEST_CHARS,
         )
     )
     digest = scope.candidate_digest(hypotheses, digest_chars)
-    instruction = v35.ADJUDICATION_BLOCK.format(max_findings=max_findings)
+    instruction = adjudication.ADJUDICATION_BLOCK.format(max_findings=max_findings)
     prompt = prompt_with_budget(
         (
             f"{instruction}\n\n"
@@ -118,7 +115,7 @@ def run_adjudicator(
         prompt, schema, staged, reporter
     )
     normalized = normalization.normalize_adjudicator_result(module, raw)
-    capped = v35._cap_adjudicated_findings(module, normalized, max_findings)
+    capped = adjudication._cap_adjudicated_findings(module, normalized, max_findings)
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model
     capped["_semantic_adjudication_input_candidates"] = len(hypotheses)

@@ -28,7 +28,7 @@ import math
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v33 as v33
-import dcoir_review_required_runtime_patch_v35 as v35
+from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import semantic_adjudication_confidence as confidence
 import dcoir_review_required_runtime_patch_v44_execution as execution
@@ -196,10 +196,7 @@ def run_adjudicator(
     """Run the historical v44 adjudicator with one bounded post-parse fallback."""
 
     staged = copy.copy(config)
-    models = v35._as_string_list(
-        getattr(config, "semantic_adjudication_model_stack", None),
-        v35.DEFAULT_ADJUDICATION_MODELS,
-    )
+    models = adjudication.adjudication_models(config)
     staged.model_stack = models
     staged.model = models[0]
     # v54 is already installed before this stable owner. Give its observational
@@ -211,18 +208,18 @@ def run_adjudicator(
         getattr(
             config,
             "semantic_adjudication_max_findings",
-            v35.DEFAULT_ADJUDICATION_MAX_FINDINGS,
+            adjudication.DEFAULT_ADJUDICATION_MAX_FINDINGS,
         )
     )
     digest_chars = int(
         getattr(
             config,
             "semantic_adjudication_candidate_digest_chars",
-            v35.DEFAULT_CANDIDATE_DIGEST_CHARS,
+            adjudication.DEFAULT_CANDIDATE_DIGEST_CHARS,
         )
     )
     digest = scope.candidate_digest(hypotheses, digest_chars)
-    instruction = v35.ADJUDICATION_BLOCK.format(max_findings=max_findings)
+    instruction = adjudication.ADJUDICATION_BLOCK.format(max_findings=max_findings)
     prompt = execution.prompt_with_budget(
         (
             f"{instruction}\n\n"
@@ -272,7 +269,7 @@ def run_adjudicator(
     # is already ranked through the active production selection boundary and
     # hard-capped to v33's verifier capacity; applying the smaller adjudicator
     # cap again could discard required-risk reservations before verification.
-    capped = normalized if recovered_shape else v35._cap_adjudicated_findings(module, normalized, max_findings)
+    capped = normalized if recovered_shape else adjudication._cap_adjudicated_findings(module, normalized, max_findings)
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model
     capped["_semantic_adjudication_input_candidates"] = len(hypotheses)
