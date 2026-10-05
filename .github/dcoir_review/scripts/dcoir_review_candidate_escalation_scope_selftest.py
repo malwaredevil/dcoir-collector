@@ -6,7 +6,6 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from dcoir_review import candidate_scoped_escalation as candidate_escalation
 from dcoir_review import candidate_escalation_scope as scope
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review import review_config
