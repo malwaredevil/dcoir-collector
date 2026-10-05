@@ -31,8 +31,8 @@ import dcoir_review_required_runtime_patch_v33 as v33
 from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import semantic_adjudication_normalization as normalization
 from dcoir_review import semantic_adjudication_confidence as confidence
-import dcoir_review_required_runtime_patch_v44_execution as execution
-import dcoir_review_required_runtime_patch_v44_scope as scope
+from dcoir_review import candidate_escalation_execution as execution
+from dcoir_review import candidate_escalation_scope as scope
 from dcoir_review import semantic_candidate_identity as candidate_identity
 from dcoir_review import review_telemetry_state
 

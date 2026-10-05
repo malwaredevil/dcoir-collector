@@ -18,7 +18,7 @@ from dcoir_review import semantic_review_ledger_hooks
 from dcoir_review import structured_result_disposition
 from dcoir_review import structured_result_recovery
 from dcoir_review import semantic_adjudication as adjudication
-import dcoir_review_required_runtime_patch_v44 as v44
+from dcoir_review import candidate_scoped_escalation as candidate_escalation
 import dcoir_review_required_runtime_patch_v46 as v46
 
 
@@ -45,7 +45,7 @@ def _stage_builders() -> tuple[tuple[str, Callable[[Any, Any], Any]], ...]:
         (STAGE_ORDER[3], semantic_adjudication_confidence.build_semantic_adjudication_confidence_stage),
         (STAGE_ORDER[4], semantic_review_ledger_hooks.build_semantic_review_ledger_stage),
         (STAGE_ORDER[5], semantic_result_reuse.build_semantic_result_reuse_stage),
-        (STAGE_ORDER[6], v44.build_candidate_scoped_escalation_stage),
+        (STAGE_ORDER[6], candidate_escalation.build_candidate_scoped_escalation_stage),
         (STAGE_ORDER[7], v46.build_canonical_semantic_context_stage),
         (STAGE_ORDER[8], review_scope_guard_hooks.build_review_scope_terminal_translation_stage),
         (STAGE_ORDER[9], structured_result_disposition.build_structured_result_disposition_stage),

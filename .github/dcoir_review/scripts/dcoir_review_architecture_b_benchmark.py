@@ -21,7 +21,7 @@ from typing import Any
 import dcoir_review_precision_regression_selftest as precision_selftest
 import dcoir_review.semantic_review_ledger_fingerprints as v42_fp
 import dcoir_review.semantic_result_reuse_support as v43_reuse
-import dcoir_review_required_runtime_patch_v44_scope as v44_scope
+from dcoir_review import candidate_escalation_scope as candidate_scope
 from dcoir_review import publication_disposition as publication
 import dcoir_review_required_runtime_patch_v46_budget as v46_budget
 import dcoir_review_required_runtime_patch_v46_context as v46_context
@@ -314,7 +314,7 @@ def _escalation_report(
             for item in scenario.get("findings", [])
             if isinstance(item, dict)
         ]
-        plan = v44_scope.build_escalation_plan(
+        plan = candidate_scope.build_escalation_plan(
             module,
             {"findings": findings},
             files,

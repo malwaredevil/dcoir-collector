@@ -6,8 +6,8 @@ import copy
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v44_execution as v44_execution
-import dcoir_review_required_runtime_patch_v44_scope as v44_scope
+from dcoir_review import candidate_escalation_execution as candidate_execution
+from dcoir_review import candidate_escalation_scope as candidate_scope
 from dcoir_review import structured_result_retry as retry
 
 VERSION = "v52"
@@ -184,7 +184,7 @@ def bounded_low_confidence_disposition(
             risk_sentinels, line_index, deep_context_block, review_mode,
             context_summary, reason, "independent-model-stack-unavailable"
         )
-    evidence, evidence_reason = v44_scope.build_bounded_evidence(
+    evidence, evidence_reason = candidate_scope.build_bounded_evidence(
         module, gh, pr, files, config, risk_sentinels, selected_paths
     )
     if evidence is None:
@@ -202,7 +202,7 @@ def bounded_low_confidence_disposition(
             "scope=candidate-scoped; independent_calls=1"
         ),
     )
-    adjudicated, disposition_model, disposition_tier = v44_execution.run_adjudicator(
+    adjudicated, disposition_model, disposition_tier = candidate_execution.run_adjudicator(
         module, schema, staged, reporter, findings, evidence, "candidate-scoped"
     )
     if outside_paths(module, adjudicated, selected_paths):

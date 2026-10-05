@@ -400,7 +400,7 @@ def {synthetic_function}(prompt, schema, config):
 def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
     return telemetry.classify_stage(prompt, schema, config)
 """,
-            "dcoir_review_required_runtime_patch_v44_execution.py",
+            "candidate_escalation_execution.py",
             "exec",
         ),
         namespace,

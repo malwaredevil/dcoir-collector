@@ -74,7 +74,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review.incremental_review_frontier',
         'dcoir_review.semantic_review_ledger',
     )
-    # v44-v46 remain the Architecture-B post-terminal semantic contract:
+    # Canonical candidate escalation plus v46 remain the Architecture-B post-terminal semantic contract:
     # candidate-scoped escalation, verifier-authoritative publication, and one
     # canonical semantic context package with fail-safe adaptive budgets. v50
     # then preserves unresolved verifier-supported findings across compatible
@@ -82,7 +82,6 @@ class DcoirReviewEntrypoint:
     # Capability gating keeps historical probe objects and explicit subset tests
     # from receiving implicit overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v44',
         'dcoir_review.publication_disposition',
         'dcoir_review_required_runtime_patch_v46',
         'dcoir_review.verified_finding_gate',

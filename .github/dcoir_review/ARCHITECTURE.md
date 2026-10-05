@@ -271,7 +271,7 @@ The next bounded retirement moves semantic-adjudicator result-shape compatibilit
 
 - `dcoir_review/semantic_adjudication_normalization.py` owns the narrow normalization contract for canonical findings envelopes and the complete flat-single-finding compatibility shape; malformed or partial shapes still fail closed;
 - production composition loads `dcoir_review.semantic_adjudication_normalization` at the former v37 position between v36 and v38, preserving the historical semantic ordering without numbered ownership;
-- `dcoir_review_required_runtime_patch_v44_execution.py` and stable `dcoir_review/semantic_adjudication_recovery.py` now import the stable normalizer instead of the historical v37 module;
+- `dcoir_review/candidate_escalation_execution.py` and stable `dcoir_review/semantic_adjudication_recovery.py` now import the stable normalizer instead of the historical v37 module;
 - `dcoir_review_semantic_adjudication_normalization_selftest.py` owns the stable regression contract, including canonical/flat shape handling, capping, malformed-output rejection, the original live-loss seam, and idempotent application;
 - the runtime module-loader guard classifies the stable owner as a direct-import module and rejects reintroduction of historical v37 production ownership;
 - the historical v37 production module and version-specific self-test are removed; Git history remains the archive.
@@ -284,7 +284,7 @@ The next bounded retirement moves semantic-adjudicator confidence compatibility 
 
 - `dcoir_review/semantic_adjudication_confidence.py` owns the narrow confidence contract for semantic-adjudicator output, preserving valid supplied confidence and admitting otherwise-complete missing/null confidence only at the configured normal floor for independent verification; malformed confidence remains fail-closed;
 - production composition loads `dcoir_review.semantic_adjudication_confidence` at the former v39 position between v38 and v31, preserving historical semantic ordering without numbered ownership;
-- stable `dcoir_review/semantic_adjudication_recovery.py` and `dcoir_review_required_runtime_patch_v44_execution.py` import the stable confidence owner instead of historical v39;
+- stable `dcoir_review/semantic_adjudication_recovery.py` and `dcoir_review/candidate_escalation_execution.py` import the stable confidence owner instead of historical v39;
 - `dcoir_review_semantic_adjudication_confidence_selftest.py` owns the stable regression contract for prompt requirements, supplied-confidence preservation, missing/null confidence admission, verifier handoff, malformed-result rejection, configured-floor validation, and idempotent application;
 - the historical debug artifact path `responses/07-v39-confidence-normalized.json` and schema value `dcoir_review_v39_confidence_normalization_v1` remain compatibility/provenance data only;
 - the runtime module-loader guard classifies the stable owner as a direct-import module and rejects reintroduction of historical v39 production ownership;
@@ -447,4 +447,10 @@ The v32 production root and version-specific selftest are removed; stable reason
 
 Historical v35 production ownership is retired. `dcoir_review.semantic_adjudication` now owns the bounded final semantic adjudicator, candidate digest/capping policy, completion/provider-envelope markers, and governed adjudicator model projection. The owner reads the current canonical model defaults from `review_config`, so the #591 Opus 5.5 -> Sol Pro production mapping is not shadowed by a historical fallback constant.
 
-`dcoir_review.semantic_adjudication_confidence` remains a pure normalization/stage helper and no longer mutates adjudication prompt globals or participates in the startup apply chain. `dcoir_review.finding_verifier` now owns falsification-first verification guidance directly, eliminating the v35 stored-original verifier-prompt shim. `review_orchestration` composes semantic adjudication and confidence normalization explicitly, while v44 escalation/recovery and final-adjudication policy import the stable owner. Runtime/telemetry callsite classification recognizes `semantic_adjudication.py`, and architecture guards reject v35 reintroduction.
+`dcoir_review.semantic_adjudication_confidence` remains a pure normalization/stage helper and no longer mutates adjudication prompt globals or participates in the startup apply chain. `dcoir_review.finding_verifier` now owns falsification-first verification guidance directly, eliminating the v35 stored-original verifier-prompt shim. `review_orchestration` composes semantic adjudication and confidence normalization explicitly, while candidate escalation/recovery and final-adjudication policy import the stable owner. Runtime/telemetry callsite classification recognizes `semantic_adjudication.py`, and architecture guards reject v35 reintroduction.
+
+### Canonical candidate-escalation ownership
+
+The historical v44 production root and auxiliary source filenames are retired. `dcoir_review.candidate_scoped_escalation` owns the explicit escalation stage, `candidate_escalation_scope` owns deterministic selection and bounded exact-head evidence, `candidate_escalation_execution` owns challenger/adjudicator calls, and `candidate_escalation_telemetry` owns ledger/debug integration. `review_orchestration` composes the stage directly; no candidate-escalation startup overlay remains.
+
+Existing `v44` labels in debug artifact paths are retained only as compatibility/provenance identifiers for historical evidence consumers, not as source ownership. Runtime guards register all four responsibility modules directly and reject reintroduction of the v44 production root.

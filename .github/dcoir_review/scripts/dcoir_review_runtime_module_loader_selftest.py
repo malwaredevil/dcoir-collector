@@ -33,6 +33,10 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES: dict[str, int] = {}
 DIRECT_IMPORT_MODULES = (
     "adversarial_confirmation.py",
     "adversarial_prompt_policy.py",
+    "candidate_escalation_execution.py",
+    "candidate_escalation_scope.py",
+    "candidate_escalation_telemetry.py",
+    "candidate_scoped_escalation.py",
     "entrypoint.py",
     "final_adjudication_policy.py",
     "finding_family.py",
@@ -260,6 +264,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     assert "dcoir_review_required_runtime_patch_v35" not in numbered, (
         "retired v35 production owner reappeared"
     )
+    assert "dcoir_review_required_runtime_patch_v44" not in numbered, (
+        "retired v44 production owner reappeared"
+    )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
@@ -346,7 +353,7 @@ def assert_canonical_config_loader_ownership() -> None:
     assert "review_config.apply_review_config(config, data, hardened)" in base
 
     former_config_owners = (
-        "dcoir_review_required_runtime_patch_v44.py",
+        "dcoir_review/candidate_scoped_escalation.py",
         "dcoir_review/publication_disposition.py",
         "dcoir_review_required_runtime_patch_v46.py",
         "dcoir_review/verified_finding_gate.py",
@@ -853,7 +860,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
         "dcoir_review/semantic_adjudication_confidence.py",
         "dcoir_review/semantic_review_ledger_hooks.py",
         "dcoir_review/semantic_result_reuse.py",
-        "dcoir_review_required_runtime_patch_v44.py",
+        "dcoir_review/candidate_scoped_escalation.py",
         "dcoir_review_required_runtime_patch_v46.py",
         "dcoir_review/review_scope_guard_hooks.py",
         "dcoir_review/structured_result_disposition.py",

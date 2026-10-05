@@ -190,8 +190,7 @@ def test_disposition_stage_and_config() -> None:
 
 def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_terminal_patch_module_names[-4:] == (
-        "dcoir_review_required_runtime_patch_v44",
+    assert entrypoint.post_terminal_patch_module_names[-3:] == (
         "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
         "dcoir_review.verified_finding_gate",

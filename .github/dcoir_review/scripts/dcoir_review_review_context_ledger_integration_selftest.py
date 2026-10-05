@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import dcoir_review.semantic_review_ledger_hooks as v42_hooks
 import dcoir_review.semantic_result_reuse as v43
-import dcoir_review_required_runtime_patch_v44_telemetry as v44_telemetry
+from dcoir_review import candidate_escalation_telemetry as candidate_telemetry
 
 
 def base_ledger() -> dict[str, object]:
@@ -152,7 +152,7 @@ def test_v44_refreshes_non_null_review_context() -> None:
     try:
         v42_hooks._LAST_REVIEW_CONTEXT = {"existing": True}
         v42_hooks._LAST_LEDGER = ledger
-        v44_telemetry.apply(
+        candidate_telemetry.apply(
             module,
             gh,
             SimpleNamespace(),

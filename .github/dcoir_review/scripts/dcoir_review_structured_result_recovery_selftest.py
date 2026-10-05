@@ -280,12 +280,12 @@ def main() -> None:
     # Bounded disposition makes exactly one independent semantic call, using the
     # confirmation stack rather than paying for challenger + adjudicator replay.
     reporter = Reporter()
-    original_evidence = disposition.v44_scope.build_bounded_evidence
-    original_challenger = disposition.v44_execution.run_challenger
-    original_adjudicator = disposition.v44_execution.run_adjudicator
+    original_evidence = disposition.candidate_scope.build_bounded_evidence
+    original_challenger = disposition.candidate_execution.run_challenger
+    original_adjudicator = disposition.candidate_execution.run_adjudicator
     calls: list[str] = []
     try:
-        disposition.v44_scope.build_bounded_evidence = (
+        disposition.candidate_scope.build_bounded_evidence = (
             lambda module, gh, pr, files, cfg, sentinels, paths: ("bounded exact-head evidence", "")
         )
 
@@ -302,8 +302,8 @@ def main() -> None:
             )
             return {"summary": "clean after bounded disposition", "findings": []}, "sol", ""
 
-        disposition.v44_execution.run_challenger = forbidden_challenger
-        disposition.v44_execution.run_adjudicator = adjudicator
+        disposition.candidate_execution.run_challenger = forbidden_challenger
+        disposition.candidate_execution.run_adjudicator = adjudicator
         result, model_label, _ = disposition.bounded_low_confidence_disposition(
             review,
             near,
@@ -335,9 +335,9 @@ def main() -> None:
             for stage, message in reporter.events
         )
     finally:
-        disposition.v44_scope.build_bounded_evidence = original_evidence
-        disposition.v44_execution.run_challenger = original_challenger
-        disposition.v44_execution.run_adjudicator = original_adjudicator
+        disposition.candidate_scope.build_bounded_evidence = original_evidence
+        disposition.candidate_execution.run_challenger = original_challenger
+        disposition.candidate_execution.run_adjudicator = original_adjudicator
 
     print(
         "dcoir_review_structured_result_recovery_selftest passed: "

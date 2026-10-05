@@ -26,11 +26,13 @@ from dcoir_review_review_scope_guard_selftest_support import (
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names == (
-        "dcoir_review_required_runtime_patch_v44",
         "dcoir_review.publication_disposition",
         "dcoir_review_required_runtime_patch_v46",
         "dcoir_review.verified_finding_gate",
     )
+    assert "candidate-scoped-escalation" in entrypoint.import_module(
+        "dcoir_review.review_orchestration"
+    ).STAGE_ORDER
     assert entrypoint.stage_local_patch_module_names == (
         "dcoir_review.per_file_review",
     )

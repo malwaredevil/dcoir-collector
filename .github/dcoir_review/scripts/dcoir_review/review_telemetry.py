@@ -110,7 +110,7 @@ def _callsite_stage_label(prompt: Any) -> str:
             if (
                 filename in (
                     "adversarial_confirmation.py",
-                    "dcoir_review_required_runtime_patch_v44_execution.py",
+                    "candidate_escalation_execution.py",
                 )
                 and function == "run_challenger"
             ):
@@ -118,7 +118,7 @@ def _callsite_stage_label(prompt: Any) -> str:
             if (
                 filename in (
                     "semantic_adjudication.py",
-                    "dcoir_review_required_runtime_patch_v44_execution.py",
+                    "candidate_escalation_execution.py",
                 )
                 and function == "run_adjudicator"
             ):
