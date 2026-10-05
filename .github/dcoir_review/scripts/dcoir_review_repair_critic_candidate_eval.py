@@ -14,6 +14,7 @@ import time
 from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import repair_set_prompts
 import dcoir_review_first_pass_candidate_eval as first_pass
 import dcoir_review_repair_candidate_eval as repair_eval
 
@@ -200,7 +201,6 @@ def run_live(
     DcoirReviewEntrypoint().apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
-    repair_set_prompts = importlib.import_module("dcoir_review.repair_set_prompts")
 
     rows: list[dict[str, Any]] = []
     for candidate in candidates:
