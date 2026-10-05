@@ -35,7 +35,7 @@ from dcoir_review import repair_precision
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_set_contract
 from dcoir_review import repair_set_results
-import dcoir_review_required_runtime_patch_v36 as v36
+from dcoir_review import repair_set_builder
 
 
 VERSION = "v53"  # Persisted repair-marker compatibility value.
@@ -281,7 +281,7 @@ def synthesize_verified_repair_sets(
         attempts += 1
         finding = repair._strip_legacy_model_finding_provenance(raw)
         try:
-            item = v36._build_repair_set_for_finding(
+            item = repair_set_builder.build_repair_set_for_finding(
                 module,
                 ordinal,
                 finding,

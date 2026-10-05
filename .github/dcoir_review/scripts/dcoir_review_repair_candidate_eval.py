@@ -21,6 +21,7 @@ from typing import Any
 
 from dcoir_review import repair as repair_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import repair_set_builder
 import dcoir_review_first_pass_candidate_eval as first_pass
 
 
@@ -334,7 +335,7 @@ def _run_case(
     started = time.monotonic()
     try:
         right_index = review.base.build_diff_line_index(case["diff"])
-        item = v36._build_repair_set_for_finding(
+        item = repair_set_builder.build_repair_set_for_finding(
             review,
             1,
             _verified_finding(v21, case),

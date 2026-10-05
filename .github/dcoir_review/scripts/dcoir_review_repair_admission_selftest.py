@@ -68,6 +68,7 @@ def main() -> None:
     repair_policy = importlib.import_module("dcoir_review.repair")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     admission = importlib.import_module("dcoir_review.repair_admission")
+    repair_set_builder = importlib.import_module("dcoir_review.repair_set_builder")
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.fix_synthesis_min_confidence == 0.80
@@ -77,7 +78,7 @@ def main() -> None:
     assert admission.finding_confidence({"confidence": 1.2}) is None
 
     original_verify = v21.verify_findings_for_publication
-    original_build = v36._build_repair_set_for_finding
+    original_build = repair_set_builder.build_repair_set_for_finding
     original_debug = review.hardened.write_debug_json_artifact_safely
     original_public_synth = repair.synthesize_verified_repairs
     calls: list[tuple[int, float, str, str]] = []
@@ -121,7 +122,7 @@ def main() -> None:
 
     v21.verify_findings_for_publication = fake_verify
     repair.synthesize_verified_repairs = admission.synthesize_verified_repair_sets
-    v36._build_repair_set_for_finding = fake_build
+    repair_set_builder.build_repair_set_for_finding = fake_build
     review.hardened.write_debug_json_artifact_safely = fake_debug
     try:
         # A below-floor verified finding remains published and must not consume
@@ -238,7 +239,7 @@ def main() -> None:
     finally:
         repair.synthesize_verified_repairs = original_public_synth
         v21.verify_findings_for_publication = original_verify
-        v36._build_repair_set_for_finding = original_build
+        repair_set_builder.build_repair_set_for_finding = original_build
         review.hardened.write_debug_json_artifact_safely = original_debug
 
     print(

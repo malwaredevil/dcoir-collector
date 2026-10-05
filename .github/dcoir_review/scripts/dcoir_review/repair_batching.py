@@ -13,7 +13,6 @@ from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_support as repair
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_set_results
-import dcoir_review_required_runtime_patch_v36 as v36
 from dcoir_review import repair_admission
 from dcoir_review import repair_critic_batch as batch
 from dcoir_review import repair_candidate as repair_stage

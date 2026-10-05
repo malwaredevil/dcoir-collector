@@ -77,19 +77,21 @@ def main() -> None:
         ),
         base=SimpleNamespace(build_diff_line_index=lambda _diff: {}),
     )
-    fake_v36 = SimpleNamespace(
-        _build_repair_set_for_finding=fake_build_repair_set,
-        REPAIR_SET_OUTCOME="verified-repair-set",
-    )
-    repair_eval._run_case(
-        review,
-        SimpleNamespace(VERIFIER_MARKER="_verifier"),
-        SimpleNamespace(REPAIR_MARKER="_repair"),
-        fake_v36,
-        {"id": "kimi", "model": "moonshotai/kimi-k3", "reasoning_effort": None},
-        selected[0],
-        timeout_seconds=37,
-    )
+    fake_v36 = SimpleNamespace(REPAIR_SET_OUTCOME="verified-repair-set")
+    original_builder = repair_eval.repair_set_builder.build_repair_set_for_finding
+    repair_eval.repair_set_builder.build_repair_set_for_finding = fake_build_repair_set
+    try:
+        repair_eval._run_case(
+            review,
+            SimpleNamespace(VERIFIER_MARKER="_verifier"),
+            SimpleNamespace(REPAIR_MARKER="_repair"),
+            fake_v36,
+            {"id": "kimi", "model": "moonshotai/kimi-k3", "reasoning_effort": None},
+            selected[0],
+            timeout_seconds=37,
+        )
+    finally:
+        repair_eval.repair_set_builder.build_repair_set_for_finding = original_builder
     author_config = captured_configs[0]
     assert author_config.model_stack == ["moonshotai/kimi-k3"]
     assert author_config.openrouter_request_timeout_seconds == 37

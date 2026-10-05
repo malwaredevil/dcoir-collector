@@ -15,7 +15,6 @@ from dcoir_review import repair_set_contract
 from dcoir_review import repair_set_results
 from dcoir_review import repair_set_edits
 from dcoir_review import repair_set_prompts
-import dcoir_review_required_runtime_patch_v36 as v36
 
 VERSION = "v56"
 MAX_ANCHOR_RECOVERY_LINE_DRIFT = 12

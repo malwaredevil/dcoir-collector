@@ -11,7 +11,6 @@ from dcoir_review import repair_support as repair
 from dcoir_review import review_telemetry_state
 from dcoir_review import repair_set_contract
 from dcoir_review import repair_set_prompts
-import dcoir_review_required_runtime_patch_v36 as v36
 from dcoir_review import repair_candidate as repair_stage
 
 MAX_BATCH_ITEMS = 8

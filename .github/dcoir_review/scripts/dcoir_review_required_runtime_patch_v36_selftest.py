@@ -10,6 +10,7 @@ from pathlib import Path
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_precision
 from dcoir_review import repair_set_results
+from dcoir_review import repair_set_builder
 from dcoir_review import finding_verifier
 from dcoir_review import finding_comment_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
@@ -256,7 +257,7 @@ def main() -> None:
             config,
             pipeline_reporter,
         )
-        v36._build_repair_set_for_finding(
+        repair_set_builder.build_repair_set_for_finding(
             review,
             1,
             pipeline_finding,

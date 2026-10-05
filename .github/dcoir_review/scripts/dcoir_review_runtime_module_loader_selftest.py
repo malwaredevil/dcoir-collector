@@ -87,6 +87,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_reliability.py",
     "repair_render.py",
     "repair_support.py",
+    "repair_set_builder.py",
     "repair_set_contract.py",
     "repair_set_edits.py",
     "repair_set_prompts.py",
