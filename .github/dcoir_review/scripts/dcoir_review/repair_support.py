@@ -128,6 +128,13 @@ Strict rules:
 - If a safe complete one-line repair is not defensible, choose
   `no_safe_single_line_fix` and set `replacement` to an empty string.
 - Do not echo secrets or secret-like literal values.
+- Independently verify whether the alleged defect actually exists in the exact
+  anchored line and full head-file context.
+- Set `defect_present=false` only when the exact code/context proves the
+  allegation is absent or semantically inapplicable.
+- `defect_present=false` is not a substitute for `no_safe_single_line_fix`;
+  when the defect is real but cannot be repaired safely on one line, keep
+  `defect_present=true`.
 
 File: {path}
 Anchored head-file line: {line}

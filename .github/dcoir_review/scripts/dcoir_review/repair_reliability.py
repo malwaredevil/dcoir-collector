@@ -23,6 +23,8 @@ import sys
 from typing import Any
 
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_precision
+from dcoir_review import repair_contract
 from dcoir_review import repair_support as support
 
 
@@ -49,10 +51,7 @@ def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, h
     action = str(result.get("action", "") or "").strip()
     if action not in {"replace_line", "no_safe_single_line_fix"}:
         raise hardened.ReviewQualityError("DCOIR repair author returned an invalid action")
-    try:
-        confidence = float(result.get("confidence", 0) or 0)
-    except (TypeError, ValueError) as exc:
-        raise hardened.ReviewQualityError("DCOIR repair author returned invalid confidence") from exc
+    confidence = repair_contract.validated_author_confidence(result, hardened)
 
     fallback_title, fallback_body = support._fallback_display(finding, path, line)
     display_title = str(result.get("display_title", "") or "").strip()
@@ -77,7 +76,7 @@ def _author_result(result: Any, finding: dict[str, Any], path: str, line: int, h
         parsed["rationale"] = parsed["rationale"] or "Repair author confidence was below the suggestion threshold."
     if parsed["action"] == "no_safe_single_line_fix":
         parsed["replacement"] = ""
-    return parsed
+    return repair_precision.normalize_author_defect_presence(result, parsed, hardened)
 
 
 def _debug(module: Any, config: Any, path: str, payload: dict[str, Any]) -> None:
@@ -98,9 +97,10 @@ def _declined_item(
     repair = _repair_contract()
     item = dict(finding)
     fallback_title, fallback_body = support._fallback_display(item, path, line)
-    if author:
-        item["title"] = str(author.get("display_title", "") or fallback_title)[:160]
-        item["body"] = str(author.get("display_body", "") or fallback_body)[:1800]
+    display_author = repair_precision.safe_declined_author(author)
+    if display_author:
+        item["title"] = str(display_author.get("display_title", "") or fallback_title)[:160]
+        item["body"] = str(display_author.get("display_body", "") or fallback_body)[:1800]
     else:
         item["title"] = fallback_title[:160]
         item["body"] = fallback_body[:1800]
@@ -120,11 +120,11 @@ def _declined_item(
         "line": line,
         "author_model": author_model,
         "author_service_tier": author_tier,
-        "author_confidence": float(author.get("confidence", 0) or 0) if author else 0.0,
+        "author_confidence": float(display_author.get("confidence", 0) or 0) if display_author else 0.0,
         "critic_accepted": False,
         "reason": reason[:600],
     }
-    return item
+    return repair_precision.apply_declined_suppression(item, author, repair.REPAIR_MARKER)
 
 
 def _stage_failure(

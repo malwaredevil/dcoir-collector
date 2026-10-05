@@ -34,6 +34,8 @@ CRITIC_SESSION_SUFFIX = "repair-critic"
 REPAIR_CANDIDATE_HARD_CAP = 12
 BUDGET_DEFERRED_OUTCOME = "verified-repair-budget-deferred"
 BUDGET_DEFERRED_MARKER_VERSION = "v33"  # Persisted repair-marker compatibility value.
+SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE = 0.95
+SUPPRESSED_OUTCOME = "defect-absent-suppressed"
 
 
 def _positive_int(value: Any, fallback: int) -> int:

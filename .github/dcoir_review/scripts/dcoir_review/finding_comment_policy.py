@@ -9,6 +9,9 @@ from dcoir_review import finding_verifier
 
 SYNTHESIS_VERIFIED_MARKER = "_dcoir_fix_synthesis_verified_v20"
 
+PYTHON_TRUTHY_LITERAL_BRANCH = "python_truthy_literal_branch"
+
+
 _TEMPLATE_BY_KIND: dict[str, tuple[str, str, str]] = {
     "yaml_token_to_pr_url": (
         "Workflow sends repository token to PR-controlled URL",

@@ -154,7 +154,11 @@ RISK_SENTINEL_RULES: tuple[tuple[str, str, re.Pattern[str]], ...] = (
         "truthy literal branch condition",
         "a literal string after or/-or inside a branch condition is always truthy and can bypass intended severity or confidence checks",
         re.compile(
-            r"^\s*(?:if|elif|elseif|while)\b[^\n]*(?:\bor\b|\b-or\b)\s+['\"][^'\"]+['\"]",
+            r"^\s*(?:if|elif|elseif|while)\b[^\n]*(?:\bor\b|\b-or\b)\s+"
+            r"(?P<truthy_quote>['\"])[^'\"]+(?P=truthy_quote)(?!\s*(?:"
+            r"(?:not\s+in|in|is\s+not|is)\b|==|!=|<=|>=|<|>"
+            r"|-(?:eq|ne|lt|le|gt|ge|like|notlike|match|notmatch|contains|notcontains|in|notin|is|isnot)\b"
+            r"))",
             re.IGNORECASE,
         ),
     ),

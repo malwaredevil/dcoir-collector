@@ -33,7 +33,8 @@ from dcoir_review import finding_verifier as v21
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_contract
 from dcoir_review import repair_pipeline as repair
-import dcoir_review_required_runtime_patch_v30 as v30
+from dcoir_review import repair_precision
+from dcoir_review import finding_comment_policy
 
 
 VERSION = "v36"
@@ -171,10 +172,9 @@ def _parse_author(result: Any, finding: dict[str, Any], hardened: Any) -> dict[s
     action = str(result.get("action", "") or "").strip()
     if action not in {"repair_set", "no_safe_repair"}:
         raise hardened.ReviewQualityError("DCOIR repair-set author returned an invalid action")
-    try:
-        confidence = float(result.get("confidence", 0) or 0)
-    except (TypeError, ValueError) as exc:
-        raise hardened.ReviewQualityError("DCOIR repair-set author returned invalid confidence") from exc
+    confidence = repair_contract.validated_author_confidence(
+        result, hardened, stage="repair-set author"
+    )
     raw_edits = result.get("edits")
     if not isinstance(raw_edits, list):
         raise hardened.ReviewQualityError("DCOIR repair-set author returned a non-list edits value")
@@ -511,8 +511,8 @@ def _declined_item(
                 "defect_presence_confidence": float(author.get("confidence", 0) or 0),
             }
         )
-        if float(author.get("confidence", 0) or 0) >= v30.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE:
-            item[repair.REPAIR_MARKER]["outcome"] = v30.SUPPRESSED_OUTCOME
+        if float(author.get("confidence", 0) or 0) >= repair_precision.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE:
+            item[repair.REPAIR_MARKER]["outcome"] = repair_precision.SUPPRESSED_OUTCOME
     return item
 
 
@@ -555,7 +555,7 @@ def _build_repair_set_for_finding(
             finding,
             author,
             author["rationale"] or "repair author concluded the defect is absent",
-            outcome=v30.SUPPRESSED_OUTCOME if author["confidence"] >= v30.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE else NO_SAFE_REPAIR_OUTCOME,
+            outcome=repair_precision.SUPPRESSED_OUTCOME if author["confidence"] >= repair_precision.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE else NO_SAFE_REPAIR_OUTCOME,
             author_model=author_model,
             author_tier=author_tier,
         )
@@ -732,7 +732,7 @@ def synthesize_verified_repair_sets(
             repair_sets += 1
             native_blocks += int(marker.get("native_suggestion_count", 0) or 0)
             guidance_blocks += int(marker.get("guidance_edit_count", 0) or 0)
-        elif marker.get("outcome") != v30.SUPPRESSED_OUTCOME:
+        elif marker.get("outcome") != repair_precision.SUPPRESSED_OUTCOME:
             declined += 1
         repaired.append(item)
 
@@ -765,9 +765,9 @@ def _render_primary_body(module: Any, finding: dict[str, Any], config: Any, mark
     base = module.base
     raw_title = str(finding.get("title", "Finding") or "Finding").strip()
     raw_body = str(finding.get("body", "") or "").strip()
-    deterministic_kind = v30._deterministic_sentinel_kind(finding)
+    deterministic_kind = finding_comment_policy.deterministic_sentinel_kind(finding)
     if deterministic_kind:
-        canonical_title, canonical_body, _notes = v30.v20._template_for_kind(deterministic_kind)
+        canonical_title, canonical_body, _notes = finding_comment_policy.template_for_kind(deterministic_kind)
         raw_title = str(canonical_title or raw_title).strip()
         raw_body = str(canonical_body or raw_body).strip()
     title = base.markdown_emphasis_safe_text(base.sanitize_github_output(raw_title, config))

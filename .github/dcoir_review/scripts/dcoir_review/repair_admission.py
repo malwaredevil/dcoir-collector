@@ -31,7 +31,7 @@ from typing import Any
 
 from dcoir_review import finding_verifier as v21
 from dcoir_review import repair_support as repair
-import dcoir_review_required_runtime_patch_v30 as v30
+from dcoir_review import repair_precision
 from dcoir_review import repair as repair_policy
 import dcoir_review_required_runtime_patch_v36 as v36
 
@@ -126,7 +126,7 @@ def repair_result_counters(item: dict[str, Any]) -> dict[str, int]:
         counters["native_blocks"] = int(marker.get("native_suggestion_count", 0) or 0)
         counters["guidance_blocks"] = int(marker.get("guidance_edit_count", 0) or 0)
         return counters
-    if outcome == v30.SUPPRESSED_OUTCOME:
+    if outcome == repair_precision.SUPPRESSED_OUTCOME:
         return counters
 
     counters["declined"] = 1

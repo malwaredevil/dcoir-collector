@@ -165,9 +165,16 @@ def apply_pareto_context_module(module: Any) -> None:
     ) -> list[dict[str, Any]]:
         try:
             repaired = synthesize_verified_repairs(module, findings, gh, pr, schema, config, reporter)
-            from dcoir_review import precision_guard
+            from dcoir_review import precision_guard, repair_precision
 
-            return precision_guard.enforce_fix_synthesis_precision(module, config, repaired, reporter)
+            repaired = precision_guard.enforce_fix_synthesis_precision(module, config, repaired, reporter)
+            kept, suppressed = repair_precision.filter_suppressed_findings(repaired, REPAIR_MARKER)
+            if suppressed and reporter is not None:
+                reporter.update(
+                    "repair-v30",
+                    f"suppressed {suppressed} high-confidence finding(s) after explicit defect-absent attestation",
+                )
+            return kept
         except Exception as exc:
             # Preserve the terminal reliability diagnostic formerly installed by
             # historical v28 without wrapping this permanent owner at runtime.

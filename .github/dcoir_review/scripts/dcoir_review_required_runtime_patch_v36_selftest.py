@@ -8,6 +8,9 @@ import importlib
 from pathlib import Path
 
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_precision
+from dcoir_review import finding_verifier
+from dcoir_review import finding_comment_policy
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -32,7 +35,6 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
     v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     assert getattr(review, v36.APPLIED_MARKER, False) is True
     assert hasattr(review, "build_review_comments_for_finding")
@@ -135,13 +137,13 @@ def main() -> None:
     deterministic = dict(finding)
     deterministic["title"] = "MODEL-TAMPERED SENTINEL TITLE"
     deterministic["body"] = "MODEL-TAMPERED SENTINEL BODY"
-    deterministic[v30.v21.VERIFIER_MARKER] = {
+    deterministic[finding_verifier.VERIFIER_MARKER] = {
         "mode": "deterministic-core-sentinel",
         "supported": True,
-        "kind": v30.v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+        "kind": finding_comment_policy.PYTHON_TRUTHY_LITERAL_BRANCH,
     }
     deterministic_comments = v36.build_review_comments_for_finding(review, deterministic, "model", config)
-    canonical_title, canonical_body, _notes = v30.v20._template_for_kind(v30.v20.PYTHON_TRUTHY_LITERAL_BRANCH)
+    canonical_title, canonical_body, _notes = finding_comment_policy.template_for_kind(finding_comment_policy.PYTHON_TRUTHY_LITERAL_BRANCH)
     assert canonical_title in deterministic_comments[0]["body"]
     assert canonical_body in deterministic_comments[0]["body"]
     assert "MODEL-TAMPERED SENTINEL" not in deterministic_comments[0]["body"]
@@ -180,7 +182,7 @@ def main() -> None:
         def update(self, stage, message):
             self.events.append((stage, message))
 
-    original_verify = v30.v21.verify_findings_for_publication
+    original_verify = finding_verifier.verify_findings_for_publication
     original_openrouter = review.hardened.openrouter_review
     original_fetch = review.fetch_pr_file_text
     original_debug = review.hardened.write_debug_json_artifact_safely
@@ -230,7 +232,7 @@ def main() -> None:
             )
         raise AssertionError(f"unexpected schema title: {title}")
 
-    v30.v21.verify_findings_for_publication = _fake_verify
+    finding_verifier.verify_findings_for_publication = _fake_verify
     repair.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
@@ -265,7 +267,7 @@ def main() -> None:
         )
     finally:
         repair.synthesize_verified_repairs = original_public_synth
-        v30.v21.verify_findings_for_publication = original_verify
+        finding_verifier.verify_findings_for_publication = original_verify
         review.hardened.openrouter_review = original_openrouter
         review.fetch_pr_file_text = original_fetch
         review.hardened.write_debug_json_artifact_safely = original_debug
@@ -313,7 +315,7 @@ def main() -> None:
         "display_body": "The alleged defect is absent.",
     }
     suppressed = v36._declined_item(finding, absent_author, "exact evidence disproves the claim")
-    assert suppressed[repair.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
+    assert suppressed[repair.REPAIR_MARKER]["outcome"] == repair_precision.SUPPRESSED_OUTCOME
 
     critic_reason = "critic rejected companion test because " + ("evidence " * 260) + "remains incomplete"
     declined = v36._declined_item(finding, None, critic_reason)

@@ -10,7 +10,7 @@ from typing import Any
 
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_support as repair
-import dcoir_review_required_runtime_patch_v30 as v30
+from dcoir_review import repair_precision
 import dcoir_review_required_runtime_patch_v36 as v36
 
 VERSION = "v56"
@@ -157,8 +157,8 @@ def prepare_candidate(
 
     if author["defect_present"] is False:
         outcome = (
-            v30.SUPPRESSED_OUTCOME
-            if author["confidence"] >= v30.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE
+            repair_precision.SUPPRESSED_OUTCOME
+            if author["confidence"] >= repair_precision.SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE
             else v36.NO_SAFE_REPAIR_OUTCOME
         )
         return (

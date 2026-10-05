@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v30 false-positive precision."""
+"""Regression checks for stable DCOIR repair/detection precision ownership."""
 
 from __future__ import annotations
 
@@ -29,33 +29,18 @@ def _has_truthy_sentinel(review, path: str, line: str) -> bool:
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v30" in names
+    assert "dcoir_review_required_runtime_patch_v30" not in names
     assert "dcoir_review_required_runtime_patch_v31" in names
-    assert names.index("dcoir_review_required_runtime_patch_v30") < names.index("dcoir_review_required_runtime_patch_v31")
+    assert names.index("dcoir_review.repair_pipeline") < names.index("dcoir_review_required_runtime_patch_v31")
     assert names[-1] == "dcoir_review_required_runtime_patch_v31", names[-4:]
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
+    policy = importlib.import_module("dcoir_review.finding_comment_policy")
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     reliability = importlib.import_module("dcoir_review.repair_reliability")
-    v30 = importlib.import_module("dcoir_review_required_runtime_patch_v30")
-
-    # Applying only the v30 overlay again in a reused interpreter must be a no-op
-    # rather than stacking prompt/parser/synthesis/renderer wrappers.
-    prompt_before = repair._repair_author_prompt
-    author_result_before = reliability._author_result
-    declined_before = reliability._declined_item
-    synthesis_before = review.synthesize_fixes_for_findings
-    renderer_before = review.base.build_inline_comment
-    v30.apply_pareto_context_module(review)
-    v30.apply_pareto_context_module(review)
-    assert repair._repair_author_prompt is prompt_before
-    assert reliability._author_result is author_result_before
-    assert reliability._declined_item is declined_before
-    assert review.synthesize_fixes_for_findings is synthesis_before
-    assert review.base.build_inline_comment is renderer_before
+    precision = importlib.import_module("dcoir_review.repair_precision")
 
     valid_python = [
         'if len(rejected) != 1 or "fallback_emulation" not in rejected[0].get("reason", ""): raise SystemExit()',
@@ -124,9 +109,9 @@ def main() -> None:
         author_tier="test",
         outcome="author-declined",
     )
-    assert suppressed[repair.REPAIR_MARKER]["outcome"] == v30.SUPPRESSED_OUTCOME
+    assert suppressed[repair.REPAIR_MARKER]["outcome"] == precision.SUPPRESSED_OUTCOME
     assert suppressed[repair.REPAIR_MARKER]["defect_present"] is False
-    kept, count = v30.filter_suppressed_findings([suppressed])
+    kept, count = precision.filter_suppressed_findings([suppressed], repair.REPAIR_MARKER)
     assert kept == []
     assert count == 1
 
@@ -151,7 +136,7 @@ def main() -> None:
         author_tier="test",
         outcome="author-declined",
     )
-    kept, count = v30.filter_suppressed_findings([real_item])
+    kept, count = precision.filter_suppressed_findings([real_item], repair.REPAIR_MARKER)
     assert count == 0
     assert len(kept) == 1
     assert kept[0][repair.REPAIR_MARKER]["outcome"] == "author-declined"
@@ -169,7 +154,7 @@ def main() -> None:
         author_tier="test",
         outcome="author-declined",
     )
-    kept, count = v30.filter_suppressed_findings([low_item])
+    kept, count = precision.filter_suppressed_findings([low_item], repair.REPAIR_MARKER)
     assert count == 0
     assert len(kept) == 1
     assert kept[0][repair.REPAIR_MARKER].get("suppression_declined")
@@ -190,18 +175,18 @@ def main() -> None:
         "_risk_sentinel_key": [
             ".github/dcoir_review/evaluation/live_suggestion_probe.py",
             10,
-            v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+            policy.PYTHON_TRUTHY_LITERAL_BRANCH,
         ],
-        "_risk_sentinel_kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+        "_risk_sentinel_kind": policy.PYTHON_TRUTHY_LITERAL_BRANCH,
         v21.VERIFIER_MARKER: {
             "mode": "deterministic-core-sentinel",
             "supported": True,
-            "kind": v20.PYTHON_TRUTHY_LITERAL_BRANCH,
+            "kind": policy.PYTHON_TRUTHY_LITERAL_BRANCH,
             "head_sha": "probe-head",
             "line": 10,
         },
         repair.REPAIR_MARKER: {
-            "version": v30.VERSION,
+            "version": precision.VERSION,
             "outcome": "native-suggestion",
             "path": ".github/dcoir_review/evaluation/live_suggestion_probe.py",
             "line": 10,
@@ -237,7 +222,7 @@ def main() -> None:
     assert "Verified ordinary title" in ordinary_rendered
     assert "Verified ordinary body." in ordinary_rendered
 
-    print("dcoir_review_required_runtime_patch_v30_selftest passed")
+    print("dcoir_review_repair_precision_selftest passed")
 
 
 if __name__ == "__main__":

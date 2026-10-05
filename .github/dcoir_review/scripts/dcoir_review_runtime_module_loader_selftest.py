@@ -83,6 +83,7 @@ DIRECT_IMPORT_MODULES = (
     "repair_critic_batch.py",
     "repair_contract.py",
     "repair_pipeline.py",
+    "repair_precision.py",
     "repair_reliability.py",
     "repair_render.py",
     "repair_support.py",
@@ -823,7 +824,6 @@ def assert_canonical_finding_comment_render_ownership() -> None:
         "dcoir_review_required_runtime_patch_v20.py",
         "dcoir_review/verified_finding_render.py",
         "dcoir_review/repair_pipeline.py",
-        "dcoir_review_required_runtime_patch_v30.py",
     )
     for relative in former_renderer_owners:
         source = (SCRIPTS / relative).read_text(encoding="utf-8")
