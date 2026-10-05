@@ -79,6 +79,16 @@
       "role": "direct Opus 5 successor and premium detector candidate"
     },
     {
+      "id": "opus5.5-xhigh-prod-temp",
+      "model": "anthropic/claude-opus-5.5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped premium probe with generic temperature retained"
+    },
+    {
       "id": "sonnet5.5-high",
       "model": "anthropic/claude-sonnet-5.5",
       "provider_family": "anthropic",
@@ -87,6 +97,36 @@
       "max_tokens": null,
       "benchmark_role": "routine",
       "role": "direct Sonnet 5 successor and routine-review candidate"
+    },
+    {
+      "id": "sonnet5.5-high-prod-temp",
+      "model": "anthropic/claude-sonnet-5.5",
+      "provider_family": "anthropic",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped routine probe with generic temperature retained"
+    },
+    {
+      "id": "gpt5.6-sol-pro-control",
+      "model": "openai/gpt-5.6-sol-pro",
+      "provider_family": "openai",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier_control",
+      "role": "current production OpenAI premium fallback and independent challenger control"
+    },
+    {
+      "id": "gpt5.6-terra-xhigh-control",
+      "model": "openai/gpt-5.6-terra",
+      "provider_family": "openai",
+      "reasoning_effort": "xhigh",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "repair_control",
+      "role": "current production repair-critic control under premium reasoning"
     },
     {
       "id": "gpt6.1-sol-high",
@@ -119,6 +159,16 @@
       "role": "quality-ceiling escalation/adjudication candidate"
     },
     {
+      "id": "gpt6-astra-xhigh-prod-temp",
+      "model": "openai/gpt-6-astra",
+      "provider_family": "openai",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped GPT-6 premium probe with generic temperature retained"
+    },
+    {
       "id": "qwen3.8-max",
       "model": "qwen/qwen3.8-max-0902",
       "provider_family": "qwen",
@@ -137,6 +187,36 @@
       "max_tokens": null,
       "benchmark_role": "frontier",
       "role": "cross-family long-context software-engineering candidate"
+    },
+    {
+      "id": "glm5.3-high-prod-temp",
+      "model": "z-ai/glm-5.3",
+      "provider_family": "z-ai",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped frontier probe with generic temperature retained"
+    },
+    {
+      "id": "deepseek-v4-pro-0813-high",
+      "model": "deepseek/deepseek-v4-pro-0813",
+      "provider_family": "deepseek",
+      "reasoning_effort": "high",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current DeepSeek frontier long-context coding/reasoning candidate"
+    },
+    {
+      "id": "kimi-k3",
+      "model": "moonshotai/kimi-k3",
+      "provider_family": "moonshotai",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current long-horizon large-repository coding and agentic candidate"
     },
     {
       "id": "gemini3.8-flash-high",
@@ -169,6 +249,16 @@
       "role": "low-cost OpenAI high-volume per-file candidate"
     },
     {
+      "id": "gpt6-luna-high-prod-temp",
+      "model": "openai/gpt-6-luna",
+      "provider_family": "openai",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped routine GPT-6 probe with generic temperature retained"
+    },
+    {
       "id": "deepseek-v4.1-flash",
       "model": "deepseek/deepseek-v4.1-flash",
       "provider_family": "deepseek",
@@ -177,6 +267,72 @@
       "max_tokens": null,
       "benchmark_role": "routine",
       "role": "low-cost coding-focused high-volume candidate"
+    },
+    {
+      "id": "mimo-v2.6-pro-xhigh",
+      "model": "xiaomi/mimo-v2.6-pro",
+      "provider_family": "xiaomi",
+      "reasoning_effort": "xhigh",
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "frontier",
+      "role": "current Xiaomi flagship long-context premium coding/review candidate"
+    },
+    {
+      "id": "mimo-v2.6-pro-xhigh-prod-temp",
+      "model": "xiaomi/mimo-v2.6-pro",
+      "provider_family": "xiaomi",
+      "reasoning_effort": "xhigh",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped MiMo Pro probe with premium reasoning and generic temperature"
+    },
+    {
+      "id": "mimo-v2.6-flash",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "provider_family": "xiaomi",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "routine",
+      "role": "current low-cost high-volume long-context coding/agentic candidate"
+    },
+    {
+      "id": "mimo-v2.6-flash-advisor-opus5.5",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "provider_family": "xiaomi",
+      "reasoning_effort": null,
+      "temperature": null,
+      "max_tokens": null,
+      "benchmark_role": "orchestration_experiment",
+      "role": "synthetic-only Advisor mechanics/value probe; MiMo executor with pinned Opus 5.5 semantic advisor",
+      "explicit_only": true,
+      "allowed_case_ids": [
+        "serialized-marker-variant",
+        "prmutation--prmut-security-title-shell-injection"
+      ],
+      "tool_choice": "required",
+      "tools": [
+        {
+          "type": "openrouter:advisor",
+          "parameters": {
+            "name": "semantic-reviewer",
+            "model": "anthropic/claude-opus-5.5",
+            "instructions": "Independently assess the supplied implementation and correctness contract. Identify only demonstrable semantic defects and give concise evidence to the executor."
+          }
+        }
+      ]
+    },
+    {
+      "id": "mimo-v2.6-flash-prod-high-temp",
+      "model": "xiaomi/mimo-v2.6-flash",
+      "provider_family": "xiaomi",
+      "reasoning_effort": "high",
+      "temperature": 0.2,
+      "max_tokens": null,
+      "benchmark_role": "compatibility",
+      "role": "evaluation-only production-shaped routine probe with high reasoning and generic temperature"
     },
     {
       "id": "kimi-k2.6",
@@ -227,11 +383,11 @@
       "expected": "finding",
       "defect_class": "naturalistic-lane-separation-binding",
       "source_ref": "malwaredevil/dcoir-collector@32dfa2ff7df56481bcf476b75e21dd9cafe3eb37:project_sources/gemini/tools/lib/gemini_behavioral_replay_scoring.py",
-      "evidence_ref": "PR #479 DCOIR review 5121289126 / issue #484",
+      "evidence_ref": "Issue #484 direct-source true-positive disposition; PR #479 DCOIR review 5121289126",
       "dcoir_historical_disposition": "detected",
-      "source": "def has_execution_lane_separation(response_text):\n    for clause in _iter_clauses(response_text):\n        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):\n            continue\n        positive_separation = bool(_find_contextual_term_hits(clause, ['separate', 'different lane', 'distinct lane'], skip_negated=True, skip_quoted=True))\n        explicit_no_mix = bool(_find_contextual_term_hits(clause, ['do not mix', \"don't mix\", 'dont mix', 'must not mix', 'should not mix'], skip_negated=True, skip_quoted=True))\n        if positive_separation or explicit_no_mix:\n            return True\n    return False",
-      "counterexample": "Use a separate log folder, but run endpoint response-action commands and local PowerShell in the same shell.",
-      "review_contract": "Separation/no-mix evidence must be bound to the relationship between the endpoint and local execution lanes; unrelated uses of 'separate' must not satisfy the lane-separation invariant.",
+      "source": "def _iter_clauses(text: str):\n    for clause in re.split(r\"(?:\\r?\\n)+|(?<=[.!?;])\\s+\", str(text)):\n        normalized = normalize_text(clause)\n        if normalized:\n            yield normalized\n\ndef _clause_has_endpoint_lane(clause: str) -> bool:\n    return \"endpoint\" in clause and (\n        \"response action\" in clause\n        or \"response-action\" in clause\n        or \"endpoint execution\" in clause\n        or \"execute --command\" in clause\n    )\n\ndef _clause_has_local_lane(clause: str) -> bool:\n    return (\"local\" in clause or \"workstation\" in clause) and (\n        \"powershell\" in clause or \"command\" in clause\n    )\n\ndef has_execution_lane_separation(response_text: str) -> bool:\n    for clause in _iter_clauses(response_text):\n        if not (_clause_has_endpoint_lane(clause) and _clause_has_local_lane(clause)):\n            continue\n        positive_separation = bool(\n            _find_contextual_term_hits(\n                clause,\n                [\"separate\", \"different lane\", \"distinct lane\"],\n                skip_negated=True,\n                skip_quoted=True,\n            )\n        )\n        explicit_no_mix = bool(\n            _find_contextual_term_hits(\n                clause,\n                [\"do not mix\", \"don't mix\", \"dont mix\", \"must not mix\", \"should not mix\"],\n                skip_negated=True,\n                skip_quoted=True,\n            )\n        )\n        if positive_separation or explicit_no_mix:\n            return True\n    return False",
+      "counterexample": "False accept: `Use a separate log folder, but run endpoint response-action commands and local PowerShell in the same shell.` The single clause satisfies both lane predicates and contains an unrelated `separate`, so the function returns true despite explicitly mixing the lanes. False reject: `Run endpoint response-action commands. Run local PowerShell separately. Keep these two lanes separate.` Response-level separation is compliant, but no single clause contains both endpoint and local markers, so the function returns false.",
+      "review_contract": "Evaluate lane separation at response scope and bind separation/no-mix evidence to the relationship between detected endpoint and local execution lanes. Unrelated uses of `separate` must not satisfy the invariant, and a later sentence that explicitly separates the two identified lanes must be recognized even when endpoint and local steps appear in different clauses.",
       "finding_match_terms": [
         "lane",
         "separat",
@@ -322,7 +478,9 @@
       "gpt6.1-sol-pro",
       "gpt6-astra-xhigh",
       "qwen3.8-max",
-      "glm5.3-high"
+      "glm5.3-high",
+      "deepseek-v4-pro-0813-high",
+      "kimi-k3"
     ],
     "routine": [
       "sonnet5-high",
@@ -331,6 +489,7 @@
       "glm5.3-flash-high",
       "gpt6-luna-high",
       "deepseek-v4.1-flash",
+      "mimo-v2.6-flash",
       "kimi-k2.6"
     ],
     "routers": [

@@ -527,6 +527,7 @@ def _build_repair_set_for_finding(
     right_line_index: dict[tuple[str, int], int],
     config: Any,
     file_cache: dict[str, str],
+    author_config_override: Any | None = None,
 ) -> dict[str, Any]:
     path, line = _path_line(finding)
     if not path or line <= 0:
@@ -535,8 +536,13 @@ def _build_repair_set_for_finding(
         file_cache[path] = module.fetch_pr_file_text(gh, path, head_sha)
 
     author_prompt = _repair_author_prompt(module, finding, file_cache[path], pr_diff, head_sha, config)
+    author_config = (
+        author_config_override
+        if author_config_override is not None
+        else repair_policy.build_repair_author_config(config)
+    )
     author_raw, author_model, author_tier = module.hardened.openrouter_review(
-        author_prompt, REPAIR_SET_AUTHOR_SCHEMA, config, reporter=None
+        author_prompt, REPAIR_SET_AUTHOR_SCHEMA, author_config, reporter=None
     )
     module.hardened.write_debug_json_artifact_safely(
         config,

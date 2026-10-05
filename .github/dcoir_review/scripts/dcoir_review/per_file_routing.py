@@ -1,18 +1,20 @@
 """Stable DCOIR Review stage-local first-pass routing projection.
 
 The #485 calibration showed that routine per-file first-pass review can use
-Claude Sonnet 5 at high reasoning with a 32,768-token output cap and price-sorted
+Claude Sonnet 5.5 at high reasoning with a 32,768-token output cap and price-sorted
 provider selection while the mature premium challenger, adjudicator, verifier,
 and escalation stages remain on their existing Opus/Sol contracts.
 
 This owner keeps that distinction explicit. New per-file configuration is projected
 onto a shallow copy only for ``review_single_file_context``. The shared global
 configuration is left unchanged for every later semantic stage. The projected
-payload enables Response Healing explicitly, preserves strict structured output
-and ``require_parameters=true``, and omits generic sampling temperature for
-Sonnet 5. Generic hardened-provider controls capture request evidence and enforce
-stop/object response contracts without bypassing the mature request-wrapper
-chain.
+payload enables Response Healing explicitly and preserves strict structured
+output and ``require_parameters=true``. Sampling-temperature and reasoning
+request shape for every stage, including omission of generic temperature for
+Claude 5/5.5 adaptive reasoning, is owned by the v32 reasoning payload policy
+applied first in ``build_openrouter_payload``. Generic hardened-provider controls
+capture request evidence and enforce stop/object response contracts without
+bypassing the mature request-wrapper chain.
 
 The overlay adds no publication, branch-write, commit, workflow-dispatch, or
 paid-evaluation capability. Existing operator gates continue to own live review
@@ -37,11 +39,6 @@ def _optional_string_list(value: Any) -> list[str]:
     if isinstance(value, str) and value.strip():
         return [value.strip()]
     return []
-
-
-def _is_claude_sonnet_5(model: Any) -> bool:
-    value = str(model or "").strip().lower().split(":", 1)[0]
-    return value == "anthropic/claude-sonnet-5" or value.startswith("anthropic/claude-sonnet-5-")
 
 
 def project_per_file_review_config(config: Any) -> Any:
@@ -101,13 +98,6 @@ def install_payload_builder(module: Any) -> None:
             ):
                 plugins.append({"id": RESPONSE_HEALING_PLUGIN_ID, "enabled": True})
             payload["plugins"] = plugins
-
-        # Only the calibrated per-file Sonnet contract omits the generic
-        # sampling temperature. Installing the stable per-file routing owner must not change an unrelated
-        # global/premium Sonnet request when the stage-local projection is absent.
-        projected_per_file = bool(getattr(config, PER_FILE_PROJECTION_ATTR, False))
-        if projected_per_file and _is_claude_sonnet_5(model):
-            payload.pop("temperature", None)
 
         return payload
 

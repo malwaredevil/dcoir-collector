@@ -59,10 +59,10 @@ def main() -> None:
     assert review.review_single_file_context.__module__ == "dcoir_review.per_file_review"
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
-    assert config.model == "anthropic/claude-opus-5"
-    assert config.model_stack == ["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"]
+    assert config.model == "anthropic/claude-opus-5.5"
+    assert config.model_stack == ["anthropic/claude-opus-5.5", "openai/gpt-5.6-sol-pro"]
     assert config.review_reasoning_effort == "xhigh"
-    assert config.per_file_review_model_stack == ["anthropic/claude-sonnet-5"]
+    assert config.per_file_review_model_stack == ["anthropic/claude-sonnet-5.5"]
     assert config.per_file_review_reasoning_effort == "high"
     assert config.per_file_review_max_tokens == 32768
     assert config.per_file_review_provider_sort == "price"
@@ -71,8 +71,8 @@ def main() -> None:
     global_payload = review.hardened.build_openrouter_payload(
         "global-probe", schema, config, [], config.model_stack[0]
     )
-    assert global_payload["model"] == "anthropic/claude-opus-5"
-    assert global_payload["temperature"] == 0.2
+    assert global_payload["model"] == "anthropic/claude-opus-5.5"
+    assert "temperature" not in global_payload
     assert global_payload["reasoning"] == {"enabled": True, "effort": "xhigh", "exclude": True}
     assert "max_tokens" not in global_payload
     assert "sort" not in global_payload["provider"]
@@ -83,8 +83,8 @@ def main() -> None:
 
     projected = per_file_routing.project_per_file_review_config(config)
     assert projected is not config
-    assert projected.model == "anthropic/claude-sonnet-5"
-    assert projected.model_stack == ["anthropic/claude-sonnet-5"]
+    assert projected.model == "anthropic/claude-sonnet-5.5"
+    assert projected.model_stack == ["anthropic/claude-sonnet-5.5"]
     assert projected.review_reasoning_effort == "high"
     assert projected.openrouter_request_max_tokens == 32768
     assert projected.openrouter_provider_sort == "price"
@@ -97,13 +97,13 @@ def main() -> None:
     assert not hasattr(config, "openrouter_request_max_tokens")
     assert not hasattr(config, "openrouter_provider_sort")
     assert not hasattr(config, "openrouter_capture_request_telemetry")
-    assert config.model == "anthropic/claude-opus-5"
+    assert config.model == "anthropic/claude-opus-5.5"
     assert config.review_reasoning_effort == "xhigh"
 
     per_file_payload = review.hardened.build_openrouter_payload(
         "per-file-probe", schema, projected, [], projected.model_stack[0]
     )
-    assert per_file_payload["model"] == "anthropic/claude-sonnet-5"
+    assert per_file_payload["model"] == "anthropic/claude-sonnet-5.5"
     assert "temperature" not in per_file_payload
     assert per_file_payload["reasoning"] == {"enabled": True, "effort": "high", "exclude": True}
     assert per_file_payload["max_tokens"] == 32768
@@ -184,11 +184,11 @@ def main() -> None:
             "deep-forced",
         )
         observed = captured["config"]
-        assert observed.model_stack == ["anthropic/claude-sonnet-5"]
+        assert observed.model_stack == ["anthropic/claude-sonnet-5.5"]
         assert observed.review_reasoning_effort == "high"
         assert observed.openrouter_request_max_tokens == 32768
         assert observed.openrouter_provider_sort == "price"
-        assert result["model_used"] == "anthropic/claude-sonnet-5"
+        assert result["model_used"] == "anthropic/claude-sonnet-5.5"
         assert result["request_telemetry"]["finish_reason"] == "stop"
         telemetry_artifact = captured["metadata/per-file/01-probe.py-request-telemetry.json"]
         assert telemetry_artifact["provider"] == "Anthropic"
@@ -238,7 +238,7 @@ def main() -> None:
             )
             reuse_config = captured["reuse_config"]
             assert reuse_config is not config
-            assert reuse_config.model_stack == ["anthropic/claude-sonnet-5"]
+            assert reuse_config.model_stack == ["anthropic/claude-sonnet-5.5"]
             assert reuse_config.review_reasoning_effort == "high"
             assert getattr(reuse_config, per_file_routing.PER_FILE_PROJECTION_ATTR, False) is True
             assert reuse_state["decisions"]["reuse-probe.py"]["decision"] == "recomputed"
@@ -298,7 +298,7 @@ def main() -> None:
         review.hardened.write_debug_text_artifact_safely = original_write_text
         review.hardened.write_debug_json_artifact_safely = original_write_json
 
-    assert config.model_stack[0] == "anthropic/claude-opus-5"
+    assert config.model_stack[0] == "anthropic/claude-opus-5.5"
     assert config.review_reasoning_effort == "xhigh"
 
     # Capped first-pass completions must fail closed before JSON is scored, even

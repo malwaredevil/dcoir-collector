@@ -44,16 +44,29 @@ def main() -> None:
         "opus5-high",
         "sonnet5-high",
         "opus5.5-xhigh",
+        "opus5.5-xhigh-prod-temp",
         "sonnet5.5-high",
+        "sonnet5.5-high-prod-temp",
+        "gpt5.6-sol-pro-control",
+        "gpt5.6-terra-xhigh-control",
         "gpt6.1-sol-high",
         "gpt6.1-sol-pro",
         "gpt6-astra-xhigh",
+        "gpt6-astra-xhigh-prod-temp",
         "qwen3.8-max",
         "glm5.3-high",
+        "glm5.3-high-prod-temp",
+        "deepseek-v4-pro-0813-high",
+        "kimi-k3",
         "gemini3.8-flash-high",
         "glm5.3-flash-high",
         "gpt6-luna-high",
+        "gpt6-luna-high-prod-temp",
         "deepseek-v4.1-flash",
+        "mimo-v2.6-pro-xhigh",
+        "mimo-v2.6-pro-xhigh-prod-temp",
+        "mimo-v2.6-flash",
+        "mimo-v2.6-flash-prod-high-temp",
         "kimi-k2.6",
         "auto-max",
         "pareto-code-080",
@@ -71,6 +84,7 @@ def main() -> None:
         "glm5.3-flash-high",
         "gpt6-luna-high",
         "deepseek-v4.1-flash",
+        "mimo-v2.6-flash",
         "kimi-k2.6",
     ]
     assert [item["id"] for item in evaluation.selected_candidates(matrix, "gpt6-luna-high,glm5.3-flash-high")] == [
@@ -81,6 +95,38 @@ def main() -> None:
         "opus5-xhigh-no-temp",
         "opus5.5-xhigh",
     ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "deepseek-v4-pro-0813-high,kimi-k3,mimo-v2.6-flash")] == [
+        "deepseek-v4-pro-0813-high",
+        "kimi-k3",
+        "mimo-v2.6-flash",
+    ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "gpt5.6-sol-pro-control,gpt5.6-terra-xhigh-control")] == [
+        "gpt5.6-sol-pro-control",
+        "gpt5.6-terra-xhigh-control",
+    ]
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "mimo-v2.6-pro-xhigh,mimo-v2.6-pro-xhigh-prod-temp")] == [
+        "mimo-v2.6-pro-xhigh",
+        "mimo-v2.6-pro-xhigh-prod-temp",
+    ]
+    advisor = evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5")
+    assert advisor["explicit_only"] is True
+    assert "mimo-v2.6-flash-advisor-opus5.5" not in {
+        item["id"] for item in evaluation.selected_candidates(matrix, "all")
+    }
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, "mimo-v2.6-flash-advisor-opus5.5")] == [
+        "mimo-v2.6-flash-advisor-opus5.5"
+    ]
+    compatibility_selector = "opus5.5-xhigh-prod-temp,sonnet5.5-high-prod-temp,gpt6-astra-xhigh-prod-temp,glm5.3-high-prod-temp,gpt6-luna-high-prod-temp,mimo-v2.6-flash-prod-high-temp"
+    assert [item["id"] for item in evaluation.selected_candidates(matrix, compatibility_selector)] == [
+        "opus5.5-xhigh-prod-temp",
+        "sonnet5.5-high-prod-temp",
+        "gpt6-astra-xhigh-prod-temp",
+        "glm5.3-high-prod-temp",
+        "gpt6-luna-high-prod-temp",
+        "mimo-v2.6-flash-prod-high-temp",
+    ]
+    recommended_ids = {item["id"] for item in evaluation.selected_candidates(matrix, "recommended")}
+    assert {"deepseek-v4-pro-0813-high", "kimi-k3", "mimo-v2.6-flash"}.isdisjoint(recommended_ids)
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
     assert len(generalized) == 12
@@ -94,13 +140,65 @@ def main() -> None:
         "pr581-usb-complete-field-value",
     }
 
+    production_suite_expectations = {
+        "prmutation-all": (12, "prmutation--", "pr-mutation"),
+        "prprecision-all": (10, "prprecision--", "pr-precision-v12"),
+        "multilang-all": (40, "multilang--", "multilang-adversarial"),
+    }
+    for selector, (expected_count, prefix, suite_name) in production_suite_expectations.items():
+        suite_cases, suite_complete = evaluation.resolve_case_selection(matrix, [selector])
+        assert suite_complete is True
+        assert len(suite_cases) == expected_count
+        assert all(str(case["id"]).startswith(prefix) for case in suite_cases)
+        assert all(case["_suite"] == suite_name for case in suite_cases)
+        suite_plan = evaluation.plan_report(matrix, suite_cases, candidates[:1])
+        assert suite_plan["mode"] == "plan-no-network"
+        assert suite_plan["network_calls"] == 0
+        assert suite_plan["no_publication"] is True
+        assert suite_plan["case_counts"]["production_shaped_cases"] == expected_count
+        assert suite_plan["case_counts"]["planned_total_requests"] == expected_count
+        subset, subset_complete = evaluation.resolve_case_selection(matrix, [suite_cases[0]["id"]])
+        assert len(subset) == 1
+        assert subset_complete is False
+
+    mutation_cases, _ = evaluation.resolve_case_selection(matrix, ["prmutation-all"])
+    mutation_prompt = evaluation.build_case_prompt(mutation_cases[0])
+    assert "Repository: DCOIR-Collector/dcoir-collector" in mutation_prompt
+    assert "Unified diff:" in mutation_prompt
+    assert "expected_findings" not in mutation_prompt
+    assert "ground_truth" not in mutation_prompt.lower()
+    mutation_error_score = evaluation.score_case(
+        mutation_cases[0],
+        {"ok": False},
+    )
+    assert mutation_error_score["expected"] in {"finding", "clean"}
+    assert mutation_error_score["disposition"] == "request-error"
+
+    precision_cases, _ = evaluation.resolve_case_selection(matrix, ["prprecision-all"])
+    precision_prompt = evaluation.build_case_prompt(precision_cases[0])
+    assert "Repository: DCOIR-Collector/dcoir-collector" in precision_prompt
+    assert "Trusted repository guidance:" in precision_prompt
+    precision_clean_score = evaluation.score_case(
+        precision_cases[0],
+        {"ok": True, "result": {"findings": []}},
+    )
+    assert precision_clean_score["expected"] == "clean"
+    assert precision_clean_score["correct"] is True
+    assert precision_clean_score["disposition"] == "clean"
+
+    multilang_cases, _ = evaluation.resolve_case_selection(matrix, ["multilang-all"])
+    multilang_prompt = evaluation.build_case_prompt(multilang_cases[0])
+    assert "Evaluation-only adversarial first-pass semantic review case." in multilang_prompt
+    assert "finding_term_groups" not in multilang_prompt
+    assert "_suite_original_id" not in multilang_prompt
+
     old_key = os.environ.pop("OPENROUTER_API_KEY", None)
     try:
         plan = evaluation.plan_report(matrix, cases, candidates)
         assert plan["mode"] == "plan-no-network"
         assert plan["network_calls"] == 0
         assert plan["no_publication"] is True
-        assert plan["case_counts"]["planned_total_requests"] == 288
+        assert plan["case_counts"]["planned_total_requests"] == 496
         try:
             evaluation.run_live(matrix, cases[:1], candidates[:1], timeout_seconds=1)
         except RuntimeError as exc:
@@ -114,7 +212,71 @@ def main() -> None:
     system_prompt = evaluation.SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     schema = evaluation.load_json(evaluation.REVIEW_SCHEMA_PATH)
     contract = matrix["request_contract"]
+    serialized_case = next(case for case in generalized if case["id"] == "serialized-marker-variant")
+    advisor_payload = evaluation.build_payload(
+        evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5"),
+        serialized_case,
+        system_prompt,
+        schema,
+        contract,
+    )
+    assert advisor_payload["model"] == "xiaomi/mimo-v2.6-flash"
+    assert advisor_payload["tool_choice"] == "required"
+    assert advisor_payload["tools"] == [{
+        "type": "openrouter:advisor",
+        "parameters": {
+            "name": "semantic-reviewer",
+            "model": "anthropic/claude-opus-5.5",
+            "instructions": "Independently assess the supplied implementation and correctness contract. Identify only demonstrable semantic defects and give concise evidence to the executor.",
+        },
+    }]
+    evaluation.validate_candidate_case_scope(
+        evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5"),
+        [serialized_case],
+    )
+    try:
+        evaluation.validate_candidate_case_scope(
+            evaluation.candidate_by_id(matrix, "mimo-v2.6-flash-advisor-opus5.5"),
+            [next(case for case in generalized if case["id"] != "serialized-marker-variant")],
+        )
+    except ValueError as exc:
+        assert "evaluation-scoped" in str(exc)
+    else:
+        raise AssertionError("Advisor probe must fail closed outside its synthetic case allowlist")
+
+    invalid_tool_candidate = dict(evaluation.candidate_by_id(matrix, "mimo-v2.6-flash"))
+    invalid_tool_candidate["id"] = "invalid-tool"
+    invalid_tool_candidate["tools"] = [{"type": "openrouter:shell"}]
+    try:
+        evaluation.build_payload(invalid_tool_candidate, serialized_case, system_prompt, schema, contract)
+    except ValueError as exc:
+        assert "openrouter:advisor" in str(exc)
+    else:
+        raise AssertionError("Non-Advisor server tools must fail closed in this evaluator")
+
+    alias_advisor_candidate = dict(evaluation.candidate_by_id(matrix, "mimo-v2.6-flash"))
+    alias_advisor_candidate["id"] = "alias-advisor"
+    alias_advisor_candidate["tools"] = [{
+        "type": "openrouter:advisor",
+        "parameters": {"model": "~anthropic/claude-opus-latest"},
+    }]
+    try:
+        evaluation.build_payload(alias_advisor_candidate, serialized_case, system_prompt, schema, contract)
+    except ValueError as exc:
+        assert "pinned non-alias" in str(exc)
+    else:
+        raise AssertionError("Mutable Advisor model aliases must fail closed")
+
     lane_case = next(case for case in naturalistic if case["id"] == "pr448-lane-separation-binding")
+    assert "def _iter_clauses" in lane_case["source"]
+    assert "def _clause_has_endpoint_lane" in lane_case["source"]
+    assert "def _clause_has_local_lane" in lane_case["source"]
+    # The frozen specimen must reproduce the referenced source's clause splitter
+    # exactly; a double-escaped regex would inject an unrelated defect.
+    assert 're.split(r"(?:\\r?\\n)+|(?<=[.!?;])\\s+", str(text))' in lane_case["source"]
+    assert "False accept:" in lane_case["counterexample"]
+    assert "False reject:" in lane_case["counterexample"]
+    assert "response scope" in lane_case["review_contract"]
 
     control = evaluation.candidate_by_id(matrix, "opus5-xhigh-control")
     control_payload = evaluation.build_payload(control, lane_case, system_prompt, schema, contract)
@@ -147,6 +309,24 @@ def main() -> None:
     assert "opus5-xhigh-no-temp" not in {
         item["id"] for item in evaluation.selected_candidates(matrix, "recommended")
     }
+
+    compatibility_ids = {
+        "opus5.5-xhigh-prod-temp",
+        "sonnet5.5-high-prod-temp",
+        "gpt6-astra-xhigh-prod-temp",
+        "glm5.3-high-prod-temp",
+        "gpt6-luna-high-prod-temp",
+        "mimo-v2.6-flash-prod-high-temp",
+    }
+    assert compatibility_ids.isdisjoint({
+        item["id"] for item in evaluation.selected_candidates(matrix, "recommended")
+    })
+    for compatibility_id in compatibility_ids:
+        probe = evaluation.candidate_by_id(matrix, compatibility_id)
+        probe_payload = evaluation.build_payload(probe, lane_case, system_prompt, schema, contract)
+        assert probe_payload["temperature"] == 0.2
+        assert probe_payload["reasoning"]["enabled"] is True
+        assert probe_payload["reasoning"]["effort"] in {"high", "xhigh"}
 
     high = evaluation.candidate_by_id(matrix, "opus5-high")
     high_payload = evaluation.build_payload(high, lane_case, system_prompt, schema, contract)
@@ -374,7 +554,7 @@ def main() -> None:
 
     print(
         "dcoir_review_first_pass_candidate_eval_selftest passed: "
-        "18 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
+        "31 candidates, reusable groups/router plugins, 12 controlled cases, 4 frozen naturalistic cases, billed failures included, no network/publication"
     )
 
 

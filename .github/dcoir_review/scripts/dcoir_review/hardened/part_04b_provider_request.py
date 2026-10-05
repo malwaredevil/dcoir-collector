@@ -29,7 +29,10 @@ def openrouter_request_once(
         headers["X-Session-Id"] = sticky_session
 
     req = urllib.request.Request(OPENROUTER_API, data=json.dumps(payload).encode("utf-8"), method="POST", headers=headers)
-    with urllib.request.urlopen(req, timeout=180) as response:
+    request_timeout = int(getattr(config, "openrouter_request_timeout_seconds", 180))
+    if request_timeout <= 0:
+        raise ValueError("OpenRouter request timeout must be a positive number of seconds")
+    with urllib.request.urlopen(req, timeout=request_timeout) as response:
         raw = response.read().decode("utf-8")
     data = json.loads(raw)
 

@@ -36,6 +36,11 @@ on:
         required: true
         default: recommended
         type: string
+      benchmark_stage:
+        description: Benchmark stage (first-pass, repair, or repair-critic)
+        required: true
+        default: first-pass
+        type: string
       case_ids_csv:
         description: Optional comma-separated case ids; blank runs the complete current corpus
         required: false
@@ -77,6 +82,7 @@ jobs:
     with:
       caller_event_name: ${{ github.event_name }}
       candidate_selector: ${{ inputs.candidate_selector || 'recommended' }}
+      benchmark_stage: ${{ inputs.benchmark_stage || 'first-pass' }}
       case_ids_csv: ${{ inputs.case_ids_csv || '' }}
       execute_live: ${{ inputs.execute_live || false }}
       confirm_paid_execution: ${{ inputs.confirm_paid_execution || false }}

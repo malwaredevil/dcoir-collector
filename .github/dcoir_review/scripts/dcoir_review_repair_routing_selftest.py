@@ -37,6 +37,36 @@ def main() -> None:
     )
     original_stack = list(base_config.model_stack)
 
+    repair_author = repair_policy.build_repair_author_config(base_config)
+    assert repair_author is not base_config
+    assert repair_author.model == repair_policy.PRIMARY_REPAIR_AUTHOR_MODEL
+    assert repair_author.model_stack == [
+        repair_policy.PRIMARY_REPAIR_AUTHOR_MODEL,
+        repair_policy.FALLBACK_REPAIR_AUTHOR_MODEL,
+    ]
+    assert repair_author.fallback_models == []
+    assert repair_author.openrouter_route == ""
+    assert repair_author.openrouter_service_tier == ""
+    assert repair_author.openrouter_session_id_prefix.endswith("-repair-author")
+    assert repair_author.dcoir_reasoning_effort_by_model == {
+        repair_policy.PRIMARY_REPAIR_AUTHOR_MODEL: "xhigh",
+        repair_policy.FALLBACK_REPAIR_AUTHOR_MODEL: "high",
+    }
+    author_payload = review.hardened.build_openrouter_payload(
+        "repair author probe",
+        repair_pipeline.REPAIR_AUTHOR_SCHEMA,
+        repair_author,
+        [],
+        repair_policy.FALLBACK_REPAIR_AUTHOR_MODEL,
+    )
+    assert author_payload["model"] == "anthropic/claude-sonnet-5.5"
+    assert "temperature" not in author_payload
+    assert author_payload["reasoning"] == {
+        "enabled": True,
+        "effort": "high",
+        "exclude": True,
+    }
+
     contaminated = copy.copy(base_config)
     contaminated.fallback_models = ["legacy/fallback"]
     contaminated.openrouter_route = "auto"
@@ -69,7 +99,7 @@ def main() -> None:
         repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
         repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
     ]
-    assert repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "anthropic/claude-sonnet-5"
+    assert repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "anthropic/claude-sonnet-5.5"
     assert not repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL.startswith("~")
     assert repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL == "google/gemini-3.1-pro-preview"
     assert all(

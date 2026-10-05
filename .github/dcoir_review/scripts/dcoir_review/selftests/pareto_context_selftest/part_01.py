@@ -44,8 +44,8 @@ os.environ["PR_NUMBER"] = "287"
 os.environ["OPENROUTER_API_KEY"] = "test-openrouter-key"
 
 config = mod.load_pareto_context_config(str(ROOT / "openrouter-pr-review-pareto.yml"))
-assert config.model == "anthropic/claude-opus-5"
-assert config.model_stack == ["anthropic/claude-opus-5", "openai/gpt-5.6-sol-pro"]
+assert config.model == "anthropic/claude-opus-5.5"
+assert config.model_stack == ["anthropic/claude-opus-5.5", "openai/gpt-5.6-sol-pro"]
 assert config.pareto_min_coding_score == 0.80
 assert config.auto_cost_quality_tradeoff == 2
 assert "google/gemini-*" not in config.auto_allowed_models

@@ -85,6 +85,28 @@ def _model_uses_openai_gpt5_reasoning(model: Any) -> bool:
     return model_id.startswith("gpt-5")
 
 
+def _model_uses_anthropic_adaptive_reasoning(model: Any) -> bool:
+    """Return True for governed Claude 5/5.5 reasoning-model requests."""
+
+    model_id = str(model or "").strip().lower().split(":", 1)[0]
+    return (
+        model_id.startswith("anthropic/claude-opus-5")
+        or model_id.startswith("anthropic/claude-sonnet-5")
+    )
+
+
+def _reasoning_effort_for_model(config: Any, model: Any) -> str:
+    model_id = str(model or "").strip().lower().split(":", 1)[0]
+    overrides = getattr(config, "dcoir_reasoning_effort_by_model", None)
+    if isinstance(overrides, dict):
+        for configured_model, configured_effort in overrides.items():
+            if str(configured_model or "").strip().lower().split(":", 1)[0] == model_id:
+                return str(configured_effort or "").strip()
+    return str(
+        getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or ""
+    ).strip()
+
+
 def apply_reasoning_payload_policy(
     payload: dict[str, Any],
     config: Any,
@@ -97,16 +119,18 @@ def apply_reasoning_payload_policy(
     payload builder and retaining a stored-original shim.
     """
 
-    effort = str(
-        getattr(config, "review_reasoning_effort", DEFAULT_REASONING_EFFORT) or ""
-    ).strip()
+    effort = _reasoning_effort_for_model(config, model)
 
-    # GPT-5 reasoning requests do not use sampling temperature when reasoning
-    # is enabled. Strip the base reviewer's generic sampling control while
-    # preserving provider.require_parameters=true as the compatibility gate.
-    if _model_uses_openai_gpt5_reasoning(model) and (
-        _model_owns_fixed_pro_reasoning(model)
-        or (effort and effort.lower() != "none")
+    # GPT-5 and Claude adaptive-reasoning requests do not use the generic
+    # sampling temperature in the governed OpenRouter request shape. Strip the
+    # base reviewer's sampling control while preserving require_parameters=true
+    # as the compatibility gate.
+    reasoning_active = effort and effort.lower() != "none"
+    if (
+        _model_uses_openai_gpt5_reasoning(model)
+        and (_model_owns_fixed_pro_reasoning(model) or reasoning_active)
+    ) or (
+        _model_uses_anthropic_adaptive_reasoning(model) and reasoning_active
     ):
         payload.pop("temperature", None)
 

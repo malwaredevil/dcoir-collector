@@ -11,6 +11,7 @@ operator-controlled action outside this script; normal invocation without
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import os
 from pathlib import Path
@@ -107,6 +108,124 @@ def load_cases(matrix: dict[str, Any]) -> list[dict[str, Any]]:
     return cases
 
 
+PRODUCTION_SUITE_SELECTORS = {
+    "prmutation-all": ("pr-mutation", "prmutation--"),
+    "prprecision-all": ("pr-precision-v12", "prprecision--"),
+    "multilang-all": ("multilang-adversarial", "multilang--"),
+}
+
+# The production-shaped suite evaluators reuse this module's request and scoring
+# primitives (they import it as ``base``). Resolve them by name at call time so
+# this module never statically imports a module that imports it back.
+_MUTATION_EVAL_MODULE = "dcoir_review_pr_mutation_eval"
+_PRECISION_EVAL_MODULE = "dcoir_review_pr_precision_eval"
+_PRECISION_V12_EVAL_MODULE = "dcoir_review_pr_precision_eval_v12"
+_MULTILANG_EVAL_MODULE = "dcoir_review_multilang_adversarial_eval"
+
+
+def _suite_module(module_name: str) -> Any:
+    return importlib.import_module(module_name)
+
+
+def _load_production_suite_cases(suite: str) -> list[dict[str, Any]]:
+    if suite == "pr-mutation":
+        raw_cases = _suite_module(_MUTATION_EVAL_MODULE).load_cases()
+    elif suite == "pr-precision-v12":
+        raw_cases = _suite_module(_PRECISION_V12_EVAL_MODULE).load_v12_cases()
+    elif suite == "multilang-adversarial":
+        _, raw_cases = _suite_module(_MULTILANG_EVAL_MODULE).load_cases()
+    else:
+        raise ValueError(f"Unknown production evaluation suite: {suite}")
+    cases: list[dict[str, Any]] = []
+    prefix = next(
+        prefix_value
+        for suite_value, prefix_value in PRODUCTION_SUITE_SELECTORS.values()
+        if suite_value == suite
+    )
+    for raw in raw_cases:
+        item = dict(raw)
+        original_id = str(item.get("id", "")).strip()
+        if not original_id:
+            raise ValueError(f"{suite}: every case must have an id")
+        item["_suite"] = suite
+        item["_suite_original_id"] = original_id
+        item["id"] = f"{prefix}{original_id}"
+        item["corpus"] = suite
+        if suite in {"pr-mutation", "pr-precision-v12"}:
+            item["expected"] = "finding" if list(item.get("expected_findings", [])) else "clean"
+        cases.append(item)
+    ids = [str(item["id"]) for item in cases]
+    if len(ids) != len(set(ids)):
+        raise ValueError(f"{suite}: namespaced case ids must be unique")
+    return cases
+
+
+def resolve_case_selection(
+    matrix: dict[str, Any],
+    requested_ids: list[str],
+) -> tuple[list[dict[str, Any]], bool]:
+    standard_cases = load_cases(matrix)
+    if not requested_ids:
+        return standard_cases, True
+
+    standard_map = {str(item["id"]): item for item in standard_cases}
+    suite_cache: dict[str, list[dict[str, Any]]] = {}
+    selected: list[dict[str, Any]] = []
+    selected_by_scope: dict[str, set[str]] = {}
+    full_by_scope: dict[str, set[str]] = {}
+
+    def add_case(scope: str, case: dict[str, Any], full_ids: set[str]) -> None:
+        case_id = str(case["id"])
+        if any(str(existing["id"]) == case_id for existing in selected):
+            raise ValueError(f"Duplicate selected case id: {case_id}")
+        selected.append(case)
+        selected_by_scope.setdefault(scope, set()).add(case_id)
+        full_by_scope.setdefault(scope, set()).update(full_ids)
+
+    for requested in requested_ids:
+        value = str(requested).strip()
+        if not value:
+            continue
+        if value in standard_map:
+            add_case("standard", dict(standard_map[value]), set(standard_map))
+            continue
+        if value in PRODUCTION_SUITE_SELECTORS:
+            suite, _ = PRODUCTION_SUITE_SELECTORS[value]
+            suite_cases = suite_cache.setdefault(suite, _load_production_suite_cases(suite))
+            full_ids = {str(item["id"]) for item in suite_cases}
+            for case in suite_cases:
+                add_case(suite, dict(case), full_ids)
+            continue
+
+        matched = False
+        for _, (suite, prefix) in PRODUCTION_SUITE_SELECTORS.items():
+            if not value.startswith(prefix):
+                continue
+            suite_cases = suite_cache.setdefault(suite, _load_production_suite_cases(suite))
+            suite_map = {str(item["id"]): item for item in suite_cases}
+            if value not in suite_map:
+                raise ValueError(f"Unknown {suite} case id: {value}")
+            add_case(suite, dict(suite_map[value]), set(suite_map))
+            matched = True
+            break
+        if not matched:
+            raise ValueError(f"Unknown case id: {value}")
+
+    if not selected:
+        raise ValueError("Case selection is empty")
+    complete = all(selected_by_scope[scope] == full_by_scope[scope] for scope in selected_by_scope)
+    return selected, complete
+
+
+def _suite_case_for_delegate(case: dict[str, Any]) -> dict[str, Any]:
+    delegated = dict(case)
+    delegated["id"] = str(case.get("_suite_original_id", case.get("id", "")))
+    delegated.pop("_suite", None)
+    delegated.pop("_suite_original_id", None)
+    delegated.pop("corpus", None)
+    return delegated
+
+
 def candidate_by_id(matrix: dict[str, Any], candidate_id: str) -> dict[str, Any]:
     for item in matrix.get("candidates", []):
         if isinstance(item, dict) and item.get("id") == candidate_id:
@@ -120,7 +239,11 @@ def selected_candidates(matrix: dict[str, Any], value: str) -> list[dict[str, An
         raise ValueError("Candidate selector must not be empty")
     groups = matrix.get("candidate_groups") if isinstance(matrix.get("candidate_groups"), dict) else {}
     if selector == "all":
-        requested_ids = [str(item["id"]) for item in matrix.get("candidates", []) if isinstance(item, dict)]
+        requested_ids = [
+            str(item["id"])
+            for item in matrix.get("candidates", [])
+            if isinstance(item, dict) and not bool(item.get("explicit_only", False))
+        ]
     elif selector in groups:
         requested_ids = [str(item).strip() for item in groups[selector]]
     else:
@@ -135,7 +258,33 @@ def selected_candidates(matrix: dict[str, Any], value: str) -> list[dict[str, An
         raise ValueError(f"Unknown candidate id: {exc.args[0]}") from exc
 
 
+def validate_candidate_case_scope(candidate: dict[str, Any], cases: list[dict[str, Any]]) -> None:
+    allowed = candidate.get("allowed_case_ids")
+    if allowed is None:
+        return
+    if not isinstance(allowed, list) or not allowed or any(not isinstance(item, str) or not item.strip() for item in allowed):
+        raise ValueError(f"Candidate {candidate['id']} allowed_case_ids must be a non-empty string list")
+    allowed_ids = {item.strip() for item in allowed}
+    outside = [str(case["id"]) for case in cases if str(case["id"]) not in allowed_ids]
+    if outside:
+        raise ValueError(
+            f"Candidate {candidate['id']} is evaluation-scoped and cannot run cases: "
+            + ", ".join(outside)
+        )
+
+
 def build_case_prompt(case: dict[str, Any]) -> str:
+    suite = str(case.get("_suite", "") or "")
+    if suite == "pr-mutation":
+        mutation = _suite_module(_MUTATION_EVAL_MODULE)
+        return mutation.build_pr_prompt(_suite_case_for_delegate(case))
+    if suite == "pr-precision-v12":
+        precision = _suite_module(_PRECISION_EVAL_MODULE)
+        return precision.build_pr_prompt(_suite_case_for_delegate(case))
+    if suite == "multilang-adversarial":
+        adversarial = _suite_module(_MULTILANG_EVAL_MODULE)
+        return adversarial.build_case_prompt(_suite_case_for_delegate(case))
+
     case_id = str(case["id"])
     source = str(case.get("source", ""))
     probe = str(case.get("counterexample", ""))
@@ -200,6 +349,46 @@ def build_payload(
         seen_plugin_ids.add(plugin_id)
         plugins.append(plugin)
     plugins.append({"id": "response-healing", "enabled": True})
+
+    raw_tools = candidate.get("tools", [])
+    if raw_tools is None:
+        raw_tools = []
+    if not isinstance(raw_tools, list):
+        raise ValueError(f"Candidate {candidate['id']} tools must be a list")
+    tools: list[dict[str, Any]] = []
+    for raw_tool in raw_tools:
+        if not isinstance(raw_tool, dict):
+            raise ValueError(f"Candidate {candidate['id']} tool entries must be objects")
+        tool = dict(raw_tool)
+        if tool.get("type") != "openrouter:advisor":
+            raise ValueError(
+                f"Candidate {candidate['id']} may use only the evaluation-whitelisted openrouter:advisor tool"
+            )
+        parameters = tool.get("parameters")
+        if not isinstance(parameters, dict):
+            raise ValueError(f"Candidate {candidate['id']} advisor parameters must be an object")
+        advisor_model = str(parameters.get("model", "") or "").strip()
+        if not advisor_model or advisor_model.startswith("~"):
+            raise ValueError(
+                f"Candidate {candidate['id']} advisor model must be a pinned non-alias model id"
+            )
+        unsupported_parameter_keys = set(parameters) - {"model", "name", "instructions"}
+        if unsupported_parameter_keys:
+            raise ValueError(
+                f"Candidate {candidate['id']} advisor parameters contain unsupported keys: "
+                + ", ".join(sorted(unsupported_parameter_keys))
+            )
+        tools.append(tool)
+
+    tool_choice = candidate.get("tool_choice")
+    if tool_choice is not None:
+        if not tools:
+            raise ValueError(f"Candidate {candidate['id']} tool_choice requires a configured tool")
+        if tool_choice not in {"auto", "required", "none"}:
+            raise ValueError(
+                f"Candidate {candidate['id']} tool_choice must be auto, required, or none"
+            )
+
     payload: dict[str, Any] = {
         "model": model,
         "messages": [
@@ -212,9 +401,11 @@ def build_payload(
         },
         "provider": provider,
         "plugins": plugins,
-        "tools": [],
+        "tools": tools,
         "stream": False,
     }
+    if tool_choice is not None:
+        payload["tool_choice"] = tool_choice
     temperature = candidate.get("temperature")
     if temperature is not None:
         temperature_value = float(temperature)
@@ -367,7 +558,33 @@ def finding_text(findings: list[Any]) -> str:
 
 
 def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str, Any]:
+    suite = str(case.get("_suite", "") or "")
     expected = str(case.get("expected", ""))
+    if suite in {"pr-mutation", "pr-precision-v12"}:
+        mutation = _suite_module(_MUTATION_EVAL_MODULE)
+        raw = dict(mutation.score_case(_suite_case_for_delegate(case), request_result))
+        original_disposition = str(raw.get("disposition", "") or "")
+        correct = bool(raw.get("correct"))
+        if original_disposition == "request-error":
+            normalized_disposition = "request-error"
+        elif correct:
+            normalized_disposition = "clean" if expected == "clean" else "finding-detected"
+        elif expected == "clean":
+            normalized_disposition = "false-positive"
+        elif int(raw.get("detected_findings", 0) or 0) < int(raw.get("expected_findings", 0) or 0):
+            normalized_disposition = "false-negative"
+        else:
+            normalized_disposition = "extra-findings"
+        raw["suite_disposition"] = original_disposition
+        raw["expected"] = expected
+        raw["correct"] = correct
+        raw["ambiguous"] = normalized_disposition == "extra-findings"
+        raw["disposition"] = normalized_disposition
+        return raw
+    if suite == "multilang-adversarial":
+        adversarial = _suite_module(_MULTILANG_EVAL_MODULE)
+        return adversarial.score_case(_suite_case_for_delegate(case), request_result)
+
     if not request_result.get("ok"):
         return {
             "expected": expected,
@@ -418,7 +635,25 @@ def score_case(case: dict[str, Any], request_result: dict[str, Any]) -> dict[str
     }
 
 
-def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, Any]]) -> dict[str, Any]:
+def _percentile(values: list[float], fraction: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = (len(ordered) - 1) * float(fraction)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    weight = position - lower
+    return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
+
+
+def aggregate_candidate(
+    candidate: dict[str, Any],
+    case_results: list[dict[str, Any]],
+    *,
+    selection_complete: bool | None = None,
+) -> dict[str, Any]:
     generalized = [item for item in case_results if item["corpus"] == "generalized-controlled"]
     naturalistic = [item for item in case_results if item["corpus"] == "naturalistic-known-defect"]
     controlled_findings = [item for item in generalized if item["score"]["expected"] == "finding"]
@@ -430,7 +665,11 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
         for item in case_results
         if isinstance(item["request"].get("usage"), dict)
     ]
-    total_latency = sum(float(item["request"].get("latency_seconds", 0.0) or 0.0) for item in case_results)
+    latencies = [
+        float(item["request"].get("latency_seconds", 0.0) or 0.0)
+        for item in case_results
+    ]
+    total_latency = sum(latencies)
     totals = {
         "request_count": len(case_results),
         "successful_request_count": sum(1 for item in case_results if item["request"].get("ok")),
@@ -442,28 +681,34 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
         "total_tokens": sum(int(row.get("total_tokens", 0) or 0) for row in usage_rows),
         "exact_cost_usd": round(sum(float(row.get("cost_usd", 0.0) or 0.0) for row in usage_rows), 9),
         "serial_wall_seconds": round(total_latency, 3),
+        "p50_request_seconds": round(_percentile(latencies, 0.50), 3),
+        "p95_request_seconds": round(_percentile(latencies, 0.95), 3),
     }
     controlled_detected = sum(1 for item in controlled_findings if item["score"].get("correct"))
     controlled_clean_correct = sum(1 for item in controlled_clean if item["score"].get("correct"))
     naturalistic_detected = sum(1 for item in naturalistic if item["score"].get("correct"))
-    expected_case_ids = {str(case["id"]) for case in load_cases(load_matrix())}
     actual_case_ids = [str(item["case_id"]) for item in case_results]
-    complete_corpus = (
-        set(actual_case_ids) == expected_case_ids
-        and len(actual_case_ids) == len(expected_case_ids)
-    )
+    if selection_complete is None:
+        expected_case_ids = {str(case["id"]) for case in load_cases(load_matrix())}
+        complete_corpus = (
+            set(actual_case_ids) == expected_case_ids
+            and len(actual_case_ids) == len(expected_case_ids)
+        )
+    else:
+        complete_corpus = bool(selection_complete)
+    correct_case_count = sum(1 for item in case_results if item["score"].get("correct"))
     acceptance_eligible = (
         complete_corpus
         and not request_errors
         and not ambiguous
-        and controlled_detected == len(controlled_findings)
-        and controlled_clean_correct == len(controlled_clean)
-        and naturalistic_detected == len(naturalistic)
+        and correct_case_count == len(case_results)
     )
     return {
         "candidate": candidate,
         "quality": {
             "complete_corpus": complete_corpus,
+            "selected_case_count": len(case_results),
+            "correct_case_count": correct_case_count,
             "controlled_known_errors_detected": controlled_detected,
             "controlled_known_errors_total": len(controlled_findings),
             "controlled_clean_correct": controlled_clean_correct,
@@ -486,6 +731,8 @@ def aggregate_candidate(candidate: dict[str, Any], case_results: list[dict[str, 
 
 
 def plan_report(matrix: dict[str, Any], cases: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> dict[str, Any]:
+    for candidate in candidates:
+        validate_candidate_case_scope(candidate, cases)
     generalized = [case for case in cases if case["corpus"] == "generalized-controlled"]
     naturalistic = [case for case in cases if case["corpus"] == "naturalistic-known-defect"]
     return {
@@ -499,6 +746,9 @@ def plan_report(matrix: dict[str, Any], cases: list[dict[str, Any]], candidates:
             "generalized_expected_findings": sum(1 for item in generalized if item.get("expected") == "finding"),
             "generalized_expected_clean": sum(1 for item in generalized if item.get("expected") == "clean"),
             "naturalistic_known_defects": len(naturalistic),
+            "production_shaped_cases": sum(
+                1 for item in cases if str(item.get("_suite", "") or "")
+            ),
             "total_per_candidate": len(cases),
             "planned_total_requests": len(cases) * len(candidates),
         },
@@ -512,10 +762,13 @@ def run_live(
     candidates: list[dict[str, Any]],
     *,
     timeout_seconds: int,
+    selection_complete: bool | None = None,
 ) -> dict[str, Any]:
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("OPENROUTER_API_KEY is required only for --execute-live")
+    for candidate in candidates:
+        validate_candidate_case_scope(candidate, cases)
     system_prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
     review_schema = load_json(REVIEW_SCHEMA_PATH)
     request_contract = matrix["request_contract"]
@@ -538,7 +791,9 @@ def run_live(
                     "score": score,
                 }
             )
-        candidate_reports.append(aggregate_candidate(candidate, case_results))
+        candidate_reports.append(
+            aggregate_candidate(candidate, case_results, selection_complete=selection_complete)
+        )
     return {
         "schema_version": REPORT_SCHEMA,
         "mode": "live-no-publication",
@@ -576,22 +831,25 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(list(sys.argv[1:] if argv is None else argv))
     matrix = load_matrix()
-    cases = load_cases(matrix)
     candidates = selected_candidates(matrix, args.candidate)
-    if args.case:
-        wanted = set(args.case)
-        available = {str(item["id"]) for item in cases}
-        missing = sorted(wanted - available)
-        if missing:
-            raise SystemExit(f"Unknown case id(s): {', '.join(missing)}")
-        cases = [item for item in cases if item["id"] in wanted]
+    try:
+        cases, selection_complete = resolve_case_selection(matrix, list(args.case))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     if not cases:
         raise SystemExit("No evaluation cases selected")
 
     if args.execute_live:
-        report = run_live(matrix, cases, candidates, timeout_seconds=max(1, args.timeout_seconds))
+        report = run_live(
+            matrix,
+            cases,
+            candidates,
+            timeout_seconds=max(1, args.timeout_seconds),
+            selection_complete=selection_complete,
+        )
     else:
         report = plan_report(matrix, cases, candidates)
+        report["selection_complete"] = selection_complete
 
     rendered = json.dumps(report, indent=2, sort_keys=True)
     if args.output is not None:
