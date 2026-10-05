@@ -1,12 +1,14 @@
-"""Fail-safe adaptive semantic-budget selection for DCOIR Review v46."""
+"""Fail-safe adaptive semantic-budget selection for DCOIR Review."""
 
 from __future__ import annotations
 
 import copy
 from typing import Any
 
-from dcoir_review_required_runtime_patch_v46_contract import (
+from dcoir_review.semantic_context_contract import (
     BUDGET_CONTRACT,
+    BUDGET_MODE_ATTR,
+    CONFIG_PACKAGE_ID_ATTR,
     positive_int,
 )
 
@@ -94,8 +96,8 @@ def configured_for_plan(config: Any, plan: dict[str, Any]) -> Any:
     staged = copy.copy(config)
     for key, value in plan.get("selected", {}).items():
         setattr(staged, key, value)
-    staged._dcoir_v46_context_package_id = str(plan.get("package_id", "") or "")
-    staged._dcoir_v46_budget_mode = str(plan.get("mode", "") or "")
+    setattr(staged, CONFIG_PACKAGE_ID_ATTR, str(plan.get("package_id", "") or ""))
+    setattr(staged, BUDGET_MODE_ATTR, str(plan.get("mode", "") or ""))
     return staged
 
 

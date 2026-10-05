@@ -190,9 +190,8 @@ def test_disposition_stage_and_config() -> None:
 
 def test_production_registration() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.post_terminal_patch_module_names[-3:] == (
+    assert entrypoint.post_terminal_patch_module_names == (
         "dcoir_review.publication_disposition",
-        "dcoir_review_required_runtime_patch_v46",
         "dcoir_review.verified_finding_gate",
     )
     production = (ROOT / "openrouter-pr-review-pareto.yml").read_text(encoding="utf-8")

@@ -23,8 +23,8 @@ import dcoir_review.semantic_review_ledger_fingerprints as v42_fp
 import dcoir_review.semantic_result_reuse_support as v43_reuse
 from dcoir_review import candidate_escalation_scope as candidate_scope
 from dcoir_review import publication_disposition as publication
-import dcoir_review_required_runtime_patch_v46_budget as v46_budget
-import dcoir_review_required_runtime_patch_v46_context as v46_context
+from dcoir_review import adaptive_semantic_budget as semantic_budget
+from dcoir_review import semantic_context_runtime
 import dcoir_review_semantic_recall_corpus_selftest as semantic_recall_selftest
 import openrouter_pr_review_pareto_context as review
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
@@ -126,8 +126,8 @@ def _budget_report(manifest: dict[str, Any], config: Any) -> list[dict[str, Any]
 
         baseline_config = copy.copy(config)
         baseline_config.adaptive_semantic_budgets_review = False
-        baseline = v46_budget.select_budget_plan(package, baseline_config, sentinels)
-        optimized = v46_budget.select_budget_plan(package, config, sentinels)
+        baseline = semantic_budget.select_budget_plan(package, baseline_config, sentinels)
+        optimized = semantic_budget.select_budget_plan(package, config, sentinels)
 
         baseline_selected = dict(baseline.get("selected", {}))
         optimized_selected = dict(optimized.get("selected", {}))
@@ -354,14 +354,14 @@ def _context_identity_report(manifest: dict[str, Any]) -> dict[str, Any]:
     review_mode = str(spec.get("review_mode", "diff") or "diff")
     summary = str(spec.get("context_summary", "") or "")
 
-    signature_a = v46_context.input_signature(
+    signature_a = semantic_context_runtime.input_signature(
         pr, files, diff, deep, review_mode, summary
     )
-    signature_b = v46_context.input_signature(
+    signature_b = semantic_context_runtime.input_signature(
         pr, files, diff, deep, review_mode, summary
     )
     moved_pr = {"head": {"sha": "3" * 40}}
-    moved_signature = v46_context.input_signature(
+    moved_signature = semantic_context_runtime.input_signature(
         moved_pr, files, diff, deep, review_mode, summary
     )
     return {

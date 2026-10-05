@@ -1,16 +1,16 @@
-"""Canonical semantic-context package and local projection caches for v46."""
+"""Canonical semantic-context package and local projection-cache primitives."""
 
 from __future__ import annotations
 
 import copy
 from typing import Any, Callable
 
-from dcoir_review import incremental_review_scope as v41_scope
+from dcoir_review import incremental_review_scope as incremental_scope
 import dcoir_review.semantic_review_ledger_fingerprints as fingerprints
-import dcoir_review.semantic_result_reuse_support as v43_reuse
-from dcoir_review_required_runtime_patch_v46_contract import (
+import dcoir_review.semantic_result_reuse_support as reuse_support
+from dcoir_review.semantic_context_contract import (
     CONTEXT_PACKAGE_CONTRACT,
-    VERSION,
+    RUNTIME_VERSION,
     valid_head,
 )
 
@@ -87,10 +87,10 @@ def build_context_runtime(
     reviewed_head = _head(pr)
     if not valid_head(reviewed_head):
         raise module.hardened.ReviewQualityError(
-            "DCOIR v46 requires an exact 40-character reviewed PR head"
+            "DCOIR semantic context requires an exact 40-character reviewed PR head"
         )
 
-    scope = getattr(gh, v41_scope.SCOPE_CACHE_ATTR, {})
+    scope = getattr(gh, incremental_scope.SCOPE_CACHE_ATTR, {})
     if not isinstance(scope, dict):
         scope = {}
     # The composed hybrid pipeline requests file contexts in every review mode.
@@ -104,7 +104,7 @@ def build_context_runtime(
         context_records.append(
             {
                 "path": str(context.get("path", "") or ""),
-                "source_identity": v43_reuse.source_identity(context),
+                "source_identity": reuse_support.source_identity(context),
                 "text_sha256": fingerprints.text_digest(context.get("text", "")),
                 "text_chars": len(str(context.get("text", "") or "")),
             }
@@ -112,7 +112,7 @@ def build_context_runtime(
     context_records.sort(key=lambda row: row["path"])
     metadata = {
         "contract": CONTEXT_PACKAGE_CONTRACT,
-        "runtime_version": VERSION,
+        "runtime_version": RUNTIME_VERSION,
         "reviewed_head": reviewed_head,
         "review_mode": str(review_mode or ""),
         "scope_source": str(scope.get("source", "") or ""),

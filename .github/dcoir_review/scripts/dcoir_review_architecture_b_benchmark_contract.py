@@ -4,7 +4,7 @@
 The original benchmark module owns the same-corpus quality and planning core.
 This layer adds the deterministic production telemetry that issue #476 requires
 but that is not represented by model-free quality fixtures alone: v43 carry
-forward, v46 composed-context projection reuse, explicit review-surface sizes,
+forward, composed semantic-context projection reuse, explicit review-surface sizes,
 and aggregate stage activation. Live semantic contribution, token, cost, and
 time measurements remain intentionally unavailable offline.
 """
@@ -22,7 +22,7 @@ from typing import Any
 import dcoir_review_architecture_b_benchmark as core
 from dcoir_review import incremental_review_scope as v41_scope
 import dcoir_review.semantic_result_reuse as v43
-import dcoir_review_required_runtime_patch_v46 as v46
+from dcoir_review import semantic_context
 
 
 REPORT_SCHEMA = core.REPORT_SCHEMA
@@ -224,10 +224,8 @@ def _context_projection_report(
         return {"summary": "offline deterministic benchmark", "findings": []}, "", ""
 
     module.openrouter_review_with_hybrid_first_pass = hybrid
-    v46.apply_pareto_context_module(module)
-    module.openrouter_review_with_hybrid_first_pass = v46.build_canonical_semantic_context_stage(
-        module, hybrid
-    )
+    builder = semantic_context.install(module)
+    module.openrouter_review_with_hybrid_first_pass = builder(module, hybrid)
 
     gh = SimpleNamespace()
     setattr(

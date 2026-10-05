@@ -85,6 +85,10 @@ DIRECT_IMPORT_MODULES = (
     "semantic_adjudication.py",
     "semantic_adjudication_confidence.py",
     "semantic_candidate_identity.py",
+    "semantic_context.py",
+    "semantic_context_contract.py",
+    "semantic_context_runtime.py",
+    "adaptive_semantic_budget.py",
     "semantic_candidate_identity_hooks.py",
     "semantic_evidence_hardening.py",
     "semantic_adjudication_normalization.py",
@@ -267,6 +271,9 @@ def assert_numbered_patch_freeze_before_cutover() -> None:
     assert "dcoir_review_required_runtime_patch_v44" not in numbered, (
         "retired v44 production owner reappeared"
     )
+    assert "dcoir_review_required_runtime_patch_v46" not in numbered, (
+        "retired v46 production owner reappeared"
+    )
     assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
 
 
@@ -355,7 +362,7 @@ def assert_canonical_config_loader_ownership() -> None:
     former_config_owners = (
         "dcoir_review/candidate_scoped_escalation.py",
         "dcoir_review/publication_disposition.py",
-        "dcoir_review_required_runtime_patch_v46.py",
+        "dcoir_review/semantic_context.py",
         "dcoir_review/verified_finding_gate.py",
         "dcoir_review/semantic_candidate_identity.py",
         "dcoir_review/per_file_routing.py",
@@ -600,8 +607,21 @@ def assert_canonical_per_file_prompt_ownership() -> None:
             after = module.build_per_file_review_prompt
             if after is not before:
                 replacements.append(patch_name)
-    assert replacements == ["dcoir_review_required_runtime_patch_v46"], replacements
+    assert replacements == ["dcoir_review.review_orchestration"], replacements
     assert not callable(getattr(module, "_dcoir_review_v32_original_build_per_file_review_prompt", None))
+    for retired in (
+        "_dcoir_v46_original_build_file_contexts",
+        "_dcoir_v46_original_build_per_file_review_prompt",
+        "_dcoir_v46_original_build_prompt",
+    ):
+        assert not callable(getattr(module, retired, None)), retired
+    for retired_path in (
+        "dcoir_review_required_runtime_patch_v46.py",
+        "dcoir_review_required_runtime_patch_v46_budget.py",
+        "dcoir_review_required_runtime_patch_v46_context.py",
+        "dcoir_review_required_runtime_patch_v46_contract.py",
+    ):
+        assert not (SCRIPTS / retired_path).exists(), retired_path
 
 
 def assert_canonical_guidance_code_classifier_ownership() -> None:
@@ -861,7 +881,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
         "dcoir_review/semantic_review_ledger_hooks.py",
         "dcoir_review/semantic_result_reuse.py",
         "dcoir_review/candidate_scoped_escalation.py",
-        "dcoir_review_required_runtime_patch_v46.py",
+        "dcoir_review/semantic_context.py",
         "dcoir_review/review_scope_guard_hooks.py",
         "dcoir_review/structured_result_disposition.py",
     )

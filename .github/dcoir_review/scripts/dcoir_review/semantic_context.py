@@ -1,26 +1,26 @@
-"""Architecture-B v46 canonical semantic context and adaptive budgets."""
+"""Canonical semantic-context projection and adaptive-budget lifecycle.
+
+This stable owner replaces historical v46 runtime-patch ownership. Projection
+wrappers close over the baseline builders directly; no original callables are
+stored back on the review module. ``review_orchestration`` installs this
+component once and composes the returned semantic-context stage explicitly.
+"""
 
 from __future__ import annotations
 
 import copy
-from typing import Any
+from typing import Any, Callable
 
-import dcoir_review.semantic_review_ledger_hooks as v42_hooks
-import dcoir_review_required_runtime_patch_v46_budget as budgets
-import dcoir_review_required_runtime_patch_v46_context as context
-from dcoir_review_required_runtime_patch_v46_contract import (
-    APPLIED_ATTR,
+from dcoir_review import adaptive_semantic_budget as budgets
+from dcoir_review import semantic_context_runtime as context_runtime
+from dcoir_review import semantic_review_ledger_hooks as ledger_hooks
+from dcoir_review.semantic_context_contract import (
     BUDGET_CONTRACT,
+    CONFIG_PACKAGE_ID_ATTR,
     CONTEXT_PACKAGE_CONTRACT,
     PACKAGE_ATTR,
     RUNTIME_ATTR,
-    positive_int,
 )
-
-
-_FILE_CONTEXT_STORAGE = "_dcoir_v46_original_build_file_contexts"
-_FILE_PROMPT_STORAGE = "_dcoir_v46_original_build_per_file_review_prompt"
-_BROAD_PROMPT_STORAGE = "_dcoir_v46_original_build_prompt"
 
 
 def _runtime(module: Any, config: Any | None = None) -> dict[str, Any] | None:
@@ -29,38 +29,28 @@ def _runtime(module: Any, config: Any | None = None) -> dict[str, Any] | None:
         return None
     if config is not None:
         package_id = str(runtime.get("metadata", {}).get("package_id", "") or "")
-        if str(getattr(config, "_dcoir_v46_context_package_id", "") or "") != package_id:
+        if str(getattr(config, CONFIG_PACKAGE_ID_ATTR, "") or "") != package_id:
             return None
     return runtime
 
 
-def _patch_context_projections(module: Any) -> tuple[Any, Any, Any]:
-    original_contexts = getattr(module, _FILE_CONTEXT_STORAGE, None)
-    if original_contexts is None:
-        original_contexts = getattr(module, "build_file_contexts", None)
-        if callable(original_contexts):
-            setattr(module, _FILE_CONTEXT_STORAGE, original_contexts)
-    original_file_prompt = getattr(module, _FILE_PROMPT_STORAGE, None)
-    if original_file_prompt is None:
-        original_file_prompt = getattr(module, "build_per_file_review_prompt", None)
-        if callable(original_file_prompt):
-            setattr(module, _FILE_PROMPT_STORAGE, original_file_prompt)
-    original_broad_prompt = getattr(module, _BROAD_PROMPT_STORAGE, None)
-    if original_broad_prompt is None:
-        original_broad_prompt = getattr(module, "build_prompt", None)
-        if callable(original_broad_prompt):
-            setattr(module, _BROAD_PROMPT_STORAGE, original_broad_prompt)
-    builders = (original_contexts, original_file_prompt, original_broad_prompt)
-    if not all(callable(item) for item in builders):
-        raise RuntimeError("DCOIR v46 could not locate semantic context builders")
+def _install_projection_wrappers(
+    module: Any,
+) -> Callable[..., list[dict[str, Any]]]:
+    original_contexts = getattr(module, "build_file_contexts", None)
+    original_file_prompt = getattr(module, "build_per_file_review_prompt", None)
+    original_broad_prompt = getattr(module, "build_prompt", None)
+    if not all(callable(item) for item in (original_contexts, original_file_prompt, original_broad_prompt)):
+        raise RuntimeError("DCOIR semantic context could not locate semantic context builders")
 
     def build_file_contexts(gh, pr, files, config):
         active = _runtime(module, config)
-        if active is not None and context.matches_file_surface(active, pr, files):
+        if active is not None and context_runtime.matches_file_surface(active, pr, files):
             active["telemetry"]["file_context_projection_reuse_count"] += 1
             return copy.deepcopy(active.get("file_contexts", []))
-        if isinstance(getattr(module, RUNTIME_ATTR, None), dict):
-            getattr(module, RUNTIME_ATTR)["telemetry"]["fallback_projection_count"] += 1
+        runtime = getattr(module, RUNTIME_ATTR, None)
+        if isinstance(runtime, dict):
+            runtime["telemetry"]["fallback_projection_count"] += 1
         return original_contexts(gh, pr, files, config)
 
     def build_per_file_review_prompt(
@@ -71,7 +61,7 @@ def _patch_context_projections(module: Any) -> tuple[Any, Any, Any]:
             return original_file_prompt(
                 pr, item, file_text, diff, config, path_sentinels, review_mode
             )
-        key = context.per_file_prompt_key(
+        key = context_runtime.per_file_prompt_key(
             module,
             pr,
             item,
@@ -115,7 +105,7 @@ def _patch_context_projections(module: Any) -> tuple[Any, Any, Any]:
                 context_summary,
             )
         expected = active.get("metadata", {}).get("input_signature")
-        actual = context.input_signature(
+        actual = context_runtime.input_signature(
             pr, files, diff, deep_context_block, review_mode, context_summary
         )
         if expected != actual:
@@ -130,7 +120,7 @@ def _patch_context_projections(module: Any) -> tuple[Any, Any, Any]:
                 review_mode,
                 context_summary,
             )
-        key = context.broad_prompt_key(
+        key = context_runtime.broad_prompt_key(
             pr,
             files,
             diff,
@@ -162,7 +152,7 @@ def _patch_context_projections(module: Any) -> tuple[Any, Any, Any]:
     module.build_file_contexts = build_file_contexts
     module.build_per_file_review_prompt = build_per_file_review_prompt
     module.build_prompt = build_prompt
-    return original_contexts, original_file_prompt, original_broad_prompt
+    return original_contexts
 
 
 def _write_state(
@@ -172,16 +162,17 @@ def _write_state(
     runtime: dict[str, Any],
     plan: dict[str, Any],
 ) -> None:
-    package = context.public_payload(runtime)
+    package = context_runtime.public_payload(runtime)
     package["budget_plan"] = copy.deepcopy(plan)
     setattr(gh, PACKAGE_ATTR, copy.deepcopy(package))
+    # Retain artifact filenames as diagnostic compatibility paths.
     module.hardened.write_debug_json_artifact_safely(
         config, "metadata/semantic-context-package-v46.json", package
     )
     module.hardened.write_debug_json_artifact_safely(
         config, "metadata/adaptive-semantic-budget-v46.json", copy.deepcopy(plan)
     )
-    ledger = getattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, None)
+    ledger = getattr(gh, ledger_hooks.SEMANTIC_LEDGER_ATTR, None)
     if isinstance(ledger, dict):
         ledger["context_package"] = {
             "contract": CONTEXT_PACKAGE_CONTRACT,
@@ -190,22 +181,21 @@ def _write_state(
             "telemetry": copy.deepcopy(package.get("telemetry", {})),
         }
         ledger["adaptive_budget"] = copy.deepcopy(plan)
-        setattr(gh, v42_hooks.SEMANTIC_LEDGER_ATTR, ledger)
-        v42_hooks._LAST_LEDGER = ledger
+        setattr(gh, ledger_hooks.SEMANTIC_LEDGER_ATTR, ledger)
+        ledger_hooks._LAST_LEDGER = ledger
         module.hardened.write_debug_json_artifact_safely(
             config, "metadata/semantic-review-ledger.json", ledger
         )
 
 
-def build_canonical_semantic_context_stage(module: Any, next_review: Any) -> Any:
-    """Build the canonical semantic-context/budget lifecycle around ``next_review``."""
-
+def _build_stage(
+    module: Any,
+    next_review: Any,
+    original_contexts: Callable[..., list[dict[str, Any]]],
+) -> Any:
     original = next_review
-    original_contexts = getattr(module, _FILE_CONTEXT_STORAGE, None)
     if not callable(original):
-        raise RuntimeError("DCOIR v46 requires a callable hybrid review stage")
-    if not callable(original_contexts):
-        raise RuntimeError("DCOIR v46 could not locate the original file-context builder")
+        raise RuntimeError("DCOIR semantic context requires a callable hybrid review stage")
 
     def canonical_semantic_context_stage(
         pr,
@@ -236,7 +226,7 @@ def build_canonical_semantic_context_stage(module: Any, next_review: Any) -> Any
                 context_summary,
                 gh,
             )
-        active = context.build_context_runtime(
+        active = context_runtime.build_context_runtime(
             module,
             gh,
             pr,
@@ -301,18 +291,23 @@ def semantic_context_package_for_client(gh: Any) -> dict[str, Any]:
     return copy.deepcopy(value) if isinstance(value, dict) else {}
 
 
-def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, APPLIED_ATTR, False):
-        return
-    _patch_context_projections(module)
+def install(module: Any) -> Callable[[Any, Any], Any]:
+    """Install projection owners and return the semantic-context stage builder."""
+
+    original_contexts = _install_projection_wrappers(module)
     module.semantic_context_package_for_client = semantic_context_package_for_client
     module.DCOIR_SEMANTIC_CONTEXT_PACKAGE_CONTRACT = CONTEXT_PACKAGE_CONTRACT
     module.DCOIR_ADAPTIVE_SEMANTIC_BUDGET_CONTRACT = BUDGET_CONTRACT
-    setattr(module, APPLIED_ATTR, True)
+
+    def build_stage(active_module: Any, next_review: Any) -> Any:
+        if active_module is not module:
+            raise RuntimeError("DCOIR semantic context stage builder received the wrong review module")
+        return _build_stage(module, next_review, original_contexts)
+
+    return build_stage
 
 
 __all__ = [
-    "apply_pareto_context_module",
-    "build_canonical_semantic_context_stage",
+    "install",
     "semantic_context_package_for_client",
 ]

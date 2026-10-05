@@ -43,7 +43,6 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert entrypoint.post_terminal_patch_module_names == (
         "dcoir_review.publication_disposition",
-        "dcoir_review_required_runtime_patch_v46",
         "dcoir_review.verified_finding_gate",
     )
     assert "candidate-scoped-escalation" in entrypoint.import_module(

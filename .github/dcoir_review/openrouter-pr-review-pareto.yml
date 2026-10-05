@@ -212,7 +212,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_candidate_scoped_escalation_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_review_context_ledger_integration_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_publication_disposition_selftest.py
-  - python3 .github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v46_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_context_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_verified_finding_gate_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_verified_finding_gate_publication_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_candidate_identity_selftest.py

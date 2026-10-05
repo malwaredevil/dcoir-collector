@@ -1,16 +1,17 @@
-"""Contracts and configuration helpers for DCOIR Review v46."""
+"""Stable semantic-context contracts and configuration helpers."""
 
 from __future__ import annotations
 
 from typing import Any
 
 
-VERSION = "v46"
+RUNTIME_VERSION = "v46"  # Persisted diagnostic compatibility value.
 CONTEXT_PACKAGE_CONTRACT = "architecture-b-semantic-context-package-v1"
 BUDGET_CONTRACT = "architecture-b-adaptive-semantic-budget-v1"
-PACKAGE_ATTR = "_dcoir_v46_context_package"
-RUNTIME_ATTR = "_dcoir_v46_context_runtime"
-APPLIED_ATTR = "_dcoir_v46_applied"
+PACKAGE_ATTR = "_dcoir_semantic_context_package"
+RUNTIME_ATTR = "_dcoir_semantic_context_runtime"
+CONFIG_PACKAGE_ID_ATTR = "_dcoir_semantic_context_package_id"
+BUDGET_MODE_ATTR = "_dcoir_semantic_budget_mode"
 
 
 def positive_int(value: Any, fallback: int) -> int:
@@ -27,12 +28,13 @@ def valid_head(value: Any) -> bool:
 
 
 __all__ = [
-    "APPLIED_ATTR",
     "BUDGET_CONTRACT",
     "CONTEXT_PACKAGE_CONTRACT",
+    "BUDGET_MODE_ATTR",
+    "CONFIG_PACKAGE_ID_ATTR",
     "PACKAGE_ATTR",
     "RUNTIME_ATTR",
-    "VERSION",
+    "RUNTIME_VERSION",
     "positive_int",
     "valid_head",
 ]
