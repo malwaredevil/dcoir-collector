@@ -298,8 +298,9 @@ def test_stable_owner_composition() -> None:
     names = entrypoint.patch_module_names
     assert "dcoir_review.finding_verifier" in names, names
     assert "dcoir_review_required_runtime_patch_v21" not in names, names
+    assert "dcoir_review_required_runtime_patch_v20" not in names, names
     index = names.index("dcoir_review.finding_verifier")
-    assert names[index - 1] == "dcoir_review_required_runtime_patch_v20", names[max(0, index - 2):index + 4]
+    assert names[index - 1] == "dcoir_review.precision_guard", names[max(0, index - 2):index + 4]
     assert names[index + 1] == "dcoir_review.quality_gate", names[max(0, index - 2):index + 4]
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")

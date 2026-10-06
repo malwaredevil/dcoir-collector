@@ -17,6 +17,7 @@ from typing import Any
 
 import dcoir_review_required_runtime_patch_v3 as v3
 import dcoir_review_required_runtime_patch_v16 as v16
+import dcoir_review_required_runtime_patch_v20 as v20
 
 
 
@@ -368,5 +369,9 @@ def _patch_final_sentinel_selection(module: Any) -> None:
 
 
 def apply_pareto_context_module(module: Any) -> None:
+    # v20 is now a helper-definition layer beneath stable selection and v31.
+    # Preserve its truthy-literal registry handoff here without retaining a
+    # standalone historical runtime root.
+    v20._patch_v16_selection_registry()
     _patch_risk_sentinel_priority(module)
     _patch_final_sentinel_selection(module)
