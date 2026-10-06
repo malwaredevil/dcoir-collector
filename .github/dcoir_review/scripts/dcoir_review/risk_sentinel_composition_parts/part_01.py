@@ -20,11 +20,12 @@ from dcoir_review import prompt_review_policy as _v6
 from dcoir_review import selection_pressure_policy as _v8
 import importlib
 
-# Historical v9 compatibility aliases; canonical implementation remains stable-owner based.
-v4 = _v4
-v5 = _v5
-v6 = _v6
-v8 = _v8
+_COMPAT_MODULES = {
+    "v4": _v4,
+    "v5": _v5,
+    "v6": _v6,
+    "v8": _v8,
+}
 
 v9_core = importlib.import_module("dcoir_review.risk_sentinel_state")
 
@@ -39,48 +40,51 @@ from dcoir_review.prompt_review_diagnostics_helpers import (
     _patch_target_call_accounting,
 )
 
-# Historical v9 compatibility exports remain explicit aliases to the stable owner.
-PARETO_CALL_EVENTS = _prompt_diag.PARETO_CALL_EVENTS
-PROMPT_REVIEW_CALLS = _prompt_diag.PROMPT_REVIEW_CALLS
-PROMPT_REVIEW_EVENTS = _prompt_diag.PROMPT_REVIEW_EVENTS
-PROMPT_REVIEW_FAILURES = _prompt_diag.PROMPT_REVIEW_FAILURES
-_ensure_prompt_review = _prompt_diag._ensure_prompt_review
-_normalize_inline_comment = _prompt_diag._normalize_inline_comment
-_normalize_yaml_identifier = _prompt_diag._normalize_yaml_identifier
-_prompt_review_problem = _prompt_diag._prompt_review_problem
-_record_prompt_review_call = _prompt_diag._record_prompt_review_call
-_record_prompt_review_event = _prompt_diag._record_prompt_review_event
-_record_target_call = _prompt_diag._record_target_call
-_strip_footer = _prompt_diag._strip_footer
-PS_DYNAMIC_EXEC = v9_core.PS_DYNAMIC_EXEC
-PYTHON_PICKLE_LOAD = v9_core.PYTHON_PICKLE_LOAD
-SELECTION_SUMMARY = v9_core.SELECTION_SUMMARY
-_claim_text = v9_core._claim_text
-_claimed_kinds = v9_core._claimed_kinds
-_confidence = v9_core._confidence
-_dedupe = v9_core._dedupe
-_expected_by_line = v9_core._expected_by_line
-_key_text = v9_core._key_text
-_line_number = v9_core._line_number
-_normalize = v9_core._normalize
-_postable_key = v9_core._postable_key
-_quote_ps_string = v9_core._quote_ps_string
-_required_sentinels = v9_core._required_sentinels
-_rewrite_validation = v9_core._rewrite_validation
-_semantic_mismatch = v9_core._semantic_mismatch
-_sentinel_key = v9_core._sentinel_key
-_severity_rank = v9_core._severity_rank
-_spare_priority = v9_core._spare_priority
-_validation_for_key = v9_core._validation_for_key
-_yaml_load_arg = v9_core._yaml_load_arg
-
-
-def __getattr__(name: str) -> Any:
-    # Classifier hooks are mutable runtime seams. Delegate reads to v9_core
-    # until a later compatibility layer explicitly overrides the v9 export.
-    if name in {"_line_kind", "_semantic_kind"}:
-        return getattr(v9_core, name)
-    raise AttributeError(name)
+# Historical v9 compatibility names are resolved dynamically so mutable stable
+# hooks remain live and static analyzers do not mistake compatibility exports
+# for dead implementation globals.
+_PROMPT_COMPAT_NAMES = frozenset({
+    "PARETO_CALL_EVENTS",
+    "PROMPT_REVIEW_CALLS",
+    "PROMPT_REVIEW_EVENTS",
+    "PROMPT_REVIEW_FAILURES",
+    "_ensure_prompt_review",
+    "_normalize_inline_comment",
+    "_normalize_yaml_identifier",
+    "_prompt_review_problem",
+    "_record_prompt_review_call",
+    "_record_prompt_review_event",
+    "_record_target_call",
+    "_strip_footer",
+})
+_STATE_COMPAT_NAMES = frozenset({
+    "PS_DYNAMIC_EXEC",
+    "PYTHON_PICKLE_LOAD",
+    "SELECTION_SUMMARY",
+    "_claim_text",
+    "_claimed_kinds",
+    "_confidence",
+    "_dedupe",
+    "_expected_by_line",
+    "_key_text",
+    "_line_number",
+    "_normalize",
+    "_postable_key",
+    "_quote_ps_string",
+    "_required_sentinels",
+    "_rewrite_validation",
+    "_semantic_mismatch",
+    "_sentinel_key",
+    "_severity_rank",
+    "_spare_priority",
+    "_validation_for_key",
+    "_yaml_load_arg",
+})
+_SELECTION_COMPAT_NAMES = frozenset({
+    "_fallback_for_sentinel",
+    "_iter_added_diff_lines",
+    "_select_required_postable",
+})
 
 
 from dcoir_review import risk_sentinel_selection_support as _selection_support
@@ -90,9 +94,19 @@ from dcoir_review.risk_sentinel_selection_support import (
     _patch_yaml_safe_load_note,
 )
 
-_fallback_for_sentinel = _selection_support._fallback_for_sentinel
-_iter_added_diff_lines = _selection_support._iter_added_diff_lines
-_select_required_postable = _selection_support._select_required_postable
+
+def __getattr__(name: str) -> Any:
+    # Historical compatibility reads delegate to the current stable owner so
+    # later hook replacement remains observable instead of snapshotting values.
+    if name in _COMPAT_MODULES:
+        return _COMPAT_MODULES[name]
+    if name in {"_line_kind", "_semantic_kind"} or name in _STATE_COMPAT_NAMES:
+        return getattr(v9_core, name)
+    if name in _PROMPT_COMPAT_NAMES:
+        return getattr(_prompt_diag, name)
+    if name in _SELECTION_COMPAT_NAMES:
+        return getattr(_selection_support, name)
+    raise AttributeError(name)
 
 
 def apply_pareto_context_module(module: Any) -> None:

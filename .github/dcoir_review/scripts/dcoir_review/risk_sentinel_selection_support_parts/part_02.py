@@ -1,13 +1,12 @@
+from dcoir_review import risk_sentinel_state as _state
 from dcoir_review.risk_sentinel_state import (
     SELECTION_SUMMARY,
     _dedupe,
     _expected_by_line,
     _key_text,
-    _postable_key,
     _required_sentinels,
     _rewrite_validation,
     _semantic_mismatch,
-    _spare_priority,
 )
 
 from dcoir_review.prompt_review_diagnostics_helpers import _ensure_prompt_review
@@ -32,7 +31,7 @@ def _select_required_postable(hardened: Any, findings: list[dict[str, Any]], ris
         )
     raw = [item for item in findings if isinstance(item, dict)]
     candidates, dropped = _dedupe(raw, expected)
-    by_key = {_postable_key(item): item for item in candidates}
+    by_key = {_state._postable_key(item): item for item in candidates}
     for sentinel in required:
         key = _sentinel_key(sentinel)
         if key not in by_key:
@@ -47,8 +46,8 @@ def _select_required_postable(hardened: Any, findings: list[dict[str, Any]], ris
         if key in by_key and key not in selected_keys and len(selected) < limit:
             selected.append(by_key[key])
             selected_keys.add(key)
-    for item in sorted(candidates, key=_spare_priority):
-        key = _postable_key(item)
+    for item in sorted(candidates, key=_state._spare_priority):
+        key = _state._postable_key(item)
         if len(selected) >= limit:
             break
         if key not in selected_keys and key[2]:
@@ -56,7 +55,7 @@ def _select_required_postable(hardened: Any, findings: list[dict[str, Any]], ris
             selected_keys.add(key)
     selected = selected[:limit]
     _rewrite_validation(selected)
-    final_invalid = [_key_text(_postable_key(item)) for item in selected if _semantic_mismatch(item, expected)]
+    final_invalid = [_key_text(_state._postable_key(item)) for item in selected if _semantic_mismatch(item, expected)]
     final_uncovered = [key for key in (_sentinel_key(item) for item in required) if key not in selected_keys]
     omitted = [
         _sentinel_summary_record(item, required_key_set, selected_keys, limit)
@@ -67,8 +66,8 @@ def _select_required_postable(hardened: Any, findings: list[dict[str, Any]], ris
         "hard_required_count": len(required),
         "final_postable_count": len(selected),
         "inline_limit": limit,
-        "selected_keys": [_key_text(_postable_key(item)) for item in selected],
-        "spare_budget_selected": [_key_text(_postable_key(item)) for item in selected if _postable_key(item) not in required_key_set],
+        "selected_keys": [_key_text(_state._postable_key(item)) for item in selected],
+        "spare_budget_selected": [_key_text(_state._postable_key(item)) for item in selected if _state._postable_key(item) not in required_key_set],
         "dropped_invalid_or_duplicate_candidates": dropped[:80],
         "final_invalid_selected_keys": final_invalid,
         "final_uncovered": [_key_text(key) for key in final_uncovered],
@@ -106,7 +105,7 @@ def _patch_required_selection(module: Any, hardened: Any) -> None:
     hardened.enforce_risk_sentinel_findings = enforce_risk_sentinel_findings
     module.rank_findings_for_required_budget = lambda findings, config: sorted(
         [v5._normalize_comment_finding(item) for item in findings if isinstance(item, dict)],
-        key=_spare_priority,
+        key=_state._spare_priority,
     )[: max(0, int(getattr(config, "max_inline_comments", 12)))]
 
 

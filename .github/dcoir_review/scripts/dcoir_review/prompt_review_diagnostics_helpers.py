@@ -7,6 +7,7 @@ from typing import Any
 
 import dcoir_review.risk_sentinel_policy as v5
 import dcoir_review.prompt_review_policy as v6
+from dcoir_review import risk_sentinel_state as _state
 
 from dcoir_review.risk_sentinel_state import (
     EVENT_LIMIT,
@@ -16,8 +17,6 @@ from dcoir_review.risk_sentinel_state import (
     PROMPT_REVIEW_EVENTS,
     PROMPT_REVIEW_FAILURES,
     SELECTION_SUMMARY,
-    _postable_key,
-    _validation_for_key,
     _yaml_load_arg,
 )
 
@@ -293,7 +292,7 @@ def _normalize_inline_comment(body: str, finding: dict[str, Any]) -> str:
 
 
 def _normalize_yaml_identifier(body: str, finding: dict[str, Any]) -> str:
-    if _postable_key(finding)[2] != v5.PYTHON_YAML_LOAD:
+    if _state._postable_key(finding)[2] != v5.PYTHON_YAML_LOAD:
         return body
     arg = _yaml_load_arg(str(finding.get("_anchored_line_text", "") or ""))
     body = re.sub(r"yaml\.safe_load\([A-Za-z_][A-Za-z0-9_.]*\)", f"yaml.safe_load({arg})", body)
