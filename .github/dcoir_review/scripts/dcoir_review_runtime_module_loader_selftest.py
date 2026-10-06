@@ -70,6 +70,7 @@ DIRECT_IMPORT_MODULES = (
     "reasoning_policy.py",
     "review_orchestration.py",
     "review_telemetry.py",
+    "risk_sentinel_semantics.py",
     "review_telemetry_events.py",
     "review_telemetry_state.py",
     "review_telemetry_summary.py",
@@ -209,91 +210,15 @@ def production_patch_module_names() -> tuple[str, ...]:
     return tuple(names)
 
 
-def assert_numbered_patch_freeze_before_cutover() -> None:
-    """Enforce the #550 no-v59 production freeze while retirements continue."""
+def assert_no_numbered_production_patches_after_cutover() -> None:
+    """Enforce the #550 cutover: historical numbered modules are helper-only."""
     numbered: dict[str, int] = {}
     for module_name in production_patch_module_names():
         match = NUMBERED_PRODUCTION_PATCH_RE.match(module_name)
         if match is not None:
             numbered[module_name] = int(match.group("version"))
 
-    assert numbered, "expected historical numbered production patches before #550 cutover"
-    violating = sorted(
-        name
-        for name, version in numbered.items()
-        if version > NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
-    )
-    assert not violating, {
-        "numbered_patch_freeze_violation": violating,
-        "ceiling": NUMBERED_PRODUCTION_PATCH_VERSION_CEILING,
-    }
-    assert "dcoir_review_required_runtime_patch_v58" not in numbered, (
-        "retired v58 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v55" not in numbered, (
-        "retired v55 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v37" not in numbered, (
-        "retired v37 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v39" not in numbered, (
-        "retired v39 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v38" not in numbered, (
-        "retired v38 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v34" not in numbered, (
-        "retired v34 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v48" not in numbered, (
-        "retired v48 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v48_prompt_guard" not in numbered, (
-        "retired v48 prompt-review companion production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v41" not in numbered, (
-        "retired v41 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v42" not in numbered, (
-        "retired v42 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v43" not in numbered, (
-        "retired v43 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v45" not in numbered, (
-        "retired v45 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v50" not in numbered, (
-        "retired v50 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v51" not in numbered, (
-        "retired v51 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v52" not in numbered, (
-        "retired v52 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v54" not in numbered, (
-        "retired v54 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v57" not in numbered, (
-        "retired v57 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v32" not in numbered, (
-        "retired v32 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v35" not in numbered, (
-        "retired v35 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v44" not in numbered, (
-        "retired v44 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v46" not in numbered, (
-        "retired v46 production owner reappeared"
-    )
-    assert "dcoir_review_required_runtime_patch_v53" not in numbered, (
-        "retired v53 production owner reappeared"
-    )
-    assert max(numbered.values()) < NUMBERED_PRODUCTION_PATCH_VERSION_CEILING
+    assert numbered == {}, {"numbered_production_patches_after_cutover": numbered}
 
 
 def assert_patch_inventory_is_source_complete() -> None:
@@ -909,7 +834,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
 
     entrypoint = DcoirReviewEntrypoint()
     module = entrypoint.import_module(entrypoint.review_module_name)
-    base_after_v16 = None
+    base_after_risk_semantics = None
     final_hybrid = None
     orchestration_seen = False
 
@@ -917,20 +842,20 @@ def assert_canonical_hybrid_review_ownership() -> None:
         for patch_name in getattr(entrypoint, group_name):
             entrypoint._apply_patch_modules(module, (patch_name,))
             active = module.openrouter_review_with_hybrid_first_pass
-            if patch_name == "dcoir_review_required_runtime_patch_v16":
-                base_after_v16 = active
+            if patch_name == "dcoir_review.risk_sentinel_semantics":
+                base_after_risk_semantics = active
                 continue
-            if base_after_v16 is None:
+            if base_after_risk_semantics is None:
                 continue
             if patch_name == "dcoir_review.review_orchestration":
                 orchestration_seen = True
                 final_hybrid = active
-                assert final_hybrid is not base_after_v16
+                assert final_hybrid is not base_after_risk_semantics
                 assert final_hybrid.__module__ == "dcoir_review.review_orchestration"
                 assert tuple(module.DCOIR_REVIEW_ORCHESTRATION_STAGE_ORDER) == review_orchestration.STAGE_ORDER
                 continue
             if not orchestration_seen:
-                assert active is base_after_v16, f"{patch_name} replaced the pre-orchestration hybrid review callable"
+                assert active is base_after_risk_semantics, f"{patch_name} replaced the pre-orchestration hybrid review callable"
             else:
                 assert active is final_hybrid, f"{patch_name} replaced canonical hybrid review orchestration"
 
@@ -955,7 +880,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
 
 
 def main() -> None:
-    assert_numbered_patch_freeze_before_cutover()
+    assert_no_numbered_production_patches_after_cutover()
     assert_patch_inventory_is_source_complete()
     assert_canonical_hybrid_review_ownership()
     assert_canonical_payload_builder_ownership()

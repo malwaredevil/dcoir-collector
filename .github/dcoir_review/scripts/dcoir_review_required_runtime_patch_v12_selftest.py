@@ -346,8 +346,9 @@ def test_v12_is_helper_only_beneath_stable_python_filesystem_detection_and_v16()
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v12" not in names, names
     assert "dcoir_review.python_filesystem_detection" in names, names
-    assert "dcoir_review_required_runtime_patch_v16" in names, names
-    assert names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family") < names.index("dcoir_review_required_runtime_patch_v16")
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
+    assert names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family") < names.index("dcoir_review.risk_sentinel_semantics")
 
 
 def main() -> None:

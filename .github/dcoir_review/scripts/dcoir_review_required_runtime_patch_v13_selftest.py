@@ -313,11 +313,12 @@ def test_apply_twice_no_recursion() -> None:
 
 
 
-def test_v13_is_helper_only_beneath_v16() -> None:
+def test_v13_is_helper_only_beneath_stable_risk_semantics() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v13" not in names, names
     assert "dcoir_review_required_runtime_patch_v14" not in names, names
-    assert "dcoir_review_required_runtime_patch_v16" in names, names
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
     v13 = _load_v13()
     import dcoir_review_required_runtime_patch_v14 as v14
     assert callable(v13._patch_core_semantics)
@@ -337,7 +338,7 @@ def main() -> None:
     test_domain_classifiers_are_not_overbroad()
     test_spoofed_trusted_key_cannot_override_anchored_line_semantics()
     test_apply_twice_no_recursion()
-    test_v13_is_helper_only_beneath_v16()
+    test_v13_is_helper_only_beneath_stable_risk_semantics()
     print("dcoir_review_required_runtime_patch_v13_selftest passed")
 
 

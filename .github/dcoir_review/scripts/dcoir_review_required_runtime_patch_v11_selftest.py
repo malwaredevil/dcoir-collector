@@ -167,11 +167,12 @@ def test_balanced_selection_posts_twelve_and_splits_overflow() -> None:
 
 
 
-def test_v11_is_helper_only_beneath_v16() -> None:
+def test_v11_is_helper_only_beneath_stable_risk_semantics() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v11" not in names, names
     assert "dcoir_review_required_runtime_patch_v12" not in names, names
-    assert "dcoir_review_required_runtime_patch_v16" in names, names
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
     assert "dcoir_review.finding_family" in names, names
     assert callable(v11._line_kind)
     assert callable(v11._semantic_kind)
@@ -204,7 +205,7 @@ def main() -> None:
     test_wrong_title_still_fails()
     test_blank_kind_backfills()
     test_balanced_selection_posts_twelve_and_splits_overflow()
-    test_v11_is_helper_only_beneath_v16()
+    test_v11_is_helper_only_beneath_stable_risk_semantics()
     print("dcoir_review_required_runtime_patch_v11_selftest passed")
 
 

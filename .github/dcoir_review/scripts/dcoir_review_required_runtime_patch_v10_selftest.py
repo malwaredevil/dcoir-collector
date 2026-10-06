@@ -156,7 +156,8 @@ def test_v10_is_helper_only_beneath_v11() -> None:
     assert "dcoir_review_required_runtime_patch_v10" not in names, names
     assert "dcoir_review_required_runtime_patch_v11" not in names, names
     assert "dcoir_review_required_runtime_patch_v12" not in names, names
-    assert "dcoir_review_required_runtime_patch_v16" in names, names
+    assert "dcoir_review_required_runtime_patch_v16" not in names, names
+    assert "dcoir_review.risk_sentinel_semantics" in names, names
     assert callable(v10._patch_yaml_extra_sentinels)
     assert callable(v10._line_kind)
 
