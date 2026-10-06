@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
+import dcoir_review_required_runtime_patch_v3 as v3
 import dcoir_review_required_runtime_patch_v16 as v16
 
 
@@ -76,6 +77,56 @@ def _finding_has_real_sentinel_provenance(
 
 
 SELECTION_POLICY_VERSION = "required-vs-optional-pressure-v1"
+
+
+RISK_SENTINEL_SELECTOR_ORIGINAL_ATTR = "_dcoir_review_sentinel_selection_original_select_risk_sentinels"
+
+
+def _patch_risk_sentinel_priority(module: Any) -> None:
+    hardened = getattr(module, "hardened", None)
+    if hardened is None:
+        return
+    original = getattr(hardened, RISK_SENTINEL_SELECTOR_ORIGINAL_ATTR, None)
+    if original is None:
+        original = getattr(hardened, "select_risk_sentinels", None)
+        if callable(original):
+            setattr(hardened, RISK_SENTINEL_SELECTOR_ORIGINAL_ATTR, original)
+    if not callable(original):
+        return
+
+    def select_risk_sentinels(sentinels: list[Any], max_anchors: int | None = None) -> list[Any]:
+        deduped = v3._dedupe_sentinels(list(sentinels))
+        if max_anchors is None or len(deduped) <= max_anchors:
+            return deduped
+        limit = max(0, int(max_anchors))
+        selected: list[Any] = []
+        seen: set[tuple[str, int, str]] = set()
+
+        def add(sentinel: Any) -> None:
+            key = v3._sentinel_key(sentinel)
+            if key not in seen and len(selected) < limit:
+                seen.add(key)
+                selected.append(sentinel)
+
+        for kind in v3.HARD_REQUIRED_KIND_ORDER:
+            for sentinel in deduped:
+                if v3._sentinel_kind(sentinel) == kind:
+                    add(sentinel)
+                    break
+        remaining = [item for item in deduped if v3._sentinel_key(item) not in seen]
+        budget = max(0, limit - len(selected))
+        if budget and remaining:
+            try:
+                remaining = list(original(remaining, budget))
+            except TypeError:
+                remaining = list(original(remaining))
+            for sentinel in remaining:
+                add(sentinel)
+        return selected[:limit]
+
+    hardened.select_risk_sentinels = select_risk_sentinels
+
+
 
 
 def _record_for_sentinel(
@@ -317,4 +368,5 @@ def _patch_final_sentinel_selection(module: Any) -> None:
 
 
 def apply_pareto_context_module(module: Any) -> None:
+    _patch_risk_sentinel_priority(module)
     _patch_final_sentinel_selection(module)

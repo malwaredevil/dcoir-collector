@@ -33,6 +33,7 @@ LEGACY_OVERSIZE_SEGMENT_MAX_BYTES: dict[str, int] = {}
 DIRECT_IMPORT_MODULES = (
     "adversarial_confirmation.py",
     "adversarial_prompt_policy.py",
+    "anchor_scoring.py",
     "candidate_escalation_execution.py",
     "candidate_escalation_scope.py",
     "candidate_escalation_telemetry.py",
