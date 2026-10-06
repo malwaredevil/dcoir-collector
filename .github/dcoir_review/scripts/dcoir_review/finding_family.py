@@ -12,6 +12,9 @@ from pathlib import Path
 from typing import Any
 
 import dcoir_review_required_runtime_patch_v4 as v4
+import dcoir_review_required_runtime_patch_v9 as v9
+import dcoir_review_required_runtime_patch_v9_core as core
+import dcoir_review_required_runtime_patch_v11 as v11
 import dcoir_review_required_runtime_patch_v13 as v13
 import dcoir_review_required_runtime_patch_v14 as v14
 
@@ -56,8 +59,21 @@ def _v4_line_kind_with_metadata_priority(path: str, text: str) -> str:
     return _ORIGINAL_V4_LINE_KIND(path, text)
 
 
+
+def _line_kind(path: str, text: str) -> str:
+    return v11._line_kind(path, text)
+
+
+def _semantic_kind(finding: dict[str, Any]) -> str:
+    return v11._semantic_kind(finding)
+
+
 def _patch_family_compat() -> None:
     v4._line_kind = _v4_line_kind_with_metadata_priority
+    core._line_kind = _line_kind
+    core._semantic_kind = _semantic_kind
+    v9._line_kind = _line_kind
+    v9._semantic_kind = _semantic_kind
     v13._family = _family
     v14._family = _family
     v14.FAMILY_ORDER = FAMILY_ORDER

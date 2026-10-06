@@ -5,10 +5,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v4 as v4
 import dcoir_review_required_runtime_patch_v5 as v5
 import dcoir_review_required_runtime_patch_v9 as v9
 import dcoir_review_required_runtime_patch_v11 as v11
+import openrouter_pr_review_pareto_context as pareto
 
 
 WORKFLOW = ".github/workflows/dcoir-review-v11-primary-kind.yml"
@@ -164,12 +166,44 @@ def test_balanced_selection_posts_twelve_and_splits_overflow() -> None:
     assert not any("optional_k8s" in item for item in selected)
 
 
+
+def test_v11_is_helper_only_beneath_v12() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v11" not in names, names
+    assert "dcoir_review_required_runtime_patch_v12" in names, names
+    assert "dcoir_review.finding_family" in names, names
+    assert callable(v11._line_kind)
+    assert callable(v11._semantic_kind)
+    assert callable(v11._patch_progress_comment)
+
+    DcoirReviewEntrypoint().apply_runtime_patches(pareto)
+    line_owner = str(getattr(getattr(v11.core._line_kind, "__code__", None), "co_filename", ""))
+    semantic_owner = str(getattr(getattr(v11.core._semantic_kind, "__code__", None), "co_filename", ""))
+    assert "finding_family.py" in line_owner, line_owner
+    assert "finding_family.py" in semantic_owner, semantic_owner
+    diff = (
+        f"diff --git a/{WORKFLOW} b/{WORKFLOW}\n"
+        f"--- /dev/null\n"
+        f"+++ b/{WORKFLOW}\n"
+        "@@ -0,0 +1,4 @@\n"
+        '+        run: bash -lc "${{ github.event.pull_request.labels[0].name }}"\n'
+        '+        run: curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${{ github.event.pull_request.body }}"\n'
+        '+        run: echo safe\n'
+        '+        # safe comment\n'
+    )
+    sentinels = pareto.detect_risk_sentinels(diff, 12)
+    keys = {v11._sentinel_key(item) for item in sentinels}
+    assert any(key[2] == v4.YAML_METADATA_SHELL for key in keys), keys
+    assert any(key[2] == v11.v10.YAML_TOKEN_TO_PR_URL for key in keys), keys
+
+
 def main() -> None:
     test_primary_kind_allows_contextual_mentions()
     test_context_only_does_not_satisfy_primary_kind()
     test_wrong_title_still_fails()
     test_blank_kind_backfills()
     test_balanced_selection_posts_twelve_and_splits_overflow()
+    test_v11_is_helper_only_beneath_v12()
     print("dcoir_review_required_runtime_patch_v11_selftest passed")
 
 

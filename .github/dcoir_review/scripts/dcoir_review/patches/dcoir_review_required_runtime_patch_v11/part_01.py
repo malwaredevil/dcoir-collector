@@ -28,6 +28,14 @@ import dcoir_review_required_runtime_patch_v10 as v10
 
 SentinelKey = tuple[str, int, str]
 
+# Helper-only base seams captured before v11 classification is installed.
+# Stable responsibility owners may reuse v11 semantics without depending
+# on numbered-installer stored-original attributes.
+_BASE_LINE_KIND = core._line_kind
+_BASE_SEMANTIC_KIND = core._semantic_kind
+_BASE_SENTINEL_KEY = core._sentinel_key
+_BASE_REQUIRED_SENTINELS = core._required_sentinels
+
 PYTHON_ARCHIVE_EXTRACT = "python_archive_extract"
 PYTHON_PATH_WRITE = "python_path_write"
 K8S_HOST_NETWORK = "k8s_host_network"
@@ -88,31 +96,19 @@ def _key_text(key: SentinelKey) -> str:
 
 
 def _base_line_kind(path: str, text: str) -> str:
-    original = getattr(core, "_dcoir_required_v11_original_line_kind", None)
-    if callable(original):
-        return original(path, text)
-    return core._line_kind(path, text)
+    return _BASE_LINE_KIND(path, text)
 
 
 def _base_semantic_kind(finding: dict[str, Any]) -> str:
-    original = getattr(core, "_dcoir_required_v11_original_semantic_kind", None)
-    if callable(original):
-        return original(finding)
-    return ""
+    return _BASE_SEMANTIC_KIND(finding)
 
 
 def _base_sentinel_key(sentinel: Any) -> SentinelKey:
-    original = getattr(core, "_dcoir_required_v11_original_sentinel_key", None)
-    if callable(original):
-        return original(sentinel)
-    return "", 0, ""
+    return _BASE_SENTINEL_KEY(sentinel)
 
 
 def _base_required_sentinels(hardened: Any, risk_sentinels: list[Any]) -> list[Any]:
-    original = getattr(core, "_dcoir_required_v11_original_required_sentinels", None)
-    if callable(original):
-        return list(original(hardened, risk_sentinels))
-    return list(core._required_sentinels(hardened, risk_sentinels))
+    return list(_BASE_REQUIRED_SENTINELS(hardened, risk_sentinels))
 
 
 def _line_kind(path: str, text: str) -> str:
