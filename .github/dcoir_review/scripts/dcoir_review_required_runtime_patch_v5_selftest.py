@@ -6,7 +6,8 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v5 as v5
-import dcoir_review_required_runtime_patch_v5_apply as v5_apply
+from dcoir_review import environment_token_detection
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 def sentinel(path: str, line: int, text: str, label: str = "") -> SimpleNamespace:
@@ -119,14 +120,18 @@ def test_env_sentinel_detection_from_nearby_lines() -> None:
         iter_added_diff_lines=lambda _diff: lines,
         is_comment_only_added_line=lambda _path, _text: False,
     )
-    sentinels = v5_apply._make_env_token_sentinels(hardened, "diff")
+    sentinels = environment_token_detection.make_environment_token_sentinels(hardened, "diff")
     kinds = [v5._sentinel_kind(item) for item in sentinels]
     assert v5.PYTHON_ENV_TOKEN in kinds, kinds
     assert v5.PS_ENV_TOKEN in kinds, kinds
 
 
-def test_apply_shim_exports_callable() -> None:
-    assert callable(v5_apply.apply_pareto_context_module)
+def test_stable_environment_token_owner_replaces_v5_apply_root() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v5_apply" not in names, names
+    assert "dcoir_review.environment_token_detection" in names, names
+    assert names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection") < names.index("dcoir_review_required_runtime_patch_v9")
+    assert callable(environment_token_detection.apply_pareto_context_module)
 
 
 def main() -> None:
@@ -136,7 +141,7 @@ def main() -> None:
     test_yaml_metadata_shell_is_required_and_separate()
     test_required_refill_inserts_missing_python_fallback()
     test_env_sentinel_detection_from_nearby_lines()
-    test_apply_shim_exports_callable()
+    test_stable_environment_token_owner_replaces_v5_apply_root()
     print("dcoir_review_required_runtime_patch_v5_selftest passed")
 
 

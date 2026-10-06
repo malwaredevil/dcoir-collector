@@ -15,7 +15,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patches',
         'dcoir_review_required_runtime_patch_v2',
         'dcoir_review.anchor_scoring',
-        'dcoir_review_required_runtime_patch_v5_apply',
+        'dcoir_review.environment_token_detection',
         'dcoir_review_required_runtime_patch_v9',
         'dcoir_review_required_runtime_patch_v12',
         'dcoir_review.finding_family',
