@@ -73,7 +73,7 @@ def test_v20_is_helper_only_beneath_stable_selection_and_v31() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v20" not in names, names
     assert "dcoir_review.sentinel_selection" in names, names
-    assert "dcoir_review_required_runtime_patch_v31" in names, names
+    assert "dcoir_review.truthy_literal_precision" in names, names
 
 
 def main() -> None:

@@ -369,7 +369,7 @@ def _patch_final_sentinel_selection(module: Any) -> None:
 
 
 def apply_pareto_context_module(module: Any) -> None:
-    # v20 is now a helper-definition layer beneath stable selection and v31.
+    # v20 is now a helper-definition layer beneath stable selection and stable truthy-literal precision.
     # Preserve its truthy-literal registry handoff here without retaining a
     # standalone historical runtime root.
     v20._patch_v16_selection_registry()

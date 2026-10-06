@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v31 structural truthy-literal filtering."""
+"""Regression checks for stable DCOIR Review truthy-literal precision."""
 
 from __future__ import annotations
 
@@ -25,16 +25,16 @@ def _has_truthy_sentinel(review, labels: set[str] | frozenset[str], path: str, l
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
+    assert entrypoint.patch_module_names[-1] == "dcoir_review.truthy_literal_precision"
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
-    v31 = importlib.import_module("dcoir_review_required_runtime_patch_v31")
+    truthy = importlib.import_module("dcoir_review.truthy_literal_precision")
 
-    assert v31.RAW_TRUTHY_LABEL in v31.TRUTHY_LABELS
-    assert v31.CANONICAL_TRUTHY_LABEL in v31.TRUTHY_LABELS
-    assert v31.CANONICAL_TRUTHY_LABEL == "Python branch condition contains an always-truthy literal"
+    assert truthy.RAW_TRUTHY_LABEL in truthy.TRUTHY_LABELS
+    assert truthy.CANONICAL_TRUTHY_LABEL in truthy.TRUTHY_LABELS
+    assert truthy.CANONICAL_TRUTHY_LABEL == "Python branch condition contains an always-truthy literal"
 
     valid_python = [
         'if not ("local" in clause or "workstation" in clause):',
@@ -49,8 +49,8 @@ def main() -> None:
         'elif ready or "x" not in allowed:',
     ]
     for line in valid_python:
-        assert v31.python_bare_truthy_or_operand(line) is False, line
-        assert not _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.py", line), line
+        assert truthy.python_bare_truthy_or_operand(line) is False, line
+        assert not _has_truthy_sentinel(review, truthy.TRUTHY_LABELS, "probe.py", line), line
         assert v20._line_kind("probe.py", line) != v20.PYTHON_TRUTHY_LITERAL_BRANCH, line
 
     invalid_python = [
@@ -60,29 +60,29 @@ def main() -> None:
         'elif ready or "fallback":',
     ]
     for line in invalid_python:
-        assert v31.python_bare_truthy_or_operand(line) is True, line
-        assert _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.py", line), line
+        assert truthy.python_bare_truthy_or_operand(line) is True, line
+        assert _has_truthy_sentinel(review, truthy.TRUTHY_LABELS, "probe.py", line), line
         assert v20._line_kind("probe.py", line) == v20.PYTHON_TRUTHY_LITERAL_BRANCH, line
 
     # A line that the Python parser cannot safely classify must not be silently
-    # suppressed; fail-closed behavior preserves the pre-v31 risk signal.
+    # suppressed; fail-closed behavior preserves the pre-precision risk signal.
     unparsable = 'if ready or "fallback": ???'
-    assert v31.python_bare_truthy_or_operand(unparsable) is None
-    assert _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.py", unparsable)
+    assert truthy.python_bare_truthy_or_operand(unparsable) is None
+    assert _has_truthy_sentinel(review, truthy.TRUTHY_LABELS, "probe.py", unparsable)
 
-    # PowerShell remains governed by the comparison-aware v30 detector and can
+    # PowerShell remains governed by the comparison-aware detector and can
     # still use the raw hardened label rather than the Python canonical title.
-    assert not _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.ps1", 'if ($Ready -or "Critical" -eq $Severity) { return $true }')
-    assert _has_truthy_sentinel(review, v31.TRUTHY_LABELS, "probe.ps1", 'if ($Ready -or "Critical") { return $true }')
+    assert not _has_truthy_sentinel(review, truthy.TRUTHY_LABELS, "probe.ps1", 'if ($Ready -or "Critical" -eq $Severity) { return $true }')
+    assert _has_truthy_sentinel(review, truthy.TRUTHY_LABELS, "probe.ps1", 'if ($Ready -or "Critical") { return $true }')
 
     detector_before = review.detect_risk_sentinels
     line_kind_before = v20._line_kind
-    v31.apply_pareto_context_module(review)
-    v31.apply_pareto_context_module(review)
+    truthy.apply_pareto_context_module(review)
+    truthy.apply_pareto_context_module(review)
     assert review.detect_risk_sentinels is detector_before
     assert v20._line_kind is line_kind_before
 
-    print("dcoir_review_required_runtime_patch_v31_selftest passed")
+    print("dcoir_review_truthy_literal_precision_selftest passed")
 
 
 if __name__ == "__main__":

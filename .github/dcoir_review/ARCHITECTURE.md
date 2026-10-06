@@ -283,7 +283,7 @@ This slice must not be credited as governed validated until publication readback
 The next bounded retirement moves semantic-adjudicator confidence compatibility out of historical v39:
 
 - `dcoir_review/semantic_adjudication_confidence.py` owns the narrow confidence contract for semantic-adjudicator output, preserving valid supplied confidence and admitting otherwise-complete missing/null confidence only at the configured normal floor for independent verification; malformed confidence remains fail-closed;
-- production composition loads `dcoir_review.semantic_adjudication_confidence` at the former v39 position between v38 and v31, preserving historical semantic ordering without numbered ownership;
+- production composition loads `dcoir_review.semantic_adjudication_confidence` at the former v39 position between v38-era semantic ownership and stable truthy-literal precision, preserving historical semantic ordering without numbered ownership;
 - stable `dcoir_review/semantic_adjudication_recovery.py` and `dcoir_review/candidate_escalation_execution.py` import the stable confidence owner instead of historical v39;
 - `dcoir_review_semantic_adjudication_confidence_selftest.py` owns the stable regression contract for prompt requirements, supplied-confidence preservation, missing/null confidence admission, verifier handoff, malformed-result rejection, configured-floor validation, and idempotent application;
 - the historical debug artifact path `responses/07-v39-confidence-normalized.json` and schema value `dcoir_review_v39_confidence_normalization_v1` remain compatibility/provenance data only;

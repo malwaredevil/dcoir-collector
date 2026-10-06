@@ -33,9 +33,9 @@ def patched_modules():
     entrypoint = DcoirReviewEntrypoint()
     assert "dcoir_review_required_runtime_patch_v28" not in entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v30" not in entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v31" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
-    assert entrypoint.patch_module_names.index("dcoir_review.repair_pipeline") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review.truthy_literal_precision" in entrypoint.patch_module_names
+    assert entrypoint.patch_module_names[-1] == "dcoir_review.truthy_literal_precision"
+    assert entrypoint.patch_module_names.index("dcoir_review.repair_pipeline") < entrypoint.patch_module_names.index("dcoir_review.truthy_literal_precision")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")

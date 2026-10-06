@@ -13,7 +13,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
+    assert entrypoint.patch_module_names[-1] == "dcoir_review.truthy_literal_precision"
     assert entrypoint.terminal_patch_module_names == (
         "dcoir_review.incremental_review_frontier",
         "dcoir_review.semantic_review_ledger",

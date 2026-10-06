@@ -1,8 +1,7 @@
-"""DCOIR Review v31 structural truthy-literal precision overlay for issue #455.
+"""Stable structural truthy-literal precision owner for DCOIR Review.
 
-v30 made the repair/publication path fail closed when a deterministic candidate
-proved to be a false positive. v31 moves the same precision upstream for Python
-branch conditions so valid grouped membership/comparison expressions do not
+This module makes Python truthy-literal classification structural so valid
+grouped comparison or membership expressions do not trigger false positives or
 force an unnecessary quality retry and repair-author pass.
 
 Python truthy-literal classification is structural: a finding exists only when
@@ -13,13 +12,13 @@ structural layer also adds true candidates missed by the legacy line regex, such
 as a parenthesized bare literal. Parse failures remain fail-closed and preserve
 any existing sentinel rather than suppressing uncertain code.
 
-The runtime has both a raw risk-sentinel label and a later deterministic
-canonical title for this same finding family. v31 treats both as the same
+The runtime has both a raw risk-sentinel label and a deterministic canonical
+title for this same finding family. This owner treats both as the same
 semantic sentinel so filtering and true-positive injection stay aligned across
 all compatibility layers.
 
-PowerShell detection remains governed by the comparison-aware v30 rule. This
-overlay adds no branch-write or autonomous remediation capability.
+PowerShell detection remains governed by the comparison-aware detector. This
+owner adds no branch-write or autonomous remediation capability.
 """
 
 from __future__ import annotations
@@ -33,8 +32,8 @@ import dcoir_review_required_runtime_patch_v16 as v16
 import dcoir_review_required_runtime_patch_v20 as v20
 
 
-VERSION = "v31"
-APPLIED_MARKER = "_dcoir_review_v31_applied"
+POLICY_VERSION = "truthy-literal-precision-v1"
+APPLIED_MARKER = "_dcoir_review_truthy_literal_precision_applied"
 RAW_TRUTHY_LABEL = "truthy literal branch condition"
 PYTHON_TRUTHY_KIND = v20.PYTHON_TRUTHY_LITERAL_BRANCH
 CANONICAL_TRUTHY_LABEL = v20._template_for_kind(PYTHON_TRUTHY_KIND)[0]
@@ -82,14 +81,14 @@ def _truthy_detail(hardened: Any) -> str:
 
 
 def _patch_final_risk_sentinel_filter(module: Any) -> None:
-    storage = "_dcoir_required_v31_original_detect_risk_sentinels"
+    storage = "_dcoir_truthy_literal_precision_original_detect_risk_sentinels"
     original = getattr(module, storage, None)
     if original is None:
         original = getattr(module, "detect_risk_sentinels", None)
         if callable(original):
             setattr(module, storage, original)
     if not callable(original):
-        raise RuntimeError("DCOIR v31 could not locate detect_risk_sentinels")
+        raise RuntimeError("DCOIR truthy-literal precision could not locate detect_risk_sentinels")
 
     hardened = getattr(module, "hardened", None)
     selector = getattr(hardened, "select_risk_sentinels", None) if hardened is not None else None
@@ -97,7 +96,7 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
     sentinel_type = getattr(hardened, "RiskSentinel", None) if hardened is not None else None
     is_comment = getattr(hardened, "is_comment_only_added_line", None) if hardened is not None else None
     if not all(callable(item) for item in (selector, iter_added, sentinel_type, is_comment)):
-        raise RuntimeError("DCOIR v31 could not locate the hardened risk-sentinel construction surface")
+        raise RuntimeError("DCOIR truthy-literal precision could not locate the hardened risk-sentinel construction surface")
 
     def detect_risk_sentinels(diff: str, max_anchors: int | None = None):
         # Ask the prior layer for the full candidate set so filtering does not
@@ -155,7 +154,7 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
 
 
 def _patch_deterministic_line_kind() -> None:
-    storage = "_dcoir_required_v31_original_line_kind"
+    storage = "_dcoir_truthy_literal_precision_original_line_kind"
     original = getattr(v20, storage, None)
     if original is None:
         original = v20._line_kind

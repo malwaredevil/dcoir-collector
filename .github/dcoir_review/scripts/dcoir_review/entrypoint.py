@@ -44,15 +44,15 @@ class DcoirReviewEntrypoint:
         # provider-schema seam: when an otherwise complete semantic-adjudication
         # finding omits confidence, it assigns only the configured normal floor to
         # admit the candidate to v21 verification; verifier support remains mandatory
-        # before repair/publication. v31 stays
+        # before repair/publication. Stable truthy-literal precision stays
         # terminal for this historical semantic-patch chain.
         'dcoir_review.semantic_evidence_hardening',
         'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review.repair_contract',
-        'dcoir_review_required_runtime_patch_v31',
+        'dcoir_review.truthy_literal_precision',
     )
     # Architecture-B responsibilities are deliberately outside the historical semantic
-    # patch chain. These run after v31 so old semantic-order invariants remain
+    # patch chain. These run after stable truthy-literal precision so old semantic-order invariants remain
     # meaningful while production receives the approved incremental frontier
     # responsibility, semantic-ledger/fingerprint foundation, then fail-closed
     # semantic-result reuse on exact compatible evidence. Semantic-result reuse

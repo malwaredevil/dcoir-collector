@@ -21,7 +21,7 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     assert "dcoir_review.semantic_evidence_hardening" in entrypoint.patch_module_names
     assert entrypoint.patch_module_names.index("dcoir_review.finding_verifier") < entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening")
-    assert entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
+    assert entrypoint.patch_module_names.index("dcoir_review.semantic_evidence_hardening") < entrypoint.patch_module_names.index("dcoir_review.truthy_literal_precision")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)

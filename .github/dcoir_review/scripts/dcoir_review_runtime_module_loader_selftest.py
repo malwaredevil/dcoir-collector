@@ -113,6 +113,7 @@ DIRECT_IMPORT_MODULES = (
     "structured_result_provider.py",
     "structured_result_recovery.py",
     "structured_result_retry.py",
+    "truthy_literal_precision.py",
     "verified_finding_gate.py",
     "verified_finding_gate_prior.py",
     "verified_finding_gate_state.py",
