@@ -93,9 +93,30 @@ def test_validation_templates_are_semantic() -> None:
     assert "shell=True" in py_validation
 
 
+
+def test_v8_captures_its_own_preselection_hooks() -> None:
+    original_rank = lambda findings, _config: list(findings)
+    original_covers = lambda _finding, _sentinel: False
+    original_fallback = lambda _sentinel, _config: {}
+    module = SimpleNamespace(rank_findings_for_required_budget=original_rank)
+    hardened = FakeHardened()
+    hardened.finding_covers_risk_sentinel = original_covers
+    hardened.risk_sentinel_fallback_finding = original_fallback
+
+    v8._patch_required_selection(module, hardened)
+
+    assert module._dcoir_required_v8_original_rank_findings_for_required_budget is original_rank
+    assert hardened._dcoir_required_v8_original_finding_covers_risk_sentinel is original_covers
+    assert hardened._dcoir_required_v8_original_risk_sentinel_fallback_finding is original_fallback
+    assert callable(hardened.add_risk_sentinel_fallback_findings)
+    assert callable(hardened.enforce_risk_sentinel_findings)
+    assert not hasattr(module, "_dcoir_required_v7_original_rank_findings_for_required_budget")
+
+
 def main() -> None:
     test_pr331_duplicate_wrong_kind_is_dropped_and_pickle_fills_spare_slot()
     test_validation_templates_are_semantic()
+    test_v8_captures_its_own_preselection_hooks()
     print("dcoir_review_required_runtime_patch_v8_selftest passed")
 
 

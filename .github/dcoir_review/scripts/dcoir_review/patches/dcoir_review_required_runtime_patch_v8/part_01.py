@@ -220,9 +220,18 @@ def _select_required_postable_v8(
 
 
 def _patch_required_selection(module: Any, hardened: Any) -> None:
-    original_rank = getattr(module, "_dcoir_required_v7_original_rank_findings_for_required_budget", None)
-    original_covers = getattr(hardened, "_dcoir_required_v7_original_finding_covers_risk_sentinel", None)
-    original_fallback = getattr(hardened, "_dcoir_required_v7_original_risk_sentinel_fallback_finding", None)
+    original_rank = getattr(module, "_dcoir_required_v8_original_rank_findings_for_required_budget", None)
+    if original_rank is None:
+        original_rank = getattr(module, "rank_findings_for_required_budget", None)
+        module._dcoir_required_v8_original_rank_findings_for_required_budget = original_rank
+    original_covers = getattr(hardened, "_dcoir_required_v8_original_finding_covers_risk_sentinel", None)
+    if original_covers is None:
+        original_covers = getattr(hardened, "finding_covers_risk_sentinel", None)
+        hardened._dcoir_required_v8_original_finding_covers_risk_sentinel = original_covers
+    original_fallback = getattr(hardened, "_dcoir_required_v8_original_risk_sentinel_fallback_finding", None)
+    if original_fallback is None:
+        original_fallback = getattr(hardened, "risk_sentinel_fallback_finding", None)
+        hardened._dcoir_required_v8_original_risk_sentinel_fallback_finding = original_fallback
 
     def required_v8_add(findings: list[dict[str, Any]], risk_sentinels: list[Any], config: Any, unanchored_findings: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
         return _select_required_postable_v8(hardened, original_rank, original_covers, original_fallback, findings, risk_sentinels, config, unanchored_findings)
