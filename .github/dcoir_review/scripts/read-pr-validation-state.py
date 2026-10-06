@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from typing import Any
@@ -60,7 +61,9 @@ def failed_annotations(repo: str, check_runs: list[dict[str, Any]]) -> tuple[lis
     annotations: list[dict[str, Any]] = []
     gaps: list[str] = []
     for check in check_runs:
-        if check.get("conclusion") not in BLOCKING_CONCLUSIONS:
+        title = str((check.get("output") or {}).get("title") or "")
+        reports_new_alerts = bool(re.search(r"\b[1-9]\d* new alerts?\b", title, re.IGNORECASE))
+        if check.get("conclusion") not in BLOCKING_CONCLUSIONS and not reports_new_alerts:
             continue
         check_id = check.get("id")
         try:
@@ -104,10 +107,13 @@ def evaluate_snapshot(snapshot: dict[str, Any], expected_head: str | None = None
         name = str(check.get("name") or check.get("id"))
         status = str(check.get("status") or "")
         conclusion = check.get("conclusion")
+        title = str((check.get("output") or {}).get("title") or "")
+        reports_new_alerts = bool(re.search(r"\b[1-9]\d* new alerts?\b", title, re.IGNORECASE))
         if conclusion in BLOCKING_CONCLUSIONS:
-            title = (check.get("output") or {}).get("title")
             suffix = f" ({title})" if title else ""
             blockers.append(f"check run failed: {name}{suffix}")
+        elif reports_new_alerts:
+            blockers.append(f"check run reports new alerts: {name} ({title})")
         elif status != "completed" or conclusion in PENDING_STATES or conclusion is None:
             pending.append(f"check run incomplete: {name} [{status}/{conclusion}]")
 

@@ -46,6 +46,16 @@ def test_separate_ghas_failure_blocks_even_when_actions_codeql_is_green() -> Non
     assert any("CodeQL" in item and "2 new alerts" in item for item in result["blockers"]), result
 
 
+def test_successful_codeql_check_with_new_alert_title_still_blocks() -> None:
+    snapshot = base_snapshot()
+    snapshot["check_runs"] = [
+        {"id": 12, "name": "CodeQL", "status": "completed", "conclusion": "success", "output": {"title": "1 new alert"}}
+    ]
+    result = mod.evaluate_snapshot(snapshot, "abc123")
+    assert not result["ready"], result
+    assert any("reports new alerts" in item for item in result["blockers"]), result
+
+
 def test_all_green_surfaces_pass() -> None:
     snapshot = base_snapshot()
     snapshot["workflow_runs"] = [
@@ -138,6 +148,7 @@ def test_pending_status_thread_and_head_drift_are_not_green() -> None:
 
 def main() -> None:
     test_separate_ghas_failure_blocks_even_when_actions_codeql_is_green()
+    test_successful_codeql_check_with_new_alert_title_still_blocks()
     test_all_green_surfaces_pass()
     test_empty_legacy_status_surface_is_not_pending()
     test_all_blocking_check_conclusions_are_blockers()

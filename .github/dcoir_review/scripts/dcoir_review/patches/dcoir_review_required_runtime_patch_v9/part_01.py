@@ -18,7 +18,9 @@ import dcoir_review_required_runtime_patch_v4 as v4
 import dcoir_review_required_runtime_patch_v5 as v5
 import dcoir_review_required_runtime_patch_v6 as v6
 import dcoir_review_required_runtime_patch_v8 as v8
-import dcoir_review_required_runtime_patch_v9_core as v9_core
+import importlib
+
+v9_core = importlib.import_module("dcoir_review_required_runtime_patch_v9_core")
 
 if not hasattr(v3, "_strip_fences") and hasattr(v2, "_strip_fences"):
     v3._strip_fences = v2._strip_fences
