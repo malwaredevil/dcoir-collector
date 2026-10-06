@@ -29,7 +29,6 @@ class DcoirReviewEntrypoint:
         'dcoir_review.finding_family',
         'dcoir_review_required_runtime_patch_v16',
         'dcoir_review_required_runtime_patch_v17',
-        'dcoir_review_required_runtime_patch_v18',
         'dcoir_review.precision_guard',
         'dcoir_review_required_runtime_patch_v20',
         'dcoir_review.finding_verifier',
