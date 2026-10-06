@@ -38,7 +38,7 @@ def main() -> None:
     assert "dcoir_review.semantic_adjudication_normalization" in names
     assert "dcoir_review_required_runtime_patch_v36" not in names
     assert names.index("dcoir_review.semantic_evidence_hardening") < names.index("dcoir_review.semantic_adjudication_normalization")
-    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review.truthy_literal_precision")
+    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review.risk_sentinel_detection")
 
     normalization_source = Path(".github/dcoir_review/scripts/dcoir_review/semantic_adjudication_normalization.py").read_text(encoding="utf-8")
     assert "semantic_adjudication_normalization_original" not in normalization_source

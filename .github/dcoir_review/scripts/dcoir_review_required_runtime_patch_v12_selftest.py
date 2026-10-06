@@ -36,6 +36,7 @@ def _install_stubs() -> None:
     v4.PS_PROCESS_LAUNCH = "ps_process_launch"
     v4.PYTHON_SSRF = "python_ssrf"
     sys.modules[v4.__name__] = v4
+    sys.modules["dcoir_review.risk_sentinel_taxonomy"] = v4
 
     v5 = types.ModuleType("dcoir_review_required_runtime_patch_v5")
     v5.PYTHON_YAML_LOAD = "python_yaml_load"
@@ -49,6 +50,7 @@ def _install_stubs() -> None:
     v5._normalize = normalize
     v5._normalize_comment_finding = lambda finding: dict(finding)
     sys.modules[v5.__name__] = v5
+    sys.modules["dcoir_review.risk_sentinel_policy"] = v5
 
     core = types.ModuleType("dcoir_review_required_runtime_patch_v9_core")
     core.SELECTION_SUMMARY = {}
@@ -58,12 +60,14 @@ def _install_stubs() -> None:
     )
     core._confidence = lambda finding: float(finding.get("confidence", 0) or 0)
     sys.modules[core.__name__] = core
+    sys.modules["dcoir_review.risk_sentinel_state"] = core
 
     v9 = types.ModuleType("dcoir_review_required_runtime_patch_v9")
     v9.PYTHON_PICKLE_LOAD = "python_pickle_load"
     v9.PS_DYNAMIC_EXEC = "ps_dynamic_exec"
     v9._ensure_prompt_review = lambda _config: None
     sys.modules[v9.__name__] = v9
+    sys.modules["dcoir_review.risk_sentinel_composition"] = v9
 
     selection = types.ModuleType("dcoir_review_required_runtime_patch_v9_selection")
 
@@ -87,12 +91,14 @@ def _install_stubs() -> None:
 
     selection._iter_added_diff_lines = iter_added_diff_lines
     sys.modules[selection.__name__] = selection
+    sys.modules["dcoir_review.risk_sentinel_selection_support"] = selection
 
     v10 = types.ModuleType("dcoir_review_required_runtime_patch_v10")
     v10.YAML_TOKEN_TO_PR_URL = "yaml_token_to_pr_body_url"
     v10._validation_for_token_to_pr_url = lambda path: f"validate-token-url {path}"
     v10._scrub_shell_pipe_wording = lambda _finding: None
     sys.modules[v10.__name__] = v10
+    sys.modules["dcoir_review.workflow_risk_semantics"] = v10
 
     v11 = types.ModuleType("dcoir_review_required_runtime_patch_v11")
     v11.PYTHON_ARCHIVE_EXTRACT = "python_archive_extract"
@@ -185,6 +191,7 @@ def _install_stubs() -> None:
     v11._validation_for_key = lambda kind, path, line=0: f"validate {kind} {path}:{line}"
     v11._patch_progress_comment = lambda *_args, **_kwargs: None
     sys.modules[v11.__name__] = v11
+    sys.modules["dcoir_review.python_k8s_risk_semantics"] = v11
 
 
 def _load_v12():
@@ -345,10 +352,11 @@ def test_v12_is_helper_only_beneath_stable_python_filesystem_detection_and_v16()
 
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v12" not in names, names
-    assert "dcoir_review.python_filesystem_detection" in names, names
+    assert "dcoir_review.python_filesystem_detection" not in names, names
     assert "dcoir_review_required_runtime_patch_v16" not in names, names
     assert "dcoir_review.risk_sentinel_semantics" in names, names
-    assert names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family") < names.index("dcoir_review.risk_sentinel_semantics")
+    assert "dcoir_review.risk_sentinel_detection" in names, names
+    assert names.index("dcoir_review.finding_family") < names.index("dcoir_review.risk_sentinel_semantics") < names.index("dcoir_review.risk_sentinel_detection")
 
 
 def main() -> None:

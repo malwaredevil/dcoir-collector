@@ -79,12 +79,6 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "broad-quality-retry"
             if (
-                filename == "dcoir_review_required_runtime_patch_v22.py"
-                and function == "openrouter_review_with_hybrid_first_pass"
-                and locals_map.get("retry_prompt") is prompt
-            ):
-                return "broad-quality-retry"
-            if (
                 filename == "structured_result_retry.py"
                 and function == "broad_retry_fallback"
             ):

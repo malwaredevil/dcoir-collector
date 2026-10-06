@@ -17,7 +17,7 @@ def main() -> None:
     names = entrypoint.patch_module_names
     assert "dcoir_review.repair_contract" in names
     assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review.repair_contract")
-    assert names.index("dcoir_review.repair_contract") < names.index("dcoir_review.truthy_literal_precision")
+    assert names.index("dcoir_review.repair_contract") < names.index("dcoir_review.risk_sentinel_detection")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)

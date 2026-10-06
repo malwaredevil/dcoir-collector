@@ -19,8 +19,8 @@ import json
 import sys
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v16 as v16
-import dcoir_review_required_runtime_patch_v5 as v5
+import dcoir_review.risk_sentinel_primitives as v16
+import dcoir_review.risk_sentinel_policy as v5
 
 VERSION = "v51"
 _APPLIED_ATTR = "_dcoir_review_semantic_candidate_identity_applied"

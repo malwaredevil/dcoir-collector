@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v3 as v3
+import dcoir_review.risk_sentinel_identity as v3
 
 
 APPLIED_MARKER = "_dcoir_review_anchor_scoring_applied"

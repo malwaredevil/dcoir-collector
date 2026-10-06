@@ -13,7 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v5 as v5
+import dcoir_review.risk_sentinel_policy as v5
 
 
 APPLIED_MARKER = "_dcoir_review_environment_token_detection_applied"
@@ -157,6 +157,24 @@ def select_required_first(sentinels: list[Any], max_anchors: int | None) -> list
     return selected
 
 
+
+def build_detector(hardened: Any, next_detect: Any):
+    """Compose cross-line environment-token detection around ``next_detect``."""
+    if not callable(next_detect):
+        raise RuntimeError("DCOIR environment-token detection requires a callable detector")
+
+    def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[Any]:
+        try:
+            existing = list(next_detect(diff, None))
+        except TypeError:
+            existing = list(next_detect(diff))
+        return select_required_first(
+            [*existing, *make_environment_token_sentinels(hardened, diff)],
+            max_anchors,
+        )
+
+    return detect_risk_sentinels
+
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
@@ -165,30 +183,11 @@ def apply_pareto_context_module(module: Any) -> None:
     if hardened is None:
         return
 
-    storage = "_dcoir_environment_token_detection_original_detect_risk_sentinels"
-    original_detect = getattr(module, storage, None)
-    if original_detect is None:
-        original_detect = getattr(
-            module,
-            "detect_risk_sentinels",
-            getattr(hardened, "detect_risk_sentinels", None),
-        )
-        if callable(original_detect):
-            setattr(module, storage, original_detect)
+    original_detect = getattr(module, "detect_risk_sentinels", None)
     if not callable(original_detect):
         return
-
-    def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[Any]:
-        try:
-            existing = list(original_detect(diff, None))
-        except TypeError:
-            existing = list(original_detect(diff))
-        return select_required_first(
-            [*existing, *make_environment_token_sentinels(hardened, diff)],
-            max_anchors,
-        )
-
-    module.detect_risk_sentinels = detect_risk_sentinels
-    hardened.detect_risk_sentinels = detect_risk_sentinels
+    detector = build_detector(hardened, original_detect)
+    module.detect_risk_sentinels = detector
+    hardened.detect_risk_sentinels = detector
     hardened.select_risk_sentinels = select_required_first
     setattr(module, APPLIED_MARKER, True)

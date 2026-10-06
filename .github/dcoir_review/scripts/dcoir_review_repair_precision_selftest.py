@@ -30,9 +30,9 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v30" not in names
-    assert "dcoir_review.truthy_literal_precision" in names
-    assert names.index("dcoir_review.repair_pipeline") < names.index("dcoir_review.truthy_literal_precision")
-    assert names[-1] == "dcoir_review.truthy_literal_precision", names[-4:]
+    assert "dcoir_review.risk_sentinel_detection" in names
+    assert names.index("dcoir_review.repair_pipeline") < names.index("dcoir_review.risk_sentinel_detection")
+    assert names[-1] == "dcoir_review.risk_sentinel_detection", names[-4:]
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)

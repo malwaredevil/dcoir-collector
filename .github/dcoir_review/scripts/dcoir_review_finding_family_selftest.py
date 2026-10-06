@@ -89,7 +89,7 @@ def main() -> None:
     assert "dcoir_review.finding_family" in names, names
     assert "dcoir_review_required_runtime_patch_v15" not in names, names
     idx = names.index("dcoir_review.finding_family")
-    assert names[idx - 1] == "dcoir_review.python_filesystem_detection", names[max(0, idx-2):idx+3]
+    assert names[idx - 1] == "dcoir_review.prompt_review_diagnostics", names[max(0, idx-2):idx+3]
     assert names[idx + 1] == "dcoir_review.risk_sentinel_semantics", names[max(0, idx-2):idx+3]
 
     print("dcoir_review_finding_family_selftest passed")

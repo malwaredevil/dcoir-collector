@@ -136,8 +136,11 @@ def test_v3_is_helper_only_with_stable_anchor_owner() -> None:
     assert "dcoir_review_required_runtime_patch_v3" not in names, names
     assert "dcoir_review.anchor_scoring" in names, names
     assert "dcoir_review_required_runtime_patch_v2" not in names, names
-    assert names.index("dcoir_review.required_coverage_policy") < names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection")
-    assert names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection") < names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family")
+    assert "dcoir_review.environment_token_detection" not in names, names
+    assert "dcoir_review.python_filesystem_detection" not in names, names
+    assert "dcoir_review.risk_sentinel_detection" in names, names
+    assert names.index("dcoir_review.required_coverage_policy") < names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.prompt_review_diagnostics")
+    assert names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review.finding_family") < names.index("dcoir_review.risk_sentinel_semantics") < names.index("dcoir_review.risk_sentinel_detection")
     assert callable(v3._semantic_kind)
     assert callable(v3._line_kind)
 

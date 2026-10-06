@@ -11,12 +11,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v4 as v4
-import dcoir_review_required_runtime_patch_v9 as v9
-import dcoir_review_required_runtime_patch_v9_core as core
-import dcoir_review_required_runtime_patch_v11 as v11
-import dcoir_review_required_runtime_patch_v13 as v13
-import dcoir_review_required_runtime_patch_v14 as v14
+import dcoir_review.risk_sentinel_taxonomy as v4
+import dcoir_review.risk_sentinel_composition as v9
+import dcoir_review.risk_sentinel_state as core
+import dcoir_review.python_k8s_risk_semantics as v11
+import dcoir_review.extended_risk_semantics as v13
+import dcoir_review.finding_integrity_policy as v14
 
 VERSION = "v15"
 FAMILY_ORDER = ("yaml", "powershell", "python", "other", "typescript")

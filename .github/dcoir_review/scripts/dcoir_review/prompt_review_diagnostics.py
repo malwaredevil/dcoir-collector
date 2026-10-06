@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from dcoir_review_required_runtime_patch_v9_prompting import (
+from dcoir_review.prompt_review_diagnostics_helpers import (
     _patch_progress_comment,
     _patch_prompt_review_call_accounting,
     _patch_prompt_review_readback,

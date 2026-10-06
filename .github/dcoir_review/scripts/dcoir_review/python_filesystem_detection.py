@@ -11,8 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v11 as v11
-import dcoir_review_required_runtime_patch_v9_selection as selection
+import dcoir_review.python_k8s_risk_semantics as v11
+import dcoir_review.risk_sentinel_selection_support as selection
 
 
 APPLIED_MARKER = "_dcoir_review_python_filesystem_detection_applied"
@@ -40,15 +40,11 @@ def _sentinel_key(sentinel: Any) -> tuple[str, int, str]:
     return path, line, str(kind or "")
 
 
-def _patch_python_filesystem_sentinels(owner: Any, sentinel_owner: Any | None = None) -> None:
-    storage = "_dcoir_review_python_filesystem_detection_original_detect_risk_sentinels"
-    original = getattr(owner, storage, None)
-    if original is None:
-        original = getattr(owner, "detect_risk_sentinels", None)
-        if callable(original):
-            setattr(owner, storage, original)
-    if not callable(original):
-        return
+def build_detector(owner: Any, sentinel_owner: Any | None, next_detect: Any):
+    """Compose deterministic Python filesystem sentinels around ``next_detect``."""
+    if not callable(next_detect):
+        raise RuntimeError("DCOIR Python filesystem detection requires a callable detector")
+    original = next_detect
 
     def detect_risk_sentinels(diff: str, *args: Any, **kwargs: Any) -> list[Any]:
         widened_args = list(args)
@@ -92,7 +88,13 @@ def _patch_python_filesystem_sentinels(owner: Any, sentinel_owner: Any | None = 
             existing.add(key)
         return sentinels
 
-    owner.detect_risk_sentinels = detect_risk_sentinels
+    return detect_risk_sentinels
+
+
+def _patch_python_filesystem_sentinels(owner: Any, sentinel_owner: Any | None = None) -> None:
+    current = getattr(owner, "detect_risk_sentinels", None)
+    if callable(current):
+        owner.detect_risk_sentinels = build_detector(owner, sentinel_owner, current)
 
 
 def apply_pareto_context_module(module: Any) -> None:

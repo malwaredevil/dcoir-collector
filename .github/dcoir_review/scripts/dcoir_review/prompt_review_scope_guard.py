@@ -87,6 +87,6 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    prompt_module = importlib.import_module("dcoir_review_required_runtime_patch_v6")
+    prompt_module = importlib.import_module("dcoir_review.prompt_review_policy")
     patch_prompt_review_module(module, prompt_module)
     setattr(module, APPLIED_MARKER, True)

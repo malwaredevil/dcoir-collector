@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import ast
 import importlib
 import re
 import sys
@@ -46,6 +47,7 @@ DIRECT_IMPORT_MODULES = (
     "finding_comment_render.py",
     "finding_verifier.py",
     "finding_verifier_contract.py",
+    "historical_compat.py",
     "incremental_review_frontier.py",
     "incremental_review_frontier_hooks.py",
     "incremental_review_scope.py",
@@ -66,10 +68,28 @@ DIRECT_IMPORT_MODULES = (
     "python_filesystem_detection.py",
     "review_scope_guard.py",
     "review_config.py",
+    "required_coverage_primitives.py",
     "required_coverage_policy.py",
     "reasoning_policy.py",
     "review_orchestration.py",
     "review_telemetry.py",
+    "risk_sentinel_taxonomy.py",
+    "prompt_review_policy.py",
+    "required_selection_policy.py",
+    "selection_pressure_policy.py",
+    "risk_sentinel_composition.py",
+    "risk_sentinel_state.py",
+    "risk_sentinel_selection_support.py",
+    "workflow_risk_semantics.py",
+    "python_k8s_risk_semantics.py",
+    "required_selection_semantics.py",
+    "extended_risk_semantics.py",
+    "finding_integrity_policy.py",
+    "prompt_review_diagnostics_helpers.py",
+    "risk_sentinel_detection.py",
+    "risk_sentinel_identity.py",
+    "risk_sentinel_policy.py",
+    "risk_sentinel_primitives.py",
     "risk_sentinel_semantics.py",
     "review_telemetry_events.py",
     "review_telemetry_state.py",
@@ -118,6 +138,7 @@ DIRECT_IMPORT_MODULES = (
     "structured_result_provider.py",
     "structured_result_recovery.py",
     "structured_result_retry.py",
+    "truthy_literal_policy.py",
     "truthy_literal_precision.py",
     "verified_finding_gate.py",
     "verified_finding_gate_prior.py",
@@ -149,20 +170,20 @@ PATCH_ADJACENCY = {
     "dcoir_review_runtime_patches": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
     "dcoir_review_strict_runtime_patches": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
     "dcoir_review_required_runtime_patches": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
-    "dcoir_review_required_runtime_patch_v2": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v3": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v4": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v5": (("part_01.py", "part_02.py"),),
-    "dcoir_review_required_runtime_patch_v6": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v7": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v8": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v9_core": (("part_01.py", "part_02.py"),),
-    "dcoir_review_required_runtime_patch_v9_selection": (("part_01.py", "part_02.py"),),
-    "dcoir_review_required_runtime_patch_v10": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v11": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
-    "dcoir_review_required_runtime_patch_v13": (("part_02.py", "part_02a.py"),),
-    "dcoir_review_required_runtime_patch_v14": (("part_01.py", "part_01a.py"),),
-    "dcoir_review_required_runtime_patch_v16": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.required_coverage_primitives": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.risk_sentinel_identity": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.risk_sentinel_taxonomy": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.risk_sentinel_policy": (("part_01.py", "part_02.py"),),
+    "dcoir_review.prompt_review_policy": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.required_selection_policy": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.selection_pressure_policy": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.risk_sentinel_state": (("part_01.py", "part_02.py"),),
+    "dcoir_review.risk_sentinel_selection_support": (("part_01.py", "part_02.py"),),
+    "dcoir_review.workflow_risk_semantics": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.python_k8s_risk_semantics": (("part_01.py", "part_01a.py"), ("part_02.py", "part_02a.py")),
+    "dcoir_review.extended_risk_semantics": (("part_02.py", "part_02a.py"),),
+    "dcoir_review.finding_integrity_policy": (("part_01.py", "part_01a.py"),),
+    "dcoir_review.risk_sentinel_primitives": (("part_01.py", "part_01a.py"),),
 }
 
 SELFTEST_ADJACENCY = {
@@ -219,6 +240,64 @@ def assert_no_numbered_production_patches_after_cutover() -> None:
             numbered[module_name] = int(match.group("version"))
 
     assert numbered == {}, {"numbered_production_patches_after_cutover": numbered}
+
+
+def assert_stable_sources_do_not_import_historical_numbered_modules() -> None:
+    """Keep historical numbered names behind compatibility wrappers only."""
+
+    loader_root = SCRIPTS / "dcoir_review"
+    source_paths = [
+        loader_root / relative
+        for relative in DIRECT_IMPORT_MODULES
+    ]
+    source_paths.extend(
+        loader_root / relative
+        for relatives in LAYER_SEGMENTS.values()
+        for relative in relatives
+    )
+
+    def is_historical(name: str) -> bool:
+        return (
+            name.startswith("dcoir_review_required_runtime_patch_v")
+            or ".dcoir_review_required_runtime_patch_v" in name
+        )
+
+    violations: list[tuple[str, int, str]] = []
+    for path in source_paths:
+        relative_path = path.relative_to(loader_root).as_posix()
+        if relative_path.startswith("selftests/"):
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if is_historical(alias.name):
+                        violations.append((path.relative_to(loader_root).as_posix(), node.lineno, alias.name))
+            elif isinstance(node, ast.ImportFrom):
+                module_name = str(node.module or "")
+                if is_historical(module_name):
+                    violations.append((path.relative_to(loader_root).as_posix(), node.lineno, module_name))
+            elif isinstance(node, ast.Call) and node.args:
+                function = node.func
+                import_call = (
+                    isinstance(function, ast.Name)
+                    and function.id in {"import_module", "__import__"}
+                ) or (
+                    isinstance(function, ast.Attribute)
+                    and function.attr == "import_module"
+                )
+                first_arg = node.args[0]
+                if (
+                    import_call
+                    and isinstance(first_arg, ast.Constant)
+                    and isinstance(first_arg.value, str)
+                    and is_historical(first_arg.value)
+                ):
+                    violations.append(
+                        (path.relative_to(loader_root).as_posix(), node.lineno, first_arg.value)
+                    )
+
+    assert violations == [], {"stable_source_historical_imports": violations}
 
 
 def assert_patch_inventory_is_source_complete() -> None:
@@ -352,7 +431,7 @@ def assert_canonical_validation_text_ownership() -> None:
     assert canonical_path.is_file(), "canonical finding-validation base segment is missing"
 
     former_owners = (
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v8/part_01a.py",
+        "dcoir_review/selection_pressure_policy_parts/part_01a.py",
         "dcoir_review_required_runtime_patch_v9_prompting.py",
     )
     for relative in former_owners:
@@ -623,8 +702,8 @@ def assert_canonical_guidance_code_classifier_ownership() -> None:
 
 def assert_canonical_sanitize_text_ownership() -> None:
     former_owners = (
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v6/part_01a.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v7/part_01a.py",
+        "dcoir_review/prompt_review_policy_parts/part_01a.py",
+        "dcoir_review/required_selection_policy_parts/part_01a.py",
     )
     for relative in former_owners:
         source = (SCRIPTS / relative).read_text(encoding="utf-8")
@@ -749,12 +828,12 @@ def assert_canonical_finding_comment_render_ownership() -> None:
         "dcoir_review/patches/dcoir_review_runtime_patches/part_02.py",
         "dcoir_review/patches/dcoir_review_strict_runtime_patches/part_02a.py",
         "dcoir_review/patches/dcoir_review_required_runtime_patches/part_02a.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v2/part_02.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v3/part_02.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v8/part_01a.py",
+        "dcoir_review/required_coverage_primitives_parts/part_02.py",
+        "dcoir_review/risk_sentinel_identity_parts/part_02.py",
+        "dcoir_review/selection_pressure_policy_parts/part_01a.py",
         "dcoir_review_required_runtime_patch_v9_prompting.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v13/part_02a.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v16/part_02.py",
+        "dcoir_review/extended_risk_semantics_parts/part_02a.py",
+        "dcoir_review/risk_sentinel_primitives_parts/part_02.py",
         "dcoir_review_required_runtime_patch_v20.py",
         "dcoir_review/verified_finding_render.py",
         "dcoir_review/repair_pipeline.py",
@@ -881,6 +960,7 @@ def assert_canonical_hybrid_review_ownership() -> None:
 
 def main() -> None:
     assert_no_numbered_production_patches_after_cutover()
+    assert_stable_sources_do_not_import_historical_numbered_modules()
     assert_patch_inventory_is_source_complete()
     assert_canonical_hybrid_review_ownership()
     assert_canonical_payload_builder_ownership()

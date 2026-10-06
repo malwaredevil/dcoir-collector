@@ -25,12 +25,14 @@ def _has_truthy_sentinel(review, labels: set[str] | frozenset[str], path: str, l
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.patch_module_names[-1] == "dcoir_review.truthy_literal_precision"
+    assert entrypoint.patch_module_names[-1] == "dcoir_review.risk_sentinel_detection"
+    assert "dcoir_review.truthy_literal_precision" not in entrypoint.patch_module_names
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v20 = importlib.import_module("dcoir_review_required_runtime_patch_v20")
     truthy = importlib.import_module("dcoir_review.truthy_literal_precision")
+    detection = importlib.import_module("dcoir_review.risk_sentinel_detection")
 
     assert truthy.RAW_TRUTHY_LABEL in truthy.TRUTHY_LABELS
     assert truthy.CANONICAL_TRUTHY_LABEL in truthy.TRUTHY_LABELS
@@ -77,8 +79,8 @@ def main() -> None:
 
     detector_before = review.detect_risk_sentinels
     line_kind_before = v20._line_kind
-    truthy.apply_pareto_context_module(review)
-    truthy.apply_pareto_context_module(review)
+    detection.apply_pareto_context_module(review)
+    detection.apply_pareto_context_module(review)
     assert review.detect_risk_sentinels is detector_before
     assert v20._line_kind is line_kind_before
 

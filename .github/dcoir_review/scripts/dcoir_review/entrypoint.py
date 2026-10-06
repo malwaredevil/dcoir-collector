@@ -15,9 +15,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patches',
         'dcoir_review.required_coverage_policy',
         'dcoir_review.anchor_scoring',
-        'dcoir_review.environment_token_detection',
         'dcoir_review.prompt_review_diagnostics',
-        'dcoir_review.python_filesystem_detection',
         'dcoir_review.finding_family',
         'dcoir_review.risk_sentinel_semantics',
         'dcoir_review.precision_guard',
@@ -49,7 +47,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review.semantic_evidence_hardening',
         'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review.repair_contract',
-        'dcoir_review.truthy_literal_precision',
+        'dcoir_review.risk_sentinel_detection',
     )
     # Architecture-B responsibilities are deliberately outside the historical semantic
     # patch chain. These run after stable truthy-literal precision so old semantic-order invariants remain

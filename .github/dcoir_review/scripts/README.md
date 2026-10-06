@@ -11,3 +11,7 @@ This folder contains operator-friendly validation wrappers used by Codex, GitHub
 - `dcoir_review_pr_validation_readback_selftest.py` protects the readback contract, including the failure mode where CodeQL Actions jobs succeed but the separate GHAS `CodeQL` results check fails.
 
 These scripts do not replace GitHub Actions readback. Use workflow run, job, step, and artifact evidence for governed readiness claims.
+
+## Historical compatibility boundary
+
+Production DCOIR Review uses responsibility-named owners only. Numbered historical runtime module names are compatibility wrappers for legacy imports/tests and must not become implementation dependencies of stable production modules. The runtime-module-loader selftest enforces both zero numbered production roots and zero stable-to-numbered imports.

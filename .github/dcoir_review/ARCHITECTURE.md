@@ -16,6 +16,17 @@ Stable tests must protect product behavior, canonical ownership, explicit compos
 
 **Maintainer test:** a professional programmer new to the repository should be able to locate the authoritative implementation, understand how the active path is composed, and make a future fix from normal module/function structure without reconstructing issue chronology or walking backward through `_v##` files. If this is not true for a responsibility, its migration is incomplete.
 
+## Historical compatibility boundary
+
+The numbered production chain is retired at two separate boundaries, both of which are enforced:
+
+- production entrypoint groups contain no numbered historical runtime roots;
+- responsibility-named production modules do not import numbered historical implementations, including dynamic imports by literal module name.
+
+Historical top-level module names may remain only as narrow compatibility surfaces for legacy imports and characterization tests. Those wrappers delegate to responsibility-named canonical owners through the stable historical-compatibility bridge; they do not own production implementation. Split implementation source lives in responsibility-named parts packages, not historical numbered-patch packages.
+
+The runtime-module-loader selftest fails closed if a numbered production root is registered, if a maintained stable source imports a numbered historical module, or if a maintained source falls outside the explicit module registry. Future fixes must change the responsibility-named owner rather than adding logic to a historical wrapper.
+
 ## Required responsibility boundaries
 
 The consolidated implementation should assign one canonical owner to each active responsibility. Exact package names may change as the dependency inventory is completed, but the stable responsibilities are:

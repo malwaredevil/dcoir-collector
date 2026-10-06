@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v16 as v16
+import dcoir_review.risk_sentinel_primitives as v16
 
 
 APPLIED_MARKER = "_dcoir_review_risk_sentinel_semantics_applied"
@@ -26,14 +26,12 @@ def apply_pareto_context_module(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
 
     v16._patch_core_semantics()
-    v16._patch_detect(module, hardened)
     module.rank_findings_for_required_budget = lambda findings, config: sorted(
         [v16.v5._normalize_comment_finding(item) for item in findings if isinstance(item, dict)],
         key=v16._candidate_priority,
     )[: max(0, int(getattr(config, "max_inline_comments", 12)))]
 
     if hardened is not None:
-        v16._patch_detect(hardened, module)
         hardened.add_risk_sentinel_fallback_findings = (
             lambda findings, risk_sentinels, config, unanchored_findings=None: v16._select_required_postable(
                 hardened,

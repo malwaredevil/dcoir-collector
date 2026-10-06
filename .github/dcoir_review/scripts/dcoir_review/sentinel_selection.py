@@ -15,9 +15,11 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v3 as v3
-import dcoir_review_required_runtime_patch_v16 as v16
-import dcoir_review_required_runtime_patch_v20 as v20
+import dcoir_review.risk_sentinel_identity as v3
+import dcoir_review.risk_sentinel_primitives as v16
+import dcoir_review.truthy_literal_policy as v20
+
+from dcoir_review import environment_token_detection
 
 
 
@@ -80,20 +82,11 @@ def _finding_has_real_sentinel_provenance(
 SELECTION_POLICY_VERSION = "required-vs-optional-pressure-v1"
 
 
-RISK_SENTINEL_SELECTOR_ORIGINAL_ATTR = "_dcoir_review_sentinel_selection_original_select_risk_sentinels"
-
-
 def _patch_risk_sentinel_priority(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
     if hardened is None:
         return
-    original = getattr(hardened, RISK_SENTINEL_SELECTOR_ORIGINAL_ATTR, None)
-    if original is None:
-        original = getattr(hardened, "select_risk_sentinels", None)
-        if callable(original):
-            setattr(hardened, RISK_SENTINEL_SELECTOR_ORIGINAL_ATTR, original)
-    if not callable(original):
-        return
+    original = environment_token_detection.select_required_first
 
     def select_risk_sentinels(sentinels: list[Any], max_anchors: int | None = None) -> list[Any]:
         deduped = v3._dedupe_sentinels(list(sentinels))

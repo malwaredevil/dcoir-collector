@@ -378,7 +378,7 @@ def main() -> None:
     assert telemetry.classify_stage("unknown", {"properties": {}}, config) == "unclassified"
     for synthetic_filename, synthetic_function in (
         ("part_05_debug_and_merge.py", "openrouter_review_with_quality_retry"),
-        ("dcoir_review_required_runtime_patch_v22.py", "openrouter_review_with_hybrid_first_pass"),
+        ("part_05a_hybrid_review.py", "openrouter_review_with_hybrid_first_pass"),
     ):
         namespace: dict[str, object] = {"telemetry": telemetry}
         exec(

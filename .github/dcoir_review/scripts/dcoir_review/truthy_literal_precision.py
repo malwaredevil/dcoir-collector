@@ -28,8 +28,8 @@ import textwrap
 from pathlib import Path
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v16 as v16
-import dcoir_review_required_runtime_patch_v20 as v20
+import dcoir_review.risk_sentinel_primitives as v16
+import dcoir_review.truthy_literal_policy as v20
 
 
 POLICY_VERSION = "truthy-literal-precision-v1"
@@ -80,15 +80,11 @@ def _truthy_detail(hardened: Any) -> str:
     return "a bare non-empty string operand of boolean or is always truthy and can bypass the intended comparison"
 
 
-def _patch_final_risk_sentinel_filter(module: Any) -> None:
-    storage = "_dcoir_truthy_literal_precision_original_detect_risk_sentinels"
-    original = getattr(module, storage, None)
-    if original is None:
-        original = getattr(module, "detect_risk_sentinels", None)
-        if callable(original):
-            setattr(module, storage, original)
+def build_detector(module: Any, next_detect: Any):
+    """Compose structural truthy-literal precision around ``next_detect``."""
+    original = next_detect
     if not callable(original):
-        raise RuntimeError("DCOIR truthy-literal precision could not locate detect_risk_sentinels")
+        raise RuntimeError("DCOIR truthy-literal precision requires a callable detector")
 
     hardened = getattr(module, "hardened", None)
     selector = getattr(hardened, "select_risk_sentinels", None) if hardened is not None else None
@@ -150,7 +146,17 @@ def _patch_final_risk_sentinel_filter(module: Any) -> None:
             kept.append(sentinel)
         return selector(kept, max_anchors)
 
-    module.detect_risk_sentinels = detect_risk_sentinels
+    return detect_risk_sentinels
+
+
+def _patch_final_risk_sentinel_filter(module: Any) -> None:
+    storage = "_dcoir_truthy_literal_precision_original_detect_risk_sentinels"
+    original = getattr(module, storage, None)
+    if original is None:
+        original = getattr(module, "detect_risk_sentinels", None)
+        if callable(original):
+            setattr(module, storage, original)
+    module.detect_risk_sentinels = build_detector(module, original)
 
 
 def _patch_deterministic_line_kind() -> None:

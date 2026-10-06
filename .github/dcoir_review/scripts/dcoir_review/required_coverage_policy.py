@@ -12,10 +12,26 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v2 as v2
+import dcoir_review.required_coverage_primitives as v2
 
 
 APPLIED_MARKER = "_dcoir_review_required_coverage_policy_applied"
+
+
+def build_detector(hardened: Any, next_detect: Any):
+    """Compose the v2 hard-required ACL contribution around ``next_detect``."""
+    if not callable(next_detect):
+        raise RuntimeError("DCOIR required coverage policy requires a callable detector")
+
+    def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[Any]:
+        try:
+            existing = list(next_detect(diff, None))
+        except TypeError:
+            existing = list(next_detect(diff))
+        ps_acl = v2._make_ps_acl_sentinels(hardened, diff)
+        return v2._select_sentinels(hardened, [*existing, *ps_acl], max_anchors)
+
+    return detect_risk_sentinels
 
 
 def apply_pareto_context_module(module: Any) -> None:
@@ -25,28 +41,6 @@ def apply_pareto_context_module(module: Any) -> None:
     hardened = getattr(module, "hardened", None)
     if hardened is None:
         return
-
-    detect_storage = "_dcoir_required_coverage_policy_original_detect_risk_sentinels"
-    original_detect = getattr(module, detect_storage, None)
-    if original_detect is None:
-        original_detect = getattr(
-            module,
-            "detect_risk_sentinels",
-            getattr(hardened, "detect_risk_sentinels", None),
-        )
-        if callable(original_detect):
-            setattr(module, detect_storage, original_detect)
-    if callable(original_detect):
-        def detect_risk_sentinels(diff: str, max_anchors: int | None = None) -> list[Any]:
-            try:
-                existing = list(original_detect(diff, None))
-            except TypeError:
-                existing = list(original_detect(diff))
-            ps_acl = v2._make_ps_acl_sentinels(hardened, diff)
-            return v2._select_sentinels(hardened, [*existing, *ps_acl], max_anchors)
-
-        module.detect_risk_sentinels = detect_risk_sentinels
-        hardened.detect_risk_sentinels = detect_risk_sentinels
 
     required_storage = "_dcoir_required_coverage_policy_original_required_risk_sentinels"
     original_required = getattr(hardened, required_storage, None)

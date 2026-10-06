@@ -1,0 +1,102 @@
+"""Ninth required-coverage layer for DCOIR Review.
+
+This connector-safe layer keeps the final reviewer boring and deterministic:
+OpenRouter Auto prompt-engineering preflights are visible and enforced before
+Pareto calls, inline comments do not carry model footers, selected comments must
+match the semantic risk at their changed line, Python pickle sinks become
+required-adjacent coverage when present, and validation snippets avoid fragile
+quoting.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+import dcoir_review.required_coverage_primitives as v2
+import dcoir_review.risk_sentinel_identity as v3
+import dcoir_review.risk_sentinel_taxonomy as v4
+import dcoir_review.risk_sentinel_policy as v5
+import dcoir_review.prompt_review_policy as v6
+import dcoir_review.selection_pressure_policy as v8
+import importlib
+
+v9_core = importlib.import_module("dcoir_review.risk_sentinel_state")
+
+if not hasattr(v3, "_strip_fences") and hasattr(v2, "_strip_fences"):
+    v3._strip_fences = v2._strip_fences
+
+from dcoir_review.prompt_review_diagnostics_helpers import (
+    PARETO_CALL_EVENTS,
+    PROMPT_REVIEW_CALLS,
+    PROMPT_REVIEW_EVENTS,
+    PROMPT_REVIEW_FAILURES,
+    _ensure_prompt_review,
+    _normalize_inline_comment,
+    _normalize_yaml_identifier,
+    _prompt_review_problem,
+    _patch_progress_comment,
+    _patch_prompt_review_call_accounting,
+    _patch_prompt_review_readback,
+    _patch_target_call_accounting,
+    _record_prompt_review_call,
+    _record_prompt_review_event,
+    _record_target_call,
+    _strip_footer,
+)
+from dcoir_review.risk_sentinel_state import (
+    PS_DYNAMIC_EXEC,
+    PYTHON_PICKLE_LOAD,
+    SELECTION_SUMMARY,
+    _claim_text,
+    _claimed_kinds,
+    _confidence,
+    _dedupe,
+    _expected_by_line,
+    _key_text,
+    _line_number,
+    _normalize,
+    _postable_key,
+    _quote_ps_string,
+    _required_sentinels,
+    _rewrite_validation,
+    _semantic_mismatch,
+    _sentinel_key,
+    _severity_rank,
+    _spare_priority,
+    _validation_for_key,
+    _yaml_load_arg,
+)
+
+
+def __getattr__(name: str) -> Any:
+    # Classifier hooks are mutable runtime seams. Delegate reads to v9_core
+    # until a later compatibility layer explicitly overrides the v9 export.
+    if name in {"_line_kind", "_semantic_kind"}:
+        return getattr(v9_core, name)
+    raise AttributeError(name)
+
+
+from dcoir_review.risk_sentinel_selection_support import (
+    _fallback_for_sentinel,
+    _iter_added_diff_lines,
+    _patch_pickle_sentinels,
+    _patch_required_selection,
+    _patch_yaml_safe_load_note,
+    _select_required_postable,
+)
+
+
+def apply_pareto_context_module(module: Any) -> None:
+    base = getattr(module, "base", None)
+    hardened = getattr(module, "hardened", None)
+    _patch_yaml_safe_load_note()
+    _patch_prompt_review_call_accounting()
+    if base is not None:
+        _patch_progress_comment(base, hardened)
+    if hardened is not None and base is not None:
+        _patch_target_call_accounting(hardened)
+        _patch_prompt_review_readback(hardened, base)
+    _patch_pickle_sentinels(module, hardened)
+    if hardened is not None:
+        _patch_pickle_sentinels(hardened)
+        _patch_required_selection(module, hardened)
