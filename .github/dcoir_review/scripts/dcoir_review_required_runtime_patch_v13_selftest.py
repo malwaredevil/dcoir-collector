@@ -313,17 +313,18 @@ def test_apply_twice_no_recursion() -> None:
 
 
 
-def test_v13_is_helper_only_beneath_v14() -> None:
+def test_v13_is_helper_only_beneath_v16() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v13" not in names, names
-    assert "dcoir_review_required_runtime_patch_v14" in names, names
+    assert "dcoir_review_required_runtime_patch_v14" not in names, names
+    assert "dcoir_review_required_runtime_patch_v16" in names, names
     v13 = _load_v13()
     import dcoir_review_required_runtime_patch_v14 as v14
     assert callable(v13._patch_core_semantics)
     assert callable(v13._patch_required_selection)
     assert callable(v13._patch_review_body_overflow)
-    # v14 captures and explicitly composes the v13 semantic/selection helpers,
-    # so v13 remains importable without being a production entrypoint root.
+    # v14 remains an importable helper-definition layer consumed by v16, while
+    # neither v13 nor v14 needs a standalone production installer.
     assert callable(v14._ORIGINAL_V13_PATCH_CORE_SEMANTICS)
     assert callable(v14._ORIGINAL_V13_SELECT_REQUIRED)
     assert callable(v14._ORIGINAL_V13_AUGMENT_METADATA)
@@ -336,7 +337,7 @@ def main() -> None:
     test_domain_classifiers_are_not_overbroad()
     test_spoofed_trusted_key_cannot_override_anchored_line_semantics()
     test_apply_twice_no_recursion()
-    test_v13_is_helper_only_beneath_v14()
+    test_v13_is_helper_only_beneath_v16()
     print("dcoir_review_required_runtime_patch_v13_selftest passed")
 
 

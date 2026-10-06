@@ -165,6 +165,7 @@ def test_prompt_review_artifact_refreshes_after_pareto_call() -> None:
 
 
 def main() -> None:
+    test_mutable_classifier_exports_follow_core_until_overridden()
     test_pr332_wrong_duplicate_is_dropped()
     test_fake_anchor_text_does_not_authorize_untrusted_line()
     test_no_sentinels_preserves_ordinary_findings()

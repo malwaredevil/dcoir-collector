@@ -18,6 +18,7 @@ import dcoir_review_required_runtime_patch_v4 as v4
 import dcoir_review_required_runtime_patch_v5 as v5
 import dcoir_review_required_runtime_patch_v6 as v6
 import dcoir_review_required_runtime_patch_v8 as v8
+import dcoir_review_required_runtime_patch_v9_core as v9_core
 
 if not hasattr(v3, "_strip_fences") and hasattr(v2, "_strip_fences"):
     v3._strip_fences = v2._strip_fences
@@ -50,14 +51,12 @@ from dcoir_review_required_runtime_patch_v9_core import (
     _dedupe,
     _expected_by_line,
     _key_text,
-    _line_kind,
     _line_number,
     _normalize,
     _postable_key,
     _quote_ps_string,
     _required_sentinels,
     _rewrite_validation,
-    _semantic_kind,
     _semantic_mismatch,
     _sentinel_key,
     _severity_rank,
@@ -65,6 +64,16 @@ from dcoir_review_required_runtime_patch_v9_core import (
     _validation_for_key,
     _yaml_load_arg,
 )
+
+
+def __getattr__(name: str) -> Any:
+    # Classifier hooks are mutable runtime seams. Delegate reads to v9_core
+    # until a later compatibility layer explicitly overrides the v9 export.
+    if name in {"_line_kind", "_semantic_kind"}:
+        return getattr(v9_core, name)
+    raise AttributeError(name)
+
+
 from dcoir_review_required_runtime_patch_v9_selection import (
     _fallback_for_sentinel,
     _iter_added_diff_lines,

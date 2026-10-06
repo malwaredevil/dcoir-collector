@@ -91,6 +91,31 @@ def pr332_findings() -> list[dict[str, object]]:
     ]
 
 
+def test_mutable_classifier_exports_follow_core_until_overridden() -> None:
+    core = v9.v9_core
+    original_line = core._line_kind
+    original_semantic = core._semantic_kind
+    try:
+        line_probe = lambda *_args, **_kwargs: "line-probe"
+        semantic_probe = lambda *_args, **_kwargs: "semantic-probe"
+        v9.__dict__.pop("_line_kind", None)
+        v9.__dict__.pop("_semantic_kind", None)
+        core._line_kind = line_probe
+        core._semantic_kind = semantic_probe
+        assert v9._line_kind is line_probe
+        assert v9._semantic_kind is semantic_probe
+
+        override = lambda *_args, **_kwargs: "override"
+        v9._line_kind = override
+        assert v9._line_kind is override
+        assert core._line_kind is line_probe
+    finally:
+        v9.__dict__.pop("_line_kind", None)
+        v9.__dict__.pop("_semantic_kind", None)
+        core._line_kind = original_line
+        core._semantic_kind = original_semantic
+
+
 def test_pr332_wrong_duplicate_is_dropped() -> None:
     hardened = FakeHardened()
     result = v9._select_required_postable(hardened, pr332_findings(), pr332_sentinels(), Config())

@@ -236,6 +236,7 @@ validation_commands:
   # workspaces may only exercise this as a smoke check.
   - bash .github/dcoir_review/scripts/validate-codex-local.sh
   - pwsh -NoProfile -File .github/dcoir_review/scripts/validate-windows-powershell-51.ps1 -AllowPowerShell7 -AllowEmpty
+  - python3 .github/dcoir_review/scripts/dcoir_review_pr_validation_readback_selftest.py
   - python3 .github/dcoir_review/scripts/validate-codeql-security-workflow.py
 
 guidance_files:

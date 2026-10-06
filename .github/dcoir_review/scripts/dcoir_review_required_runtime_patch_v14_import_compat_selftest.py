@@ -11,9 +11,13 @@ import importlib
 from types import SimpleNamespace
 
 import dcoir_review_required_runtime_patch_v13 as v13
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
 def main() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v14" not in names, names
+    assert "dcoir_review_required_runtime_patch_v16" in names, names
     for name in ("_render_integrity_errors", "_rendered_comment_has_integrity_problem", "_family"):
         if hasattr(v13, name):
             delattr(v13, name)
