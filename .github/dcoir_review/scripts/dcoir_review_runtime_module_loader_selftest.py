@@ -66,6 +66,7 @@ DIRECT_IMPORT_MODULES = (
     "python_filesystem_detection.py",
     "review_scope_guard.py",
     "review_config.py",
+    "required_coverage_policy.py",
     "reasoning_policy.py",
     "review_orchestration.py",
     "review_telemetry.py",

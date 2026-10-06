@@ -135,7 +135,8 @@ def test_v3_is_helper_only_with_stable_anchor_owner() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v3" not in names, names
     assert "dcoir_review.anchor_scoring" in names, names
-    assert names.index("dcoir_review_required_runtime_patch_v2") < names.index("dcoir_review.anchor_scoring")
+    assert "dcoir_review_required_runtime_patch_v2" not in names, names
+    assert names.index("dcoir_review.required_coverage_policy") < names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection")
     assert names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection") < names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family")
     assert callable(v3._semantic_kind)
     assert callable(v3._line_kind)
