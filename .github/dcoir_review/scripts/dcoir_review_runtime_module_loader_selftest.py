@@ -61,6 +61,7 @@ DIRECT_IMPORT_MODULES = (
     "normalized_finding_selection.py",
     "per_file_review.py",
     "per_file_routing.py",
+    "prompt_review_diagnostics.py",
     "prompt_review_scope_guard.py",
     "review_scope_guard.py",
     "review_config.py",

@@ -115,10 +115,11 @@ def test_v8_captures_its_own_preselection_hooks() -> None:
 
 
 
-def test_v8_is_helper_only_beneath_v9() -> None:
+def test_v8_is_helper_only_beneath_v12() -> None:
     patch_modules = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v8" not in patch_modules
-    assert "dcoir_review_required_runtime_patch_v9" in patch_modules
+    assert "dcoir_review_required_runtime_patch_v9" not in patch_modules
+    assert "dcoir_review.prompt_review_diagnostics" in patch_modules
     assert callable(v8._select_required_postable_v8)
     assert callable(v8._validation_for_kind)
 
@@ -127,7 +128,7 @@ def main() -> None:
     test_pr331_duplicate_wrong_kind_is_dropped_and_pickle_fills_spare_slot()
     test_validation_templates_are_semantic()
     test_v8_captures_its_own_preselection_hooks()
-    test_v8_is_helper_only_beneath_v9()
+    test_v8_is_helper_only_beneath_v12()
     print("dcoir_review_required_runtime_patch_v8_selftest passed")
 
 

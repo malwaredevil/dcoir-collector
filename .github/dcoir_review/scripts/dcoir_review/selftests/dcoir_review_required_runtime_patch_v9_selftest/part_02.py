@@ -164,7 +164,17 @@ def test_prompt_review_artifact_refreshes_after_pareto_call() -> None:
     assert summary["pareto_call_events"][-1]["prompt_review_debug_event_recorded"]
 
 
+def test_v9_is_helper_only_beneath_stable_prompt_diagnostics() -> None:
+    from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v9" not in names, names
+    assert "dcoir_review.prompt_review_diagnostics" in names, names
+    assert names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review_required_runtime_patch_v12")
+
+
 def main() -> None:
+    test_v9_is_helper_only_beneath_stable_prompt_diagnostics()
     test_mutable_classifier_exports_follow_core_until_overridden()
     test_pr332_wrong_duplicate_is_dropped()
     test_fake_anchor_text_does_not_authorize_untrusted_line()

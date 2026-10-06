@@ -101,7 +101,8 @@ def test_v7_is_helper_only_in_stable_chain() -> None:
     assert "dcoir_review_required_runtime_patch_v6" not in patch_modules
     assert "dcoir_review_required_runtime_patch_v7" not in patch_modules
     assert "dcoir_review_required_runtime_patch_v8" not in patch_modules
-    assert "dcoir_review_required_runtime_patch_v9" in patch_modules
+    assert "dcoir_review_required_runtime_patch_v9" not in patch_modules
+    assert "dcoir_review.prompt_review_diagnostics" in patch_modules
     assert "dcoir_review.finding_family" in patch_modules
     assert callable(v7._select_required_postable)
     assert callable(v7._postable_key)
