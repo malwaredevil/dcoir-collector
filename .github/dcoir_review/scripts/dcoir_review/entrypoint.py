@@ -17,7 +17,7 @@ class DcoirReviewEntrypoint:
         'dcoir_review.anchor_scoring',
         'dcoir_review.environment_token_detection',
         'dcoir_review.prompt_review_diagnostics',
-        'dcoir_review_required_runtime_patch_v12',
+        'dcoir_review.python_filesystem_detection',
         'dcoir_review.finding_family',
         'dcoir_review_required_runtime_patch_v16',
         'dcoir_review.precision_guard',

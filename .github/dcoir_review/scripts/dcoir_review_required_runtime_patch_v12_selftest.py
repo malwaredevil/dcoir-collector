@@ -340,7 +340,18 @@ def test_python_path_write_sentinel_skips_test_files() -> None:
     assert found == []
 
 
+def test_v12_is_helper_only_beneath_stable_python_filesystem_detection_and_v16() -> None:
+    from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v12" not in names, names
+    assert "dcoir_review.python_filesystem_detection" in names, names
+    assert "dcoir_review_required_runtime_patch_v16" in names, names
+    assert names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family") < names.index("dcoir_review_required_runtime_patch_v16")
+
+
 def main() -> None:
+    test_v12_is_helper_only_beneath_stable_python_filesystem_detection_and_v16()
     test_backfill_and_ledger()
     test_validation_delegation_after_core_patch()
     test_env_token_canonicalization_is_not_file_wide()

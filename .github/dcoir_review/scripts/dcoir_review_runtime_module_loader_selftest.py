@@ -63,6 +63,7 @@ DIRECT_IMPORT_MODULES = (
     "per_file_routing.py",
     "prompt_review_diagnostics.py",
     "prompt_review_scope_guard.py",
+    "python_filesystem_detection.py",
     "review_scope_guard.py",
     "review_config.py",
     "reasoning_policy.py",

@@ -170,7 +170,7 @@ def test_v9_is_helper_only_beneath_stable_prompt_diagnostics() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v9" not in names, names
     assert "dcoir_review.prompt_review_diagnostics" in names, names
-    assert names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review_required_runtime_patch_v12")
+    assert names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family")
 
 
 def main() -> None:

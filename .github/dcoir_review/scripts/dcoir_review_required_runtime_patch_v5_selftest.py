@@ -130,7 +130,7 @@ def test_stable_environment_token_owner_replaces_v5_apply_root() -> None:
     names = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v5_apply" not in names, names
     assert "dcoir_review.environment_token_detection" in names, names
-    assert names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection") < names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review_required_runtime_patch_v12")
+    assert names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.environment_token_detection") < names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review.python_filesystem_detection") < names.index("dcoir_review.finding_family")
     assert callable(environment_token_detection.apply_pareto_context_module)
 
 
