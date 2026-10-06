@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import dcoir_review_required_runtime_patch_v4 as v4
-import dcoir_review_required_runtime_patch_v4_apply as v4_apply
 
 
 def test_trigger_line_not_contaminated_by_metadata_shell() -> None:
@@ -97,8 +96,10 @@ def test_duplicate_start_process_key_collapses() -> None:
     assert v4._dedupe_key(v4._normalize_comment_finding(first)) == v4._dedupe_key(v4._normalize_comment_finding(second))
 
 
-def test_apply_shim_exports_callable() -> None:
-    assert callable(v4_apply.apply_pareto_context_module)
+def test_v4_definitions_remain_available_to_later_owners() -> None:
+    assert callable(v4._normalize_comment_finding)
+    assert callable(v4._dedupe_key)
+    assert v4.HARD_REQUIRED_KIND_TITLES
 
 
 def main() -> None:
@@ -109,7 +110,7 @@ def main() -> None:
     test_notes_code_gets_fenced()
     test_mismatched_remove_is_suppressed()
     test_duplicate_start_process_key_collapses()
-    test_apply_shim_exports_callable()
+    test_v4_definitions_remain_available_to_later_owners()
     print("dcoir_review_required_runtime_patch_v4_selftest passed")
 
 

@@ -820,7 +820,6 @@ def assert_canonical_finding_comment_render_ownership() -> None:
         "dcoir_review/patches/dcoir_review_required_runtime_patches/part_02a.py",
         "dcoir_review/patches/dcoir_review_required_runtime_patch_v2/part_02.py",
         "dcoir_review/patches/dcoir_review_required_runtime_patch_v3/part_02.py",
-        "dcoir_review/patches/dcoir_review_required_runtime_patch_v4_apply/part_01.py",
         "dcoir_review/patches/dcoir_review_required_runtime_patch_v5_apply/part_01.py",
         "dcoir_review/patches/dcoir_review_required_runtime_patch_v8/part_01a.py",
         "dcoir_review_required_runtime_patch_v9_prompting.py",

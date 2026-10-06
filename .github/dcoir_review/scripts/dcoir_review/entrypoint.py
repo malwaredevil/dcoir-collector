@@ -15,7 +15,6 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patches',
         'dcoir_review_required_runtime_patch_v2',
         'dcoir_review_required_runtime_patch_v3',
-        'dcoir_review_required_runtime_patch_v4_apply',
         'dcoir_review_required_runtime_patch_v5_apply',
         'dcoir_review_required_runtime_patch_v6',
         'dcoir_review_required_runtime_patch_v7',
