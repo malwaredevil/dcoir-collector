@@ -18,7 +18,6 @@ class DcoirReviewEntrypoint:
         'dcoir_review_required_runtime_patch_v5_apply',
         'dcoir_review_required_runtime_patch_v9',
         'dcoir_review_required_runtime_patch_v12',
-        'dcoir_review_required_runtime_patch_v13',
         'dcoir_review_required_runtime_patch_v14',
         'dcoir_review.finding_family',
         'dcoir_review_required_runtime_patch_v16',
