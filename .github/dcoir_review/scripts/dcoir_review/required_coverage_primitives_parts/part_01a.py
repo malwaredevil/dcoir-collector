@@ -1,3 +1,5 @@
+import ast
+
 
 
 def _validation_needs_replacement(validation: str, path: str, kind: str) -> bool:

@@ -14,23 +14,12 @@ from dcoir_review.risk_sentinel_state import (
     PYTHON_PICKLE_LABEL,
     PYTHON_PICKLE_LOAD,
     PYTHON_PICKLE_DETAIL,
-    SELECTION_SUMMARY,
     SentinelKey,
-    _dedupe,
-    _expected_by_line,
-    _key_text,
-    _line_number,
     _normalize,
-    _postable_key,
-    _required_sentinels,
-    _rewrite_validation,
-    _semantic_mismatch,
     _sentinel_key,
-    _spare_priority,
     _validation_for_key,
     _yaml_load_arg,
 )
-from dcoir_review.prompt_review_diagnostics_helpers import _ensure_prompt_review
 
 def _iter_added_diff_lines(diff: str) -> list[tuple[str, int, str]]:
     result: list[tuple[str, int, str]] = []

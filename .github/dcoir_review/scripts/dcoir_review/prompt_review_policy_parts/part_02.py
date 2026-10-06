@@ -1,3 +1,6 @@
+import dcoir_review.required_coverage_primitives as v2
+import dcoir_review.risk_sentinel_identity as v3
+
 def apply_pareto_context_module(module: Any) -> None:
     base = getattr(module, "base", None)
     hardened = getattr(module, "hardened", None)

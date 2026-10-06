@@ -1,3 +1,17 @@
+from dcoir_review.risk_sentinel_state import (
+    SELECTION_SUMMARY,
+    _dedupe,
+    _expected_by_line,
+    _key_text,
+    _postable_key,
+    _required_sentinels,
+    _rewrite_validation,
+    _semantic_mismatch,
+    _spare_priority,
+)
+
+from dcoir_review.prompt_review_diagnostics_helpers import _ensure_prompt_review
+
 def _select_required_postable(hardened: Any, findings: list[dict[str, Any]], risk_sentinels: list[Any], config: Any, unanchored_findings: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     limit = max(0, int(getattr(config, "max_inline_comments", 12)))
     required = _required_sentinels(hardened, risk_sentinels)

@@ -1,3 +1,5 @@
+import dcoir_review.risk_sentinel_selection_support as selection
+
 
 
 def _select_once(hardened: Any, findings: list[dict[str, Any]], risk_sentinels: list[Any], config: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:

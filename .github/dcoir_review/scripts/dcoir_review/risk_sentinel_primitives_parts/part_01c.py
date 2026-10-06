@@ -1,3 +1,11 @@
+from pathlib import Path
+
+import dcoir_review.risk_sentinel_taxonomy as v4
+import dcoir_review.risk_sentinel_policy as v5
+import dcoir_review.risk_sentinel_composition as v9
+import dcoir_review.workflow_risk_semantics as v10
+import dcoir_review.python_k8s_risk_semantics as v11
+
 def _python_diff_import_alias_context(diff: str) -> tuple[dict[str, set[str]], dict[str, set[str]]]:
     sources_by_path: dict[str, list[str]] = {}
     for path, text in _iter_diff_python_lines_with_context(diff):

@@ -14,7 +14,6 @@ script. It keeps v9 prompt accounting and rendering, then adds:
 from __future__ import annotations
 
 import re
-import shlex
 from pathlib import Path
 from typing import Any
 
@@ -22,7 +21,6 @@ import dcoir_review.risk_sentinel_taxonomy as v4
 import dcoir_review.risk_sentinel_policy as v5
 import dcoir_review.risk_sentinel_composition as v9
 import dcoir_review.risk_sentinel_state as core
-import dcoir_review.risk_sentinel_selection_support as selection
 
 SentinelKey = tuple[str, int, str]
 _BASE_VALIDATION_FOR_KEY = core._validation_for_key
@@ -191,7 +189,7 @@ def _validation_for_token_to_pr_url(path: str) -> str:
         f"path = Path({_quote_py(path)})\n"
         "text = path.read_text(encoding='utf-8')\n"
         "lower = text.lower()\n"
-        "has_token = 'secrets.github_token' in lower or 'authorization' in lower or 'bearer' in lower\n"
+        "has_token = any(marker in lower for marker in ('secrets.github_token', 'authorization', 'bearer'))\n"
         "has_pr_body_url = 'github.event.pull_request.body' in lower or 'pull_request.body' in lower\n"
         "assert not (has_token and has_pr_body_url), 'workflow token can still be sent to a PR-controlled URL'\n"
         "PY"

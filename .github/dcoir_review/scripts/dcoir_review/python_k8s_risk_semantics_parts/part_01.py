@@ -12,16 +12,12 @@ large reviewer script. It keeps v10's overflow behavior, then adds:
 
 from __future__ import annotations
 
-import json
-import os
 import re
-import shlex
 from pathlib import Path
 from typing import Any
 
 import dcoir_review.risk_sentinel_taxonomy as v4
 import dcoir_review.risk_sentinel_policy as v5
-import dcoir_review.selection_pressure_policy as v8
 import dcoir_review.risk_sentinel_composition as v9
 import dcoir_review.risk_sentinel_state as core
 import dcoir_review.workflow_risk_semantics as v10

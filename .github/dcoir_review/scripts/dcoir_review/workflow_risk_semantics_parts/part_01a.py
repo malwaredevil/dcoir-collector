@@ -1,3 +1,5 @@
+import dcoir_review.risk_sentinel_selection_support as selection
+
 
 
 def _fallback_for_sentinel(hardened: Any, sentinel: Any, config: Any) -> dict[str, Any]:

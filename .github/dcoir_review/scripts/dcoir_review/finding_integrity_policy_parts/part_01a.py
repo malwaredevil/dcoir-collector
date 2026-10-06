@@ -1,3 +1,5 @@
+import re
+
 
 
 def _replacement_repeats_kind(kind: str, value: str) -> bool:

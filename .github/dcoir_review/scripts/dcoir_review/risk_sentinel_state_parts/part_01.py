@@ -11,13 +11,11 @@ quoting.
 from __future__ import annotations
 
 import re
-import shlex
 from pathlib import Path
 from typing import Any
 
 import dcoir_review.risk_sentinel_taxonomy as v4
 import dcoir_review.risk_sentinel_policy as v5
-import dcoir_review.selection_pressure_policy as v8
 
 SentinelKey = tuple[str, int, str]
 

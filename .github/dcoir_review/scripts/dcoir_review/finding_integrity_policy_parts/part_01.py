@@ -9,7 +9,6 @@ belonged to a different semantic kind. v14 tightens those final-stage gates.
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 import dcoir_review.risk_sentinel_taxonomy as v4

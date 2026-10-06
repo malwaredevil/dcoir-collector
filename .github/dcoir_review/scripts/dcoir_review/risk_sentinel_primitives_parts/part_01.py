@@ -14,20 +14,10 @@ from __future__ import annotations
 import ast
 import os
 import re
-import shlex
-from pathlib import Path
 from typing import Any
 
-import dcoir_review.risk_sentinel_taxonomy as v4
-import dcoir_review.risk_sentinel_policy as v5
-import dcoir_review.risk_sentinel_composition as v9
-import dcoir_review.risk_sentinel_state as core
-import dcoir_review.risk_sentinel_selection_support as selection
-import dcoir_review.workflow_risk_semantics as v10
-import dcoir_review.python_k8s_risk_semantics as v11
 import dcoir_review.required_selection_semantics as v12
 import dcoir_review.extended_risk_semantics as v13
-import dcoir_review.finding_integrity_policy as v14
 
 SentinelKey = tuple[str, int, str]
 

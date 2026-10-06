@@ -1,3 +1,5 @@
+import dcoir_review.risk_sentinel_selection_support as selection
+
 def _patch_yaml_extra_sentinels(owner: Any, sentinel_owner: Any | None = None) -> None:
     original = getattr(owner, "_dcoir_required_v10_original_detect_risk_sentinels", None)
     if original is None:

@@ -15,13 +15,8 @@ import re
 import threading
 import urllib.error
 import urllib.request
-from pathlib import Path
 from typing import Any
 
-import dcoir_review.required_coverage_primitives as v2
-import dcoir_review.risk_sentinel_identity as v3
-import dcoir_review.risk_sentinel_taxonomy as v4
-import dcoir_review.risk_sentinel_policy as v5
 
 PROMPT_REVIEW_MODEL = "openrouter/auto"
 PROMPT_REVIEW_MAX_ADDENDUM_CHARS = 1800

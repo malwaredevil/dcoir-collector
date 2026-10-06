@@ -1,3 +1,7 @@
+import dcoir_review.risk_sentinel_policy as v5
+import dcoir_review.risk_sentinel_composition as v9
+import dcoir_review.risk_sentinel_state as core
+
 def _select_once(_hardened: Any, findings: list[dict[str, Any]], risk_sentinels: list[Any], config: Any) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     limit = max(0, int(getattr(config, "max_inline_comments", 12)))
     core_targets = _core_sentinels(risk_sentinels)

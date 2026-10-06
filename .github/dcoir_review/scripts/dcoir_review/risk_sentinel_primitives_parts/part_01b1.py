@@ -1,3 +1,5 @@
+from pathlib import Path
+
 def _iter_diff_python_lines_with_context(diff: str) -> list[tuple[str, str]]:
     lines: list[tuple[str, str]] = []
     current_path = ""

@@ -10,7 +10,6 @@ findings are allowed to consume review budget.
 from __future__ import annotations
 
 import re
-import shlex
 from pathlib import Path
 from typing import Any
 

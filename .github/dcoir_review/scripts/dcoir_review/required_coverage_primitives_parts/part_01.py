@@ -8,7 +8,6 @@ comment renderer ordering.
 
 from __future__ import annotations
 
-import ast
 import re
 import shlex
 from pathlib import Path

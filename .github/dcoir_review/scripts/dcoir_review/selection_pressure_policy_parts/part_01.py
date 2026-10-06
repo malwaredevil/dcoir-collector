@@ -9,13 +9,9 @@ single-line replacements, and emits readable deterministic validation commands.
 
 from __future__ import annotations
 
-import re
-import shlex
 from typing import Any
 
-import dcoir_review.risk_sentinel_taxonomy as v4
 import dcoir_review.risk_sentinel_policy as v5
-import dcoir_review.prompt_review_policy as v6
 import dcoir_review.required_selection_policy as v7
 
 SentinelKey = tuple[str, int, str]

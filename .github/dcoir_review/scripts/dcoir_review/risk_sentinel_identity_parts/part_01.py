@@ -8,10 +8,7 @@ fallback guidance, and Python replacement indentation.
 
 from __future__ import annotations
 
-import ast
 import re
-import shlex
-import textwrap
 from pathlib import Path
 from typing import Any
 
