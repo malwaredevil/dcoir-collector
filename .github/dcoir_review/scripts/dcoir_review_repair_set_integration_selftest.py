@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for DCOIR Review v36 coordinated repair sets."""
+"""Regression checks for stable DCOIR coordinated repair-set integration."""
 
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from dcoir_review import repair_set_contract
 from dcoir_review import repair_set_edits
 from dcoir_review import finding_verifier
 from dcoir_review import finding_comment_policy
+from dcoir_review import finding_comment_render
+from dcoir_review import repair_admission
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -32,15 +34,14 @@ def _edit(path: str, start: int, end: int, original: str, replacement: str, purp
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v36" in names
-    assert names.index("dcoir_review.semantic_evidence_hardening") < names.index("dcoir_review_required_runtime_patch_v36")
-    assert names.index("dcoir_review_required_runtime_patch_v36") < names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review_required_runtime_patch_v36" not in names
+    assert "dcoir_review.finding_comment_render" in names
+    assert names.index("dcoir_review.finding_comment_render") < names.index("dcoir_review.semantic_evidence_hardening")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
-    assert getattr(review, v36.APPLIED_MARKER, False) is True
+    assert getattr(review, finding_comment_render.APPLIED_MARKER, False) is True
     assert hasattr(review, "build_review_comments_for_finding")
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
@@ -61,7 +62,7 @@ def main() -> None:
     ]
     assert critic_after_sol.model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
     assert config.model_stack[0] == "anthropic/claude-opus-5.5"  # shared config was not mutated
-    source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
+    source = Path(".github/dcoir_review/scripts/dcoir_review/finding_comment_render.py").read_text(encoding="utf-8")
     prompt_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_prompts.py").read_text(encoding="utf-8")
     for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text", "tests colocated with"):
         assert phrase in prompt_source
@@ -124,13 +125,13 @@ def main() -> None:
         "body": "The verified defect requires coordinated edits.",
         "validation": "python3 -m py_compile probe.py",
         repair.REPAIR_MARKER: {
-            "version": v36.VERSION,
-            "outcome": v36.REPAIR_SET_OUTCOME,
+            "version": repair_set_contract.MARKER_VERSION,
+            "outcome": repair_set_contract.REPAIR_SET_OUTCOME,
             "repair_set_id": "R01",
             "edits": annotated,
         },
     }
-    comments = v36.build_review_comments_for_finding(review, finding, "model", config)
+    comments = finding_comment_render.build_review_comments_for_finding(review, finding, "model", config)
     assert len(comments) == 2
     assert comments[0]["path"] == "probe.py"
     assert comments[0]["start_line"] == 1 and comments[0]["line"] == 3
@@ -148,14 +149,14 @@ def main() -> None:
         "supported": True,
         "kind": finding_comment_policy.PYTHON_TRUTHY_LITERAL_BRANCH,
     }
-    deterministic_comments = v36.build_review_comments_for_finding(review, deterministic, "model", config)
+    deterministic_comments = finding_comment_render.build_review_comments_for_finding(review, deterministic, "model", config)
     canonical_title, canonical_body, _notes = finding_comment_policy.template_for_kind(finding_comment_policy.PYTHON_TRUTHY_LITERAL_BRANCH)
     assert canonical_title in deterministic_comments[0]["body"]
     assert canonical_body in deterministic_comments[0]["body"]
     assert "MODEL-TAMPERED SENTINEL" not in deterministic_comments[0]["body"]
 
-    # Exercise the v36 synthesis contract without network access. Later terminal
-    # overlays have their own regressions and must not redefine this historical test.
+    # Exercise stable repair-set synthesis without network access through the
+    # admission owner used beneath the canonical repair pipeline.
     pipeline_finding = {
         "title": "Two-line coordinated defect",
         "severity": "high",
@@ -239,7 +240,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     finding_verifier.verify_findings_for_publication = _fake_verify
-    repair.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = repair_admission.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -280,8 +281,8 @@ def main() -> None:
 
     assert len(pipeline_result) == 1
     pipeline_marker = pipeline_result[0][repair.REPAIR_MARKER]
-    assert pipeline_marker["version"] == v36.VERSION
-    assert pipeline_marker["outcome"] == v36.REPAIR_SET_OUTCOME
+    assert pipeline_marker["version"] == repair_set_contract.MARKER_VERSION
+    assert pipeline_marker["outcome"] == repair_set_contract.REPAIR_SET_OUTCOME
     assert pipeline_marker["edit_count"] == 1
     assert pipeline_marker["native_suggestion_count"] == 1
     assert pipeline_marker["author_model"] == "anthropic/claude-opus-5"
@@ -337,11 +338,11 @@ def main() -> None:
 
     publisher_before = review.build_review_comments_for_finding
     synth_before = repair.synthesize_verified_repairs
-    v36.apply_pareto_context_module(review)
+    finding_comment_render.apply_pareto_context_module(review)
     assert review.build_review_comments_for_finding is publisher_before
     assert repair.synthesize_verified_repairs is synth_before
 
-    print("dcoir_review_required_runtime_patch_v36_selftest passed")
+    print("dcoir_review_repair_set_integration_selftest passed")
 
 
 if __name__ == "__main__":

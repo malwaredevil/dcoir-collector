@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+from dcoir_review import repair_set_contract
 
 
 PATH = "probe.py"
@@ -66,7 +67,6 @@ def main() -> None:
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")
     repair_policy = importlib.import_module("dcoir_review.repair")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     admission = importlib.import_module("dcoir_review.repair_admission")
     repair_set_builder = importlib.import_module("dcoir_review.repair_set_builder")
 
@@ -101,8 +101,8 @@ def main() -> None:
         )
         result = dict(item)
         result[repair.REPAIR_MARKER] = {
-            "version": v36.VERSION,
-            "outcome": v36.REPAIR_SET_OUTCOME,
+            "version": repair_set_contract.MARKER_VERSION,
+            "outcome": repair_set_contract.REPAIR_SET_OUTCOME,
             "repair_set_id": f"R{ordinal:02d}",
             "path": PATH,
             "line": int(item["line"]),
@@ -156,7 +156,7 @@ def main() -> None:
         assert first["repair_confidence_floor"] == 0.80
         assert result[0]["suggested_replacement"] == ""
         assert result[0]["_detector_suggested_replacement"] == "detector output must never be trusted"
-        assert second["outcome"] == v36.REPAIR_SET_OUTCOME
+        assert second["outcome"] == repair_set_contract.REPAIR_SET_OUTCOME
         assert third["outcome"] == repair_policy.BUDGET_DEFERRED_OUTCOME
         assert calls == [(2, 0.80, "", "also untrusted")], calls
         assert gh.diff_calls == 1
@@ -231,8 +231,8 @@ def main() -> None:
         )
         assert len(result) == 2
         assert [marker(repair, item)["outcome"] for item in result] == [
-            v36.REPAIR_SET_OUTCOME,
-            v36.REPAIR_SET_OUTCOME,
+            repair_set_contract.REPAIR_SET_OUTCOME,
+            repair_set_contract.REPAIR_SET_OUTCOME,
         ]
         assert [call[1] for call in calls] == [0.0, 0.5]
         assert gh.diff_calls == 1

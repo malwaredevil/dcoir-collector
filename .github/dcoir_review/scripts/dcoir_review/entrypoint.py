@@ -43,9 +43,10 @@ class DcoirReviewEntrypoint:
         # preserve predicate/call-site recall, blank-anchor evidence, and
         # falsification-first verifier guidance. Semantic adjudication and its
         # confidence normalization are composed explicitly by review_orchestration.
-        # v36 upgrades verified repairs from one exact line to bounded coordinated
-        # edit sets (multi-line, non-contiguous, and cross-file) while keeping
-        # human-only application. The stable semantic-adjudication normalizer preserves the adjudicator's valid
+        # Stable repair-set owners support bounded coordinated edit sets
+        # (multi-line, non-contiguous, and cross-file) while keeping human-only
+        # application. The canonical finding-comment renderer owns linked repair-set
+        # publication. The stable semantic-adjudication normalizer preserves the adjudicator's valid
         # flat-single-finding compatibility shape before canonical adjudication capping/publication.
         # v38 makes repair-author confidence advisory, normalizes only missing
         # explanatory repair metadata, and raises the independent critic hard
@@ -57,7 +58,6 @@ class DcoirReviewEntrypoint:
         # before repair/publication. v31 stays
         # terminal for this historical semantic-patch chain.
         'dcoir_review.semantic_evidence_hardening',
-        'dcoir_review_required_runtime_patch_v36',
         'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review.repair_contract',
         'dcoir_review_required_runtime_patch_v31',

@@ -36,7 +36,8 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
     assert "dcoir_review.semantic_adjudication_normalization" in names
-    assert names.index("dcoir_review_required_runtime_patch_v36") < names.index("dcoir_review.semantic_adjudication_normalization")
+    assert "dcoir_review_required_runtime_patch_v36" not in names
+    assert names.index("dcoir_review.semantic_evidence_hardening") < names.index("dcoir_review.semantic_adjudication_normalization")
     assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review_required_runtime_patch_v31")
 
     normalization_source = Path(".github/dcoir_review/scripts/dcoir_review/semantic_adjudication_normalization.py").read_text(encoding="utf-8")

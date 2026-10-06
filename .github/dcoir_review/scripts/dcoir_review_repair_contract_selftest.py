@@ -8,6 +8,7 @@ from pathlib import Path
 
 from dcoir_review import repair as repair_policy
 from dcoir_review import repair_set_contract
+from dcoir_review import repair_admission
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -21,7 +22,6 @@ def main() -> None:
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
     repair_set_prompts = importlib.import_module("dcoir_review.repair_set_prompts")
     contract = importlib.import_module("dcoir_review.repair_contract")
 
@@ -106,7 +106,7 @@ def main() -> None:
     for phrase in ("EVERY edit MUST contain all six fields", "purpose", "confidence", "independent cross-family critic"):
         assert phrase in prompt
 
-    # Exercise the repair-contract-hardened v36 synthesis contract with the same near-schema
+    # Exercise stable repair-set synthesis with the same near-schema
     # author shape seen live: no purpose and no confidence. The independent
     # critic, exact-head validation, and native suggestion rendering must still
     # execute successfully. The synthetic source remains valid Python both before
@@ -161,7 +161,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     v21.verify_findings_for_publication = _fake_verify
-    repair.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = repair_admission.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "def f():\n    old_call()\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -184,8 +184,8 @@ def main() -> None:
 
     assert len(result) == 1
     marker = result[0][repair.REPAIR_MARKER]
-    assert marker["version"] == v36.VERSION
-    assert marker["outcome"] == v36.REPAIR_SET_OUTCOME
+    assert marker["version"] == repair_set_contract.MARKER_VERSION
+    assert marker["outcome"] == repair_set_contract.REPAIR_SET_OUTCOME
     assert marker["author_confidence"] == 0.0
     assert marker["critic_confidence"] == 0.99
     assert marker["native_suggestion_count"] == 1
@@ -214,7 +214,6 @@ def main() -> None:
         "repair_set_contract.parse_critic =",
     ):
         assert forbidden not in source
-    v36_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
     repair_set_contract_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_contract.py").read_text(encoding="utf-8")
     assert "repair_contract.normalize_author_metadata" in repair_set_contract_source
     repair_set_prompts_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_prompts.py").read_text(encoding="utf-8")
