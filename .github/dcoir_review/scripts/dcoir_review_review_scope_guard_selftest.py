@@ -8,6 +8,7 @@ import os
 from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
+import dcoir_review_required_runtime_patch_v6 as v6
 from dcoir_review_review_scope_guard_selftest_support import (
     BASE,
     HEAD,
@@ -47,6 +48,17 @@ def main() -> None:
     v48_prompt = importlib.import_module("dcoir_review.prompt_review_scope_guard")
     assert getattr(review, scope_guard.APPLIED_MARKER, False) is True
     assert getattr(review, v48_prompt.APPLIED_MARKER, False) is True
+
+    candidate_owner = str(getattr(getattr(v6._candidate_with_addendum, "__code__", None), "co_filename", ""))
+    assert "prompt_review_scope_guard.py" in candidate_owner, candidate_owner
+    retry_prompt = "Review quality retry: preserve required findings."
+    retry_config = SimpleNamespace(max_prompt_chars=len(retry_prompt) + 4)
+    retry_candidate = v6._candidate_with_addendum(retry_prompt, "Keep the required evidence anchor.", retry_config)
+    assert retry_candidate.startswith(retry_prompt + "\n\n")
+    assert v6.PROMPT_REVIEW_SECTION_TITLE in retry_candidate
+    ordinary_prompt = "Ordinary prompt"
+    ordinary_config = SimpleNamespace(max_prompt_chars=len(ordinary_prompt) + 10)
+    assert v6._candidate_with_addendum(ordinary_prompt, "Long supplemental guidance that cannot fit.", ordinary_config) == ordinary_prompt
 
     module, hardened, main_state = build_fake_module(scope_guard)
     assert getattr(module, scope_guard.APPLIED_MARKER, False) is True

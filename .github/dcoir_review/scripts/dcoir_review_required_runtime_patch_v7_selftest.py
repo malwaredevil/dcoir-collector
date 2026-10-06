@@ -100,8 +100,9 @@ def test_v7_is_helper_only_beneath_v8() -> None:
     patch_modules = DcoirReviewEntrypoint().patch_module_names
     assert "dcoir_review_required_runtime_patch_v6" in patch_modules
     assert "dcoir_review_required_runtime_patch_v7" not in patch_modules
-    assert "dcoir_review_required_runtime_patch_v8" in patch_modules
-    assert patch_modules.index("dcoir_review_required_runtime_patch_v6") < patch_modules.index("dcoir_review_required_runtime_patch_v8")
+    assert "dcoir_review_required_runtime_patch_v8" not in patch_modules
+    assert "dcoir_review_required_runtime_patch_v9" in patch_modules
+    assert patch_modules.index("dcoir_review_required_runtime_patch_v6") < patch_modules.index("dcoir_review_required_runtime_patch_v9")
     assert callable(v7._select_required_postable)
     assert callable(v7._postable_key)
 
