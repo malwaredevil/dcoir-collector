@@ -6,6 +6,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from lib.gemini_bundle_path_safety import (
+    GeminiBundlePathError,
+    resolve_contained_path,
+)
+
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
 
 
@@ -15,6 +20,13 @@ def sha256_text(text: str) -> str:
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding='utf-8'))
+
+
+def safe_bundle_path(source_root: Path, value: object, label: str) -> Path:
+    try:
+        return resolve_contained_path(source_root, value, label)
+    except GeminiBundlePathError as exc:
+        raise SystemExit(str(exc)) from exc
 
 
 def main() -> int:
@@ -56,9 +68,18 @@ def main() -> int:
             f'{chunk_manifest_rel!r} != {topology_manifest_rel!r}'
         )
 
-    chunk_manifest = load_json(source_root / chunk_manifest_rel)
+    chunk_manifest_path = safe_bundle_path(
+        source_root,
+        chunk_manifest_rel,
+        'prime_agent_chunk_manifest',
+    )
+    chunk_manifest = load_json(chunk_manifest_path)
     target_rel = chunk_manifest['generated_prime_agent_file']
-    target_path = source_root / target_rel
+    target_path = safe_bundle_path(
+        source_root,
+        target_rel,
+        'generated_prime_agent_file',
+    )
     chunks = chunk_manifest.get('chunks', [])
     if not chunks:
         raise SystemExit('Prime agent chunk manifest has no chunks')
@@ -78,15 +99,18 @@ def main() -> int:
     parts = []
     missing = []
     for entry in chunks:
-        path = source_root / entry['path']
+        chunk_rel = entry['path']
+        path = safe_bundle_path(source_root, chunk_rel, 'prime agent chunk path')
         if not path.exists():
-            missing.append(entry['path'])
+            missing.append(chunk_rel)
             continue
         text = path.read_text(encoding='utf-8')
         expected = entry.get('sha256')
         actual = sha256_text(text)
         if expected and actual != expected:
-            raise SystemExit(f"Chunk sha256 mismatch for {entry['path']}: expected {expected}, got {actual}")
+            raise SystemExit(
+                f"Chunk sha256 mismatch for {chunk_rel}: expected {expected}, got {actual}"
+            )
         parts.append(text)
     if missing:
         raise SystemExit('Missing prime agent chunks: ' + ', '.join(missing))

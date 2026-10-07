@@ -8,6 +8,8 @@ import zipfile
 from pathlib import Path
 from typing import Iterable
 
+from lib.gemini_bundle_path_safety import validate_manifest_paths
+
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
 EXCLUDE = {'.DS_Store'}
 DEFAULT_GENERATED_KNOWLEDGE_DIR = '02_PRIME_AGENT_ATTACHMENTS'
@@ -80,6 +82,9 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     manifest = load_manifest(source_root)
+    path_errors = validate_manifest_paths(manifest, source_root, repo_root)
+    if path_errors:
+        raise SystemExit('Unsafe Gemini bundle manifest paths: ' + '; '.join(path_errors))
     version = args.version or derive_bundle_version(source_root, manifest)
     bundle_name = manifest['bundle_name']
     top_level = f"{bundle_name}_{version}"

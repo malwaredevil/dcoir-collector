@@ -13,6 +13,7 @@ from lib.gemini_bundle_validation_inventory import (
     validate_operator_file_suffixes,
     validate_required_files,
 )
+from lib.gemini_bundle_path_safety import validate_manifest_paths
 from lib.gemini_bundle_validation_runtime import validate_runtime_surfaces
 from lib.gemini_bundle_validation_topology import validate_topology
 
@@ -27,6 +28,26 @@ def validate_bundle(source_root: Path, output_dir: Path) -> int:
     errors: List[str] = []
     warnings: List[str] = []
     checks: Dict[str, object] = {}
+
+    path_errors = validate_manifest_paths(manifest, source_root, repo_root)
+    checks['manifest_path_safety'] = len(path_errors) == 0
+    checks['manifest_path_safety_errors'] = path_errors
+    if path_errors:
+        errors.extend(path_errors)
+        report = {
+            'success': False,
+            'source_root': str(source_root),
+            'repo_root': str(repo_root),
+            'bundle_name': manifest.get('bundle_name'),
+            'bundle_version': manifest.get('bundle_version'),
+            'checks': checks,
+            'warnings': warnings,
+            'errors': errors,
+        }
+        report_path = output_dir / 'validate_dcoir_gemini_bundle_report.json'
+        report_path.write_text(json.dumps(report, indent=2), encoding='utf-8')
+        print(json.dumps(report, indent=2))
+        return 1
 
     expected_strategy = 'stored_source_compile_with_direct_knowledge_attachment_generation'
     checks['source_strategy'] = manifest.get('source_strategy')
