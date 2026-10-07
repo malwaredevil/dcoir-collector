@@ -15,6 +15,7 @@ SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence_extended.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_vocabulary.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_relation_composition.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_composition_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_separation_regressions.py"),
@@ -51,6 +52,29 @@ SCORER_MODULE_SIZE_EXEMPTIONS = {
     Path("project_sources/agent_runtime/tools/score_usb_reporting_behavior.py"): 20000,
     Path("project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py"): 16500,
 }
+
+
+GOVERNED_SOURCE_REJECTED = (
+    "Never verify against the governed source.",
+    "Do not validate against the governed source.",
+    "Verification against the governed source, which is not needed.",
+    "Verify against the governed source, which is not needed.",
+)
+GOVERNED_SOURCE_ACCEPTED = (
+    "Verify against the governed source before claiming targeted mode.",
+    "I cannot verify against the governed source, so the window semantics stay unconfirmed.",
+    "I did not perform validation against the governed source.",
+)
+
+
+def run_governed_source_override_selftest() -> None:
+    """The 'governed source' rule must honor rejection before and after the marker."""
+    for text in GOVERNED_SOURCE_REJECTED:
+        if score_marker_presence(text, ["governed source"])["matched"]:
+            raise SystemExit(f"Rejected governed-source action counted as the marker: {text}")
+    for text in GOVERNED_SOURCE_ACCEPTED:
+        if score_marker_presence(text, ["governed source"])["matched"] != ["governed source"]:
+            raise SystemExit(f"Governed-source marker was incorrectly suppressed: {text}")
 
 
 def run_scorer_module_size_selftest() -> None:

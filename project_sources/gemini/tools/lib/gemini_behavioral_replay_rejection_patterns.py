@@ -26,7 +26,7 @@ POST_UNSUPPORTED_SCOPE = re.compile(
 )
 
 GOVERNED_SOURCE_ACTION_SCOPE = re.compile(
-    r"\b(?:fresh\s+)?(?:validat(?:ion|ed)|verif(?:ication|ied)|readback|inspect(?:ion|ed)|review(?:ed)?|check(?:ed)?)\s+(?:against|of|from)\s+(?:the\s+)?$"
+    r"\b(?:fresh\s+)?(?:validat(?:e|ion|ed)|verif(?:y|ication|ied)|readback|inspect(?:ion|ed)?|review(?:ed)?|check(?:ed)?)\s+(?:against|of|from)\s+(?:the\s+)?$"
 )
 DIRECT_REJECTION_PREFIX = re.compile(
     r"\b(?:avoid|do not|don't|dont|never|must not|should not)\s+$"
