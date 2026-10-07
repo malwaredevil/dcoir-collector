@@ -142,7 +142,10 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
             outside = base / 'outside'
             outside.mkdir()
             link = source_root / 'escape'
-            link.symlink_to(outside, target_is_directory=True)
+            try:
+                link.symlink_to(outside, target_is_directory=True)
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks are not supported')
             manifest_path = source_root / 'chunks/manifest.json'
             manifest = self.read_json(manifest_path)
             manifest['generated_prime_agent_file'] = 'escape/prime.txt'

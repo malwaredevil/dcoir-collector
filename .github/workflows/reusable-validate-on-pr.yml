@@ -200,6 +200,22 @@ jobs:
         with:
           profile: validate_on_pr
 
+      - name: Run Gemini bundle path-safety self-tests
+        shell: pwsh
+        run: |
+          $selftests = @(
+            'project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py'
+            'project_sources/gemini/tools/gemini_bundle_path_safety_integration_selftest.py'
+            'project_sources/gemini/tools/reassemble_dcoir_gemini_prime_agent_selftest.py'
+            'project_sources/agent_runtime/tests/reassemble_dcoir_gemini_prime_agent_selftest.py'
+          )
+          foreach ($selftest in $selftests) {
+            python $selftest
+            if ($LASTEXITCODE -ne 0) {
+              throw "Gemini bundle path-safety self-test failed: $selftest"
+            }
+          }
+
       - name: Smoke-test Gemini bundle build algorithm
         uses: ./.github/actions/smoke-build-gemini-bundle
         with:

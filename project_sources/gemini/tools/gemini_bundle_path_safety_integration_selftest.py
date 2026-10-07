@@ -217,10 +217,13 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             source_root, output_dir = self.make_fixture(base)
             outside = base / 'outside'
             outside.mkdir()
-            (source_root / 'generated-link').symlink_to(
-                outside,
-                target_is_directory=True,
-            )
+            try:
+                (source_root / 'generated-link').symlink_to(
+                    outside,
+                    target_is_directory=True,
+                )
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks are not supported')
             manifest_path = source_root / MANIFEST
             manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
             manifest['generated_knowledge_attachment_dir'] = 'generated-link'

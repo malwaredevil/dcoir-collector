@@ -61,7 +61,10 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
             root.mkdir()
             outside.mkdir()
             (outside / 'secret.txt').write_text('outside', encoding='utf-8')
-            (root / 'escape').symlink_to(outside, target_is_directory=True)
+            try:
+                (root / 'escape').symlink_to(outside, target_is_directory=True)
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks are not supported')
 
             with self.assertRaisesRegex(
                 UnsafePathError, 'escapes its root'
@@ -74,7 +77,10 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td) / 'bundle'
             root.mkdir()
-            (root / 'loop').symlink_to('loop')
+            try:
+                (root / 'loop').symlink_to('loop')
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks are not supported')
 
             with self.assertRaises(UnsafePathError):
                 resolve_contained_path(root, 'loop/file.txt', 'chunk path')
