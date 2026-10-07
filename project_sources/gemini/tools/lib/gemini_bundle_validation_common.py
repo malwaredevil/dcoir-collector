@@ -14,7 +14,8 @@ RUNTIME_GOVERNANCE_LEAK_PATTERNS = {
     'gemini_research_reference': r'\bGemini Research Reference\b',
     'airtable_idea_inbox': r'\bAirtable Idea Inbox\b',
     'source_prompt_record': r'\bIDEA-[0-9]{8}-[A-Z0-9-]+\b',
-    'ircore_gemini_research_surface': r'\bircore\.(?:gemini_research_findings|gemini_research_consultation_receipts|get_gemini_research_consultation_v1|get_gemini_research_receipt_v1)\b',
+    # Canonical ircore names are unversioned; also catch any retired _vN spelling.
+    'ircore_gemini_research_surface': r'\bircore\.(?:gemini_research_findings|gemini_research_consultation_receipts|get_gemini_research_(?:consultation|receipt)(?:_v\d+)?)\b',
     'gemini_builder_governance': r'\bGemini Builder Governance Rule\b',
 }
 VISIBILITY_CHECKS = {

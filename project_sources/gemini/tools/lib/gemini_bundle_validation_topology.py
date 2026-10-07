@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from lib.gemini_bundle_validation_common import (
     AGENT_DIR,
     markdown_heading_or_label_count,
     rel_posix,
+)
+from lib.gemini_prime_agent_chunks import (
+    PrimeChunkPlanError,
+    assemble,
+    load_chunk_plan,
+    sha256_text,
 )
 
 
@@ -57,7 +62,7 @@ def validate_topology(
     checks['topology_exact_match'] = bool(prime_rel and allowed_prime and sorted(sub_rel_list) == discovered_sub)
 
     if prime_source_mode == 'chunked_reassembled':
-        validate_chunked_prime_agent(manifest, source_root, topology, prime_rel, checks, errors)
+        validate_chunked_prime_agent(manifest, source_root, prime_rel, checks, errors)
     elif prime_source_mode not in (None, 'single_file'):
         warnings.append('unrecognized prime_agent_source_mode: ' + str(prime_source_mode))
 
@@ -67,49 +72,33 @@ def validate_topology(
 def validate_chunked_prime_agent(
     manifest: dict,
     source_root: Path,
-    topology: dict,
     prime_rel: str | None,
     checks: dict[str, object],
     errors: list[str],
 ) -> None:
     chunk_manifest_rel = manifest.get('prime_agent_chunk_manifest')
     checks['prime_agent_chunk_manifest'] = chunk_manifest_rel
-    if not chunk_manifest_rel:
-        errors.append('prime_agent_chunk_manifest is required when prime_agent_source_mode=chunked_reassembled')
+    # The reassembler and this validator share one chunk-plan owner, so the
+    # binding, containment and sha256 integrity rules cannot drift apart.
+    try:
+        plan = load_chunk_plan(manifest, source_root)
+        assembled = assemble(plan)
+    except PrimeChunkPlanError as exc:
+        checks['prime_agent_chunk_integrity'] = False
+        errors.append(f'prime agent chunk reassembly failed: {exc}')
         return
+    checks['prime_agent_chunk_integrity'] = True
+    checks['prime_agent_chunk_count'] = len(plan.chunks)
+    checks['prime_agent_reassembled_sha256'] = sha256_text(assembled)
 
-    chunk_manifest_path = source_root / chunk_manifest_rel
-    checks['prime_agent_chunk_manifest_exists'] = chunk_manifest_path.exists()
-    if not chunk_manifest_path.exists():
-        errors.append('prime agent chunk manifest is missing: ' + chunk_manifest_rel)
-        return
-
-    chunk_manifest = json.loads(chunk_manifest_path.read_text(encoding='utf-8'))
-    chunk_entries = list(chunk_manifest.get('chunks', []))
-    chunk_sources = [entry.get('path') for entry in chunk_entries]
-    topology_chunk_sources = list(topology.get('prime_agent_chunk_sources', []))
-    checks['prime_agent_chunk_count'] = len(chunk_entries)
-    checks['prime_agent_chunk_sources_match_topology'] = chunk_sources == topology_chunk_sources
-    if chunk_sources != topology_chunk_sources:
-        errors.append('prime agent chunk sources do not match manifest topology prime_agent_chunk_sources')
-
-    missing_chunks = [rel for rel in chunk_sources if not rel or not (source_root / rel).exists()]
-    checks['missing_prime_agent_chunks'] = missing_chunks
-    if missing_chunks:
-        errors.append('missing prime agent chunks: ' + ', '.join(missing_chunks))
-
-    assembled = ''.join((source_root / rel).read_text(encoding='utf-8') for rel in chunk_sources if rel and (source_root / rel).exists())
     canonical_path = source_root / prime_rel if prime_rel else None
-    canonical_exists = bool(canonical_path and canonical_path.exists())
+    canonical_exists = bool(canonical_path and canonical_path.is_file())
     checks['prime_agent_generated_canonical_exists'] = canonical_exists
     if canonical_exists:
-        canonical = canonical_path.read_text(encoding='utf-8')
+        canonical = canonical_path.read_text(encoding='utf-8', errors='replace')
         checks['prime_agent_chunk_reassembly_matches_canonical'] = assembled == canonical
         if assembled != canonical:
             errors.append('prime agent chunk reassembly does not match canonical prime agent file')
-    else:
-        checks['prime_agent_chunk_reassembly_matches_canonical'] = True
-        checks['prime_agent_chunk_reassembly_sha256_only'] = True
     if assembled.count('```') % 2 != 0:
         errors.append('reassembled prime agent has unbalanced markdown code fences')
     if 'Prime_Agent_Chunks_Manifest' in assembled or 'prime_agent_chunks/' in assembled:
