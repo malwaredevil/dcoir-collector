@@ -7,10 +7,11 @@ import json
 from pathlib import Path
 
 from lib.gemini_bundle_path_safety import (
-    GeminiBundlePathError,
+    UnsafePathError,
     resolve_contained_path,
     validate_manifest_paths,
 )
+from lib.gemini_bundle_validation_common import resolve_repo_root
 
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
 
@@ -26,7 +27,7 @@ def load_json(path: Path) -> dict:
 def safe_bundle_path(source_root: Path, value: object, label: str) -> Path:
     try:
         return resolve_contained_path(source_root, value, label)
-    except GeminiBundlePathError as exc:
+    except UnsafePathError as exc:
         raise SystemExit(str(exc)) from exc
 
 
@@ -45,7 +46,7 @@ def main() -> int:
     path_errors = validate_manifest_paths(
         bundle_manifest,
         source_root,
-        source_root.parent.parent.parent,
+        resolve_repo_root(source_root),
     )
     if path_errors:
         raise SystemExit(
@@ -85,7 +86,20 @@ def main() -> int:
         'prime_agent_chunk_manifest',
     )
     chunk_manifest = load_json(chunk_manifest_path)
-    target_rel = chunk_manifest['generated_prime_agent_file']
+    target_rel = chunk_manifest.get('generated_prime_agent_file')
+    # The only file reassembly may write is the declared runtime-generated
+    # Prime agent; anything else would overwrite governed bundle source.
+    if target_rel != topology.get('prime_agent_file'):
+        raise SystemExit(
+            'generated_prime_agent_file must match topology.prime_agent_file: '
+            f'{target_rel!r} != {topology.get("prime_agent_file")!r}'
+        )
+    runtime_generated_files = bundle_manifest.get('runtime_generated_files')
+    if not isinstance(runtime_generated_files, list) or target_rel not in runtime_generated_files:
+        raise SystemExit(
+            'generated_prime_agent_file must be listed in runtime_generated_files: '
+            f'{target_rel!r}'
+        )
     target_path = safe_bundle_path(
         source_root,
         target_rel,

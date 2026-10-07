@@ -9,11 +9,12 @@ from pathlib import Path
 from typing import Iterable
 
 from lib.gemini_bundle_path_safety import (
-    GeminiBundlePathError,
+    UnsafePathError,
     resolve_contained_path,
     validate_bundle_identity_component,
     validate_manifest_paths,
 )
+from lib.gemini_bundle_validation_common import resolve_repo_root
 
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
 EXCLUDE = {'.DS_Store'}
@@ -34,11 +35,6 @@ def derive_bundle_version(source_root: Path, manifest: dict) -> str:
             if match:
                 return match.group(1)
     return manifest['bundle_version']
-
-
-def resolve_repo_root(source_root: Path) -> Path:
-    # source_root is <repo>/project_sources/gemini/bundle_source.
-    return source_root.parent.parent.parent
 
 
 def generated_attachment_name(source_rel: str) -> str:
@@ -101,7 +97,7 @@ def main() -> int:
             version,
             'bundle_version',
         )
-    except GeminiBundlePathError as exc:
+    except UnsafePathError as exc:
         raise SystemExit(f'Unsafe Gemini bundle identity: {exc}') from exc
 
     top_level = f"{bundle_name}_{version}"
@@ -142,7 +138,7 @@ def main() -> int:
             f"{bundle_name}_{version}.zip",
             'bundle archive destination',
         )
-    except GeminiBundlePathError as exc:
+    except UnsafePathError as exc:
         raise SystemExit(f'Unsafe Gemini bundle output path: {exc}') from exc
 
     count = 0

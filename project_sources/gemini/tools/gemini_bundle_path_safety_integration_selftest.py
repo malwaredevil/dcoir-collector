@@ -276,6 +276,40 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
                 )
             )
 
+    def test_compiler_rejects_generated_dir_naming_source_root(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(
+                Path(td),
+                generated_knowledge_attachment_dir='.',
+            )
+
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('not the root itself', proc.stderr)
+            self.assertNotIn('Traceback', proc.stderr)
+            self.assertFalse(list(output_dir.glob('*.zip')))
+
+    def test_validator_reports_non_object_manifest_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(Path(td))
+            (source_root / MANIFEST).write_text('[]', encoding='utf-8')
+
+            proc = self.run_tool(VALIDATE, source_root, output_dir)
+
+            self.assertEqual(proc.returncode, 1)
+            self.assertNotIn('Traceback', proc.stderr)
+            report = json.loads(
+                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
+                    encoding='utf-8'
+                )
+            )
+            self.assertFalse(report['checks']['manifest_path_safety'])
+            self.assertIsNone(report['bundle_name'])
+            self.assertIn(
+                'Gemini bundle manifest must be an object', report['errors']
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

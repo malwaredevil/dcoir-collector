@@ -42,7 +42,9 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
         bundle_manifest = {
             'prime_agent_source_mode': 'chunked_reassembled',
             'prime_agent_chunk_manifest': chunk_manifest_rel,
+            'runtime_generated_files': ['generated/prime.txt'],
             'topology': {
+                'prime_agent_file': 'generated/prime.txt',
                 'prime_agent_chunk_manifest': chunk_manifest_rel,
                 'prime_agent_chunk_sources': [chunk_rel],
             },
@@ -185,6 +187,51 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
                 proc.stderr,
             )
             self.assertNotIn('Traceback', proc.stderr)
+
+    def assert_target_rejected(self, mutate, expected: str) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir, _ = self.make_fixture(Path(td))
+            protected = source_root / 'Gemini_Bundle_Source_Manifest.json'
+            mutate(source_root)
+            before = protected.read_text(encoding='utf-8')
+
+            proc = self.run_reassembler(source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn(expected, proc.stderr)
+            self.assertNotIn('Traceback', proc.stderr)
+            self.assertEqual(protected.read_text(encoding='utf-8'), before)
+
+    def test_rejects_contained_target_other_than_declared_prime_agent(self) -> None:
+        def mutate(source_root: Path) -> None:
+            manifest_path = source_root / 'chunks/manifest.json'
+            manifest = self.read_json(manifest_path)
+            manifest['generated_prime_agent_file'] = 'Gemini_Bundle_Source_Manifest.json'
+            self.write_json(manifest_path, manifest)
+
+        self.assert_target_rejected(
+            mutate, 'generated_prime_agent_file must match topology.prime_agent_file'
+        )
+
+    def test_rejects_target_missing_from_runtime_generated_files(self) -> None:
+        def mutate(source_root: Path) -> None:
+            bundle_path = source_root / 'Gemini_Bundle_Source_Manifest.json'
+            bundle = self.read_json(bundle_path)
+            bundle['runtime_generated_files'] = []
+            self.write_json(bundle_path, bundle)
+
+        self.assert_target_rejected(
+            mutate, 'generated_prime_agent_file must be listed in runtime_generated_files'
+        )
+
+    def test_rejects_bundle_root_as_target(self) -> None:
+        def mutate(source_root: Path) -> None:
+            manifest_path = source_root / 'chunks/manifest.json'
+            manifest = self.read_json(manifest_path)
+            manifest['generated_prime_agent_file'] = '.'
+            self.write_json(manifest_path, manifest)
+
+        self.assert_target_rejected(mutate, 'not the root itself')
 
 
 if __name__ == '__main__':

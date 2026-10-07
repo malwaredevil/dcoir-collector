@@ -34,12 +34,13 @@ def validate_bundle(source_root: Path, output_dir: Path) -> int:
     checks['manifest_path_safety_errors'] = path_errors
     if path_errors:
         errors.extend(path_errors)
+        identity = manifest if isinstance(manifest, dict) else {}
         report = {
             'success': False,
             'source_root': str(source_root),
             'repo_root': str(repo_root),
-            'bundle_name': manifest.get('bundle_name'),
-            'bundle_version': manifest.get('bundle_version'),
+            'bundle_name': identity.get('bundle_name'),
+            'bundle_version': identity.get('bundle_version'),
             'checks': checks,
             'warnings': warnings,
             'errors': errors,

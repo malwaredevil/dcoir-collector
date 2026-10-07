@@ -1,27 +1,40 @@
 #!/usr/bin/env python3
-"""Fail-closed containment for manifest-controlled Gemini bundle paths."""
+"""Gemini bundle manifest path preflight.
+
+Path containment itself is owned by
+``project_sources/agent_runtime/tools/agent_runtime_path_safety.py``; this module
+only knows which Gemini manifest fields hold paths and which root each one uses.
+"""
 from __future__ import annotations
 
 import json
-import os
+import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
+_AGENT_RUNTIME_TOOLS = Path(__file__).resolve().parents[3] / 'agent_runtime' / 'tools'
+if str(_AGENT_RUNTIME_TOOLS) not in sys.path:
+    sys.path.append(str(_AGENT_RUNTIME_TOOLS))
 
-class GeminiBundlePathError(ValueError):
-    """Raised when a manifest-controlled path is unsafe or cannot be resolved."""
+from agent_runtime_path_safety import (
+    UnsafePathError,
+    resolve_contained_path,
+)
+
+__all__ = (
+    'UnsafePathError',
+    'resolve_contained_path',
+    'validate_bundle_identity_component',
+    'validate_manifest_paths',
+)
 
 
 def validate_bundle_identity_component(value: Any, label: str) -> str:
     """Validate a cross-platform-safe single filename/archive component."""
     if not isinstance(value, str) or not value:
-        raise GeminiBundlePathError(
-            f'{label} must be a non-empty filename-safe value'
-        )
-    if '\x00' in value or any(ord(ch) < 32 for ch in value):
-        raise GeminiBundlePathError(
-            f'{label} must not contain control characters'
-        )
+        raise UnsafePathError(f'{label} must be a non-empty filename-safe value')
+    if any(ord(ch) < 32 for ch in value):
+        raise UnsafePathError(f'{label} must not contain control characters')
 
     posix = PurePosixPath(value)
     windows = PureWindowsPath(value)
@@ -36,79 +49,10 @@ def validate_bundle_identity_component(value: Any, label: str) -> str:
         or '\\' in value
         or any(ch in value for ch in '<>:"|?*')
     ):
-        raise GeminiBundlePathError(
+        raise UnsafePathError(
             f'{label} must be a single filename-safe component: {value}'
         )
     return value
-
-
-def _reject_unfollowable_symlinks(root: Path, relative: Path, label: str) -> None:
-    current = root
-    for part in relative.parts:
-        current = current / part
-        if current.is_symlink():
-            try:
-                os.stat(current)
-            except FileNotFoundError:
-                return
-            except OSError as exc:
-                raise GeminiBundlePathError(
-                    f'{label} path could not be resolved: {type(exc).__name__}'
-                ) from exc
-
-
-def _validate_cross_platform_relative_path(value: Any, label: str) -> Path:
-    """Reject path syntax that is unsafe under either POSIX or Windows semantics."""
-    if not isinstance(value, str) or not value:
-        raise GeminiBundlePathError(
-            f'{label} must be a non-empty root-relative path'
-        )
-    if '\x00' in value or any(ord(ch) < 32 for ch in value):
-        raise GeminiBundlePathError(
-            f'{label} must not contain control characters'
-        )
-
-    posix = PurePosixPath(value)
-    windows = PureWindowsPath(value)
-    if (
-        posix.is_absolute()
-        or windows.is_absolute()
-        or bool(windows.drive)
-        or bool(windows.root)
-        or '..' in posix.parts
-        or '..' in windows.parts
-    ):
-        raise GeminiBundlePathError(
-            f'{label} must not be absolute or contain traversal: {value}'
-        )
-    return Path(value)
-
-
-def resolve_contained_path(root: Path, value: Any, label: str) -> Path:
-    """Resolve a manifest path under root without allowing traversal or escape."""
-    relative = _validate_cross_platform_relative_path(value, label)
-
-    try:
-        resolved_root = root.resolve()
-    except (OSError, RuntimeError) as exc:
-        raise GeminiBundlePathError(
-            f'{label} root could not be resolved: {type(exc).__name__}'
-        ) from exc
-
-    try:
-        _reject_unfollowable_symlinks(resolved_root, relative, label)
-        candidate = (resolved_root / relative).resolve()
-    except GeminiBundlePathError:
-        raise
-    except (OSError, RuntimeError) as exc:
-        raise GeminiBundlePathError(
-            f'{label} path could not be resolved: {type(exc).__name__}'
-        ) from exc
-
-    if not candidate.is_relative_to(resolved_root):
-        raise GeminiBundlePathError(f'{label} escapes its root: {value}')
-
-    return candidate
 
 
 def _append_list_paths(
@@ -209,7 +153,7 @@ def validate_manifest_paths(
             continue
         try:
             validate_bundle_identity_component(manifest[field], field)
-        except GeminiBundlePathError as exc:
+        except UnsafePathError as exc:
             errors.append(str(exc))
 
     seen: set[tuple[str, str]] = set()
@@ -221,7 +165,7 @@ def validate_manifest_paths(
         root = source_root if scope == 'source' else repo_root
         try:
             resolve_contained_path(root, value, label)
-        except GeminiBundlePathError as exc:
+        except UnsafePathError as exc:
             errors.append(str(exc))
 
     chunk_manifest_rel = manifest.get('prime_agent_chunk_manifest')
@@ -232,7 +176,7 @@ def validate_manifest_paths(
                 chunk_manifest_rel,
                 'prime_agent_chunk_manifest',
             )
-        except GeminiBundlePathError:
+        except UnsafePathError:
             return errors
         if chunk_manifest_path.exists():
             try:
@@ -257,7 +201,7 @@ def validate_manifest_paths(
                         target,
                         'generated_prime_agent_file',
                     )
-                except GeminiBundlePathError as exc:
+                except UnsafePathError as exc:
                     errors.append(str(exc))
 
             chunks = chunk_manifest.get('chunks', [])
@@ -272,6 +216,6 @@ def validate_manifest_paths(
                         value,
                         'prime agent chunk path',
                     )
-                except GeminiBundlePathError as exc:
+                except UnsafePathError as exc:
                     errors.append(str(exc))
     return errors

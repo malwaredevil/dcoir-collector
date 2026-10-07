@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from gemini_bundle_path_safety import (
-    GeminiBundlePathError,
+    UnsafePathError,
     resolve_contained_path,
     validate_bundle_identity_component,
     validate_manifest_paths,
@@ -44,10 +44,13 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
                 'C:escape.txt',
                 'bad\x00name',
                 str(Path(td).resolve() / 'absolute.txt'),
+                '.',
+                './',
+                'nested/..',
             ]
             for value in bad_values:
                 with self.subTest(value=value):
-                    with self.assertRaises(GeminiBundlePathError):
+                    with self.assertRaises(UnsafePathError):
                         resolve_contained_path(root, value, 'manifest path')
 
     def test_rejects_symlink_escape(self) -> None:
@@ -61,7 +64,7 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
             (root / 'escape').symlink_to(outside, target_is_directory=True)
 
             with self.assertRaisesRegex(
-                GeminiBundlePathError, 'escapes its root'
+                UnsafePathError, 'escapes its root'
             ):
                 resolve_contained_path(
                     root, 'escape/secret.txt', 'chunk path'
@@ -73,7 +76,7 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
             root.mkdir()
             (root / 'loop').symlink_to('loop')
 
-            with self.assertRaises(GeminiBundlePathError):
+            with self.assertRaises(UnsafePathError):
                 resolve_contained_path(root, 'loop/file.txt', 'chunk path')
 
     def test_manifest_container_shape_errors_are_structured(self) -> None:
@@ -177,7 +180,7 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
         ]
         for value in bad_values:
             with self.subTest(value=value):
-                with self.assertRaises(GeminiBundlePathError):
+                with self.assertRaises(UnsafePathError):
                     validate_bundle_identity_component(
                         value,
                         'bundle identity',
@@ -211,6 +214,34 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
                         any(marker in error for error in errors),
                         errors,
                     )
+
+    def test_manifest_preflight_rejects_fields_naming_the_root(self) -> None:
+        cases = [
+            ({'generated_knowledge_attachment_dir': '.'}, None, 'generated_knowledge_attachment_dir'),
+            ({'source_only_dirs': ['./']}, None, 'source_only_dirs'),
+            ({'knowledge_attachment_sources': ['.']}, None, 'knowledge_attachment_sources'),
+            ({}, '{"generated_prime_agent_file":"."}', 'generated_prime_agent_file'),
+            ({}, '{"chunks":[{"path":"./"}]}', 'prime agent chunk path'),
+        ]
+        for fields, chunk_manifest, marker in cases:
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as td:
+                base = Path(td)
+                source_root = base / 'bundle'
+                repo_root = base / 'repo'
+                source_root.mkdir()
+                repo_root.mkdir()
+                manifest = {'generated_knowledge_attachment_dir': 'generated', **fields}
+                if chunk_manifest is not None:
+                    (source_root / 'chunks.json').write_text(
+                        chunk_manifest, encoding='utf-8'
+                    )
+                    manifest['prime_agent_chunk_manifest'] = 'chunks.json'
+
+                errors = validate_manifest_paths(manifest, source_root, repo_root)
+
+                self.assertEqual(len(errors), 1, errors)
+                self.assertIn(marker, errors[0])
+                self.assertIn('not the root itself', errors[0])
 
     def test_safe_manifest_and_chunk_manifest_return_no_errors(self) -> None:
         with tempfile.TemporaryDirectory() as td:

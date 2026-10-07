@@ -33,6 +33,7 @@ def load_manifest(source_root: Path) -> Dict:
 
 
 def resolve_repo_root(source_root: Path) -> Path:
+    # source_root is <repo>/project_sources/gemini/bundle_source.
     return source_root.parent.parent.parent
 
 

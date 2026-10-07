@@ -54,7 +54,9 @@ class PrimeReassemblyBindingTests(unittest.TestCase):
         self.bundle = {
             'prime_agent_source_mode': 'chunked_reassembled',
             'prime_agent_chunk_manifest': self.chunk_manifest_rel,
+            'runtime_generated_files': [self.target_rel],
             'topology': {
+                'prime_agent_file': self.target_rel,
                 'prime_agent_chunk_manifest': self.chunk_manifest_rel,
                 'prime_agent_chunk_sources': [self.chunk_rel],
             },
