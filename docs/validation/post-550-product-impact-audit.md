@@ -149,7 +149,7 @@ Status values:
 
 | ID | Class | Impact | Finding | Status |
 | --- | --- | --- | --- | --- |
-| collector-helpers-1 | Consolidate | medium | Three hand-written PowerShell lexers fed CI gates and hid code after `"a``"` and `'C:\temp`'` | Fixed `febb6d9` |
+| collector-helpers-1 | Consolidate | medium | Three hand-written PowerShell lexers fed CI gates and hid code after `"a``"` and `` 'C:\temp`' `` | Fixed `febb6d9` |
 | collector-helpers-2 | Consolidate | medium | Two PowerShell analyzer implementations write the same report | Follow-up |
 | collector-helpers-3 | Delete | medium | Rule-risk facade monkey-patched helpers; "not hashed" tests were vacuous | Fixed `cc0b049`, `21a9ac3` |
 | collector-helpers-4 | Consolidate | medium | Most collector tool test suites have no CI runner | Follow-up; new suites from this audit are wired in |
