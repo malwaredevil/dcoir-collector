@@ -7,7 +7,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from lib.gemini_bundle_zip_contract import BundleZipContractError, inspect_bundle_zip
+from lib.gemini_bundle_zip_contract import (
+    BundleZipContractError,
+    compiled_zip_path,
+    inspect_bundle_zip,
+)
 from lib.gemini_production_like_harness_common import (
     add_message,
     load_json,
@@ -15,7 +19,6 @@ from lib.gemini_production_like_harness_common import (
 )
 
 GEMINI_TARGET_ID = "gemini_dcoir_agent"
-BUILD_REPORT_NAME = "build_dcoir_gemini_release_report.json"
 
 
 def expected_construct_counts(root: Path) -> dict[str, int]:
@@ -65,20 +68,17 @@ def validate_construct(root: Path, output_dir: Path, messages: list[dict[str, st
             add_message(messages, "error", "construct build failed", repo_relative(source_root, root))
             build["stderr"] = process.stderr[-2000:]
 
-        # Inspect exactly the zip the build reported, through the shared contract owner.
-        build_report_path = build_output_dir / BUILD_REPORT_NAME
-        zip_value = load_json(build_report_path).get("zip_path") if build_report_path.is_file() else None
-        if not process.returncode and not zip_value:
-            add_message(messages, "error", "construct build did not report a delivery zip", repo_relative(source_root, root))
-        if zip_value:
+        # Inspect exactly the compiler-reported zip through the shared contract owner.
+        if not process.returncode:
             try:
-                contract = inspect_bundle_zip(Path(zip_value), manifest)
+                zip_path = compiled_zip_path(build_output_dir)
+                contract = inspect_bundle_zip(zip_path, manifest)
             except BundleZipContractError as exc:
                 add_message(messages, "error", f"construct zip contract failed: {exc}", repo_relative(source_root, root))
             else:
                 build.update(
                     {
-                        "zip_path": repo_relative(Path(zip_value), root),
+                        "zip_path": repo_relative(zip_path, root),
                         "zip_entry_count": contract["entry_count"],
                         "prime_present": len(contract["prime_agent_entries"]) == 1,
                         "source_only_leaks": contract["source_only_leaks"],

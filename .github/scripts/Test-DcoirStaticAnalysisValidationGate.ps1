@@ -25,7 +25,7 @@ function Get-DcoirReportSummaryCount {
     $failures.Add("$Label report summary.$Field must be a non-negative integer.")
     return 0
   }
-  return [int]$value
+  return $value
 }
 
 if (-not (Test-Path -LiteralPath $AnalyzerPath)) {

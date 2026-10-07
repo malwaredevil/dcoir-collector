@@ -88,6 +88,7 @@ def resolve_contained_path(
     """
     relative = validate_relative_path_syntax(value, label, f'{root_kind}-relative path')
     try:
+        os.stat(root)
         resolved_root = root.resolve()
     except (OSError, RuntimeError) as exc:
         raise UnsafePathError(

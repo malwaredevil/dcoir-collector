@@ -6,6 +6,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 TOOLS_DIR = Path(__file__).resolve().parents[1] / 'tools'
 sys.path.insert(0, str(TOOLS_DIR))
@@ -89,6 +90,22 @@ class ResolveContainedPathTests(unittest.TestCase):
 
         with self.assertRaisesRegex(UnsafePathError, 'chunk path path could not be resolved'):
             resolve_contained_path(self.root, 'loop/file.txt', 'chunk path')
+
+    def test_symlink_loop_in_root_is_rejected_before_path_resolution(self) -> None:
+        loop_root = self.base / 'loop-root'
+        self.make_link_or_skip(loop_root, 'loop-root')
+        original_resolve = Path.resolve
+
+        def leave_loop_unresolved(path: Path, *args: object, **kwargs: object) -> Path:
+            if path == loop_root or loop_root in path.parents:
+                return path.absolute()
+            return original_resolve(path, *args, **kwargs)
+
+        with patch.object(Path, 'resolve', leave_loop_unresolved):
+            with self.assertRaisesRegex(
+                UnsafePathError, 'chunk path root could not be resolved'
+            ):
+                resolve_contained_path(loop_root, 'file.txt', 'chunk path')
 
     def test_empty_value_message_names_the_expected_kind(self) -> None:
         with self.assertRaisesRegex(UnsafePathError, 'must be a non-empty filename-safe value'):
