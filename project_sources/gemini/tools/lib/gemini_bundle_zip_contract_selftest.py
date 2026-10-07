@@ -6,6 +6,7 @@ import json
 import sys
 import tempfile
 import unittest
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -132,6 +133,21 @@ class InspectBundleZipTests(unittest.TestCase):
         for label, members in cases.items():
             with self.subTest(label=label):
                 self.assertFalse(self.inspect(members)['success'])
+
+    def test_duplicate_non_prime_payload_members_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / 'B.zip'
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore', UserWarning)
+                with zipfile.ZipFile(path, 'w') as archive:
+                    archive.writestr(f'B/{PRIME}', 'prime')
+                    archive.writestr('B/runtime/config.json', 'first')
+                    archive.writestr('B/runtime/config.json', 'second')
+
+            result = inspect_bundle_zip(path, MANIFEST)
+
+        self.assertFalse(result['success'], result)
+        self.assertEqual(result['duplicate_payload_members'], ['runtime/config.json'])
 
     def test_unsafe_archive_member_paths_fail(self) -> None:
         cases = (

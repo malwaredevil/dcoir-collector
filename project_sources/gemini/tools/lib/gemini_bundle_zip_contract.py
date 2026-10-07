@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import zipfile
+from collections import Counter
 from pathlib import Path, PureWindowsPath
 from typing import Any
 
@@ -95,6 +96,9 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
             unsafe_member_names.append(name)
             continue
         payload_rels.append(rel)
+    duplicate_payload_members = sorted(
+        rel for rel, count in Counter(payload_rels).items() if count > 1
+    )
     prime_matches = [rel for rel in payload_rels if rel == prime_rel]
     leaked_files = [
         rel
@@ -105,6 +109,7 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
         'success': (
             len(prime_matches) == 1
             and not leaked_files
+            and not duplicate_payload_members
             and not unexpected_root_entries
             and not unsafe_member_names
         ),
@@ -112,6 +117,7 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
         'expected_top_level': expected_top_level,
         'entry_count': len(names),
         'prime_agent_entries': prime_matches,
+        'duplicate_payload_members': duplicate_payload_members,
         'unexpected_root_entries': unexpected_root_entries,
         'unsafe_member_names': unsafe_member_names,
         'source_only_leaks': leaked_files,
