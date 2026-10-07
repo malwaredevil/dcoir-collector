@@ -76,8 +76,6 @@ class PatchRequest:
     commit_message: str = DEFAULT_COMMIT
     allow_default_branch: bool = False
     default_branch_reason: str = ""
-    allow_workflow_changes: bool = False
-    workflow_change_reason: str = ""
 
     @property
     def target_paths(self) -> tuple[str, ...]:
@@ -185,10 +183,10 @@ def validate_target_path(target: TargetSpec, request: PatchRequest) -> None:
         raise RequestError(f"target_path is blocked for ops patch requests: {path}")
     if not path_under(path, target.allowed_roots):
         raise RequestError(f"target_path is outside allowed_roots: {path}")
-    if is_workflow_governed_target(path) and not request.allow_workflow_changes:
+    if is_workflow_governed_target(path):
         raise RequestError(
             "workflow-governed targets (.github/workflows, .github/actions, .github/ops/tools) "
-            "require allow_workflow_changes=true and workflow_change_reason"
+            "are not permitted through ops apply-patch; use a separately operator-approved branch/PR lane"
         )
 
 def request_dir_from_path(repo: pathlib.Path, request_path: pathlib.Path, request_id: str) -> pathlib.Path:
@@ -296,11 +294,7 @@ def load_request(repo: pathlib.Path, request_path: pathlib.Path, default_branch:
         commit_message=commit_message,
         allow_default_branch=optional_bool(data.get("allow_default_branch"), field="allow_default_branch"),
         default_branch_reason=optional_string(data.get("default_branch_reason"), field="default_branch_reason") or "",
-        allow_workflow_changes=optional_bool(data.get("allow_workflow_changes"), field="allow_workflow_changes"),
-        workflow_change_reason=optional_string(data.get("workflow_change_reason"), field="workflow_change_reason") or "",
     )
-    if request.allow_workflow_changes and not request.workflow_change_reason.strip():
-        raise RequestError("allow_workflow_changes=true requires workflow_change_reason")
     for target in request.targets:
         validate_target_path(target, request)
     return request

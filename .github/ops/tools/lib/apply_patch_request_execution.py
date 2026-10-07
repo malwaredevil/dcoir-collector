@@ -55,12 +55,9 @@ def extract_patch_paths(patch_text: str) -> dict[str, str]:
                     paths[parsed] = "modify"
     return paths
 
-def target_plan(target: TargetSpec, operation: str, request: PatchRequest) -> dict[str, Any]:
+def target_plan(target: TargetSpec, operation: str) -> dict[str, Any]:
     root_policy = "pass" if path_under(target.path, target.allowed_roots) else "fail"
-    if is_workflow_governed_target(target.path):
-        workflow_policy = "explicitly_allowed" if request.allow_workflow_changes else "fail"
-    else:
-        workflow_policy = "not_workflow"
+    workflow_policy = "blocked" if is_workflow_governed_target(target.path) else "not_workflow"
     return {
         "path": target.path,
         "operation": operation,
@@ -99,8 +96,7 @@ def build_apply_plan(patch_text: str, request: PatchRequest) -> dict[str, Any]:
         "target_branch": request.target_branch,
         "patch_path": request.patch_path,
         "default_branch_policy_result": branch_policy,
-        "allow_workflow_changes": request.allow_workflow_changes,
-        "files": [target_plan(target, paths[target.path], request) for target in request.targets],
+        "files": [target_plan(target, paths[target.path]) for target in request.targets],
     }
 
 def prepare_patch(repo: pathlib.Path, request: PatchRequest) -> tuple[bytes, dict[str, Any]]:

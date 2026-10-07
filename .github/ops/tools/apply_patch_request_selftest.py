@@ -257,7 +257,7 @@ def governed_request(repo: pathlib.Path, request_id: str, target: str, root: str
     return request_dir / "request.json"
 
 
-def test_workflow_governed_targets_need_workflow_approval(repo: pathlib.Path) -> None:
+def test_workflow_governed_targets_are_always_rejected(repo: pathlib.Path) -> None:
     run(["git", "checkout", "main"], repo)
     for target, _root in GOVERNED_TARGETS:
         write(repo / target, "governed: original\n")
@@ -271,12 +271,16 @@ def test_workflow_governed_targets_need_workflow_approval(repo: pathlib.Path) ->
             validate = [sys.executable, str(TOOL), "validate", "--repo", str(repo), "--request", str(request)]
             denied = run(validate, repo, check=False)
             assert denied.returncode != 0, (target, schema, denied.stdout)
-            assert "workflow-governed targets" in denied.stderr, denied.stderr
+            assert "are not permitted through ops apply-patch" in denied.stderr, denied.stderr
+
+            # Request-controlled approval fields must never unlock governed targets.
             body = json.loads(request.read_text(encoding="utf-8"))
             body["allow_workflow_changes"] = True
-            body["workflow_change_reason"] = "selftest: approved governed-surface change"
+            body["workflow_change_reason"] = "selftest: untrusted self-attestation"
             write(request, json.dumps(body, indent=2) + "\n")
-            run(validate, repo)
+            denied_override = run(validate, repo, check=False)
+            assert denied_override.returncode != 0, (target, schema, denied_override.stdout)
+            assert "are not permitted through ops apply-patch" in denied_override.stderr, denied_override.stderr
 
 
 def test_rejects_dot_and_newline_request_ids(repo: pathlib.Path) -> None:
@@ -304,7 +308,7 @@ def main() -> int:
         test_rejects_plain_delete_patch(repo)
         test_rejects_non_string_digest(repo)
         test_rejects_string_boolean_override(repo)
-        test_workflow_governed_targets_need_workflow_approval(repo)
+        test_workflow_governed_targets_are_always_rejected(repo)
         test_rejects_dot_and_newline_request_ids(repo)
     print("apply_patch_request selftests passed")
     return 0
