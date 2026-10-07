@@ -120,6 +120,8 @@ def main() -> int:
 
     if not args.skip_validation:
         validate_cmd = [sys.executable, str(validate_script), '--source-root', str(source_root), '--output-dir', str(output_dir)]
+        if args.version:
+            validate_cmd.extend(['--version', args.version])
         validate_proc = run_step(validate_cmd)
         steps.append({
             'name': 'validate',

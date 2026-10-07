@@ -1,58 +1,109 @@
 #!/usr/bin/env python3
-"""Gemini bundle manifest path preflight.
+"""Gemini bundle manifest path preflight and bundle identity checks.
 
 Path containment itself is owned by
 ``project_sources/agent_runtime/tools/agent_runtime_path_safety.py``; this module
-only knows which Gemini manifest fields hold paths and which root each one uses.
+only knows which Gemini manifest fields hold paths, which root each one uses, and
+what makes a bundle name or version safe to use as an archive name.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import sys
-from pathlib import Path, PurePosixPath, PureWindowsPath
+from pathlib import Path
+from types import ModuleType
 from typing import Any
 
-_AGENT_RUNTIME_TOOLS = Path(__file__).resolve().parents[3] / 'agent_runtime' / 'tools'
-if str(_AGENT_RUNTIME_TOOLS) not in sys.path:
-    sys.path.append(str(_AGENT_RUNTIME_TOOLS))
-
-from agent_runtime_path_safety import (
-    UnsafePathError,
-    resolve_contained_path,
+_SHARED_MODULE_NAME = 'agent_runtime_path_safety'
+_SHARED_MODULE_PATH = (
+    Path(__file__).resolve().parents[3]
+    / 'agent_runtime'
+    / 'tools'
+    / f'{_SHARED_MODULE_NAME}.py'
 )
+
+
+def _load_shared_path_safety() -> ModuleType:
+    """Load the canonical path-safety owner by explicit file path.
+
+    The module is registered under its normal name so agent-runtime code in the
+    same process shares one UnsafePathError class, but sys.path is left untouched.
+    """
+    loaded = sys.modules.get(_SHARED_MODULE_NAME)
+    if loaded is not None:
+        loaded_file = getattr(loaded, '__file__', None)
+        if loaded_file and Path(loaded_file).resolve() == _SHARED_MODULE_PATH:
+            return loaded
+        raise ImportError(
+            f'{_SHARED_MODULE_NAME} is already loaded from {loaded_file!r}, '
+            f'not {_SHARED_MODULE_PATH}'
+        )
+    if not _SHARED_MODULE_PATH.is_file():
+        raise ImportError(f'shared path-safety module not found: {_SHARED_MODULE_PATH}')
+    spec = importlib.util.spec_from_file_location(_SHARED_MODULE_NAME, _SHARED_MODULE_PATH)
+    if spec is None or spec.loader is None:
+        raise ImportError(f'cannot load shared path-safety module: {_SHARED_MODULE_PATH}')
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_SHARED_MODULE_NAME] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        del sys.modules[_SHARED_MODULE_NAME]
+        raise
+    return module
+
+
+_shared = _load_shared_path_safety()
+UnsafePathError = _shared.UnsafePathError
+resolve_contained_path = _shared.resolve_contained_path
+validate_relative_path_syntax = _shared.validate_relative_path_syntax
 
 __all__ = (
     'UnsafePathError',
     'resolve_contained_path',
+    'validate_bundle_identity',
     'validate_bundle_identity_component',
     'validate_manifest_paths',
 )
 
+# Characters Windows rejects in file names, and device names it reserves with or
+# without an extension. The bundle name and version name a zip and its top-level
+# folder, which operators extract on Windows.
+_WINDOWS_FORBIDDEN_CHARS = frozenset('<>:"|?*')
+_WINDOWS_RESERVED_NAMES = frozenset(
+    {'CON', 'PRN', 'AUX', 'NUL'}
+    | {f'COM{index}' for index in range(1, 10)}
+    | {f'LPT{index}' for index in range(1, 10)}
+)
+
 
 def validate_bundle_identity_component(value: Any, label: str) -> str:
-    """Validate a cross-platform-safe single filename/archive component."""
-    if not isinstance(value, str) or not value:
-        raise UnsafePathError(f'{label} must be a non-empty filename-safe value')
-    if any(ord(ch) < 32 for ch in value):
-        raise UnsafePathError(f'{label} must not contain control characters')
-
-    posix = PurePosixPath(value)
-    windows = PureWindowsPath(value)
+    """Validate one cross-platform-safe filename component (bundle name or version)."""
+    validate_relative_path_syntax(value, label, 'filename-safe value')
     if (
-        value in {'.', '..'}
-        or posix.is_absolute()
-        or windows.is_absolute()
-        or bool(windows.drive)
-        or len(posix.parts) != 1
-        or len(windows.parts) != 1
+        value == '.'
         or '/' in value
         or '\\' in value
-        or any(ch in value for ch in '<>:"|?*')
+        or any(ch in _WINDOWS_FORBIDDEN_CHARS for ch in value)
+        or value[-1] in ' .'
+        or value.split('.', 1)[0].rstrip(' ').upper() in _WINDOWS_RESERVED_NAMES
     ):
         raise UnsafePathError(
             f'{label} must be a single filename-safe component: {value}'
         )
     return value
+
+
+def validate_bundle_identity(bundle_name: Any, bundle_version: Any) -> list[str]:
+    """Return errors for the bundle name and the version actually used to name the zip."""
+    errors: list[str] = []
+    for label, value in (('bundle_name', bundle_name), ('bundle_version', bundle_version)):
+        try:
+            validate_bundle_identity_component(value, label)
+        except UnsafePathError as exc:
+            errors.append(str(exc))
+    return errors
 
 
 def _append_list_paths(
@@ -143,18 +194,14 @@ def validate_manifest_paths(
     source_root: Path,
     repo_root: Path,
 ) -> list[str]:
-    """Return path-safety errors for manifest fields before downstream access."""
+    """Return path-safety errors for manifest fields before downstream access.
+
+    Bundle identity is checked separately by validate_bundle_identity, against
+    the version that will actually name the archive.
+    """
     errors: list[str] = []
     if not isinstance(manifest, dict):
         return ['Gemini bundle manifest must be an object']
-
-    for field in ('bundle_name', 'bundle_version'):
-        if field not in manifest:
-            continue
-        try:
-            validate_bundle_identity_component(manifest[field], field)
-        except UnsafePathError as exc:
-            errors.append(str(exc))
 
     seen: set[tuple[str, str]] = set()
     for label, value, scope in _iter_manifest_paths(manifest, errors):

@@ -8,6 +8,7 @@ from pathlib import Path
 from gemini_bundle_path_safety import (
     UnsafePathError,
     resolve_contained_path,
+    validate_bundle_identity,
     validate_bundle_identity_component,
     validate_manifest_paths,
 )
@@ -183,6 +184,12 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
             'bad?name',
             'bad*name',
             'bad\x00name',
+            'trailing.',
+            'trailing ',
+            'CON',
+            'nul.tar',
+            'Com1',
+            'LPT9.zip',
         ]
         for value in bad_values:
             with self.subTest(value=value):
@@ -192,34 +199,32 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
                         'bundle identity',
                     )
 
-    def test_manifest_preflight_rejects_unsafe_bundle_identity(self) -> None:
+    def test_bundle_identity_reports_each_unsafe_component(self) -> None:
+        self.assertEqual(validate_bundle_identity('SafeBundle', '3_0_5'), [])
+        errors = validate_bundle_identity('../escaped', '..\\escaped')
+        self.assertEqual(len(errors), 2, errors)
+        self.assertIn('bundle_name', errors[0])
+        self.assertIn('bundle_version', errors[1])
+        self.assertIn(
+            'bundle_version must be a non-empty filename-safe value',
+            validate_bundle_identity('SafeBundle', None),
+        )
+
+    def test_manifest_preflight_leaves_bundle_identity_to_identity_check(self) -> None:
+        # The archive name uses the effective version (override or generated index),
+        # so the path preflight must not reject a manifest version that is never used.
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
             source_root = base / 'bundle'
             repo_root = base / 'repo'
             source_root.mkdir()
             repo_root.mkdir()
-            cases = [
-                (
-                    {'bundle_name': '../escaped', 'bundle_version': '1'},
-                    'bundle_name',
-                ),
-                (
-                    {'bundle_name': 'SafeBundle', 'bundle_version': '..\\escaped'},
-                    'bundle_version',
-                ),
-            ]
-            for manifest, marker in cases:
-                with self.subTest(marker=marker):
-                    errors = validate_manifest_paths(
-                        manifest,
-                        source_root,
-                        repo_root,
-                    )
-                    self.assertTrue(
-                        any(marker in error for error in errors),
-                        errors,
-                    )
+            manifest = {'bundle_name': '../escaped', 'bundle_version': '..\\escaped'}
+
+            self.assertEqual(
+                validate_manifest_paths(manifest, source_root, repo_root),
+                [],
+            )
 
     def test_manifest_preflight_rejects_fields_naming_the_root(self) -> None:
         cases = [

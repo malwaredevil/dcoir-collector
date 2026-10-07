@@ -34,10 +34,18 @@ def reject_unfollowable_symlinks(root: Path, relative: Path) -> None:
                 return
 
 
-def validate_relative_path_syntax(value: Any, label: str, root_kind: str) -> Path:
-    """Reject path syntax that is unsafe under either POSIX or Windows semantics."""
+def validate_relative_path_syntax(
+    value: Any,
+    label: str,
+    expected: str = 'root-relative path',
+) -> Path:
+    """Reject path syntax that is unsafe under either POSIX or Windows semantics.
+
+    expected names what value should be (for example 'repository-relative path')
+    and only shapes the empty-value error message.
+    """
     if not isinstance(value, str) or not value:
-        raise UnsafePathError(f'{label} must be a non-empty {root_kind}-relative path')
+        raise UnsafePathError(f'{label} must be a non-empty {expected}')
     if any(ord(ch) < 32 for ch in value):
         raise UnsafePathError(f'{label} must not contain control characters')
 
@@ -71,7 +79,7 @@ def resolve_contained_path(
     root_kind and root_name only shape error messages. allow_root=False also
     rejects values such as '.' that resolve to the root itself.
     """
-    relative = validate_relative_path_syntax(value, label, root_kind)
+    relative = validate_relative_path_syntax(value, label, f'{root_kind}-relative path')
     try:
         resolved_root = root.resolve()
     except (OSError, RuntimeError) as exc:

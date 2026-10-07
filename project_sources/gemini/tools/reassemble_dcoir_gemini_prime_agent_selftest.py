@@ -236,6 +236,23 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
 
         self.assert_target_rejected(mutate, 'not the root itself')
 
+    def test_unreadable_inputs_fail_closed_without_traceback(self) -> None:
+        cases = [
+            ('Gemini_Bundle_Source_Manifest.json', b'{not json', 'Gemini bundle manifest could not be read'),
+            ('chunks/part-001.txt', b'\xff\xfe invalid utf-8', 'could not be read: UnicodeDecodeError'),
+        ]
+        for rel, payload, marker in cases:
+            with self.subTest(rel=rel), tempfile.TemporaryDirectory() as td:
+                source_root, output_dir, _ = self.make_fixture(Path(td))
+                (source_root / rel).write_bytes(payload)
+
+                proc = self.run_reassembler(source_root, output_dir)
+
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn(marker, proc.stderr)
+                self.assertNotIn('Traceback', proc.stderr)
+                self.assertFalse((source_root / 'generated/prime.txt').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

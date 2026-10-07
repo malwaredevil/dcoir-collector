@@ -60,6 +60,13 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             check=False,
         )
 
+    def read_validator_report(self, output_dir: Path) -> dict:
+        return json.loads(
+            (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
+                encoding='utf-8'
+            )
+        )
+
     def test_compiler_safe_control_accepts_contained_manifest_paths(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             source_root, output_dir = self.make_fixture(Path(td))
@@ -183,15 +190,104 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             proc = self.run_tool(VALIDATE, source_root, output_dir)
 
             self.assertEqual(proc.returncode, 1)
-            report = json.loads(
-                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
-                    encoding='utf-8'
-                )
-            )
-            self.assertFalse(report['checks']['manifest_path_safety'])
+            report = self.read_validator_report(output_dir)
+            self.assertTrue(report['checks']['manifest_path_safety'])
+            self.assertFalse(report['checks']['bundle_identity_safety'])
             self.assertTrue(
                 any('bundle_name' in error for error in report['errors'])
             )
+
+    def test_version_override_replaces_unsafe_manifest_version(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(
+                Path(td),
+                bundle_version='3.0.5-rc/1',
+            )
+            for script in (VALIDATE, COMPILE):
+                with self.subTest(script=script.name):
+                    rejected = self.run_tool(script, source_root, output_dir)
+                    self.assertNotEqual(rejected.returncode, 0)
+                    self.assertNotIn('Traceback', rejected.stderr)
+
+                    accepted = self.run_tool(
+                        script, source_root, output_dir, '--version', '3_0_6'
+                    )
+                    self.assertEqual(accepted.returncode, 0, accepted.stderr)
+            self.assertTrue((output_dir / 'DCOIR_Gemini_3_0_6.zip').is_file())
+            report = self.read_validator_report(output_dir)
+            self.assertEqual(report['checks']['effective_bundle_version'], '3_0_6')
+
+    def test_validator_reports_unreadable_manifest_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(Path(td))
+            (source_root / MANIFEST).write_text('{not json', encoding='utf-8')
+
+            proc = self.run_tool(VALIDATE, source_root, output_dir)
+
+            self.assertEqual(proc.returncode, 1)
+            self.assertNotIn('Traceback', proc.stderr)
+            report = self.read_validator_report(output_dir)
+            self.assertFalse(report['checks']['manifest_readable'])
+            self.assertIsNone(report['bundle_name'])
+
+    def make_link_or_skip(self, link: Path, target: Path) -> None:
+        try:
+            link.symlink_to(target, target_is_directory=target.is_dir())
+        except (NotImplementedError, OSError):
+            self.skipTest('symlinks are not supported')
+
+    def test_compiler_rejects_symlinked_file_escaping_bundle_source(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(base)
+            secret = base / 'outside-secret.txt'
+            secret.write_text('do not package', encoding='utf-8')
+            self.make_link_or_skip(source_root / 'leak.md.txt', secret)
+
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('leak.md.txt', proc.stderr)
+            self.assertNotIn('Traceback', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
+
+    def test_compiler_rejects_symlinked_directory_in_bundle_source(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(base)
+            outside = base / 'outside-dir'
+            outside.mkdir()
+            (outside / 'secret.md.txt').write_text('do not package', encoding='utf-8')
+            self.make_link_or_skip(source_root / 'linked-dir', outside)
+
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('linked-dir', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
+
+    def test_compiler_rejects_bad_knowledge_attachment_before_writing_zip(self) -> None:
+        cases = [
+            (['docs/notes.txt'], 'must be a markdown file'),
+            (['a/Same.md', 'b/Same.md'], 'map to the same archive member'),
+        ]
+        for sources, marker in cases:
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as td:
+                base = Path(td)
+                source_root, output_dir = self.make_fixture(
+                    base, knowledge_attachment_sources=sources
+                )
+                repo = source_root.parents[2]
+                for rel in sources:
+                    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (repo / rel).write_text('knowledge\n', encoding='utf-8')
+
+                proc = self.run_tool(COMPILE, source_root, output_dir)
+
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn(marker, proc.stderr)
+                self.assertNotIn('Traceback', proc.stderr)
+                self.assertEqual(list(base.rglob('*.zip')), [])
 
     def test_validator_reports_path_safety_failure_before_downstream_access(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -201,11 +297,7 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             )
             proc = self.run_tool(VALIDATE, source_root, output_dir)
             self.assertEqual(proc.returncode, 1)
-            report = json.loads(
-                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
-                    encoding='utf-8'
-                )
-            )
+            report = self.read_validator_report(output_dir)
             self.assertFalse(report['checks']['manifest_path_safety'])
             self.assertTrue(
                 any('required_files' in error for error in report['errors'])
@@ -232,11 +324,7 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             proc = self.run_tool(VALIDATE, source_root, output_dir)
 
             self.assertEqual(proc.returncode, 1)
-            report = json.loads(
-                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
-                    encoding='utf-8'
-                )
-            )
+            report = self.read_validator_report(output_dir)
             self.assertFalse(report['checks']['manifest_path_safety'])
             self.assertTrue(
                 any('escapes its root' in error for error in report['errors'])
@@ -266,11 +354,7 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
 
             self.assertEqual(proc.returncode, 1)
             self.assertNotIn('Traceback', proc.stderr)
-            report = json.loads(
-                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
-                    encoding='utf-8'
-                )
-            )
+            report = self.read_validator_report(output_dir)
             self.assertFalse(report['checks']['manifest_path_safety'])
             self.assertTrue(
                 any(
@@ -302,11 +386,7 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
 
             self.assertEqual(proc.returncode, 1)
             self.assertNotIn('Traceback', proc.stderr)
-            report = json.loads(
-                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
-                    encoding='utf-8'
-                )
-            )
+            report = self.read_validator_report(output_dir)
             self.assertFalse(report['checks']['manifest_path_safety'])
             self.assertIsNone(report['bundle_name'])
             self.assertIn(

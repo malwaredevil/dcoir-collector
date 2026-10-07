@@ -11,17 +11,35 @@ from lib.gemini_bundle_path_safety import (
     resolve_contained_path,
     validate_manifest_paths,
 )
-from lib.gemini_bundle_validation_common import resolve_repo_root
+from lib.gemini_bundle_validation_common import MANIFEST_NAME, resolve_repo_root
 
-MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
+REPORT_NAME = 'reassemble_dcoir_gemini_prime_agent_report.json'
 
 
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
 
 
-def load_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding='utf-8'))
+def read_text_or_exit(path: Path, label: str) -> str:
+    try:
+        return path.read_text(encoding='utf-8')
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SystemExit(f'{label} could not be read: {type(exc).__name__}') from exc
+
+
+def load_json_object(path: Path, label: str) -> dict:
+    try:
+        value = json.loads(read_text_or_exit(path, label))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f'{label} could not be read: {type(exc).__name__}') from exc
+    if not isinstance(value, dict):
+        raise SystemExit(f'{label} must contain a JSON object')
+    return value
+
+
+def write_report(output_dir: Path, report: dict) -> None:
+    (output_dir / REPORT_NAME).write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps(report, indent=2))
 
 
 def safe_bundle_path(source_root: Path, value: object, label: str) -> Path:
@@ -42,7 +60,7 @@ def main() -> int:
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    bundle_manifest = load_json(source_root / MANIFEST_NAME)
+    bundle_manifest = load_json_object(source_root / MANIFEST_NAME, 'Gemini bundle manifest')
     path_errors = validate_manifest_paths(
         bundle_manifest,
         source_root,
@@ -61,9 +79,7 @@ def main() -> int:
         'action': 'none',
     }
     if mode != 'chunked_reassembled':
-        report_path = output_dir / 'reassemble_dcoir_gemini_prime_agent_report.json'
-        report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
-        print(json.dumps(report, indent=2))
+        write_report(output_dir, report)
         return 0
 
     chunk_manifest_rel = bundle_manifest.get('prime_agent_chunk_manifest')
@@ -85,7 +101,7 @@ def main() -> int:
         chunk_manifest_rel,
         'prime_agent_chunk_manifest',
     )
-    chunk_manifest = load_json(chunk_manifest_path)
+    chunk_manifest = load_json_object(chunk_manifest_path, 'prime_agent_chunk_manifest')
     target_rel = chunk_manifest.get('generated_prime_agent_file')
     # The only file reassembly may write is the declared runtime-generated
     # Prime agent; anything else would overwrite governed bundle source.
@@ -106,7 +122,7 @@ def main() -> int:
         'generated_prime_agent_file',
     )
     chunks = chunk_manifest.get('chunks', [])
-    if not chunks:
+    if not isinstance(chunks, list) or not chunks:
         raise SystemExit('Prime agent chunk manifest has no chunks')
 
     selected_chunk_sources = [
@@ -129,7 +145,7 @@ def main() -> int:
         if not path.exists():
             missing.append(chunk_rel)
             continue
-        text = path.read_text(encoding='utf-8')
+        text = read_text_or_exit(path, f'Prime agent chunk {chunk_rel}')
         expected = entry.get('sha256')
         actual = sha256_text(text)
         if expected and actual != expected:
@@ -142,12 +158,14 @@ def main() -> int:
 
     assembled = ''.join(parts)
     assembled_sha = sha256_text(assembled)
-    expected_sha = chunk_manifest.get('reassembly', {}).get('expected_sha256')
+    reassembly = chunk_manifest.get('reassembly')
+    expected_sha = reassembly.get('expected_sha256') if isinstance(reassembly, dict) else None
     if expected_sha and assembled_sha != expected_sha:
         raise SystemExit(f'Reassembled prime agent sha256 mismatch: expected {expected_sha}, got {assembled_sha}')
 
-    current = target_path.read_text(encoding='utf-8') if target_path.exists() else ''
-    current_sha = sha256_text(current) if target_path.exists() else None
+    target_exists = target_path.exists()
+    current = read_text_or_exit(target_path, 'generated_prime_agent_file') if target_exists else ''
+    current_sha = sha256_text(current) if target_exists else None
     if args.check_only and current != assembled:
         raise SystemExit('Canonical prime agent file does not match chunk reassembly')
     if not args.check_only:
@@ -162,9 +180,7 @@ def main() -> int:
         'previous_target_sha256': current_sha,
         'matches_previous_target': current == assembled,
     })
-    report_path = output_dir / 'reassemble_dcoir_gemini_prime_agent_report.json'
-    report_path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
-    print(json.dumps(report, indent=2))
+    write_report(output_dir, report)
     return 0
 
 
