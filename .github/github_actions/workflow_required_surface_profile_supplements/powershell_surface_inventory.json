@@ -8,7 +8,8 @@
     "project_sources/collector/tools/powershell_surface_inventory_validation.py",
     "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
     ".github/github_actions/workflow_required_surface_profile_supplements.json",
-    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json",
+    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015A.ps1"
   ],
   "validate_on_pr": [
     "project_sources/collector/tools/build_powershell_surface_inventory.py",
@@ -19,7 +20,8 @@
     "project_sources/collector/tools/powershell_surface_inventory_validation.py",
     "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
     ".github/github_actions/workflow_required_surface_profile_supplements.json",
-    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json",
+    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015A.ps1"
   ],
   "manual_full_validation": [
     "project_sources/collector/tools/build_powershell_surface_inventory.py",
@@ -30,7 +32,8 @@
     "project_sources/collector/tools/powershell_surface_inventory_validation.py",
     "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
     ".github/github_actions/workflow_required_surface_profile_supplements.json",
-    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json",
+    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015A.ps1"
   ],
   "scheduled_health_check": [
     "project_sources/collector/tools/build_powershell_surface_inventory.py",
@@ -41,6 +44,10 @@
     "project_sources/collector/tools/powershell_surface_inventory_validation.py",
     "project_sources/collector/tools/powershell_surface_inventory_outputs.py",
     ".github/github_actions/workflow_required_surface_profile_supplements.json",
-    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json"
+    ".github/github_actions/workflow_required_surface_profile_supplements/powershell_surface_inventory.json",
+    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015A.ps1"
+  ],
+  "manual_collector_runtime_package_build": [
+    "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015A.ps1"
   ]
 }
