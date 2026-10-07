@@ -4,12 +4,42 @@ from __future__ import annotations
 
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 
 class GeminiBundlePathError(ValueError):
     """Raised when a manifest-controlled path is unsafe or cannot be resolved."""
+
+
+def validate_bundle_identity_component(value: Any, label: str) -> str:
+    """Validate a cross-platform-safe single filename/archive component."""
+    if not isinstance(value, str) or not value:
+        raise GeminiBundlePathError(
+            f'{label} must be a non-empty filename-safe value'
+        )
+    if '\x00' in value or any(ord(ch) < 32 for ch in value):
+        raise GeminiBundlePathError(
+            f'{label} must not contain control characters'
+        )
+
+    posix = PurePosixPath(value)
+    windows = PureWindowsPath(value)
+    if (
+        value in {'.', '..'}
+        or posix.is_absolute()
+        or windows.is_absolute()
+        or bool(windows.drive)
+        or len(posix.parts) != 1
+        or len(windows.parts) != 1
+        or '/' in value
+        or '\\' in value
+        or any(ch in value for ch in '<>:"|?*')
+    ):
+        raise GeminiBundlePathError(
+            f'{label} must be a single filename-safe component: {value}'
+        )
+    return value
 
 
 def _reject_unfollowable_symlinks(root: Path, relative: Path, label: str) -> None:
@@ -155,6 +185,14 @@ def validate_manifest_paths(
     errors: list[str] = []
     if not isinstance(manifest, dict):
         return ['Gemini bundle manifest must be an object']
+
+    for field in ('bundle_name', 'bundle_version'):
+        if field not in manifest:
+            continue
+        try:
+            validate_bundle_identity_component(manifest[field], field)
+        except GeminiBundlePathError as exc:
+            errors.append(str(exc))
 
     seen: set[tuple[str, str]] = set()
     for label, value, scope in _iter_manifest_paths(manifest, errors):

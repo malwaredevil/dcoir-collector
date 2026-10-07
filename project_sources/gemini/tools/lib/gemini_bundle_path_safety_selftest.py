@@ -8,6 +8,7 @@ from pathlib import Path
 from gemini_bundle_path_safety import (
     GeminiBundlePathError,
     resolve_contained_path,
+    validate_bundle_identity_component,
     validate_manifest_paths,
 )
 
@@ -127,6 +128,74 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
             for raw, marker in cases:
                 with self.subTest(marker=marker):
                     chunk_manifest.write_bytes(raw)
+                    errors = validate_manifest_paths(
+                        manifest,
+                        source_root,
+                        repo_root,
+                    )
+                    self.assertTrue(
+                        any(marker in error for error in errors),
+                        errors,
+                    )
+
+    def test_bundle_identity_component_accepts_safe_values(self) -> None:
+        for value in (
+            'DCOIR_Gemini_Email_Build_Bundle',
+            '3_0_5',
+            'release-1.2.3',
+        ):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    validate_bundle_identity_component(value, 'bundle identity'),
+                    value,
+                )
+
+    def test_bundle_identity_component_rejects_cross_platform_escapes(self) -> None:
+        bad_values = [
+            '',
+            None,
+            '.',
+            '..',
+            '../escaped',
+            '..\\escaped',
+            '/tmp/escaped',
+            'C:\\temp\\escaped',
+            'C:escaped',
+            'nested/name',
+            'nested\\name',
+            'bad:name',
+            'bad|name',
+            'bad?name',
+            'bad*name',
+            'bad\x00name',
+        ]
+        for value in bad_values:
+            with self.subTest(value=value):
+                with self.assertRaises(GeminiBundlePathError):
+                    validate_bundle_identity_component(
+                        value,
+                        'bundle identity',
+                    )
+
+    def test_manifest_preflight_rejects_unsafe_bundle_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root = base / 'bundle'
+            repo_root = base / 'repo'
+            source_root.mkdir()
+            repo_root.mkdir()
+            cases = [
+                (
+                    {'bundle_name': '../escaped', 'bundle_version': '1'},
+                    'bundle_name',
+                ),
+                (
+                    {'bundle_name': 'SafeBundle', 'bundle_version': '..\\escaped'},
+                    'bundle_version',
+                ),
+            ]
+            for manifest, marker in cases:
+                with self.subTest(marker=marker):
                     errors = validate_manifest_paths(
                         manifest,
                         source_root,

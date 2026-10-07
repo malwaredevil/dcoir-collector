@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 TOOLS = Path(__file__).resolve().parent
@@ -37,7 +38,13 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
         (source_root / MANIFEST).write_text(json.dumps(manifest), encoding='utf-8')
         return source_root, output_dir
 
-    def run_tool(self, script: Path, source_root: Path, output_dir: Path) -> subprocess.CompletedProcess[str]:
+    def run_tool(
+        self,
+        script: Path,
+        source_root: Path,
+        output_dir: Path,
+        *extra_args: str,
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -46,6 +53,7 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
                 str(source_root),
                 '--output-dir',
                 str(output_dir),
+                *extra_args,
             ],
             capture_output=True,
             text=True,
@@ -58,6 +66,74 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             proc = self.run_tool(COMPILE, source_root, output_dir)
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertTrue((output_dir / 'DCOIR_Gemini_test.zip').exists())
+
+    def test_compiler_safe_control_archive_stays_contained(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(Path(td))
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+            zip_path = output_dir / 'DCOIR_Gemini_test.zip'
+            self.assertTrue(
+                zip_path.resolve().is_relative_to(output_dir.resolve())
+            )
+            with zipfile.ZipFile(zip_path) as zf:
+                members = zf.namelist()
+            self.assertTrue(members)
+            self.assertTrue(
+                all('..' not in Path(member).parts for member in members),
+                members,
+            )
+            self.assertTrue(
+                all(
+                    member.startswith('DCOIR_Gemini_test/')
+                    for member in members
+                ),
+                members,
+            )
+
+    def test_compiler_rejects_unsafe_bundle_name(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(
+                base,
+                bundle_name='../escaped',
+            )
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('bundle_name', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
+
+    def test_compiler_rejects_unsafe_manifest_bundle_version(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(
+                base,
+                bundle_version='../../../escaped',
+            )
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('bundle_version', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
+
+    def test_compiler_rejects_unsafe_cli_bundle_version(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(base)
+            proc = self.run_tool(
+                COMPILE,
+                source_root,
+                output_dir,
+                '--version',
+                '..\\..\\escaped',
+            )
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('Unsafe Gemini bundle identity', proc.stderr)
+            self.assertIn('bundle_version', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
 
     def test_compiler_rejects_source_root_traversal(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -80,6 +156,25 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             proc = self.run_tool(COMPILE, source_root, output_dir)
             self.assertNotEqual(proc.returncode, 0)
             self.assertIn('knowledge_attachment_sources', proc.stderr)
+
+    def test_validator_rejects_unsafe_bundle_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(
+                Path(td),
+                bundle_name='..\\escaped',
+            )
+            proc = self.run_tool(VALIDATE, source_root, output_dir)
+
+            self.assertEqual(proc.returncode, 1)
+            report = json.loads(
+                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
+                    encoding='utf-8'
+                )
+            )
+            self.assertFalse(report['checks']['manifest_path_safety'])
+            self.assertTrue(
+                any('bundle_name' in error for error in report['errors'])
+            )
 
     def test_validator_reports_path_safety_failure_before_downstream_access(self) -> None:
         with tempfile.TemporaryDirectory() as td:

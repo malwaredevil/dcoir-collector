@@ -8,7 +8,12 @@ import zipfile
 from pathlib import Path
 from typing import Iterable
 
-from lib.gemini_bundle_path_safety import validate_manifest_paths
+from lib.gemini_bundle_path_safety import (
+    GeminiBundlePathError,
+    resolve_contained_path,
+    validate_bundle_identity_component,
+    validate_manifest_paths,
+)
 
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
 EXCLUDE = {'.DS_Store'}
@@ -87,6 +92,18 @@ def main() -> int:
         raise SystemExit('Unsafe Gemini bundle manifest paths: ' + '; '.join(path_errors))
     version = args.version or derive_bundle_version(source_root, manifest)
     bundle_name = manifest['bundle_name']
+    try:
+        bundle_name = validate_bundle_identity_component(
+            bundle_name,
+            'bundle_name',
+        )
+        version = validate_bundle_identity_component(
+            version,
+            'bundle_version',
+        )
+    except GeminiBundlePathError as exc:
+        raise SystemExit(f'Unsafe Gemini bundle identity: {exc}') from exc
+
     top_level = f"{bundle_name}_{version}"
     generated_dir = manifest.get('generated_knowledge_attachment_dir', DEFAULT_GENERATED_KNOWLEDGE_DIR)
     knowledge_sources = list(manifest.get('knowledge_attachment_sources', []))
@@ -119,7 +136,15 @@ def main() -> int:
         dupes = ', '.join(p.relative_to(source_root).as_posix() for p in duplicate_generated_sources)
         raise SystemExit('Duplicate generated knowledge attachment sources still exist in bundle_source and must be deleted: ' + dupes)
 
-    zip_path = output_dir / f"{bundle_name}_{version}.zip"
+    try:
+        zip_path = resolve_contained_path(
+            output_dir,
+            f"{bundle_name}_{version}.zip",
+            'bundle archive destination',
+        )
+    except GeminiBundlePathError as exc:
+        raise SystemExit(f'Unsafe Gemini bundle output path: {exc}') from exc
+
     count = 0
     generated_knowledge_files = []
     with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED) as zf:
