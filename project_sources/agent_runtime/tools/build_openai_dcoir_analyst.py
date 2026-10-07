@@ -11,7 +11,7 @@ import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
-from agent_runtime_path_safety import resolve_repo_path as _resolve_repo_path
+from agent_runtime_path_safety import resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.openai_dcoir_adapter.v1'
@@ -199,7 +199,7 @@ def _behavior_snapshot(
     for item, coverage_entry in zip(applicable, coverage):
         item_id = item.get('id')
         source_path_value = item.get('source_path')
-        source_path = _resolve_repo_path(
+        source_path = resolve_repo_path(
             repo_root, source_path_value, f'{item_id} source_path', errors
         )
         if source_path is None:
@@ -350,7 +350,7 @@ def _knowledge_files(
         if not isinstance(entry, dict):
             errors.append('Knowledge projections contain a non-object entry')
             continue
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root,
             entry.get('output_path'),
             f"knowledge projection {entry.get('id')}",
@@ -399,7 +399,7 @@ def build_package(
         r'[0-9a-f]{40}', source_base_commit
     ) is None:
         errors.append('source_base_commit must be a lowercase 40-character Git SHA')
-    generated_root = _resolve_repo_path(
+    generated_root = resolve_repo_path(
         repo_root,
         manifest.get('generated_root'),
         'generated_root',
@@ -414,7 +414,7 @@ def build_package(
         'knowledge_projection_manifest', 'knowledge_target_manifest',
         'canonical_instructions_source', 'behavioral_cases',
     ):
-        path = _resolve_repo_path(repo_root, manifest.get(key), key, errors)
+        path = resolve_repo_path(repo_root, manifest.get(key), key, errors)
         if path is not None:
             required_paths[key] = path
     try:
@@ -577,7 +577,7 @@ def build_package(
         errors.append('Source contract generated outputs disagree with the adapter')
     output_paths: dict[str, Path] = {}
     for key in ('instructions', 'configuration', 'package_manifest'):
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root, output_map.get(key), f'generated {key}', errors, generated_root
         )
         if path is not None:
@@ -661,7 +661,7 @@ def build_package(
                 if staged_path.read_bytes() != expected:
                     errors.append('Generated package staging readback failed')
                     continue
-                resolved_output = _resolve_repo_path(
+                resolved_output = resolve_repo_path(
                     repo_root,
                     path.relative_to(repo_root).as_posix(),
                     'generated package output',

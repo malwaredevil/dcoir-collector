@@ -325,7 +325,7 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
 
             errors: list[str] = []
             self.assertIsNone(
-                projector._resolve_repo_path(
+                projector.resolve_repo_path(
                     self.repo, 'resolver-escape', 'probe', errors
                 )
             )
@@ -336,7 +336,7 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
 
             errors = []
             self.assertIsNone(
-                projector._resolve_repo_path(
+                projector.resolve_repo_path(
                     self.repo, 'resolver-loop', 'probe', errors
                 )
             )

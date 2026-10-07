@@ -11,7 +11,7 @@ import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
-from agent_runtime_path_safety import resolve_repo_path as _resolve_repo_path
+from agent_runtime_path_safety import resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.openai_usb_reporting_adapter.v1'
@@ -281,7 +281,7 @@ def _behavior_snapshot(
     for item, coverage_entry in zip(applicable, coverage):
         item_id = item.get('id')
         source_path_value = item.get('source_path')
-        source_path = _resolve_repo_path(
+        source_path = resolve_repo_path(
             repo_root,
             source_path_value,
             f'{item_id} source_path',
@@ -344,7 +344,7 @@ def _knowledge_files(
         if not isinstance(entry, dict):
             errors.append('Knowledge projections contain a non-object entry')
             continue
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root,
             entry.get('output_path'),
             f"knowledge projection {entry.get('id')}",
@@ -393,7 +393,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     generated_root_path = (
         repo_root / generated_root_value if isinstance(generated_root_value, str) else None
     )
-    generated_root = _resolve_repo_path(
+    generated_root = resolve_repo_path(
         repo_root,
         generated_root_value,
         'generated_root',
@@ -415,7 +415,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         'canonical_instructions_source',
         'behavioral_cases',
     ):
-        path = _resolve_repo_path(repo_root, manifest.get(key), key, errors)
+        path = resolve_repo_path(repo_root, manifest.get(key), key, errors)
         if path is not None:
             required_paths[key] = path
     try:
@@ -550,7 +550,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
             errors.append(f'generated {key} must remain bound to {expected}')
     output_paths: dict[str, Path] = {}
     for key in ('instructions', 'configuration', 'package_manifest'):
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root, output_map.get(key), f'generated {key}', errors, generated_root
         )
         if path is not None:
@@ -642,7 +642,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
                 if not staged_path.is_relative_to(temp_root):
                     errors.append('Generated package staging path escaped its root')
                     continue
-                resolved_output = _resolve_repo_path(
+                resolved_output = resolve_repo_path(
                     repo_root,
                     path.relative_to(repo_root).as_posix(),
                     'generated package output',

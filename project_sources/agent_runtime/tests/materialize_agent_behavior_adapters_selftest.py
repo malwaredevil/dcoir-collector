@@ -260,7 +260,7 @@ class BehaviorAdapterTests(unittest.TestCase):
 
             errors: list[str] = []
             self.assertIsNone(
-                ADAPTER._resolve_repo_path(
+                ADAPTER.resolve_repo_path(
                     self.repo_root, 'resolver-escape', 'probe', errors
                 )
             )
@@ -271,7 +271,7 @@ class BehaviorAdapterTests(unittest.TestCase):
 
             errors = []
             self.assertIsNone(
-                ADAPTER._resolve_repo_path(
+                ADAPTER.resolve_repo_path(
                     self.repo_root, 'resolver-loop', 'probe', errors
                 )
             )

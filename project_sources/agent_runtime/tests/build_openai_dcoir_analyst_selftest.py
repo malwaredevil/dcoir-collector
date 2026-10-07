@@ -224,7 +224,7 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         except (NotImplementedError, OSError):
             self.skipTest('directory symlinks are not supported')
         errors: list[str] = []
-        resolved = MODULE._resolve_repo_path(
+        resolved = MODULE.resolve_repo_path(
             self.repo, 'loop-dir/Instructions.md', 'probe', errors
         )
         self.assertIsNone(resolved)
@@ -236,7 +236,7 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
     def test_declared_root_escape_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as outside_dir:
             errors: list[str] = []
-            resolved = MODULE._resolve_repo_path(
+            resolved = MODULE.resolve_repo_path(
                 self.repo,
                 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
                 'probe',

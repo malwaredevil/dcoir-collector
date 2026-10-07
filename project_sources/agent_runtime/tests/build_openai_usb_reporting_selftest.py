@@ -272,7 +272,7 @@ def test_path_below_looping_directory_is_rejected() -> None:
         except (NotImplementedError, OSError):
             return
         errors: list[str] = []
-        resolved = module._resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
+        resolved = module.resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
         assert resolved is None, resolved
         assert any('probe path could not be resolved: OSError' in error for error in errors), errors
     finally:
