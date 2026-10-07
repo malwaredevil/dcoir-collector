@@ -63,4 +63,3 @@ def render_markdown_report(results: List[Dict[str, Any]], metadata: Dict[str, An
             lines.append(f"  anomalies: {anomaly_details or 'none'}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
-
