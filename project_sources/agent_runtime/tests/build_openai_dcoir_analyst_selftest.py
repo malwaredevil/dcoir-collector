@@ -215,6 +215,49 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('must not be absolute or contain traversal', check=False)
 
+    def test_symlink_loop_path_fails_closed_when_supported(self) -> None:
+        loop = self.repo / 'loop-dir'
+        try:
+            loop.symlink_to(loop, target_is_directory=True)
+        except (NotImplementedError, OSError):
+            self.skipTest('directory symlinks are not supported')
+        errors: list[str] = []
+        resolved = MODULE._resolve_repo_path(
+            self.repo, 'loop-dir/Instructions.md', 'probe', errors
+        )
+        self.assertIsNone(resolved)
+        self.assertTrue(
+            any('probe path could not be resolved:' in error for error in errors),
+            errors,
+        )
+
+    def test_declared_root_escape_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as outside_dir:
+            errors: list[str] = []
+            resolved = MODULE._resolve_repo_path(
+                self.repo,
+                'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
+                'probe',
+                errors,
+                required_root=Path(outside_dir),
+            )
+        self.assertIsNone(resolved)
+        self.assertTrue(
+            any('probe declared root escapes the repository' in error for error in errors),
+            errors,
+        )
+
+    def test_unreadable_path_is_reported_without_crash(self) -> None:
+        directory = self.repo / 'not-a-file'
+        directory.mkdir()
+        errors: list[str] = []
+        data = MODULE._read_bytes(directory, 'probe', errors)
+        self.assertEqual(b'', data)
+        self.assertTrue(
+            any('Unreadable probe:' in error for error in errors),
+            errors,
+        )
+
     def test_generated_root_rebinding_fails(self) -> None:
         manifest = _read_json(self.manifest_path)
         manifest['generated_root'] = 'project_sources/agent_runtime/generated/packages'
