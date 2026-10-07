@@ -16,6 +16,7 @@ from lib.apply_patch_request_contract import (
     SCHEMA_V1,
     TargetSpec,
     git_blob_sha,
+    is_workflow_governed_target,
     load_request,
     normalize_repo_path,
     path_under,
@@ -56,7 +57,7 @@ def extract_patch_paths(patch_text: str) -> dict[str, str]:
 
 def target_plan(target: TargetSpec, operation: str, request: PatchRequest) -> dict[str, Any]:
     root_policy = "pass" if path_under(target.path, target.allowed_roots) else "fail"
-    if target.path.startswith(".github/workflows/"):
+    if is_workflow_governed_target(target.path):
         workflow_policy = "explicitly_allowed" if request.allow_workflow_changes else "fail"
     else:
         workflow_policy = "not_workflow"
