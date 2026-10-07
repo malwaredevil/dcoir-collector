@@ -1,5 +1,5 @@
 name: Run path-safety self-tests
-description: Run the shared agent-runtime and Gemini bundle path-safety self-tests; this action owns the self-test list.
+description: Run the path-safety and delivery-zip identity self-tests; this action owns the self-test list.
 runs:
   using: composite
   steps:
@@ -12,6 +12,9 @@ runs:
           'project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py'
           'project_sources/gemini/tools/gemini_bundle_path_safety_integration_selftest.py'
           'project_sources/gemini/tools/reassemble_dcoir_gemini_prime_agent_selftest.py'
+          'project_sources/gemini/tools/lib/gemini_bundle_zip_contract_selftest.py'
+          'project_sources/gemini/tools/lib/gemini_bundle_validation_selftest.py'
+          '.github/github_actions/tools/test_surface_delivery_zip.py'
         )
         $missing = @($selftests | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
         if ($missing.Count -gt 0) {

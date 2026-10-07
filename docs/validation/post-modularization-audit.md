@@ -15,7 +15,7 @@ reopening working modules for aesthetic refactoring.
 | Retain | DCOIR Review top-level wrappers | Stable script entrypoints and import surfaces. Runtime and selftest callers load their implementations through the shared module loader. |
 | Retain | Collector tool facades | Stable CLI/import contracts used by tests, manifests, generated reports, workflow validation, or sibling modules. |
 | Retain | Manual-test runner and check facades | Required by the PowerShell launcher, bundle builder, download installer, and documented operator entrypoint. |
-| Retain | Workflow inventory generator alias | Deliberate compatibility command enforced by the workflow consistency contract and documented alongside the canonical builder. |
+| Retain, later deleted | Workflow inventory generator alias | Retained by #355 as a compatibility command. Issue #223 found no consumer and a contract that checked only that the file existed, so it was deleted; see `post-550-product-impact-audit.md`. |
 | Retain | Canonical generated validation reports | Stable validator and reviewer contracts governed by the generated-evidence retention policy. Their size does not make them maintained source modules. |
 | Retain | Remaining Airtable text | Retired-label and stale-guidance detectors, explicit historical-only workflow notes, generated inventories, fixtures, operator history, and staging evidence. These do not provide an active Airtable integration. |
 

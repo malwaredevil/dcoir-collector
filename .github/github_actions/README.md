@@ -50,9 +50,8 @@ composite action module that owns the shared mechanic before editing many
 entry workflows. Keep entry workflow contracts visible, and regenerate the
 inventory after module, caller, artifact, report, or audit changes.
 
-`tools/generate_workflow_inventory.py` is a compatibility wrapper for
-`tools/build_workflow_inventory.py`; both names use the same canonical inventory
-format.
+`tools/build_workflow_inventory.py` is the only inventory generator. Issue #223
+removed the `generate_workflow_inventory.py` alias, which had no consumer.
 
 Recommended local validation after workflow-tooling changes:
 

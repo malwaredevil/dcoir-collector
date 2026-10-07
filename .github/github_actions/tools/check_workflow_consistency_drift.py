@@ -127,7 +127,6 @@ SHARED_CONTRACT_FILES = [
     Path(".github/github_actions/workflow_required_surface_profile_supplements/path_safety.json"),
     Path(".github/github_actions/tools/build_workflow_inventory.py"),
     Path(".github/github_actions/tools/check_workflow_modularization_contracts.py"),
-    Path(".github/github_actions/tools/generate_workflow_inventory.py"),
     Path(".github/github_actions/tools/audit_reusable_contracts.py"),
     Path(".github/github_actions/workflow_modularization_contracts.json"),
     Path(".github/github_actions/workflow_inventory.json"),
