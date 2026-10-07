@@ -8,7 +8,6 @@ from .gemini_behavioral_replay_lane_equivalence_extended import EXTENDED_PATTERN
 from .gemini_behavioral_replay_lane_relation_composition import has_composed_lane_equivalence
 from .gemini_behavioral_replay_lane_vocabulary import (
     EXECUTE,
-    LANE_TAIL,
     ENDPOINT_REF,
     LOCAL_REF,
     CAPABILITY_OBJECT,

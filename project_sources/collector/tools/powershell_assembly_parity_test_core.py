@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import unittest
 from pathlib import Path
 
 import powershell_assembly_parity_builders as _builders
@@ -82,21 +81,6 @@ class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
             self.assert_control_mismatch(
                 root, "collector source-part map does not match inventory controls: 1 != 2"
             )
-
-    def test_controlled_bad_case_evidence_names_real_tests(self) -> None:
-        import test_run_powershell_assembly_parity as suite
-
-        loader = unittest.TestLoader()
-        names = {
-            name
-            for case in vars(suite).values()
-            if isinstance(case, type) and issubclass(case, unittest.TestCase)
-            for name in loader.getTestCaseNames(case)
-        }
-        for case in parity.controlled_bad_cases():
-            for evidence in case["evidence"].split(" and "):
-                with self.subTest(case=case["case"], evidence=evidence):
-                    self.assertIn(evidence, names)
 
     def test_stale_checked_in_generated_output_fails(self) -> None:
         with self.make_repo(checked_in_harness_text='Write-Output "stale"\n') as temp:

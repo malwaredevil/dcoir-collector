@@ -6,10 +6,8 @@ import re
 from .gemini_behavioral_replay_reciprocal_semantics import RECIPROCAL
 from .gemini_behavioral_replay_lane_vocabulary import (
     EXECUTE,
-    LANE_TAIL,
     ENDPOINT_REF,
     LOCAL_REF,
-    CAPABILITY_OBJECT,
     CAPABILITY_EQUIV,
 )
 

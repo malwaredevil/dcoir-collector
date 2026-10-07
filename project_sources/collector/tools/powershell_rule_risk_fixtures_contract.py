@@ -6,27 +6,15 @@ from pathlib import Path
 from typing import Any
 
 import powershell_rule_risk_fixtures_common as fixture_common
-from powershell_rule_risk_fixtures_common import (
-    FIXTURE_ROOT,
-    MANIFEST_SCHEMA_VERSION,
-    MATRIX_SCHEMA_VERSION,
-    MINIMUM_RISK_CLASSES,
-    is_relative_to,
-    require_string,
-    require_string_list,
-    safe_fixture_path,
-    scalar,
-    validate_fixture_root,
-)
 
 
 def validate_matrix(matrix: dict[str, Any], enforce_minimum_risks: bool) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
-    if matrix.get("schema_version") != MATRIX_SCHEMA_VERSION:
+    if matrix.get("schema_version") != fixture_common.MATRIX_SCHEMA_VERSION:
         errors.append(
             "rule-to-risk matrix schema mismatch: "
-            f"expected {MATRIX_SCHEMA_VERSION}, got {matrix.get('schema_version')!r}"
+            f"expected {fixture_common.MATRIX_SCHEMA_VERSION}, got {matrix.get('schema_version')!r}"
         )
     checks = matrix.get("checks")
     if not isinstance(checks, list) or not checks:
@@ -43,21 +31,21 @@ def validate_matrix(matrix: dict[str, Any], enforce_minimum_risks: bool) -> tupl
         if not isinstance(raw_check, dict):
             errors.append(f"{label} is not an object")
             continue
-        check_id = require_string(raw_check, "id", label, errors)
+        check_id = fixture_common.require_string(raw_check, "id", label, errors)
         if check_id in seen_ids:
             errors.append(f"{label}: duplicate check id {check_id}")
         seen_ids.add(check_id)
-        require_string(raw_check, "rule_name", label, errors)
-        require_string(raw_check, "tool", label, errors)
-        require_string(raw_check, "check_source", label, errors)
-        expected_severity = require_string(raw_check, "expected_severity", label, errors)
+        fixture_common.require_string(raw_check, "rule_name", label, errors)
+        fixture_common.require_string(raw_check, "tool", label, errors)
+        fixture_common.require_string(raw_check, "check_source", label, errors)
+        expected_severity = fixture_common.require_string(raw_check, "expected_severity", label, errors)
         if expected_severity and expected_severity not in {"Information", "Warning", "Error"}:
             errors.append(f"{label}: expected_severity must be Information, Warning, or Error")
-        risks = require_string_list(raw_check, "risk_classes", label, errors)
+        risks = fixture_common.require_string_list(raw_check, "risk_classes", label, errors)
         covered_risks.update(risks)
-        require_string_list(raw_check, "target_surfaces", label, errors)
-        require_string(raw_check, "failure_impact", label, errors)
-        require_string(raw_check, "recommended_fix", label, errors)
+        fixture_common.require_string_list(raw_check, "target_surfaces", label, errors)
+        fixture_common.require_string(raw_check, "failure_impact", label, errors)
+        fixture_common.require_string(raw_check, "recommended_fix", label, errors)
         fixtures = raw_check.get("fixtures")
         if not isinstance(fixtures, list) or not all(isinstance(item, str) and item.strip() for item in fixtures):
             errors.append(f"{label}: fixtures must be a list of strings")
@@ -68,7 +56,7 @@ def validate_matrix(matrix: dict[str, Any], enforce_minimum_risks: bool) -> tupl
                 errors.append(f"{label}: blocking checks must name at least one fixture")
         elif raw_check.get("blocking") is False:
             advisory_count += 1
-            if not scalar(raw_check.get("promotion_criteria")).strip():
+            if not fixture_common.scalar(raw_check.get("promotion_criteria")).strip():
                 errors.append(f"{label}: advisory checks must state promotion_criteria")
         else:
             errors.append(f"{label}: blocking must be true or false")
@@ -80,7 +68,7 @@ def validate_matrix(matrix: dict[str, Any], enforce_minimum_risks: bool) -> tupl
     if advisory_count == 0:
         warnings.append("matrix has no advisory checks; #263 expects advisory/blocking separation")
     if enforce_minimum_risks:
-        missing = sorted(MINIMUM_RISK_CLASSES - covered_risks)
+        missing = sorted(fixture_common.MINIMUM_RISK_CLASSES - covered_risks)
         if missing:
             errors.append("matrix is missing minimum #263 risk classes: " + ", ".join(missing))
     return check_map, errors, warnings
@@ -92,17 +80,17 @@ def validate_manifest(
 ) -> tuple[dict[str, dict[str, Any]], list[str], list[str]]:
     errors: list[str] = []
     warnings: list[str] = []
-    if manifest.get("schema_version") != MANIFEST_SCHEMA_VERSION:
+    if manifest.get("schema_version") != fixture_common.MANIFEST_SCHEMA_VERSION:
         errors.append(
             "fixture manifest schema mismatch: "
-            f"expected {MANIFEST_SCHEMA_VERSION}, got {manifest.get('schema_version')!r}"
+            f"expected {fixture_common.MANIFEST_SCHEMA_VERSION}, got {manifest.get('schema_version')!r}"
         )
     fixtures = manifest.get("fixtures")
     if not isinstance(fixtures, list) or not fixtures:
         errors.append("fixture manifest must contain fixtures[]")
         return {}, errors, warnings
 
-    fixture_root_valid = validate_fixture_root(repo_root, errors)
+    fixture_root_valid = fixture_common.validate_fixture_root(repo_root, errors)
     fixture_map: dict[str, dict[str, Any]] = {}
     seen_ids: set[str] = set()
     control_count = 0
@@ -112,15 +100,15 @@ def validate_manifest(
         if not isinstance(raw_fixture, dict):
             errors.append(f"{label} is not an object")
             continue
-        fixture_id = require_string(raw_fixture, "id", label, errors)
+        fixture_id = fixture_common.require_string(raw_fixture, "id", label, errors)
         if fixture_id in seen_ids:
             errors.append(f"{label}: duplicate fixture id {fixture_id}")
         seen_ids.add(fixture_id)
-        kind = require_string(raw_fixture, "kind", label, errors)
+        kind = fixture_common.require_string(raw_fixture, "kind", label, errors)
         if kind not in {"negative", "control"}:
             errors.append(f"{label}: kind must be negative or control")
-        path = safe_fixture_path(require_string(raw_fixture, "path", label, errors), label, errors)
-        require_string(raw_fixture, "description", label, errors)
+        path = fixture_common.safe_fixture_path(fixture_common.require_string(raw_fixture, "path", label, errors), label, errors)
+        fixture_common.require_string(raw_fixture, "description", label, errors)
         expected_findings = raw_fixture.get("expected_findings")
         if not isinstance(expected_findings, list):
             errors.append(f"{label}: expected_findings must be a list")
@@ -139,8 +127,8 @@ def validate_manifest(
             absolute = repo_root / path
             if not fixture_root_valid:
                 absolute = None
-            elif not is_relative_to(absolute, repo_root / FIXTURE_ROOT):
-                errors.append(f"{label}: fixture path resolves outside {FIXTURE_ROOT.as_posix()}")
+            elif not fixture_common.is_relative_to(absolute, repo_root / fixture_common.FIXTURE_ROOT):
+                errors.append(f"{label}: fixture path resolves outside {fixture_common.FIXTURE_ROOT.as_posix()}")
                 absolute = None
                 usable_path = False
             elif not absolute.exists():
@@ -159,12 +147,12 @@ def validate_manifest(
             if not isinstance(raw_expected, dict):
                 errors.append(f"{expected_label} is not an object")
                 continue
-            check_id = require_string(raw_expected, "check_id", expected_label, errors)
+            check_id = fixture_common.require_string(raw_expected, "check_id", expected_label, errors)
             if check_id and check_id not in check_map:
                 errors.append(f"{expected_label}: unknown check_id {check_id}")
-            rule_name = require_string(raw_expected, "rule_name", expected_label, errors)
-            severity = require_string(raw_expected, "severity", expected_label, errors)
-            risk_class = require_string(raw_expected, "risk_class", expected_label, errors)
+            rule_name = fixture_common.require_string(raw_expected, "rule_name", expected_label, errors)
+            severity = fixture_common.require_string(raw_expected, "severity", expected_label, errors)
+            risk_class = fixture_common.require_string(raw_expected, "risk_class", expected_label, errors)
             if severity and severity not in {"Information", "Warning", "Error"}:
                 errors.append(f"{expected_label}: severity must be Information, Warning, or Error")
             line = raw_expected.get("line")
