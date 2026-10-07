@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List
 
 from lib.gemini_bundle_path_safety import validate_bundle_identity, validate_manifest_paths
 from lib.gemini_bundle_validation_common import (
@@ -26,9 +25,9 @@ def _write_report(
     source_root: Path,
     repo_root: Path,
     manifest: object,
-    checks: Dict[str, object],
-    warnings: List[str],
-    errors: List[str],
+    checks: dict[str, object],
+    warnings: list[str],
+    errors: list[str],
 ) -> int:
     identity = manifest if isinstance(manifest, dict) else {}
     success = not errors
@@ -57,9 +56,9 @@ def validate_bundle(
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    errors: List[str] = []
-    warnings: List[str] = []
-    checks: Dict[str, object] = {}
+    errors: list[str] = []
+    warnings: list[str] = []
+    checks: dict[str, object] = {}
 
     def finish(manifest: object) -> int:
         return _write_report(output_dir, source_root, repo_root, manifest, checks, warnings, errors)

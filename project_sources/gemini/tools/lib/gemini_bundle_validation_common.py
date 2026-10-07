@@ -34,7 +34,7 @@ def load_manifest(source_root: Path) -> Dict:
 
 def derive_bundle_version(
     source_root: Path,
-    manifest: Dict,
+    manifest: dict,
     override: str | None = None,
 ) -> Any:
     """Return the version that names the bundle archive.
