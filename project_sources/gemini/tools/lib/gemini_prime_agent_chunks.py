@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,7 +23,7 @@ class PrimeChunkPlanError(ValueError):
 class PrimeChunk:
     rel: str
     path: Path
-    sha256: str | None
+    sha256: str
 
 
 @dataclass(frozen=True)
@@ -31,11 +32,15 @@ class PrimeChunkPlan:
     target_rel: str
     target_path: Path
     chunks: tuple[PrimeChunk, ...]
-    expected_sha256: str | None
+    expected_sha256: str
 
 
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+
+def _is_sha256(value: object) -> bool:
+    return isinstance(value, str) and re.fullmatch(r'[0-9a-fA-F]{64}', value) is not None
 
 
 def _contained(source_root: Path, value: object, label: str) -> Path:
@@ -106,14 +111,26 @@ def load_chunk_plan(bundle_manifest: dict, source_root: Path) -> PrimeChunkPlan:
         raise PrimeChunkPlanError(
             'Prime chunk source disagreement between selected manifest and bundle topology'
         )
-    chunks = tuple(
-        PrimeChunk(rel, _contained(source_root, rel, 'prime agent chunk path'), entry.get('sha256'))
-        for rel, entry in zip(chunk_rels, entries)
-    )
+    chunks_list = []
+    for rel, entry in zip(chunk_rels, entries):
+        digest = entry.get('sha256')
+        if not _is_sha256(digest):
+            raise PrimeChunkPlanError(
+                f'Prime agent chunk {rel} must have a valid 64-character sha256 digest'
+            )
+        chunks_list.append(
+            PrimeChunk(rel, _contained(source_root, rel, 'prime agent chunk path'), digest.lower())
+        )
 
     reassembly = chunk_manifest.get('reassembly')
     expected_sha = reassembly.get('expected_sha256') if isinstance(reassembly, dict) else None
-    return PrimeChunkPlan(chunk_manifest_rel, target_rel, target_path, chunks, expected_sha)
+    if not _is_sha256(expected_sha):
+        raise PrimeChunkPlanError(
+            'Prime agent reassembly must have a valid 64-character expected_sha256 digest'
+        )
+    return PrimeChunkPlan(
+        chunk_manifest_rel, target_rel, target_path, tuple(chunks_list), expected_sha.lower()
+    )
 
 
 def assemble(plan: PrimeChunkPlan) -> str:
@@ -125,14 +142,14 @@ def assemble(plan: PrimeChunkPlan) -> str:
     for chunk in plan.chunks:
         text = _read_text(chunk.path, f'Prime agent chunk {chunk.rel}')
         actual = sha256_text(text)
-        if chunk.sha256 and actual != chunk.sha256:
+        if actual != chunk.sha256:
             raise PrimeChunkPlanError(
                 f'Chunk sha256 mismatch for {chunk.rel}: expected {chunk.sha256}, got {actual}'
             )
         parts.append(text)
     assembled = ''.join(parts)
     assembled_sha = sha256_text(assembled)
-    if plan.expected_sha256 and assembled_sha != plan.expected_sha256:
+    if assembled_sha != plan.expected_sha256:
         raise PrimeChunkPlanError(
             'Reassembled prime agent sha256 mismatch: '
             f'expected {plan.expected_sha256}, got {assembled_sha}'

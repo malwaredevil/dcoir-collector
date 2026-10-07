@@ -64,7 +64,16 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
         raise BundleZipContractError(
             f'delivery zip could not be read: {zip_path}: {type(exc).__name__}'
         ) from exc
-    payload_rels = [name.split('/', 1)[1] if '/' in name else name for name in names]
+    expected_top_level = zip_path.stem
+    expected_prefix = f'{expected_top_level}/'
+    unexpected_root_entries = [
+        name for name in names if name and not name.startswith(expected_prefix)
+    ]
+    payload_rels = [
+        name[len(expected_prefix):]
+        for name in names
+        if name.startswith(expected_prefix)
+    ]
     prime_matches = [rel for rel in payload_rels if rel == prime_rel]
     leaked_files = [
         rel
@@ -72,9 +81,11 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
         if rel in source_only_files or any(rel.startswith(prefix) for prefix in source_only_dirs)
     ]
     return {
-        'success': len(prime_matches) == 1 and not leaked_files,
+        'success': len(prime_matches) == 1 and not leaked_files and not unexpected_root_entries,
         'zip_path': str(zip_path),
+        'expected_top_level': expected_top_level,
         'entry_count': len(names),
         'prime_agent_entries': prime_matches,
+        'unexpected_root_entries': unexpected_root_entries,
         'source_only_leaks': leaked_files,
     }

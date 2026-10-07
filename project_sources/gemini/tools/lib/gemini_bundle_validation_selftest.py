@@ -78,6 +78,35 @@ class BundleValidatorIntegrityTests(unittest.TestCase):
         self.assertFalse(checks['prime_agent_chunk_integrity'])
         self.assertTrue(any('Chunk sha256 mismatch' in error for error in errors), errors)
 
+    def test_missing_or_malformed_chunk_and_reassembly_digests_fail_closed(self) -> None:
+        manifest_path = self.source / CHUNK_MANIFEST
+        original = json.loads(manifest_path.read_text(encoding='utf-8'))
+        cases = (
+            ('chunk missing', lambda value: value['chunks'][0].pop('sha256', None), 'chunk'),
+            ('chunk malformed', lambda value: value['chunks'][0].update(sha256='bad'), 'chunk'),
+            (
+                'reassembly missing',
+                lambda value: value['reassembly'].pop('expected_sha256', None),
+                'reassembly',
+            ),
+            (
+                'reassembly malformed',
+                lambda value: value['reassembly'].update(expected_sha256='g' * 64),
+                'reassembly',
+            ),
+        )
+        for label, mutate, expected_error in cases:
+            with self.subTest(label=label):
+                candidate = json.loads(json.dumps(original))
+                mutate(candidate)
+                manifest_path.write_text(json.dumps(candidate), encoding='utf-8')
+
+                checks, errors = self.validate_chunks()
+
+                self.assertFalse(checks['prime_agent_chunk_integrity'])
+                self.assertTrue(any(expected_error in error and 'sha256' in error for error in errors), errors)
+        manifest_path.write_text(json.dumps(original), encoding='utf-8')
+
     def leaks_for(self, text: str, where: str) -> list[dict]:
         sub_agent = '01_GEMINI_AGENT_BUILD/Sub_Agent_01.md.txt'
         knowledge = 'knowledge/Knowledge - Probe.md'

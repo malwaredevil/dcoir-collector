@@ -215,6 +215,7 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             self.assertTrue((output_dir / 'DCOIR_Gemini_3_0_6.zip').is_file())
             report = self.read_validator_report(output_dir)
             self.assertEqual(report['checks']['effective_bundle_version'], '3_0_6')
+            self.assertEqual(report['bundle_version'], '3_0_6')
 
     def test_validator_reports_unreadable_manifest_without_traceback(self) -> None:
         with tempfile.TemporaryDirectory() as td:

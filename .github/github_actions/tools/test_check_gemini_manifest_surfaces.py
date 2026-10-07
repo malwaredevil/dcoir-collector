@@ -81,6 +81,18 @@ class GeminiManifestSurfaceHelperTests(unittest.TestCase):
         self.assertIn("required_files", result.stderr)
         self.assertNotIn("missing required source-root files", result.stderr)
 
+    def test_runtime_governance_leak_is_rejected(self) -> None:
+        manifest = json.loads(
+            (self.source_root / MANIFEST_NAME).read_text(encoding="utf-8")
+        )
+        runtime_path = self.source_root / manifest["topology"]["sub_agent_files"][0]
+        runtime_path.write_text(
+            runtime_path.read_text(encoding="utf-8")
+            + "\nselect ircore.get_gemini_research_consultation(...)\n",
+            encoding="utf-8",
+        )
+        self.assert_rejected("runtime-facing Gemini files contain builder/governance source references")
+
 
 if __name__ == "__main__":
     unittest.main()

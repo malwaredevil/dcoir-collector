@@ -87,7 +87,7 @@ class CompiledZipPathTests(unittest.TestCase):
 class InspectBundleZipTests(unittest.TestCase):
     def inspect(self, members: list[str]) -> dict:
         with tempfile.TemporaryDirectory() as td:
-            return inspect_bundle_zip(write_zip(Path(td) / 'b.zip', members), MANIFEST)
+            return inspect_bundle_zip(write_zip(Path(td) / 'B.zip', members), MANIFEST)
 
     def test_exactly_one_prime_and_no_leaks_passes(self) -> None:
         result = self.inspect([f'B/{PRIME}', 'B/00_START_HERE/Quick.md.txt'])
@@ -104,6 +104,13 @@ class InspectBundleZipTests(unittest.TestCase):
         for label, members in cases.items():
             with self.subTest(label=label):
                 self.assertFalse(self.inspect(members)['success'])
+
+    def test_wrong_archive_root_is_rejected_even_with_the_expected_prime_path(self) -> None:
+        result = self.inspect([f'attacker-root/{PRIME}'])
+
+        self.assertFalse(result['success'])
+        self.assertEqual(result['unexpected_root_entries'], [f'attacker-root/{PRIME}'])
+        self.assertEqual(result['prime_agent_entries'], [])
 
     def test_unreadable_zip_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as td:

@@ -28,6 +28,7 @@ def _write_report(
     checks: dict[str, object],
     warnings: list[str],
     errors: list[str],
+    effective_version: object,
 ) -> int:
     identity = manifest if isinstance(manifest, dict) else {}
     success = not errors
@@ -36,7 +37,7 @@ def _write_report(
         'source_root': str(source_root),
         'repo_root': str(repo_root),
         'bundle_name': identity.get('bundle_name'),
-        'bundle_version': identity.get('bundle_version'),
+        'bundle_version': effective_version,
         'checks': checks,
         'warnings': warnings,
         'errors': errors,
@@ -60,8 +61,10 @@ def validate_bundle(
     warnings: list[str] = []
     checks: dict[str, object] = {}
 
-    def finish(manifest: object) -> int:
-        return _write_report(output_dir, source_root, repo_root, manifest, checks, warnings, errors)
+    def finish(manifest: object, effective_version: object = None) -> int:
+        return _write_report(
+            output_dir, source_root, repo_root, manifest, checks, warnings, errors, effective_version
+        )
 
     try:
         manifest = load_manifest(source_root)
@@ -85,7 +88,7 @@ def validate_bundle(
     checks['bundle_identity_safety'] = not identity_errors
     if identity_errors:
         errors.extend(identity_errors)
-        return finish(manifest)
+        return finish(manifest, effective_version)
 
     expected_strategy = 'stored_source_compile_with_direct_knowledge_attachment_generation'
     checks['source_strategy'] = manifest.get('source_strategy')
@@ -98,4 +101,4 @@ def validate_bundle(
     topology, prime_rel, sub_rel_list = validate_topology(manifest, source_root, checks, errors, warnings)
     validate_runtime_surfaces(source_root, repo_root, topology, prime_rel, sub_rel_list, knowledge_sources, checks, errors, warnings)
 
-    return finish(manifest)
+    return finish(manifest, effective_version)
