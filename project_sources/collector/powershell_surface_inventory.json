@@ -918,14 +918,14 @@
           "step_or_action": "Run path-safety self-tests",
           "shell": "pwsh",
           "line_start": 7,
-          "line_end": 27,
-          "command_sha256": "7ba6a926fc0aea60370de90778fae95e60925703eb2ce6973943df3870088e2d",
+          "line_end": 30,
+          "command_sha256": "42ecf3a3224da32ac4113739afc8d6bca22fc77f1b0f33ec01bf15133f25de12",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$selftests = @(\n  'project_sources/agent_runtime/tests/agent_runtime_path_safety_selftest.py'\n  'project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py'\n  'project_sources/gemini/tools/gemini_"
         }
       ],
-      "size_bytes": 1344,
-      "line_count": 30,
-      "sha256": "10074b926c87d96278ddadb3819223e49c1c1c936845ed650c1cb16a6463cdf6"
+      "size_bytes": 1567,
+      "line_count": 33,
+      "sha256": "f3161c43e073eac765cc9294f7d4f6b12134a239bb154d63edbf1157bdd70091"
     },
     {
       "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
