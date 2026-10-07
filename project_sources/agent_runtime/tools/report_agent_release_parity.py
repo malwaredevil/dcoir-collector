@@ -10,6 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from agent_runtime_path_safety import resolve_repo_path
+
 SCHEMA = 'dcoir.agent_runtime.release_parity_report.v1'
 REPORT_VERSION = '1.0.1'
 EXPECTED_TARGET_IDS = (
@@ -69,25 +71,6 @@ def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
     return value
 
 
-def _reject_unfollowable_symlinks(root: Path, relative: Path = Path()) -> None:
-    """Raise OSError when root, or a symlink along root/relative, cannot be followed.
-
-    Path.resolve() raises RuntimeError on symlink loops only before Python 3.13;
-    newer versions return the unresolved path, so each link is followed explicitly.
-    A file below a looping directory stats as missing on Windows, so every link on
-    the path is checked, not just the final component.
-    """
-    os.stat(root)
-    current = root
-    for part in relative.parts:
-        current = current / part
-        if current.is_symlink():
-            try:
-                os.stat(current)
-            except FileNotFoundError:
-                return
-
-
 def _resolve_repo_path(
     repo_root: Path,
     relative_value: str | Path,
@@ -96,29 +79,21 @@ def _resolve_repo_path(
     *,
     require_exists: bool = True,
 ) -> Path | None:
-    relative = Path(relative_value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must be repository-relative without traversal: {relative_value}')
-        return None
+    """Resolve through the shared owner, then require existence for evidence inputs."""
+    value = relative_value.as_posix() if isinstance(relative_value, Path) else relative_value
     try:
         root = repo_root.resolve()
-        _reject_unfollowable_symlinks(root)
+        os.stat(root)
     except (OSError, RuntimeError) as exc:
         errors.append(
             f'{label} repository root could not be resolved: {type(exc).__name__}: {exc}'
         )
         return None
-    try:
-        _reject_unfollowable_symlinks(root, relative)
-        candidate = (root / relative).resolve(strict=False)
-    except (OSError, RuntimeError) as exc:
-        errors.append(f'{label} path could not be resolved: {type(exc).__name__}: {exc}')
-        return None
-    if not candidate.is_relative_to(root):
-        errors.append(f'{label} escapes repository root: {relative_value}')
+    candidate = resolve_repo_path(root, value, label, errors)
+    if candidate is None:
         return None
     if require_exists and not candidate.exists():
-        errors.append(f'Missing {label}: {relative.as_posix()}')
+        errors.append(f'Missing {label}: {value}')
         return None
     return candidate
 
@@ -507,7 +482,7 @@ def build_release_report(
     errors: list[str] = []
     try:
         repo_root = repo_root.resolve()
-        _reject_unfollowable_symlinks(repo_root)
+        os.stat(repo_root)
     except (OSError, RuntimeError) as exc:
         errors.append(f'Repository root could not be resolved: {type(exc).__name__}: {exc}')
         commit, commit_basis = resolve_source_commit(None, source_commit)

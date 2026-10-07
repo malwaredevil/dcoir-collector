@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Shared fail-closed containment for manifest-controlled relative paths.
 
-This module owns root-relative path containment for the agent-runtime package
-builders (build_openai_dcoir_analyst, build_openai_usb_reporting,
-materialize_agent_behavior_adapters, project_agent_knowledge),
-evaluate_gemini_knowledge_consolidation, and the Gemini bundle tooling under
+This module owns root-relative path containment for every manifest-controlled
+path in the agent-runtime tooling (the OpenAI package builders, adapter
+materialization, knowledge projection and consolidation evaluation, release
+parity and the deployment release) and the Gemini bundle tooling under
 project_sources/gemini/tools. Callers keep only their error-reporting adapter:
 resolve_repo_path collects errors, resolve_contained_path raises UnsafePathError.
 
-Two resolvers stay separate on purpose because their contracts differ:
-build_openai_gpt_deployment_release refuses every symlink in a release path, and
-report_agent_release_parity resolves paths that must already exist.
+Callers may add stricter rules on top, never weaker ones: report_agent_release_parity
+also requires the path to exist, and build_openai_gpt_deployment_release reuses
+validate_relative_path_syntax and then refuses any symlink on a path it ships.
 """
 from __future__ import annotations
 

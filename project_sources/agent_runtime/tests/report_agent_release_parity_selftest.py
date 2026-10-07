@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'project_sources/agent_runtime/tools/report_agent_release_parity.py'
+sys.path.insert(0, str(SCRIPT.parent))
 SPEC = importlib.util.spec_from_file_location('report_agent_release_parity', SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise SystemExit('Unable to load report_agent_release_parity.py')
@@ -279,7 +281,21 @@ def test_projection_manifest_path_escape_is_rejected() -> None:
         value['targets']['openai_usb_reporting']['target_manifest_path'] = '../outside.json'
         write_json(root, module.KNOWLEDGE_MANIFEST.as_posix(), value)
         errors, _ = build(root)
-        assert any('without traversal' in error for error in errors), errors
+        assert any('must not be absolute or contain traversal' in error for error in errors), errors
+    finally:
+        td.cleanup()
+
+
+def test_non_string_projection_manifest_path_is_reported_without_crash() -> None:
+    td, root = stage_repo()
+    try:
+        path = root / module.KNOWLEDGE_MANIFEST
+        value = json.loads(path.read_text(encoding='utf-8'))
+        value['targets']['gemini_dcoir_agent']['bundle_manifest'] = 5
+        write_json(root, module.KNOWLEDGE_MANIFEST.as_posix(), value)
+        errors, report = build(root)
+        assert any('must be a non-empty repository-relative path' in error for error in errors), errors
+        assert report['static_parity_status'] == 'fail'
     finally:
         td.cleanup()
 
@@ -301,8 +317,8 @@ def test_projection_manifest_symlink_loop_is_reported_without_crash() -> None:
         except RuntimeError as exc:
             raise AssertionError(f'expected validation error instead of exception: {exc}') from exc
         assert any(
-            'path could not be resolved: RuntimeError:' in error
-            or 'path could not be resolved: OSError:' in error
+            'path could not be resolved: RuntimeError' in error
+            or 'path could not be resolved: OSError' in error
             for error in errors
         ), errors
         assert report['static_parity_status'] == 'fail'
@@ -325,7 +341,7 @@ def test_projection_manifest_below_looping_directory_is_reported() -> None:
         value['targets']['openai_usb_reporting']['target_manifest_path'] = 'loop-dir/manifest.json'
         write_json(root, module.KNOWLEDGE_MANIFEST.as_posix(), value)
         errors, report = build(root)
-        assert any('path could not be resolved: OSError:' in error for error in errors), errors
+        assert any('path could not be resolved: OSError' in error for error in errors), errors
         assert report['static_parity_status'] == 'fail'
     finally:
         td.cleanup()
@@ -423,6 +439,7 @@ def main() -> int:
         test_source_hash_changes_after_source_edit,
         test_knowledge_count_mismatch_is_blocking_gap,
         test_projection_manifest_path_escape_is_rejected,
+        test_non_string_projection_manifest_path_is_reported_without_crash,
         test_projection_manifest_symlink_loop_is_reported_without_crash,
         test_projection_manifest_below_looping_directory_is_reported,
         test_repo_root_symlink_loop_returns_failure_report_without_crash,

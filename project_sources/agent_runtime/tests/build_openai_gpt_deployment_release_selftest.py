@@ -4,12 +4,14 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import sys
 import tempfile
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py"
+sys.path.insert(0, str(SCRIPT.parent))
 SPEC = importlib.util.spec_from_file_location("build_openai_gpt_deployment_release", SCRIPT)
 if SPEC is None or SPEC.loader is None:
     raise SystemExit("Unable to load build_openai_gpt_deployment_release.py")
@@ -525,7 +527,7 @@ def test_repo_source_resolver_rejects_symlink_component_when_supported() -> None
         except (OSError, NotImplementedError):
             return
         errors: list[str] = []
-        resolved = module._resolve_repo_path(
+        resolved = module._resolve_inside(
             repo,
             "linked-source",
             errors,
