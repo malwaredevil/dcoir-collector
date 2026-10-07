@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from lib.gemini_bundle_validation_common import derive_bundle_version
 from lib.gemini_bundle_zip_contract import (
     BundleZipContractError,
     compiled_zip_path,
@@ -71,7 +72,11 @@ def validate_construct(root: Path, output_dir: Path, messages: list[dict[str, st
         # Inspect exactly the compiler-reported zip through the shared contract owner.
         if not process.returncode:
             try:
-                zip_path = compiled_zip_path(build_output_dir)
+                zip_path = compiled_zip_path(
+                    build_output_dir,
+                    expected_bundle_name=manifest.get("bundle_name"),
+                    expected_bundle_version=derive_bundle_version(source_root, manifest),
+                )
                 contract = inspect_bundle_zip(zip_path, manifest)
             except BundleZipContractError as exc:
                 add_message(messages, "error", f"construct zip contract failed: {exc}", repo_relative(source_root, root))

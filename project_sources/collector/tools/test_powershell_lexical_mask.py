@@ -65,6 +65,11 @@ class MaskTests(unittest.TestCase):
         self.assertEqual(mask_powershell_non_code(source), source)
         self.assertEqual(mask_powershell_non_code(source, mask_backtick_escapes=True), 'a  b')
 
+    def test_default_mask_preserves_backtick_escapes_without_scanning_escaped_char(self) -> None:
+        for source in ('$x = `#; Visible-Cmd', '$x = `" ; Visible-Cmd'):
+            with self.subTest(source=source):
+                self.assertEqual(mask_powershell_non_code(source), source)
+
 
 class GateTests(unittest.TestCase):
     def test_every_gate_uses_the_shared_mask(self) -> None:
@@ -77,10 +82,12 @@ class GateTests(unittest.TestCase):
                 self.assertIs(module.mask_powershell_non_code, mask_powershell_non_code)
 
     def test_convert_to_json_gate_sees_call_after_escaped_backtick_string(self) -> None:
-        calls = validate_dcoir_runtime_common.find_convert_to_json_calls(
-            'x.ps1', '$a = "a``"; $b | ConvertTo-Json\n'
-        )
-        self.assertEqual([call['line'] for call in calls], [1])
+        for escaped in ('#', '"'):
+            with self.subTest(escaped=escaped):
+                calls = validate_dcoir_runtime_common.find_convert_to_json_calls(
+                    'x.ps1', f'$a = `{escaped}; $b | ConvertTo-Json\n'
+                )
+                self.assertEqual([call['line'] for call in calls], [1])
 
     def test_event_query_gate_sees_command_after_single_quoted_backtick(self) -> None:
         spans = event_text_query_bound_common.extract_powershell_command_spans(

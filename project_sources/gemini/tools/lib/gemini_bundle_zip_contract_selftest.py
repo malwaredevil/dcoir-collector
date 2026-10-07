@@ -51,7 +51,14 @@ class CompiledZipPathTests(unittest.TestCase):
         self.assertGreater(stale.name, fresh.name)
         self.report({'zip_path': str(fresh), 'bundle_name': 'Bundle', 'bundle_version': '3_0_10'})
 
-        self.assertEqual(compiled_zip_path(self.out), fresh)
+        self.assertEqual(
+            compiled_zip_path(
+                self.out,
+                expected_bundle_name='Bundle',
+                expected_bundle_version='3_0_10',
+            ),
+            fresh,
+        )
 
     def test_missing_or_unusable_report_fails_closed(self) -> None:
         cases = [
@@ -81,7 +88,28 @@ class CompiledZipPathTests(unittest.TestCase):
                 elif value is not None:
                     self.report(value)
                 with self.assertRaisesRegex(BundleZipContractError, message):
-                    compiled_zip_path(self.out)
+                    compiled_zip_path(
+                        self.out,
+                        expected_bundle_name='Bundle',
+                        expected_bundle_version='1',
+                    )
+
+    def test_report_identity_must_match_manifest_identity(self) -> None:
+        wrong_zip = write_zip(self.out / 'Attacker_1.zip', [f'Attacker/{PRIME}'])
+        self.report(
+            {
+                'zip_path': str(wrong_zip),
+                'bundle_name': 'Attacker',
+                'bundle_version': '1',
+            }
+        )
+
+        with self.assertRaisesRegex(BundleZipContractError, 'does not match the expected manifest identity'):
+            compiled_zip_path(
+                self.out,
+                expected_bundle_name='Bundle',
+                expected_bundle_version='1',
+            )
 
 
 class InspectBundleZipTests(unittest.TestCase):
@@ -104,6 +132,24 @@ class InspectBundleZipTests(unittest.TestCase):
         for label, members in cases.items():
             with self.subTest(label=label):
                 self.assertFalse(self.inspect(members)['success'])
+
+    def test_unsafe_archive_member_paths_fail(self) -> None:
+        cases = (
+            '/B/absolute.txt',
+            'B/../unexpected.txt',
+            'B/./unexpected.txt',
+            'B//unexpected.txt',
+            'B/..\\unexpected.txt',
+            'C:/outside.txt',
+        )
+        for member in cases:
+            with self.subTest(member=member):
+                result = self.inspect([f'B/{PRIME}', member])
+                self.assertFalse(result['success'], result)
+                self.assertTrue(
+                    result['unsafe_member_names'] or result['unexpected_root_entries'],
+                    result,
+                )
 
     def test_wrong_archive_root_is_rejected_even_with_the_expected_prime_path(self) -> None:
         result = self.inspect([f'attacker-root/{PRIME}'])

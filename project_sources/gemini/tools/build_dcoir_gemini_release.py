@@ -7,7 +7,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from lib.gemini_bundle_validation_common import load_manifest, resolve_repo_root
+from lib.gemini_bundle_validation_common import (
+    derive_bundle_version,
+    load_manifest,
+    resolve_repo_root,
+)
 from lib.gemini_bundle_zip_contract import (
     BundleZipContractError,
     compiled_zip_path,
@@ -158,7 +162,15 @@ def main() -> int:
 
     # Inspect and deliver exactly the zip the compiler reported, never one picked by name.
     try:
-        zip_contract = inspect_bundle_zip(compiled_zip_path(output_dir), manifest)
+        expected_bundle_version = derive_bundle_version(source_root, manifest, args.version)
+        zip_contract = inspect_bundle_zip(
+            compiled_zip_path(
+                output_dir,
+                expected_bundle_name=manifest.get('bundle_name'),
+                expected_bundle_version=expected_bundle_version,
+            ),
+            manifest,
+        )
     except BundleZipContractError as exc:
         zip_contract = {'success': False, 'error': str(exc)}
     steps.append({'name': 'inspect_gemini_zip_contract', 'returncode': 0 if zip_contract.get('success') else 1, 'report': zip_contract})

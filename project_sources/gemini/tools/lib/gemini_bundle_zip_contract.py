@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import zipfile
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 COMPILE_REPORT_NAME = 'compile_dcoir_gemini_bundle_report.json'
@@ -21,7 +21,12 @@ class BundleZipContractError(ValueError):
     """Raised when the compiled delivery zip cannot be identified or read."""
 
 
-def compiled_zip_path(output_dir: Path) -> Path:
+def compiled_zip_path(
+    output_dir: Path,
+    *,
+    expected_bundle_name: str,
+    expected_bundle_version: str,
+) -> Path:
     """Return the zip the compiler reported writing into output_dir."""
     report_path = output_dir / COMPILE_REPORT_NAME
     try:
@@ -33,6 +38,14 @@ def compiled_zip_path(output_dir: Path) -> Path:
     zip_value = report.get('zip_path') if isinstance(report, dict) else None
     if not isinstance(zip_value, str) or not zip_value:
         raise BundleZipContractError(f'{COMPILE_REPORT_NAME} does not report a zip_path')
+    if (
+        report.get('bundle_name') != expected_bundle_name
+        or report.get('bundle_version') != expected_bundle_version
+    ):
+        raise BundleZipContractError(
+            f'{COMPILE_REPORT_NAME} bundle identity does not match the expected manifest identity '
+            f'{expected_bundle_name!r}_{expected_bundle_version!r}'
+        )
     zip_path = Path(zip_value)
     expected_name = f"{report.get('bundle_name')}_{report.get('bundle_version')}.zip"
     if zip_path.name != expected_name:
@@ -66,14 +79,22 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
         ) from exc
     expected_top_level = zip_path.stem
     expected_prefix = f'{expected_top_level}/'
-    unexpected_root_entries = [
-        name for name in names if name and not name.startswith(expected_prefix)
-    ]
-    payload_rels = [
-        name[len(expected_prefix):]
-        for name in names
-        if name.startswith(expected_prefix)
-    ]
+    unexpected_root_entries = []
+    unsafe_member_names = []
+    payload_rels = []
+    for name in names:
+        windows_path = PureWindowsPath(name)
+        if not name or '\\' in name or name.startswith('/') or windows_path.drive:
+            unsafe_member_names.append(name)
+            continue
+        if not name.startswith(expected_prefix):
+            unexpected_root_entries.append(name)
+            continue
+        rel = name[len(expected_prefix):]
+        if not rel or any(part in ('', '.', '..') for part in rel.split('/')):
+            unsafe_member_names.append(name)
+            continue
+        payload_rels.append(rel)
     prime_matches = [rel for rel in payload_rels if rel == prime_rel]
     leaked_files = [
         rel
@@ -81,11 +102,17 @@ def inspect_bundle_zip(zip_path: Path, manifest: dict[str, Any]) -> dict[str, An
         if rel in source_only_files or any(rel.startswith(prefix) for prefix in source_only_dirs)
     ]
     return {
-        'success': len(prime_matches) == 1 and not leaked_files and not unexpected_root_entries,
+        'success': (
+            len(prime_matches) == 1
+            and not leaked_files
+            and not unexpected_root_entries
+            and not unsafe_member_names
+        ),
         'zip_path': str(zip_path),
         'expected_top_level': expected_top_level,
         'entry_count': len(names),
         'prime_agent_entries': prime_matches,
         'unexpected_root_entries': unexpected_root_entries,
+        'unsafe_member_names': unsafe_member_names,
         'source_only_leaks': leaked_files,
     }

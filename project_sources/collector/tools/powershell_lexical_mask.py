@@ -88,12 +88,16 @@ def mask_powershell_non_code(text: str, *, mask_backtick_escapes: bool = False) 
                 index += 1
             continue
 
-        if mask_backtick_escapes and char == '`':
-            out.append(' ')
+        if char == '`':
             if index + 1 < length:
-                out.append(_blank(nxt))
+                if mask_backtick_escapes:
+                    out.append(' ')
+                    out.append(_blank(nxt))
+                else:
+                    out.extend((char, nxt))
                 index += 2
             else:
+                out.append(' ' if mask_backtick_escapes else char)
                 index += 1
             continue
 

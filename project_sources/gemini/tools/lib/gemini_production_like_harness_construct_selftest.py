@@ -42,6 +42,8 @@ class ValidateConstructTests(unittest.TestCase):
             )
             compiler_zip = build_output_dir / "Bundle_1.zip"
             manifest = {
+                "bundle_name": "Bundle",
+                "bundle_version": "1",
                 "topology": {
                     "prime_agent_file": PRIME,
                     "sub_agent_files": [],
