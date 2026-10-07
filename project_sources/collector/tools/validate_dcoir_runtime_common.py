@@ -7,6 +7,8 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
+from powershell_lexical_mask import mask_powershell_non_code
+
 MANIFEST_NAME = 'Collector_Runtime_Package_Manifest.json'
 FUNCTION_PATTERN = re.compile(r'^\s*function\s+([-A-Za-z0-9_]+)\b', re.MULTILINE)
 
@@ -69,82 +71,6 @@ def extract_function_body(text: str, function_name: str) -> str:
             if depth == 0:
                 return text[brace_start:index + 1]
     return text[brace_start:]
-
-
-def mask_powershell_non_code(text: str) -> str:
-    output: List[str] = []
-    index = 0
-    quote_char = ''
-    block_comment = False
-    here_string_end = ''
-    at_line_start = True
-    while index < len(text):
-        char = text[index]
-        next_char = text[index + 1] if index + 1 < len(text) else ''
-        if here_string_end:
-            if at_line_start and char == here_string_end and next_char == '@':
-                output.extend((' ', ' '))
-                here_string_end = ''
-                index += 2
-                at_line_start = False
-                continue
-            output.append('\n' if char == '\n' else ' ')
-            at_line_start = char == '\n'
-            index += 1
-            continue
-        if block_comment:
-            if char == '#' and next_char == '>':
-                output.extend((' ', ' '))
-                block_comment = False
-                index += 2
-                at_line_start = False
-                continue
-            output.append('\n' if char == '\n' else ' ')
-            at_line_start = char == '\n'
-            index += 1
-            continue
-        if quote_char:
-            if char == quote_char:
-                if quote_char == "'" and index + 1 < len(text) and text[index + 1] == "'":
-                    output.extend((' ', ' '))
-                    index += 2
-                    continue
-                if quote_char == '"' and index > 0 and text[index - 1] == '`':
-                    output.append(' ')
-                    index += 1
-                    continue
-                quote_char = ''
-            output.append('\n' if char == '\n' else ' ')
-            at_line_start = char == '\n'
-            index += 1
-            continue
-        if char == '@' and next_char in ("'", '"'):
-            output.extend((' ', ' '))
-            here_string_end = next_char
-            index += 2
-            at_line_start = False
-            continue
-        if char == '<' and next_char == '#':
-            output.extend((' ', ' '))
-            block_comment = True
-            index += 2
-            at_line_start = False
-            continue
-        if char == '#':
-            while index < len(text) and text[index] != '\n':
-                output.append(' ')
-                index += 1
-            continue
-        if char in ("'", '"'):
-            quote_char = char
-            output.append(' ')
-            index += 1
-            at_line_start = False
-            continue
-        output.append(char)
-        at_line_start = char == '\n'
-        index += 1
-    return ''.join(output)
 
 
 def find_convert_to_json_calls(rel: str, text: str) -> List[Dict[str, object]]:

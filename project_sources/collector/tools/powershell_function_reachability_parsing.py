@@ -14,6 +14,7 @@ from powershell_function_reachability_contract import (
     normalize_newlines,
     scalar,
 )
+from powershell_lexical_mask import mask_powershell_non_code
 
 
 def powershell_backtick_tolerant_literal(value: str) -> str:
@@ -41,91 +42,6 @@ def captured_text(value: Any, limit: int = 240) -> str:
 
 def has_dynamic_command_text(text: str) -> bool:
     return AST_DYNAMIC_TEXT_RE.search(text) is not None or any(pattern.search(text) for _kind, pattern in DYNAMIC_PATTERNS)
-
-
-def mask_powershell_non_code(text: str) -> str:
-    """Mask comments and string bodies while preserving line/column layout."""
-    chars = list(normalize_newlines(text))
-    i = 0
-    state = "code"
-    quote = ""
-    here_end = ""
-    while i < len(chars):
-        ch = chars[i]
-        nxt = chars[i + 1] if i + 1 < len(chars) else ""
-        if state == "code":
-            if ch == "<" and nxt == "#":
-                chars[i] = chars[i + 1] = " "
-                i += 2
-                state = "block_comment"
-                continue
-            if ch == "#":
-                while i < len(chars) and chars[i] != "\n":
-                    chars[i] = " "
-                    i += 1
-                continue
-            if ch == "@" and nxt in {"'", '"'}:
-                quote = nxt
-                here_end = nxt + "@"
-                chars[i] = chars[i + 1] = " "
-                i += 2
-                state = "here_string"
-                continue
-            if ch in {"'", '"'}:
-                quote = ch
-                chars[i] = " "
-                i += 1
-                state = "string"
-                continue
-            i += 1
-            continue
-        if state == "block_comment":
-            if ch == "#" and nxt == ">":
-                chars[i] = chars[i + 1] = " "
-                i += 2
-                state = "code"
-                continue
-            if ch != "\n":
-                chars[i] = " "
-            i += 1
-            continue
-        if state == "string":
-            if ch == "`":
-                chars[i] = " "
-                if i + 1 < len(chars) and chars[i + 1] != "\n":
-                    chars[i + 1] = " "
-                    i += 2
-                else:
-                    i += 1
-                continue
-            if ch == quote:
-                if quote == "'" and nxt == "'":
-                    chars[i] = chars[i + 1] = " "
-                    i += 2
-                    continue
-                chars[i] = " "
-                i += 1
-                state = "code"
-                continue
-            if ch != "\n":
-                chars[i] = " "
-            i += 1
-            continue
-        if state == "here_string":
-            at_line_start = i == 0 or chars[i - 1] == "\n"
-            if at_line_start:
-                probe_end = i + len(here_end)
-                if "".join(chars[i:probe_end]) == here_end:
-                    for j in range(i, probe_end):
-                        chars[j] = " "
-                    i = probe_end
-                    state = "code"
-                    continue
-            if ch != "\n":
-                chars[i] = " "
-            i += 1
-            continue
-    return "".join(chars)
 
 
 def brace_depths(masked: str) -> list[int]:

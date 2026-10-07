@@ -806,14 +806,14 @@
           "step_or_action": "Run collector runtime package validation",
           "shell": "pwsh",
           "line_start": 11,
-          "line_end": 25,
-          "command_sha256": "5af894d97817ecea3705347738b795a1a469375c9921dcd38db080dd1ae80ef2",
-          "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path $env:COLLECTOR_VALIDATION_OUTPUT_DIR | Out-Null\npython project_sources/collector/tools/validate_dcoir_collector_runtime_package.py --source-dir . --output-dir $env:CO"
+          "line_end": 29,
+          "command_sha256": "584c9e032190b3bb195a5ec3ec1b4d67eb911ccf68f1148f221d3505e6932fa9",
+          "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path $env:COLLECTOR_VALIDATION_OUTPUT_DIR | Out-Null\npython project_sources/collector/tools/test_powershell_lexical_mask.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'PowerShell "
         }
       ],
-      "size_bytes": 1339,
-      "line_count": 27,
-      "sha256": "035ea99fe8e49dffc0f0c9e408c07072a969849ea9a22f88d60c47bffd0f451d"
+      "size_bytes": 1519,
+      "line_count": 31,
+      "sha256": "cdd0bf7016c0c2fb8d504879c054ba3db472c80f9799d078844c3dc0fa2cefc9"
     },
     {
       "path": ".github/actions/run-dcoir-pester/action.yml",
