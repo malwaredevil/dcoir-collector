@@ -265,24 +265,21 @@ Each guard covers a recurrence the audit demonstrated:
 
 ## Follow-ups
 
-The confirmed follow-ups are listed in the decision table. Group them into
-issue-sized work:
+The confirmed follow-ups are filed as sub-issues of #223. Each issue re-verifies its findings at
+the PR #603 head and gives bounded slices, parity evidence and acceptance criteria.
 
-1. **Replay scorer polarity** (gemini-lib-replay-1, -6, -7, -8, -9).
-2. **OpenAI package builder consolidation** (agent-runtime-1, -3, -4, -9).
-   It should land after PR #603, which owns the shared path-safety module
-   they use.
-3. **One PowerShell analyzer owner** (collector-helpers-2,
-   operator-workflow-tooling-1).
-4. **Run the collector tool test suites in CI** (collector-helpers-4,
-   agent-runtime-5, and the apply-patch selftest). This needs workflow
-   approval.
-5. **Workflow-surface cleanup** (operator-workflow-tooling-5 inputs, -6, -7,
-   -8, -10, -11, -12). This needs workflow approval.
-6. **Gemini client and validator helper consolidation** (gemini-entrypoints-2,
-   -3, -4, -8, -9, -10, gemini-lib-other-4, -5, -6, -8, -9).
-7. **Collector helper consolidation** (collector-helpers-5, -6, -7, -9, -10,
-   -11).
+| Issue | Scope | Finding ids |
+| --- | --- | --- |
+| #604 | Replay scorer marker polarity | gemini-lib-replay-1, -6, -7, -8, -9 |
+| #605 | OpenAI GPT package builders, WebUI limits and release identity | agent-runtime-1, -3, -4, -8, -9 |
+| #606 | One PowerShell analyzer report owner | collector-helpers-2, operator-workflow-tooling-1 |
+| #607 | Run the collector tool test suites and apply-patch selftest in CI | collector-helpers-4, agent-runtime-5 |
+| #608 | Workflow-surface owner consolidation | operator-workflow-tooling-5, -6, -7, -8, -10, -11, -12 |
+| #609 | Gemini replay, comparison and build-validation helpers | gemini-entrypoints-2, -3, -4, -8, -9, -10, gemini-lib-other-4, -5, -6, -8, -9, gemini-lib-replay-3 |
+| #610 | Collector helper tooling and default no-flags coverage | collector-helpers-5, -6, -7, -9, -10, -11 |
+
+#607 and #608 need explicit operator approval for workflow changes, as do individual slices of
+#605, #606, #609 and #610.
 
 ## Pre-existing issues observed
 
