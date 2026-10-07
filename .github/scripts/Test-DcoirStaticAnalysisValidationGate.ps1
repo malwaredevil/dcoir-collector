@@ -7,6 +7,27 @@ param(
 $ErrorActionPreference = 'Stop'
 $failures = [System.Collections.Generic.List[string]]::new()
 
+# A missing or malformed count fails the gate instead of reading as zero, so a
+# producer that stops emitting a summary field cannot turn the gate into a pass.
+function Get-DcoirReportSummaryCount {
+  param(
+    [object]$Report,
+    [string]$Field,
+    [string]$Label
+  )
+  $summary = $Report.summary
+  if ($null -eq $summary -or $null -eq $summary.PSObject.Properties[$Field]) {
+    $failures.Add("$Label report summary is missing $Field.")
+    return 0
+  }
+  $value = $summary.$Field
+  if (-not ($value -is [int] -or $value -is [long]) -or $value -lt 0) {
+    $failures.Add("$Label report summary.$Field must be a non-negative integer.")
+    return 0
+  }
+  return [int]$value
+}
+
 if (-not (Test-Path -LiteralPath $AnalyzerPath)) {
   $failures.Add("PSScriptAnalyzer report missing: $AnalyzerPath")
 } else {
@@ -15,10 +36,7 @@ if (-not (Test-Path -LiteralPath $AnalyzerPath)) {
     $failures.Add('PSScriptAnalyzer validation did not report success.')
   }
 
-  $errorCount = 0
-  if ($null -ne $analyzer.summary.error_count) {
-    $errorCount = [int]$analyzer.summary.error_count
-  }
+  $errorCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'error_count' -Label 'PSScriptAnalyzer'
   if ($errorCount -gt 0) {
     $failures.Add("PSScriptAnalyzer reported $errorCount Error-severity finding(s).")
   }
@@ -32,15 +50,8 @@ if (-not (Test-Path -LiteralPath $DuplicatePath)) {
     $failures.Add('Duplicate-function validation did not report success.')
   }
 
-  $duplicateCount = 0
-  if ($null -ne $duplicate.summary.duplicate_function_count) {
-    $duplicateCount = [int]$duplicate.summary.duplicate_function_count
-  }
-
-  $parseFailureCount = 0
-  if ($null -ne $duplicate.summary.parse_failure_count) {
-    $parseFailureCount = [int]$duplicate.summary.parse_failure_count
-  }
+  $duplicateCount = Get-DcoirReportSummaryCount -Report $duplicate -Field 'duplicate_function_count' -Label 'Duplicate-function'
+  $parseFailureCount = Get-DcoirReportSummaryCount -Report $duplicate -Field 'parse_failure_count' -Label 'Duplicate-function'
 
   if ($parseFailureCount -gt 0) {
     $failures.Add("Duplicate-function report has $parseFailureCount parse failure(s).")
