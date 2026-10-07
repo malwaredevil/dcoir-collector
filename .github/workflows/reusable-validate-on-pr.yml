@@ -200,6 +200,9 @@ jobs:
         with:
           profile: validate_on_pr
 
+      - name: Run path-safety self-tests
+        uses: ./.github/actions/run-path-safety-selftests
+
       - name: Smoke-test Gemini bundle build algorithm
         uses: ./.github/actions/smoke-build-gemini-bundle
         with:

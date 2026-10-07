@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Any, Dict, List
 
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
 AGENT_DIR = '01_GEMINI_AGENT_BUILD'
@@ -14,7 +14,8 @@ RUNTIME_GOVERNANCE_LEAK_PATTERNS = {
     'gemini_research_reference': r'\bGemini Research Reference\b',
     'airtable_idea_inbox': r'\bAirtable Idea Inbox\b',
     'source_prompt_record': r'\bIDEA-[0-9]{8}-[A-Z0-9-]+\b',
-    'ircore_gemini_research_surface': r'\bircore\.(?:gemini_research_findings|gemini_research_consultation_receipts|get_gemini_research_consultation_v1|get_gemini_research_receipt_v1)\b',
+    # Canonical ircore names are unversioned; also catch any retired _vN spelling.
+    'ircore_gemini_research_surface': r'\bircore\.(?:gemini_research_findings|gemini_research_consultation_receipts|get_gemini_research_(?:consultation|receipt)(?:_v\d+)?)\b',
     'gemini_builder_governance': r'\bGemini Builder Governance Rule\b',
 }
 VISIBILITY_CHECKS = {
@@ -32,7 +33,33 @@ def load_manifest(source_root: Path) -> Dict:
     return json.loads((source_root / MANIFEST_NAME).read_text(encoding='utf-8'))
 
 
+def derive_bundle_version(
+    source_root: Path,
+    manifest: dict,
+    override: str | None = None,
+) -> Any:
+    """Return the version that names the bundle archive.
+
+    Precedence: an explicit override, then the generated index's
+    "Bundle version:" line, then the manifest's bundle_version. Call this only
+    after validate_manifest_paths has accepted the manifest.
+    """
+    if override:
+        return override
+    topology = manifest.get('topology')
+    index_rel = topology.get('generated_index_file') if isinstance(topology, dict) else None
+    if index_rel:
+        index_path = source_root / index_rel
+        if index_path.is_file():
+            text = index_path.read_text(encoding='utf-8', errors='ignore')
+            match = re.search(r'(?m)^Bundle version:\s*([0-9_]+)\s*$', text)
+            if match:
+                return match.group(1)
+    return manifest.get('bundle_version')
+
+
 def resolve_repo_root(source_root: Path) -> Path:
+    # source_root is <repo>/project_sources/gemini/bundle_source.
     return source_root.parent.parent.parent
 
 

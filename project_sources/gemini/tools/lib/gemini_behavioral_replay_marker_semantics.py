@@ -95,7 +95,10 @@ def augment_semantic_marker_matches(
                 continue
             prefix = lowered[max(0, occurrence.start() - 120):occurrence.start()]
             action = GOVERNED_SOURCE_ACTION_SCOPE.search(prefix)
-            if action and DIRECT_REJECTION_PREFIX.search(prefix[max(0, action.start() - 40):action.start()]):
+            if action and (
+                DIRECT_REJECTION_PREFIX.search(prefix[max(0, action.start() - 40):action.start()])
+                or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start())
+            ):
                 continue
             if not action and (
                 _occurrence_is_negated(lowered, occurrence.start())

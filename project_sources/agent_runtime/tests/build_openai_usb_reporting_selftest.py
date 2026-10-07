@@ -4,12 +4,14 @@ from __future__ import annotations
 import importlib.util
 import json
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
+sys.path.insert(0, str(SCRIPT.parent))
 RELEASE_REPORTER = ROOT / 'project_sources/agent_runtime/tools/report_agent_release_parity.py'
 RELEASE_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
 USB_SEMANTIC_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'
@@ -270,7 +272,7 @@ def test_path_below_looping_directory_is_rejected() -> None:
         except (NotImplementedError, OSError):
             return
         errors: list[str] = []
-        resolved = module._resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
+        resolved = module.resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
         assert resolved is None, resolved
         assert any('probe path could not be resolved: OSError' in error for error in errors), errors
     finally:

@@ -7,6 +7,7 @@ import sys
 import traceback
 
 from dcoir_manual_runner_checks import (
+    cleanup_transient_framework_artifacts,
     compare_admin_nonadmin,
     final_signoff,
     record_t2_pathway_note,

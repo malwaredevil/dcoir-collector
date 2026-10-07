@@ -5,10 +5,31 @@ import json
 import unittest.mock
 from pathlib import Path
 
+import powershell_rule_risk_fixtures_common as fixture_common
 from powershell_rule_risk_fixtures_test_support import RuleRiskFixtureTestCase, harness, write
 
 
 class PowerShellRuleRiskFixturePathSafetyTests(RuleRiskFixtureTestCase):
+    def test_fixture_hashing_goes_through_the_patched_owner(self) -> None:
+        # Positive control: without it the "is not hashed" tests below could pass
+        # vacuously if fixture hashing stopped going through sha256_file.
+        hashed: list[Path] = []
+        original_sha256_file = fixture_common.sha256_file
+
+        def recording_sha256(path: Path) -> str:
+            hashed.append(path.resolve())
+            return original_sha256_file(path)
+
+        with self.make_repo() as temp:
+            root = Path(temp).resolve()
+            with unittest.mock.patch.object(fixture_common, "sha256_file", side_effect=recording_sha256):
+                report, errors, _warnings, _matrix = harness.build_fixture_report(self.args(root))
+
+            fixture_root = (root / harness.FIXTURE_ROOT).resolve()
+        self.assertEqual(errors, [])
+        self.assertTrue(report["validation"]["success"])
+        self.assertTrue(any(path.is_relative_to(fixture_root) for path in hashed), hashed)
+
     def test_unsafe_absolute_fixture_path_is_not_hashed(self) -> None:
         with self.make_repo(matrix_fixtures=["bad-write-host", "outside-fixture"]) as temp:
             root = Path(temp)
@@ -34,14 +55,14 @@ class PowerShellRuleRiskFixturePathSafetyTests(RuleRiskFixtureTestCase):
                 }
             )
             write(manifest_path, json.dumps(manifest, indent=2) + "\n")
-            original_sha256_file = harness.sha256_file
+            original_sha256_file = fixture_common.sha256_file
 
             def guarded_sha256(path: Path) -> str:
                 if path.resolve() == outside.resolve():
                     raise AssertionError("unsafe hash attempted")
                 return original_sha256_file(path)
 
-            with unittest.mock.patch.object(harness, "sha256_file", side_effect=guarded_sha256):
+            with unittest.mock.patch.object(fixture_common, "sha256_file", side_effect=guarded_sha256):
                 report, errors, _warnings, _matrix = harness.build_fixture_report(self.args(root))
 
         self.assertFalse(report["validation"]["success"])
@@ -74,14 +95,14 @@ class PowerShellRuleRiskFixturePathSafetyTests(RuleRiskFixtureTestCase):
             )
             write(manifest_path, json.dumps(manifest, indent=2) + "\n")
             unsafe = root / "project_sources/collector/fixtures/outside.ps1"
-            original_sha256_file = harness.sha256_file
+            original_sha256_file = fixture_common.sha256_file
 
             def guarded_sha256(path: Path) -> str:
                 if path.resolve() == unsafe.resolve():
                     raise AssertionError("unsafe hash attempted")
                 return original_sha256_file(path)
 
-            with unittest.mock.patch.object(harness, "sha256_file", side_effect=guarded_sha256):
+            with unittest.mock.patch.object(fixture_common, "sha256_file", side_effect=guarded_sha256):
                 report, errors, _warnings, _matrix = harness.build_fixture_report(self.args(root))
 
         self.assertFalse(report["validation"]["success"])
@@ -119,14 +140,14 @@ class PowerShellRuleRiskFixturePathSafetyTests(RuleRiskFixtureTestCase):
                 }
             )
             write(manifest_path, json.dumps(manifest, indent=2) + "\n")
-            original_sha256_file = harness.sha256_file
+            original_sha256_file = fixture_common.sha256_file
 
             def guarded_sha256(path: Path) -> str:
                 if path.resolve() == outside.resolve():
                     raise AssertionError("unsafe hash attempted")
                 return original_sha256_file(path)
 
-            with unittest.mock.patch.object(harness, "sha256_file", side_effect=guarded_sha256):
+            with unittest.mock.patch.object(fixture_common, "sha256_file", side_effect=guarded_sha256):
                 report, errors, _warnings, _matrix = harness.build_fixture_report(self.args(root))
 
         self.assertFalse(report["validation"]["success"])
@@ -144,14 +165,14 @@ class PowerShellRuleRiskFixturePathSafetyTests(RuleRiskFixtureTestCase):
             except (NotImplementedError, OSError) as exc:
                 self.skipTest(f"symlink creation is unavailable: {exc}")
             unsafe = redirected_root / "bad/write_host.ps1"
-            original_sha256_file = harness.sha256_file
+            original_sha256_file = fixture_common.sha256_file
 
             def guarded_sha256(path: Path) -> str:
                 if path.resolve() == unsafe.resolve():
                     raise AssertionError("unsafe hash attempted")
                 return original_sha256_file(path)
 
-            with unittest.mock.patch.object(harness, "sha256_file", side_effect=guarded_sha256):
+            with unittest.mock.patch.object(fixture_common, "sha256_file", side_effect=guarded_sha256):
                 report, errors, _warnings, _matrix = harness.build_fixture_report(self.args(root))
 
         self.assertFalse(report["validation"]["success"])
@@ -183,14 +204,14 @@ class PowerShellRuleRiskFixturePathSafetyTests(RuleRiskFixtureTestCase):
                 }
             )
             write(manifest_path, json.dumps(manifest, indent=2) + "\n")
-            original_sha256_file = harness.sha256_file
+            original_sha256_file = fixture_common.sha256_file
 
             def guarded_sha256(path: Path) -> str:
                 if path.resolve() == directory_fixture.resolve():
                     raise AssertionError("unsafe hash attempted")
                 return original_sha256_file(path)
 
-            with unittest.mock.patch.object(harness, "sha256_file", side_effect=guarded_sha256):
+            with unittest.mock.patch.object(fixture_common, "sha256_file", side_effect=guarded_sha256):
                 report, errors, _warnings, _matrix = harness.build_fixture_report(self.args(root))
 
         self.assertFalse(report["validation"]["success"])

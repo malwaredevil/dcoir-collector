@@ -140,7 +140,7 @@
           },
           "parse": {
             "errors": [],
-            "line_count": 3037,
+            "line_count": 3120,
             "method": "static_balance_check",
             "native_parser_available": false,
             "success": true
@@ -153,13 +153,13 @@
       "summary": {
         "collector_source_part_count": 43,
         "generated_output_count": 2,
-        "harness_source_part_count": 17,
+        "harness_source_part_count": 18,
         "parity_status": "pass",
         "parity_success_count": 2,
         "parse_status": "pass",
         "parse_success_count": 2,
-        "source_input_count": 61,
-        "source_part_count": 60
+        "source_input_count": 62,
+        "source_part_count": 61
       }
     },
     "custom_checks": {
@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-07-14T18:37:43+00:00",
+    "generated_at_utc": "2026-10-07T14:07:19+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -1736,6 +1736,20 @@
       },
       {
         "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/chatgpt-exec-failure-semantics-validation-20260831T132700Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/chatgpt-exec-powershell-exit-diagnostic-20260831T140800Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
         "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T120800Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
@@ -1772,6 +1786,48 @@
       {
         "category": "staging_artifact",
         "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-fix-guidance-normalization-20260627T124000Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v30-validation-20260830T141500Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v39-codeql-dispatch-20260831T123800Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v39-focused-validation-20260831T123200Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v39-full-validation-20260831T123600Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v40-focused-validation-20260831T132100Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/dcoir-review-v40-full-validation-20260831T132300Z.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
@@ -2156,6 +2212,825 @@
       },
       {
         "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue421_dcoir_path_hardening.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue421_delivery_root_safety_fix.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue421_delivery_root_safety_fix_v2.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue421_openai_bundle_governance_and_validation.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue421_openai_bundle_governance_and_validation_v2.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue421_openai_bundle_governance_and_validation_v3.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue428_openai_version_paste_safe.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue428_openai_version_paste_safe_v2.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue428_openai_version_paste_safe_v3.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue457-obsolete-branch-cleanup-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue457-pr493-credit-aware-exact-head-validation-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue457-pr493-credit-aware-exact-head-validation-rerun1-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue457-pr493-credit-aware-exact-head-validation-rerun2-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue457-pr493-credit-aware-exact-head-validation-rerun3-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue480-postmerge-validation-20260905.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue482-pr483-exact-head-validation-20260905.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue484-pr501-codi-boundary-hardening-20260908T0955Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue484-pr501-codi-exclusion-fix-20260908T0950Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue484-pr501-dcoir-findings-fix-v2.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue484-pr501-dcoir-findings-fix-v3.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue484-pr501-postdcoir-exact-head-validation-v1.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue485-pr486-corpus-fix-validation-20260905.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue485-pr486-exact-head-validation-20260905.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue485-pr486-paid-screen-20260905.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v2-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v3-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v4-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v5-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v6-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue496-pr498-verified-gate-exact-head-validation-v7-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue497-pr499-candidate-identity-exact-head-validation-v1-20260907.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue515-pr516-exact-head-validation-v1-20260909T1048Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue515-pr516-exact-head-validation-v2-20260909T1057Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue515-pr516-exact-head-validation-v3-20260909T1141Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-exact-head-validation-v1-20260909T1248Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-exact-head-validation-v2-20260909T1303Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-exact-head-validation-v3-20260909T1310Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-fix-regressions-v3-20260909T1306Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-fix-v52-ordering-20260909T1253Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-fix-v52-ordering-v2-20260909T1258Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue517-pr518-v53-composition-diagnostic-20260909T1302Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-copilot-final-fixes-v1-20260910T0600Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v1-20260909T1825Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v2-20260909T1855Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v3-20260909T1858Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v4-20260909T1903Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v5-20260909T1906Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v6-20260910T0610Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v7-20260910T0613Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-exact-head-validation-v8-20260910T0710Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-failsoft-hardening-v1-20260909T1852Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-pr520-ghas-empty-except-fix-v1-20260909T1902Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-targeted-validation-v1-20260909T1809Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue519-targeted-validation-v2-20260909T1822Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue524-pr525-exact-head-validation-v1-20260910T0918Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue524-pr525-exact-head-validation-v3-20260910T1032Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue526-pr527-round2-exact-head-validation-20260910T1318Z.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue546-pr547-exact-head-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue546-pr547-exact-head-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-exact-head-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-exact-head-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-http-error-body-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-http-error-body-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-response-read-regression-fix-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-response-read-regression-fix-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue548-pr549-v55-ordering-repair-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-first-patch-retirement-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-first-patch-retirement-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-first-patch-retirement-validation-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-first-patch-retirement-validation-004.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-function-ownership-audit-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-function-ownership-audit-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-ghas-review-scope-cycle-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-repair-consolidation-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-repair-consolidation-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-repair-consolidation-validation-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-repair-consolidation-validation-004.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-repair-consolidation-validation-005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-status-cutover-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v15-finding-family-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v19-precision-guard-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v19-recovery-exact-head-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v19-recovery-exact-head-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v21-finding-verifier-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v22-quality-gate-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v23-normalized-finding-selection-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v24-verified-finding-render-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v26-sentinel-selection-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v28-retirement-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v28-retirement-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v34-semantic-evidence-hardening-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v37-semantic-adjudication-normalization-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v37-semantic-adjudication-normalization-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v38-repair-contract-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v39-semantic-adjudication-confidence-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v41-incremental-review-frontier-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v42-semantic-review-ledger-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v43-semantic-result-reuse-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v45-publication-disposition-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v47-per-file-routing-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v48-prompt-review-scope-guard-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v48-review-scope-guard-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v50-verified-finding-gate-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v51-semantic-candidate-identity-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v52-structured-result-recovery-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v55-semantic-adjudication-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v55-semantic-adjudication-validation-002.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v55-semantic-adjudication-validation-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v58-provider-transport-retry-validation-001.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/issue550-pr553-v58-provider-transport-retry-validation-003.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464-cache-potential.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464-enhanced.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464-generation-cache.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464-grouped.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue464.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue478-live-benchmark.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/openrouter-analytics-issue478-successful-replay.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
         "path": ".github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_002.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
@@ -2178,6 +3053,41 @@
       {
         "category": "staging_artifact",
         "path": ".github/chatgpt_staging/exec_scripts/pr281_escaped_quoted_auth_redaction_005.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/pr423_exact_head_validation_017.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/pr423_exact_head_validation_018.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/pr423_resolver_symlink_hardening_014.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/pr423_resolver_symlink_hardening_015.ps1",
+        "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
+        "source_type": ".ps1",
+        "status": "staging"
+      },
+      {
+        "category": "staging_artifact",
+        "path": ".github/chatgpt_staging/exec_scripts/pr423_resolver_symlink_hardening_016.ps1",
         "reason": "ChatGPT staging scripts are historical execution artifacts, not maintained source.",
         "source_type": ".ps1",
         "status": "staging"
@@ -2514,6 +3424,13 @@
         "status": "tooling"
       },
       {
+        "category": "operator_tooling",
+        "path": ".github/operator_tools/github_desktop_lane/tests/Test-DcoirActionsExecFailureSemantics.ps1",
+        "reason": "Operator tooling PowerShell is maintained repo tooling.",
+        "source_type": ".ps1",
+        "status": "tooling"
+      },
+      {
         "category": "github_workflow_support_script",
         "path": ".github/pester/CollectorDeterministicBehavior.Tests.ps1",
         "reason": "GitHub workflow support script is maintained repo PowerShell.",
@@ -2768,6 +3685,13 @@
       {
         "category": "collector_harness_source_part",
         "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015.ps1",
+        "reason": "Collector harness source part is primary maintained PowerShell source.",
+        "source_type": ".ps1",
+        "status": "source_part"
+      },
+      {
+        "category": "collector_harness_source_part",
+        "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-015A.ps1",
         "reason": "Collector harness source part is primary maintained PowerShell source.",
         "source_type": ".ps1",
         "status": "source_part"
@@ -3122,9 +4046,9 @@
       "markdown": "project_sources/collector/powershell_surface_inventory.md"
     },
     "path_decision_counts": {
-      "exclude": 66,
-      "include": 132,
-      "reference": 52,
+      "exclude": 196,
+      "include": 134,
+      "reference": 54,
       "skip": 0
     },
     "reference_paths": [
@@ -3166,6 +4090,13 @@
       {
         "category": "workflow_embedded_powershell",
         "path": ".github/actions/run-duplicate-function-check/action.yml",
+        "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+        "source_type": "workflow_yaml",
+        "status": "workflow_embedded"
+      },
+      {
+        "category": "workflow_embedded_powershell",
+        "path": ".github/actions/run-path-safety-selftests/action.yml",
         "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
         "source_type": "workflow_yaml",
         "status": "workflow_embedded"
@@ -3299,6 +4230,13 @@
       {
         "category": "workflow_embedded_powershell",
         "path": ".github/workflows/reusable-manual-test-framework-validate.yml",
+        "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+        "source_type": "workflow_yaml",
+        "status": "workflow_embedded"
+      },
+      {
+        "category": "workflow_embedded_powershell",
+        "path": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
         "reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
         "source_type": "workflow_yaml",
         "status": "workflow_embedded"
@@ -3498,7 +4436,7 @@
       "by_category": {
         "archive_temp_vendor_artifact": 0,
         "collector_harness_script": 4,
-        "collector_harness_source_part": 17,
+        "collector_harness_source_part": 18,
         "collector_runtime_source_part": 43,
         "collector_runtime_wrapper": 1,
         "collector_validation_tooling": 2,
@@ -3509,36 +4447,36 @@
         "missing_authoritative_surface": 0,
         "missing_changed_powershell_surface": 0,
         "missing_changed_workflow_surface": 0,
-        "operator_tooling": 39,
-        "staging_artifact": 66,
+        "operator_tooling": 40,
+        "staging_artifact": 196,
         "unclassified_powershell_surface": 0,
         "validation_tooling": 2,
-        "workflow_embedded_powershell": 28
+        "workflow_embedded_powershell": 30
       },
       "by_inclusion_decision": {
-        "exclude": 66,
-        "include": 132,
-        "reference": 52
+        "exclude": 196,
+        "include": 134,
+        "reference": 54
       },
       "by_source_type": {
-        ".ps1": 203,
+        ".ps1": 335,
         ".ps1.txt": 0,
         ".ps1xml": 0,
         ".psd1": 9,
         ".psm1": 10,
-        "workflow_yaml": 28
+        "workflow_yaml": 30
       },
       "by_status": {
         "fixture": 23,
         "source": 48,
-        "source_part": 17,
-        "staging": 66,
+        "source_part": 18,
+        "staging": 196,
         "superseded_pointer": 1,
-        "tooling": 67,
-        "workflow_embedded": 28
+        "tooling": 68,
+        "workflow_embedded": 30
       },
-      "embedded_snippet_count": 86,
-      "total_surfaces": 250
+      "embedded_snippet_count": 118,
+      "total_surfaces": 384
     }
   },
   "unclaimed_artifacts": [

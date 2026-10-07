@@ -5,8 +5,18 @@ import argparse
 import json
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
+
+from lib.gemini_bundle_validation_common import (
+    derive_bundle_version,
+    load_manifest,
+    resolve_repo_root,
+)
+from lib.gemini_bundle_zip_contract import (
+    BundleZipContractError,
+    compiled_zip_path,
+    inspect_bundle_zip,
+)
 
 
 def run_step(cmd: list[str]) -> subprocess.CompletedProcess[str]:
@@ -19,31 +29,6 @@ def write_report(output_dir: Path, report: dict) -> None:
     print(json.dumps(report, indent=2))
 
 
-def inspect_gemini_zip_contract(output_dir: Path, manifest: dict) -> dict:
-    bundle_name = manifest['bundle_name']
-    zips = sorted(output_dir.glob(f'{bundle_name}_*.zip'))
-    if not zips:
-        return {'success': False, 'error': 'no Gemini bundle zip found'}
-    zip_path = zips[-1]
-    prime_rel = manifest.get('topology', {}).get('prime_agent_file')
-    source_only_dirs = tuple(rel.rstrip('/') + '/' for rel in manifest.get('source_only_dirs', []))
-    source_only_files = set(manifest.get('source_only_files', []))
-    with zipfile.ZipFile(zip_path) as zf:
-        names = zf.namelist()
-    payload_rels = []
-    for name in names:
-        parts = name.split('/', 1)
-        payload_rels.append(parts[1] if len(parts) == 2 else name)
-    prime_matches = [rel for rel in payload_rels if rel == prime_rel]
-    leaked_files = [rel for rel in payload_rels if rel in source_only_files or any(rel.startswith(prefix) for prefix in source_only_dirs)]
-    return {
-        'success': len(prime_matches) == 1 and not leaked_files,
-        'zip_path': str(zip_path),
-        'prime_agent_entries': prime_matches,
-        'source_only_leaks': leaked_files,
-    }
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument('--source-root', required=True)
@@ -54,12 +39,11 @@ def main() -> int:
 
     script_root = Path(__file__).resolve().parent
     source_root = Path(args.source_root).resolve()
-    manifest = json.loads((source_root / 'Gemini_Bundle_Source_Manifest.json').read_text(encoding='utf-8'))
+    manifest = load_manifest(source_root)
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    # source_root is <repo>/project_sources/gemini/bundle_source.
     # Maintained knowledge docs live at <repo>/knowledge and are packaged directly by compile_dcoir_gemini_bundle.py.
-    repo_root = source_root.parent.parent.parent
+    repo_root = resolve_repo_root(source_root)
 
     validate_script = script_root / 'validate_dcoir_gemini_bundle.py'
     scenario_script = script_root / 'validate_dcoir_gemini_behavior_scenarios.py'
@@ -120,6 +104,8 @@ def main() -> int:
 
     if not args.skip_validation:
         validate_cmd = [sys.executable, str(validate_script), '--source-root', str(source_root), '--output-dir', str(output_dir)]
+        if args.version:
+            validate_cmd.extend(['--version', args.version])
         validate_proc = run_step(validate_cmd)
         steps.append({
             'name': 'validate',
@@ -174,13 +160,25 @@ def main() -> int:
         write_report(output_dir, {'success': False, 'stage': 'compile', 'steps': steps})
         return 1
 
-    zip_contract = inspect_gemini_zip_contract(output_dir, manifest)
+    # Inspect and deliver exactly the zip the compiler reported, never one picked by name.
+    try:
+        expected_bundle_version = derive_bundle_version(source_root, manifest, args.version)
+        zip_contract = inspect_bundle_zip(
+            compiled_zip_path(
+                output_dir,
+                expected_bundle_name=manifest.get('bundle_name'),
+                expected_bundle_version=expected_bundle_version,
+            ),
+            manifest,
+        )
+    except BundleZipContractError as exc:
+        zip_contract = {'success': False, 'error': str(exc)}
     steps.append({'name': 'inspect_gemini_zip_contract', 'returncode': 0 if zip_contract.get('success') else 1, 'report': zip_contract})
     if not zip_contract.get('success'):
         write_report(output_dir, {'success': False, 'stage': 'inspect_gemini_zip_contract', 'steps': steps})
         return 1
 
-    write_report(output_dir, {'success': True, 'stage': 'complete', 'steps': steps})
+    write_report(output_dir, {'success': True, 'stage': 'complete', 'zip_path': zip_contract['zip_path'], 'steps': steps})
     return 0
 
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import shutil
 import sys
@@ -12,6 +11,7 @@ import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from agent_runtime_path_safety import resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.openai_usb_reporting_adapter.v1'
@@ -130,71 +130,6 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f'Expected a JSON object in {path}')
     return value
-
-
-def _reject_unfollowable_symlinks(root: Path, relative: Path) -> None:
-    """Raise OSError when a symlink along root/relative cannot be followed.
-
-    Path.resolve() raises RuntimeError on symlink loops only before Python 3.13;
-    newer versions return the unresolved path, so each link is followed explicitly.
-    A file below a looping directory stats as missing on Windows, so every link on
-    the path is checked, not just the final component.
-    """
-    current = root
-    for part in relative.parts:
-        current = current / part
-        if current.is_symlink():
-            try:
-                os.stat(current)
-            except FileNotFoundError:
-                return
-
-
-def _resolve_repo_path(
-    repo_root: Path,
-    value: Any,
-    label: str,
-    errors: list[str],
-    required_root: Path | None = None,
-) -> Path | None:
-    if not isinstance(value, str) or not value:
-        errors.append(f'{label} must be a non-empty repository-relative path')
-        return None
-    relative = Path(value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must not be absolute or contain traversal: {value}')
-        return None
-    try:
-        resolved_repo = repo_root.resolve()
-    except (OSError, RuntimeError) as exc:
-        errors.append(f'{label} repository root could not be resolved: {type(exc).__name__}')
-        return None
-    try:
-        _reject_unfollowable_symlinks(resolved_repo, relative)
-        candidate = (resolved_repo / relative).resolve()
-    except (OSError, RuntimeError) as exc:
-        errors.append(f'{label} path could not be resolved: {type(exc).__name__}')
-        return None
-    if not candidate.is_relative_to(resolved_repo):
-        errors.append(f'{label} escapes the repository: {value}')
-        return None
-    if required_root is not None:
-        try:
-            resolved_required_root = required_root.resolve()
-        except (OSError, RuntimeError) as exc:
-            errors.append(
-                f'{label} declared root could not be resolved: {type(exc).__name__}'
-            )
-            return None
-        if not resolved_required_root.is_relative_to(resolved_repo):
-            errors.append(
-                f'{label} declared root escapes the repository: {resolved_required_root.as_posix()}'
-            )
-            return None
-        if not candidate.is_relative_to(resolved_required_root):
-            errors.append(f'{label} is outside its declared root: {value}')
-            return None
-    return candidate
 
 
 def _read_bytes(path: Path, label: str, errors: list[str]) -> bytes:
@@ -346,7 +281,7 @@ def _behavior_snapshot(
     for item, coverage_entry in zip(applicable, coverage):
         item_id = item.get('id')
         source_path_value = item.get('source_path')
-        source_path = _resolve_repo_path(
+        source_path = resolve_repo_path(
             repo_root,
             source_path_value,
             f'{item_id} source_path',
@@ -409,7 +344,7 @@ def _knowledge_files(
         if not isinstance(entry, dict):
             errors.append('Knowledge projections contain a non-object entry')
             continue
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root,
             entry.get('output_path'),
             f"knowledge projection {entry.get('id')}",
@@ -458,7 +393,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     generated_root_path = (
         repo_root / generated_root_value if isinstance(generated_root_value, str) else None
     )
-    generated_root = _resolve_repo_path(
+    generated_root = resolve_repo_path(
         repo_root,
         generated_root_value,
         'generated_root',
@@ -480,7 +415,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         'canonical_instructions_source',
         'behavioral_cases',
     ):
-        path = _resolve_repo_path(repo_root, manifest.get(key), key, errors)
+        path = resolve_repo_path(repo_root, manifest.get(key), key, errors)
         if path is not None:
             required_paths[key] = path
     try:
@@ -615,7 +550,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
             errors.append(f'generated {key} must remain bound to {expected}')
     output_paths: dict[str, Path] = {}
     for key in ('instructions', 'configuration', 'package_manifest'):
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root, output_map.get(key), f'generated {key}', errors, generated_root
         )
         if path is not None:
@@ -707,7 +642,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
                 if not staged_path.is_relative_to(temp_root):
                     errors.append('Generated package staging path escaped its root')
                     continue
-                resolved_output = _resolve_repo_path(
+                resolved_output = resolve_repo_path(
                     repo_root,
                     path.relative_to(repo_root).as_posix(),
                     'generated package output',

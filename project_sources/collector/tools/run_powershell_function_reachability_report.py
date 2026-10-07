@@ -57,7 +57,6 @@ from powershell_function_reachability_parsing import (
     fallback_function_keys,
     fallback_parse_source,
     has_dynamic_command_text,
-    mask_powershell_non_code,
     parse_sources as _parse_sources,
     powershell_backtick_tolerant_literal,
 )

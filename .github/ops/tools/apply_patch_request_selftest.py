@@ -219,6 +219,83 @@ def test_rejects_string_boolean_override(repo: pathlib.Path) -> None:
     assert "allow_default_branch must be a boolean" in proc.stderr
 
 
+GOVERNED_TARGETS = (
+    (".github/actions/demo/action.yml", ".github/actions"),
+    (".github/ops/tools/lib/demo.py", ".github/ops/tools"),
+)
+
+
+def governed_request(repo: pathlib.Path, request_id: str, target: str, root: str, schema: str) -> pathlib.Path:
+    """Stage a one-line change to a workflow-governed target and return the request path."""
+    run(["git", "checkout", "main"], repo)
+    request_dir = repo / ".github/ops/requests/apply_patch" / request_id
+    patch_rel = f".github/ops/requests/apply_patch/{request_id}/change.patch"
+    patch_file = repo / patch_rel
+    target_file = repo / target
+    original = target_file.read_text(encoding="utf-8")
+    target_file.write_text("governed: changed\n", encoding="utf-8")
+    write(patch_file, run(["git", "diff", "--", target], repo).stdout)
+    target_file.write_text(original, encoding="utf-8")
+    spec = {
+        "expected_target_blob_sha": run(["git", "ls-files", "-s", "--", target], repo).stdout.split()[1],
+        "expected_current_sha256": hashlib.sha256(original.encode("utf-8")).hexdigest(),
+        "expected_new_sha256": hashlib.sha256(b"governed: changed\n").hexdigest(),
+    }
+    body: dict[str, object] = {
+        "schema": schema,
+        "request_id": request_id,
+        "target_branch": "feature/apply-patch-target",
+        "patch_path": patch_rel,
+        "expected_patch_sha256": hashlib.sha256(patch_file.read_bytes()).hexdigest(),
+        "commit_message": f"Apply selftest patch {request_id}",
+    }
+    if schema.endswith(".v1"):
+        body.update({"mode": "apply", "target_path": target, "allowed_roots": [root], **spec})
+    else:
+        body.update({"mode": "patch-set", "operation": "apply", "targets": [{"path": target, "allowed_roots": [root], **spec}]})
+    write(request_dir / "request.json", json.dumps(body, indent=2) + "\n")
+    return request_dir / "request.json"
+
+
+def test_workflow_governed_targets_are_always_rejected(repo: pathlib.Path) -> None:
+    run(["git", "checkout", "main"], repo)
+    for target, _root in GOVERNED_TARGETS:
+        write(repo / target, "governed: original\n")
+    run(["git", "add", ".github/actions", ".github/ops/tools"], repo)
+    run(["git", "-c", "user.name=DCOIR Selftest", "-c", "user.email=dcoir-selftest@example.invalid", "commit", "-m", "seed governed targets"], repo)
+    run(["git", "branch", "-f", "feature/apply-patch-target", "main"], repo)
+    for index, (target, root) in enumerate(GOVERNED_TARGETS):
+        for schema in ("dcoir.ops.apply_patch_request.v1", "dcoir.ops.apply_patch_request.v2"):
+            request_id = f"selftest-governed-{index}-{schema[-2:]}"
+            request = governed_request(repo, request_id, target, root, schema)
+            validate = [sys.executable, str(TOOL), "validate", "--repo", str(repo), "--request", str(request)]
+            denied = run(validate, repo, check=False)
+            assert denied.returncode != 0, (target, schema, denied.stdout)
+            assert "are not permitted through ops apply-patch" in denied.stderr, denied.stderr
+
+            # Request-controlled approval fields must never unlock governed targets.
+            body = json.loads(request.read_text(encoding="utf-8"))
+            body["allow_workflow_changes"] = True
+            body["workflow_change_reason"] = "selftest: untrusted self-attestation"
+            write(request, json.dumps(body, indent=2) + "\n")
+            denied_override = run(validate, repo, check=False)
+            assert denied_override.returncode != 0, (target, schema, denied_override.stdout)
+            assert "are not permitted through ops apply-patch" in denied_override.stderr, denied_override.stderr
+
+
+def test_rejects_dot_and_newline_request_ids(repo: pathlib.Path) -> None:
+    sys.path.insert(0, str(TOOL.parent))
+    from lib.apply_patch_request_contract import RequestError, validate_request_id
+
+    for bad in (".", "..", "selftest-id\n", ""):
+        try:
+            validate_request_id(bad)
+        except RequestError:
+            continue
+        raise AssertionError(f"request id was accepted: {bad!r}")
+    assert validate_request_id("selftest.ok-1") == "selftest.ok-1"
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="dcoir-ops-patch-") as tmp:
         repo = pathlib.Path(tmp)
@@ -231,6 +308,8 @@ def main() -> int:
         test_rejects_plain_delete_patch(repo)
         test_rejects_non_string_digest(repo)
         test_rejects_string_boolean_override(repo)
+        test_workflow_governed_targets_are_always_rejected(repo)
+        test_rejects_dot_and_newline_request_ids(repo)
     print("apply_patch_request selftests passed")
     return 0
 

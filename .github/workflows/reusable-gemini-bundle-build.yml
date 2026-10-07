@@ -60,6 +60,9 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path project_sources/validation/out | Out-Null
 
+      - name: Run path-safety self-tests
+        uses: ./.github/actions/run-path-safety-selftests
+
       - name: Run Gemini validation and build
         shell: pwsh
         run: |

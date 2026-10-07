@@ -6,7 +6,7 @@ Reusable DCOIR GitHub Actions composite action for cross-file duplicate PowerShe
 
 - Callers keep triggers, permissions, artifact names, retention, and workflow claims visible in the entry or reusable workflow.
 - This action owns the repeated mechanical step for parsing all collector PS1 source files with the PowerShell AST and detecting function names defined in more than one file.
-- The action fails the step when duplicate function definitions are found (`fail-on-duplicates` input, default `true`), printing each duplicate name, the files that define it, and the load-order winner.
+- The action prints each duplicate name with every file and line that defines it. It can fail the step when duplicates are found (`fail-on-duplicates` input, default `true`), but the reusable validate-on-pr and validate-on-push workflows pass `'false'` and enforce the gate in `.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1`. Parse failures still fail the step.
 - The action must not upload artifacts, enable code scanning, generate SARIF, use `pull_request_target`, reference `secrets.*`, or mutate repository history.
 - Compensating evidence is provided by caller-visible step names, explicit inputs, stdout duplicate report listing file paths and line numbers, and the caller workflow conclusion.
 

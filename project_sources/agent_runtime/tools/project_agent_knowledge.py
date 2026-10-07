@@ -10,6 +10,7 @@ import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+from agent_runtime_path_safety import resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.knowledge_projection.v1'
@@ -59,31 +60,6 @@ def _is_positive_int(value: Any) -> bool:
 
 def _is_nonnegative_int(value: Any) -> bool:
     return type(value) is int and value >= 0
-
-
-def _resolve_repo_path(
-    repo_root: Path,
-    value: Any,
-    label: str,
-    errors: list[str],
-    required_root: Path | None = None,
-) -> Path | None:
-    if not isinstance(value, str) or not value:
-        errors.append(f'{label} must be a non-empty repository-relative path')
-        return None
-    relative = Path(value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must not be absolute or contain traversal: {value}')
-        return None
-    resolved_repo = repo_root.resolve()
-    candidate = (resolved_repo / relative).resolve()
-    if not candidate.is_relative_to(resolved_repo):
-        errors.append(f'{label} escapes the repository: {value}')
-        return None
-    if required_root is not None and not candidate.is_relative_to(required_root.resolve()):
-        errors.append(f'{label} is outside its declared root: {value}')
-        return None
-    return candidate
 
 
 def _sha256(data: bytes) -> str:
@@ -215,7 +191,7 @@ def _source_records(
             errors.append(f'{item_id} lacks a source_path')
             continue
         paths.append(source_path)
-        path = _resolve_repo_path(
+        path = resolve_repo_path(
             repo_root, source_path, f'{item_id} source_path', errors, knowledge_root
         )
         if path is None:
@@ -300,7 +276,7 @@ def _projection_source_records(
             if not isinstance(override_id, str) or not override_id:
                 errors.append(f"{record['id']} {target_id} projection source lacks an id")
                 continue
-            override_path = _resolve_repo_path(
+            override_path = resolve_repo_path(
                 repo_root,
                 override_path_value,
                 f"{record['id']} {target_id} projection source_path",
@@ -365,7 +341,7 @@ def _validate_gemini_inventory(
     records: list[dict[str, Any]],
     errors: list[str],
 ) -> dict[str, Any]:
-    bundle_path = _resolve_repo_path(
+    bundle_path = resolve_repo_path(
         repo_root, target.get('bundle_manifest'), 'Gemini bundle_manifest', errors
     )
     if bundle_path is None:
@@ -435,16 +411,16 @@ def project_knowledge(
         return [str(exc)], {}
     if manifest.get('schema') != SCHEMA:
         errors.append('Unsupported knowledge projection manifest schema')
-    source_contract_path = _resolve_repo_path(
+    source_contract_path = resolve_repo_path(
         repo_root, manifest.get('source_contract'), 'source_contract', errors
     )
-    knowledge_root = _resolve_repo_path(
+    knowledge_root = resolve_repo_path(
         repo_root,
         manifest.get('canonical_knowledge_root'),
         'canonical_knowledge_root',
         errors,
     )
-    generated_root = _resolve_repo_path(
+    generated_root = resolve_repo_path(
         repo_root, manifest.get('generated_root'), 'generated_root', errors
     )
     projection_root_values = manifest.get('canonical_projection_source_roots')
@@ -453,7 +429,7 @@ def project_knowledge(
         errors.append('canonical_projection_source_roots must be a non-empty path array')
     else:
         for index, root_value in enumerate(projection_root_values):
-            root = _resolve_repo_path(
+            root = resolve_repo_path(
                 repo_root,
                 root_value,
                 f'canonical_projection_source_roots[{index}]',
@@ -585,7 +561,7 @@ def project_knowledge(
         if not isinstance(target, dict) or target.get('mode') != 'consolidated_projection':
             errors.append(f'{target_id} must use consolidated_projection')
             continue
-        target_manifest_path = _resolve_repo_path(
+        target_manifest_path = resolve_repo_path(
             repo_root,
             target.get('target_manifest_path'),
             f'{target_id} target_manifest_path',
@@ -691,7 +667,7 @@ def project_knowledge(
             sources = group_sources.get(group_id, [])
             if not sources:
                 errors.append(f'{target_id} projection group has no sources: {group_id}')
-            output_path = _resolve_repo_path(
+            output_path = resolve_repo_path(
                 repo_root,
                 group_entry.get('output_path'),
                 f'{target_id} {group_id} output_path',
@@ -824,7 +800,7 @@ def project_knowledge(
                 if stage_path.read_bytes() != expected:
                     errors.append('Generated knowledge staging write readback failed')
                     continue
-                resolved_output = _resolve_repo_path(
+                resolved_output = resolve_repo_path(
                     repo_root,
                     output_path.relative_to(repo_root).as_posix(),
                     'generated output',

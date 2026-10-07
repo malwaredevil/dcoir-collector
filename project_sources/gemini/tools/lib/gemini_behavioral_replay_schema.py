@@ -44,7 +44,7 @@ TURN_LIST_KEYS = (
     "expected_behavior_tags",
     "forbidden_behavior_tags",
 )
-OPTIONAL_TURN_LIST_KEYS = ("required_markers", "forbidden_markers", "literal_forbidden_markers")
+OPTIONAL_TURN_LIST_KEYS = ("required_markers", "forbidden_markers", "literal_forbidden_markers", "anomaly_checks")
 TURN_TEXT_KEYS = ("speaker", "content", "scoring_notes")
 SUPPORTED_ANOMALY_CHECKS = frozenset({
     "contradictory_next_steps",
@@ -56,7 +56,6 @@ SUPPORTED_ANOMALY_CHECKS = frozenset({
     "output_shape_drift",
     "unsupported_certainty_claims",
 })
-OPTIONAL_TURN_LIST_KEYS = (*OPTIONAL_TURN_LIST_KEYS, "anomaly_checks")
 FIXTURE_TEXT_KEYS = ("fixture_id", "title", "system_surface")
 FIXTURE_INT_LIST_KEYS = ("source_issue_numbers", "source_pr_numbers")
 FIXTURE_STRING_LIST_KEYS = (

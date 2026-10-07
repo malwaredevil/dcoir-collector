@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import shutil
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 TOOL_PATH = (
     REPO_ROOT / 'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py'
 )
+sys.path.insert(0, str(TOOL_PATH.parent))
 SPEC = importlib.util.spec_from_file_location('build_openai_dcoir_analyst', TOOL_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError('Unable to load OpenAI DCOIR build tool')
@@ -214,6 +216,17 @@ class OpenAIDCOIRBuildSelfTest(unittest.TestCase):
         manifest['generated_outputs']['instructions'] = '../escape.md'
         _write_json(self.manifest_path, manifest)
         self.assert_error_contains('must not be absolute or contain traversal', check=False)
+
+    def test_unreadable_path_is_reported_without_crash(self) -> None:
+        directory = self.repo / 'not-a-file'
+        directory.mkdir()
+        errors: list[str] = []
+        data = MODULE._read_bytes(directory, 'probe', errors)
+        self.assertEqual(b'', data)
+        self.assertTrue(
+            any('Unreadable probe:' in error for error in errors),
+            errors,
+        )
 
     def test_generated_root_rebinding_fails(self) -> None:
         manifest = _read_json(self.manifest_path)

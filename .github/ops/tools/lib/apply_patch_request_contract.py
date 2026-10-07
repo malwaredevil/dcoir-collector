@@ -12,15 +12,23 @@ SCHEMA_V1 = "dcoir.ops.apply_patch_request.v1"
 
 SCHEMA_V2 = "dcoir.ops.apply_patch_request.v2"
 
-SCHEMA = SCHEMA_V1
+SAFE_ID_RE = re.compile(r"[A-Za-z0-9._-]+")
 
-SAFE_ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+INVALID_REQUEST_IDS = frozenset({".", ".."})
 
 DEFAULT_COMMIT = "Apply governed ops patch request"
 
 BOT_USER_NAME = "github-actions[bot]"
 
 BOT_USER_EMAIL = "41898282+github-actions[bot]@users.noreply.github.com"
+
+# Composite actions run inside every caller workflow's permissions, and the ops
+# tools run the apply-patch lane itself, so they get the same gate as workflows.
+WORKFLOW_GOVERNED_PREFIXES = (
+    ".github/workflows/",
+    ".github/actions/",
+    ".github/ops/tools/",
+)
 
 BLOCKED_TARGET_PREFIXES = (
     ".git/",
@@ -68,8 +76,6 @@ class PatchRequest:
     commit_message: str = DEFAULT_COMMIT
     allow_default_branch: bool = False
     default_branch_reason: str = ""
-    allow_workflow_changes: bool = False
-    workflow_change_reason: str = ""
 
     @property
     def target_paths(self) -> tuple[str, ...]:
@@ -123,7 +129,7 @@ def normalize_repo_path(value: str, *, field: str) -> str:
     return p.as_posix()
 
 def validate_request_id(value: str) -> str:
-    if not isinstance(value, str) or not SAFE_ID_RE.match(value):
+    if not isinstance(value, str) or value in INVALID_REQUEST_IDS or not SAFE_ID_RE.fullmatch(value):
         raise RequestError("request_id must contain only letters, numbers, dot, underscore, and hyphen")
     return value
 
@@ -168,14 +174,20 @@ def validate_roots(raw: Any) -> tuple[str, ...]:
 def path_under(path: str, roots: tuple[str, ...]) -> bool:
     return any(path == root or path.startswith(root + "/") for root in roots)
 
+def is_workflow_governed_target(path: str) -> bool:
+    return any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in WORKFLOW_GOVERNED_PREFIXES)
+
 def validate_target_path(target: TargetSpec, request: PatchRequest) -> None:
     path = target.path
     if any(path == prefix.rstrip("/") or path.startswith(prefix) for prefix in BLOCKED_TARGET_PREFIXES):
         raise RequestError(f"target_path is blocked for ops patch requests: {path}")
     if not path_under(path, target.allowed_roots):
         raise RequestError(f"target_path is outside allowed_roots: {path}")
-    if path.startswith(".github/workflows/") and not request.allow_workflow_changes:
-        raise RequestError("workflow targets require allow_workflow_changes=true and workflow_change_reason")
+    if is_workflow_governed_target(path):
+        raise RequestError(
+            "workflow-governed targets (.github/workflows, .github/actions, .github/ops/tools) "
+            "are not permitted through ops apply-patch; use a separately operator-approved branch/PR lane"
+        )
 
 def request_dir_from_path(repo: pathlib.Path, request_path: pathlib.Path, request_id: str) -> pathlib.Path:
     try:
@@ -282,11 +294,7 @@ def load_request(repo: pathlib.Path, request_path: pathlib.Path, default_branch:
         commit_message=commit_message,
         allow_default_branch=optional_bool(data.get("allow_default_branch"), field="allow_default_branch"),
         default_branch_reason=optional_string(data.get("default_branch_reason"), field="default_branch_reason") or "",
-        allow_workflow_changes=optional_bool(data.get("allow_workflow_changes"), field="allow_workflow_changes"),
-        workflow_change_reason=optional_string(data.get("workflow_change_reason"), field="workflow_change_reason") or "",
     )
-    if request.allow_workflow_changes and not request.workflow_change_reason.strip():
-        raise RequestError("allow_workflow_changes=true requires workflow_change_reason")
     for target in request.targets:
         validate_target_path(target, request)
     return request

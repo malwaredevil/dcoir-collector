@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from agent_runtime_path_safety import UnsafePathError, validate_relative_path_syntax
+
 SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release.v1"
 REPORT_SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release_report.v1"
 DELIVERY_ROOT_NAME = "OpenAI_GPT_Deployment_Packages"
@@ -99,9 +101,21 @@ def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
 
 
 def _resolve_inside(root: Path, relative: str | Path, errors: list[str], label: str) -> Path | None:
-    value = Path(relative)
-    if value.is_absolute() or ".." in value.parts:
-        errors.append(f"{label} must be repository-relative without traversal: {relative}")
+    """Resolve a release input under root, refusing any symlink on the path.
+
+    Path syntax (types, traversal, absolute and Windows forms, control
+    characters) comes from the shared agent_runtime_path_safety owner; the
+    release adds the stricter no-symlink rule because it copies files into a
+    shipped deployment ZIP.
+    """
+    try:
+        value = validate_relative_path_syntax(
+            relative.as_posix() if isinstance(relative, Path) else relative,
+            label,
+            'repository-relative path',
+        )
+    except UnsafePathError as exc:
+        errors.append(str(exc))
         return None
     try:
         resolved_root = root.resolve()
@@ -119,10 +133,6 @@ def _resolve_inside(root: Path, relative: str | Path, errors: list[str], label: 
         errors.append(f"{label} escapes its allowed root: {relative}")
         return None
     return candidate
-
-
-def _resolve_repo_path(repo_root: Path, relative: str | Path, errors: list[str], label: str) -> Path | None:
-    return _resolve_inside(repo_root, relative, errors, label)
 
 
 def _validate_output_path(
@@ -400,8 +410,8 @@ def _validate_and_copy_target(
     target: dict[str, Any],
     errors: list[str],
 ) -> dict[str, Any]:
-    package_root = _resolve_repo_path(repo_root, target["package_root"], errors, "package root")
-    knowledge_root = _resolve_repo_path(repo_root, target["knowledge_root"], errors, "knowledge root")
+    package_root = _resolve_inside(repo_root, target["package_root"], errors, "package root")
+    knowledge_root = _resolve_inside(repo_root, target["knowledge_root"], errors, "knowledge root")
     if package_root is None or knowledge_root is None:
         return {"target_id": target["target_id"], "success": False}
 
@@ -500,7 +510,7 @@ def _validate_and_copy_target(
         if not isinstance(declared_path, str) or not declared_path:
             errors.append(f"{target['target_id']} Knowledge entry lacks path")
             continue
-        source = _resolve_repo_path(repo_root, declared_path, errors, "Knowledge file")
+        source = _resolve_inside(repo_root, declared_path, errors, "Knowledge file")
         if source is None:
             continue
         try:
@@ -691,7 +701,7 @@ def build_release(
     if not parity_md_path.is_file():
         errors.append(f"Missing release parity Markdown: {parity_md_path.as_posix()}")
 
-    guide_path = _resolve_repo_path(repo_root, GUIDE, errors, "deployment/readback guide")
+    guide_path = _resolve_inside(repo_root, GUIDE, errors, "deployment/readback guide")
     if guide_path is None or not guide_path.is_file():
         errors.append("Deployment/readback guide is unavailable")
 

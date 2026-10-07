@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from . import gemini_behavioral_replay_semantic_precision as _semantic_precision
 from .gemini_behavioral_replay_scoring import score_marker_presence
 
 SCORER_MODULE_CHARACTER_CEILING = 15000
@@ -16,8 +15,12 @@ SCORER_MODULES = [
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_equivalence_extended.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_vocabulary.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_relation_composition.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_composition_precision.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_separation_regressions.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_separation_cases_accepted.py"),
+    Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_lane_separation_cases_rejected.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_collector_scoring.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_precision.py"),
     Path("project_sources/gemini/tools/lib/gemini_behavioral_replay_marker_semantics.py"),
@@ -51,14 +54,27 @@ SCORER_MODULE_SIZE_EXEMPTIONS = {
 }
 
 
-def run_elastic_command_lane_separation_selftest() -> None:
-    """Compatibility facade for the extracted semantic-precision self-test."""
-    _semantic_precision.run_elastic_command_lane_separation_selftest()
+GOVERNED_SOURCE_REJECTED = (
+    "Never verify against the governed source.",
+    "Do not validate against the governed source.",
+    "Verification against the governed source, which is not needed.",
+    "Verify against the governed source, which is not needed.",
+)
+GOVERNED_SOURCE_ACCEPTED = (
+    "Verify against the governed source before claiming targeted mode.",
+    "I cannot verify against the governed source, so the window semantics stay unconfirmed.",
+    "I did not perform validation against the governed source.",
+)
 
 
-def run_negated_rejection_polarity_selftest() -> None:
-    """Compatibility facade for the extracted semantic-precision self-test."""
-    _semantic_precision.run_negated_rejection_polarity_selftest()
+def run_governed_source_override_selftest() -> None:
+    """The 'governed source' rule must honor rejection before and after the marker."""
+    for text in GOVERNED_SOURCE_REJECTED:
+        if score_marker_presence(text, ["governed source"])["matched"]:
+            raise SystemExit(f"Rejected governed-source action counted as the marker: {text}")
+    for text in GOVERNED_SOURCE_ACCEPTED:
+        if score_marker_presence(text, ["governed source"])["matched"] != ["governed source"]:
+            raise SystemExit(f"Governed-source marker was incorrectly suppressed: {text}")
 
 
 def run_scorer_module_size_selftest() -> None:

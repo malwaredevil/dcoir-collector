@@ -144,9 +144,15 @@ blank context lines.
 Default-branch writes are blocked unless the request sets `allow_default_branch: true`
 and includes a non-empty `default_branch_reason`.
 
-Workflow-file targets are blocked unless the request sets
-`allow_workflow_changes: true` and includes a non-empty
-`workflow_change_reason`.
+Workflow-governed targets are always blocked in this automated lane. They are
+`.github/workflows/`, `.github/actions/` (composite actions run with the
+permissions of every workflow that calls them), and `.github/ops/tools/` (the
+tools that run this lane). Request-controlled fields such as
+`allow_workflow_changes` or `workflow_change_reason` do not unlock these
+surfaces. Make an approved governed-surface change through a normal branch/PR or
+other independently operator-authorized lane instead. The prefix list lives in
+`WORKFLOW_GOVERNED_PREFIXES` in
+`.github/ops/tools/lib/apply_patch_request_contract.py`.
 
 Creates, deletes, renames, copies, and mode changes should be added later only
 behind explicit per-operation approval flags and focused tests.

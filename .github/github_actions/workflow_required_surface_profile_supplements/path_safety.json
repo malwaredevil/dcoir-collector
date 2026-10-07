@@ -1,0 +1,33 @@
+{
+  "validate_on_push": [
+    "project_sources/agent_runtime/tools/agent_runtime_path_safety.py",
+    ".github/actions/run-path-safety-selftests/action.yml",
+    "project_sources/gemini/tools/lib/gemini_production_like_harness_construct_selftest.py",
+    ".github/github_actions/workflow_required_surface_profile_supplements.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/path_safety.json"
+  ],
+  "validate_on_pr": [
+    "project_sources/agent_runtime/tools/agent_runtime_path_safety.py",
+    ".github/actions/run-path-safety-selftests/action.yml",
+    "project_sources/gemini/tools/lib/gemini_production_like_harness_construct_selftest.py",
+    ".github/github_actions/workflow_required_surface_profile_supplements.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/path_safety.json"
+  ],
+  "manual_full_validation": [
+    "project_sources/agent_runtime/tools/agent_runtime_path_safety.py",
+    ".github/github_actions/workflow_required_surface_profile_supplements.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/path_safety.json"
+  ],
+  "manual_gemini_bundle_build": [
+    "project_sources/agent_runtime/tools/agent_runtime_path_safety.py",
+    ".github/actions/run-path-safety-selftests/action.yml",
+    "project_sources/gemini/tools/lib/gemini_production_like_harness_construct_selftest.py",
+    ".github/github_actions/workflow_required_surface_profile_supplements.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/path_safety.json"
+  ],
+  "manual_openai_gpt_deployment_package_build": [
+    "project_sources/agent_runtime/tools/agent_runtime_path_safety.py",
+    ".github/github_actions/workflow_required_surface_profile_supplements.json",
+    ".github/github_actions/workflow_required_surface_profile_supplements/path_safety.json"
+  ]
+}

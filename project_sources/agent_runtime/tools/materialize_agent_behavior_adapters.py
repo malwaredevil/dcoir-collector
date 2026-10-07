@@ -10,6 +10,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from agent_runtime_path_safety import resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.behavior_modules.v1'
@@ -47,45 +48,20 @@ def _duplicates(values: list[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
 
 
-def _resolve_repo_path(
-    repo_root: Path,
-    relative_value: object,
-    label: str,
-    errors: list[str],
-    required_root: Path | None = None,
-) -> Path | None:
-    if not isinstance(relative_value, str) or not relative_value:
-        errors.append(f'{label} must be a non-empty repository-relative path')
-        return None
-    relative = Path(relative_value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must not be absolute or contain traversal: {relative_value}')
-        return None
-    resolved_repo = repo_root.resolve()
-    candidate = (resolved_repo / relative).resolve()
-    if not candidate.is_relative_to(resolved_repo):
-        errors.append(f'{label} escapes the repository: {relative_value}')
-        return None
-    if required_root is not None and not candidate.is_relative_to(required_root.resolve()):
-        errors.append(f'{label} is outside its declared root: {relative_value}')
-        return None
-    return candidate
-
-
 def _topology_outputs(
     repo_root: Path,
     adapter: dict[str, Any],
     output_root: Path,
     errors: list[str],
 ) -> tuple[list[str], list[str]]:
-    bundle_path = _resolve_repo_path(
+    bundle_path = resolve_repo_path(
         repo_root,
         adapter.get('bundle_manifest'),
         'target adapter bundle_manifest',
         errors,
         output_root,
     )
-    chunk_path = _resolve_repo_path(
+    chunk_path = resolve_repo_path(
         repo_root,
         adapter.get('prime_chunk_manifest'),
         'target adapter prime_chunk_manifest',
@@ -140,7 +116,7 @@ def _validate_source_contract(
     modules: list[dict[str, Any]],
     errors: list[str],
 ) -> None:
-    contract_path = _resolve_repo_path(
+    contract_path = resolve_repo_path(
         repo_root, manifest.get('source_contract'), 'source_contract', errors
     )
     if contract_path is None:
@@ -219,7 +195,7 @@ def validate_manifest(
         if policy.get('direct_target_edits_require_reverse_reconciliation') is not True:
             errors.append('Direct target edits must require reverse reconciliation')
 
-    canonical_root = _resolve_repo_path(
+    canonical_root = resolve_repo_path(
         repo_root,
         manifest.get('canonical_behavior_root'),
         'canonical_behavior_root',
@@ -233,7 +209,7 @@ def validate_manifest(
     if not isinstance(adapter, dict):
         errors.append(f'Target adapter must be an object: {target_id}')
         return errors, [], manifest
-    output_root = _resolve_repo_path(
+    output_root = resolve_repo_path(
         repo_root, adapter.get('output_root'), f'{target_id} output_root', errors
     )
     if canonical_root is None or output_root is None:
@@ -281,7 +257,7 @@ def validate_manifest(
         )
         if not order_valid:
             errors.append(f'{module_id} has invalid order: {order!r}')
-        source_path = _resolve_repo_path(
+        source_path = resolve_repo_path(
             repo_root,
             module.get('source_path'),
             f'{module_id} source_path',
@@ -312,7 +288,7 @@ def validate_manifest(
             continue
         if projection.get('projection_mode') != 'byte_identity':
             errors.append(f'{module_id} projection must use byte_identity mode')
-        output_path = _resolve_repo_path(
+        output_path = resolve_repo_path(
             repo_root,
             projection.get('output_path'),
             f'{module_id} output_path',
@@ -393,7 +369,7 @@ def execute(
     if not errors and action == 'materialize':
         for entry in entries:
             write_errors: list[str] = []
-            output_path = _resolve_repo_path(
+            output_path = resolve_repo_path(
                 repo_root,
                 entry['output_rel'],
                 f'{entry["id"]} materialize output',

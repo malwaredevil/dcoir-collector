@@ -1,18 +1,37 @@
 """Construct-loading validation for the Gemini production-like harness."""
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
-import zipfile
 from pathlib import Path
 from typing import Any
 
+from lib.gemini_bundle_validation_common import derive_bundle_version
+from lib.gemini_bundle_zip_contract import (
+    BundleZipContractError,
+    compiled_zip_path,
+    inspect_bundle_zip,
+)
 from lib.gemini_production_like_harness_common import (
-    EXPECTED_CONSTRUCT_COUNTS,
     add_message,
     load_json,
     repo_relative,
 )
+
+GEMINI_TARGET_ID = "gemini_dcoir_agent"
+
+
+def expected_construct_counts(root: Path) -> dict[str, int]:
+    """Read the governed construct counts instead of keeping a third copy here."""
+    runtime_root = root / "project_sources/agent_runtime"
+    adapter = load_json(runtime_root / "Behavior_Module_Manifest.json")["target_adapters"][GEMINI_TARGET_ID]
+    projection = load_json(runtime_root / "Knowledge_Projection_Manifest.json")["targets"][GEMINI_TARGET_ID]
+    return {
+        "prime_chunks": adapter["expected_prime_chunks"],
+        "sub_agents": adapter["expected_specialists"],
+        "knowledge_sources": projection["expected_attachment_count"],
+    }
 
 
 def validate_construct(root: Path, output_dir: Path, messages: list[dict[str, str]], mode: str) -> dict[str, Any]:
@@ -27,13 +46,15 @@ def validate_construct(root: Path, output_dir: Path, messages: list[dict[str, st
         "knowledge_sources": len(manifest["knowledge_attachment_sources"]),
     }
 
-    for key, expected_count in EXPECTED_CONSTRUCT_COUNTS.items():
+    for key, expected_count in expected_construct_counts(root).items():
         if counts[key] != expected_count:
             add_message(messages, "error", f"{key} {counts[key]} != {expected_count}", repo_relative(source_root, root))
 
     build: dict[str, Any] = {"attempted": False}
     if mode in ("medium", "full"):
         build_output_dir = output_dir / "construct_load"
+        # Start clean so a report or zip from an earlier run can never be inspected.
+        shutil.rmtree(build_output_dir, ignore_errors=True)
         command = [
             sys.executable,
             str(root / "project_sources/gemini/tools/build_dcoir_gemini_release.py"),
@@ -48,28 +69,27 @@ def validate_construct(root: Path, output_dir: Path, messages: list[dict[str, st
             add_message(messages, "error", "construct build failed", repo_relative(source_root, root))
             build["stderr"] = process.stderr[-2000:]
 
-        zip_paths = sorted(build_output_dir.glob("*.zip"))
-        if zip_paths:
-            with zipfile.ZipFile(zip_paths[-1]) as archive:
-                names = archive.namelist()
-            relative_entries = [name.split("/", 1)[1] if "/" in name else name for name in names]
-            source_only_files = set(manifest.get("source_only_files", []))
-            source_only_dirs = manifest.get("source_only_dirs", [])
-            leaks = [
-                entry
-                for entry in relative_entries
-                if entry in source_only_files
-                or any(entry.startswith(directory.rstrip("/") + "/") for directory in source_only_dirs)
-            ]
-            build.update(
-                {
-                    "zip_path": repo_relative(zip_paths[-1], root),
-                    "zip_entry_count": len(names),
-                    "prime_present": topology["prime_agent_file"] in relative_entries,
-                    "source_only_leaks": leaks,
-                }
-            )
-            if not build["prime_present"] or leaks:
-                add_message(messages, "error", "construct zip contract failed", repo_relative(zip_paths[-1], root))
+        # Inspect exactly the compiler-reported zip through the shared contract owner.
+        if not process.returncode:
+            try:
+                zip_path = compiled_zip_path(
+                    build_output_dir,
+                    expected_bundle_name=manifest.get("bundle_name"),
+                    expected_bundle_version=derive_bundle_version(source_root, manifest),
+                )
+                contract = inspect_bundle_zip(zip_path, manifest)
+            except BundleZipContractError as exc:
+                add_message(messages, "error", f"construct zip contract failed: {exc}", repo_relative(source_root, root))
+            else:
+                build.update(
+                    {
+                        "zip_path": repo_relative(zip_path, root),
+                        "zip_entry_count": contract["entry_count"],
+                        "prime_present": len(contract["prime_agent_entries"]) == 1,
+                        "source_only_leaks": contract["source_only_leaks"],
+                    }
+                )
+                if not contract["success"]:
+                    add_message(messages, "error", "construct zip contract failed", build["zip_path"])
 
     return {"manifest_path": repo_relative(manifest_path, root), "counts": counts, "build": build}

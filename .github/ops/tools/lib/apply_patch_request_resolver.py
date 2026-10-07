@@ -4,15 +4,14 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
-import re
 import subprocess
 import sys
 import time
 from collections.abc import Iterable
 
+from lib.apply_patch_request_contract import INVALID_REQUEST_IDS, SAFE_ID_RE
+
 REQUEST_ROOT = pathlib.Path(".github/ops/requests/apply_patch")
-SAFE_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")
-INVALID_REQUEST_IDS = {".", ".."}
 
 
 def write_outputs(output_path: pathlib.Path, values: dict[str, str]) -> None:
@@ -22,7 +21,7 @@ def write_outputs(output_path: pathlib.Path, values: dict[str, str]) -> None:
 
 
 def validate_request_id(request_id: str) -> None:
-    if not request_id or request_id in INVALID_REQUEST_IDS or not SAFE_REQUEST_ID_RE.fullmatch(request_id):
+    if not request_id or request_id in INVALID_REQUEST_IDS or not SAFE_ID_RE.fullmatch(request_id):
         raise SystemExit(f"Unsafe request id: {request_id}")
 
 
@@ -33,7 +32,7 @@ def safe_request_path(path: str) -> bool:
         and pure.parts[:4] == (".github", "ops", "requests", "apply_patch")
         and pure.name == "request.json"
         and pure.parts[4] not in INVALID_REQUEST_IDS
-        and SAFE_REQUEST_ID_RE.fullmatch(pure.parts[4]) is not None
+        and SAFE_ID_RE.fullmatch(pure.parts[4]) is not None
     )
 
 
@@ -44,7 +43,7 @@ def request_path_for_patch(path: str) -> str | None:
         and pure.parts[:4] == (".github", "ops", "requests", "apply_patch")
         and pure.suffix in {".patch", ".diff"}
         and pure.parts[4] not in INVALID_REQUEST_IDS
-        and SAFE_REQUEST_ID_RE.fullmatch(pure.parts[4])
+        and SAFE_ID_RE.fullmatch(pure.parts[4])
     ):
         return pathlib.PurePosixPath(*pure.parts[:5], "request.json").as_posix()
     return None
