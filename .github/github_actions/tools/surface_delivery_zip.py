@@ -23,35 +23,20 @@ def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def iter_reports(value: Any) -> list[dict[str, Any]]:
-    reports: list[dict[str, Any]] = []
-    if isinstance(value, dict):
-        report = value.get("report")
-        if isinstance(report, dict):
-            reports.append(report)
-        for child in value.values():
-            reports.extend(iter_reports(child))
-    elif isinstance(value, list):
-        for child in value:
-            reports.extend(iter_reports(child))
-    return reports
-
-
 def find_zip_path(report: dict[str, Any]) -> Path:
-    candidates: list[str] = []
-    direct = report.get("zip_path")
-    if isinstance(direct, str) and direct.strip():
-        candidates.append(direct)
-    for nested_report in iter_reports(report):
-        nested = nested_report.get("zip_path")
-        if isinstance(nested, str) and nested.strip():
-            candidates.append(nested)
+    """Return the build report's top-level zip_path, the only delivery-zip identity.
 
-    for candidate in candidates:
-        path = Path(candidate)
-        if path.is_file():
-            return path
-    raise SystemExit(f"No existing delivery zip found in build report candidates: {candidates}")
+    Every build (collector runtime package, Gemini release, OpenAI GPT release)
+    reports the zip it produced at the top level. Nested step reports are not
+    searched: they could name a different archive than the one delivered.
+    """
+    direct = report.get("zip_path")
+    if not isinstance(direct, str) or not direct.strip():
+        raise SystemExit("Build report has no top-level zip_path")
+    path = Path(direct)
+    if not path.is_file():
+        raise SystemExit(f"Build report zip_path does not exist: {path}")
+    return path
 
 
 def sha256_file(path: Path) -> str:
