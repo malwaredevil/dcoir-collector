@@ -55,7 +55,9 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
         )
         return source_root, output_dir, text
 
-    def run_reassembler(self, source_root: Path, output_dir: Path) -> subprocess.CompletedProcess[str]:
+    def run_reassembler(
+        self, source_root: Path, output_dir: Path, *extra_args: str
+    ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [
                 sys.executable,
@@ -64,6 +66,7 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
                 str(source_root),
                 '--output-dir',
                 str(output_dir),
+                *extra_args,
             ],
             capture_output=True,
             text=True,
@@ -94,11 +97,22 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
             manifest = self.read_json(manifest_path)
             manifest['generated_prime_agent_file'] = '../escaped.txt'
             self.write_json(manifest_path, manifest)
+            # Bind the traversal target everywhere so only path safety can stop it.
+            bundle_path = source_root / 'Gemini_Bundle_Source_Manifest.json'
+            bundle = self.read_json(bundle_path)
+            bundle['runtime_generated_files'] = ['../escaped.txt']
+            bundle['topology']['prime_agent_file'] = '../escaped.txt'
+            self.write_json(bundle_path, bundle)
 
             proc = self.run_reassembler(source_root, output_dir)
 
             self.assertNotEqual(proc.returncode, 0)
-            self.assertIn('generated_prime_agent_file', proc.stderr)
+            self.assertIn('Unsafe Gemini bundle manifest paths', proc.stderr)
+            self.assertIn(
+                'generated_prime_agent_file must not be absolute or contain traversal',
+                proc.stderr,
+            )
+            self.assertNotIn('Traceback', proc.stderr)
             self.assertFalse((base / 'escaped.txt').exists())
 
     def test_rejects_chunk_manifest_traversal(self) -> None:
@@ -235,6 +249,43 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
             self.write_json(manifest_path, manifest)
 
         self.assert_target_rejected(mutate, 'not the root itself')
+
+    def test_check_only_accepts_matching_target_and_rejects_stale_target(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir, text = self.make_fixture(Path(td))
+            target = source_root / 'generated/prime.txt'
+            target.write_text(text, encoding='utf-8')
+            proc = self.run_reassembler(source_root, output_dir, '--check-only')
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+
+            target.write_text('stale\n', encoding='utf-8')
+            proc = self.run_reassembler(source_root, output_dir, '--check-only')
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('does not match chunk reassembly', proc.stderr)
+            self.assertEqual(target.read_text(encoding='utf-8'), 'stale\n')
+
+    def test_rejects_runtime_manifest_different_from_topology(self) -> None:
+        def mutate(source_root: Path) -> None:
+            alternate = source_root / 'chunks/alternate.json'
+            alternate.write_text(
+                (source_root / 'chunks/manifest.json').read_text(encoding='utf-8'),
+                encoding='utf-8',
+            )
+            bundle_path = source_root / 'Gemini_Bundle_Source_Manifest.json'
+            bundle = self.read_json(bundle_path)
+            bundle['prime_agent_chunk_manifest'] = 'chunks/alternate.json'
+            self.write_json(bundle_path, bundle)
+
+        self.assert_target_rejected(mutate, 'Prime chunk manifest disagreement')
+
+    def test_rejects_topology_sources_different_from_selected_manifest(self) -> None:
+        def mutate(source_root: Path) -> None:
+            bundle_path = source_root / 'Gemini_Bundle_Source_Manifest.json'
+            bundle = self.read_json(bundle_path)
+            bundle['topology']['prime_agent_chunk_sources'] = ['chunks/other.txt']
+            self.write_json(bundle_path, bundle)
+
+        self.assert_target_rejected(mutate, 'Prime chunk source disagreement')
 
     def test_unreadable_inputs_fail_closed_without_traceback(self) -> None:
         cases = [

@@ -11,9 +11,11 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from types import ModuleType
 from typing import Any
+
+from lib.gemini_bundle_validation_common import DEFAULT_GENERATED_KNOWLEDGE_DIR
 
 _SHARED_MODULE_NAME = 'agent_runtime_path_safety'
 _SHARED_MODULE_PATH = (
@@ -106,6 +108,19 @@ def validate_bundle_identity(bundle_name: Any, bundle_version: Any) -> list[str]
     return errors
 
 
+def _resolve_canonical_path(root: Path, value: object, label: str) -> Path:
+    """Resolve a manifest path and require its one canonical forward-slash spelling.
+
+    Downstream code compares manifest strings with archive-relative POSIX paths
+    (source_only_files, the release leak check), so './a', 'a//b', 'a/' or 'a\\b'
+    would pass containment yet silently miss those comparisons.
+    """
+    resolved = resolve_contained_path(root, value, label)
+    if '\\' in value or PurePosixPath(value).as_posix() != value:
+        raise UnsafePathError(f'{label} must use canonical forward-slash spelling: {value}')
+    return resolved
+
+
 def _append_list_paths(
     container: dict,
     field: str,
@@ -142,7 +157,7 @@ def _iter_manifest_paths(
 
     values.append((
         'generated_knowledge_attachment_dir',
-        manifest.get('generated_knowledge_attachment_dir', '02_PRIME_AGENT_ATTACHMENTS'),
+        manifest.get('generated_knowledge_attachment_dir', DEFAULT_GENERATED_KNOWLEDGE_DIR),
         'source',
     ))
     _append_list_paths(
@@ -211,7 +226,7 @@ def validate_manifest_paths(
         seen.add(key)
         root = source_root if scope == 'source' else repo_root
         try:
-            resolve_contained_path(root, value, label)
+            _resolve_canonical_path(root, value, label)
         except UnsafePathError as exc:
             errors.append(str(exc))
 
@@ -243,7 +258,7 @@ def validate_manifest_paths(
             target = chunk_manifest.get('generated_prime_agent_file')
             if target is not None:
                 try:
-                    resolve_contained_path(
+                    _resolve_canonical_path(
                         source_root,
                         target,
                         'generated_prime_agent_file',
@@ -258,7 +273,7 @@ def validate_manifest_paths(
             for entry in chunks:
                 value = entry.get('path') if isinstance(entry, dict) else None
                 try:
-                    resolve_contained_path(
+                    _resolve_canonical_path(
                         source_root,
                         value,
                         'prime agent chunk path',

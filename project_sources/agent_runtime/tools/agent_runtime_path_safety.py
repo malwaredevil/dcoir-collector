@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """Shared fail-closed containment for manifest-controlled relative paths.
 
-This module is the single owner of root-relative path containment for the
-agent-runtime package builders and the Gemini bundle tooling. Callers keep only
-their own error-reporting adapter (exception vs. collected error list).
+This module owns root-relative path containment for the agent-runtime package
+builders (build_openai_dcoir_analyst, build_openai_usb_reporting,
+materialize_agent_behavior_adapters, project_agent_knowledge),
+evaluate_gemini_knowledge_consolidation, and the Gemini bundle tooling under
+project_sources/gemini/tools. Callers keep only their error-reporting adapter:
+resolve_repo_path collects errors, resolve_contained_path raises UnsafePathError.
+
+Two resolvers stay separate on purpose because their contracts differ:
+build_openai_gpt_deployment_release refuses every symlink in a release path, and
+report_agent_release_parity resolves paths that must already exist.
 """
 from __future__ import annotations
 
@@ -109,7 +116,11 @@ def resolve_repo_path(
     errors: list[str],
     required_root: Path | None = None,
 ) -> Path | None:
-    """Resolve a repository-relative path, appending to errors instead of raising."""
+    """Resolve a repository-relative path, appending to errors instead of raising.
+
+    The value must name something inside the repository, never the repository
+    root itself, and when required_root is given it must stay inside that root.
+    """
     try:
         candidate = resolve_contained_path(
             repo_root,
@@ -117,7 +128,6 @@ def resolve_repo_path(
             label,
             root_kind='repository',
             root_name='the repository',
-            allow_root=True,
         )
     except UnsafePathError as exc:
         errors.append(str(exc))

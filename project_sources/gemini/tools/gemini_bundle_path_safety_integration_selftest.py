@@ -67,13 +67,6 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             )
         )
 
-    def test_compiler_safe_control_accepts_contained_manifest_paths(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            source_root, output_dir = self.make_fixture(Path(td))
-            proc = self.run_tool(COMPILE, source_root, output_dir)
-            self.assertEqual(proc.returncode, 0, proc.stderr)
-            self.assertTrue((output_dir / 'DCOIR_Gemini_test.zip').exists())
-
     def test_compiler_safe_control_archive_stays_contained(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             source_root, output_dir = self.make_fixture(Path(td))
@@ -81,9 +74,12 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, proc.stderr)
 
             zip_path = output_dir / 'DCOIR_Gemini_test.zip'
-            self.assertTrue(
-                zip_path.resolve().is_relative_to(output_dir.resolve())
+            report = json.loads(
+                (output_dir / 'compile_dcoir_gemini_bundle_report.json').read_text(
+                    encoding='utf-8'
+                )
             )
+            self.assertEqual(Path(report['zip_path']), zip_path.resolve())
             with zipfile.ZipFile(zip_path) as zf:
                 members = zf.namelist()
             self.assertTrue(members)
@@ -264,6 +260,36 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
 
             self.assertNotEqual(proc.returncode, 0)
             self.assertIn('linked-dir', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
+
+    def test_compiler_rejects_symlinked_archive_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(base)
+            output_dir.mkdir()
+            self.make_link_or_skip(output_dir / 'DCOIR_Gemini_test.zip', base / 'outside.zip')
+
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('Unsafe Gemini bundle output path', proc.stderr)
+            self.assertIn('escapes its root', proc.stderr)
+            self.assertNotIn('Traceback', proc.stderr)
+            self.assertFalse((base / 'outside.zip').exists())
+
+    def test_compiler_rejects_non_canonical_source_only_spelling(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(
+                base, source_only_files=['./notes/internal.md.txt']
+            )
+            (source_root / 'notes').mkdir()
+            (source_root / 'notes' / 'internal.md.txt').write_text('internal', encoding='utf-8')
+
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('must use canonical forward-slash spelling', proc.stderr)
             self.assertEqual(list(base.rglob('*.zip')), [])
 
     def test_compiler_rejects_bad_knowledge_attachment_before_writing_zip(self) -> None:

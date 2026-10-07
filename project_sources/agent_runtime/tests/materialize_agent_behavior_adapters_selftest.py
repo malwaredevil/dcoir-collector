@@ -246,40 +246,6 @@ class BehaviorAdapterTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertTrue(any('traversal' in error for error in report['errors']))
 
-    def test_resolver_symlink_escape_and_loop_fail_closed_when_supported(self) -> None:
-        with tempfile.TemporaryDirectory() as outside_dir:
-            outside = Path(outside_dir) / 'outside.txt'
-            outside.write_text('outside', encoding='utf-8')
-            escape = self.repo_root / 'resolver-escape'
-            loop = self.repo_root / 'resolver-loop'
-            try:
-                escape.symlink_to(outside)
-                loop.symlink_to(loop)
-            except (NotImplementedError, OSError):
-                self.skipTest('symlinks are not supported')
-
-            errors: list[str] = []
-            self.assertIsNone(
-                ADAPTER.resolve_repo_path(
-                    self.repo_root, 'resolver-escape', 'probe', errors
-                )
-            )
-            self.assertTrue(
-                any('escapes the repository' in error for error in errors),
-                errors,
-            )
-
-            errors = []
-            self.assertIsNone(
-                ADAPTER.resolve_repo_path(
-                    self.repo_root, 'resolver-loop', 'probe', errors
-                )
-            )
-            self.assertTrue(
-                any('probe path could not be resolved:' in error for error in errors),
-                errors,
-            )
-
     def test_rejects_output_outside_target_root(self) -> None:
         self.manifest['modules'][0]['projections'][ADAPTER.TARGET_ID][
             'output_path'

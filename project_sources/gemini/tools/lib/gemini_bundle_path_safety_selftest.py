@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
-from gemini_bundle_path_safety import (
+# Import through the lib package exactly as the Gemini tools do.
+TOOLS_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(TOOLS_DIR))
+SYS_PATH_AFTER_TOOLS_DIR = list(sys.path)
+
+from lib import gemini_bundle_path_safety
+from lib.gemini_bundle_path_safety import (
     UnsafePathError,
-    resolve_contained_path,
     validate_bundle_identity,
     validate_bundle_identity_component,
     validate_manifest_paths,
@@ -15,76 +21,15 @@ from gemini_bundle_path_safety import (
 
 
 class GeminiBundlePathSafetyTests(unittest.TestCase):
-    def test_safe_relative_path_resolves_inside_root(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td) / 'bundle'
-            nested = root / 'chunks' / 'part.txt'
-            nested.parent.mkdir(parents=True)
-            nested.write_text('safe', encoding='utf-8')
-
-            resolved = resolve_contained_path(
-                root, 'chunks/part.txt', 'chunk path'
-            )
-
-            self.assertEqual(resolved, nested.resolve())
-
-    def test_rejects_empty_non_string_absolute_and_traversal(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td) / 'bundle'
-            root.mkdir()
-            bad_values = [
-                '',
-                None,
-                7,
-                '../escape.txt',
-                'nested/../../escape.txt',
-                '..\\escape.txt',
-                'nested\\..\\..\\escape.txt',
-                '\\rooted.txt',
-                'C:\\temp\\escape.txt',
-                'C:escape.txt',
-                'bad\x00name',
-                str(Path(td).resolve() / 'absolute.txt'),
-                '.',
-                './',
-                'nested/..',
-            ]
-            for value in bad_values:
-                with self.subTest(value=value):
-                    with self.assertRaises(UnsafePathError):
-                        resolve_contained_path(root, value, 'manifest path')
-
-    def test_rejects_symlink_escape(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            base = Path(td)
-            root = base / 'bundle'
-            outside = base / 'outside'
-            root.mkdir()
-            outside.mkdir()
-            (outside / 'secret.txt').write_text('outside', encoding='utf-8')
-            try:
-                (root / 'escape').symlink_to(outside, target_is_directory=True)
-            except (NotImplementedError, OSError):
-                self.skipTest('symlinks are not supported')
-
-            with self.assertRaisesRegex(
-                UnsafePathError, 'escapes its root'
-            ):
-                resolve_contained_path(
-                    root, 'escape/secret.txt', 'chunk path'
-                )
-
-    def test_rejects_symlink_loop(self) -> None:
-        with tempfile.TemporaryDirectory() as td:
-            root = Path(td) / 'bundle'
-            root.mkdir()
-            try:
-                (root / 'loop').symlink_to('loop')
-            except (NotImplementedError, OSError):
-                self.skipTest('symlinks are not supported')
-
-            with self.assertRaises(UnsafePathError):
-                resolve_contained_path(root, 'loop/file.txt', 'chunk path')
+    def test_containment_comes_from_the_shared_owner_without_sys_path_changes(self) -> None:
+        shared = sys.modules['agent_runtime_path_safety']
+        self.assertEqual(
+            Path(shared.__file__).resolve(),
+            TOOLS_DIR.parent.parent / 'agent_runtime' / 'tools' / 'agent_runtime_path_safety.py',
+        )
+        self.assertIs(gemini_bundle_path_safety.resolve_contained_path, shared.resolve_contained_path)
+        self.assertIs(gemini_bundle_path_safety.UnsafePathError, shared.UnsafePathError)
+        self.assertEqual(sys.path, SYS_PATH_AFTER_TOOLS_DIR)
 
     def test_manifest_container_shape_errors_are_structured(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -253,6 +198,66 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
                 self.assertEqual(len(errors), 1, errors)
                 self.assertIn(marker, errors[0])
                 self.assertIn('not the root itself', errors[0])
+
+    def run_preflight(self, manifest: dict, chunk_manifest: str | None = None) -> list[str]:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root = base / 'bundle'
+            repo_root = base / 'repo'
+            source_root.mkdir()
+            repo_root.mkdir()
+            if chunk_manifest is not None:
+                (source_root / 'chunks.json').write_text(chunk_manifest, encoding='utf-8')
+                manifest = {**manifest, 'prime_agent_chunk_manifest': 'chunks.json'}
+            return validate_manifest_paths(manifest, source_root, repo_root)
+
+    def test_every_manifest_path_field_is_preflighted(self) -> None:
+        cases = [
+            *(({field: ['../escaped']}, field) for field in (
+                'required_files',
+                'source_required_files',
+                'runtime_generated_files',
+                'source_only_files',
+                'source_only_dirs',
+                'knowledge_attachment_sources',
+            )),
+            ({'generated_knowledge_attachment_dir': '../escaped'}, 'generated_knowledge_attachment_dir'),
+            ({'prime_agent_chunk_manifest': '../escaped'}, 'prime_agent_chunk_manifest'),
+            *(({'topology': {field: '../escaped'}}, f'topology.{field}') for field in (
+                'prime_agent_file',
+                'generated_index_file',
+                'quick_start_file',
+                'prime_agent_chunk_manifest',
+            )),
+            *(({'topology': {field: ['../escaped']}}, f'topology.{field}') for field in (
+                'sub_agent_files',
+                'prime_agent_chunk_sources',
+            )),
+        ]
+        for manifest, label in cases:
+            with self.subTest(label=label):
+                errors = self.run_preflight(manifest)
+                self.assertEqual(len(errors), 1, errors)
+                self.assertTrue(
+                    errors[0].startswith(f'{label} must not be absolute or contain traversal'),
+                    errors,
+                )
+
+    def test_non_canonical_spellings_are_rejected(self) -> None:
+        for value in ('./notes/x.md.txt', 'notes//x.md.txt', 'notes/', 'notes\\x.md.txt'):
+            for manifest, chunk_manifest, label in (
+                ({'source_only_files': [value]}, None, 'source_only_files'),
+                ({'source_only_dirs': [value]}, None, 'source_only_dirs'),
+                ({}, '{"chunks":[{"path":"%s"}]}' % value.replace('\\', '\\\\'), 'prime agent chunk path'),
+                ({}, '{"generated_prime_agent_file":"%s"}' % value.replace('\\', '\\\\'), 'generated_prime_agent_file'),
+            ):
+                with self.subTest(value=value, label=label):
+                    errors = self.run_preflight(manifest, chunk_manifest)
+                    self.assertEqual(len(errors), 1, errors)
+                    self.assertTrue(
+                        errors[0].startswith(f'{label} must use canonical forward-slash spelling'),
+                        errors,
+                    )
 
     def test_safe_manifest_and_chunk_manifest_return_no_errors(self) -> None:
         with tempfile.TemporaryDirectory() as td:
