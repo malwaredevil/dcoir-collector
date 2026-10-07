@@ -9,13 +9,21 @@ import build_powershell_surface_inventory as inventory_builder
 from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity
 
 
+# Deliberate change detectors: adding or removing a collector or harness source part
+# must update these pins alongside the regenerated inventory and parity evidence.
+EXPECTED_COLLECTOR_SOURCE_PARTS = 43
+EXPECTED_HARNESS_SOURCE_PARTS = 18
+
+
 class PowerShellAssemblyParityRealRepoTests(PowerShellAssemblyParityTestCase):
     def test_real_repo_contract_passes(self) -> None:
         repo_root = Path(__file__).resolve().parents[3]
 
+        # The parity CLI only accepts repository-relative inputs, so the fresh
+        # inventory lives under the git-ignored project_sources/validation/out_*/.
         with tempfile.TemporaryDirectory(
-            dir=repo_root / "project_sources/collector",
-            prefix=".assembly-parity-fresh-inventory-",
+            dir=repo_root / "project_sources/validation",
+            prefix="out_assembly_parity_fresh_inventory_",
         ) as temp:
             temp_root = Path(temp)
             inventory_rel = (temp_root / "inventory.json").relative_to(repo_root)
@@ -38,15 +46,15 @@ class PowerShellAssemblyParityRealRepoTests(PowerShellAssemblyParityTestCase):
                 self.args(repo_root, inventory=inventory_rel.as_posix())
             )
 
-        expected_harness_parts = inventory["controls"]["harness_source_parts"][
-            "part_count"
-        ]
         self.assertEqual(errors, [])
         self.assertTrue(report["validation"]["success"])
-        self.assertEqual(report["summary"]["collector_source_part_count"], 43)
+        self.assertEqual(
+            report["summary"]["collector_source_part_count"],
+            EXPECTED_COLLECTOR_SOURCE_PARTS,
+        )
         self.assertEqual(
             report["summary"]["harness_source_part_count"],
-            expected_harness_parts,
+            EXPECTED_HARNESS_SOURCE_PARTS,
         )
         self.assertEqual(report["summary"]["generated_output_count"], 2)
         self.assertEqual(report["summary"]["parse_status"], "pass")
