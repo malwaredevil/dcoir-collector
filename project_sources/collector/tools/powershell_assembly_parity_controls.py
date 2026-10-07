@@ -30,15 +30,15 @@ def compare_inventory_controls(
     if not counts:
         errors.append("PowerShell surface inventory controls are missing collector/harness source-part counts")
         return
-    if observed["collector_source_part_count"] < counts["collector_source_part_count"]:
+    if observed["collector_source_part_count"] != counts["collector_source_part_count"]:
         errors.append(
-            "collector source-part map unexpectedly shrank below inventory controls: "
-            f"{observed['collector_source_part_count']} < {counts['collector_source_part_count']}"
+            "collector source-part map does not match inventory controls: "
+            f"{observed['collector_source_part_count']} != {counts['collector_source_part_count']}"
         )
-    if observed["harness_source_part_count"] < counts["harness_source_part_count"]:
+    if observed["harness_source_part_count"] != counts["harness_source_part_count"]:
         errors.append(
-            "harness source-part map unexpectedly shrank below inventory controls: "
-            f"{observed['harness_source_part_count']} < {counts['harness_source_part_count']}"
+            "harness source-part map does not match inventory controls: "
+            f"{observed['harness_source_part_count']} != {counts['harness_source_part_count']}"
         )
     if observed["generated_output_count"] < 1 + counts["generated_output_mapping_count"]:
         errors.append(
@@ -135,7 +135,12 @@ def controlled_bad_cases() -> list[dict[str, str]]:
             "expected_result": "fails when regenerated runnable output has an unbalanced PowerShell structure",
         },
         {
-            "case": "unexpected_inventory_shrink",
+            "case": "stale_inventory_source_part_count",
+            "evidence": "test_inventory_source_part_growth_fails and test_inventory_source_part_shrink_fails",
+            "expected_result": "fails when live collector or harness source-part counts differ from inventory controls in either direction",
+        },
+        {
+            "case": "unexpected_baseline_shrink",
             "evidence": "test_baseline_shrink_without_exception_fails",
             "expected_result": "fails when source/generated counts shrink below baseline without an exception record",
         },

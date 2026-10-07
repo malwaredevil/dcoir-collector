@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import unittest.mock
 
-from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity
+from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity, write
 
 
 class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
@@ -43,6 +44,45 @@ class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
         self.assertTrue(report["validation"]["success"])
         self.assertTrue(calls)
         self.assertIs(parity._builders.part_entry, original_part_entry)
+
+    def test_inventory_source_part_growth_fails(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            write(
+                root
+                / "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
+                'function Invoke-SecondHarnessPart { Write-Output "ok" }\n',
+            )
+            report, errors, _warnings = parity.build_report(self.args(root))
+
+        self.assertFalse(report["validation"]["success"])
+        self.assertTrue(
+            any(
+                "harness source-part map does not match inventory controls: 2 != 1"
+                in error
+                for error in errors
+            ),
+            errors,
+        )
+
+    def test_inventory_source_part_shrink_fails(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            inventory_path = root / parity.DEFAULT_INVENTORY
+            inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+            inventory["controls"]["harness_source_parts"]["part_count"] = 2
+            write(inventory_path, json.dumps(inventory, indent=2) + "\n")
+            report, errors, _warnings = parity.build_report(self.args(root))
+
+        self.assertFalse(report["validation"]["success"])
+        self.assertTrue(
+            any(
+                "harness source-part map does not match inventory controls: 1 != 2"
+                in error
+                for error in errors
+            ),
+            errors,
+        )
 
     def test_stale_checked_in_generated_output_fails(self) -> None:
         with self.make_repo(checked_in_harness_text='Write-Output "stale"\n') as temp:
