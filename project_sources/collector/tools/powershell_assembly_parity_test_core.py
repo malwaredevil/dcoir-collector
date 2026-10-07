@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import unittest.mock
 
+import powershell_assembly_parity_builders as _builders
+import powershell_assembly_parity_cli as _cli
+import powershell_assembly_parity_common as _common
+import powershell_assembly_parity_parsing as _parsing
 from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity, write
 
 
@@ -23,27 +26,13 @@ class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
         self.assertEqual(report["summary"]["parity_status"], "pass")
         self.assertTrue(all(output["line_mapping"] for output in report["generated_outputs"]))
 
-    def test_facade_patch_does_not_mutate_builder_module(self) -> None:
-        original_part_entry = parity._builders.part_entry
-        calls: list[Path] = []
-
-        def observed_part_entry(path: Path, repo_root: Path) -> dict[str, object]:
-            calls.append(path)
-            return original_part_entry(path, repo_root)
-
-        with self.make_repo() as temp:
-            with unittest.mock.patch.object(
-                parity, "part_entry", side_effect=observed_part_entry
-            ):
-                report, errors, _warnings = parity.build_report(
-                    self.args(Path(temp))
-                )
-                self.assertIs(parity._builders.part_entry, original_part_entry)
-
-        self.assertEqual(errors, [])
-        self.assertTrue(report["validation"]["success"])
-        self.assertTrue(calls)
-        self.assertIs(parity._builders.part_entry, original_part_entry)
+    def test_facade_reexports_canonical_owners(self) -> None:
+        self.assertIs(parity.build_report, _cli.build_report)
+        self.assertIs(parity.main, _cli.main)
+        self.assertIs(parity.build_collector_output, _builders.build_collector_output)
+        self.assertIs(parity.build_harness_output, _builders.build_harness_output)
+        self.assertIs(parity.parse_powershell_text, _parsing.parse_powershell_text)
+        self.assertIs(parity.part_entry, _common.part_entry)
 
     def test_inventory_source_part_growth_fails(self) -> None:
         with self.make_repo() as temp:

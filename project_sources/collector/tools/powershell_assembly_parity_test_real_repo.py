@@ -51,3 +51,32 @@ class PowerShellAssemblyParityRealRepoTests(PowerShellAssemblyParityTestCase):
         self.assertEqual(report["summary"]["generated_output_count"], 2)
         self.assertEqual(report["summary"]["parse_status"], "pass")
         self.assertEqual(report["summary"]["parity_status"], "pass")
+
+        # The checked-in inventory is what the analyzer, custom checks and
+        # review-assist consume, so it must agree with the fresh one too.
+        checked_report, checked_errors, _warnings = parity.build_report(
+            self.args(repo_root)
+        )
+        self.assertEqual(checked_errors, [])
+        self.assertTrue(checked_report["validation"]["success"])
+        checked_inventory = json.loads(
+            (repo_root / parity.DEFAULT_INVENTORY).read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            self.control_paths(checked_inventory),
+            self.control_paths(inventory),
+            f"{parity.DEFAULT_INVENTORY.as_posix()} is stale; regenerate it with "
+            "build_powershell_surface_inventory.py",
+        )
+
+    @staticmethod
+    def control_paths(inventory: dict) -> dict[str, list[str]]:
+        controls = inventory["controls"]
+        return {
+            "collector_manifest": [
+                entry["path"] for entry in controls["collector_manifest"]["paths"]
+            ],
+            "harness_source_parts": [
+                entry["path"] for entry in controls["harness_source_parts"]["parts"]
+            ],
+        }
