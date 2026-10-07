@@ -70,11 +70,35 @@ class PowerShellAssemblyParityRealRepoTests(PowerShellAssemblyParityTestCase):
         checked_inventory = json.loads(
             (repo_root / parity.DEFAULT_INVENTORY).read_text(encoding="utf-8")
         )
-        self.assertEqual(
-            self.control_paths(checked_inventory),
-            self.control_paths(inventory),
+        stale = (
             f"{parity.DEFAULT_INVENTORY.as_posix()} is stale; regenerate it with "
-            "build_powershell_surface_inventory.py",
+            "build_powershell_surface_inventory.py"
+        )
+        self.assertEqual(
+            self.control_paths(checked_inventory), self.control_paths(inventory), stale
+        )
+        self.assertEqual(checked_inventory["summary"], inventory["summary"], stale)
+
+        # The checked-in parity report is what review-assist consumes.
+        checked_parity = json.loads(
+            (repo_root / parity.DEFAULT_JSON_OUTPUT).read_text(encoding="utf-8")
+        )
+        count_keys = (
+            "collector_source_part_count",
+            "harness_source_part_count",
+            "source_part_count",
+            "source_input_count",
+            "generated_output_count",
+        )
+        self.assertEqual(
+            {key: checked_parity["summary"][key] for key in count_keys},
+            {key: checked_report["summary"][key] for key in count_keys},
+            f"{parity.DEFAULT_JSON_OUTPUT.as_posix()} is stale; regenerate it with "
+            "run_powershell_assembly_parity.py",
+        )
+        self.assertEqual(
+            checked_parity["inventory"]["control_counts"],
+            checked_report["inventory"]["control_counts"],
         )
 
     @staticmethod

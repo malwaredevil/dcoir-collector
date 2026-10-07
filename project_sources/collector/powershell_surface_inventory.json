@@ -20,7 +20,7 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 383,
+    "total_surfaces": 384,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
@@ -39,7 +39,7 @@
       "staging_artifact": 196,
       "unclassified_powershell_surface": 0,
       "validation_tooling": 2,
-      "workflow_embedded_powershell": 29
+      "workflow_embedded_powershell": 30
     },
     "by_source_type": {
       ".ps1": 335,
@@ -47,7 +47,7 @@
       ".ps1xml": 0,
       ".psd1": 9,
       ".psm1": 10,
-      "workflow_yaml": 29
+      "workflow_yaml": 30
     },
     "by_status": {
       "fixture": 23,
@@ -56,14 +56,14 @@
       "staging": 196,
       "superseded_pointer": 1,
       "tooling": 68,
-      "workflow_embedded": 29
+      "workflow_embedded": 30
     },
     "by_inclusion_decision": {
       "exclude": 196,
       "include": 134,
-      "reference": 53
+      "reference": 54
     },
-    "embedded_snippet_count": 117
+    "embedded_snippet_count": 118
   },
   "controls": {
     "collector_manifest": {
@@ -900,6 +900,32 @@
       "size_bytes": 1474,
       "line_count": 32,
       "sha256": "03d65a479eb7f5320989e2ed268f208e3085269a3f23754fe8b4c392bd1f5e18"
+    },
+    {
+      "path": ".github/actions/run-path-safety-selftests/action.yml",
+      "category": "workflow_embedded_powershell",
+      "source_type": "workflow_yaml",
+      "status": "workflow_embedded",
+      "inclusion_decision": "reference",
+      "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
+      "exists": true,
+      "marker_lines": [
+        7
+      ],
+      "embedded_snippets": [
+        {
+          "source_file": ".github/actions/run-path-safety-selftests/action.yml",
+          "step_or_action": "Run path-safety self-tests",
+          "shell": "pwsh",
+          "line_start": 7,
+          "line_end": 27,
+          "command_sha256": "7ba6a926fc0aea60370de90778fae95e60925703eb2ce6973943df3870088e2d",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n$selftests = @(\n  'project_sources/agent_runtime/tests/agent_runtime_path_safety_selftest.py'\n  'project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py'\n  'project_sources/gemini/tools/gemini_"
+        }
+      ],
+      "size_bytes": 1344,
+      "line_count": 30,
+      "sha256": "10074b926c87d96278ddadb3819223e49c1c1c936845ed650c1cb16a6463cdf6"
     },
     {
       "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
@@ -5137,10 +5163,10 @@
       "exists": true,
       "marker_lines": [
         59,
-        64,
-        86,
-        100,
-        131
+        67,
+        89,
+        103,
+        134
       ],
       "embedded_snippets": [
         {
@@ -5156,8 +5182,8 @@
           "source_file": ".github/workflows/reusable-gemini-bundle-build.yml",
           "step_or_action": "Run Gemini validation and build",
           "shell": "pwsh",
-          "line_start": 64,
-          "line_end": 84,
+          "line_start": 67,
+          "line_end": 87,
           "command_sha256": "9e4bb0a8150d88c0e85c62bb2fd348aa02d2fdc5dd5763aee1cec2b8dce04d55",
           "command_preview": "$skipValidation = $env:SKIP_VALIDATION\n$versionOverride = $env:BUNDLE_VERSION_OVERRIDE\n$cmd = @(\n  'python',\n  'project_sources/gemini/tools/build_dcoir_gemini_release.py',\n  '--source-root', 'project_sources/gemini/bundle_source',\n  '--out"
         },
@@ -5165,8 +5191,8 @@
           "source_file": ".github/workflows/reusable-gemini-bundle-build.yml",
           "step_or_action": "Surface Gemini delivery zip",
           "shell": "pwsh",
-          "line_start": 86,
-          "line_end": 98,
+          "line_start": 89,
+          "line_end": 101,
           "command_sha256": "ce891bc103a397e6d328317c9c159224376322df71f3b445f66b9e77c8556c24",
           "command_preview": "python .github/github_actions/tools/surface_delivery_zip.py `\n  --build-report project_sources/validation/out/build_dcoir_gemini_release_report.json `\n  --output-dir project_sources/validation/delivery_artifact/gemini-bundle `\n  --manifest-"
         },
@@ -5174,8 +5200,8 @@
           "source_file": ".github/workflows/reusable-gemini-bundle-build.yml",
           "step_or_action": "Set Gemini delivery artifact name",
           "shell": "pwsh",
-          "line_start": 100,
-          "line_end": 108,
+          "line_start": 103,
+          "line_end": 111,
           "command_sha256": "cc2f274be2946f28765925a9ce09152f414d2f532daa98d0893966e6ac5730f5",
           "command_preview": "$manifest = Get-Content -Raw -Path project_sources/validation/out/delivery_manifest/delivery_manifest.json | ConvertFrom-Json\n$artifactName = [System.IO.Path]::GetFileNameWithoutExtension([string]$manifest.delivery_zip_name)\nif ([string]::I"
         },
@@ -5183,15 +5209,15 @@
           "source_file": ".github/workflows/reusable-gemini-bundle-build.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 131,
-          "line_end": 153,
+          "line_start": 134,
+          "line_end": 156,
           "command_sha256": "3123fb64bab92c100ce349c5488e2a9716e2b525a2231864af92df6103cecef8",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## Gemini bundle build summary\n\n- workflow: manual-gemini-bundle-build\n- workflow_run_id: $env:GITHUB_RUN_ID\n- workflow_run_attempt: $env:GITHUB_RUN_ATT"
         }
       ],
-      "size_bytes": 6541,
-      "line_count": 161,
-      "sha256": "a8fdc2aeb107d8c5729908295ca600bd85a02e07ccbc646344041eee4b726726"
+      "size_bytes": 6641,
+      "line_count": 164,
+      "sha256": "f094864e6a77c13f0844ae0f277469485d4b56bdc147b0214a6b0e975d113345"
     },
     {
       "path": ".github/workflows/reusable-manual-collector-optional-exe-build.yml",
@@ -5522,11 +5548,11 @@
         169,
         177,
         185,
-        229,
-        241,
-        247,
-        257,
-        289
+        232,
+        244,
+        250,
+        260,
+        292
       ],
       "embedded_snippets": [
         {
@@ -5677,8 +5703,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Validate duplicate-function reports",
           "shell": "pwsh",
-          "line_start": 229,
-          "line_end": 235,
+          "line_start": 232,
+          "line_end": 238,
           "command_sha256": "88e968a4b20b7ba363fa6041456955001c1161f563749c751543dbbeb6e3daa2",
           "command_preview": "python .github/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
         },
@@ -5686,8 +5712,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write review-assist report to job summary",
           "shell": "pwsh",
-          "line_start": 241,
-          "line_end": 244,
+          "line_start": 244,
+          "line_end": 247,
           "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
           "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
         },
@@ -5695,8 +5721,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Enforce static analysis validation gates",
           "shell": "pwsh",
-          "line_start": 247,
-          "line_end": 250,
+          "line_start": 250,
+          "line_end": 253,
           "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
           "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
         },
@@ -5704,8 +5730,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run collector core pre-live suite",
           "shell": "pwsh",
-          "line_start": 257,
-          "line_end": 264,
+          "line_start": 260,
+          "line_end": 267,
           "command_sha256": "4b3fe558d1b5e2d8abf121acb02e1a8c2c8ab03d1eb6a36f177bb7017df591d5",
           "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite Core -MasterZipPath $env:HARNESS_RUNTIME_ZIP\nif ($LASTEXITCODE -ne 0) {\n  throw 'Col"
         },
@@ -5713,15 +5739,15 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 289,
-          "line_end": 332,
+          "line_start": 292,
+          "line_end": 335,
           "command_sha256": "10a838d731669fed8eb827059197bad2122fc8e4433c94a739114384840a7e07",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -e"
         }
       ],
-      "size_bytes": 15787,
-      "line_count": 340,
-      "sha256": "dbe7fe8ffe32a3524ab27109d905735579e62f1ec9c45f005012556cc8c4bc25"
+      "size_bytes": 15887,
+      "line_count": 343,
+      "sha256": "d1fd4d1ca6c45c5bff107af6ba4c24c548a7b1ba873a059f5094da1cb57747db"
     },
     {
       "path": ".github/workflows/reusable-validate-on-push.yml",
@@ -5746,10 +5772,10 @@
         151,
         159,
         167,
-        216,
-        228,
-        234,
-        262
+        219,
+        231,
+        237,
+        265
       ],
       "embedded_snippets": [
         {
@@ -5882,8 +5908,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Validate duplicate-function reports",
           "shell": "pwsh",
-          "line_start": 216,
-          "line_end": 222,
+          "line_start": 219,
+          "line_end": 225,
           "command_sha256": "88e968a4b20b7ba363fa6041456955001c1161f563749c751543dbbeb6e3daa2",
           "command_preview": "python .github/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
         },
@@ -5891,8 +5917,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write review-assist report to job summary",
           "shell": "pwsh",
-          "line_start": 228,
-          "line_end": 231,
+          "line_start": 231,
+          "line_end": 234,
           "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
           "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
         },
@@ -5900,8 +5926,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Enforce static analysis validation gates",
           "shell": "pwsh",
-          "line_start": 234,
-          "line_end": 237,
+          "line_start": 237,
+          "line_end": 240,
           "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
           "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
         },
@@ -5909,15 +5935,15 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 262,
-          "line_end": 305,
+          "line_start": 265,
+          "line_end": 308,
           "command_sha256": "9610c0df0f30b6cc18c1be1cbdaf6e2a27ad1a28c276c05800cf7254a62664f0",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME "
         }
       ],
-      "size_bytes": 14486,
-      "line_count": 313,
-      "sha256": "a8b62e7e08c4d4cd4afa37b40c3fad4bc4d70e96beb7d8cbdaf7e1ecf50c9ebe"
+      "size_bytes": 14586,
+      "line_count": 316,
+      "sha256": "a1eedd998ff95d6e42459717a9809be07e353d8690280ff32bf96a84e57cba31"
     },
     {
       "path": ".github/workflows/reusable-windows-powershell-51.yml",

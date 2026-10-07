@@ -30,7 +30,7 @@
 | `staging_artifact` | 196 |
 | `unclassified_powershell_surface` | 0 |
 | `validation_tooling` | 2 |
-| `workflow_embedded_powershell` | 29 |
+| `workflow_embedded_powershell` | 30 |
 
 ## Counts By Source Type
 
@@ -41,7 +41,7 @@
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
 | `.psm1` | 10 |
-| `workflow_yaml` | 29 |
+| `workflow_yaml` | 30 |
 
 ## Counts By Inclusion Decision
 
@@ -49,7 +49,7 @@
 | --- | ---: |
 | `exclude` | 196 |
 | `include` | 134 |
-| `reference` | 53 |
+| `reference` | 54 |
 
 ## Control Totals
 
@@ -58,7 +58,7 @@
 - Harness source parts: `18`
 - Profile-required harness source parts: `18`
 - Profile-required harness source parts present: `18`
-- Embedded workflow/action snippets: `117`
+- Embedded workflow/action snippets: `118`
 
 ## Reference And Excluded Surfaces
 
@@ -70,6 +70,7 @@
 | `.github/actions/run-collector-runtime-package-validation/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-dcoir-pester/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-duplicate-function-check/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
+| `.github/actions/run-path-safety-selftests/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-powershell-review-assist/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-psscriptanalyzer/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |
 | `.github/actions/run-validate-dcoir-fixtures/action.yml` | `workflow_embedded_powershell` | `reference` | Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling. |

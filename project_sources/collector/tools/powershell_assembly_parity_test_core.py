@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import unittest
 from pathlib import Path
 
 import powershell_assembly_parity_builders as _builders
@@ -34,44 +35,68 @@ class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
         self.assertIs(parity.parse_powershell_text, _parsing.parse_powershell_text)
         self.assertIs(parity.part_entry, _common.part_entry)
 
+    def set_inventory_control(self, root: Path, section: str, key: str, value: int) -> None:
+        inventory_path = root / parity.DEFAULT_INVENTORY
+        inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
+        inventory["controls"][section][key] = value
+        write(inventory_path, json.dumps(inventory, indent=2) + "\n")
+
+    def assert_control_mismatch(self, root: Path, message: str) -> None:
+        report, errors, _warnings = parity.build_report(self.args(root))
+        self.assertFalse(report["validation"]["success"])
+        self.assertTrue(any(message in error for error in errors), errors)
+
     def test_inventory_source_part_growth_fails(self) -> None:
-        with self.make_repo() as temp:
+        with self.subTest("harness"), self.make_repo() as temp:
             root = Path(temp)
             write(
                 root
                 / "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-001.ps1",
                 'function Invoke-SecondHarnessPart { Write-Output "ok" }\n',
             )
-            report, errors, _warnings = parity.build_report(self.args(root))
+            self.assert_control_mismatch(
+                root, "harness source-part map does not match inventory controls: 2 != 1"
+            )
 
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(
-            any(
-                "harness source-part map does not match inventory controls: 2 != 1"
-                in error
-                for error in errors
-            ),
-            errors,
-        )
+        core = "project_sources/collector/source/parts/DCOIR_Collector.01_Core.ps1"
+        extra = "project_sources/collector/source/parts/DCOIR_Collector.02_Extra.ps1"
+        with self.subTest("collector"), self.make_repo(manifest_parts=[core, extra]) as temp:
+            root = Path(temp)
+            write(root / extra, 'function Invoke-ExtraCollectorPart { Write-Output "ok" }\n')
+            self.set_inventory_control(root, "collector_manifest", "expected_path_count", 2)
+            self.assert_control_mismatch(
+                root, "collector source-part map does not match inventory controls: 2 != 1"
+            )
 
     def test_inventory_source_part_shrink_fails(self) -> None:
-        with self.make_repo() as temp:
+        with self.subTest("harness"), self.make_repo() as temp:
             root = Path(temp)
-            inventory_path = root / parity.DEFAULT_INVENTORY
-            inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
-            inventory["controls"]["harness_source_parts"]["part_count"] = 2
-            write(inventory_path, json.dumps(inventory, indent=2) + "\n")
-            report, errors, _warnings = parity.build_report(self.args(root))
+            self.set_inventory_control(root, "harness_source_parts", "part_count", 2)
+            self.assert_control_mismatch(
+                root, "harness source-part map does not match inventory controls: 1 != 2"
+            )
 
-        self.assertFalse(report["validation"]["success"])
-        self.assertTrue(
-            any(
-                "harness source-part map does not match inventory controls: 1 != 2"
-                in error
-                for error in errors
-            ),
-            errors,
-        )
+        with self.subTest("collector"), self.make_repo() as temp:
+            root = Path(temp)
+            self.set_inventory_control(root, "collector_manifest", "expected_path_count", 3)
+            self.assert_control_mismatch(
+                root, "collector source-part map does not match inventory controls: 1 != 2"
+            )
+
+    def test_controlled_bad_case_evidence_names_real_tests(self) -> None:
+        import test_run_powershell_assembly_parity as suite
+
+        loader = unittest.TestLoader()
+        names = {
+            name
+            for case in vars(suite).values()
+            if isinstance(case, type) and issubclass(case, unittest.TestCase)
+            for name in loader.getTestCaseNames(case)
+        }
+        for case in parity.controlled_bad_cases():
+            for evidence in case["evidence"].split(" and "):
+                with self.subTest(case=case["case"], evidence=evidence):
+                    self.assertIn(evidence, names)
 
     def test_stale_checked_in_generated_output_fails(self) -> None:
         with self.make_repo(checked_in_harness_text='Write-Output "stale"\n') as temp:
