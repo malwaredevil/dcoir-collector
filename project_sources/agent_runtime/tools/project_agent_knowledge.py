@@ -10,6 +10,7 @@ import tempfile
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
+from agent_runtime_path_safety import resolve_repo_path as _resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.knowledge_projection.v1'
@@ -59,31 +60,6 @@ def _is_positive_int(value: Any) -> bool:
 
 def _is_nonnegative_int(value: Any) -> bool:
     return type(value) is int and value >= 0
-
-
-def _resolve_repo_path(
-    repo_root: Path,
-    value: Any,
-    label: str,
-    errors: list[str],
-    required_root: Path | None = None,
-) -> Path | None:
-    if not isinstance(value, str) or not value:
-        errors.append(f'{label} must be a non-empty repository-relative path')
-        return None
-    relative = Path(value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must not be absolute or contain traversal: {value}')
-        return None
-    resolved_repo = repo_root.resolve()
-    candidate = (resolved_repo / relative).resolve()
-    if not candidate.is_relative_to(resolved_repo):
-        errors.append(f'{label} escapes the repository: {value}')
-        return None
-    if required_root is not None and not candidate.is_relative_to(required_root.resolve()):
-        errors.append(f'{label} is outside its declared root: {value}')
-        return None
-    return candidate
 
 
 def _sha256(data: bytes) -> str:

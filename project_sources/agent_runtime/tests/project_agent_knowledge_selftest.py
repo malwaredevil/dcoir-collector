@@ -311,6 +311,40 @@ class KnowledgeProjectionSelfTest(unittest.TestCase):
         errors, _ = self._run(check=False)
         self.assertTrue(any('outside its declared root' in error for error in errors))
 
+    def test_resolver_symlink_escape_and_loop_fail_closed_when_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as outside_dir:
+            outside = Path(outside_dir) / 'outside.txt'
+            outside.write_text('outside', encoding='utf-8')
+            escape = self.repo / 'resolver-escape'
+            loop = self.repo / 'resolver-loop'
+            try:
+                escape.symlink_to(outside)
+                loop.symlink_to(loop)
+            except (NotImplementedError, OSError):
+                self.skipTest('symlinks are not supported')
+
+            errors: list[str] = []
+            self.assertIsNone(
+                projector._resolve_repo_path(
+                    self.repo, 'resolver-escape', 'probe', errors
+                )
+            )
+            self.assertTrue(
+                any('escapes the repository' in error for error in errors),
+                errors,
+            )
+
+            errors = []
+            self.assertIsNone(
+                projector._resolve_repo_path(
+                    self.repo, 'resolver-loop', 'probe', errors
+                )
+            )
+            self.assertTrue(
+                any('probe path could not be resolved:' in error for error in errors),
+                errors,
+            )
+
     def test_manifest_and_generated_roots_must_be_contained(self) -> None:
         outside = self.repo.parent / 'outside-projection-manifest.json'
         errors, _ = projector.project_knowledge(self.repo, outside, check=False)

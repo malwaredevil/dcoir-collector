@@ -10,6 +10,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 from typing import Any
+from agent_runtime_path_safety import resolve_repo_path as _resolve_repo_path
 
 
 SCHEMA = 'dcoir.agent_runtime.behavior_modules.v1'
@@ -45,31 +46,6 @@ def _is_sha256(value: object) -> bool:
 
 def _duplicates(values: list[str]) -> list[str]:
     return sorted(value for value, count in Counter(values).items() if count > 1)
-
-
-def _resolve_repo_path(
-    repo_root: Path,
-    relative_value: object,
-    label: str,
-    errors: list[str],
-    required_root: Path | None = None,
-) -> Path | None:
-    if not isinstance(relative_value, str) or not relative_value:
-        errors.append(f'{label} must be a non-empty repository-relative path')
-        return None
-    relative = Path(relative_value)
-    if relative.is_absolute() or '..' in relative.parts:
-        errors.append(f'{label} must not be absolute or contain traversal: {relative_value}')
-        return None
-    resolved_repo = repo_root.resolve()
-    candidate = (resolved_repo / relative).resolve()
-    if not candidate.is_relative_to(resolved_repo):
-        errors.append(f'{label} escapes the repository: {relative_value}')
-        return None
-    if required_root is not None and not candidate.is_relative_to(required_root.resolve()):
-        errors.append(f'{label} is outside its declared root: {relative_value}')
-        return None
-    return candidate
 
 
 def _topology_outputs(
