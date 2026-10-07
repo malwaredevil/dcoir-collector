@@ -9,6 +9,7 @@ from pathlib import Path
 from lib.gemini_bundle_path_safety import (
     GeminiBundlePathError,
     resolve_contained_path,
+    validate_manifest_paths,
 )
 
 MANIFEST_NAME = 'Gemini_Bundle_Source_Manifest.json'
@@ -41,6 +42,16 @@ def main() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     bundle_manifest = load_json(source_root / MANIFEST_NAME)
+    path_errors = validate_manifest_paths(
+        bundle_manifest,
+        source_root,
+        source_root.parent.parent.parent,
+    )
+    if path_errors:
+        raise SystemExit(
+            'Unsafe Gemini bundle manifest paths: ' + '; '.join(path_errors)
+        )
+
     mode = bundle_manifest.get('prime_agent_source_mode')
     report = {
         'success': True,

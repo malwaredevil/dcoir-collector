@@ -152,6 +152,40 @@ class GeminiPrimeReassemblyPathSafetyTests(unittest.TestCase):
             self.assertIn('escapes its root', proc.stderr)
             self.assertFalse((outside / 'prime.txt').exists())
 
+    def test_rejects_non_object_chunk_manifest_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir, _ = self.make_fixture(Path(td))
+            (source_root / 'chunks/manifest.json').write_text(
+                '[]',
+                encoding='utf-8',
+            )
+
+            proc = self.run_reassembler(source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn(
+                'prime_agent_chunk_manifest must contain a JSON object',
+                proc.stderr,
+            )
+            self.assertNotIn('Traceback', proc.stderr)
+
+    def test_rejects_scalar_chunks_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir, _ = self.make_fixture(Path(td))
+            manifest_path = source_root / 'chunks/manifest.json'
+            manifest = self.read_json(manifest_path)
+            manifest['chunks'] = 5
+            self.write_json(manifest_path, manifest)
+
+            proc = self.run_reassembler(source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn(
+                'prime_agent_chunk_manifest.chunks must be a list',
+                proc.stderr,
+            )
+            self.assertNotIn('Traceback', proc.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

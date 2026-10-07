@@ -127,6 +127,43 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
                 any('escapes its root' in error for error in report['errors'])
             )
 
+    def test_compiler_rejects_non_list_manifest_field_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(
+                Path(td),
+                required_files=None,
+            )
+
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('required_files must be a list', proc.stderr)
+            self.assertNotIn('Traceback', proc.stderr)
+
+    def test_validator_reports_non_list_manifest_field_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_root, output_dir = self.make_fixture(
+                Path(td),
+                knowledge_attachment_sources=7,
+            )
+
+            proc = self.run_tool(VALIDATE, source_root, output_dir)
+
+            self.assertEqual(proc.returncode, 1)
+            self.assertNotIn('Traceback', proc.stderr)
+            report = json.loads(
+                (output_dir / 'validate_dcoir_gemini_bundle_report.json').read_text(
+                    encoding='utf-8'
+                )
+            )
+            self.assertFalse(report['checks']['manifest_path_safety'])
+            self.assertTrue(
+                any(
+                    'knowledge_attachment_sources must be a list' in error
+                    for error in report['errors']
+                )
+            )
+
 
 if __name__ == '__main__':
     unittest.main()

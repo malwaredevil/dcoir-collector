@@ -5,7 +5,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from gemini_bundle_path_safety import GeminiBundlePathError, resolve_contained_path
+from gemini_bundle_path_safety import (
+    GeminiBundlePathError,
+    resolve_contained_path,
+    validate_manifest_paths,
+)
 
 
 class GeminiBundlePathSafetyTests(unittest.TestCase):
@@ -64,6 +68,101 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
 
             with self.assertRaises(GeminiBundlePathError):
                 resolve_contained_path(root, 'loop/file.txt', 'chunk path')
+
+    def test_manifest_container_shape_errors_are_structured(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root = base / 'bundle'
+            repo_root = base / 'repo'
+            source_root.mkdir()
+            repo_root.mkdir()
+            cases = [
+                ({'required_files': None}, 'required_files must be a list'),
+                (
+                    {'knowledge_attachment_sources': 7},
+                    'knowledge_attachment_sources must be a list',
+                ),
+                (
+                    {'topology': {'sub_agent_files': None}},
+                    'topology.sub_agent_files must be a list',
+                ),
+                (
+                    {'topology': {'prime_agent_chunk_sources': 7}},
+                    'topology.prime_agent_chunk_sources must be a list',
+                ),
+                ({'topology': None}, 'topology must be an object'),
+            ]
+            for manifest, marker in cases:
+                with self.subTest(marker=marker):
+                    errors = validate_manifest_paths(
+                        manifest,
+                        source_root,
+                        repo_root,
+                    )
+                    self.assertTrue(
+                        any(marker in error for error in errors),
+                        errors,
+                    )
+
+            self.assertEqual(
+                validate_manifest_paths([], source_root, repo_root),
+                ['Gemini bundle manifest must be an object'],
+            )
+
+    def test_chunk_manifest_shape_and_read_errors_are_structured(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root = base / 'bundle'
+            repo_root = base / 'repo'
+            source_root.mkdir()
+            repo_root.mkdir()
+            chunk_manifest = source_root / 'chunks.json'
+            manifest = {'prime_agent_chunk_manifest': 'chunks.json'}
+            cases = [
+                (b'[]', 'must contain a JSON object'),
+                (b'{"chunks": 5}', 'prime_agent_chunk_manifest.chunks must be a list'),
+                (b'{', 'JSONDecodeError'),
+                (b'\xff', 'UnicodeDecodeError'),
+            ]
+            for raw, marker in cases:
+                with self.subTest(marker=marker):
+                    chunk_manifest.write_bytes(raw)
+                    errors = validate_manifest_paths(
+                        manifest,
+                        source_root,
+                        repo_root,
+                    )
+                    self.assertTrue(
+                        any(marker in error for error in errors),
+                        errors,
+                    )
+
+    def test_safe_manifest_and_chunk_manifest_return_no_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root = base / 'bundle'
+            repo_root = base / 'repo'
+            source_root.mkdir()
+            repo_root.mkdir()
+            (source_root / 'chunks.json').write_text(
+                '{"generated_prime_agent_file":"generated.txt",'
+                '"chunks":[{"path":"part.txt"}]}',
+                encoding='utf-8',
+            )
+            manifest = {
+                'required_files': [],
+                'knowledge_attachment_sources': [],
+                'prime_agent_chunk_manifest': 'chunks.json',
+                'topology': {
+                    'sub_agent_files': [],
+                    'prime_agent_chunk_sources': [],
+                },
+            }
+
+            self.assertEqual(
+                validate_manifest_paths(manifest, source_root, repo_root),
+                [],
+            )
 
 
 if __name__ == '__main__':

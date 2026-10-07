@@ -63,7 +63,30 @@ def resolve_contained_path(root: Path, value: Any, label: str) -> Path:
     return candidate
 
 
-def _iter_manifest_paths(manifest: dict) -> list[tuple[str, object, str]]:
+def _append_list_paths(
+    container: dict,
+    field: str,
+    scope: str,
+    values: list[tuple[str, object, str]],
+    errors: list[str],
+    *,
+    label_prefix: str = '',
+) -> None:
+    if field not in container:
+        return
+    label = f'{label_prefix}{field}'
+    raw = container[field]
+    if not isinstance(raw, list):
+        errors.append(f'{label} must be a list of root-relative paths')
+        return
+    for value in raw:
+        values.append((label, value, scope))
+
+
+def _iter_manifest_paths(
+    manifest: dict,
+    errors: list[str],
+) -> list[tuple[str, object, str]]:
     values: list[tuple[str, object, str]] = []
     for field in (
         'required_files',
@@ -72,26 +95,50 @@ def _iter_manifest_paths(manifest: dict) -> list[tuple[str, object, str]]:
         'source_only_files',
         'source_only_dirs',
     ):
-        for value in manifest.get(field, []):
-            values.append((field, value, 'source'))
+        _append_list_paths(manifest, field, 'source', values, errors)
+
     values.append((
         'generated_knowledge_attachment_dir',
         manifest.get('generated_knowledge_attachment_dir', '02_PRIME_AGENT_ATTACHMENTS'),
         'source',
     ))
-    for value in manifest.get('knowledge_attachment_sources', []):
-        values.append(('knowledge_attachment_sources', value, 'repo'))
+    _append_list_paths(
+        manifest,
+        'knowledge_attachment_sources',
+        'repo',
+        values,
+        errors,
+    )
 
     topology = manifest.get('topology', {})
-    if isinstance(topology, dict):
-        for field in ('prime_agent_file', 'generated_index_file', 'quick_start_file', 'prime_agent_chunk_manifest'):
+    if not isinstance(topology, dict):
+        errors.append('topology must be an object')
+    else:
+        for field in (
+            'prime_agent_file',
+            'generated_index_file',
+            'quick_start_file',
+            'prime_agent_chunk_manifest',
+        ):
             value = topology.get(field)
             if value:
                 values.append((f'topology.{field}', value, 'source'))
-        for value in topology.get('sub_agent_files', []):
-            values.append(('topology.sub_agent_files', value, 'source'))
-        for value in topology.get('prime_agent_chunk_sources', []):
-            values.append(('topology.prime_agent_chunk_sources', value, 'source'))
+        _append_list_paths(
+            topology,
+            'sub_agent_files',
+            'source',
+            values,
+            errors,
+            label_prefix='topology.',
+        )
+        _append_list_paths(
+            topology,
+            'prime_agent_chunk_sources',
+            'source',
+            values,
+            errors,
+            label_prefix='topology.',
+        )
 
     chunk_manifest_rel = manifest.get('prime_agent_chunk_manifest')
     if chunk_manifest_rel:
@@ -100,14 +147,17 @@ def _iter_manifest_paths(manifest: dict) -> list[tuple[str, object, str]]:
 
 
 def validate_manifest_paths(
-    manifest: dict,
+    manifest: object,
     source_root: Path,
     repo_root: Path,
 ) -> list[str]:
     """Return path-safety errors for manifest fields before downstream access."""
     errors: list[str] = []
+    if not isinstance(manifest, dict):
+        return ['Gemini bundle manifest must be an object']
+
     seen: set[tuple[str, str]] = set()
-    for label, value, scope in _iter_manifest_paths(manifest):
+    for label, value, scope in _iter_manifest_paths(manifest, errors):
         key = (scope, repr(value))
         if key in seen:
             continue
@@ -133,8 +183,16 @@ def validate_manifest_paths(
                 chunk_manifest = json.loads(
                     chunk_manifest_path.read_text(encoding='utf-8')
                 )
-            except (OSError, json.JSONDecodeError):
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                errors.append(
+                    'prime_agent_chunk_manifest could not be read: '
+                    f'{type(exc).__name__}'
+                )
                 return errors
+            if not isinstance(chunk_manifest, dict):
+                errors.append('prime_agent_chunk_manifest must contain a JSON object')
+                return errors
+
             target = chunk_manifest.get('generated_prime_agent_file')
             if target is not None:
                 try:
@@ -145,7 +203,12 @@ def validate_manifest_paths(
                     )
                 except GeminiBundlePathError as exc:
                     errors.append(str(exc))
-            for entry in chunk_manifest.get('chunks', []):
+
+            chunks = chunk_manifest.get('chunks', [])
+            if not isinstance(chunks, list):
+                errors.append('prime_agent_chunk_manifest.chunks must be a list')
+                return errors
+            for entry in chunks:
                 value = entry.get('path') if isinstance(entry, dict) else None
                 try:
                     resolve_contained_path(
