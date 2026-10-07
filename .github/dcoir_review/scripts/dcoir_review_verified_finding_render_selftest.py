@@ -140,7 +140,7 @@ def test_stable_owner_composition() -> None:
     assert 'dcoir_review.verified_finding_render' not in names, names
     assert 'dcoir_review.finding_comment_render' in names, names
     idx = names.index('dcoir_review.finding_comment_render')
-    assert names[idx - 1] == 'dcoir_review_required_runtime_patch_v30', names[max(0, idx-2):idx+3]
+    assert names[idx - 1] == 'dcoir_review.sentinel_selection', names[max(0, idx-2):idx+3]
 
 def main() -> None:
     test_stable_owner_composition()

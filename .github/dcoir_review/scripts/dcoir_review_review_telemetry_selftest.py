@@ -14,6 +14,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
 from dcoir_review import structured_result_disposition as structured_disposition
 from dcoir_review import progress_reporting
+from dcoir_review import review_telemetry_state
 
 
 class FakeResponse:
@@ -228,7 +229,7 @@ def critic_schema() -> dict:
 
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
-    assert entrypoint.execution_policy_patch_module_names[-1] == "dcoir_review_required_runtime_patch_v53"
+    assert entrypoint.execution_policy_patch_module_names[-1] == "dcoir_review.review_orchestration"
     from dcoir_review import review_telemetry as telemetry
 
     # Production config initialization now uses the stable telemetry owner.
@@ -377,7 +378,7 @@ def main() -> None:
     assert telemetry.classify_stage("unknown", {"properties": {}}, config) == "unclassified"
     for synthetic_filename, synthetic_function in (
         ("part_05_debug_and_merge.py", "openrouter_review_with_quality_retry"),
-        ("dcoir_review_required_runtime_patch_v22.py", "openrouter_review_with_hybrid_first_pass"),
+        ("part_05a_hybrid_review.py", "openrouter_review_with_hybrid_first_pass"),
     ):
         namespace: dict[str, object] = {"telemetry": telemetry}
         exec(
@@ -400,7 +401,7 @@ def {synthetic_function}(prompt, schema, config):
 def openrouter_review_with_hybrid_first_pass(prompt, schema, config):
     return telemetry.classify_stage(prompt, schema, config)
 """,
-            "dcoir_review_required_runtime_patch_v44_execution.py",
+            "candidate_escalation_execution.py",
             "exec",
         ),
         namespace,
@@ -417,7 +418,7 @@ def adversarial_confirmation_stage(prompt, schema, config):
     confirmation_prompt = prompt
     return telemetry.classify_stage(prompt, schema, config)
 """,
-            "dcoir_review_required_runtime_patch_v32.py",
+            "adversarial_confirmation.py",
             "exec",
         ),
         namespace,
@@ -434,7 +435,7 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
     prompt = wrapper_prompt
     return telemetry.classify_stage(prompt, schema, config)
 """,
-            "dcoir_review_required_runtime_patch_v35.py",
+            "semantic_adjudication.py",
             "exec",
         ),
         namespace,
@@ -677,20 +678,20 @@ def semantic_adjudication_stage(wrapper_prompt, schema, config):
         telemetry.summarize_sink = original_summarize
 
     # Loader-side telemetry initialization and patch wiring are best-effort too.
-    original_ensure = telemetry.ensure_sink
+    original_ensure = review_telemetry_state.ensure_sink
     def broken_ensure(_config):
         raise RuntimeError("synthetic telemetry sink failure")
-    telemetry.ensure_sink = broken_ensure
+    review_telemetry_state.ensure_sink = broken_ensure
     try:
-        # Loader-side initialization now belongs to canonical review_config, not telemetry.
-        # Exercise the real canonical production loader while sink creation is broken.
+        # Loader-side initialization belongs to canonical review_config and now
+        # depends only on the telemetry-state leaf to avoid an import cycle.
         fallback_config = review.load_pareto_context_config(
             ".github/dcoir_review/openrouter-pr-review-pareto.yml"
         )
         assert fallback_config.debug is False
         assert telemetry.telemetry_error_count(fallback_config) >= 1
     finally:
-        telemetry.ensure_sink = original_ensure
+        review_telemetry_state.ensure_sink = original_ensure
 
     # Provider-side attempt telemetry itself is bounded and prompt-free.
     provider_probe = copy.copy(production_config)

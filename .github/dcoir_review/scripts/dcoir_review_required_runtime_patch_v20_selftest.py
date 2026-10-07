@@ -69,7 +69,17 @@ def test_verified_independent_synthesis_renders_native_suggestion(review, v20, f
     assert f"```suggestion\n{EXPECTED_REPLACEMENT}\n```" in rendered
 
 
+def test_v20_is_helper_only_beneath_stable_selection_and_v31() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v20" not in names, names
+    assert "dcoir_review.sentinel_selection" in names, names
+    assert "dcoir_review.truthy_literal_precision" not in names, names
+    assert "dcoir_review.risk_sentinel_detection" in names, names
+    assert names.index("dcoir_review.sentinel_selection") < names.index("dcoir_review.risk_sentinel_detection")
+
+
 def main() -> None:
+    test_v20_is_helper_only_beneath_stable_selection_and_v31()
     review, v16, v20 = patched_review_modules()
     finding = test_truthy_branch_survives_full_stack_selection(review, v16, v20)
     test_detector_suggestion_stays_untrusted(review, v20, finding)

@@ -5,11 +5,13 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v3 as v3
 import dcoir_review_required_runtime_patch_v4 as v4
 import dcoir_review_required_runtime_patch_v6 as v6
 import openrouter_pr_review as base
 import openrouter_pr_review_hardened as hardened
+import openrouter_pr_review_pareto_context as pareto
 
 
 class Config(SimpleNamespace):
@@ -19,14 +21,12 @@ class Config(SimpleNamespace):
 
 
 def test_yaml_metadata_shell_priority() -> None:
-    v6._patch_yaml_metadata_priority()
+    DcoirReviewEntrypoint().apply_runtime_patches(pareto)
     line = '        run: sh -c "${{ github.event.pull_request.title }}"'
     assert v4._line_kind('.github/workflows/probe.yml', line) == v4.YAML_METADATA_SHELL
 
 
 def test_v3_strip_fences_compatibility_shim() -> None:
-    module = SimpleNamespace(base=base, hardened=hardened)
-    v6.apply_pareto_context_module(module)
     assert hasattr(v3, '_strip_fences')
     assert 'x = 1' in v3._strip_fences('```python\nx = 1\n```')
 
@@ -63,12 +63,33 @@ def test_prompt_review_model_selection_guard() -> None:
     assert not v6._should_review_model('provider/pareto-code', disabled)
 
 
+
+def test_v6_is_helper_only_with_stable_owners() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v6" not in names, names
+    assert "dcoir_review.finding_family" in names
+    assert "dcoir_review.quality_gate" in names
+    assert callable(v6._candidate_with_addendum)
+    assert callable(v6._write_prompt_review_debug)
+
+
+def test_summary_only_retry_merge_is_stable() -> None:
+    DcoirReviewEntrypoint().apply_runtime_patches(pareto)
+    initial = {"summary": "Initial actionable finding remains.", "findings": [{"path": "probe.py", "line": 3, "title": "Bug", "body": "body", "severity": "high", "confidence": 0.99}]}
+    retry = {"summary": "There is still a security problem but no structured finding was returned.", "findings": []}
+    merged = pareto.hardened.merge_review_results(initial, retry)
+    assert merged["summary"] == initial["summary"], merged
+    assert merged.get("_dcoir_summary_only_retry_rejected") is True, merged
+
+
 def main() -> None:
     test_yaml_metadata_shell_priority()
     test_v3_strip_fences_compatibility_shim()
     test_prompt_review_addendum_preserves_immutable_prefix()
     test_prompt_review_rejects_constraint_tampering()
     test_prompt_review_model_selection_guard()
+    test_v6_is_helper_only_with_stable_owners()
+    test_summary_only_retry_merge_is_stable()
     print('dcoir_review_required_runtime_patch_v6_selftest passed')
 
 

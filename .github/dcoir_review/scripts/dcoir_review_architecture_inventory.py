@@ -208,10 +208,14 @@ def build_inventory() -> dict[str, Any]:
             "mutation_surfaces": sorted(mutations),
         }
 
+    # Report the highest *production-root* numbered version. Helper-only
+    # historical modules can remain reachable while their production roots are
+    # retired, so including transitive helpers here would overstate active
+    # numbered composition.
     numbered_versions = [
         version
-        for record in modules.values()
-        for version in [record.get("numbered_version")]
+        for module_name in roots
+        for version in [_numbered_version(module_name)]
         if isinstance(version, int)
     ]
     return {

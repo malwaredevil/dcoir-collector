@@ -20,7 +20,29 @@ from dcoir_review import review_scope_guard as scope_core
 APPLIED_MARKER = "_dcoir_review_prompt_review_scope_guard_applied"
 
 
+def _patch_retry_addendum_policy(prompt_module: Any) -> None:
+    storage = "_dcoir_review_prompt_review_policy_original_candidate_with_addendum"
+    original = getattr(prompt_module, storage, None)
+    if original is None:
+        original = getattr(prompt_module, "_candidate_with_addendum", None)
+        if callable(original):
+            setattr(prompt_module, storage, original)
+    if not callable(original):
+        return
+
+    def candidate_with_addendum(original_prompt: str, addendum: str, config: Any) -> str:
+        if "review quality retry" in str(original_prompt or "").lower() and str(addendum or "").strip():
+            cleaned = prompt_module._clean_addendum(addendum)
+            if not cleaned:
+                return original_prompt
+            return f"{original_prompt}\n\n{prompt_module.PROMPT_REVIEW_SECTION_TITLE}:\n{cleaned}"
+        return original(original_prompt, addendum, config)
+
+    prompt_module._candidate_with_addendum = candidate_with_addendum
+
+
 def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
+    _patch_retry_addendum_policy(prompt_module)
     request_storage = "_dcoir_review_prompt_review_scope_original_request"
     original_request = getattr(prompt_module, request_storage, None)
     if original_request is None:
@@ -65,6 +87,6 @@ def patch_prompt_review_module(module: Any, prompt_module: Any) -> None:
 def apply_pareto_context_module(module: Any) -> None:
     if getattr(module, APPLIED_MARKER, False):
         return
-    prompt_module = importlib.import_module("dcoir_review_required_runtime_patch_v6")
+    prompt_module = importlib.import_module("dcoir_review.prompt_review_policy")
     patch_prompt_review_module(module, prompt_module)
     setattr(module, APPLIED_MARKER, True)

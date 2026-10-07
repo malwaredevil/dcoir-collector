@@ -77,19 +77,19 @@ def main() -> None:
         ),
         base=SimpleNamespace(build_diff_line_index=lambda _diff: {}),
     )
-    fake_v36 = SimpleNamespace(
-        _build_repair_set_for_finding=fake_build_repair_set,
-        REPAIR_SET_OUTCOME="verified-repair-set",
-    )
-    repair_eval._run_case(
-        review,
-        SimpleNamespace(VERIFIER_MARKER="_verifier"),
-        SimpleNamespace(REPAIR_MARKER="_repair"),
-        fake_v36,
-        {"id": "kimi", "model": "moonshotai/kimi-k3", "reasoning_effort": None},
-        selected[0],
-        timeout_seconds=37,
-    )
+    original_builder = repair_eval.repair_set_builder.build_repair_set_for_finding
+    repair_eval.repair_set_builder.build_repair_set_for_finding = fake_build_repair_set
+    try:
+        repair_eval._run_case(
+            review,
+            SimpleNamespace(VERIFIER_MARKER="_verifier"),
+            SimpleNamespace(REPAIR_MARKER="_repair"),
+            {"id": "kimi", "model": "moonshotai/kimi-k3", "reasoning_effort": None},
+            selected[0],
+            timeout_seconds=37,
+        )
+    finally:
+        repair_eval.repair_set_builder.build_repair_set_for_finding = original_builder
     author_config = captured_configs[0]
     assert author_config.model_stack == ["moonshotai/kimi-k3"]
     assert author_config.openrouter_request_timeout_seconds == 37
@@ -138,27 +138,25 @@ def main() -> None:
     assert explicit_temp("", {}, None, [], "openai/gpt-6-astra")["temperature"] == 0.7
 
     repair = SimpleNamespace(REPAIR_MARKER="_repair")
-    v36 = SimpleNamespace(REPAIR_SET_OUTCOME="verified-repair-set")
-
     for case in cases[:2]:
         item = {"_repair": _marker_from_expected(case)}
-        score = repair_eval.score_item(item, case, repair, v36)
+        score = repair_eval.score_item(item, case, repair)
         assert score["correct"] is True and score["unsafe_accept"] is False
 
         partial_edits = list(item["_repair"]["edits"][:-1])
         bad = {"_repair": dict(item["_repair"], edits=partial_edits)}
-        score = repair_eval.score_item(bad, case, repair, v36)
+        score = repair_eval.score_item(bad, case, repair)
         assert score["correct"] is False and score["unsafe_accept"] is True
 
     historical = cases[2]
     suppressed = {"_repair": {"outcome": "defect-absent-suppressed", "edits": []}}
-    score = repair_eval.score_item(suppressed, historical, repair, v36)
+    score = repair_eval.score_item(suppressed, historical, repair)
     assert score["correct"] is True and score["unsafe_accept"] is False
 
     bad_patch = {"_repair": {"outcome": "verified-repair-set", "critic_accepted": True, "edits": [
         {"path": historical["path"], "start_line": historical["line"], "end_line": historical["line"], "replacement": "pass"}
     ]}}
-    score = repair_eval.score_item(bad_patch, historical, repair, v36)
+    score = repair_eval.score_item(bad_patch, historical, repair)
     assert score["correct"] is False and score["unsafe_accept"] is True
 
     print("dcoir_review_repair_candidate_eval_selftest passed")

@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""Regression checks for stable DCOIR coordinated repair-set integration."""
+
+from __future__ import annotations
+
+import copy
+import importlib
+from pathlib import Path
+
+from dcoir_review import repair as repair_policy
+from dcoir_review import repair_precision
+from dcoir_review import repair_set_results
+from dcoir_review import repair_set_builder
+from dcoir_review import repair_set_contract
+from dcoir_review import repair_set_edits
+from dcoir_review import finding_verifier
+from dcoir_review import finding_comment_policy
+from dcoir_review import finding_comment_render
+from dcoir_review import repair_admission
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+
+def _edit(path: str, start: int, end: int, original: str, replacement: str, purpose: str = "fix") -> dict:
+    return {
+        "path": path,
+        "start_line": start,
+        "end_line": end,
+        "original": original,
+        "replacement": replacement,
+        "purpose": purpose,
+    }
+
+
+def main() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    names = entrypoint.patch_module_names
+    assert "dcoir_review_required_runtime_patch_v36" not in names
+    assert "dcoir_review.finding_comment_render" in names
+    assert names.index("dcoir_review.finding_comment_render") < names.index("dcoir_review.semantic_evidence_hardening")
+
+    review = importlib.import_module("openrouter_pr_review_pareto_context")
+    entrypoint.apply_runtime_patches(review)
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
+    assert getattr(review, finding_comment_render.APPLIED_MARKER, False) is True
+    assert hasattr(review, "build_review_comments_for_finding")
+
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    assert config.debug is False
+    assert set(repair_set_contract.AUTHOR_SCHEMA["properties"]["action"]["enum"]) == {"repair_set", "no_safe_repair"}
+    assert repair_set_contract.AUTHOR_SCHEMA["properties"]["edits"]["maxItems"] >= 3
+    critic_after_opus = repair_set_contract.build_critic_config(config, "anthropic/claude-opus-5")
+    assert critic_after_opus.model_stack == [
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert critic_after_opus.model == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
+    critic_after_sol = repair_set_contract.build_critic_config(config, "openai/gpt-5.6-sol-pro")
+    assert critic_after_sol.model_stack == [
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL,
+        repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        repair_policy.GOOGLE_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+    ]
+    assert critic_after_sol.model == repair_policy.ANTHROPIC_CROSS_FAMILY_CRITIC_MODEL
+    assert config.model_stack[0] == "anthropic/claude-opus-5.5"  # shared config was not mutated
+    source = Path(".github/dcoir_review/scripts/dcoir_review/finding_comment_render.py").read_text(encoding="utf-8")
+    prompt_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_prompts.py").read_text(encoding="utf-8")
+    for phrase in ("contiguous multi-line block", "non-contiguous ranges", "several files", "exact current text", "tests colocated with"):
+        assert phrase in prompt_source
+    for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
+        assert forbidden not in source
+        assert forbidden not in prompt_source
+
+    files = {"probe.py": "x = 1\ny = 2\nz = x + y\n"}
+    edits = [_edit("probe.py", 1, 2, "x = 1\ny = 2", "x = 2\ny = 3", "correct both inputs")]
+    updated, reason = repair_set_edits.apply_edits_to_files(files, edits)
+    assert reason == ""
+    assert updated["probe.py"].startswith("x = 2\ny = 3\n")
+
+    edits = [
+        _edit("probe.py", 1, 1, "x = 1", "x = 10", "first range"),
+        _edit("probe.py", 3, 3, "z = x + y", "z = (x + y) * 2", "second range"),
+    ]
+    updated, reason = repair_set_edits.apply_edits_to_files(files, edits)
+    assert reason == ""
+    assert "x = 10" in updated["probe.py"] and "* 2" in updated["probe.py"]
+
+    files2 = {"a.py": "VALUE = 1\n", "b.py": "from a import VALUE\nRESULT = VALUE\n"}
+    edits2 = [
+        _edit("a.py", 1, 1, "VALUE = 1", "VALUE = 2", "producer"),
+        _edit("b.py", 2, 2, "RESULT = VALUE", "RESULT = VALUE * 2", "consumer"),
+    ]
+    updated, reason = repair_set_edits.apply_edits_to_files(files2, edits2)
+    assert reason == "" and set(updated) == {"a.py", "b.py"}
+
+    overlapping = [
+        _edit("probe.py", 1, 2, "x = 1\ny = 2", "x = 2\ny = 3"),
+        _edit("probe.py", 2, 3, "y = 2\nz = x + y", "y = 4\nz = x + y"),
+    ]
+    _updated, reason = repair_set_edits.apply_edits_to_files(files, overlapping)
+    assert "overlapping" in reason
+    stale = [_edit("probe.py", 1, 1, "x = 999", "x = 2")]
+    _updated, reason = repair_set_edits.apply_edits_to_files(files, stale)
+    assert "did not match exact head text" in reason
+    broken = [_edit("probe.py", 1, 1, "x = 1", "if (")]
+    _updated, reason = repair_set_edits.apply_edits_to_files(files, broken)
+    assert "Python syntax invalid" in reason
+
+    right_lines = {("probe.py", 1): 1, ("probe.py", 2): 2, ("probe.py", 3): 3, ("other.py", 5): 4}
+    annotated = repair_set_edits.annotate_native_eligibility(
+        [
+            _edit("probe.py", 1, 3, "a\nb\nc", "d\ne\nf"),
+            _edit("other.py", 5, 5, "old", "new"),
+            _edit("outside.py", 9, 9, "old", "new"),
+        ],
+        right_lines,
+    )
+    assert [item["native_suggestion"] for item in annotated] == [True, True, False]
+
+    finding = {
+        "title": "Coordinated bug",
+        "severity": "high",
+        "confidence": 0.98,
+        "path": "probe.py",
+        "line": 2,
+        "body": "The verified defect requires coordinated edits.",
+        "validation": "python3 -m py_compile probe.py",
+        repair.REPAIR_MARKER: {
+            "version": repair_set_contract.MARKER_VERSION,
+            "outcome": repair_set_contract.REPAIR_SET_OUTCOME,
+            "repair_set_id": "R01",
+            "edits": annotated,
+        },
+    }
+    comments = finding_comment_render.build_review_comments_for_finding(review, finding, "model", config)
+    assert len(comments) == 2
+    assert comments[0]["path"] == "probe.py"
+    assert comments[0]["start_line"] == 1 and comments[0]["line"] == 3
+    assert comments[0]["start_side"] == "RIGHT" and comments[0]["side"] == "RIGHT"
+    assert "```suggestion\nd\ne\nf\n```" in comments[0]["body"]
+    assert "outside.py:9-9" in comments[0]["body"]
+    assert comments[1]["path"] == "other.py" and comments[1]["line"] == 5
+    assert "start_line" not in comments[1]
+
+    deterministic = dict(finding)
+    deterministic["title"] = "MODEL-TAMPERED SENTINEL TITLE"
+    deterministic["body"] = "MODEL-TAMPERED SENTINEL BODY"
+    deterministic[finding_verifier.VERIFIER_MARKER] = {
+        "mode": "deterministic-core-sentinel",
+        "supported": True,
+        "kind": finding_comment_policy.PYTHON_TRUTHY_LITERAL_BRANCH,
+    }
+    deterministic_comments = finding_comment_render.build_review_comments_for_finding(review, deterministic, "model", config)
+    canonical_title, canonical_body, _notes = finding_comment_policy.template_for_kind(finding_comment_policy.PYTHON_TRUTHY_LITERAL_BRANCH)
+    assert canonical_title in deterministic_comments[0]["body"]
+    assert canonical_body in deterministic_comments[0]["body"]
+    assert "MODEL-TAMPERED SENTINEL" not in deterministic_comments[0]["body"]
+
+    # Exercise stable repair-set synthesis without network access through the
+    # admission owner used beneath the canonical repair pipeline.
+    pipeline_finding = {
+        "title": "Two-line coordinated defect",
+        "severity": "high",
+        "confidence": 0.99,
+        "path": "probe.py",
+        "line": 1,
+        "body": "The two inputs must be corrected together.",
+        "validation": "python3 -m py_compile probe.py",
+    }
+    pipeline_diff = (
+        "diff --git a/probe.py b/probe.py\n"
+        "new file mode 100644\n"
+        "--- /dev/null\n"
+        "+++ b/probe.py\n"
+        "@@ -0,0 +1,3 @@\n"
+        "+x = 1\n"
+        "+y = 2\n"
+        "+z = x + y\n"
+    )
+
+    class _FakeGH:
+        def get_pr_diff(self, pr_number):
+            assert pr_number == 448
+            return pipeline_diff
+
+    class _PipelineReporter:
+        def __init__(self):
+            self.events = []
+
+        def update(self, stage, message):
+            self.events.append((stage, message))
+
+    original_verify = finding_verifier.verify_findings_for_publication
+    original_openrouter = review.hardened.openrouter_review
+    original_fetch = review.fetch_pr_file_text
+    original_debug = review.hardened.write_debug_json_artifact_safely
+    original_public_synth = repair.synthesize_verified_repairs
+    model_calls = []
+
+    def _fake_verify(mod, findings, gh, pr, cfg, reporter):
+        assert pr["number"] == 448
+        return [dict(item) for item in findings]
+
+    def _fake_openrouter(prompt, schema_arg, config_arg, reporter=None):
+        title = str(schema_arg.get("title", ""))
+        model_calls.append((title, list(config_arg.model_stack)))
+        if title == "DCOIR Verified Repair Set Author":
+            return (
+                {
+                    "defect_present": True,
+                    "action": "repair_set",
+                    "edits": [
+                        {
+                            "path": "probe.py",
+                            "start_line": 1,
+                            "end_line": 2,
+                            "original": "x = 1\ny = 2",
+                            "replacement": "x = 2\ny = 3",
+                            "purpose": "Correct the coupled inputs together.",
+                        }
+                    ],
+                    "confidence": 0.99,
+                    "display_title": "Correct coupled inputs atomically",
+                    "display_body": "Both lines participate in the verified defect and must change together.",
+                    "rationale": "The demonstrated counterexample is removed only when both values are corrected.",
+                    "validation": "python3 -m py_compile probe.py",
+                },
+                "anthropic/claude-opus-5",
+                "tier-author",
+            )
+        if title == "DCOIR Verified Repair Set Critic":
+            assert config_arg.model_stack == [
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+            ]
+            return (
+                {"accepted": True, "confidence": 0.99, "reason": "Complete and minimal coordinated repair."},
+                repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+                "tier-critic",
+            )
+        raise AssertionError(f"unexpected schema title: {title}")
+
+    finding_verifier.verify_findings_for_publication = _fake_verify
+    repair.synthesize_verified_repairs = repair_admission.synthesize_verified_repair_sets
+    review.hardened.openrouter_review = _fake_openrouter
+    review.fetch_pr_file_text = lambda gh, target, head: "x = 1\ny = 2\nz = x + y\n"
+    review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
+    pipeline_reporter = _PipelineReporter()
+    benchmark_author_config = copy.copy(config)
+    benchmark_author_config.model = "openai/gpt-6-astra"
+    benchmark_author_config.model_stack = ["openai/gpt-6-astra"]
+    benchmark_author_config.fallback_models = []
+    benchmark_author_config.openrouter_route = ""
+    benchmark_author_config.openrouter_service_tier = ""
+    try:
+        pipeline_result = review.synthesize_fixes_for_findings(
+            [pipeline_finding],
+            _FakeGH(),
+            {"number": 448, "head": {"sha": "deadbeef"}},
+            {},
+            config,
+            pipeline_reporter,
+        )
+        repair_set_builder.build_repair_set_for_finding(
+            review,
+            1,
+            pipeline_finding,
+            _FakeGH(),
+            "deadbeef",
+            pipeline_diff,
+            review.base.build_diff_line_index(pipeline_diff),
+            config,
+            {"probe.py": "x = 1\ny = 2\nz = x + y\n"},
+            author_config_override=benchmark_author_config,
+        )
+    finally:
+        repair.synthesize_verified_repairs = original_public_synth
+        finding_verifier.verify_findings_for_publication = original_verify
+        review.hardened.openrouter_review = original_openrouter
+        review.fetch_pr_file_text = original_fetch
+        review.hardened.write_debug_json_artifact_safely = original_debug
+
+    assert len(pipeline_result) == 1
+    pipeline_marker = pipeline_result[0][repair.REPAIR_MARKER]
+    assert pipeline_marker["version"] == repair_set_contract.MARKER_VERSION
+    assert pipeline_marker["outcome"] == repair_set_contract.REPAIR_SET_OUTCOME
+    assert pipeline_marker["edit_count"] == 1
+    assert pipeline_marker["native_suggestion_count"] == 1
+    assert pipeline_marker["author_model"] == "anthropic/claude-opus-5"
+    assert pipeline_marker["critic_model"] == repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL
+    assert model_calls[0] == (
+        "DCOIR Verified Repair Set Author",
+        repair_policy.build_repair_author_config(config).model_stack,
+    )
+    assert model_calls[1] == (
+        "DCOIR Verified Repair Set Critic",
+        [
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ],
+    )
+    assert model_calls[2] == (
+        "DCOIR Verified Repair Set Author",
+        ["openai/gpt-6-astra"],
+    )
+    assert model_calls[3] == (
+        "DCOIR Verified Repair Set Critic",
+        [
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_MODEL,
+            repair_policy.OPENAI_CROSS_FAMILY_CRITIC_FALLBACK_MODEL,
+        ],
+    )
+    pipeline_comments = review.build_review_comments_for_finding(pipeline_result[0], "model", config)
+    assert len(pipeline_comments) == 1
+    assert pipeline_comments[0]["start_line"] == 1
+    assert pipeline_comments[0]["line"] == 2
+    assert "```suggestion\nx = 2\ny = 3\n```" in pipeline_comments[0]["body"]
+
+    absent_author = {
+        "defect_present": False,
+        "confidence": 0.99,
+        "display_title": "No defect",
+        "display_body": "The alleged defect is absent.",
+    }
+    suppressed = repair_set_results.declined_item(finding, absent_author, "exact evidence disproves the claim")
+    assert suppressed[repair.REPAIR_MARKER]["outcome"] == repair_precision.SUPPRESSED_OUTCOME
+
+    critic_reason = "critic rejected companion test because " + ("evidence " * 260) + "remains incomplete"
+    declined = repair_set_results.declined_item(finding, None, critic_reason)
+    repair_note = declined["fix_guidance"]["notes"]
+    assert critic_reason in repair_note
+    assert repair_note.endswith(".")
+
+    oversized_reason = "x" * (repair_set_results.MAX_REPAIR_STATUS_NOTE_CHARS + 1000)
+    bounded_declined = repair_set_results.declined_item(finding, None, oversized_reason)
+    bounded_note = bounded_declined["fix_guidance"]["notes"]
+    assert len(bounded_note) <= repair_set_results.MAX_REPAIR_STATUS_NOTE_CHARS
+    assert bounded_note.endswith("...[truncated by DCOIR repair-set budget]")
+
+    publisher_before = review.build_review_comments_for_finding
+    synth_before = repair.synthesize_verified_repairs
+    finding_comment_render.apply_pareto_context_module(review)
+    assert review.build_review_comments_for_finding is publisher_before
+    assert repair.synthesize_verified_repairs is synth_before
+
+    print("dcoir_review_repair_set_integration_selftest passed")
+
+
+if __name__ == "__main__":
+    main()

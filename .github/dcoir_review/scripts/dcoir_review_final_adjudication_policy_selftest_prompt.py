@@ -19,15 +19,15 @@ def _run_projected(module: Any, prompt: Any, config: Any):
 
 
 def _run_with_forced_final_callsite(module: Any, prompt: str, config: Any):
-    original_callsite_probe = final_policy._is_final_v35_semantic_adjudication_call
-    final_policy._is_final_v35_semantic_adjudication_call = lambda _prompt: True
+    original_callsite_probe = final_policy._is_final_semantic_adjudication_call
+    final_policy._is_final_semantic_adjudication_call = lambda _prompt: True
     try:
         return _run_projected(module, prompt, config)
     finally:
-        final_policy._is_final_v35_semantic_adjudication_call = original_callsite_probe
+        final_policy._is_final_semantic_adjudication_call = original_callsite_probe
 
 
-def _run_with_v35_semantic_callsite(module: Any, prompt: str, config: Any):
+def _run_with_semantic_adjudication_callsite(module: Any, prompt: str, config: Any):
     namespace: dict[str, Any] = {
         "_run_projected": _run_projected,
         "module": module,
@@ -39,7 +39,7 @@ def _run_with_v35_semantic_callsite(module: Any, prompt: str, config: Any):
 def semantic_adjudication_stage(prompt):
     return _run_projected(module, prompt, config)
 """,
-            "dcoir_review_required_runtime_patch_v35.py",
+            "semantic_adjudication.py",
             "exec",
         ),
         namespace,
@@ -63,7 +63,7 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     assert module.hardened.review_stages[-1] == "semantic-adjudicator"
     assert module.hardened.debug_text_artifacts[final_policy.PROMPT_ARTIFACT_PATH] == injected
 
-    _run_with_v35_semantic_callsite(module, semantic_prompt, config)
+    _run_with_semantic_adjudication_callsite(module, semantic_prompt, config)
     composed_injected = module.hardened.review_prompts[-1]
     assert final_policy.PROMPT_MARKER in composed_injected
     assert "empty findings list and a clean summary" in composed_injected

@@ -8,7 +8,7 @@ from typing import Any
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review import review_telemetry as telemetry
-import dcoir_review_required_runtime_patch_v35 as v35
+from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import final_adjudication_policy as final_policy
 from dcoir_review_final_adjudication_policy_selftest_prompt import (
     run_prompt_regressions,
@@ -105,12 +105,12 @@ def adjudicated_result(
     result = {
         "summary": summary,
         "findings": findings,
-        v35.PROVIDER_RESULT_KEYS_ATTR: provider_result_keys,
+        adjudication.PROVIDER_RESULT_KEYS_ATTR: provider_result_keys,
         "_semantic_adjudication_attempted": True,
         "_semantic_adjudication_model": "anthropic/claude-opus-5",
         "_semantic_adjudication_input_candidates": max(1, len(findings)),
         "_semantic_adjudication_output_findings": len(findings),
-        v35.FINAL_ADJUDICATION_COMPLETION_ATTR: v35.FINAL_ADJUDICATION_COMPLETION_TOKEN,
+        adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR: adjudication.FINAL_ADJUDICATION_COMPLETION_TOKEN,
     }
     if context_scope is not None:
         result["_semantic_adjudication_context_scope"] = context_scope
@@ -314,7 +314,7 @@ def main() -> None:
     )
 
     spoofed_metadata = adjudicated_result([finding("probe.py", 10, 0.55)])
-    spoofed_metadata[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
+    spoofed_metadata[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
     expect_legacy_failure(
         module,
         spoofed_metadata,

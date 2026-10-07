@@ -36,18 +36,19 @@ def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
     assert "dcoir_review.semantic_adjudication_normalization" in names
-    assert names.index("dcoir_review_required_runtime_patch_v36") < names.index("dcoir_review.semantic_adjudication_normalization")
-    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review_required_runtime_patch_v36" not in names
+    assert names.index("dcoir_review.semantic_evidence_hardening") < names.index("dcoir_review.semantic_adjudication_normalization")
+    assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review.risk_sentinel_detection")
 
     normalization_source = Path(".github/dcoir_review/scripts/dcoir_review/semantic_adjudication_normalization.py").read_text(encoding="utf-8")
     assert "semantic_adjudication_normalization_original" not in normalization_source
-    assert "v35._cap_adjudicated_findings =" not in normalization_source
-    v35_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v35.py").read_text(encoding="utf-8")
-    assert "semantic_adjudication_normalization.normalize_adjudicator_result" in v35_source
+    assert "adjudication._cap_adjudicated_findings =" not in normalization_source
+    adjudication_source = Path(".github/dcoir_review/scripts/dcoir_review/semantic_adjudication.py").read_text(encoding="utf-8")
+    assert "semantic_adjudication_normalization.normalize_adjudicator_result" in adjudication_source
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
-    v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
+    adjudication = importlib.import_module("dcoir_review.semantic_adjudication")
     normalization = importlib.import_module("dcoir_review.semantic_adjudication_normalization")
 
     assert getattr(review, normalization.APPLIED_MARKER, False) is True
@@ -69,26 +70,26 @@ def main() -> None:
     assert normalized["findings"][0]["title"] == flat["title"]
     assert normalized[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
 
-    capped_flat = v35._cap_adjudicated_findings(fake_module, normalization.normalize_adjudicator_result(fake_module, flat), 8)
+    capped_flat = adjudication._cap_adjudicated_findings(fake_module, normalization.normalize_adjudicator_result(fake_module, flat), 8)
     assert len(capped_flat["findings"]) == 1
     assert capped_flat[normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
 
     many = {"findings": [_finding(index, f"finding-{index}") for index in range(1, 4)]}
-    capped_many = v35._cap_adjudicated_findings(fake_module, many, 2)
+    capped_many = adjudication._cap_adjudicated_findings(fake_module, many, 2)
     assert len(capped_many["findings"]) == 2
     assert capped_many["_semantic_adjudication_overflow_trimmed"] == 1
 
     malformed = _finding()
     malformed.pop("validation")
     try:
-        v35._cap_adjudicated_findings(fake_module, normalization.normalize_adjudicator_result(fake_module, malformed), 8)
+        adjudication._cap_adjudicated_findings(fake_module, normalization.normalize_adjudicator_result(fake_module, malformed), 8)
     except RuntimeError as exc:
         assert "complete flat single finding" in str(exc)
     else:
         raise AssertionError("partial flat adjudicator result did not fail closed")
 
     try:
-        v35._cap_adjudicated_findings(fake_module, {"findings": "not-a-list"}, 8)
+        adjudication._cap_adjudicated_findings(fake_module, {"findings": "not-a-list"}, 8)
     except RuntimeError as exc:
         assert "non-list findings" in str(exc)
     else:
@@ -119,7 +120,7 @@ def main() -> None:
         build_prompt=lambda *args, **kwargs: "PR EVIDENCE",
         rank_findings_for_required_budget=lambda findings, limit: findings[:limit],
     )
-    wrapper_hybrid = v35.build_semantic_adjudication_stage(wrapper_module, fake_detector)
+    wrapper_hybrid = adjudication.build_semantic_adjudication_stage(wrapper_module, fake_detector)
     wrapper_config = SimpleNamespace(
         semantic_adjudication_review=True,
         semantic_adjudication_max_findings=8,
@@ -152,10 +153,10 @@ def main() -> None:
     assert artifact["result"][normalization.FLAT_SHAPE_MARKER] == normalization.FLAT_SHAPE_VALUE
     assert any(stage == "semantic-adjudication" and "retained=1" in message for stage, message in reporter.events)
 
-    # Reapplying the stable owner is registration-only and must not mutate v35.
-    cap_before = v35._cap_adjudicated_findings
+    # Reapplying the stable owner is registration-only and must not mutate adjudication.
+    cap_before = adjudication._cap_adjudicated_findings
     normalization.apply_pareto_context_module(review)
-    assert v35._cap_adjudicated_findings is cap_before
+    assert adjudication._cap_adjudicated_findings is cap_before
     assert getattr(review, normalization.APPLIED_MARKER, False) is True
 
     print("dcoir_review_semantic_adjudication_normalization_selftest passed")

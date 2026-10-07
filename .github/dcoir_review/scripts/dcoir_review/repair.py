@@ -9,6 +9,7 @@ new versioned overlay.
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 from typing import Any
 
 
@@ -31,6 +32,10 @@ REPAIR_REASONING_EFFORT_BY_MODEL = {
 AUTHOR_SESSION_SUFFIX = "repair-author"
 CRITIC_SESSION_SUFFIX = "repair-critic"
 REPAIR_CANDIDATE_HARD_CAP = 12
+BUDGET_DEFERRED_OUTCOME = "verified-repair-budget-deferred"
+BUDGET_DEFERRED_MARKER_VERSION = "v33"  # Persisted repair-marker compatibility value.
+SUPPRESS_ABSENT_DEFECT_MIN_CONFIDENCE = 0.95
+SUPPRESSED_OUTCOME = "defect-absent-suppressed"
 
 
 def _positive_int(value: Any, fallback: int) -> int:
@@ -51,6 +56,32 @@ def repair_synthesis_budget(config: Any) -> int:
     )
     configured = _positive_int(getattr(config, "fix_synthesis_max_findings", 0), 0)
     return min(configured, inline_limit)
+
+
+def budget_deferred_verified_finding(
+    raw: dict[str, Any], ordinal: int, repair_pipeline: Any
+) -> dict[str, Any]:
+    """Keep a verified finding visible when the repair-count budget is exhausted."""
+
+    finding = repair_pipeline._strip_legacy_model_finding_provenance(raw)
+    path, line = repair_pipeline._path_line(finding)
+    finding["suggested_replacement"] = ""
+    finding["fix_guidance"] = {
+        "language": Path(path).suffix.lstrip(".") or "text",
+        "notes": (
+            "Verifier-supported finding; one-click repair synthesis was not attempted "
+            "because the configured repair budget was exhausted."
+        ),
+    }
+    finding[repair_pipeline.REPAIR_MARKER] = {
+        "version": BUDGET_DEFERRED_MARKER_VERSION,
+        "outcome": BUDGET_DEFERRED_OUTCOME,
+        "path": path,
+        "line": line,
+        "ordinal": ordinal,
+        "reason": "configured fix_synthesis_max_findings budget exhausted",
+    }
+    return finding
 
 
 def _apply_repair_request_policy(config: Any, models: list[str], session_suffix: str) -> Any:

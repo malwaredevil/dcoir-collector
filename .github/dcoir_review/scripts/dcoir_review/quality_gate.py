@@ -141,6 +141,43 @@ def semantic_recovery_reason(result: Any, config: Any) -> str:
     return SEMANTIC_RETRY_REASON if _explicit_semantic_problem_discovery(summary) else ""
 
 
+
+def _patch_merge_review_results(hardened: Any) -> None:
+    storage = "_dcoir_quality_gate_original_merge_review_results"
+    original = getattr(hardened, storage, None)
+    if original is None:
+        original = getattr(hardened, "merge_review_results", None)
+        if callable(original):
+            setattr(hardened, storage, original)
+    if not callable(original):
+        return
+
+    def merge_review_results(
+        initial_result: dict[str, Any],
+        retry_result: dict[str, Any],
+        retry_reason: str = "",
+    ) -> dict[str, Any]:
+        try:
+            merged = original(initial_result, retry_result, retry_reason)
+        except TypeError:
+            merged = original(initial_result, retry_result)
+        retry_findings = hardened.result_findings(retry_result) if hasattr(hardened, "result_findings") else []
+        retry_summary = str(retry_result.get("summary", "") if isinstance(retry_result, dict) else "")
+        if (
+            not retry_findings
+            and callable(getattr(hardened, "summary_suggests_problem", None))
+            and hardened.summary_suggests_problem(retry_summary)
+        ):
+            initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
+            merged["summary"] = initial_summary or (
+                "Quality retry returned summary-only concerns; deterministic required fallback coverage was applied."
+            )
+            merged["_dcoir_summary_only_retry_rejected"] = True
+        return merged
+
+    hardened.merge_review_results = merge_review_results
+
+
 def _patch_hardened_helpers(module: Any, hardened: Any) -> None:
     summary_storage = "_dcoir_quality_gate_original_summary_suggests_problem"
     original_summary = getattr(hardened, summary_storage, None)
@@ -310,3 +347,4 @@ def apply_pareto_context_module(module: Any) -> None:
     if hardened is None:
         return
     _patch_hardened_helpers(module, hardened)
+    _patch_merge_review_results(hardened)

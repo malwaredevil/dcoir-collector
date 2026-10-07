@@ -79,18 +79,12 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "broad-quality-retry"
             if (
-                filename == "dcoir_review_required_runtime_patch_v22.py"
-                and function == "openrouter_review_with_hybrid_first_pass"
-                and locals_map.get("retry_prompt") is prompt
-            ):
-                return "broad-quality-retry"
-            if (
                 filename == "structured_result_retry.py"
                 and function == "broad_retry_fallback"
             ):
                 return "broad-quality-retry"
             if (
-                filename == "dcoir_review_required_runtime_patch_v32.py"
+                filename == "adversarial_confirmation.py"
                 and function in (
                     "openrouter_review_with_hybrid_first_pass",
                     "adversarial_confirmation_stage",
@@ -99,7 +93,7 @@ def _callsite_stage_label(prompt: Any) -> str:
             ):
                 return "independent-challenger"
             if (
-                filename == "dcoir_review_required_runtime_patch_v35.py"
+                filename == "semantic_adjudication.py"
                 and function in (
                     "openrouter_review_with_hybrid_first_pass",
                     "semantic_adjudication_stage",
@@ -109,16 +103,16 @@ def _callsite_stage_label(prompt: Any) -> str:
                 return "semantic-adjudicator"
             if (
                 filename in (
-                    "dcoir_review_required_runtime_patch_v32.py",
-                    "dcoir_review_required_runtime_patch_v44_execution.py",
+                    "adversarial_confirmation.py",
+                    "candidate_escalation_execution.py",
                 )
                 and function == "run_challenger"
             ):
                 return "independent-challenger"
             if (
                 filename in (
-                    "dcoir_review_required_runtime_patch_v35.py",
-                    "dcoir_review_required_runtime_patch_v44_execution.py",
+                    "semantic_adjudication.py",
+                    "candidate_escalation_execution.py",
                 )
                 and function == "run_adjudicator"
             ):

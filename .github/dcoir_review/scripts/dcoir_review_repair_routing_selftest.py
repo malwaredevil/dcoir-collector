@@ -19,13 +19,10 @@ def main() -> None:
     names = entrypoint.patch_module_names
     assert "dcoir_review_required_runtime_patch_v29" not in names
     assert "dcoir_review_required_runtime_patch_v28" not in names
-    assert "dcoir_review_required_runtime_patch_v30" in names
-    assert "dcoir_review_required_runtime_patch_v31" in names
+    assert "dcoir_review_required_runtime_patch_v30" not in names
+    assert "dcoir_review.risk_sentinel_detection" in names
     assert names.index("dcoir_review.repair_pipeline") < names.index(
-        "dcoir_review_required_runtime_patch_v30"
-    )
-    assert names.index("dcoir_review_required_runtime_patch_v30") < names.index(
-        "dcoir_review_required_runtime_patch_v31"
+        "dcoir_review.risk_sentinel_detection"
     )
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")

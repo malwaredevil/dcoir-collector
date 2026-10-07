@@ -13,62 +13,44 @@ class DcoirReviewEntrypoint:
         'dcoir_review_runtime_patches',
         'dcoir_review_strict_runtime_patches',
         'dcoir_review_required_runtime_patches',
-        'dcoir_review_required_runtime_patch_v2',
-        'dcoir_review_required_runtime_patch_v3',
-        'dcoir_review_required_runtime_patch_v4_apply',
-        'dcoir_review_required_runtime_patch_v5_apply',
-        'dcoir_review_required_runtime_patch_v6',
-        'dcoir_review_required_runtime_patch_v7',
-        'dcoir_review_required_runtime_patch_v8',
-        'dcoir_review_required_runtime_patch_v9',
-        'dcoir_review_required_runtime_patch_v10',
-        'dcoir_review_required_runtime_patch_v11',
-        'dcoir_review_required_runtime_patch_v12',
-        'dcoir_review_required_runtime_patch_v13',
-        'dcoir_review_required_runtime_patch_v14',
+        'dcoir_review.required_coverage_policy',
+        'dcoir_review.anchor_scoring',
+        'dcoir_review.prompt_review_diagnostics',
         'dcoir_review.finding_family',
-        'dcoir_review_required_runtime_patch_v16',
-        'dcoir_review_required_runtime_patch_v17',
-        'dcoir_review_required_runtime_patch_v18',
+        'dcoir_review.risk_sentinel_semantics',
         'dcoir_review.precision_guard',
-        'dcoir_review_required_runtime_patch_v20',
         'dcoir_review.finding_verifier',
         'dcoir_review.quality_gate',
         'dcoir_review.normalized_finding_selection',
         'dcoir_review.repair_pipeline',
         'dcoir_review.sentinel_selection',
-        'dcoir_review_required_runtime_patch_v30',
         'dcoir_review.finding_comment_render',
-        # v32 owns adversarial model/prompt/hybrid review behavior. v33 then
-        # separates pre-publication verification capacity from the bounded
-        # repair budget. v34 strengthens predicate/call-site recall, blank-anchor
-        # evidence handling, and debug lifecycle readback. v35 adds a bounded
-        # final semantic adjudicator plus falsification-first verifier guidance.
-        # v36 upgrades verified repairs from one exact line to bounded coordinated
-        # edit sets (multi-line, non-contiguous, and cross-file) while keeping
-        # human-only application. The stable semantic-adjudication normalizer preserves the adjudicator's valid
-        # flat-single-finding compatibility shape before v35 capping/publication.
+        # v33 separates pre-publication verification capacity from the bounded
+        # repair budget. Stable semantic evidence and canonical finding verification
+        # preserve predicate/call-site recall, blank-anchor evidence, and
+        # falsification-first verifier guidance. Semantic adjudication and its
+        # confidence normalization are composed explicitly by review_orchestration.
+        # Stable repair-set owners support bounded coordinated edit sets
+        # (multi-line, non-contiguous, and cross-file) while keeping human-only
+        # application. The canonical finding-comment renderer owns linked repair-set
+        # publication. The stable semantic-adjudication normalizer preserves the adjudicator's valid
+        # flat-single-finding compatibility shape before canonical adjudication capping/publication.
         # v38 makes repair-author confidence advisory, normalizes only missing
         # explanatory repair metadata, and raises the independent critic hard
         # acceptance threshold while preserving exact-head structural checks.
-        # Stable semantic-adjudication confidence compatibility handles one additional
+        # Semantic-adjudication confidence normalization handles one additional
         # provider-schema seam: when an otherwise complete semantic-adjudication
         # finding omits confidence, it assigns only the configured normal floor to
         # admit the candidate to v21 verification; verifier support remains mandatory
-        # before repair/publication. v31 stays
+        # before repair/publication. Stable truthy-literal precision stays
         # terminal for this historical semantic-patch chain.
-        'dcoir_review_required_runtime_patch_v32',
-        'dcoir_review_required_runtime_patch_v33',
         'dcoir_review.semantic_evidence_hardening',
-        'dcoir_review_required_runtime_patch_v35',
-        'dcoir_review_required_runtime_patch_v36',
         'dcoir_review.semantic_adjudication_normalization',
         'dcoir_review.repair_contract',
-        'dcoir_review.semantic_adjudication_confidence',
-        'dcoir_review_required_runtime_patch_v31',
+        'dcoir_review.risk_sentinel_detection',
     )
     # Architecture-B responsibilities are deliberately outside the historical semantic
-    # patch chain. These run after v31 so old semantic-order invariants remain
+    # patch chain. These run after stable truthy-literal precision so old semantic-order invariants remain
     # meaningful while production receives the approved incremental frontier
     # responsibility, semantic-ledger/fingerprint foundation, then fail-closed
     # semantic-result reuse on exact compatible evidence. Semantic-result reuse
@@ -77,17 +59,15 @@ class DcoirReviewEntrypoint:
         'dcoir_review.incremental_review_frontier',
         'dcoir_review.semantic_review_ledger',
     )
-    # v44-v46 remain the Architecture-B post-terminal semantic contract:
-    # candidate-scoped escalation, verifier-authoritative publication, and one
-    # canonical semantic context package with fail-safe adaptive budgets. v50
+    # Architecture-B post-terminal owners retain verifier-authoritative publication.
+    # Canonical semantic context and fail-safe adaptive budgets are installed
+    # explicitly by review_orchestration rather than by a numbered patch root. v50
     # then preserves unresolved verifier-supported findings across compatible
     # incremental reviewed-head runs without re-posting unchanged inline comments.
     # Capability gating keeps historical probe objects and explicit subset tests
     # from receiving implicit overlays.
     post_terminal_patch_module_names: tuple[str, ...] = (
-        'dcoir_review_required_runtime_patch_v44',
         'dcoir_review.publication_disposition',
-        'dcoir_review_required_runtime_patch_v46',
         'dcoir_review.verified_finding_gate',
     )
     # Candidate-integrity overlays are cross-cutting semantic guards installed
@@ -111,13 +91,12 @@ class DcoirReviewEntrypoint:
     # provider/publication protection and the legacy optional prompt-review request. Stable structured-result recovery
     # preserves those guards while specializing deterministic structured-output
     # recovery and bounded near-threshold disposition. v53 then restores the
-    # configured repair-synthesis confidence floor before v36 can spend repair-
-    # author/critic calls, while leaving verified finding publication unchanged.
+    # Repair-confidence admission is consumed directly by the terminal repair owner
+    # rather than installed as another runtime override.
     execution_policy_patch_module_names: tuple[str, ...] = (
         'dcoir_review.review_scope_guard',
         'dcoir_review.prompt_review_scope_guard',
         'dcoir_review.review_orchestration',
-        'dcoir_review_required_runtime_patch_v53',
     )
     # Telemetry overlays are deliberately outside execution-policy ordering
     # invariants. v54 owns request-path usage/provider/recovery telemetry after the
@@ -129,12 +108,11 @@ class DcoirReviewEntrypoint:
     # verified-finding completion overrides with v54 terminal run telemetry while
     # inheriting the existing base/review-scope reporter behavior. Provider
     # transport retry follows that owner, then stable semantic-adjudication
-    # recovery and the remaining v56-v57 post-telemetry guards.
+    # recovery and the remaining post-telemetry guards.
     post_telemetry_patch_module_names: tuple[str, ...] = (
         'dcoir_review.progress_reporting',
         'dcoir_review.provider_transport_retry',
         'dcoir_review.semantic_adjudication_recovery',
-        'dcoir_review_required_runtime_patch_v56',
         'dcoir_review.final_adjudication_policy',
         'dcoir_review.provider_review',
     )

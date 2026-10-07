@@ -30,22 +30,16 @@ def _finding(*, confidence_marker: object = ...):
 def main() -> None:
     entrypoint = DcoirReviewEntrypoint()
     names = entrypoint.patch_module_names
-    assert "dcoir_review.semantic_adjudication_confidence" in names
-    assert names.index("dcoir_review.repair_contract") < names.index(
-        "dcoir_review.semantic_adjudication_confidence"
-    )
-    assert names.index("dcoir_review.semantic_adjudication_confidence") < names.index(
-        "dcoir_review_required_runtime_patch_v31"
-    )
+    assert "dcoir_review.semantic_adjudication_confidence" not in names
+    assert "dcoir_review.review_orchestration" in entrypoint.execution_policy_patch_module_names
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
-    v35 = importlib.import_module("dcoir_review_required_runtime_patch_v35")
+    adjudication = importlib.import_module("dcoir_review.semantic_adjudication")
     confidence = importlib.import_module("dcoir_review.semantic_adjudication_confidence")
 
-    assert getattr(review, confidence.APPLIED_MARKER, False) is True
-    assert "EVERY retained finding MUST include ``confidence``" in v35.ADJUDICATION_BLOCK
+    assert "EVERY retained finding MUST include ``confidence``" in adjudication.ADJUDICATION_BLOCK
 
     config = review.load_pareto_context_config(
         ".github/dcoir_review/openrouter-pr-review-pareto.yml"
@@ -214,17 +208,16 @@ def main() -> None:
             raise AssertionError(f"stable confidence owner accepted invalid configured floor {bad_floor!r}")
     config.minimum_confidence = original_floor
 
-    # Applying the stable confidence owner twice must not stack wrappers or duplicate prompt contracts.
-    wrapper_before = review.openrouter_review_with_hybrid_first_pass
-    block_before = v35.ADJUDICATION_BLOCK
-    confidence.apply_pareto_context_module(review)
-    assert review.openrouter_review_with_hybrid_first_pass is wrapper_before
-    assert v35.ADJUDICATION_BLOCK == block_before
-    assert v35.ADJUDICATION_BLOCK.count("EVERY retained finding MUST include ``confidence``") == 1
+    # Confidence policy is composed explicitly; it does not mutate adjudication
+    # globals or participate as a runtime apply overlay.
+    assert adjudication.ADJUDICATION_BLOCK.count("EVERY retained finding MUST include ``confidence``") == 1
 
     source = Path(
         ".github/dcoir_review/scripts/dcoir_review/semantic_adjudication_confidence.py"
     ).read_text(encoding="utf-8")
+    assert "_patch_adjudication_prompt" not in source
+    assert "ADJUDICATION_BLOCK_STORAGE" not in source
+    assert "dcoir_review_required_runtime_patch_v35" not in source
     for forbidden in ("git push", "create_commit(", "update_file(", "merge_pull_request"):
         assert forbidden not in source
 

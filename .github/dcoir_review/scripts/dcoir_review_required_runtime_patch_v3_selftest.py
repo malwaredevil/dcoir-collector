@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
 import dcoir_review_required_runtime_patch_v2 as v2
 import dcoir_review_required_runtime_patch_v3 as v3
 import dcoir_review_required_runtime_patches as required
@@ -14,11 +15,9 @@ import openrouter_pr_review_pareto_context as pareto
 
 
 def apply_all() -> None:
-    runtime.apply_pareto_context_module(pareto)
-    strict.apply_pareto_context_module(pareto)
-    required.apply_pareto_context_module(pareto)
-    v2.apply_pareto_context_module(pareto)
-    v3.apply_pareto_context_module(pareto)
+    # v3 is helper-only in production; exercise the real composed runtime rather
+    # than reconstructing the old chronology in this regression.
+    DcoirReviewEntrypoint().apply_runtime_patches(pareto)
 
 
 def test_start_process_is_hard_required() -> None:
@@ -58,9 +57,13 @@ index 0000000..2222222 100644
     assert v3.PS_PROCESS_KIND in kinds, kinds
     config = SimpleNamespace(max_inline_comments=6)
     augmented = pareto.hardened.add_risk_sentinel_fallback_findings([], sentinels, config)
-    finding_kinds = [v3._semantic_kind(finding) for finding in augmented]
-    assert v3.PS_PROCESS_KIND in finding_kinds, finding_kinds
-    assert finding_kinds.index(v3.PS_PROCESS_KIND) < len(finding_kinds)
+    covered = {
+        str(raw[2])
+        for finding in augmented
+        for raw in (finding.get("covered_risk_sentinel_keys") or [])
+        if isinstance(raw, (list, tuple)) and len(raw) == 3
+    }
+    assert v3.PS_PROCESS_KIND in covered, (covered, augmented)
 
 
 def test_token_scrub_hits_rendered_comment() -> None:
@@ -127,12 +130,28 @@ def test_whole_file_remove_and_python_indent_are_normalized() -> None:
     assert "Broad or whole-file" in guidance["notes"], guidance
 
 
+
+def test_v3_is_helper_only_with_stable_anchor_owner() -> None:
+    names = DcoirReviewEntrypoint().patch_module_names
+    assert "dcoir_review_required_runtime_patch_v3" not in names, names
+    assert "dcoir_review.anchor_scoring" in names, names
+    assert "dcoir_review_required_runtime_patch_v2" not in names, names
+    assert "dcoir_review.environment_token_detection" not in names, names
+    assert "dcoir_review.python_filesystem_detection" not in names, names
+    assert "dcoir_review.risk_sentinel_detection" in names, names
+    assert names.index("dcoir_review.required_coverage_policy") < names.index("dcoir_review.anchor_scoring") < names.index("dcoir_review.prompt_review_diagnostics")
+    assert names.index("dcoir_review.prompt_review_diagnostics") < names.index("dcoir_review.finding_family") < names.index("dcoir_review.risk_sentinel_semantics") < names.index("dcoir_review.risk_sentinel_detection")
+    assert callable(v3._semantic_kind)
+    assert callable(v3._line_kind)
+
+
 def main() -> None:
     test_start_process_is_hard_required()
     test_token_scrub_hits_rendered_comment()
     test_validation_rejects_prose_lines()
     test_yaml_metadata_shell_has_own_kind()
     test_whole_file_remove_and_python_indent_are_normalized()
+    test_v3_is_helper_only_with_stable_anchor_owner()
     print("dcoir_review_required_runtime_patch_v3_selftest passed")
 
 

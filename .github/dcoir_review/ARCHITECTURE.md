@@ -16,6 +16,17 @@ Stable tests must protect product behavior, canonical ownership, explicit compos
 
 **Maintainer test:** a professional programmer new to the repository should be able to locate the authoritative implementation, understand how the active path is composed, and make a future fix from normal module/function structure without reconstructing issue chronology or walking backward through `_v##` files. If this is not true for a responsibility, its migration is incomplete.
 
+## Historical compatibility boundary
+
+The numbered production chain is retired at two separate boundaries, both of which are enforced:
+
+- production entrypoint groups contain no numbered historical runtime roots;
+- responsibility-named production modules do not import numbered historical implementations, including dynamic imports by literal module name.
+
+Historical top-level module names may remain only as narrow compatibility surfaces for legacy imports and characterization tests. Those wrappers delegate to responsibility-named canonical owners through the stable historical-compatibility bridge; they do not own production implementation. Split implementation source lives in responsibility-named parts packages, not historical numbered-patch packages.
+
+The runtime-module-loader selftest fails closed if a numbered production root is registered, if a maintained stable source imports a numbered historical module, or if a maintained source falls outside the explicit module registry. Future fixes must change the responsibility-named owner rather than adding logic to a historical wrapper.
+
 ## Required responsibility boundaries
 
 The consolidated implementation should assign one canonical owner to each active responsibility. Exact package names may change as the dependency inventory is completed, but the stable responsibilities are:
@@ -271,7 +282,7 @@ The next bounded retirement moves semantic-adjudicator result-shape compatibilit
 
 - `dcoir_review/semantic_adjudication_normalization.py` owns the narrow normalization contract for canonical findings envelopes and the complete flat-single-finding compatibility shape; malformed or partial shapes still fail closed;
 - production composition loads `dcoir_review.semantic_adjudication_normalization` at the former v37 position between v36 and v38, preserving the historical semantic ordering without numbered ownership;
-- `dcoir_review_required_runtime_patch_v44_execution.py` and stable `dcoir_review/semantic_adjudication_recovery.py` now import the stable normalizer instead of the historical v37 module;
+- `dcoir_review/candidate_escalation_execution.py` and stable `dcoir_review/semantic_adjudication_recovery.py` now import the stable normalizer instead of the historical v37 module;
 - `dcoir_review_semantic_adjudication_normalization_selftest.py` owns the stable regression contract, including canonical/flat shape handling, capping, malformed-output rejection, the original live-loss seam, and idempotent application;
 - the runtime module-loader guard classifies the stable owner as a direct-import module and rejects reintroduction of historical v37 production ownership;
 - the historical v37 production module and version-specific self-test are removed; Git history remains the archive.
@@ -283,8 +294,8 @@ This slice must not be credited as governed validated until publication readback
 The next bounded retirement moves semantic-adjudicator confidence compatibility out of historical v39:
 
 - `dcoir_review/semantic_adjudication_confidence.py` owns the narrow confidence contract for semantic-adjudicator output, preserving valid supplied confidence and admitting otherwise-complete missing/null confidence only at the configured normal floor for independent verification; malformed confidence remains fail-closed;
-- production composition loads `dcoir_review.semantic_adjudication_confidence` at the former v39 position between v38 and v31, preserving historical semantic ordering without numbered ownership;
-- stable `dcoir_review/semantic_adjudication_recovery.py` and `dcoir_review_required_runtime_patch_v44_execution.py` import the stable confidence owner instead of historical v39;
+- production composition loads `dcoir_review.semantic_adjudication_confidence` at the former v39 position between v38-era semantic ownership and stable truthy-literal precision, preserving historical semantic ordering without numbered ownership;
+- stable `dcoir_review/semantic_adjudication_recovery.py` and `dcoir_review/candidate_escalation_execution.py` import the stable confidence owner instead of historical v39;
 - `dcoir_review_semantic_adjudication_confidence_selftest.py` owns the stable regression contract for prompt requirements, supplied-confidence preservation, missing/null confidence admission, verifier handoff, malformed-result rejection, configured-floor validation, and idempotent application;
 - the historical debug artifact path `responses/07-v39-confidence-normalized.json` and schema value `dcoir_review_v39_confidence_normalization_v1` remain compatibility/provenance data only;
 - the runtime module-loader guard classifies the stable owner as a direct-import module and rejects reintroduction of historical v39 production ownership;
@@ -388,13 +399,13 @@ The canonical Pareto loader now parses configuration once and delegates post-bas
 
 The canonical stage order is explicit and mechanically guarded: quality gate -> adversarial confirmation -> semantic adjudication -> adjudication-confidence normalization -> semantic review ledger -> semantic-result reuse -> candidate-scoped escalation -> canonical semantic context/adaptive budgets -> review-scope terminal translation -> structured-result disposition. `review_orchestration` composes those stages around the pre-existing Pareto hybrid implementation and installs one final callable. Reapplication is idempotent, participating modules may not reintroduce `original_hybrid_first_pass` storage shims, and later production modules may not replace the canonical owner.
 
-This consolidation deliberately leaves each participant's non-hybrid responsibilities in place until their own functional areas are dispositioned. For example, semantic-review ledger debug/context hooks, semantic-result per-file reuse, v46 prompt/context projections, review-scope provider/publication guards, and structured-result provider/retry helpers remain separate responsibilities. Historical numbered files are not deleted merely because one of their responsibilities moved; deletion occurs only when every live responsibility in that file has been moved, proven superseded/dead, or retained solely as a compatibility contract.
+This consolidation deliberately leaves each participant's non-hybrid responsibilities in place until their own functional areas are dispositioned. For example, semantic-review ledger debug/context hooks, semantic-result per-file reuse, semantic-context projection/caching, review-scope provider/publication guards, and structured-result provider/retry helpers remain separate responsibilities. Historical numbered files are not deleted merely because one of their responsibilities moved; deletion occurs only when every live responsibility in that file has been moved, proven superseded/dead, or retained solely as a compatibility contract.
 
 ### Canonical inline finding/comment rendering consolidation
 
 `dcoir_review.finding_comment_render` is the single production owner of `base.build_inline_comment`. Historical runtime layers had installed the same callable fifteen times, but v16 fully superseded the first ten renderer generations. The production-observable rendering chain was therefore v30 deterministic-sentinel canonicalization -> repair rendering -> verified-ordinary rendering -> v20 safe native-suggestion handling -> v16 deterministic base rendering.
 
-The canonical renderer expresses that surviving behavior directly and installs one final callable immediately after v30. Earlier patch layers retain their unrelated detection, selection, prompting, synthesis, and repair responsibilities but no longer replace `build_inline_comment` or store prior renderer callables. `dcoir_review.verified_finding_render` is now a pure helper for verifier-aware ordinary rendering rather than a production installer, and `dcoir_review.repair_pipeline` retains repair synthesis while exposing its stable repair renderer to the canonical owner.
+The canonical renderer expresses that surviving behavior directly and installs one final callable after stable repair/sentinel policy composition. Earlier patch layers retain their unrelated detection, selection, prompting, synthesis, and repair responsibilities but no longer replace `build_inline_comment` or store prior renderer callables. `dcoir_review.verified_finding_render` is now a pure helper for verifier-aware ordinary rendering rather than a production installer, and `dcoir_review.repair_pipeline` retains repair synthesis while exposing its stable repair renderer to the canonical owner.
 
 The cutover is guarded mechanically: former renderer owners may not assign `build_inline_comment` or retain `original_build_inline_comment` storage, later production modules may not replace the canonical owner, repeated application is idempotent, and an exact seven-case output corpus locks verified ordinary, deterministic sentinel, repair, native-suggestion, unverified fallback, and YAML/security rendering byte-for-byte to the characterized pre-cutover behavior.
 
@@ -437,8 +448,41 @@ The historical runtime layers retain their private classifier helpers where thos
 `dcoir_review.quality_gate` is the single final production owner of `hardened.review_quality_retry_reason`. The hardened base layer retains `baseline_review_quality_retry_reason` as the explicit baseline predicate for sentinel coverage, structured-finding quality, confidence, and changed-line anchoring. The quality gate composes that baseline with semantic summary-only recovery and the existing bounded low-confidence disposition eligibility in one decision function.
 
 The structured-result recovery layer no longer wraps `review_quality_retry_reason` or stores a prior callable. The two historical prior-function shims for quality-gate and structured-disposition retry logic are removed. Runtime ownership tests require exactly one production replacement, final ownership by `dcoir_review.quality_gate`, and no stored retry-history callables, while the quality-gate and structured-result recovery selftests preserve summary-only retry, near-threshold pending disposition, fail-closed malformed finding, feature-gate, and risk-sentinel behavior.
-### Canonical adversarial per-file prompt policy ownership
 
-`dcoir_review.adversarial_prompt_policy` is the current owner of the semantic falsification and predicate/call-site audit text shared by per-file detection and independent confirmation. The Pareto per-file prompt builder applies that final policy directly before any historical runtime patch executes. `dcoir_review_required_runtime_patch_v32` retains only compatibility aliases and its independent confirmation-stage behavior; it no longer wraps `build_per_file_review_prompt` or stores the previous callable.
+### Canonical repair-confidence admission ownership
 
-`dcoir_review.semantic_evidence_hardening` no longer strengthens the prompt by mutating v32 module globals at runtime. Its surviving blank-anchor and verifier-lifecycle responsibilities remain independent. The v46 semantic-context layer may still wrap the canonical prompt builder once for cache/projection reuse, but the prompt semantics no longer depend on v32-to-semantic-evidence mutation order. Runtime ownership tests require the final combined policy before v32 application, exactly one later prompt replacement by v46 in an isolated production-sequence probe, and no v32 stored-original prompt shim. Characterization pins the fully patched prompt bytes across normal and constrained prompt budgets.
+Historical v53 production ownership is retired. `dcoir_review.repair_admission` owns the configured repair-confidence admission policy and remains a pure helper consumed by the final repair synthesis owner; it no longer installs another runtime override. `dcoir_review.repair` owns the repair-count budget and the verifier-supported budget-deferred representation, while the persisted `v33`/`v53` repair-marker and metrics schema values remain compatibility/provenance data only.
+
+The final v56 batching owner consumes `repair_admission` directly for disabled-batching fallback, confidence-floor checks, deferred outcomes, counters, and metrics. This removes the v53 production root and one cross-generation v33 dependency without changing publication eligibility or the later author/critic/exact-head gates. Runtime guards reject reintroduction of the numbered v53 source.
+
+### Canonical semantic-context ownership
+
+Historical v46 production ownership is retired. `dcoir_review.semantic_context` is installed explicitly by `dcoir_review.review_orchestration` and owns semantic-context projection/cache wrappers plus the canonical semantic-context lifecycle stage. `dcoir_review.semantic_context_runtime` owns exact-head package construction and cache keys, `dcoir_review.adaptive_semantic_budget` owns fail-safe budget selection, and `dcoir_review.semantic_context_contract` owns the durable package/budget contract values and stable runtime attribute names.
+
+The migration removes the three `_dcoir_v46_original_*` stored-callable shims. Projection wrappers now close over their baseline builders inside the orchestration composition step; no historical original callable is written back onto the review module. The `v46` runtime-version value and `*-v46.json` debug artifact filenames remain only as diagnostic compatibility/provenance values, not production source ownership. Runtime guards reject reintroduction of the numbered v46 root/helpers and require `review_orchestration` to be the single production point that installs semantic-context prompt projection.
+
+### Canonical adversarial confirmation and reasoning-policy ownership
+
+Historical v32 production ownership is retired. `dcoir_review.adversarial_prompt_policy` owns semantic falsification and predicate/call-site prompt text, `dcoir_review.adversarial_confirmation` owns the independent challenger stage and governed challenger model projection, and `dcoir_review.reasoning_policy` owns GPT-5 and Claude 5/5.5 reasoning-request compatibility. `dcoir_review.review_orchestration` composes the challenger explicitly, while `dcoir_review.per_file_routing` applies the stable reasoning policy from its single canonical payload-builder owner.
+
+The v32 production root and version-specific selftest are removed; stable reasoning and adversarial-confirmation selftests replace them. `dcoir_review.semantic_evidence_hardening` validates prompt policy directly without mutating historical module globals. Telemetry recognizes the stable adversarial-confirmation call site, and candidate-scoped challenger execution reuses the same stable model-stack policy. The historical internal-only `dcoir_v32_verifier_repair_limit` config attribute is removed because canonical verifier and repair budgets are owned directly by `finding_verifier` and `repair_pipeline`. Runtime guards reject reintroduction of v32 production ownership.
+
+### Canonical semantic-adjudication ownership
+
+Historical v35 production ownership is retired. `dcoir_review.semantic_adjudication` now owns the bounded final semantic adjudicator, candidate digest/capping policy, completion/provider-envelope markers, and governed adjudicator model projection. The owner reads the current canonical model defaults from `review_config`, so the #591 Opus 5.5 -> Sol Pro production mapping is not shadowed by a historical fallback constant.
+
+`dcoir_review.semantic_adjudication_confidence` remains a pure normalization/stage helper and no longer mutates adjudication prompt globals or participates in the startup apply chain. `dcoir_review.finding_verifier` now owns falsification-first verification guidance directly, eliminating the v35 stored-original verifier-prompt shim. `review_orchestration` composes semantic adjudication and confidence normalization explicitly, while candidate escalation/recovery and final-adjudication policy import the stable owner. Runtime/telemetry callsite classification recognizes `semantic_adjudication.py`, and architecture guards reject v35 reintroduction.
+
+### Canonical candidate-escalation ownership
+
+The historical v44 production root and auxiliary source filenames are retired. `dcoir_review.candidate_scoped_escalation` owns the explicit escalation stage, `candidate_escalation_scope` owns deterministic selection and bounded exact-head evidence, `candidate_escalation_execution` owns challenger/adjudicator calls, and `candidate_escalation_telemetry` owns ledger/debug integration. `review_orchestration` composes the stage directly; no candidate-escalation startup overlay remains.
+
+Existing `v44` labels in debug artifact paths are retained only as compatibility/provenance identifiers for historical evidence consumers, not as source ownership. Runtime guards register all four responsibility modules directly and reject reintroduction of the v44 production root.
+
+## Issue #550 final numbered-runtime cutover
+
+Production runtime composition now has **zero** `dcoir_review_required_runtime_patch_vNN` roots. Responsibility-named stable owners are the only modules registered in the production entrypoint groups. The runtime-module-loader selftest enforces this as a fail-closed invariant, so reintroducing any numbered production root is a regression rather than an accepted extension pattern.
+
+Historical numbered modules may remain importable only as helper-definition compatibility layers when stable owners still consume their pure classifiers, selectors, constants, or narrowly scoped helper functions. They must not install themselves through production entrypoint composition. In particular, `dcoir_review.risk_sentinel_semantics` owns the former v16 production-composition responsibility while the v16 helper module remains the compatibility home for its extensively tested Python alias/shadowing classifier and sentinel-selection primitives. Stable `sentinel_selection`, `finding_verifier`, `semantic_candidate_identity`, and `truthy_literal_precision` continue to wrap that helper surface explicitly.
+
+Version-valued metadata such as `v16` may remain where it is part of an externally meaningful debug/provenance schema; such metadata does not imply numbered runtime ownership. New production behavior must be added to an existing responsibility-named owner or a new stable owner, with direct-import ownership, focused selftests, Prog/Adva evidence, governed validation, and exact-head readback.

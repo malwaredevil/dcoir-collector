@@ -6,7 +6,7 @@ from __future__ import annotations
 import importlib
 from typing import Any, Callable
 
-import dcoir_review_required_runtime_patch_v35 as v35
+from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import final_adjudication_policy as final_policy
 
 
@@ -107,7 +107,7 @@ def run_production_regressions(
         [finding("AGENTS.md", 248, 0.55)],
         final_policy.CLEAN_SUMMARY,
     )
-    spoofed_metadata[v35.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
+    spoofed_metadata[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
     try:
         review.split_findings_with_review_body_fallback(
             spoofed_metadata,

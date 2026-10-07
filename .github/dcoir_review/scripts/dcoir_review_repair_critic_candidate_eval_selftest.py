@@ -41,20 +41,16 @@ def main() -> None:
 
     def fake_openrouter_review(_prompt, _schema, config, reporter=None):
         captured_configs.append(config)
-        return {"accepted": True}, "vendor/a", ""
+        return {"accepted": True, "confidence": 0.99, "reason": "accepted"}, "vendor/a", ""
 
     review = SimpleNamespace(
         hardened=SimpleNamespace(
             build_openrouter_payload=base_builder,
             openrouter_review=fake_openrouter_review,
-        )
+        ),
+        base=SimpleNamespace(sanitize_text=lambda text, _config: str(text)),
     )
     v21 = SimpleNamespace(VERIFIER_MARKER="_verifier")
-    v36 = SimpleNamespace(
-        REPAIR_SET_CRITIC_SCHEMA={},
-        _repair_critic_prompt=lambda *_args: "critic prompt",
-        _parse_critic=lambda raw, _hardened: (raw["accepted"], 0.99, "accepted"),
-    )
     original_candidate_config = target._candidate_config
     target._candidate_config = lambda _review, _candidate: SimpleNamespace(
         model="vendor/a",
@@ -68,7 +64,6 @@ def main() -> None:
         target._run_case(
             review,
             v21,
-            v36,
             {"id": "a", "model": "vendor/a"},
             cases[0],
             timeout_seconds=37,

@@ -234,8 +234,8 @@ def test_stable_owner_composition() -> None:
     assert "dcoir_review.precision_guard" in names, names
     assert "dcoir_review_required_runtime_patch_v19" not in names, names
     index = names.index("dcoir_review.precision_guard")
-    assert names[index - 1] == "dcoir_review_required_runtime_patch_v18", names[max(0, index - 2):index + 4]
-    assert names[index + 1] == "dcoir_review_required_runtime_patch_v20", names[max(0, index - 2):index + 4]
+    assert names[index - 1] == "dcoir_review.risk_sentinel_semantics", names[max(0, index - 2):index + 4]
+    assert names[index + 1] == "dcoir_review.finding_verifier", names[max(0, index - 2):index + 4]
 
 
 

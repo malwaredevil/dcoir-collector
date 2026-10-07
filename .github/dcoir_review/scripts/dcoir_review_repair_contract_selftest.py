@@ -7,6 +7,8 @@ import importlib
 from pathlib import Path
 
 from dcoir_review import repair as repair_policy
+from dcoir_review import repair_set_contract
+from dcoir_review import repair_admission
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 
 
@@ -15,17 +17,17 @@ def main() -> None:
     names = entrypoint.patch_module_names
     assert "dcoir_review.repair_contract" in names
     assert names.index("dcoir_review.semantic_adjudication_normalization") < names.index("dcoir_review.repair_contract")
-    assert names.index("dcoir_review.repair_contract") < names.index("dcoir_review_required_runtime_patch_v31")
+    assert names.index("dcoir_review.repair_contract") < names.index("dcoir_review.risk_sentinel_detection")
 
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint.apply_runtime_patches(review)
     repair = importlib.import_module("dcoir_review.repair_pipeline")
-    v36 = importlib.import_module("dcoir_review_required_runtime_patch_v36")
+    repair_set_prompts = importlib.import_module("dcoir_review.repair_set_prompts")
     contract = importlib.import_module("dcoir_review.repair_contract")
 
     assert getattr(review, contract.APPLIED_MARKER, False) is True
-    assert v36.AUTHOR_MIN_CONFIDENCE == 0.0
-    assert v36.CRITIC_MIN_CONFIDENCE == 0.95
+    assert repair_set_contract.AUTHOR_MIN_CONFIDENCE == 0.0
+    assert repair_set_contract.CRITIC_MIN_CONFIDENCE == 0.95
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
@@ -59,7 +61,7 @@ def main() -> None:
         "rationale": "The exact counterexample is removed.",
         "validation": "python3 -m py_compile probe.py",
     }
-    parsed = v36._parse_author(live_shape, finding, review.hardened)
+    parsed = repair_set_contract.parse_author(live_shape, finding, review.hardened)
     assert parsed["action"] == "repair_set"
     assert parsed["confidence"] == 0.0
     assert parsed["edits"][0]["purpose"].startswith("Repair verified finding:")
@@ -68,7 +70,7 @@ def main() -> None:
     # exact proposal from reaching the independent critic.
     low_conf_shape = dict(live_shape)
     low_conf_shape["confidence"] = 0.78
-    parsed_low = v36._parse_author(low_conf_shape, finding, review.hardened)
+    parsed_low = repair_set_contract.parse_author(low_conf_shape, finding, review.hardened)
     assert parsed_low["action"] == "repair_set"
     assert parsed_low["confidence"] == 0.78
 
@@ -85,26 +87,26 @@ def main() -> None:
         }
     ]
     try:
-        v36._parse_author(malformed, finding, review.hardened)
+        repair_set_contract.parse_author(malformed, finding, review.hardened)
     except review.hardened.ReviewQualityError as exc:
         assert "repository-relative" in str(exc)
     else:
         raise AssertionError("v38 forgave a structurally invalid repair path")
 
-    accepted, confidence, _reason = v36._parse_critic(
+    accepted, confidence, _reason = repair_set_contract.parse_critic(
         {"accepted": True, "confidence": 0.94, "reason": "plausible"}, review.hardened
     )
     assert accepted is False and confidence == 0.94
-    accepted, confidence, _reason = v36._parse_critic(
+    accepted, confidence, _reason = repair_set_contract.parse_critic(
         {"accepted": True, "confidence": 0.95, "reason": "independently proven"}, review.hardened
     )
     assert accepted is True and confidence == 0.95
 
-    prompt = v36._repair_author_prompt(review, finding, "def f():\n    old_call()\n", "", "deadbeef", config)
+    prompt = repair_set_prompts.author_prompt(review, finding, "def f():\n    old_call()\n", "", "deadbeef", config)
     for phrase in ("EVERY edit MUST contain all six fields", "purpose", "confidence", "independent cross-family critic"):
         assert phrase in prompt
 
-    # Exercise the repair-contract-hardened v36 synthesis contract with the same near-schema
+    # Exercise stable repair-set synthesis with the same near-schema
     # author shape seen live: no purpose and no confidence. The independent
     # critic, exact-head validation, and native suggestion rendering must still
     # execute successfully. The synthetic source remains valid Python both before
@@ -159,7 +161,7 @@ def main() -> None:
         raise AssertionError(f"unexpected schema title: {title}")
 
     v21.verify_findings_for_publication = _fake_verify
-    repair.synthesize_verified_repairs = v36.synthesize_verified_repair_sets
+    repair.synthesize_verified_repairs = repair_admission.synthesize_verified_repair_sets
     review.hardened.openrouter_review = _fake_openrouter
     review.fetch_pr_file_text = lambda gh, target, head: "def f():\n    old_call()\n"
     review.hardened.write_debug_json_artifact_safely = lambda *args, **kwargs: None
@@ -182,8 +184,8 @@ def main() -> None:
 
     assert len(result) == 1
     marker = result[0][repair.REPAIR_MARKER]
-    assert marker["version"] == v36.VERSION
-    assert marker["outcome"] == v36.REPAIR_SET_OUTCOME
+    assert marker["version"] == repair_set_contract.MARKER_VERSION
+    assert marker["outcome"] == repair_set_contract.REPAIR_SET_OUTCOME
     assert marker["author_confidence"] == 0.0
     assert marker["critic_confidence"] == 0.99
     assert marker["native_suggestion_count"] == 1
@@ -207,21 +209,22 @@ def main() -> None:
         "merge_pull_request",
         "repair_contract_original",
         "v36._repair_author_prompt =",
-        "v36._parse_author =",
+        "repair_set_contract.parse_author =",
         "v36._repair_critic_prompt =",
-        "v36._parse_critic =",
+        "repair_set_contract.parse_critic =",
     ):
         assert forbidden not in source
-    v36_source = Path(".github/dcoir_review/scripts/dcoir_review_required_runtime_patch_v36.py").read_text(encoding="utf-8")
-    assert "repair_contract.normalize_author_metadata" in v36_source
-    assert "repair_contract.append_author_contract" in v36_source
-    assert "repair_contract.append_critic_contract" in v36_source
+    repair_set_contract_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_contract.py").read_text(encoding="utf-8")
+    assert "repair_contract.normalize_author_metadata" in repair_set_contract_source
+    repair_set_prompts_source = Path(".github/dcoir_review/scripts/dcoir_review/repair_set_prompts.py").read_text(encoding="utf-8")
+    assert "repair_contract.append_author_contract" in repair_set_prompts_source
+    assert "repair_contract.append_critic_contract" in repair_set_prompts_source
 
-    prompt_before = v36._repair_author_prompt
-    parse_before = v36._parse_author
+    prompt_before = repair_set_prompts.author_prompt
+    parse_before = repair_set_contract.parse_author
     contract.apply_pareto_context_module(review)
-    assert v36._repair_author_prompt is prompt_before
-    assert v36._parse_author is parse_before
+    assert repair_set_prompts.author_prompt is prompt_before
+    assert repair_set_contract.parse_author is parse_before
 
     print("dcoir_review_repair_contract_selftest passed")
 

@@ -1,0 +1,271 @@
+"""Eleventh required-coverage layer for DCOIR Review (part 1 of 2, continued in part_01a.py).
+
+This connector-safe layer fixes the #335 selection failure without editing the
+large reviewer script. It keeps v10's overflow behavior, then adds:
+
+- primary semantic kind validation separate from contextual explanatory kinds
+- blank-kind backfills for Python archive/path writes and Kubernetes pressure
+- Python archive coalescing to the extractall sink line
+- balanced required selection across YAML, Python, and PowerShell
+- split required/optional overflow metadata for debug/progress readback
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Any
+
+import dcoir_review.risk_sentinel_taxonomy as v4
+import dcoir_review.risk_sentinel_policy as v5
+import dcoir_review.risk_sentinel_composition as v9
+import dcoir_review.risk_sentinel_state as core
+import dcoir_review.workflow_risk_semantics as v10
+
+SentinelKey = tuple[str, int, str]
+
+# Helper-only base seams captured before v11 classification is installed.
+# Stable responsibility owners may reuse v11 semantics without depending
+# on numbered-installer stored-original attributes.
+_BASE_LINE_KIND = core._line_kind
+_BASE_SEMANTIC_KIND = core._semantic_kind
+_BASE_SENTINEL_KEY = core._sentinel_key
+_BASE_REQUIRED_SENTINELS = core._required_sentinels
+
+PYTHON_ARCHIVE_EXTRACT = "python_archive_extract"
+PYTHON_PATH_WRITE = "python_path_write"
+K8S_HOST_NETWORK = "k8s_host_network"
+K8S_PRIVILEGED_CONTAINER = "k8s_privileged_container"
+K8S_PRIVILEGE_ESCALATION = "k8s_privilege_escalation"
+K8S_HOST_PATH = "k8s_host_path"
+
+YAML_KIND_ORDER = {
+    v10.YAML_TOKEN_TO_PR_URL: 0,
+    v4.YAML_SHELL_PIPE: 1,
+    v4.YAML_PULL_REQUEST_TARGET: 2,
+    v4.YAML_UNTRUSTED_CHECKOUT: 3,
+    v4.YAML_METADATA_SHELL: 4,
+    v4.YAML_BROAD_WRITE: 5,
+}
+PYTHON_KIND_ORDER = {
+    v9.PYTHON_PICKLE_LOAD: 0,
+    v5.PYTHON_YAML_LOAD: 1,
+    v5.PYTHON_SHELL_EXEC: 2,
+    v5.PYTHON_ENV_TOKEN: 3,
+    PYTHON_ARCHIVE_EXTRACT: 4,
+    PYTHON_PATH_WRITE: 5,
+}
+POWERSHELL_KIND_ORDER = {
+    v9.PS_DYNAMIC_EXEC: 0,
+    v4.PS_ACL: 1,
+    v4.PS_PROCESS_LAUNCH: 2,
+    v5.PS_ENV_TOKEN: 3,
+}
+K8S_KIND_ORDER = {
+    K8S_HOST_NETWORK: 0,
+    K8S_PRIVILEGED_CONTAINER: 1,
+    K8S_PRIVILEGE_ESCALATION: 2,
+    K8S_HOST_PATH: 3,
+}
+
+PYTHON_PATH_WRITE_RE = re.compile(
+    r"\.(?:write_text|write_bytes)\s*\("
+    r"|\bopen\s*\([^\n)]*,\s*['\"][^'\"]*(?:[wax]|r\+)[^'\"]*['\"]"
+    r"|\bopen\s*\([^\n)]*\bmode\s*=\s*['\"][^'\"]*(?:[wax]|r\+)[^'\"]*['\"]"
+    r"|\.open\s*\(\s*(?:mode\s*=\s*)?['\"][^'\"]*(?:[wax]|r\+)[^'\"]*['\"]",
+    re.I,
+)
+
+
+def _normalize(value: Any) -> str:
+    return v5._normalize(value)
+
+
+def _canonical_kind(kind: str) -> str:
+    if kind == getattr(v4, "PS_OUTBOUND_TOKEN", "ps_outbound_token"):
+        return v5.PS_ENV_TOKEN
+    return str(kind or "")
+
+
+def _key_text(key: SentinelKey) -> str:
+    return f"{key[0]}:{key[1]} {key[2]}"
+
+
+def _base_line_kind(path: str, text: str) -> str:
+    return _BASE_LINE_KIND(path, text)
+
+
+def _base_semantic_kind(finding: dict[str, Any]) -> str:
+    return _BASE_SEMANTIC_KIND(finding)
+
+
+def _base_sentinel_key(sentinel: Any) -> SentinelKey:
+    return _BASE_SENTINEL_KEY(sentinel)
+
+
+def _base_required_sentinels(hardened: Any, risk_sentinels: list[Any]) -> list[Any]:
+    return list(_BASE_REQUIRED_SENTINELS(hardened, risk_sentinels))
+
+
+def _line_kind(path: str, text: str) -> str:
+    suffix = Path(str(path or "").lower()).suffix
+    line = str(text or "")
+    lowered = _normalize(line)
+    base_kind = _base_line_kind(path, text)
+    if base_kind:
+        return _canonical_kind(base_kind)
+    if suffix == ".py":
+        if re.search(r"\.extractall\s*\(", line):
+            return PYTHON_ARCHIVE_EXTRACT
+        if re.search(r"\btarfile\.open\s*\(", line) and "extract" in lowered:
+            return PYTHON_ARCHIVE_EXTRACT
+        if PYTHON_PATH_WRITE_RE.search(line):
+            return PYTHON_PATH_WRITE
+    if suffix in {".yml", ".yaml"}:
+        workflow_token_to_pr_url = getattr(v10, "_workflow_token_to_pr_url", None)
+        workflow_pr_label_shell = getattr(v10, "_workflow_pr_label_shell", None)
+        if callable(workflow_token_to_pr_url) and workflow_token_to_pr_url(line):
+            return v10.YAML_TOKEN_TO_PR_URL
+        if (
+            ("secrets.github_token" in lowered or "authorization" in lowered or "bearer" in lowered)
+            and ("github.event.pull_request.body" in lowered or "pull_request.body" in lowered)
+        ):
+            return v10.YAML_TOKEN_TO_PR_URL
+        if callable(workflow_pr_label_shell) and workflow_pr_label_shell(line):
+            return v4.YAML_METADATA_SHELL
+        if "github.event.pull_request.labels" in lowered and any(
+            token in lowered for token in ("bash", " sh ", "sh -c", "pwsh", "powershell", "-lc", "-c")
+        ):
+            return v4.YAML_METADATA_SHELL
+        if re.search(r"\bhostNetwork\s*:\s*true\b", line, re.I):
+            return K8S_HOST_NETWORK
+        if re.search(r"\bprivileged\s*:\s*true\b", line, re.I):
+            return K8S_PRIVILEGED_CONTAINER
+        if re.search(r"\ballowPrivilegeEscalation\s*:\s*true\b", line, re.I):
+            return K8S_PRIVILEGE_ESCALATION
+        if re.search(r"\bhostPath\s*:", line, re.I):
+            return K8S_HOST_PATH
+    return ""
+
+
+def _text_kinds(path: str, text: str) -> set[str]:
+    suffix = Path(str(path or "").lower()).suffix
+    lowered = _normalize(text)
+    kinds = set(core._claimed_kinds({"path": path, "title": text, "body": "", "description": ""}))
+    if suffix == ".py":
+        if "extractall" in lowered or ("tarfile" in lowered and "extract" in lowered):
+            kinds.add(PYTHON_ARCHIVE_EXTRACT)
+        if PYTHON_PATH_WRITE_RE.search(str(text or "")):
+            kinds.add(PYTHON_PATH_WRITE)
+    if suffix in {".yml", ".yaml"}:
+        if "hostnetwork" in lowered:
+            kinds.add(K8S_HOST_NETWORK)
+        if "privileged" in lowered:
+            kinds.add(K8S_PRIVILEGED_CONTAINER)
+        if "allowprivilegeescalation" in lowered:
+            kinds.add(K8S_PRIVILEGE_ESCALATION)
+        if "hostpath" in lowered:
+            kinds.add(K8S_HOST_PATH)
+    return {_canonical_kind(item) for item in kinds if item}
+
+
+def _title_kinds(finding: dict[str, Any]) -> set[str]:
+    return _text_kinds(str(finding.get("path", "") or ""), str(finding.get("title", "") or ""))
+
+
+def _contextual_kinds(finding: dict[str, Any]) -> set[str]:
+    path = str(finding.get("path", "") or "")
+    text = "\n".join(
+        str(finding.get(name, "") or "")
+        for name in ("title", "body", "description", "_anchored_line_text", "suggested_replacement")
+    )
+    return _text_kinds(path, text)
+
+
+def _explicit_kind(finding: dict[str, Any]) -> str:
+    explicit = finding.get("_risk_sentinel_key")
+    if isinstance(explicit, (list, tuple)) and len(explicit) == 3:
+        return _canonical_kind(str(explicit[2]))
+    return _canonical_kind(str(finding.get("_risk_sentinel_kind", "") or ""))
+
+
+def _primary_kind(finding: dict[str, Any], allowed: set[str] | None = None) -> str:
+    explicit = _explicit_kind(finding)
+    if explicit:
+        return explicit
+    path = str(finding.get("path", "") or "")
+    anchor_kind = _line_kind(path, str(finding.get("_anchored_line_text", "") or ""))
+    if anchor_kind:
+        return anchor_kind
+    titles = _title_kinds(finding)
+    if allowed:
+        matches = sorted(titles & allowed, key=lambda item: _kind_rank(item))
+        if matches:
+            return matches[0]
+    if titles:
+        return sorted(titles, key=lambda item: _kind_rank(item))[0]
+    return ""
+
+
+def _semantic_kind(finding: dict[str, Any]) -> str:
+    return _primary_kind(finding) or _base_semantic_kind(finding)
+
+
+def _postable_key(finding: dict[str, Any]) -> SentinelKey:
+    path = str(finding.get("path", "") or "")
+    return path, core._line_number(finding.get("line", 0)), _semantic_kind(finding)
+
+
+def _sentinel_key(sentinel: Any) -> SentinelKey:
+    path = str(getattr(sentinel, "path", "") or "")
+    line = core._line_number(getattr(sentinel, "line", 0))
+    text = str(getattr(sentinel, "text", "") or "")
+    label = str(getattr(sentinel, "label", "") or "")
+    detail = str(getattr(sentinel, "detail", "") or "")
+    kind = _line_kind(path, text) or _base_sentinel_key(sentinel)[2]
+    context = f"{text}\n{label}\n{detail}"
+    if not kind:
+        kinds = _text_kinds(path, context)
+        kind = sorted(kinds, key=lambda item: _kind_rank(item))[0] if kinds else ""
+    return path, line, _canonical_kind(kind)
+
+
+def _coverage_key(key: SentinelKey) -> SentinelKey:
+    path, line, kind = key
+    if kind == v4.YAML_BROAD_WRITE:
+        return path, 0, kind
+    if kind == PYTHON_ARCHIVE_EXTRACT:
+        return path, 0, kind
+    return path, line, kind
+
+
+def _family(kind: str) -> str:
+    if kind.startswith("yaml_"):
+        return "yaml"
+    if kind.startswith("python_"):
+        return "python"
+    if kind.startswith("ps_"):
+        return "powershell"
+    if kind.startswith("k8s_"):
+        return "kubernetes"
+    return "other"
+
+
+def _kind_rank(kind: str) -> int:
+    if kind in YAML_KIND_ORDER:
+        return YAML_KIND_ORDER[kind]
+    if kind in PYTHON_KIND_ORDER:
+        return PYTHON_KIND_ORDER[kind]
+    if kind in POWERSHELL_KIND_ORDER:
+        return POWERSHELL_KIND_ORDER[kind]
+    if kind in K8S_KIND_ORDER:
+        return 40 + K8S_KIND_ORDER[kind]
+    return 99
+
+
+def _sentinel_sort_key(sentinel: Any) -> tuple[int, str, int, str]:
+    path, line, kind = _sentinel_key(sentinel)
+    bonus = 0
+    if kind == PYTHON_ARCHIVE_EXTRACT and "extractall" not in _normalize(getattr(sentinel, "text", "")):
+        bonus = 1
+    return _kind_rank(kind) + bonus, path, line, str(getattr(sentinel, "text", "") or "")

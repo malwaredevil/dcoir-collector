@@ -7,7 +7,7 @@ import inspect
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v35 as v35
+from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import review_telemetry
 
 
@@ -46,11 +46,11 @@ _RESULT_ALLOWED_KEYS = {
     "_semantic_adjudication_shape_recovery",
     "_semantic_adjudication_confidence_normalization",
     "_semantic_adjudication_confidence_normalized_count",
-    v35.FINAL_ADJUDICATION_COMPLETION_ATTR,
+    adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR,
     "_candidate_escalation",
     "_semantic_context_package_id",
     "_adaptive_semantic_budget_mode",
-    v35.PROVIDER_RESULT_KEYS_ATTR,
+    adjudication.PROVIDER_RESULT_KEYS_ATTR,
 }
 
 
@@ -137,7 +137,7 @@ def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> b
 
 
 def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
-    """Require internally recorded final-v35-adjudication evidence."""
+    """Require internally recorded final semantic-adjudication evidence."""
 
     if result.get("_semantic_adjudication_attempted") is not True:
         return False
@@ -159,13 +159,13 @@ def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_fin
 
     if "_semantic_adjudication_context_scope" in result:
         return False
-    if result.get(v35.FINAL_ADJUDICATION_COMPLETION_ATTR) is not v35.FINAL_ADJUDICATION_COMPLETION_TOKEN:
+    if result.get(adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR) is not adjudication.FINAL_ADJUDICATION_COMPLETION_TOKEN:
         return False
     return True
 
 
 def _provider_envelope_matches_schema(result: dict[str, Any]) -> bool:
-    raw_provider_keys = result.get(v35.PROVIDER_RESULT_KEYS_ATTR)
+    raw_provider_keys = result.get(adjudication.PROVIDER_RESULT_KEYS_ATTR)
     if not isinstance(raw_provider_keys, (list, tuple)):
         return False
     provider_keys = {str(key) for key in raw_provider_keys}
@@ -179,7 +179,7 @@ def _terminal_disposition(
     line_index: dict[tuple[str, int], int],
     risk_sentinels: list[Any] | None,
 ) -> dict[str, Any] | None:
-    """Classify only the final-v35 all-sub-threshold terminal shape."""
+    """Classify only the final semantic-adjudication all-sub-threshold terminal shape."""
 
     if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
@@ -275,7 +275,7 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
         return prompt
     if bool(getattr(config, PROMPT_INJECTION_ATTR, False)):
         return prompt
-    if not _is_final_v35_semantic_adjudication_call(prompt):
+    if not _is_final_semantic_adjudication_call(prompt):
         return prompt
 
     floor = _publication_floor(config)
@@ -294,7 +294,7 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
     return _apply_prompt_budget(injected, config)
 
 
-def _is_final_v35_semantic_adjudication_call(prompt: Any) -> bool:
+def _is_final_semantic_adjudication_call(prompt: Any) -> bool:
     frame = inspect.currentframe()
     current = frame.f_back if frame is not None else None
     try:
@@ -303,7 +303,7 @@ def _is_final_v35_semantic_adjudication_call(prompt: Any) -> bool:
             function = current.f_code.co_name
             locals_map = current.f_locals
             if (
-                filename == "dcoir_review_required_runtime_patch_v35.py"
+                filename == "semantic_adjudication.py"
                 and function in (
                     "openrouter_review_with_hybrid_first_pass",
                     "semantic_adjudication_stage",

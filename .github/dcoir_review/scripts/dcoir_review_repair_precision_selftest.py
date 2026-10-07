@@ -1,0 +1,229 @@
+#!/usr/bin/env python3
+"""Regression checks for stable DCOIR repair/detection precision ownership."""
+
+from __future__ import annotations
+
+import importlib
+
+from dcoir_review.entrypoint import DcoirReviewEntrypoint
+
+
+TRUTHY_LABEL = "truthy literal branch condition"
+
+
+def _diff(path: str, line: str) -> str:
+    return (
+        f"diff --git a/{path} b/{path}\n"
+        "index 0000000..1111111 100644\n"
+        f"--- a/{path}\n"
+        f"+++ b/{path}\n"
+        "@@ -0,0 +1 @@\n"
+        f"+{line}\n"
+    )
+
+
+def _has_truthy_sentinel(review, path: str, line: str) -> bool:
+    return any(item.label == TRUTHY_LABEL for item in review.detect_risk_sentinels(_diff(path, line)))
+
+
+def main() -> None:
+    entrypoint = DcoirReviewEntrypoint()
+    names = entrypoint.patch_module_names
+    assert "dcoir_review_required_runtime_patch_v30" not in names
+    assert "dcoir_review.risk_sentinel_detection" in names
+    assert names.index("dcoir_review.repair_pipeline") < names.index("dcoir_review.risk_sentinel_detection")
+    assert names[-1] == "dcoir_review.risk_sentinel_detection", names[-4:]
+
+    review = importlib.import_module("openrouter_pr_review_pareto_context")
+    entrypoint.apply_runtime_patches(review)
+    policy = importlib.import_module("dcoir_review.finding_comment_policy")
+    v21 = importlib.import_module("dcoir_review.finding_verifier")
+    repair = importlib.import_module("dcoir_review.repair_pipeline")
+    reliability = importlib.import_module("dcoir_review.repair_reliability")
+    precision = importlib.import_module("dcoir_review.repair_precision")
+
+    valid_python = [
+        'if len(rejected) != 1 or "fallback_emulation" not in rejected[0].get("reason", ""): raise SystemExit()',
+        'if ready or "x" in allowed: return True',
+        'if ready or "x" not in allowed: return True',
+        'if ready or "x" == candidate: return True',
+        'if ready or "x" != candidate: return True',
+        'if ready or "x" is candidate: return True',
+        'if ready or "x" is not candidate: return True',
+        'if ready or "x" < candidate: return True',
+        'if ready or "x" >= candidate: return True',
+    ]
+    for line in valid_python:
+        assert not _has_truthy_sentinel(review, "probe.py", line), line
+
+    valid_powershell = [
+        'if ($Ready -or "Critical" -eq $Severity) { return $true }',
+        'if ($Ready -or "Critical" -ne $Severity) { return $true }',
+        'if ($Ready -or "Critical" -in $Allowed) { return $true }',
+        'if ($Ready -or "Critical" -notin $Blocked) { return $true }',
+        'if ($Ready -or "Critical" -like $Pattern) { return $true }',
+    ]
+    for line in valid_powershell:
+        assert not _has_truthy_sentinel(review, "probe.ps1", line), line
+
+    assert _has_truthy_sentinel(review, "probe.py", 'if severity == "critical" or "high": return True')
+    assert _has_truthy_sentinel(review, "probe.ps1", 'if ($Severity -eq "High" -or "Critical") { return $true }')
+
+    assert "defect_present" in repair.REPAIR_AUTHOR_SCHEMA["required"]
+    assert repair.REPAIR_AUTHOR_SCHEMA["properties"]["defect_present"] == {"type": "boolean"}
+
+    class Hardened:
+        class ReviewQualityError(RuntimeError):
+            pass
+
+    finding = {
+        "path": "probe.py",
+        "line": 1,
+        "title": "Alleged truthy literal",
+        "body": "The quoted operand was alleged to be a bare truthy literal.",
+        "severity": "high",
+        "confidence": 0.99,
+    }
+    absent_raw = {
+        "defect_present": False,
+        "action": "no_safe_single_line_fix",
+        "replacement": "",
+        "confidence": 0.99,
+        "display_title": "No defect present",
+        "display_body": "The quoted value is the left operand of a not-in membership test.",
+        "rationale": "The exact syntax is a boolean membership expression, not a bare literal operand.",
+        "validation": "python3 -m py_compile probe.py",
+    }
+    absent_author = reliability._author_result(absent_raw, finding, "probe.py", 1, Hardened)
+    assert absent_author["defect_present"] is False
+    assert absent_author["action"] == "no_safe_single_line_fix"
+    assert absent_author["replacement"] == ""
+
+    suppressed = reliability._declined_item(
+        finding,
+        "probe.py",
+        1,
+        absent_author["rationale"],
+        author=absent_author,
+        author_model="test-author",
+        author_tier="test",
+        outcome="author-declined",
+    )
+    assert suppressed[repair.REPAIR_MARKER]["outcome"] == precision.SUPPRESSED_OUTCOME
+    assert suppressed[repair.REPAIR_MARKER]["defect_present"] is False
+    kept, count = precision.filter_suppressed_findings([suppressed], repair.REPAIR_MARKER)
+    assert kept == []
+    assert count == 1
+
+    real_raw = {
+        "defect_present": True,
+        "action": "no_safe_single_line_fix",
+        "replacement": "",
+        "confidence": 0.99,
+        "display_title": "Real multi-line issue",
+        "display_body": "The defect is real but cannot be repaired safely on one line.",
+        "rationale": "A declaration and an adjacent call site must both change.",
+        "validation": "python3 -m py_compile probe.py",
+    }
+    real_author = reliability._author_result(real_raw, finding, "probe.py", 1, Hardened)
+    real_item = reliability._declined_item(
+        finding,
+        "probe.py",
+        1,
+        real_author["rationale"],
+        author=real_author,
+        author_model="test-author",
+        author_tier="test",
+        outcome="author-declined",
+    )
+    kept, count = precision.filter_suppressed_findings([real_item], repair.REPAIR_MARKER)
+    assert count == 0
+    assert len(kept) == 1
+    assert kept[0][repair.REPAIR_MARKER]["outcome"] == "author-declined"
+
+    low_confidence_raw = dict(absent_raw)
+    low_confidence_raw["confidence"] = 0.80
+    low_author = reliability._author_result(low_confidence_raw, finding, "probe.py", 1, Hardened)
+    low_item = reliability._declined_item(
+        finding,
+        "probe.py",
+        1,
+        low_author["rationale"],
+        author=low_author,
+        author_model="test-author",
+        author_tier="test",
+        outcome="author-declined",
+    )
+    kept, count = precision.filter_suppressed_findings([low_item], repair.REPAIR_MARKER)
+    assert count == 0
+    assert len(kept) == 1
+    assert kept[0][repair.REPAIR_MARKER].get("suppression_declined")
+
+    # The final renderer must ignore model-authored semantics for a verifier-
+    # proven deterministic sentinel while preserving the human-applied native
+    # GitHub suggestion produced by the verified repair pipeline.
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    deterministic = {
+        "title": "model wording should not replace deterministic sentinel template",
+        "severity": "high",
+        "confidence": 0.99,
+        "path": ".github/dcoir_review/evaluation/live_suggestion_probe.py",
+        "line": 10,
+        "body": "model body should not replace deterministic sentinel detail",
+        "suggested_replacement": '    if severity in {"critical", "high"}:',
+        "_anchored_line_text": '    if severity == "critical" or "high":',
+        "_risk_sentinel_key": [
+            ".github/dcoir_review/evaluation/live_suggestion_probe.py",
+            10,
+            policy.PYTHON_TRUTHY_LITERAL_BRANCH,
+        ],
+        "_risk_sentinel_kind": policy.PYTHON_TRUTHY_LITERAL_BRANCH,
+        v21.VERIFIER_MARKER: {
+            "mode": "deterministic-core-sentinel",
+            "supported": True,
+            "kind": policy.PYTHON_TRUTHY_LITERAL_BRANCH,
+            "head_sha": "probe-head",
+            "line": 10,
+        },
+        repair.REPAIR_MARKER: {
+            "version": precision.VERSION,
+            "outcome": "native-suggestion",
+            "path": ".github/dcoir_review/evaluation/live_suggestion_probe.py",
+            "line": 10,
+        },
+    }
+    rendered = review.base.build_inline_comment(deterministic, "test-model", config)
+    assert "Python branch condition contains an always-truthy literal" in rendered
+    assert "A non-empty string literal after `or` is always truthy" in rendered
+    assert "model wording should not replace deterministic sentinel template" not in rendered
+    assert "model body should not replace deterministic sentinel detail" not in rendered
+    assert '```suggestion\n    if severity in {"critical", "high"}:\n```' in rendered
+
+    # A verifier-supported ordinary model finding remains model-authored; v30
+    # canonicalization is deliberately scoped to deterministic-core-sentinel.
+    ordinary = {
+        "title": "Verified ordinary title",
+        "severity": "medium",
+        "confidence": 0.99,
+        "path": "probe.py",
+        "line": 3,
+        "body": "Verified ordinary body.",
+        "suggested_replacement": "",
+        v21.VERIFIER_MARKER: {
+            "mode": "model-judge",
+            "supported": True,
+            "confidence": 0.99,
+            "evidence": "The exact line contradicts the documented boundary.",
+            "head_sha": "probe-head",
+            "line": 3,
+        },
+    }
+    ordinary_rendered = review.base.build_inline_comment(ordinary, "test-model", config)
+    assert "Verified ordinary title" in ordinary_rendered
+    assert "Verified ordinary body." in ordinary_rendered
+
+    print("dcoir_review_repair_precision_selftest passed")
+
+
+if __name__ == "__main__":
+    main()

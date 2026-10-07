@@ -32,11 +32,10 @@ def patched_modules():
     review = importlib.import_module("openrouter_pr_review_pareto_context")
     entrypoint = DcoirReviewEntrypoint()
     assert "dcoir_review_required_runtime_patch_v28" not in entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v30" in entrypoint.patch_module_names
-    assert "dcoir_review_required_runtime_patch_v31" in entrypoint.patch_module_names
-    assert entrypoint.patch_module_names[-1] == "dcoir_review_required_runtime_patch_v31"
-    assert entrypoint.patch_module_names.index("dcoir_review.repair_pipeline") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v30")
-    assert entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v30") < entrypoint.patch_module_names.index("dcoir_review_required_runtime_patch_v31")
+    assert "dcoir_review_required_runtime_patch_v30" not in entrypoint.patch_module_names
+    assert "dcoir_review.risk_sentinel_detection" in entrypoint.patch_module_names
+    assert entrypoint.patch_module_names[-1] == "dcoir_review.risk_sentinel_detection"
+    assert entrypoint.patch_module_names.index("dcoir_review.repair_pipeline") < entrypoint.patch_module_names.index("dcoir_review.risk_sentinel_detection")
     entrypoint.apply_runtime_patches(review)
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     repair = importlib.import_module("dcoir_review.repair_pipeline")

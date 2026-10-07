@@ -389,6 +389,8 @@ Before claiming a review finding or conversation is addressed or reasonably dism
 
 ## Validation and readback
 
+* For governed GitHub PR post-publication readback, use `.github/dcoir_review/scripts/read-pr-validation-state.py` or an equivalent connector readback that covers the same surfaces. Do **not** infer PR validation from Actions workflow runs alone. At minimum read the exact PR head and mergeability, the complete commit `check-runs` collection, Actions workflow runs/jobs, legacy commit statuses, unresolved review threads, and failed-check annotations when available. Treat a separate GitHub Advanced Security result check such as `CodeQL` as an independent gate: successful CodeQL analysis jobs do not clear the PR when the GHAS result check reports new alerts. Also read required platform-specific evidence such as exact-head Windows PowerShell 5.1 when the changed scope requires it.
+* Report skipped or unavailable checks explicitly instead of silently converting them to pass. Any failed, cancelled, timed-out, action-required, stale, startup-failure, pending, or unresolved required validation remains a readiness gap until dispositioned.
 * When editing code or workflows, run the closest available validation and report any gaps.
 * When editing documentation, scan for stale path references and mismatched authority claims before finishing.
 * For Codex Cloud PR change tasks, report task-side commit/diff state separately from GitHub-published state. Claim branch write-back only after the task result is published and the live GitHub PR head, resulting commit, and changed source are read back.

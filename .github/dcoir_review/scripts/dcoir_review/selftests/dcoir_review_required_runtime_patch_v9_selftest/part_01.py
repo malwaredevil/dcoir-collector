@@ -91,6 +91,48 @@ def pr332_findings() -> list[dict[str, object]]:
     ]
 
 
+def test_mutable_classifier_exports_follow_core_until_overridden() -> None:
+    core = v9.v9_core
+    selection = v9._selection_support
+    prompt_diag = v9._prompt_diag
+    original_line = core._line_kind
+    original_semantic = core._semantic_kind
+    original_postable = core._postable_key
+    original_spare = core._spare_priority
+    try:
+        line_probe = lambda *_args, **_kwargs: "line-probe"
+        semantic_probe = lambda *_args, **_kwargs: "semantic-probe"
+        postable_probe = lambda *_args, **_kwargs: ("probe.py", 7, "probe-kind")
+        spare_probe = lambda *_args, **_kwargs: (0, 0, 0, "probe.py", 7)
+        for name in ("_line_kind", "_semantic_kind", "_postable_key", "_spare_priority"):
+            v9.__dict__.pop(name, None)
+        core._line_kind = line_probe
+        core._semantic_kind = semantic_probe
+        core._postable_key = postable_probe
+        core._spare_priority = spare_probe
+        assert v9._line_kind is line_probe
+        assert v9._semantic_kind is semantic_probe
+        assert v9._postable_key is postable_probe
+        assert v9._spare_priority is spare_probe
+        assert selection._select_required_postable.__globals__["_state"] is core
+        assert selection._select_required_postable.__globals__["_state"]._postable_key is postable_probe
+        assert selection._select_required_postable.__globals__["_state"]._spare_priority is spare_probe
+        assert prompt_diag._normalize_yaml_identifier.__globals__["_state"] is core
+        assert prompt_diag._normalize_yaml_identifier.__globals__["_state"]._postable_key is postable_probe
+
+        override = lambda *_args, **_kwargs: "override"
+        v9._line_kind = override
+        assert v9._line_kind is override
+        assert core._line_kind is line_probe
+    finally:
+        for name in ("_line_kind", "_semantic_kind", "_postable_key", "_spare_priority"):
+            v9.__dict__.pop(name, None)
+        core._line_kind = original_line
+        core._semantic_kind = original_semantic
+        core._postable_key = original_postable
+        core._spare_priority = original_spare
+
+
 def test_pr332_wrong_duplicate_is_dropped() -> None:
     hardened = FakeHardened()
     result = v9._select_required_postable(hardened, pr332_findings(), pr332_sentinels(), Config())

@@ -90,6 +90,24 @@ CRITIC ACCEPTANCE CONTRACT:
     return f"{base_prompt}\n\n{contract}"
 
 
+def validated_author_confidence(result: Any, hardened: Any, *, stage: str = "repair author") -> float:
+    """Return bounded finite author confidence or fail closed on schema drift."""
+
+    if not isinstance(result, dict):
+        raise hardened.ReviewQualityError(f"DCOIR {stage} returned a non-object result")
+    raw_confidence = result.get("confidence", 0)
+    if isinstance(raw_confidence, bool):
+        raise hardened.ReviewQualityError(f"DCOIR {stage} returned boolean confidence")
+    try:
+        confidence = float(raw_confidence)
+    except (TypeError, ValueError) as exc:
+        raise hardened.ReviewQualityError(f"DCOIR {stage} returned invalid confidence") from exc
+    import math
+    if not math.isfinite(confidence) or not 0.0 <= confidence <= 1.0:
+        raise hardened.ReviewQualityError(f"DCOIR {stage} confidence was outside finite 0.0..1.0")
+    return confidence
+
+
 def validated_critic_confidence(result: Any, hardened: Any) -> float:
     """Return bounded critic confidence or fail closed on schema drift."""
 

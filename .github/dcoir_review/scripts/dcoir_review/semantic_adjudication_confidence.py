@@ -28,11 +28,6 @@ from __future__ import annotations
 import math
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v35 as v35
-
-
-APPLIED_MARKER = "_dcoir_semantic_adjudication_confidence_applied"
-ADJUDICATION_BLOCK_STORAGE = "_dcoir_semantic_adjudication_confidence_original_adjudication_block"
 NORMALIZATION_MARKER = "_semantic_adjudication_confidence_normalization"
 NORMALIZATION_COUNT = "_semantic_adjudication_confidence_normalized_count"
 NORMALIZATION_VALUE = "minimum-floor-for-verifier-admission"
@@ -170,16 +165,6 @@ def _normalize_semantic_adjudication_confidence(
     return normalized, normalized_count, floor
 
 
-def _patch_adjudication_prompt() -> None:
-    original = getattr(v35, ADJUDICATION_BLOCK_STORAGE, None)
-    if original is None:
-        original = str(getattr(v35, "ADJUDICATION_BLOCK", "") or "")
-        setattr(v35, ADJUDICATION_BLOCK_STORAGE, original)
-    if not original:
-        raise RuntimeError("DCOIR semantic-adjudication confidence could not locate the v35 semantic adjudication prompt block")
-    v35.ADJUDICATION_BLOCK = original.rstrip() + "\n\n" + ADJUDICATION_CONFIDENCE_CONTRACT
-
-
 def build_semantic_adjudication_confidence_stage(module: Any, next_review: Any) -> Any:
     original = next_review
     if not callable(original):
@@ -239,11 +224,3 @@ def build_semantic_adjudication_confidence_stage(module: Any, next_review: Any) 
         return normalized, model_label, tier_label
 
     return semantic_adjudication_confidence_stage
-
-
-def apply_pareto_context_module(module: Any) -> None:
-    if getattr(module, APPLIED_MARKER, False):
-        return
-
-    _patch_adjudication_prompt()
-    setattr(module, APPLIED_MARKER, True)

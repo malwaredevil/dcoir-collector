@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from typing import Any
 
-import dcoir_review_required_runtime_patch_v16 as v16
+import dcoir_review.risk_sentinel_primitives as v16
 from dcoir_review import finding_verifier_contract as verifier_contract
 from dcoir_review import publication_contract as contract
 

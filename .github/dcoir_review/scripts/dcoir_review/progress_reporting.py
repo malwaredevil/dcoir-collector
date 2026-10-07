@@ -50,6 +50,23 @@ def apply_pareto_context_module(module: Any) -> None:
         raise RuntimeError("DCOIR progress reporting ProgressReporter contract is incomplete")
 
     class ProgressReporter(original):
+        def _body(self, state: str, final_lines: list[str] | None = None) -> str:
+            rendered = super()._body(state, final_lines=final_lines)
+            if not getattr(getattr(self, "config", None), "debug", False):
+                return rendered
+            details = [
+                "",
+                "Legacy compatibility details:",
+                "- Branch changes: none; this workflow only posts review output.",
+                "- Gate role: internal review-assist signal before any separately approved external review request.",
+            ]
+            combined = f"{rendered.rstrip()}\n" + "\n".join(details)
+            base = getattr(module, "base", None)
+            safe_body = getattr(base, "github_safe_body", None) or getattr(module, "github_safe_body", None)
+            if callable(safe_body):
+                return safe_body(combined, limit=18000)
+            return combined[:18000]
+
         def complete(self, model_used: str, findings_count: int, review_event: str) -> None:
             try:
                 telemetry.emit_run_telemetry(module, self)

@@ -113,7 +113,6 @@ def _apply_adversarial_confirmation(config: Any, data: dict[str, Any], hardened:
 
     finding_verifier.VERIFIER_MAX_MODEL_FINDINGS = verifier_repair_limit
     repair_pipeline.MAX_REPAIR_CANDIDATES = verifier_repair_limit
-    config.dcoir_v32_verifier_repair_limit = verifier_repair_limit
 
 
 def _apply_semantic_adjudication(config: Any, data: dict[str, Any], hardened: Any) -> None:
@@ -212,17 +211,17 @@ def _apply_per_file_routing(config: Any, data: dict[str, Any]) -> None:
 
 
 def _initialize_run_telemetry_fail_soft(config: Any) -> None:
-    try:
-        from dcoir_review import review_telemetry as telemetry
+    # Configuration should depend only on telemetry state primitives, not the
+    # full telemetry facade. Importing the facade here creates a cycle through
+    # stage classifiers back into configuration-owned review modules.
+    from dcoir_review import review_telemetry_state as telemetry_state
 
-        telemetry.ensure_sink(config)
+    try:
+        telemetry_state.ensure_sink(config)
     except Exception:
-        try:
-            telemetry.note_telemetry_error(config)
-        except Exception:
-            # Telemetry is observational only; config loading must remain available
-            # even when recording the telemetry failure also fails.
-            return
+        # Telemetry is observational only; config loading must remain available
+        # even when recording the telemetry failure also fails.
+        telemetry_state.note_telemetry_error(config)
 
 
 def _apply_repair_critic_batching(config: Any, data: dict[str, Any], hardened: Any) -> None:

@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""Compatibility wrapper for connector-safe DCOIR Review layer dcoir_review_required_runtime_patch_v10."""
+"""Compatibility bridge for historical dcoir_review_required_runtime_patch_v10 imports.
+
+Canonical implementation lives in ``dcoir_review.workflow_risk_semantics``.
+"""
 
 from __future__ import annotations
 
-from pathlib import Path
-import sys
+from dcoir_review.historical_compat import install_historical_alias
+from dcoir_review import workflow_risk_semantics as _stable
 
-_SCRIPT_DIR = Path(__file__).resolve().parent
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
-
-from dcoir_review.module_loader import load_segments_into
-
-load_segments_into(globals(), 'dcoir_review_required_runtime_patch_v10')
+install_historical_alias(__name__, _stable)
