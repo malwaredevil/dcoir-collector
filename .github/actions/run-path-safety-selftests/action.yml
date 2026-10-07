@@ -11,6 +11,7 @@ runs:
           'project_sources/agent_runtime/tests/agent_runtime_path_safety_selftest.py'
           'project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py'
           'project_sources/gemini/tools/gemini_bundle_path_safety_integration_selftest.py'
+          'project_sources/gemini/tools/lib/gemini_production_like_harness_construct_selftest.py'
           'project_sources/gemini/tools/reassemble_dcoir_gemini_prime_agent_selftest.py'
           'project_sources/gemini/tools/lib/gemini_bundle_zip_contract_selftest.py'
           'project_sources/gemini/tools/lib/gemini_bundle_validation_selftest.py'

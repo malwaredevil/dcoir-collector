@@ -8,6 +8,7 @@ Reusable DCOIR GitHub Actions composite action for the self-tests that guard man
   - `project_sources/agent_runtime/tests/agent_runtime_path_safety_selftest.py` (shared containment owner)
   - `project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py` (Gemini manifest preflight and bundle identity)
   - `project_sources/gemini/tools/gemini_bundle_path_safety_integration_selftest.py` (compiler and validator)
+  - `project_sources/gemini/tools/lib/gemini_production_like_harness_construct_selftest.py` (compiler archive selection in the production-like harness)
   - `project_sources/gemini/tools/reassemble_dcoir_gemini_prime_agent_selftest.py` (prime-agent reassembly)
   - `project_sources/gemini/tools/lib/gemini_bundle_zip_contract_selftest.py` (which Gemini zip is inspected and delivered)
   - `project_sources/gemini/tools/lib/gemini_bundle_validation_selftest.py` (Prime chunk integrity and runtime governance-leak guard)
