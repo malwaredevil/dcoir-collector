@@ -36,10 +36,6 @@ def _clause_has_local_lane(clause: str) -> bool:
 _REFERENTIAL_LANES_PATTERN = (
     r"(?:(?:these|those|the)\s+(?:two\s+)?lanes?|both\s+lanes?|two\s+lanes?)"
 )
-def _lane_target_head_index(tokens: List[str]) -> int | None:
-    return lane_target_head_index(tokens)
-
-
 def _iter_lane_relation_segments(clause: str) -> Iterable[str]:
     for segment in re.split(r"\b(?:but|however|whereas|yet)\b", clause):
         normalized = normalize_text(segment).replace("`", "")
@@ -123,7 +119,7 @@ def _shared_context_trailing_lane_relation(
 
     target = normalize_text(relation.group("target"))
     tokens = re.findall(r"[a-z0-9-]+", target)
-    head_index = _lane_target_head_index(tokens)
+    head_index = lane_target_head_index(tokens)
     target_head_tokens = tokens[head_index:] if head_index is not None else []
 
     target_starts_endpoint = bool(

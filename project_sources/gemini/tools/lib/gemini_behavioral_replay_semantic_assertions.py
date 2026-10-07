@@ -201,23 +201,6 @@ def response_has_next_evidence_semantics(text: str) -> bool:
     return False
 
 
-def response_has_explicit_lane_separation_semantics(text: str) -> bool:
-    """Require explicit endpoint/local non-mixing, never mere coexistence."""
-    normalized = _normalized_surface(text)
-    for mix in _AFFIRMATIVE_MIX.finditer(normalized):
-        prefix = normalized[max(0, mix.start() - 48):mix.start()]
-        if re.search(r"\b(?:do not|don't|dont|must not|should not|never|avoid)\s+$", prefix):
-            continue
-        return False
-    has_endpoint = bool(
-        re.search(r"\b(?:elastic\s+)?endpoint\s+response\s+console\b", normalized)
-        or re.search(r"\b(?:elastic\s+)?response[- ]action\b", normalized)
-    )
-    has_local = bool(re.search(r"\b(?:local|workstation)\s+powershell\b", normalized))
-    if not (has_endpoint and has_local):
-        return False
-    return bool(_PROHIBITED_CROSS_LANE.search(normalized))
-
 @dataclass(frozen=True)
 class SemanticAnalysis:
     text: str

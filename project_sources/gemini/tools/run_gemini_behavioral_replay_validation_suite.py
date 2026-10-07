@@ -20,9 +20,12 @@ from lib.gemini_behavioral_replay_capture_controls import (
 from lib.gemini_behavioral_replay_marker_precision import run_contextual_marker_precision_selftests
 from lib.gemini_behavioral_replay_precision_controls import (
     run_marker_frame_rejection_selftest,
+    run_scorer_module_size_selftest,
+)
+from lib.gemini_behavioral_replay_lane_separation_regressions import run_lane_separation_scoring_selftest
+from lib.gemini_behavioral_replay_semantic_precision import (
     run_elastic_command_lane_separation_selftest,
     run_negated_rejection_polarity_selftest,
-    run_scorer_module_size_selftest,
 )
 from lib.gemini_behavioral_replay_live_regressions import run_live_regression_selftests
 from lib.gemini_behavioral_replay_fixture_schema_precision import run_fixture_schema_precision_selftest
@@ -226,15 +229,6 @@ def run_mode_mismatch(fixtures_root: Path) -> None:
         raise SystemExit("Deterministic response pack unexpectedly passed a live_gemini expected-mode check.")
 
 
-def run_lane_separation_scoring_selftests() -> None:
-    run(
-        [
-            sys.executable,
-            "project_sources/gemini/tools/validate_gemini_lane_separation_scoring.py",
-        ]
-    )
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--fixtures-root", type=Path, default=Path("project_sources/gemini/fixtures/behavioral_replay"))
@@ -258,7 +252,7 @@ def main() -> int:
     run_marker_frame_rejection_selftest()
     run_negated_rejection_polarity_selftest()
     run_elastic_command_lane_separation_selftest()
-    run_lane_separation_scoring_selftests()
+    run_lane_separation_scoring_selftest()
     run_contextual_marker_precision_selftests()
     run_live_regression_selftests()
     run_known_good(args.fixtures_root, args.output_dir)
