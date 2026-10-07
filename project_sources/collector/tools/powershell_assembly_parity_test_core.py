@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import unittest.mock
 
 from powershell_assembly_parity_test_support import PowerShellAssemblyParityTestCase, parity
 
@@ -20,6 +21,28 @@ class PowerShellAssemblyParityCoreTests(PowerShellAssemblyParityTestCase):
         self.assertEqual(report["summary"]["parse_status"], "pass")
         self.assertEqual(report["summary"]["parity_status"], "pass")
         self.assertTrue(all(output["line_mapping"] for output in report["generated_outputs"]))
+
+    def test_facade_patch_does_not_mutate_builder_module(self) -> None:
+        original_part_entry = parity._builders.part_entry
+        calls: list[Path] = []
+
+        def observed_part_entry(path: Path, repo_root: Path) -> dict[str, object]:
+            calls.append(path)
+            return original_part_entry(path, repo_root)
+
+        with self.make_repo() as temp:
+            with unittest.mock.patch.object(
+                parity, "part_entry", side_effect=observed_part_entry
+            ):
+                report, errors, _warnings = parity.build_report(
+                    self.args(Path(temp))
+                )
+                self.assertIs(parity._builders.part_entry, original_part_entry)
+
+        self.assertEqual(errors, [])
+        self.assertTrue(report["validation"]["success"])
+        self.assertTrue(calls)
+        self.assertIs(parity._builders.part_entry, original_part_entry)
 
     def test_stale_checked_in_generated_output_fails(self) -> None:
         with self.make_repo(checked_in_harness_text='Write-Output "stale"\n') as temp:

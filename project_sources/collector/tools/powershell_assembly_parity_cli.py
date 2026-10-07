@@ -13,7 +13,12 @@ from powershell_assembly_parity_controls import (
 )
 from powershell_assembly_parity_reporting import write_outputs
 
-def build_report(args: argparse.Namespace) -> tuple[dict[str, Any], list[str], list[str]]:
+def build_report(
+    args: argparse.Namespace,
+    *,
+    build_collector_output_fn=build_collector_output,
+    build_harness_output_fn=build_harness_output,
+) -> tuple[dict[str, Any], list[str], list[str]]:
     repo_root = Path(args.repo_root).resolve()
     errors: list[str] = []
     warnings: list[str] = []
@@ -48,10 +53,10 @@ def build_report(args: argparse.Namespace) -> tuple[dict[str, Any], list[str], l
     harness_sources: list[dict[str, Any]] = []
     generated_outputs: list[dict[str, Any]] = []
     if manifest:
-        collector_text, collector_sources, collector_output = build_collector_output(repo_root, manifest, errors)
+        collector_text, collector_sources, collector_output = build_collector_output_fn(repo_root, manifest, errors)
         if collector_output:
             generated_outputs.append(collector_output)
-    harness_text, harness_sources, harness_output = build_harness_output(repo_root, errors)
+    harness_text, harness_sources, harness_output = build_harness_output_fn(repo_root, errors)
     generated_outputs.append(harness_output)
 
     for output in generated_outputs:
@@ -149,9 +154,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
+def main(*, build_report_fn=build_report) -> int:
     args = parse_args()
-    report, errors, _warnings = build_report(args)
+    report, errors, _warnings = build_report_fn(args)
     print(json.dumps(report["summary"], indent=2))
     if errors:
         for error in errors:

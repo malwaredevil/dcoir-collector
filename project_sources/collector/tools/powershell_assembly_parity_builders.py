@@ -9,6 +9,10 @@ def build_collector_output(
     repo_root: Path,
     manifest: dict[str, Any],
     errors: list[str],
+    *,
+    part_entry_fn=part_entry,
+    read_part_text_fn=read_part_text,
+    parse_powershell_text_fn=parse_powershell_text,
 ) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     manifest_path_error_count = sum(
         "must be a repo-relative path without traversal" in error
@@ -30,7 +34,7 @@ def build_collector_output(
 
     source_entries: list[dict[str, Any]] = []
     wrapper_path = repo_root / wrapper_rel
-    wrapper_entry = part_entry(wrapper_path, repo_root)
+    wrapper_entry = part_entry_fn(wrapper_path, repo_root)
     wrapper_entry["role"] = "collector_runtime_wrapper"
     source_entries.append(wrapper_entry)
     if not wrapper_entry["exists"]:
@@ -45,7 +49,7 @@ def build_collector_output(
     generated_line = 2
     for part_rel in part_rels:
         part_path = repo_root / part_rel
-        entry = part_entry(part_path, repo_root)
+        entry = part_entry_fn(part_path, repo_root)
         entry["role"] = "collector_runtime_source_part"
         source_entries.append(entry)
         if not entry["exists"]:
@@ -54,7 +58,7 @@ def build_collector_output(
         if entry["empty"]:
             errors.append(f"{part_rel}: collector source part is empty")
             continue
-        text = read_part_text(part_path)
+        text = read_part_text_fn(part_path)
         part_lines = source_line_count(text)
         blocks.append(f"# BEGIN {part_path.name}")
         blocks.append(text.rstrip("\n"))
@@ -86,7 +90,7 @@ def build_collector_output(
         "line_mapping": line_map,
         "sha256": sha256_text(generated_text),
         "line_count": source_line_count(generated_text),
-        "parse": parse_powershell_text(generated_text),
+        "parse": parse_powershell_text_fn(generated_text),
         "parity": {
             "status": "pass",
             "comparison": "deterministic_in_memory_regeneration",
@@ -115,7 +119,14 @@ def harness_part_paths(repo_root: Path, errors: list[str] | None = None) -> list
         paths.append(path)
     return paths
 
-def build_harness_output(repo_root: Path, errors: list[str]) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
+def build_harness_output(
+    repo_root: Path,
+    errors: list[str],
+    *,
+    part_entry_fn=part_entry,
+    read_part_text_fn=read_part_text,
+    parse_powershell_text_fn=parse_powershell_text,
+) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
     parts = harness_part_paths(repo_root, errors)
     source_entries: list[dict[str, Any]] = []
     if not parts:
@@ -126,13 +137,13 @@ def build_harness_output(repo_root: Path, errors: list[str]) -> tuple[str, list[
     generated_line = 1
     for part_path in parts:
         part_rel = safe_relpath(part_path, repo_root)
-        entry = part_entry(part_path, repo_root)
+        entry = part_entry_fn(part_path, repo_root)
         entry["role"] = "collector_harness_source_part"
         source_entries.append(entry)
         if entry["empty"]:
             errors.append(f"{part_rel}: harness source part is empty")
             continue
-        text = read_part_text(part_path)
+        text = read_part_text_fn(part_path)
         assembled.append(text)
         part_lines = source_line_count(text)
         line_map.append(
@@ -192,7 +203,7 @@ def build_harness_output(repo_root: Path, errors: list[str]) -> tuple[str, list[
         "line_mapping": line_map,
         "sha256": sha256_text(generated_text),
         "line_count": source_line_count(generated_text),
-        "parse": parse_powershell_text(generated_text),
+        "parse": parse_powershell_text_fn(generated_text),
         "parity": parity,
     }
     return generated_text, source_entries, output
