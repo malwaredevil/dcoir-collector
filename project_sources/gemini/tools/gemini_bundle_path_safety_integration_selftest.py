@@ -7,7 +7,7 @@ import sys
 import tempfile
 import unittest
 import zipfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 TOOLS = Path(__file__).resolve().parent
 COMPILE = TOOLS / 'compile_dcoir_gemini_bundle.py'
@@ -81,7 +81,11 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
                 members = zf.namelist()
             self.assertTrue(members)
             self.assertTrue(
-                all('..' not in Path(member).parts for member in members),
+                all(
+                    '..' not in PurePosixPath(member).parts
+                    and '..' not in PureWindowsPath(member).parts
+                    for member in members
+                ),
                 members,
             )
             self.assertTrue(
@@ -146,6 +150,19 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             self.assertIn('Unsafe Gemini bundle manifest paths', proc.stderr)
             self.assertIn('required_files', proc.stderr)
             self.assertFalse((output_dir / 'DCOIR_Gemini_test.zip').exists())
+
+    def test_compiler_rejects_backslash_traversal_before_archive_write(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source_root, output_dir = self.make_fixture(
+                base,
+                generated_knowledge_attachment_dir='..\\..\\escaped',
+            )
+            proc = self.run_tool(COMPILE, source_root, output_dir)
+
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn('generated_knowledge_attachment_dir', proc.stderr)
+            self.assertEqual(list(base.rglob('*.zip')), [])
 
     def test_compiler_rejects_repo_root_traversal(self) -> None:
         with tempfile.TemporaryDirectory() as td:

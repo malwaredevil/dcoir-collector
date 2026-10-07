@@ -57,18 +57,36 @@ def _reject_unfollowable_symlinks(root: Path, relative: Path, label: str) -> Non
                 ) from exc
 
 
-def resolve_contained_path(root: Path, value: Any, label: str) -> Path:
-    """Resolve a manifest path under root without allowing traversal or escape."""
+def _validate_cross_platform_relative_path(value: Any, label: str) -> Path:
+    """Reject path syntax that is unsafe under either POSIX or Windows semantics."""
     if not isinstance(value, str) or not value:
         raise GeminiBundlePathError(
             f'{label} must be a non-empty root-relative path'
         )
+    if '\x00' in value or any(ord(ch) < 32 for ch in value):
+        raise GeminiBundlePathError(
+            f'{label} must not contain control characters'
+        )
 
-    relative = Path(value)
-    if relative.is_absolute() or '..' in relative.parts:
+    posix = PurePosixPath(value)
+    windows = PureWindowsPath(value)
+    if (
+        posix.is_absolute()
+        or windows.is_absolute()
+        or bool(windows.drive)
+        or bool(windows.root)
+        or '..' in posix.parts
+        or '..' in windows.parts
+    ):
         raise GeminiBundlePathError(
             f'{label} must not be absolute or contain traversal: {value}'
         )
+    return Path(value)
+
+
+def resolve_contained_path(root: Path, value: Any, label: str) -> Path:
+    """Resolve a manifest path under root without allowing traversal or escape."""
+    relative = _validate_cross_platform_relative_path(value, label)
 
     try:
         resolved_root = root.resolve()

@@ -37,6 +37,12 @@ class GeminiBundlePathSafetyTests(unittest.TestCase):
                 7,
                 '../escape.txt',
                 'nested/../../escape.txt',
+                '..\\escape.txt',
+                'nested\\..\\..\\escape.txt',
+                '\\rooted.txt',
+                'C:\\temp\\escape.txt',
+                'C:escape.txt',
+                'bad\x00name',
                 str(Path(td).resolve() / 'absolute.txt'),
             ]
             for value in bad_values:
