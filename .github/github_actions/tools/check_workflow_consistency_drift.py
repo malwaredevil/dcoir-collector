@@ -120,6 +120,7 @@ AGENT_RUNTIME_REPORT_STEP = "Write ChatGPT workflow report section"
 SHARED_CONTRACT_FILES = [
     Path(REQUIRED_SURFACES_HELPER),
     Path(GEMINI_MANIFEST_HELPER),
+    Path(".github/github_actions/tools/test_check_gemini_manifest_surfaces.py"),
     Path(".github/github_actions/workflow_required_surface_profiles.json"),
     Path(".github/github_actions/workflow_required_surface_profile_supplements.json"),
     Path(".github/github_actions/workflow_required_surface_profile_supplements/event_text_query_bound_policy.json"),

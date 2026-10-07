@@ -32,6 +32,10 @@ def validate_topology(
     source_only_dirs = set(manifest.get('source_only_dirs', []))
 
     checks['topology_source'] = topology.get('topology_source_of_truth', 'missing')
+    if checks['topology_source'] != 'manifest':
+        errors.append('topology.topology_source_of_truth must be manifest')
+    if not sub_rel_list:
+        errors.append('topology.sub_agent_files must list at least one sub-agent')
     checks['manifest_prime_agent_file'] = prime_rel
     checks['manifest_sub_agent_files'] = sub_rel_list
     checks['manifest_sub_agent_count'] = len(sub_rel_list)

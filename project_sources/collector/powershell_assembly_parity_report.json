@@ -20,7 +20,7 @@
     "path": "project_sources/collector/powershell_surface_inventory.json",
     "accepted": true,
     "exists": true,
-    "sha256": "379571bca2fc7f43e061f7eb301f739af163c3fa5ca7cd416d8ec27efdb842d7",
+    "sha256": "e890c341c3bff777df03f10d888e6110e02a23e10fbcaa36c056a375d0a73a36",
     "schema_version": "dcoir_powershell_surface_inventory_v1",
     "control_counts": {
       "collector_manifest_path_count": 44,

@@ -13,6 +13,7 @@ TOOLS = Path(__file__).resolve().parent
 COMPILE = TOOLS / 'compile_dcoir_gemini_bundle.py'
 VALIDATE = TOOLS / 'validate_dcoir_gemini_bundle.py'
 MANIFEST = 'Gemini_Bundle_Source_Manifest.json'
+SUB_AGENT = '01_GEMINI_AGENT_BUILD/Sub_Agent_01_Test.md.txt'
 
 
 class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
@@ -32,10 +33,12 @@ class GeminiBundlePathSafetyIntegrationTests(unittest.TestCase):
             'source_only_dirs': [],
             'knowledge_attachment_sources': [],
             'generated_knowledge_attachment_dir': '02_PRIME_AGENT_ATTACHMENTS',
-            'topology': {},
+            'topology': {'topology_source_of_truth': 'manifest', 'sub_agent_files': [SUB_AGENT]},
         }
         manifest.update(updates)
         (source_root / MANIFEST).write_text(json.dumps(manifest), encoding='utf-8')
+        (source_root / SUB_AGENT).parent.mkdir(parents=True)
+        (source_root / SUB_AGENT).write_text('Agent name: Test\n', encoding='utf-8')
         return source_root, output_dir
 
     def run_tool(

@@ -19,6 +19,8 @@ def validate_required_files(
     source_required_files = list(manifest.get('source_required_files', []))
     missing_files = [rel for rel in required_files if not (source_root / rel).exists()]
     missing_source_required_files = [rel for rel in source_required_files if not (source_root / rel).exists()]
+    if not required_files:
+        errors.append('required_files must list at least one file')
     checks['required_files_present'] = len(missing_files) == 0
     checks['missing_required_files'] = missing_files
     checks['source_required_files'] = source_required_files

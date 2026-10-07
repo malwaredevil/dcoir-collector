@@ -6,6 +6,7 @@ Reusable DCOIR GitHub Actions composite action for issue #194 workflow modulariz
 
 - Callers keep triggers, permissions, secrets, artifact names, and report paths visible in the entry or reusable workflow.
 - This action owns repeated mechanical step logic only.
+- With `include-gemini-manifest: true` (the default), the action runs `.github/github_actions/tools/test_check_gemini_manifest_surfaces.py` and then `check_gemini_manifest_surfaces.py`. The helper is a CLI over the canonical Gemini bundle validator rules (path-safety preflight, required files, topology), so it rejects exactly what the bundle validator rejects, even when a caller skips full bundle validation.
 - Compensating evidence is provided by caller-visible step names, explicit inputs, stdout markers, generated files, uploaded artifacts, or the caller workflow report section.
 
 ## Maintenance

@@ -1182,14 +1182,14 @@
           "step_or_action": "Verify required governed surfaces",
           "shell": "pwsh",
           "line_start": 15,
-          "line_end": 31,
-          "command_sha256": "9a8146f1db91795afac4250c19fd2b02121cbc2c99eee2eac5cd82fc6f9ca4c9",
+          "line_end": 35,
+          "command_sha256": "ccb97c03c01c3ae326b718882dee50c0cd78abf8b88b733eb3beaf37db05f22a",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython .github/github_actions/tools/check_required_surfaces.py --profile $env:REQUIRED_SURFACES_PROFILE\nif ($LASTEXITCODE -ne 0) {\n  throw 'Required surface validation failed.'\n}\nif ($env:INCLUDE_GEMINI_MANIF"
         }
       ],
-      "size_bytes": 1360,
-      "line_count": 34,
-      "sha256": "81aaebe29b280b517707a94923e7da976c46e4a87109d33c85fa4306843717dc"
+      "size_bytes": 1559,
+      "line_count": 38,
+      "sha256": "57b4fb5fe5ee197b31c95d7dc0cff7425bb9a18f1739a21f2afb3871cb270db6"
     },
     {
       "path": ".github/chatgpt_staging/exec_scripts/airtable-total-count-corrected-20260521T100417Z.ps1",
