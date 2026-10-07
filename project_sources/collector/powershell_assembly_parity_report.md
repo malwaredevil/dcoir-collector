@@ -3,9 +3,9 @@
 - Schema: `dcoir_powershell_assembly_parity_report_v1`
 - Issue: `#265`
 - Success: `True`
-- Source parts: `60`
+- Source parts: `61`
 - Collector source parts: `43`
-- Harness source parts: `17`
+- Harness source parts: `18`
 - Generated outputs mapped: `2`
 - Parse status: `pass`
 - Parity status: `pass`
@@ -15,7 +15,7 @@
 | Output | Inputs | Parse | Parity | Line Mapping |
 | --- | ---: | --- | --- | --- |
 | `compiled_runtime/DCOIR_Collector.ps1` | `43` | `pass` | `pass` | `available` |
-| `project_sources/collector/harness/run_DCOIR_Tests.generated.ps1` | `17` | `pass` | `pass` | `available` |
+| `project_sources/collector/harness/run_DCOIR_Tests.generated.ps1` | `18` | `pass` | `pass` | `available` |
 
 ## Coverage Statement
 
@@ -31,7 +31,8 @@
 - `missing_source_part`: fails when the collector manifest references a missing source part (`test_missing_source_part_fails`)
 - `missing_source_output_mapping`: fails when collector part mapping is absent and generated output cannot be mapped (`test_missing_source_output_mapping_fails`)
 - `generated_output_parse_failure`: fails when regenerated runnable output has an unbalanced PowerShell structure (`test_generated_output_parse_failure_fails`)
-- `unexpected_inventory_shrink`: fails when source/generated counts shrink below baseline without an exception record (`test_baseline_shrink_without_exception_fails`)
+- `stale_inventory_source_part_count`: fails when live collector or harness source-part counts differ from inventory controls in either direction (`test_inventory_source_part_growth_fails and test_inventory_source_part_shrink_fails`)
+- `unexpected_baseline_shrink`: fails when source/generated counts shrink below baseline without an exception record (`test_baseline_shrink_without_exception_fails`)
 - `clean_control`: passes when source parts, generated outputs, parse status, parity status, and mappings are fresh (`test_clean_control_passes_and_maps_counts and test_real_repo_contract_passes`)
 
 ## Warnings
