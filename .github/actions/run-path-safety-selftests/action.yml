@@ -1,27 +1,27 @@
-name: Run Gemini bundle path-safety self-tests
-description: Run the Gemini bundle path-safety and prime-agent reassembly self-tests; this action owns the self-test list.
+name: Run path-safety self-tests
+description: Run the shared agent-runtime and Gemini bundle path-safety self-tests; this action owns the self-test list.
 runs:
   using: composite
   steps:
-    - name: Run Gemini bundle path-safety self-tests
+    - name: Run path-safety self-tests
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
         $selftests = @(
+          'project_sources/agent_runtime/tests/agent_runtime_path_safety_selftest.py'
           'project_sources/gemini/tools/lib/gemini_bundle_path_safety_selftest.py'
           'project_sources/gemini/tools/gemini_bundle_path_safety_integration_selftest.py'
           'project_sources/gemini/tools/reassemble_dcoir_gemini_prime_agent_selftest.py'
-          'project_sources/agent_runtime/tests/reassemble_dcoir_gemini_prime_agent_selftest.py'
         )
         $missing = @($selftests | Where-Object { -not (Test-Path -LiteralPath $_ -PathType Leaf) })
         if ($missing.Count -gt 0) {
-          throw "Missing Gemini bundle path-safety self-test(s): $($missing -join ', ')"
+          throw "Missing path-safety self-test(s): $($missing -join ', ')"
         }
         foreach ($selftest in $selftests) {
-          Write-Output "Running Gemini bundle path-safety self-test: $selftest"
+          Write-Output "Running path-safety self-test: $selftest"
           python $selftest
           if ($LASTEXITCODE -ne 0) {
-            throw "Gemini bundle path-safety self-test failed: $selftest"
+            throw "Path-safety self-test failed: $selftest"
           }
         }
 
