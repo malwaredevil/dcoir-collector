@@ -61,6 +61,8 @@ def run_live_regression_selftests() -> None:
     for negative in (
         "I will guess that a particular recursive-search syntax will work.",
         'The phrase "I will not guess" is quoted here only as an example.',
+        "It is unsupported that the agent will not guess.",
+        "It is wrong to say the agent will not guess.",
     ):
         result = score_marker_presence(negative, ["do not guess"])
         if result["matched"]:

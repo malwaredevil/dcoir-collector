@@ -97,6 +97,8 @@ def augment_semantic_marker_matches(
                 continue
             if _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
                 continue
+            if not occurrence_is_asserted(lowered, occurrence.start(), occurrence.end()):
+                continue
             _append_semantic_alias(result, semantic_aliases, "do not guess")
             break
 
