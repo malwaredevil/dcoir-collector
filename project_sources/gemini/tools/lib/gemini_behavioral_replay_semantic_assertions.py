@@ -6,10 +6,12 @@ from dataclasses import dataclass
 from .gemini_behavioral_replay_assertion_polarity import (
     CERTAINTY_TERM as _CERTAINTY_TERM,
     CLAIM_REJECTION_FRAME as _CLAIM_REJECTION_FRAME,
-    CONTRAST as _CONTRAST,
-    INDEPENDENT_PREDICATE_START as _INDEPENDENT_PREDICATE_START,
     normalized_surface as _normalized_surface,
     occurrence_is_assertive_polarity,
+)
+from .gemini_behavioral_replay_polarity_vocabulary import (
+    ASSERTION_CONTRAST as _CONTRAST,
+    INDEPENDENT_PREDICATE_START as _INDEPENDENT_PREDICATE_START,
 )
 
 from .gemini_behavioral_replay_lane_equivalence import has_affirmative_cross_lane_equivalence

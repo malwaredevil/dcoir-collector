@@ -13,6 +13,11 @@ from .gemini_behavioral_replay_rejection_patterns import (
 )
 from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
 from .gemini_behavioral_replay_quote_context import occurrence_is_backtick_wrapped, occurrence_is_quoted
+from .gemini_behavioral_replay_polarity_vocabulary import (
+    COORDINATED_AFFIRMATIVE_PREDICATE as _COORDINATED_AFFIRMATIVE_PREDICATE,
+    COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE as _COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE,
+    REJECTION_SCOPE_CONTRAST,
+)
 from .gemini_behavioral_replay_assertion_polarity import prefix_has_affirming_negated_truth_frame
 
 UNSUPPORTED_CERTAINTY_TERMS = [
@@ -104,25 +109,6 @@ def _iter_term_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
         yield from pattern.finditer(text)
 
 
-_COORDINATED_AFFIRMATIVE_PREDICATE = re.compile(
-    r"^(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:guarantees?|guaranteed|confirms|confirmed|claims|claimed|states|stated|asserts|asserted|"
-    r"concludes|concluded|proves|proved|establishes|established|shows|showed|indicates|indicated|"
-    r"means|meant|recommends|recommended|requires|required|needs|needed|believes|believed|"
-    r"will|would|can|could|must|should|is|are|was|were|has|have|does|do)\b"
-)
-
-_COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE = re.compile(
-    r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
-    r"the(?:\s+[a-z0-9_-]+){1,3}|(?!(?:a|an|the)\b)[a-z0-9_-]+)\s+"
-    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
-    r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?|"
-    r"mean(?:s|t)?|recommend(?:s|ed)?|require(?:s|d)?|need(?:s|ed)?|believe(?:s|d)?|"
-    r"will|would|can|could|must|should|is|are|was|were|has|have|does|do)\b"
-)
-
-
 def _rejection_frame_governs_marker(context: str, marker_tail: str) -> bool:
     frames = list(PRE_MARKER_REJECTION_FRAME_PATTERN.finditer(context))
     if not frames:
@@ -179,9 +165,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     context = re.sub(r"[*_`]+", "", context)
     if prefix_has_affirming_negated_truth_frame(context):
         return False
-    contrasts = list(
-        re.finditer(r"\b(?:but|however|yet|nevertheless|instead(?!\s+of\b))\b", context)
-    )
+    contrasts = list(REJECTION_SCOPE_CONTRAST.finditer(context))
     if contrasts:
         context = context[contrasts[-1].end():]
 

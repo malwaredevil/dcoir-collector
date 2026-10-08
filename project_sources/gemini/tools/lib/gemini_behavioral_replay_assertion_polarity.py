@@ -3,10 +3,13 @@ from __future__ import annotations
 
 import re
 
+from .gemini_behavioral_replay_polarity_vocabulary import (
+    ASSERTION_CONTRAST as CONTRAST,
+    COMMA_SUBJECT_PREDICATE_START as _COMMA_SUBJECT_PREDICATE_START,
+    INDEPENDENT_PREDICATE_START,
+)
 from .gemini_behavioral_replay_truth_frame_semantics import NEGATED_TRUTH_FRAME as _NEGATED_TRUTH_FRAME
 
-
-CONTRAST = re.compile(r"\b(?:but|however|yet|nevertheless|instead)\b", re.I)
 
 CLAIM_REJECTION_FRAME = re.compile(
     r"\b(?:do not|don't|dont|does not|doesn't|doesnt|cannot|can't|can not|could not|"
@@ -26,22 +29,6 @@ _NEGATIVE_INVERSION_FRAME = re.compile(
     re.I,
 )
 _COORDINATOR = re.compile(r"\b(?:and|or)\b", re.I)
-INDEPENDENT_PREDICATE_START = re.compile(
-    r"^(?:(?:the\s+evidence|this|that|it|they|we|i|these|those|[a-z0-9_-]+)\s+)?"
-    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:is|are|was|were|will|would|can|could|does|do|has|have|guarantees?|confirms?|proves?|"
-    r"shows?|indicates?|supports?|establishes?|ensures?|produces?|means?|claims?|concludes?|declares?)\b",
-    re.I,
-)
-_COMMA_SUBJECT_PREDICATE_START = re.compile(
-    r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
-    r"the(?:\s+[a-z0-9_-]+){1,5}|(?!(?:that|which|who|and|or|but|so)\b)[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+"
-    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:will|would|should|can|could|must|do|does|did|am|are|is|was|were|have|has|"
-    r"guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
-    r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?)\b",
-    re.I,
-)
 CERTAINTY_TERM = re.compile(r"\b(?:definitely|guarantee|guarantees|guaranteed)\b", re.I)
 _SENTENCE_BOUNDARY = re.compile(r"[.!?;\n]")
 
