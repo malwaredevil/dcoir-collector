@@ -18,6 +18,7 @@ from lib.gemini_behavioral_replay_capture_controls import (
     run_openai_webui_capture_selftests,
 )
 from lib.gemini_behavioral_replay_marker_precision import run_contextual_marker_precision_selftests
+from lib.gemini_behavioral_replay_polarity_precision import run_polarity_disagreement_selftest
 from lib.gemini_behavioral_replay_precision_controls import (
     run_governed_source_override_selftest,
     run_marker_frame_rejection_selftest,
@@ -256,6 +257,7 @@ def main() -> int:
     run_elastic_command_lane_separation_selftest()
     run_lane_separation_scoring_selftest()
     run_contextual_marker_precision_selftests()
+    run_polarity_disagreement_selftest()
     run_live_regression_selftests()
     run_known_good(args.fixtures_root, args.output_dir)
     run(
