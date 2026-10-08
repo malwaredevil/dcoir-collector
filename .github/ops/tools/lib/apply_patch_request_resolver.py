@@ -12,6 +12,7 @@ from collections.abc import Iterable
 from lib.apply_patch_request_contract import INVALID_REQUEST_IDS, SAFE_ID_RE
 
 REQUEST_ROOT = pathlib.Path(".github/ops/requests/apply_patch")
+REQUEST_ROOT_PARTS = tuple(REQUEST_ROOT.parts)
 
 
 def write_outputs(output_path: pathlib.Path, values: dict[str, str]) -> None:
@@ -40,13 +41,18 @@ def request_path_for_patch(path: str) -> str | None:
     pure = pathlib.PurePosixPath(path)
     if (
         len(pure.parts) == 6
-        and pure.parts[:4] == (".github", "ops", "requests", "apply_patch")
+        and pure.parts[:4] == REQUEST_ROOT_PARTS
         and pure.suffix in {".patch", ".diff"}
         and pure.parts[4] not in INVALID_REQUEST_IDS
         and SAFE_ID_RE.fullmatch(pure.parts[4])
     ):
         return pathlib.PurePosixPath(*pure.parts[:5], "request.json").as_posix()
     return None
+
+
+def path_under_request_id(path: str) -> bool:
+    pure = pathlib.PurePosixPath(path)
+    return len(pure.parts) >= 6 and pure.parts[:4] == REQUEST_ROOT_PARTS
 
 
 def git_stdout(args: list[str]) -> tuple[int, str]:
@@ -152,6 +158,7 @@ def directory_tree_sha256(root: pathlib.Path) -> str:
 def resolve_from_changed_records(records: Iterable[tuple[str, str]], caller_event_name: str) -> tuple[str | None, bool]:
     request_paths: dict[str, None] = {}
     removed_request_path_count = 0
+    unrecognized_request_paths: list[str] = []
     for status, changed_path in records:
         if not changed_path:
             continue
@@ -167,13 +174,26 @@ def resolve_from_changed_records(records: Iterable[tuple[str, str]], caller_even
                 removed_request_path_count += 1
             else:
                 request_paths[request_path] = None
+            continue
+        if path_under_request_id(changed_path):
+            if status.startswith("D"):
+                removed_request_path_count += 1
+            else:
+                unrecognized_request_paths.append(changed_path)
+
+    if unrecognized_request_paths:
+        print("Unrecognized apply-patch request-directory path(s) in triggering push:", file=sys.stderr)
+        for changed_path in sorted(unrecognized_request_paths):
+            print(changed_path, file=sys.stderr)
+        raise SystemExit(1)
 
     if not request_paths:
         if removed_request_path_count > 0:
             print("Only removed apply-patch request files were found; treating this as cleanup and skipping.")
             return None, True
         if caller_event_name == "push":
-            raise SystemExit("Apply-patch workflow was triggered by push, but no request path could be resolved from the push range.")
+            print("Push changed only apply-patch root-level non-request files; exiting successfully.")
+            return None, True
         print("No apply-patch request found in triggering event; exiting successfully.")
         return None, True
 

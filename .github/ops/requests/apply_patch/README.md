@@ -22,6 +22,14 @@ under one request directory. The entry workflow has two paths:
   usable push event for the writer; or
 - a manual `workflow_dispatch` with `request_path` set to the request JSON.
 
+Root-level non-request files directly under `.github/ops/requests/apply_patch/`
+(such as this README or a scaffold file) are trigger-safe metadata. If a push
+containing only those files reaches the workflow, the resolver records a clean
+no-op and exits successfully. Inside a `<request_id>/` directory, added or
+modified paths remain strict: only `request.json` and a `.patch` or `.diff`
+input are recognized, and any other path fails closed. Cleanup-only deletions
+remain a successful no-op.
+
 There is no automatic scheduled scanner. If a connector-created commit does not
 produce a visible `64 Ops - Apply Patch Request` run, an `ops-apply-patch-*`
 artifact, or a target-branch commit within the normal Actions startup window,
