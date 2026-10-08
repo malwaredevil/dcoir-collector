@@ -101,9 +101,11 @@ _FOCUS_NEGATION = re.compile(
     r"(?:do|does|did|is|are|was|were|will|would|can|could|has|have|had|should|must)\b",
     re.I,
 )
-_CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")
+_CLAUSE_SEPARATOR = re.compile(r":\s|\s[-\u2013\u2014]\s|\u2014")
+# A comma followed by a verb is not necessarily a new instruction: "read, retrieve"
+# remains inside the original rejected complement. Require an explicit restart.
 _COMMA_IMPERATIVE_RESTART = re.compile(
-    r",\s*(?:please\s+)?(?:determine|provide|send|run|execute|read|retrieve|upload|"
+    r",\s*(?:please|then)\s+(?:determine|provide|send|run|execute|read|retrieve|upload|"
     r"review|collect|use|check|verify|focus)\b",
     re.I,
 )
@@ -141,15 +143,37 @@ def _sentence_slice(text: str, start: int, end: int) -> tuple[str, int, int]:
     return text[left:right], left, right
 
 
+_INDEPENDENT_IMPERATIVE = re.compile(
+    r"^(?:please|then)\s+(?:determine|provide|send|run|execute|read|retrieve|"
+    r"upload|review|collect|use|check|verify|focus)\b", re.I
+)
+
+
+def _is_independent_clause(text: str) -> bool:
+    clause = text.strip()
+    return bool(INDEPENDENT_PREDICATE_START.match(clause)
+                or _COMMA_SUBJECT_PREDICATE_START.match(clause)
+                or _INDEPENDENT_IMPERATIVE.match(clause))
+
+
 def _coordination_starts_independent_assertion(scope: str, target_tail: str) -> bool:
-    coordinators = list(_COORDINATOR.finditer(scope))
-    if not coordinators:
-        return False
-    tail = scope[coordinators[-1].end():] + target_tail
-    stripped = tail.strip()
-    return bool(
-        INDEPENDENT_PREDICATE_START.match(stripped)
-        or _COMMA_SUBJECT_PREDICATE_START.match(stripped)
+    # Coordinated subjects/verbs inside a rejected complement are not new claims.
+    return any(
+        _is_independent_clause(scope[match.end():] + target_tail)
+        and (
+            _is_independent_clause(scope[:match.start()])
+            or re.match(r"^\s*(?:definitely|clearly|certainly|explicitly|actually)\s+",
+                        scope[match.end():] + target_tail, re.I)
+        )
+        for match in _COORDINATOR.finditer(scope)
+    )
+
+
+def _independent_clause_after_separator(scope: str, target_tail: str) -> bool:
+    return any(
+        scope[:match.start()].strip()
+        and _is_independent_clause(scope[match.end():] + target_tail)
+        for match in _CLAUSE_SEPARATOR.finditer(scope)
     )
 
 
@@ -161,7 +185,7 @@ def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[
     if _COMMA_IMPERATIVE_RESTART.search(prefix[frame.start():frame.end()]):
         return False
     scope = prefix[frame.end():]
-    if _CLAUSE_SEPARATOR.search(scope):
+    if _independent_clause_after_separator(scope, target_tail):
         return False
     if CONTRAST.search(scope):
         return False
@@ -227,8 +251,17 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
         return _direct_negation_applies(prefix[focus.end():], target_tail)
     separators = list(_CLAUSE_SEPARATOR.finditer(prefix, negation.start()))
     if separators and not _REJECTION_LABEL.search(prefix[:separators[-1].start()]):
-        # A colon or dash opens a new clause; only a negator inside it applies.
-        return _direct_negation_applies(prefix[separators[-1].end():], target_tail)
+        # Do not reset at labels, timestamps, URLs, or colon-separated complements.
+        for boundary in reversed(separators):
+            preceding = prefix[negation.start():boundary.start()]
+            following = prefix[boundary.end():]
+            if (
+                preceding.strip()
+                and not CLAIM_REJECTION_FRAME.fullmatch(preceding.strip())
+                and not _NEGATED_PREDICATE_FRAME.fullmatch(preceding.strip())
+                and _is_independent_clause(following + target_tail)
+            ):
+                return _direct_negation_applies(following, target_tail)
     comma_restarts = list(_COMMA_IMPERATIVE_RESTART.finditer(prefix, negation.end()))
     if comma_restarts:
         # A new imperative after a comma is independent of the prior negated

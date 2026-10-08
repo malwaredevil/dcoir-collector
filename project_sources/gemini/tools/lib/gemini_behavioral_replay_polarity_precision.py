@@ -30,6 +30,66 @@ POLARITY_CASES = (
         "Because I cannot assume more chunks remain, please determine the current state and provide the smallest recovery artifact.",
         "smallest recovery artifact",
     ),
+    (
+        "rejection_label_colon",
+        "Do not claim: high confidence malicious.",
+        "high confidence malicious",
+    ),
+    (
+        "rejection_with_timestamp",
+        "Do not claim that the 03:14 logon is high confidence malicious.",
+        "high confidence malicious",
+    ),
+    (
+        "rejection_with_url_port",
+        "Do not claim that http://intranet-host:445 is high confidence malicious.",
+        "high confidence malicious",
+    ),
+    (
+        "rejection_joined_subjects",
+        "Never claim: the endpoint console and local PowerShell are interchangeable.",
+        "interchangeable",
+    ),
+    (
+        "rejection_coordinated_verbs",
+        "Do not claim the agent can read, retrieve, or upload the evidence bundle.",
+        "upload the evidence bundle",
+    ),
+    (
+        "positive_independent_colon_caution",
+        "Absence does not indicate tampering: missing logs do not prove log clearing.",
+        "missing logs do not prove log clearing",
+    ),
+    (
+        "positive_assertion_after_contrast",
+        "Do not claim this is malicious, but the endpoint console and local PowerShell are interchangeable.",
+        "interchangeable",
+    ),
+    (
+        "positive_malicious_certainty",
+        "This is high confidence malicious.",
+        "high confidence malicious",
+    ),
+    (
+        "rejection_colon_with_finite_predicate",
+        "Do not claim: this is high confidence malicious.",
+        "high confidence malicious",
+    ),
+    (
+        "rejection_dash_label",
+        "Never state - high confidence malicious.",
+        "high confidence malicious",
+    ),
+    (
+        "rejection_then_coordinated_verb",
+        "Never claim the agent can read, then upload the evidence bundle.",
+        "upload the evidence bundle",
+    ),
+    (
+        "positive_separate_colon_assertion",
+        "The alert is incomplete: the endpoint console and local PowerShell are interchangeable.",
+        "interchangeable",
+    ),
 )
 
 def evaluate_polarity_cases() -> list[dict[str, object]]:
@@ -53,6 +113,22 @@ def evaluate_polarity_cases() -> list[dict[str, object]]:
 
 def run_polarity_consistency_selftest() -> None:
     results = evaluate_polarity_cases()
+    rejected = {
+        "negated_required_action",
+        "without_required_action",
+        "bounded_malicious_certainty",
+        "rejection_label_colon",
+        "rejection_with_timestamp",
+        "rejection_with_url_port",
+        "rejection_joined_subjects",
+        "rejection_coordinated_verbs",
+        "rejection_colon_with_finite_predicate",
+        "rejection_dash_label",
+        "rejection_then_coordinated_verb",
+    }
+    for result in results:
+        if bool(result["asserted"]) == (str(result["case_id"]) in rejected):
+            raise SystemExit(f"Unexpected assertion polarity for control: {result}")
     for result in results:
         required_match = bool(result["required_match"])
         forbidden_hit = bool(result["forbidden_hit"])
