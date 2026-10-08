@@ -37,6 +37,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Validate apply-patch resolver
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .github/ops/tools/apply_patch_request_resolver_selftest.py
+
       - name: Resolve apply-patch request
         id: request
         shell: bash
