@@ -31,6 +31,16 @@ def _append_once(values: List[str], marker: str) -> None:
         values.append(marker)
 
 
+def _append_semantic_alias(
+    values: List[str],
+    aliases: set[str] | None,
+    marker: str,
+) -> None:
+    _append_once(values, marker)
+    if aliases is not None:
+        aliases.add(marker)
+
+
 def _marker_frames_rejection(lowered: str, marker: str) -> bool:
     """Marker names the governing frame of a rejection ("under the X, I reject that Y")."""
     for occurrence in _iter_term_occurrences(lowered, marker):
@@ -66,6 +76,7 @@ def augment_semantic_marker_matches(
     response_text: str,
     markers: List[str],
     matched: List[str],
+    semantic_aliases: set[str] | None = None,
 ) -> List[str]:
     lowered = normalize_text(response_text)
     result = list(matched)
@@ -85,7 +96,7 @@ def augment_semantic_marker_matches(
                 continue
             if _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
                 continue
-            _append_once(result, "do not guess")
+            _append_semantic_alias(result, semantic_aliases, "do not guess")
             break
 
     if "governed source" in markers:
@@ -117,7 +128,7 @@ def augment_semantic_marker_matches(
         if _find_contextual_term_hits(
             lowered, ["interpretation"], skip_negated=True, skip_quoted=True
         ):
-            _append_once(result, "interpret")
+            _append_semantic_alias(result, semantic_aliases, "interpret")
 
     unresolved_marker = "unresolved due to evidence gaps"
     if unresolved_marker in markers and unresolved_marker not in result:

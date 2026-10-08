@@ -72,7 +72,22 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
             allow_markdown_code=True,
         )
     ]
-    matched = augment_semantic_marker_matches(response_text, markers, matched)
+    semantic_aliases: set[str] = set()
+    augmented = augment_semantic_marker_matches(
+        response_text, markers, matched, semantic_aliases
+    )
+    matched = [
+        marker for marker in augmented
+        if marker in matched
+        or marker in semantic_aliases
+        or not any(_iter_term_occurrences(lowered, marker))
+        or marker_has_asserted_occurrence(
+            response_text,
+            marker,
+            allow_quoted_single_tokens=True,
+            allow_markdown_code=True,
+        )
+    ]
     invalidated = []
     for marker in markers:
         if marker in matched:

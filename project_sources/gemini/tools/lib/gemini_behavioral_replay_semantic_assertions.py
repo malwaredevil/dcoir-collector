@@ -14,7 +14,10 @@ from .gemini_behavioral_replay_polarity_vocabulary import (
     INDEPENDENT_PREDICATE_START as _INDEPENDENT_PREDICATE_START,
 )
 
-from .gemini_behavioral_replay_lane_equivalence import has_affirmative_cross_lane_equivalence
+from .gemini_behavioral_replay_lane_equivalence import (
+    has_affirmative_cross_lane_equivalence,
+    has_rejected_cross_lane_equivalence,
+)
 from .gemini_behavioral_replay_lane_vocabulary import ENDPOINT_CONTEXT_REF, LOCAL_CONTEXT_REF
 
 
@@ -261,6 +264,8 @@ class SemanticAnalysis:
             normalized,
         ))
         if endpoint_only and local_only:
+            return True
+        if has_rejected_cross_lane_equivalence(normalized):
             return True
         return None
 

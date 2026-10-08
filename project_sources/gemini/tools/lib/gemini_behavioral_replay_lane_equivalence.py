@@ -6,6 +6,7 @@ from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 from .gemini_behavioral_replay_reciprocal_semantics import RECIPROCAL, reciprocal_is_assertive
 from .gemini_behavioral_replay_lane_equivalence_extended import EXTENDED_PATTERNS
 from .gemini_behavioral_replay_lane_relation_composition import has_composed_lane_equivalence
+from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
 from .gemini_behavioral_replay_lane_vocabulary import (
     EXECUTE,
     ENDPOINT_REF,
@@ -50,6 +51,11 @@ _RELATION_MARKER = re.compile(
     rf"|(?:gives?|produces?|yields?|returns?)\s+(?:the\s+same|an?\s+equivalent|an?\s+identical)\s+(?:result|outcome|effect|behavior|semantics?)"
     rf"|(?:substituted|interchanged|swapped|replaced)"
     rf")\b",
+    re.I,
+)
+_REJECTED_RELATION_PREFIX = re.compile(
+    r"\b(?:(?:it\s+is|it\s+would\s+be)\s+)?"
+    r"(?:wrong|incorrect|false|misleading)\s+to\s+(?:say|claim)(?:\s+that)?\s+(?:either\s+)?(?:the\s+)?$",
     re.I,
 )
 
@@ -202,6 +208,17 @@ def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
 def has_affirmative_cross_lane_equivalence(text: str) -> bool:
     return has_composed_lane_equivalence(text) or any(
         _relation_is_assertive(text, match)
+        for pattern in _PATTERNS
+        for match in pattern.finditer(text)
+    )
+
+
+def has_rejected_cross_lane_equivalence(text: str) -> bool:
+    return any(
+        not _relation_is_assertive(text, match)
+        and not occurrence_is_quoted(text, match.start(), match.end())
+        and not re.search(r"\b(?:not|never|no|cannot|can't|without)\b", match.group(0), re.I)
+        and _REJECTED_RELATION_PREFIX.search(text[max(0, match.start() - 100):match.start()])
         for pattern in _PATTERNS
         for match in pattern.finditer(text)
     )

@@ -31,12 +31,17 @@ _NEGATIVE_INVERSION_FRAME = re.compile(
 _COORDINATOR = re.compile(r"\b(?:and|or)\b", re.I)
 CERTAINTY_TERM = re.compile(r"\b(?:definitely|guarantee|guarantees|guaranteed)\b", re.I)
 _SENTENCE_BOUNDARY = re.compile(r"[.!?;\n]")
+_COMMA_SEPARATOR = re.compile(",")
 
 _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not|will not|would not)\s+claim\s+that\b", re.I),
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+(?:state|assert|conclude|declare|confirm|classify|label)\s+that\b", re.I),
     re.compile(r"\b(?:there\s+is\s+)?insufficient\s+evidence\s+to\s+(?:declare|conclude|confirm|classify|label|call)\b", re.I),
-    re.compile(r"\b(?:it\s+is\s+)?(?:incorrect|wrong|false)\s+to\s+(?:claim|conclude|state|assert|say|declare|confirm|classify|label)\s+that\b", re.I),
+    re.compile(
+        r"\b(?:it\s+is\s+)?(?:incorrect|wrong|false)\s+to\s+"
+        r"(?:(?:claim|conclude|state|assert|declare|confirm|classify|label)\s+that|say(?:\s+that)?)\b",
+        re.I,
+    ),
     re.compile(r"\b(?:(?:it\s+is|it's)\s+)?(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b", re.I),
     re.compile(r"\bno\s+evidence\s+supports?\b", re.I),
     re.compile(r"\b(?:before|without)\s+(?:drawing|reaching|making)\s+(?:any\s+)?conclusions?\s+about\b[^,]{0,80}$", re.I),
@@ -102,8 +107,7 @@ _FOCUS_NEGATION = re.compile(
     re.I,
 )
 _CLAUSE_SEPARATOR = re.compile(r":\s|\s[-\u2013\u2014]\s|\u2014")
-# A comma followed by a verb is not necessarily a new instruction: "read, retrieve"
-# remains inside the original rejected complement. Require an explicit restart.
+# "Read, retrieve" remains inside the original rejected complement.
 _COMMA_IMPERATIVE_RESTART = re.compile(
     r",\s*(?:please|then)\s+(?:determine|provide|send|run|execute|read|retrieve|upload|"
     r"review|collect|use|check|verify|focus)\b",
@@ -114,8 +118,7 @@ _REJECTION_LABEL = re.compile(
     r"\b(?:not\s+(?:proven|established|confirmed|verified|supported)|unproven|unsupported|unverified)\s*$",
     re.I,
 )
-# A subordinator or a new finite verb between a negator and the marker starts a
-# new clause, so the earlier negator no longer governs the marker.
+# Finite clauses end negation scope.
 _NEGATION_SCOPE_BREAK = re.compile(
     r"\b(?:so|because|since|therefore|thus|hence|although|though|whereas|"
     r"is|are|was|were|exists?|remains?)\b",
@@ -157,7 +160,6 @@ def _is_independent_clause(text: str) -> bool:
 
 
 def _coordination_starts_independent_assertion(scope: str, target_tail: str) -> bool:
-    # Coordinated subjects/verbs inside a rejected complement are not new claims.
     return any(
         _is_independent_clause(scope[match.end():] + target_tail)
         and (
@@ -166,14 +168,25 @@ def _coordination_starts_independent_assertion(scope: str, target_tail: str) -> 
                         scope[match.end():] + target_tail, re.I)
         )
         for match in _COORDINATOR.finditer(scope)
+        if match.group() != "or" or "either" not in scope[:match.start()]
     )
 
 
-def _independent_clause_after_separator(scope: str, target_tail: str) -> bool:
+def _independent_clause_after_separator(
+    scope: str,
+    target_tail: str,
+    separator: re.Pattern[str] = _CLAUSE_SEPARATOR,
+) -> bool:
     return any(
         scope[:match.start()].strip()
-        and _is_independent_clause(scope[match.end():] + target_tail)
-        for match in _CLAUSE_SEPARATOR.finditer(scope)
+        and (
+            _COMMA_SUBJECT_PREDICATE_START.match(
+                (scope[match.end():] + target_tail).lstrip()
+            )
+            if separator is _COMMA_SEPARATOR
+            else _is_independent_clause(scope[match.end():] + target_tail)
+        )
+        for match in separator.finditer(scope)
     )
 
 
@@ -186,6 +199,8 @@ def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[
         return False
     scope = prefix[frame.end():]
     if _independent_clause_after_separator(scope, target_tail):
+        return False
+    if _independent_clause_after_separator(scope, target_tail, _COMMA_SEPARATOR):
         return False
     if CONTRAST.search(scope):
         return False

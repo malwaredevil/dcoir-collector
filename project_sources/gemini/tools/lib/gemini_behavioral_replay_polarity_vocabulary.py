@@ -17,15 +17,15 @@ REJECTION_SCOPE_CONTRAST = re.compile(
 INDEPENDENT_PREDICATE_START = re.compile(
     r"^(?:(?:the\s+evidence|this|that|it|they|we|i|these|those|[a-z0-9_-]+)\s+)?"
     r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:is|are|was|were|will|would|can|could|does|do|has|have|guarantees?|confirms?|proves?|"
+    r"(?:is|are|was|were|remains?|will|would|can|could|does|do|has|have|guarantees?|confirms?|proves?|"
     r"shows?|indicates?|supports?|establishes?|ensures?|produces?|means?|claims?|concludes?|declares?)\b",
     re.I,
 )
 COMMA_SUBJECT_PREDICATE_START = re.compile(
-    r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
-    r"the(?:\s+[a-z0-9_-]+){1,5}|(?!(?:that|which|who|and|or|but|so)\b)[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+"
+    r"^(?:(?:and|but|so)\s+)?(?:i|we|you|they|he|she|it|(?:this|that|these|those)(?:\s+[a-z0-9_-]+){0,4}|"
+    r"the(?:\s+[a-z0-9_-]+){1,8}|(?!(?:that|which|who|and|or|but|so)\b)[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+"
     r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:will|would|should|can|could|must|do|does|did|am|are|is|was|were|have|has|"
+    r"(?:will|would|should|can|could|must|do|does|did|am|are|is|was|were|remain(?:s)?|have|has|"
     r"guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
     r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?)\b",
     re.I,

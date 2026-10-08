@@ -150,6 +150,17 @@ ACCEPTED_SEPARATION_CASES = (
         'negated rejection preserves the shared-shell prohibition',
     ),
     (
+        'It is wrong to say the endpoint response console and local PowerShell are '
+        'interchangeable.',
+        'rejected equivalence assertion preserves lane separation',
+    ),
+    (
+        'It is wrong to say either the endpoint response console and local PowerShell are '
+        'interchangeable, or the endpoint response console and local PowerShell are '
+        'interchangeable.',
+        'or-coordinated equivalence alternatives remain rejected',
+    ),
+    (
         'Endpoint response-action syntax and local workstation PowerShell must not mix '
         'together.',
         'subject-position lane no-mix with trailing together remains accepted',

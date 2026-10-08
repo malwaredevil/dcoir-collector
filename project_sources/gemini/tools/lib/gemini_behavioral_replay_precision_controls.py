@@ -37,11 +37,11 @@ GOVERNED_SOURCE_REJECTED = (
     "Do not validate against the governed source.",
     "Verification against the governed source, which is not needed.",
     "Verify against the governed source, which is not needed.",
+    "I cannot verify against the governed source, so the window semantics stay unconfirmed.",
+    "I did not perform validation against the governed source.",
 )
 GOVERNED_SOURCE_ACCEPTED = (
     "Verify against the governed source before claiming targeted mode.",
-    "I cannot verify against the governed source, so the window semantics stay unconfirmed.",
-    "I did not perform validation against the governed source.",
 )
 
 
@@ -79,3 +79,8 @@ def run_marker_frame_rejection_selftest() -> None:
     ):
         if score_marker_presence(response, [marker])["matched"] != [marker]:
             raise SystemExit(f"Rejection-frame marker was not recognized: {response}")
+    alias = score_marker_presence(
+        'It is wrong to say "do not guess." We will not guess.', ["do not guess"]
+    )
+    if alias["matched"] != ["do not guess"]:
+        raise SystemExit(f"Asserted semantic alias was suppressed: {alias}")

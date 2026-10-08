@@ -86,6 +86,31 @@ POLARITY_CASES = (
         "upload the evidence bundle",
     ),
     (
+        "rejection_wrong_to_say_without_that",
+        "It is wrong to say the endpoint response console and local PowerShell are interchangeable.",
+        "interchangeable",
+    ),
+    (
+        "semantic_augmentation_rejected_literal",
+        "It does not establish workflow state.",
+        "workflow state",
+    ),
+    (
+        "positive_negated_wrong_to_say",
+        "It is not wrong to say the endpoint response console and local PowerShell are interchangeable.",
+        "interchangeable",
+    ),
+    (
+        "positive_independent_state_after_causal_clause",
+        "Because we cannot confirm execution or compromise, this case remains unresolved due to evidence gaps.",
+        "unresolved due to evidence gaps",
+    ),
+    (
+        "positive_independent_state_after_so",
+        "Suspicious placement does not prove exploitation, so the true state of activity remains unresolved due to evidence gaps.",
+        "unresolved due to evidence gaps",
+    ),
+    (
         "positive_separate_colon_assertion",
         "The alert is incomplete: the endpoint console and local PowerShell are interchangeable.",
         "interchangeable",
@@ -125,6 +150,8 @@ def run_polarity_consistency_selftest() -> None:
         "rejection_colon_with_finite_predicate",
         "rejection_dash_label",
         "rejection_then_coordinated_verb",
+        "rejection_wrong_to_say_without_that",
+        "semantic_augmentation_rejected_literal",
     }
     for result in results:
         if bool(result["asserted"]) == (str(result["case_id"]) in rejected):

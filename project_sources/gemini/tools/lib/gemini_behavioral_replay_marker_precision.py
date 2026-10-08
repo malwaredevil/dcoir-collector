@@ -91,7 +91,6 @@ def run_contextual_marker_precision_selftests() -> None:
     ):
         if score_marker_presence(response, [marker])["matched"] != [marker]:
             raise SystemExit(f"Required marker was incorrectly suppressed: {marker}")
-
     live_rejections = (
         ("safe to clean up now", "We cannot conclude X, or that it is safe to clean up now."),
         ("high confidence malicious", "A high confidence malicious label is premature."),

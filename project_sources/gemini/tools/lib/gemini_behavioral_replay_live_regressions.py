@@ -70,8 +70,8 @@ def run_live_regression_selftests() -> None:
         "We do not claim deterministic filtering or artifact delivery without fresh validation against the governed source."
     )
     governed_result = score_marker_presence(governed_source, ["governed source"])
-    if governed_result["matched"] != ["governed source"]:
-        raise SystemExit(f"Governed-source validation wording was invalidated incorrectly: {governed_result}")
+    if governed_result["matched"]:
+        raise SystemExit(f"Rejected governed-source wording satisfied the marker: {governed_result}")
     rejected_governed = score_marker_presence("Avoid validation against the governed source.", ["governed source"])
     if rejected_governed["matched"]:
         raise SystemExit(f"Rejected governed-source validation satisfied the required marker: {rejected_governed}")
@@ -253,14 +253,14 @@ Orientation, metadata, and upload-summary files guide review; they do not themse
         "Do not claim exact filtering until the behavior is validated against the governed source.",
         ["governed source"],
     )
-    if governed_validated["matched"] != ["governed source"]:
-        raise SystemExit(f"Validated governed-source wording was invalidated: {governed_validated}")
+    if governed_validated["matched"]:
+        raise SystemExit(f"Rejected governed-source wording satisfied the marker: {governed_validated}")
     governed_collector_readback = score_marker_presence(
         "No fresh governed collector source readback has been performed in this turn.",
         ["governed source"],
     )
-    if governed_collector_readback["matched"] != ["governed source"]:
-        raise SystemExit(f"Governed collector-source readback wording was missed: {governed_collector_readback}")
+    if governed_collector_readback["matched"]:
+        raise SystemExit(f"Unverified governed-source wording satisfied the marker: {governed_collector_readback}")
     rejected_governed_collector = score_marker_presence(
         "Avoid validation against the governed collector source.", ["governed source"]
     )
@@ -647,7 +647,7 @@ Use direct PowerShell only for local workstation testing. Do not paste Elastic r
         "or definitely produce a particular artifacts folder. No fresh governed collector source readback was performed, so exact behavior remains unverified."
     )
     final_terra_operator_score = score_marker_presence(final_terra_operator, ["do not claim", "governed source"])
-    if set(final_terra_operator_score["matched"]) != {"do not claim", "governed source"}:
+    if final_terra_operator_score["matched"] != ["do not claim"]:
         raise SystemExit(f"Modal no-claim semantics were missed: {final_terra_operator_score}")
     hostile_modal_claim = score_marker_presence(
         "I would claim that targeted mode guarantees exact filtering across every artifact family.",
