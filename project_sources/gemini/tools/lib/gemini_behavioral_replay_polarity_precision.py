@@ -179,3 +179,18 @@ def run_polarity_consistency_selftest() -> None:
     for positive in positives:
         if not (positive["required_match"] and positive["asserted"]):
             raise SystemExit(f"Positive polarity control failed: {positive}")
+    rejected_interpretation = "The interpretation isn't required."
+    rejected_start = rejected_interpretation.lower().index("interpretation")
+    rejected_end = rejected_start + len("interpretation")
+    if occurrence_is_asserted(
+        rejected_interpretation.lower(), rejected_start, rejected_end
+    ):
+        raise SystemExit("Contracted required-status rejection remained asserted.")
+    rejected_alias = score_marker_presence(rejected_interpretation, ["interpret"])
+    if rejected_alias["matched"]:
+        raise SystemExit(f"Contracted rejection satisfied interpret alias: {rejected_alias}")
+    affirmed_alias = score_marker_presence(
+        "The interpretation is required.", ["interpret"]
+    )
+    if affirmed_alias["matched"] != ["interpret"]:
+        raise SystemExit(f"Affirmative interpretation alias was lost: {affirmed_alias}")

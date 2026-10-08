@@ -8,6 +8,9 @@ from .gemini_behavioral_replay_polarity_vocabulary import (
     COMMA_SUBJECT_PREDICATE_START as _COMMA_SUBJECT_PREDICATE_START,
     INDEPENDENT_PREDICATE_START,
 )
+from .gemini_behavioral_replay_rejection_patterns import (
+    SUFFIX_REJECTION_PATTERN as _SUFFIX_REJECTION,
+)
 from .gemini_behavioral_replay_truth_frame_semantics import NEGATED_TRUTH_FRAME as _NEGATED_TRUTH_FRAME
 
 
@@ -50,12 +53,6 @@ _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:do not|don't|dont|does not|doesn't|doesnt|cannot|can't|can not|should not|must not)\b[^.!?;\n]{0,180}\b(?:provide|establish|offer|create|supply)\b[^.!?;\n]{0,180}$", re.I),
 )
 
-_SUFFIX_REJECTION = re.compile(
-    r"^\s+(?:verdict|claim|classification|assessment|conclusion|finding|label|assertion)\b"
-    r"[^.!?;\n]{0,100}\b(?:exceeds?|outstrips?|goes\s+beyond|is\s+unsupported|is\s+unjustified|"
-    r"is\s+not\s+(?:supported|justified|established|proven))\b",
-    re.I,
-)
 _SUFFIX_ASSUMPTION_REJECTION = re.compile(
     r"^\s+(?:cannot|can't|can not|could not)\s+be\s+(?:assumed|confirmed|verified|established)\b",
     re.I,

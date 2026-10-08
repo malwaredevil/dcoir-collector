@@ -89,6 +89,17 @@ POST_MARKER_REJECTION_PATTERN = re.compile(
     r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:no|nope)\b[\s,;:-]*)?(?:(?:but|however|though|although|yet|nevertheless|even so)\s+)?(?:(?:that|this|it|which|they|i|we)\s+)?(?:(?:is|are|was|were)\s+(?:(?:also|still|clearly|simply|just|really|only|explicitly)\s+)?(?:an?\s+)?)?(?:(?:also|still|clearly|simply|just|really|only|explicitly)\s+)?(?:the\s+)?(?:wrong|incorrect|false|invalid|misleading|wrong framing|wrong frame|incorrect framing|incorrect frame|false framing|false frame|wrong conclusion|incorrect conclusion|false conclusion|rejected(?:\s+as\s+(?:stale|unsupported|invalid|incorrect))?|reject(?:ed)?\s+(?:that|this)\s+(?:classification|conclusion|claim|framing)|not enough|not necessary|not needed|not required|unnecessary|insufficient|not supported|unsupported|unfounded|overstated|in name only|nominal|label only|just a label|only a label|phrase i would not use|phrase we would not use|a phrase i would not use|a phrase we would not use|should be ignored|should be discarded|should not be used|should not be relied on|can be ignored|can be discarded|does not matter|doesn't matter|doesnt matter|prove it|infer .* anyway|require the full transcript|request the full transcript|ask for the full transcript)"
 )
 
+SUFFIX_REJECTION_PATTERN = re.compile(
+    r"^\s+(?:"
+    r"(?:verdict|claim|classification|assessment|conclusion|finding|label|assertion)\b"
+    r"[^.!?;\n]{0,100}\b(?:exceeds?|outstrips?|goes\s+beyond|is\s+unsupported|is\s+unjustified|"
+    r"is\s+not\s+(?:supported|justified|established|proven))\b"
+    r"|(?:is|are|was|were)\s+not\s+(?:required|needed)\b"
+    r"|(?:isn't|isnt|aren't|arent|wasn't|wasnt|weren't|werent)\s+(?:required|needed)\b"
+    r")",
+    re.I,
+)
+
 POST_ACTION_REJECTION_PATTERN = re.compile(
     r"^\s*[\"'`]?(?:[,;:.!?]\s*)?(?:(?:that|this|it|which|they)\s+)?(?:is|are|was|were)\s+(?:unavailable|prohibited)\b"
 )
