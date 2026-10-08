@@ -8,11 +8,11 @@ from .gemini_behavioral_replay_rejection_patterns import (
     GOVERNED_SOURCE_ACTION_SCOPE,
 )
 from .gemini_behavioral_replay_semantic_assertions import analyze_semantics, response_has_next_evidence_semantics
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
+from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
 from .gemini_behavioral_replay_text_scoring import (
     _find_contextual_term_hits,
     _iter_term_occurrences,
-    _occurrence_is_negated,
-    _occurrence_is_quoted,
     _occurrence_is_rejected_after,
     _occurrence_is_rejected_before,
     normalize_text,
@@ -34,7 +34,7 @@ def _append_once(values: List[str], marker: str) -> None:
 def _marker_frames_rejection(lowered: str, marker: str) -> bool:
     """Marker names the governing frame of a rejection ("under the X, I reject that Y")."""
     for occurrence in _iter_term_occurrences(lowered, marker):
-        if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+        if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
             continue
         prefix = lowered[max(0, occurrence.start() - 40):occurrence.start()]
         suffix = lowered[occurrence.end():occurrence.end() + 120]
@@ -79,7 +79,7 @@ def augment_semantic_marker_matches(
 
     if "do not guess" in markers and "do not guess" not in result:
         for occurrence in _iter_term_occurrences(lowered, "will not guess"):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
                 continue
             if _occurrence_is_rejected_before(lowered, occurrence.start()):
                 continue
@@ -91,7 +91,7 @@ def augment_semantic_marker_matches(
     if "governed source" in markers:
         result = [value for value in result if value != "governed source"]
         for occurrence in _iter_term_occurrences(lowered, "governed source"):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
                 continue
             prefix = lowered[max(0, occurrence.start() - 120):occurrence.start()]
             action = GOVERNED_SOURCE_ACTION_SCOPE.search(prefix)
@@ -101,7 +101,7 @@ def augment_semantic_marker_matches(
             ):
                 continue
             if not action and (
-                _occurrence_is_negated(lowered, occurrence.start())
+                occurrence_is_contextually_negated(lowered, occurrence.start())
                 or _occurrence_is_rejected_before(lowered, occurrence.start())
                 or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start())
             ):

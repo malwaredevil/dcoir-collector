@@ -171,17 +171,6 @@ _NEXT_ACTION_NEGATION = re.compile(
 )
 
 
-def occurrence_is_backtick_wrapped(text: str, start: int, end: int) -> bool:
-    if start > 0 and end < len(text) and text[start - 1] == "`" and text[end] == "`":
-        return True
-    positions = [index for index, char in enumerate(text) if char == "`"]
-    for offset in range(0, len(positions) - 1, 2):
-        opener, closer = positions[offset], positions[offset + 1]
-        if opener < start and end <= closer:
-            return True
-    return False
-
-
 
 def response_has_next_evidence_semantics(text: str) -> bool:
     """Recognize actionable next-evidence guidance without accepting empty headings."""

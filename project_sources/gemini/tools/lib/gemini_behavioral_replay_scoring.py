@@ -4,19 +4,17 @@ from typing import Any, Dict, List
 
 import re
 
-from .gemini_behavioral_replay_rejection_patterns import (
-    BOUNDED_UNVERIFIED_SCOPE, COORDINATED_NEGATION_SCOPE, POST_UNSUPPORTED_SCOPE,
-)
 from .gemini_behavioral_replay_marker_semantics import augment_semantic_marker_matches
+from .gemini_behavioral_replay_marker_context import marker_only_in_bounded_rejection, marker_only_in_not_proven_bullets
 from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
+from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
 from .gemini_behavioral_replay_text_scoring import (
     CONTRADICTION_PAIRS,
     INVENTED_TOOL_TERMS,
     UNSUPPORTED_CERTAINTY_TERMS,
     _find_contextual_term_hits,
     _iter_term_occurrences,
-    _occurrence_is_negated,
-    _occurrence_is_quoted,
     _occurrence_is_rejected_after,
     _occurrence_is_rejected_before,
     duplicate_final_sections,
@@ -39,8 +37,8 @@ def _supported_certainty_use(text: str, term: str) -> bool:
     normalized = normalize_text(text)
     occurrences = [
         occurrence for occurrence in _iter_term_occurrences(normalized, term)
-        if not _occurrence_is_quoted(normalized, occurrence.start(), occurrence.end())
-        and not _occurrence_is_negated(normalized, occurrence.start())
+        if not occurrence_is_quoted(normalized, occurrence.start(), occurrence.end())
+        and not occurrence_is_contextually_negated(normalized, occurrence.start())
     ]
     if not occurrences:
         return False
@@ -78,10 +76,10 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
             continue
         marker_invalidated = False
         for occurrence in _iter_term_occurrences(lowered, marker):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
                 continue
             if (
-                _occurrence_is_negated(lowered, occurrence.start())
+                occurrence_is_contextually_negated(lowered, occurrence.start())
                 or _occurrence_is_rejected_before(lowered, occurrence.start())
             ):
                 marker_invalidated = True
@@ -94,67 +92,6 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
     missing = [marker for marker in markers if marker not in matched]
     ratio = 1.0 if not markers else round(len(matched) / len(markers), 4)
     return {"matched": matched, "missing": missing, "invalidated": invalidated, "ratio": ratio}
-
-
-def _marker_only_in_not_proven_bullets(response_text: str, marker: str) -> bool:
-    target = normalize_text(marker)
-    in_section = False
-    seen = False
-    seen_active = False
-    for raw_line in str(response_text).splitlines():
-        line = normalize_text(raw_line)
-        if not line:
-            continue
-        if line.rstrip(":") == "what is not proven":
-            in_section = True
-            continue
-        if in_section and raw_line.lstrip().startswith(("-", "*")):
-            if target in line:
-                seen = True
-            continue
-        in_section = False
-        if target in line:
-            seen_active = True
-    return seen and not seen_active
-
-
-def _marker_only_in_bounded_rejection(response_text: str, marker: str) -> bool:
-    lowered = normalize_text(response_text)
-    seen = False
-    for occurrence in _iter_term_occurrences(lowered, marker):
-        if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
-            continue
-        clause_start = max(
-            lowered.rfind(".", 0, occurrence.start()),
-            lowered.rfind("!", 0, occurrence.start()),
-            lowered.rfind("?", 0, occurrence.start()),
-            lowered.rfind(";", 0, occurrence.start()),
-        )
-        prefix = lowered[max(clause_start + 1, occurrence.start() - 220):occurrence.start()]
-        suffix = lowered[occurrence.end():occurrence.end() + 120]
-        frame = BOUNDED_UNVERIFIED_SCOPE.search(prefix)
-        if frame:
-            scope = prefix[frame.end():]
-            # The frame governs only its own that-complement; a comma or
-            # coordinator followed by a new subject and verb is independent.
-            if not re.search(
-                r"\b(?:but|however|yet|instead|so|therefore|thus|consequently)\b"
-                r"|(?:,|\b(?:and|although|though|while|whereas)\b)\s*"
-                r"(?:(?:and|or|although|though|while|whereas)\s+)?"
-                r"(?:i|we|you|they|it|this|these|those|the(?:\s+[a-z0-9_-]+){1,4})\s+"
-                r"(?:is|are|was|were|has|have|will|would|should|must|can)\b",
-                scope,
-            ):
-                seen = True
-                continue
-        if COORDINATED_NEGATION_SCOPE.search(prefix):
-            seen = True
-            continue
-        if POST_UNSUPPORTED_SCOPE.match(suffix):
-            seen = True
-            continue
-        return False
-    return seen
 
 
 def score_forbidden_markers(
@@ -173,8 +110,8 @@ def score_forbidden_markers(
     contextual_hits = [
         marker for marker in contextual_hits
         if _term_has_assertive_semantics(response_text, marker)
-        and not _marker_only_in_not_proven_bullets(response_text, marker)
-        and not _marker_only_in_bounded_rejection(response_text, marker)
+        and not marker_only_in_not_proven_bullets(response_text, marker)
+        and not marker_only_in_bounded_rejection(response_text, marker)
     ]
     literal_hits = _find_contextual_term_hits(lowered, literal_markers or [])
     hits = list(dict.fromkeys(contextual_hits + literal_hits))
