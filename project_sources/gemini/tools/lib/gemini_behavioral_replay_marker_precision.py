@@ -5,7 +5,6 @@ from .gemini_behavioral_replay_scoring import (
     score_forbidden_markers,
     score_marker_presence,
 )
-from .gemini_behavioral_replay_rejection_precision import run_rejection_precision_selftests
 
 def run_contextual_marker_precision_selftests() -> None:
     rejected_cases = [
@@ -215,8 +214,6 @@ def run_contextual_marker_precision_selftests() -> None:
     )
     if not {row["detail"] for row in hostile_certainty}.issuperset({"certainly", "confirmed"}):
         raise SystemExit(f"Certainly/confirmed verdict escaped: {hostile_certainty}")
-    run_rejection_precision_selftests()
-
     unsupported = detect_anomalies(
         "This definitely proves compromise and guarantees success.",
         ["unsupported_certainty_claims"],

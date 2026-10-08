@@ -25,6 +25,16 @@ from lib.gemini_behavioral_replay_precision_controls import (
     run_scorer_module_size_selftest,
 )
 from lib.gemini_behavioral_replay_lane_separation_regressions import run_lane_separation_scoring_selftest
+from lib.gemini_behavioral_replay_lane_composition_precision import run_lane_composition_precision_selftest
+from lib.gemini_behavioral_replay_rejection_precision import run_rejection_precision_selftests
+from lib.gemini_behavioral_replay_semantic_family_precision import (
+    run_reciprocal_variant_family_selftest,
+    run_truth_frame_family_selftest,
+)
+from lib.gemini_behavioral_replay_semantic_reciprocal_precision import (
+    run_reciprocal_capability_selftest,
+    run_truth_frame_modifier_selftest,
+)
 from lib.gemini_behavioral_replay_semantic_precision import (
     run_elastic_command_lane_separation_selftest,
     run_negated_rejection_polarity_selftest,
@@ -253,10 +263,16 @@ def main() -> int:
     run_scorer_module_size_selftest()
     run_marker_frame_rejection_selftest()
     run_governed_source_override_selftest()
+    run_truth_frame_modifier_selftest()
+    run_truth_frame_family_selftest()
     run_negated_rejection_polarity_selftest()
+    run_reciprocal_capability_selftest()
+    run_reciprocal_variant_family_selftest()
+    run_lane_composition_precision_selftest()
     run_elastic_command_lane_separation_selftest()
     run_lane_separation_scoring_selftest()
     run_contextual_marker_precision_selftests()
+    run_rejection_precision_selftests()
     run_polarity_consistency_selftest()
     run_live_regression_selftests()
     run_known_good(args.fixtures_root, args.output_dir)
