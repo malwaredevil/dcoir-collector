@@ -15,14 +15,11 @@ from .gemini_behavioral_replay_polarity_vocabulary import (
 )
 
 from .gemini_behavioral_replay_lane_equivalence import has_affirmative_cross_lane_equivalence
+from .gemini_behavioral_replay_lane_vocabulary import ENDPOINT_CONTEXT_REF, LOCAL_CONTEXT_REF
 
 
-_ENDPOINT_CONTEXT = re.compile(
-    r"\b(?:elastic\s+)?(?:endpoint\s+)?response(?:[- ]action)?\s+(?:console|syntax|wrapper|commands?)\b"
-    r"|\bendpoint\s+response\s+console\b",
-    re.I,
-)
-_LOCAL_POWERSHELL = re.compile(r"\b(?:local|workstation)\s+(?:workstation\s+)?powershell\b|\blocal\s+powershell\b", re.I)
+_ENDPOINT_CONTEXT = re.compile(rf"\b{ENDPOINT_CONTEXT_REF}\b", re.I)
+_LOCAL_POWERSHELL = re.compile(rf"\b{LOCAL_CONTEXT_REF}\b", re.I)
 _REFERENTIAL_LOCAL_MIX = re.compile(
     r"\b(?:paste|use|run|execute|wrap)\s+(?:this|that|the)?\s*(?:endpoint\s+)?(?:response[- ]action\s+)?"
     r"(?:wrapper|syntax|command(?:s)?)\b[^.!?;\n]{0,100}\b(?:into|in|with|as)\b[^.!?;\n]{0,50}"

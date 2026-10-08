@@ -12,9 +12,10 @@ import re
 from typing import Iterator, Set, Tuple
 
 from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
+from .gemini_behavioral_replay_lane_vocabulary import ENDPOINT_RELATION_REF, LOCAL_RELATION_REF
 
-_A = r"(?:elastic\s+)?(?:endpoint\s+response\s+console|endpoint\s+console|response\s+console|endpoint\s+response[- ]actions?|response[- ]actions?|endpoint\s+lane)"
-_B = r"(?:local\s+(?:workstation\s+)?powershell|workstation\s+powershell|local\s+(?:shell|lane))"
+_A = ENDPOINT_RELATION_REF
+_B = LOCAL_RELATION_REF
 _LANE = {"a": _A, "b": _B}
 _TAIL = r"(?:\s+(?:console|commands?|syntax|lane|shell|sessions?))?"
 _GROUP = r"(?:(?:both|the\s+two|these|those|the)\s+(?:execution\s+)?(?:lanes|consoles|shells|execution\s+contexts)|(?:either|each)\s+(?:execution\s+)?(?:lane|console|shell))"

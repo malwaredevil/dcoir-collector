@@ -5,6 +5,7 @@ from typing import Iterable, List
 
 from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
 from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
+from .gemini_behavioral_replay_lane_vocabulary import clause_has_endpoint_lane, clause_has_local_lane
 from .gemini_behavioral_replay_text_scoring import (
     _iter_term_occurrences,
     _occurrence_is_rejected_after,
@@ -12,25 +13,8 @@ from .gemini_behavioral_replay_text_scoring import (
 )
 from .gemini_behavioral_replay_semantic_assertions import lane_target_head_index
 
-def _clause_has_endpoint_lane(clause: str) -> bool:
-    return (
-        "endpoint" in clause and (
-            "response action" in clause
-            or "response-action" in clause
-            or "response console" in clause
-            or "endpoint execution" in clause
-            or "execute --command" in clause
-        )
-    ) or (
-        "execute --command" in clause
-        and ("response action" in clause or "response-action" in clause)
-    )
-
-
-def _clause_has_local_lane(clause: str) -> bool:
-    return ("local" in clause or "workstation" in clause) and (
-        "powershell" in clause or "command" in clause
-    )
+_clause_has_endpoint_lane = clause_has_endpoint_lane
+_clause_has_local_lane = clause_has_local_lane
 
 
 _REFERENTIAL_LANES_PATTERN = (
