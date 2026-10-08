@@ -7,6 +7,7 @@ from .gemini_behavioral_replay_rejection_patterns import (
     DIRECT_REJECTION_PREFIX,
     GOVERNED_SOURCE_ACTION_SCOPE,
 )
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 from .gemini_behavioral_replay_semantic_assertions import analyze_semantics, response_has_next_evidence_semantics
 from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
 from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
@@ -125,10 +126,22 @@ def augment_semantic_marker_matches(
             _append_once(result, "do not claim")
 
     if "interpret" in markers and "interpret" not in result:
-        if _find_contextual_term_hits(
-            lowered, ["interpretation"], skip_negated=True, skip_quoted=True
-        ):
+        for occurrence in _iter_term_occurrences(lowered, "interpretation"):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+                continue
+            if (
+                occurrence_is_contextually_negated(lowered, occurrence.start())
+                or _occurrence_is_rejected_before(lowered, occurrence.start())
+                or _occurrence_is_rejected_after(
+                    lowered, occurrence.end(), occurrence.start()
+                )
+                or not occurrence_is_asserted(
+                    lowered, occurrence.start(), occurrence.end()
+                )
+            ):
+                continue
             _append_semantic_alias(result, semantic_aliases, "interpret")
+            break
 
     unresolved_marker = "unresolved due to evidence gaps"
     if unresolved_marker in markers and unresolved_marker not in result:

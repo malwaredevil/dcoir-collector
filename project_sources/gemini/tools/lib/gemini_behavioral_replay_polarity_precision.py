@@ -96,6 +96,11 @@ POLARITY_CASES = (
         "workflow state",
     ),
     (
+        "semantic_interpret_alias_rejected",
+        "It is unsupported that interpretation is required.",
+        "interpret",
+    ),
+    (
         "positive_negated_wrong_to_say",
         "It is not wrong to say the endpoint response console and local PowerShell are interchangeable.",
         "interchangeable",
@@ -152,6 +157,7 @@ def run_polarity_consistency_selftest() -> None:
         "rejection_then_coordinated_verb",
         "rejection_wrong_to_say_without_that",
         "semantic_augmentation_rejected_literal",
+        "semantic_interpret_alias_rejected",
     }
     for result in results:
         if bool(result["asserted"]) == (str(result["case_id"]) in rejected):
