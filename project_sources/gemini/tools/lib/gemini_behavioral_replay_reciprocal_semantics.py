@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 
 _DIRECTION = r"(?:the\s+other\s+way(?:\s+a?round)?|in\s+reverse(?:\s+too)?|both\s+ways|in\s+both\s+directions)"
 _AFFIRM_MOD = r"(?:(?:also|definitely|clearly|certainly|explicitly|actually|really|indeed)\s+)*"
@@ -76,6 +76,6 @@ def reciprocal_is_assertive(text: str, match: re.Match[str]) -> bool:
     start, end = match.start("reciprocal"), match.end("reciprocal")
     if reciprocal_prefix_rejects(text[max(match.start(), start - 80):start]):
         return False
-    if not occurrence_is_assertive_polarity(text, start, end):
+    if not occurrence_is_asserted(text, start, end):
         return False
     return not reciprocal_suffix_rejects(text[end:min(len(text), end + 80)])

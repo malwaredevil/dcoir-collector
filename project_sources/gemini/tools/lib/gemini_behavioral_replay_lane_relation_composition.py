@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from typing import Iterator, Set, Tuple
 
-from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 
 _A = r"(?:elastic\s+)?(?:endpoint\s+response\s+console|endpoint\s+console|response\s+console|endpoint\s+response[- ]actions?|response[- ]actions?|endpoint\s+lane)"
 _B = r"(?:local\s+(?:workstation\s+)?powershell|workstation\s+powershell|local\s+(?:shell|lane))"
@@ -139,7 +139,7 @@ def _asserted(text: str, offset: int, match: re.Match[str]) -> bool:
     """
     group = "rel" if match.group("rel") is not None else "rel2"
     start, end = offset + match.start(group), offset + match.end(group)
-    return occurrence_is_assertive_polarity(text, offset + match.start(), end) and occurrence_is_assertive_polarity(text, start, end)
+    return occurrence_is_asserted(text, offset + match.start(), end) and occurrence_is_asserted(text, start, end)
 
 
 def has_composed_lane_equivalence(text: str) -> bool:

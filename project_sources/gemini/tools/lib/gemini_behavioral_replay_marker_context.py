@@ -8,11 +8,39 @@ from .gemini_behavioral_replay_rejection_patterns import (
     COORDINATED_NEGATION_SCOPE,
     POST_UNSUPPORTED_SCOPE,
 )
-from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
+from .gemini_behavioral_replay_quote_context import occurrence_is_backtick_wrapped, occurrence_is_quoted
 from .gemini_behavioral_replay_text_scoring import (
     _iter_term_occurrences,
     normalize_text,
 )
+
+
+def marker_has_asserted_occurrence(
+    response_text: str,
+    marker: str,
+    *,
+    allow_quoted_single_tokens: bool = False,
+    allow_markdown_code: bool = False,
+) -> bool:
+    lowered = normalize_text(response_text)
+    for occurrence in _iter_term_occurrences(lowered, marker):
+        quoted = occurrence_is_quoted(lowered, occurrence.start(), occurrence.end())
+        if quoted:
+            allowed_single_token = (
+                allow_quoted_single_tokens and " " not in normalize_text(marker)
+            )
+            allowed_markdown = (
+                allow_markdown_code
+                and occurrence_is_backtick_wrapped(
+                    lowered, occurrence.start(), occurrence.end()
+                )
+            )
+            if not (allowed_single_token or allowed_markdown):
+                continue
+        if occurrence_is_asserted(lowered, occurrence.start(), occurrence.end()):
+            return True
+    return False
 
 
 def marker_only_in_not_proven_bullets(response_text: str, marker: str) -> bool:

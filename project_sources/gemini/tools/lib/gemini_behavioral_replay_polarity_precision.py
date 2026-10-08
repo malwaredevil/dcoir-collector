@@ -1,7 +1,7 @@
 """Focused disagreement corpus for required-marker and assertion-polarity scoring."""
 from __future__ import annotations
 
-from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 from .gemini_behavioral_replay_scoring import score_forbidden_markers, score_marker_presence
 
 POLARITY_CASES = (
@@ -25,14 +25,12 @@ POLARITY_CASES = (
         "Please determine the current state and provide the smallest recovery artifact.",
         "smallest recovery artifact",
     ),
+    (
+        "positive_recovery_artifact_after_negated_assumption",
+        "Because I cannot assume more chunks remain, please determine the current state and provide the smallest recovery artifact.",
+        "smallest recovery artifact",
+    ),
 )
-
-EXPECTED_CURRENT_DISAGREEMENTS = {
-    "negated_required_action",
-    "without_required_action",
-    "bounded_malicious_certainty",
-}
-
 
 def evaluate_polarity_cases() -> list[dict[str, object]]:
     results = []
@@ -42,7 +40,7 @@ def evaluate_polarity_cases() -> list[dict[str, object]]:
         end = start + len(marker)
         required_match = marker in score_marker_presence(text, [marker])["matched"]
         forbidden_hit = marker in score_forbidden_markers(text, [marker])["hits"]
-        asserted = occurrence_is_assertive_polarity(lowered, start, end)
+        asserted = occurrence_is_asserted(lowered, start, end)
         results.append({
             "case_id": case_id,
             "required_match": required_match,
@@ -53,21 +51,22 @@ def evaluate_polarity_cases() -> list[dict[str, object]]:
     return results
 
 
-def run_polarity_disagreement_selftest() -> None:
+def run_polarity_consistency_selftest() -> None:
     results = evaluate_polarity_cases()
-    disagreements = {
-        str(result["case_id"])
-        for result in results
-        if result["required_disagrees_with_assertion"]
-    }
-    if disagreements != EXPECTED_CURRENT_DISAGREEMENTS:
-        raise SystemExit(
-            "Replay polarity disagreement baseline changed before the single-owner scorer slice: "
-            f"expected={sorted(EXPECTED_CURRENT_DISAGREEMENTS)} actual={sorted(disagreements)}"
-        )
     for result in results:
-        if bool(result["forbidden_hit"]) != bool(result["asserted"]):
+        required_match = bool(result["required_match"])
+        forbidden_hit = bool(result["forbidden_hit"])
+        asserted = bool(result["asserted"])
+        if required_match != asserted:
+            raise SystemExit(f"Required-marker polarity drift: {result}")
+        if forbidden_hit != asserted:
             raise SystemExit(f"Forbidden-marker polarity drift: {result}")
-    positive = next(result for result in results if result["case_id"] == "positive_recovery_artifact")
-    if not (positive["required_match"] and positive["asserted"]):
-        raise SystemExit(f"Positive polarity control failed: {positive}")
+        if (not required_match) != (not forbidden_hit):
+            raise SystemExit(f"Required/forbidden complement invariant failed: {result}")
+    positives = [
+        result for result in results
+        if str(result["case_id"]).startswith("positive_recovery_artifact")
+    ]
+    for positive in positives:
+        if not (positive["required_match"] and positive["asserted"]):
+            raise SystemExit(f"Positive polarity control failed: {positive}")

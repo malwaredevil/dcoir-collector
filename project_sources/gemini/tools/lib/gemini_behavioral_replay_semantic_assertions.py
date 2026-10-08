@@ -7,7 +7,7 @@ from .gemini_behavioral_replay_assertion_polarity import (
     CERTAINTY_TERM as _CERTAINTY_TERM,
     CLAIM_REJECTION_FRAME as _CLAIM_REJECTION_FRAME,
     normalized_surface as _normalized_surface,
-    occurrence_is_assertive_polarity,
+    occurrence_is_asserted,
 )
 from .gemini_behavioral_replay_polarity_vocabulary import (
     ASSERTION_CONTRAST as _CONTRAST,
@@ -201,7 +201,7 @@ class SemanticAnalysis:
         return _normalized_surface(self.text)
 
     def occurrence_is_assertive(self, start: int, end: int) -> bool:
-        return occurrence_is_assertive_polarity(self.text.lower(), start, end)
+        return occurrence_is_asserted(self.text.lower(), start, end)
 
     def has_no_claim_semantics(self) -> bool:
         lowered = self.text.lower()
@@ -227,12 +227,12 @@ class SemanticAnalysis:
         for mix in _AFFIRMATIVE_MIX.finditer(normalized):
             if _CONTRAST.search(mix.group(0)) or _EXPLICIT_SEPARATION_RELATION.search(mix.group(0)):
                 continue
-            if occurrence_is_assertive_polarity(normalized, mix.start(), mix.end()):
+            if occurrence_is_asserted(normalized, mix.start(), mix.end()):
                 return False
         for mix in _REFERENTIAL_LOCAL_MIX.finditer(normalized):
             if _CONTRAST.search(mix.group(0)) or _EXPLICIT_SEPARATION_RELATION.search(mix.group(0)):
                 continue
-            if occurrence_is_assertive_polarity(normalized, mix.start(), mix.end()):
+            if occurrence_is_asserted(normalized, mix.start(), mix.end()):
                 return False
 
         for relation in _PROHIBITED_CROSS_LANE.finditer(normalized):
@@ -247,7 +247,7 @@ class SemanticAnalysis:
                 return True
 
         for mix in _REFERENTIAL_LOCAL_MIX.finditer(normalized):
-            if occurrence_is_assertive_polarity(normalized, mix.start(), mix.end()):
+            if occurrence_is_asserted(normalized, mix.start(), mix.end()):
                 continue
             prior = normalized[max(0, mix.start() - 260):mix.start()]
             if _ENDPOINT_CONTEXT.search(prior):

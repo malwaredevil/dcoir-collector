@@ -5,8 +5,7 @@ from typing import Any, Dict, List
 import re
 
 from .gemini_behavioral_replay_marker_semantics import augment_semantic_marker_matches
-from .gemini_behavioral_replay_marker_context import marker_only_in_bounded_rejection, marker_only_in_not_proven_bullets
-from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
+from .gemini_behavioral_replay_marker_context import marker_has_asserted_occurrence, marker_only_in_bounded_rejection, marker_only_in_not_proven_bullets
 from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
 from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
 from .gemini_behavioral_replay_text_scoring import (
@@ -25,12 +24,7 @@ from .gemini_behavioral_replay_collector_scoring import collector_procedure_acti
 from .gemini_behavioral_replay_schema import SUPPORTED_ANOMALY_CHECKS
 
 def _term_has_assertive_semantics(text: str, term: str) -> bool:
-    surface = str(text).lower()
-    analysis = analyze_semantics(surface)
-    return any(
-        analysis.occurrence_is_assertive(occurrence.start(), occurrence.end())
-        for occurrence in _iter_term_occurrences(surface, term)
-    )
+    return marker_has_asserted_occurrence(text, term)
 
 
 def _supported_certainty_use(text: str, term: str) -> bool:
@@ -69,6 +63,15 @@ def score_marker_presence(response_text: str, markers: List[str]) -> Dict[str, A
         allow_quoted_single_tokens=True,
         allow_markdown_code=True,
     )
+    matched = [
+        marker for marker in matched
+        if marker_has_asserted_occurrence(
+            response_text,
+            marker,
+            allow_quoted_single_tokens=True,
+            allow_markdown_code=True,
+        )
+    ]
     matched = augment_semantic_marker_matches(response_text, markers, matched)
     invalidated = []
     for marker in markers:

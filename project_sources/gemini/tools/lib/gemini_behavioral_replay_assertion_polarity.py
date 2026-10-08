@@ -102,6 +102,11 @@ _FOCUS_NEGATION = re.compile(
     re.I,
 )
 _CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")
+_COMMA_IMPERATIVE_RESTART = re.compile(
+    r",\s*(?:please\s+)?(?:determine|provide|send|run|execute|read|retrieve|upload|"
+    r"review|collect|use|check|verify|focus)\b",
+    re.I,
+)
 # A label such as "Not proven:" rejects the clause it introduces.
 _REJECTION_LABEL = re.compile(
     r"\b(?:not\s+(?:proven|established|confirmed|verified|supported)|unproven|unsupported|unverified)\s*$",
@@ -152,8 +157,15 @@ def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[
     frames = list(pattern.finditer(prefix))
     if not frames:
         return False
-    scope = prefix[frames[-1].end():]
+    frame = frames[-1]
+    if _COMMA_IMPERATIVE_RESTART.search(prefix[frame.start():frame.end()]):
+        return False
+    scope = prefix[frame.end():]
+    if _CLAUSE_SEPARATOR.search(scope):
+        return False
     if CONTRAST.search(scope):
+        return False
+    if _COMMA_IMPERATIVE_RESTART.search(scope):
         return False
     if _coordination_starts_independent_assertion(scope, target_tail):
         return False
@@ -217,6 +229,11 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
     if separators and not _REJECTION_LABEL.search(prefix[:separators[-1].start()]):
         # A colon or dash opens a new clause; only a negator inside it applies.
         return _direct_negation_applies(prefix[separators[-1].end():], target_tail)
+    comma_restarts = list(_COMMA_IMPERATIVE_RESTART.finditer(prefix, negation.end()))
+    if comma_restarts:
+        # A new imperative after a comma is independent of the prior negated
+        # premise: "cannot assume X, please determine Y and provide Z."
+        return _direct_negation_applies(prefix[comma_restarts[-1].start() + 1:], target_tail)
     scope = prefix[_NEGATION_TOKEN.match(prefix, negation.start()).end():]
     scope_break = _NEGATION_SCOPE_BREAK.search(scope)
     if scope_break and not _NEGATION_COMPLEMENT.search(scope, 0, scope_break.start()):
@@ -224,7 +241,7 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
     return True
 
 
-def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
+def occurrence_is_asserted(text: str, start: int, end: int) -> bool:
     """Return True only when the matched proposition is asserted, not rejected.
 
     Only explicit rejection/negation frames suppress a match. Contrastive

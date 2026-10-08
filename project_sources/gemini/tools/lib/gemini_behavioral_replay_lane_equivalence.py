@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from .gemini_behavioral_replay_assertion_polarity import occurrence_is_assertive_polarity
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 from .gemini_behavioral_replay_reciprocal_semantics import RECIPROCAL, reciprocal_is_assertive
 from .gemini_behavioral_replay_lane_equivalence_extended import EXTENDED_PATTERNS
 from .gemini_behavioral_replay_lane_relation_composition import has_composed_lane_equivalence
@@ -196,7 +196,7 @@ def _relation_is_assertive(text: str, match: re.Match[str]) -> bool:
     start = match.start() + markers[-1].start() if markers else match.start()
     end = match.start() + markers[-1].end() if markers else match.end()
     # Frames before the whole relation ("do not assume A and B are ...") count too.
-    return occurrence_is_assertive_polarity(text, match.start(), end) and occurrence_is_assertive_polarity(text, start, end)
+    return occurrence_is_asserted(text, match.start(), end) and occurrence_is_asserted(text, start, end)
 
 
 def has_affirmative_cross_lane_equivalence(text: str) -> bool:
