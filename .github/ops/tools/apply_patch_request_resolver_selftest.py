@@ -8,6 +8,14 @@ from lib.apply_patch_request_resolver import resolve_from_changed_records
 
 
 class ApplyPatchRequestResolverTests(unittest.TestCase):
+    def test_empty_push_change_scan_fails_closed(self) -> None:
+        with self.assertRaises(SystemExit) as caught:
+            resolve_from_changed_records([], "push")
+        self.assertIn("produced no paths", str(caught.exception))
+
+    def test_empty_non_push_change_scan_remains_noop(self) -> None:
+        self.assertEqual(resolve_from_changed_records([], "workflow_call"), (None, True))
+
     def test_root_level_readme_push_is_clean_noop(self) -> None:
         self.assertEqual(
             resolve_from_changed_records(

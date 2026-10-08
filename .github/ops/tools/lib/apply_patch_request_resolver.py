@@ -156,6 +156,12 @@ def directory_tree_sha256(root: pathlib.Path) -> str:
 
 
 def resolve_from_changed_records(records: Iterable[tuple[str, str]], caller_event_name: str) -> tuple[str | None, bool]:
+    records = list(records)
+    if caller_event_name == "push" and not records:
+        raise SystemExit(
+            "Apply-patch push change discovery produced no paths; refusing to treat an empty scan as a no-op."
+        )
+
     request_paths: dict[str, None] = {}
     removed_request_path_count = 0
     unrecognized_request_paths: list[str] = []

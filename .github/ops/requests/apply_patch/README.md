@@ -28,7 +28,9 @@ containing only those files reaches the workflow, the resolver records a clean
 no-op and exits successfully. Inside a `<request_id>/` directory, added or
 modified paths remain strict: only `request.json` and a `.patch` or `.diff`
 input are recognized, and any other path fails closed. Cleanup-only deletions
-remain a successful no-op.
+remain a successful no-op. A push whose change discovery produces no paths also
+fails closed; the resolver only takes the metadata no-op path when it actually
+observed a root-level non-request change.
 
 There is no automatic scheduled scanner. If a connector-created commit does not
 produce a visible `64 Ops - Apply Patch Request` run, an `ops-apply-patch-*`
