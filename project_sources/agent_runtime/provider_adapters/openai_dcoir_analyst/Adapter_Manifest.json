@@ -10,7 +10,7 @@
   "behavioral_cases": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
   "generated_root": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst",
   "source_base_commit": "bd69c7a5e5f236e03774a0aedf93a3d818650d81",
-  "behavior_source_snapshot_sha256": "c8ae1ca7bd38796c6f3c10d33764f40f2a70812685462aa46643accce2b3ed3f",
+  "behavior_source_snapshot_sha256": "09497c5eca9caa7b9fb66285a1cb873e4607d34397ccabc8a87ea6126036a205",
   "instruction_character_ceiling": 8000,
   "description_character_ceiling": 300,
   "editor": {
@@ -36,36 +36,201 @@
     "persistent_cross_conversation_memory": false
   },
   "coverage": [
-    {"id": "prime.chunk.00", "sections": ["identity_scope"]},
-    {"id": "prime.chunk.01", "sections": ["identity_scope", "capability_boundaries"]},
-    {"id": "prime.chunk.02", "sections": ["analysis_workflow"]},
-    {"id": "prime.chunk.03", "sections": ["identity_scope", "queries_commands_collection"]},
-    {"id": "prime.chunk.04", "sections": ["authority_evidence_lanes"]},
-    {"id": "prime.chunk.05", "sections": ["queries_commands_collection"]},
-    {"id": "prime.chunk.06", "sections": ["analysis_workflow", "ioc_encoded_content"]},
-    {"id": "prime.chunk.07", "sections": ["analysis_workflow", "conclusions_output"]},
-    {"id": "prime.chunk.08", "sections": ["conclusions_output"]},
-    {"id": "prime.chunk.09", "sections": ["analysis_workflow"]},
-    {"id": "prime.chunk.10", "sections": ["authority_evidence_lanes", "capability_boundaries"]},
-    {"id": "prime.chunk.11", "sections": ["authority_evidence_lanes", "analysis_workflow"]},
-    {"id": "prime.chunk.12", "sections": ["authority_evidence_lanes", "capability_boundaries"]},
-    {"id": "prime.chunk.13", "sections": ["queries_commands_collection"]},
-    {"id": "prime.chunk.14", "sections": ["authority_evidence_lanes", "analysis_workflow"]},
-    {"id": "prime.chunk.15", "sections": ["identity_scope", "conclusions_output"]},
-    {"id": "prime.chunk.17", "sections": ["identity_scope", "queries_commands_collection"]},
-    {"id": "prime.chunk.18", "sections": ["ioc_encoded_content"]},
-    {"id": "prime.chunk.19", "sections": ["analysis_workflow", "conclusions_output"]},
-    {"id": "prime.chunk.20", "sections": ["identity_scope", "capability_boundaries"]},
-    {"id": "sub_agent.01", "sections": ["analysis_workflow"]},
-    {"id": "sub_agent.02", "sections": ["authority_evidence_lanes", "analysis_workflow"]},
-    {"id": "sub_agent.03", "sections": ["analysis_workflow", "conclusions_output"]},
-    {"id": "sub_agent.04", "sections": ["authority_evidence_lanes"]},
-    {"id": "sub_agent.05", "sections": ["queries_commands_collection"]},
-    {"id": "sub_agent.06", "sections": ["queries_commands_collection"]},
-    {"id": "sub_agent.07", "sections": ["queries_commands_collection", "conclusions_output"]},
-    {"id": "sub_agent.08", "sections": ["ioc_encoded_content"]},
-    {"id": "sub_agent.09", "sections": ["queries_commands_collection"]},
-    {"id": "sub_agent.10", "sections": ["conclusions_output"]}
+    {
+      "id": "prime.chunk.00",
+      "sections": [
+        "identity_scope"
+      ]
+    },
+    {
+      "id": "prime.chunk.01",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "prime.chunk.02",
+      "sections": [
+        "analysis_workflow"
+      ]
+    },
+    {
+      "id": "prime.chunk.03",
+      "sections": [
+        "identity_scope",
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "prime.chunk.04",
+      "sections": [
+        "authority_evidence_lanes"
+      ]
+    },
+    {
+      "id": "prime.chunk.05",
+      "sections": [
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "prime.chunk.06",
+      "sections": [
+        "analysis_workflow",
+        "ioc_encoded_content"
+      ]
+    },
+    {
+      "id": "prime.chunk.07",
+      "sections": [
+        "analysis_workflow",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.08",
+      "sections": [
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.09",
+      "sections": [
+        "analysis_workflow"
+      ]
+    },
+    {
+      "id": "prime.chunk.10",
+      "sections": [
+        "authority_evidence_lanes",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "prime.chunk.11",
+      "sections": [
+        "authority_evidence_lanes",
+        "analysis_workflow"
+      ]
+    },
+    {
+      "id": "prime.chunk.12",
+      "sections": [
+        "authority_evidence_lanes",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "prime.chunk.13",
+      "sections": [
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "prime.chunk.14",
+      "sections": [
+        "authority_evidence_lanes",
+        "analysis_workflow"
+      ]
+    },
+    {
+      "id": "prime.chunk.15",
+      "sections": [
+        "identity_scope",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.17",
+      "sections": [
+        "identity_scope",
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "prime.chunk.18",
+      "sections": [
+        "ioc_encoded_content"
+      ]
+    },
+    {
+      "id": "prime.chunk.19",
+      "sections": [
+        "analysis_workflow",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "prime.chunk.20",
+      "sections": [
+        "identity_scope",
+        "capability_boundaries"
+      ]
+    },
+    {
+      "id": "sub_agent.01",
+      "sections": [
+        "analysis_workflow"
+      ]
+    },
+    {
+      "id": "sub_agent.02",
+      "sections": [
+        "authority_evidence_lanes",
+        "analysis_workflow"
+      ]
+    },
+    {
+      "id": "sub_agent.03",
+      "sections": [
+        "analysis_workflow",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "sub_agent.04",
+      "sections": [
+        "authority_evidence_lanes"
+      ]
+    },
+    {
+      "id": "sub_agent.05",
+      "sections": [
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "sub_agent.06",
+      "sections": [
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "sub_agent.07",
+      "sections": [
+        "queries_commands_collection",
+        "conclusions_output"
+      ]
+    },
+    {
+      "id": "sub_agent.08",
+      "sections": [
+        "ioc_encoded_content"
+      ]
+    },
+    {
+      "id": "sub_agent.09",
+      "sections": [
+        "queries_commands_collection"
+      ]
+    },
+    {
+      "id": "sub_agent.10",
+      "sections": [
+        "conclusions_output"
+      ]
+    }
   ],
   "generated_outputs": {
     "instructions": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
