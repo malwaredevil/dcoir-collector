@@ -28,7 +28,9 @@
       "expected_behavior": "Treat the result as bounded absence in the reviewed lane and preserve mapping, scope, filter, and telemetry limitations.",
       "required_markers": [
         "bounded absence",
-        "Do not turn a miss into proof"
+        "Do not turn a miss into proof",
+        "widen ES|QL FROM to logs-*",
+        "KQL data view to broad logs"
       ]
     },
     {
