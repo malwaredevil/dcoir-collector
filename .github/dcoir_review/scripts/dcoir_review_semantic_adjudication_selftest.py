@@ -232,6 +232,58 @@ def main() -> None:
     assert "prompts/07-semantic-adjudication-quality-retry.txt" in debug_text
     assert "responses/07-semantic-adjudication-quality-retry-result.json" in debug_json
 
+    # A second low-confidence adjudication is never silently upgraded to
+    # an accepted finding or reported as a clean review. Retry exactly once.
+    rejected_calls: list[str] = []
+
+    def always_low(prompt: str, schema: dict[str, Any], cfg: Any, reporter: Any = None):
+        rejected_calls.append(prompt)
+        first = low_then_supported(prompt, schema, cfg, reporter)
+        downgraded = dict(first[0])
+        downgraded["findings"] = [{**item, "confidence": 0.60} for item in first[0]["findings"]]
+        return downgraded, first[1], first[2]
+
+    fail_closed_hardened = SimpleNamespace(**vars(repair_hardened))
+    fail_closed_hardened.openrouter_review = always_low
+    fail_closed_module = SimpleNamespace(**vars(repair_module))
+    fail_closed_module.hardened = fail_closed_hardened
+    still_rejected, _, _ = adjudication.build_semantic_adjudication_stage(
+        fail_closed_module, fake_detector
+    )({"number": 1}, [], "diff", {}, fake_config, reporter, [], {}, "", "deep-forced", "", object())
+    assert len(rejected_calls) == 2
+    assert still_rejected["_quality_retry_attempted"] is True
+    assert still_rejected["findings"][0]["confidence"] == 0.60
+    try:
+        review.hardened.split_findings(still_rejected, config, {("probe.py", 12): 1})
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("Repeated low-confidence result must fail publication quality gate")
+
+    # A retry may legitimately withdraw a speculative low-confidence finding.
+    # A clean, evidence-bounded retry must not resurrect the rejected original.
+    clean_calls: list[str] = []
+
+    def low_then_clean(prompt: str, schema: dict[str, Any], cfg: Any, reporter: Any = None):
+        clean_calls.append(prompt)
+        if "Review quality retry:" in prompt:
+            return {"summary": "No remaining actionable findings.", "findings": []}, "adjudicator-model", "default"
+        return low_then_supported(prompt, schema, cfg, reporter)
+
+    clean_hardened = SimpleNamespace(**vars(repair_hardened))
+    clean_hardened.openrouter_review = low_then_clean
+    clean_hardened.merge_quality_retry_results = review.hardened.merge_quality_retry_results
+    clean_module = SimpleNamespace(**vars(repair_module))
+    clean_module.hardened = clean_hardened
+    fake_config.minimum_confidence = 0.70
+    clean_result, _, _ = adjudication.build_semantic_adjudication_stage(
+        clean_module, fake_detector
+    )({"number": 1}, [], "diff", {}, fake_config, reporter, [], {}, "", "deep-forced", "", object())
+    assert len(clean_calls) == 2
+    assert clean_result["findings"] == []
+    assert clean_result["_quality_retry_attempted"] is True
+    assert review.hardened.split_findings(clean_result, config, {("probe.py", 12): 1}) == ([], [])
+
     verifier_prompt = v21._verifier_prompt(
         {
             "title": "Candidate",
