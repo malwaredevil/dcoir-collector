@@ -8,7 +8,10 @@ from typing import Any
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
 from dcoir_review import semantic_adjudication_normalization as normalization
 
-PROJECTED_PROMPT_ARTIFACT_ATTR = "_semantic_adjudication_quality_retry_prompt"
+# Explicit marker on the retry provider config. The final-adjudication policy
+# reads it to inject the publication floor, label telemetry, and choose the
+# projected prompt artifact path.
+FINAL_ADJUDICATION_RETRY_ATTR = "_semantic_adjudication_quality_retry_call"
 PROJECTED_PROMPT_ARTIFACT_PATH = (
     "prompts/07-semantic-adjudication-quality-retry-projected-prompt.txt"
 )
@@ -24,6 +27,8 @@ QUALITY_RETRY_RESULT_KEYS = {
     "_quality_retry_initial_rejected_count",
     "_quality_retry_retry_finding_count",
     "_quality_retry_initial_raw_digest",
+    "_quality_retry_provider_result_keys",
+    "_quality_retry_model",
 }
 
 
@@ -52,6 +57,13 @@ def quality_retry_metadata_is_valid(result: dict[str, Any]) -> bool:
     if not valid_retry_summary(result.get("_quality_retry_retry_summary")):
         return False
     if not str(result.get("_quality_retry_initial_raw_digest", "") or "").strip():
+        return False
+    provider_keys = result.get("_quality_retry_provider_result_keys")
+    if not isinstance(provider_keys, (list, tuple)) or any(
+        not isinstance(key, str) for key in provider_keys
+    ):
+        return False
+    if not str(result.get("_quality_retry_model", "") or "").strip():
         return False
 
     count_keys = (
@@ -95,6 +107,32 @@ def _normalize_retry_initial_confidence(
     return normalized_result
 
 
+def _retry_reason(
+    module: Any, reason_fn: Any, result: dict[str, Any], config: Any,
+    risk_sentinels: Any, line_index: Any,
+) -> str:
+    """Ask the quality predicate for a retry reason without disposition side effects.
+
+    The quality-gate predicate also plans the diff-mode bounded low-confidence
+    disposition on ``config``. That state belongs to the first-pass gate and
+    is read by the outermost disposition stage, so this final-stage check must
+    neither overwrite it nor divert final findings away from this retry.
+    """
+
+    # Imported lazily: the disposition module imports candidate escalation,
+    # which imports semantic adjudication, which imports this module.
+    from dcoir_review import structured_result_disposition as disposition
+
+    saved_pending = getattr(config, disposition.PENDING_ATTR, None)
+    saved_allow = getattr(config, disposition.ALLOW_ATTR, False)
+    setattr(config, disposition.ALLOW_ATTR, False)
+    try:
+        return str(reason_fn(result, config, risk_sentinels, line_index) or "")
+    finally:
+        setattr(config, disposition.ALLOW_ATTR, saved_allow)
+        setattr(config, disposition.PENDING_ATTR, saved_pending)
+
+
 def retry_rejected_adjudication(
     module: Any, adjudicated: dict[str, Any], config: Any,
     risk_sentinels: Any, line_index: Any, prompt: str, schema: dict[str, Any],
@@ -106,14 +144,19 @@ def retry_rejected_adjudication(
     reason_fn = getattr(module.hardened, "review_quality_retry_reason", None)
     if not callable(reason_fn):
         return adjudicated, None, None
-    reason = reason_fn(adjudicated, config, risk_sentinels, line_index)
+    # Validate and floor-admit first: complete missing-confidence findings
+    # are publishable candidates for the verifier and must not spend a retry.
+    merge_initial = _normalize_retry_initial_confidence(module, adjudicated, config)
+    reason = _retry_reason(
+        module, reason_fn, merge_initial, config, risk_sentinels, line_index
+    )
     if not reason:
         return adjudicated, None, None
-    merge_initial = _normalize_retry_initial_confidence(module, adjudicated, config)
     if reporter:
+        safe_reason = module.hardened.sanitize_github_output(reason, config)
         reporter.update(
             "semantic-adjudication-quality-retry",
-            "Final adjudication produced no actionable findings; requesting one evidence-backed repair",
+            f"{safe_reason}; requesting one evidence-backed final-adjudication repair",
         )
     retry_prompt = module.hardened.build_quality_retry_prompt(
         prompt, adjudicated, risk_sentinels, config, reason
@@ -127,9 +170,12 @@ def retry_rejected_adjudication(
         {"result": adjudicated},
     )
     retry_config = copy.copy(adjudication_config)
-    setattr(retry_config, PROJECTED_PROMPT_ARTIFACT_ATTR, True)
+    setattr(retry_config, FINAL_ADJUDICATION_RETRY_ATTR, True)
     retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
         retry_prompt, schema, retry_config, reporter
+    )
+    retry_provider_keys = (
+        sorted(str(key) for key in retry_result) if isinstance(retry_result, dict) else []
     )
     # Normalize first: a complete flat single finding is an accepted
     # adjudicator shape and carries no summary. Canonical envelopes must still
@@ -177,6 +223,8 @@ def retry_rejected_adjudication(
         merged[confidence_policy.NORMALIZATION_COUNT] = merge_initial[
             confidence_policy.NORMALIZATION_COUNT
         ]
+    merged["_quality_retry_provider_result_keys"] = retry_provider_keys
+    merged["_quality_retry_model"] = str(retry_model or "")
     capped = cap_findings(module, merged, max_findings)
     # Never lose the original overflow signal during retry-result merging:
     # the terminal low-confidence disposition must remain fail-closed.

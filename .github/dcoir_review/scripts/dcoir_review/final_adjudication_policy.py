@@ -170,7 +170,16 @@ def _provider_envelope_matches_schema(result: dict[str, Any]) -> bool:
     if not isinstance(raw_provider_keys, (list, tuple)):
         return False
     provider_keys = {str(key) for key in raw_provider_keys}
-    return provider_keys == {"summary", "findings"}
+    if provider_keys != {"summary", "findings"}:
+        return False
+    # A bounded quality retry is a second provider response; its envelope
+    # must match the schema too before a clean terminal disposition.
+    if result.get("_quality_retry_attempted") is True:
+        retry_keys = result.get("_quality_retry_provider_result_keys")
+        if not isinstance(retry_keys, (list, tuple)):
+            return False
+        return {str(key) for key in retry_keys} == {"summary", "findings"}
+    return True
 
 
 def _terminal_disposition(
@@ -280,7 +289,10 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
         return prompt
     if bool(getattr(config, PROMPT_INJECTION_ATTR, False)):
         return prompt
-    if not _is_final_semantic_adjudication_call(prompt):
+    if not (
+        bool(getattr(config, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, False))
+        or _is_final_semantic_adjudication_call(prompt)
+    ):
         return prompt
 
     floor = _publication_floor(config)
@@ -314,12 +326,6 @@ def _is_final_semantic_adjudication_call(prompt: Any) -> bool:
                     "semantic_adjudication_stage",
                 )
                 and locals_map.get("prompt") is prompt
-            ):
-                return True
-            if (
-                filename == "semantic_adjudication_quality_retry.py"
-                and function == "retry_rejected_adjudication"
-                and locals_map.get("retry_prompt") is prompt
             ):
                 return True
             current = current.f_back
@@ -362,7 +368,7 @@ def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any
     try:
         artifact_path = (
             quality_retry.PROJECTED_PROMPT_ARTIFACT_PATH
-            if getattr(config, quality_retry.PROJECTED_PROMPT_ARTIFACT_ATTR, False)
+            if getattr(config, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, False)
             else PROMPT_ARTIFACT_PATH
         )
         module.hardened.write_debug_text_artifact_safely(

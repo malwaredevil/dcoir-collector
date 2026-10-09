@@ -48,13 +48,19 @@ def semantic_adjudication_stage(prompt):
     return namespace["semantic_adjudication_stage"](prompt)
 
 
-def _run_with_semantic_adjudication_retry_callsite(module: Any, prompt: str, config: Any):
+def _run_with_semantic_adjudication_retry_config(module: Any, prompt: str, config: Any):
     retry_config = SimpleNamespace(**vars(config))
-    setattr(retry_config, quality_retry.PROJECTED_PROMPT_ARTIFACT_ATTR, True)
+    setattr(retry_config, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, True)
+    return _run_projected(module, prompt, retry_config)
+
+
+def _run_with_retry_named_callsite_without_flag(module: Any, prompt: str, config: Any):
+    # The retry is identified by its explicit config flag, never by a frame's
+    # file, function, or local-variable name.
     namespace: dict[str, Any] = {
         "_run_projected": _run_projected,
         "module": module,
-        "config": retry_config,
+        "config": config,
     }
     exec(
         compile(
@@ -95,7 +101,7 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     original_prompt_artifact = module.hardened.debug_text_artifacts[
         final_policy.PROMPT_ARTIFACT_PATH
     ]
-    _run_with_semantic_adjudication_retry_callsite(module, semantic_prompt, config)
+    _run_with_semantic_adjudication_retry_config(module, semantic_prompt, config)
     retry_injected = module.hardened.review_prompts[-1]
     assert final_policy.PROMPT_MARKER in retry_injected
     assert "0.70" in retry_injected
@@ -110,6 +116,10 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
         ]
         == retry_injected
     )
+
+    _run_with_retry_named_callsite_without_flag(module, semantic_prompt, config)
+    assert module.hardened.review_prompts[-1] == semantic_prompt
+    assert module.hardened.review_stages[-1] != "semantic-adjudicator"
 
     escalation_prompt = (
         "Final semantic adjudication pass.\n\n"

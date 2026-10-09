@@ -292,8 +292,6 @@ def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
             adjudication_config, reporter, max_findings, _cap_adjudicated_findings,
             semantic_adjudication_normalization.normalize_adjudicator_result,
         )
-        if retry_model:
-            adjudicator_model, adjudicator_tier = retry_model, retry_tier
         adjudicated[PROVIDER_RESULT_KEYS_ATTR] = provider_result_keys
         adjudicated["_semantic_adjudication_attempted"] = True
         adjudicated["_semantic_adjudication_model"] = adjudicator_model
@@ -323,7 +321,13 @@ def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
                 ),
             )
         model_label = f"{detector_model}; semantic-adjudicator={adjudicator_model}"
-        tier_parts = [str(detector_tier or "").strip(), str(adjudicator_tier or "").strip()]
+        if retry_model:
+            model_label += f"; semantic-adjudicator-retry={retry_model}"
+        tier_parts = [
+            str(detector_tier or "").strip(),
+            str(adjudicator_tier or "").strip(),
+            str(retry_tier or "").strip(),
+        ]
         tier_label = ", ".join(item for item in tier_parts if item)
         return adjudicated, model_label, tier_label
 

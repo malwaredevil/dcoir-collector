@@ -66,6 +66,8 @@ def run_production_regressions(
             "_quality_retry_initial_rejected_count": 1,
             "_quality_retry_retry_finding_count": 1,
             "_quality_retry_initial_raw_digest": "AGENTS.md:248 confidence 0.55 (Candidate)",
+            "_quality_retry_provider_result_keys": ["findings", "summary"],
+            "_quality_retry_model": "retry-adjudicator-model",
         }
     )
     assert review.split_findings_with_review_body_fallback(
@@ -119,6 +121,34 @@ def run_production_regressions(
         pass
     else:
         raise AssertionError("terminal disposition trusted the initial summary after an empty retry summary")
+
+    # The retry response envelope is checked too, not only the first response.
+    flat_retry_envelope = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        final_policy.CLEAN_SUMMARY,
+    )
+    flat_retry_envelope.update(
+        {
+            key: value
+            for key, value in retried_low_confidence.items()
+            if key.startswith("_quality_retry_")
+        }
+    )
+    flat_retry_envelope["_quality_retry_provider_result_keys"] = [
+        "body", "confidence", "line", "path", "severity", "summary", "title", "validation",
+    ]
+    try:
+        review.split_findings_with_review_body_fallback(
+            flat_retry_envelope,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("terminal disposition ignored a non-envelope retry response")
 
     production_problem_summary = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
