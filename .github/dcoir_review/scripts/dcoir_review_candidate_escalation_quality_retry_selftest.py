@@ -67,7 +67,12 @@ def test_live_failure_reproduced_and_recovered():
     # Run 37983201801: the 0.72/0.70 broad recovery was replaced by
     # final v44 adjudication findings at 0.62, 0.55 and 0.58.
     initial=response(finding(0.62), finding(0.55), finding(0.58))
-    result, model, _, calls, debug, cfg, review=run(initial, response(finding(0.86)))
+    # Use the real quality-gate wrapper, not a fake predicate: this is the
+    # dispatch seam missed by the previous v35-only tool repair.
+    production_reason = load_review().hardened.review_quality_retry_reason
+    result, model, _, calls, debug, cfg, review=run(
+        initial, response(finding(0.86)), reason=production_reason
+    )
     assert len(calls)==1
     assert model=="repair-adjudicator"
     assert result["findings"][0]["confidence"]==0.86
