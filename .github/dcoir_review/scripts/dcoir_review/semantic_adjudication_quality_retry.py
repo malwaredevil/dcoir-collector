@@ -7,6 +7,7 @@ from typing import Any
 
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
 from dcoir_review import semantic_adjudication_normalization as normalization
+from dcoir_review import structured_result_disposition_state as disposition
 
 # Explicit marker on the retry provider config. The final-adjudication policy
 # reads it to inject the publication floor, label telemetry, and choose the
@@ -118,10 +119,6 @@ def _retry_reason(
     is read by the outermost disposition stage, so this final-stage check must
     neither overwrite it nor divert final findings away from this retry.
     """
-
-    # Imported lazily: the disposition module imports candidate escalation,
-    # which imports semantic adjudication, which imports this module.
-    from dcoir_review import structured_result_disposition as disposition
 
     saved_pending = getattr(config, disposition.PENDING_ATTR, None)
     saved_allow = getattr(config, disposition.ALLOW_ATTR, False)

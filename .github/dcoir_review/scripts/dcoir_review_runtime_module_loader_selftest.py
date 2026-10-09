@@ -136,6 +136,7 @@ DIRECT_IMPORT_MODULES = (
     "status_overview_support.py",
     "status_snapshot.py",
     "structured_result_disposition.py",
+    "structured_result_disposition_state.py",
     "structured_result_provider.py",
     "structured_result_recovery.py",
     "structured_result_retry.py",
