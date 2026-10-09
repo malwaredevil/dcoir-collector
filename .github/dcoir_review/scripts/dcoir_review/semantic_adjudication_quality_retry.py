@@ -13,6 +13,13 @@ from dcoir_review import structured_result_disposition_state as disposition
 # reads it to inject the publication floor, label telemetry, and choose the
 # projected prompt artifact path.
 FINAL_ADJUDICATION_RETRY_ATTR = "_semantic_adjudication_quality_retry_call"
+# Prompt budget held back for the publication-floor instruction that the
+# final-adjudication policy inserts into the retry prompt, so that insertion
+# never truncates the previous-findings evidence at the end of the prompt.
+FLOOR_INSTRUCTION_RESERVE_CHARS = 400
+RETRY_FAILED_ARTIFACT_PATH = (
+    "responses/07-semantic-adjudication-quality-retry-failed.json"
+)
 PROJECTED_PROMPT_ARTIFACT_PATH = (
     "prompts/07-semantic-adjudication-quality-retry-projected-prompt.txt"
 )
@@ -130,6 +137,59 @@ def _retry_reason(
         setattr(config, disposition.PENDING_ATTR, saved_pending)
 
 
+def build_retry_prompt(
+    module: Any, prompt: str, adjudicated: dict[str, Any], risk_sentinels: Any,
+    config: Any, reason: str,
+) -> str:
+    budget_config = copy.copy(config)
+    try:
+        max_chars = int(getattr(config, "max_prompt_chars", 120000))
+    except (OverflowError, TypeError, ValueError):
+        max_chars = 120000
+    budget_config.max_prompt_chars = max(0, max_chars - FLOOR_INSTRUCTION_RESERVE_CHARS)
+    return module.hardened.build_quality_retry_prompt(
+        prompt, adjudicated, risk_sentinels, budget_config, reason
+    )
+
+
+def _request_retry(
+    module: Any, retry_prompt: str, schema: dict[str, Any], retry_config: Any,
+    config: Any, reporter: Any, normalize_result: Any,
+) -> tuple[dict[str, Any], Any, Any, list[str]]:
+    """Run the retry provider call and validate its output; raise on failure."""
+
+    retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
+        retry_prompt, schema, retry_config, reporter
+    )
+    module.hardened.write_debug_json_artifact_safely(
+        config,
+        "responses/07-semantic-adjudication-quality-retry-raw-result.json",
+        {"model_used": retry_model, "service_tier": retry_tier, "result": retry_result},
+    )
+    retry_provider_keys = (
+        sorted(str(key) for key in retry_result) if isinstance(retry_result, dict) else []
+    )
+    # Normalize first: a complete flat single finding is an accepted
+    # adjudicator shape and carries no summary. Canonical envelopes must still
+    # supply a valid summary; a flat retry leaves the retry summary empty, so
+    # terminal clean disposition stays unavailable and fails closed.
+    retry_result = normalize_result(module, retry_result)
+    if normalization.FLAT_SHAPE_MARKER not in retry_result and not valid_retry_summary(
+        retry_result.get("summary")
+    ):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR semantic-adjudication retry returned a missing or invalid summary"
+        )
+    retry_findings = retry_result.get("findings")
+    if not isinstance(retry_findings, list) or any(
+        not isinstance(finding, dict) for finding in retry_findings
+    ):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR semantic-adjudication retry returned missing or invalid findings"
+        )
+    return retry_result, retry_model, retry_tier, retry_provider_keys
+
+
 def retry_rejected_adjudication(
     module: Any, adjudicated: dict[str, Any], config: Any,
     risk_sentinels: Any, line_index: Any, prompt: str, schema: dict[str, Any],
@@ -155,8 +215,8 @@ def retry_rejected_adjudication(
             "semantic-adjudication-quality-retry",
             f"{safe_reason}; requesting one evidence-backed final-adjudication repair",
         )
-    retry_prompt = module.hardened.build_quality_retry_prompt(
-        prompt, adjudicated, risk_sentinels, config, reason
+    retry_prompt = build_retry_prompt(
+        module, prompt, adjudicated, risk_sentinels, config, reason
     )
     module.hardened.write_debug_text_artifact_safely(
         config, "prompts/07-semantic-adjudication-quality-retry.txt", retry_prompt
@@ -168,30 +228,28 @@ def retry_rejected_adjudication(
     )
     retry_config = copy.copy(adjudication_config)
     setattr(retry_config, FINAL_ADJUDICATION_RETRY_ATTR, True)
-    retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
-        retry_prompt, schema, retry_config, reporter
-    )
-    retry_provider_keys = (
-        sorted(str(key) for key in retry_result) if isinstance(retry_result, dict) else []
-    )
-    # Normalize first: a complete flat single finding is an accepted
-    # adjudicator shape and carries no summary. Canonical envelopes must still
-    # supply a valid summary; a flat retry leaves the retry summary empty, so
-    # terminal clean disposition stays unavailable and fails closed.
-    retry_result = normalize_result(module, retry_result)
-    if normalization.FLAT_SHAPE_MARKER not in retry_result and not valid_retry_summary(
-        retry_result.get("summary")
-    ):
-        raise module.hardened.ReviewQualityError(
-            "DCOIR semantic-adjudication retry returned a missing or invalid summary"
+    try:
+        retry_result, retry_model, retry_tier, retry_provider_keys = _request_retry(
+            module, retry_prompt, schema, retry_config, config, reporter, normalize_result
         )
-    retry_findings = retry_result.get("findings")
-    if not isinstance(retry_findings, list) or any(
-        not isinstance(finding, dict) for finding in retry_findings
-    ):
-        raise module.hardened.ReviewQualityError(
-            "DCOIR semantic-adjudication retry returned missing or invalid findings"
+    except Exception as exc:  # noqa: BLE001 - the repair is optional; see below.
+        # The first pass is still authoritative. A failed or malformed retry is
+        # never merged; the first-pass result continues to the downstream
+        # fail-closed gates (confidence stage, verifier, terminal checks).
+        failure = module.hardened.sanitize_github_output(
+            f"{exc.__class__.__name__}: {exc}"[:500], config
         )
+        module.hardened.write_debug_json_artifact_safely(
+            config,
+            RETRY_FAILED_ARTIFACT_PATH,
+            {"retry_reason": reason, "failure": failure, "kept": "first-pass-adjudication"},
+        )
+        if reporter:
+            reporter.update(
+                "semantic-adjudication-quality-retry",
+                f"retry failed ({failure}); keeping the first-pass adjudication for downstream gates",
+            )
+        return adjudicated, None, None
     module.hardened.write_debug_json_artifact_safely(
         config,
         "responses/07-semantic-adjudication-quality-retry-result.json",

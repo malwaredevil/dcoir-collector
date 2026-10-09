@@ -22,28 +22,32 @@ def _summary_contract() -> None:
         assert not quality_retry.valid_retry_summary(malformed)
 
 
-def _malformed_retry_output_fails_closed(review) -> None:
-    harness = Harness(review)
-    harness.expect_failure(
-        "missing or invalid summary",
-        response(finding(0.60)),
-        response(summary={"status": "clean"}),
-        merge=forbidden_merge,
-    )
-    for malformed_findings in ({}, [None]):
-        harness.expect_failure(
-            "missing or invalid findings",
-            response(finding(0.60)),
-            {"summary": "No remaining actionable findings.", "findings": malformed_findings},
-            merge=forbidden_merge,
+def _failed_retry_keeps_first_pass(review, config) -> None:
+    # The retry is an optional repair. A provider failure or malformed retry
+    # output is never merged; the first pass continues to downstream gates.
+    first_pass = response(finding(0.60), summary="No remaining actionable findings.")
+    for retry_reply, failure in (
+        (RuntimeError("all retry models failed"), "all retry models failed"),
+        (response(summary={"status": "clean"}), "missing or invalid summary"),
+        ({"summary": "No remaining actionable findings.", "findings": {}}, "missing or invalid findings"),
+        ({"summary": "No remaining actionable findings.", "findings": [None]}, "missing or invalid findings"),
+        ({"title": "Partial"}, "complete flat single finding"),
+    ):
+        harness = Harness(review)
+        result = harness.run(first_pass, retry_reply, merge=forbidden_merge)
+        assert len(harness.calls) == 2
+        assert result["findings"] == first_pass["findings"]
+        assert not any(key.startswith("_quality_retry_") for key in result)
+        recorded = harness.debug_json[quality_retry.RETRY_FAILED_ARTIFACT_PATH]
+        assert failure in recorded["failure"] and recorded["kept"] == "first-pass-adjudication"
+        assert any(
+            stage == "semantic-adjudication-quality-retry" and message.startswith("retry failed (")
+            for stage, message in harness.reporter.events
         )
-    # An incomplete flat object is neither an envelope nor a complete finding.
-    harness.expect_failure(
-        "complete flat single finding",
-        response(finding(0.60)),
-        {"title": "Partial"},
-        merge=forbidden_merge,
-    )
+        # The pre-existing terminal low-confidence disposition still applies.
+        assert review.split_findings_with_review_body_fallback(
+            result, config, {("probe.py", 12): 1}, "+changed", []
+        ) == ([], [])
 
 
 def _malformed_initial_findings_fail_before_retry(review) -> None:
@@ -75,7 +79,8 @@ def _malformed_initial_findings_fail_before_retry(review) -> None:
 def main() -> None:
     review = load_review()
     _summary_contract()
-    _malformed_retry_output_fails_closed(review)
+    config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
+    _failed_retry_keeps_first_pass(review, config)
     _malformed_initial_findings_fail_before_retry(review)
     print("dcoir_review_semantic_adjudication_quality_retry_validation_selftest passed")
 

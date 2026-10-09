@@ -153,6 +153,28 @@ def _no_retry_when_predicate_is_clean(review) -> None:
     assert "_quality_retry_attempted" not in result
 
 
+def _floor_insertion_keeps_previous_findings(review, config) -> None:
+    # The retry prompt reserves room for the publication-floor instruction,
+    # so inserting it never truncates the previous findings at the end.
+    from dcoir_review import final_adjudication_policy as final_policy
+
+    budget = copy.copy(config)
+    budget.max_prompt_chars = 120000
+    initial = response(finding(0.60), finding(0.45, line=13, title="Last previous finding"))
+    retry_prompt = quality_retry.build_retry_prompt(
+        review, "Publication-quality rules:\n" + "E" * 130000, initial, [], budget,
+        "no finding meets confidence 0.70",
+    )
+    assert len(retry_prompt) <= budget.max_prompt_chars - quality_retry.FLOOR_INSTRUCTION_RESERVE_CHARS
+    setattr(budget, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, True)
+    projected = final_policy._inject_publication_floor(retry_prompt, budget)
+    assert final_policy.PROMPT_MARKER in projected
+    assert len(projected) - len(retry_prompt) <= quality_retry.FLOOR_INSTRUCTION_RESERVE_CHARS
+    assert projected.rstrip().endswith(retry_prompt.rstrip()[-200:])
+    assert "Last previous finding" in projected
+    assert not projected.endswith(final_policy.PROMPT_TRUNCATION_MARKER)
+
+
 def main() -> None:
     review = load_review()
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
@@ -165,6 +187,7 @@ def main() -> None:
     _flat_retry_is_normalized_without_clean_certification(review)
     _retry_check_leaves_first_pass_disposition_state_alone(review, config)
     _no_retry_when_predicate_is_clean(review)
+    _floor_insertion_keeps_previous_findings(review, config)
     print("dcoir_review_semantic_adjudication_quality_retry_selftest passed")
 
 
