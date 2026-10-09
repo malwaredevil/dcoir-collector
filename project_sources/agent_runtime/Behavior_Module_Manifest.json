@@ -444,12 +444,12 @@
       "kind": "specialist",
       "order": 10,
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.10.md",
-      "sha256": "11d587b19f12af39a63c76e80cdf497ed88e018fecb7a4de3ff9918a4e231413",
+      "sha256": "c56987316a18ef5d879b28edee1214581420e9dbe7d09151aa0e4701e9e2ddad",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_10_Output_Contract_Consistency_Guard_and_Report_Composer.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "11d587b19f12af39a63c76e80cdf497ed88e018fecb7a4de3ff9918a4e231413"
+          "sha256": "c56987316a18ef5d879b28edee1214581420e9dbe7d09151aa0e4701e9e2ddad"
         }
       }
     },

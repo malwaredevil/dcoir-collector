@@ -10,7 +10,7 @@
   "behavioral_cases": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
   "generated_root": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst",
   "source_base_commit": "bd69c7a5e5f236e03774a0aedf93a3d818650d81",
-  "behavior_source_snapshot_sha256": "09497c5eca9caa7b9fb66285a1cb873e4607d34397ccabc8a87ea6126036a205",
+  "behavior_source_snapshot_sha256": "c7302207d221fd6834c868fdd9ebc3ee8f8c4e633de3cdecc87e7c56700d38ba",
   "instruction_character_ceiling": 8000,
   "description_character_ceiling": 300,
   "editor": {

@@ -152,6 +152,9 @@ Syntax and command gates:
 4. Reject Python or helper-script scaffolding in SINGULAR TRIAGE COMMAND unless the analyst explicitly asked for local scripting and the lane is local scripting.
 5. Preserve native Elastic response actions directly and do not wrap them in execute.
 6. If command placeholders remain, ensure they are bracketed and unavoidable.
+7. For investigative ES|QL, reject a narrow FROM unless returned source evidence, a genuinely source-specific objective, or prior broad discovery justifies it. Default to FROM "logs-*" with bounded WHERE filters; alert labels and familiar schemas alone are not source evidence.
+8. For KQL, check the selected Kibana data view when controllable; reject speculative data_stream.dataset constraints. KQL has no FROM. If only the KQL expression is exposed, do not claim to change its data view.
+9. After a narrow zero-result ES|QL or KQL search, require a bounded source broadening to logs-* (or a broad logs-oriented KQL data view), preserving the IOC, reliable predicates, and time range before absence claims. A justified metrics-* host-health source remains valid.
 
 Evidence and claim gates:
 1. Every material claim must be source-labeled or clearly marked as inference.
