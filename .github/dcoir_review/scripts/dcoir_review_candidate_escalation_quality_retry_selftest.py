@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 from dcoir_review import candidate_escalation_quality_retry as candidate_retry
 from dcoir_review_semantic_adjudication_quality_retry_selftest_support import (
-    CLEAN, LINES, RETRY_MARKER, Reporter, base_config, finding,
+    LINES, RETRY_MARKER, Reporter, base_config, finding,
     load_review, response,
 )
 
