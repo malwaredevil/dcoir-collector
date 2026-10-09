@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
 
+
+PROJECTED_PROMPT_ARTIFACT_ATTR = "_semantic_adjudication_quality_retry_prompt"
+PROJECTED_PROMPT_ARTIFACT_PATH = (
+    "prompts/07-semantic-adjudication-quality-retry-projected-prompt.txt"
+)
 
 QUALITY_RETRY_RESULT_KEYS = {
     "_quality_retry_attempted",
@@ -131,8 +137,10 @@ def retry_rejected_adjudication(
         "responses/07-semantic-adjudication-quality-retry-initial-result.json",
         {"result": adjudicated},
     )
+    retry_config = copy.copy(adjudication_config)
+    setattr(retry_config, PROJECTED_PROMPT_ARTIFACT_ATTR, True)
     retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
-        retry_prompt, schema, adjudication_config, reporter
+        retry_prompt, schema, retry_config, reporter
     )
     if not isinstance(retry_result, dict) or not valid_retry_summary(
         retry_result.get("summary")
@@ -141,6 +149,13 @@ def retry_rejected_adjudication(
             "DCOIR semantic-adjudication retry returned a missing or invalid summary"
         )
     retry_result = normalize_result(module, retry_result)
+    retry_findings = retry_result.get("findings")
+    if not isinstance(retry_findings, list) or any(
+        not isinstance(finding, dict) for finding in retry_findings
+    ):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR semantic-adjudication retry returned missing or invalid findings"
+        )
     module.hardened.write_debug_json_artifact_safely(
         config,
         "responses/07-semantic-adjudication-quality-retry-result.json",

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from dcoir_review import final_adjudication_policy as final_policy
+from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 
 
 def _run_projected(module: Any, prompt: Any, config: Any):
@@ -48,10 +49,12 @@ def semantic_adjudication_stage(prompt):
 
 
 def _run_with_semantic_adjudication_retry_callsite(module: Any, prompt: str, config: Any):
+    retry_config = SimpleNamespace(**vars(config))
+    setattr(retry_config, quality_retry.PROJECTED_PROMPT_ARTIFACT_ATTR, True)
     namespace: dict[str, Any] = {
         "_run_projected": _run_projected,
         "module": module,
-        "config": config,
+        "config": retry_config,
     }
     exec(
         compile(
@@ -89,11 +92,24 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     assert "empty findings list and a clean summary" in composed_injected
     assert module.hardened.review_stages[-1] == "semantic-adjudicator"
 
+    original_prompt_artifact = module.hardened.debug_text_artifacts[
+        final_policy.PROMPT_ARTIFACT_PATH
+    ]
     _run_with_semantic_adjudication_retry_callsite(module, semantic_prompt, config)
     retry_injected = module.hardened.review_prompts[-1]
     assert final_policy.PROMPT_MARKER in retry_injected
     assert "0.70" in retry_injected
     assert module.hardened.review_stages[-1] == "semantic-adjudicator"
+    assert (
+        module.hardened.debug_text_artifacts[final_policy.PROMPT_ARTIFACT_PATH]
+        == original_prompt_artifact
+    )
+    assert (
+        module.hardened.debug_text_artifacts[
+            quality_retry.PROJECTED_PROMPT_ARTIFACT_PATH
+        ]
+        == retry_injected
+    )
 
     escalation_prompt = (
         "Final semantic adjudication pass.\n\n"

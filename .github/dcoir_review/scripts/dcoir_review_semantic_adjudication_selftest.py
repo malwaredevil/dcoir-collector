@@ -378,6 +378,40 @@ def main() -> None:
     else:
         raise AssertionError("malformed retry summary did not fail closed")
 
+    for invalid_findings in ({}, [None]):
+        malformed_retry_findings_calls = 0
+        malformed_retry_findings = SimpleNamespace(**vars(repair_hardened))
+
+        def invalid_retry_findings(prompt, schema, cfg, provider_reporter=None):
+            nonlocal malformed_retry_findings_calls
+            malformed_retry_findings_calls += 1
+            if malformed_retry_findings_calls == 1:
+                return low_then_supported(prompt, schema, cfg, provider_reporter)
+            return (
+                {
+                    "summary": "No remaining actionable findings.",
+                    "findings": invalid_findings,
+                },
+                "adjudicator-model",
+                "default",
+            )
+
+        malformed_retry_findings.openrouter_review = invalid_retry_findings
+        malformed_retry_findings.merge_quality_retry_results = forbidden_merge
+        malformed_retry_findings_module = SimpleNamespace(**vars(repair_module))
+        malformed_retry_findings_module.hardened = malformed_retry_findings
+        try:
+            adjudication.build_semantic_adjudication_stage(
+                malformed_retry_findings_module, fake_detector
+            )(
+                {"number": 1}, [], "diff", {}, fake_config, reporter, [], {},
+                "", "deep-forced", "", object(),
+            )
+        except malformed_retry_findings.ReviewQualityError as exc:
+            assert "missing or invalid findings" in str(exc)
+        else:
+            raise AssertionError("malformed retry findings reached result merging")
+
     verifier_prompt = v21._verifier_prompt(
         {
             "title": "Candidate",

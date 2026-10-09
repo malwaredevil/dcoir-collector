@@ -360,8 +360,13 @@ def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any
     except Exception:
         return prompt, config
     try:
+        artifact_path = (
+            quality_retry.PROJECTED_PROMPT_ARTIFACT_PATH
+            if getattr(config, quality_retry.PROJECTED_PROMPT_ARTIFACT_ATTR, False)
+            else PROMPT_ARTIFACT_PATH
+        )
         module.hardened.write_debug_text_artifact_safely(
-            config, PROMPT_ARTIFACT_PATH, injected
+            config, artifact_path, injected
         )
     except Exception:
         # Debug-artifact persistence is observational and must not alter review flow.
