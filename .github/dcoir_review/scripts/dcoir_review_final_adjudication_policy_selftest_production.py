@@ -95,6 +95,31 @@ def run_production_regressions(
     else:
         raise AssertionError("terminal disposition accepted incomplete final-retry metadata")
 
+    retry_without_summary = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        final_policy.CLEAN_SUMMARY,
+    )
+    retry_without_summary.update(
+        {
+            key: value
+            for key, value in retried_low_confidence.items()
+            if key.startswith("_quality_retry_")
+        }
+    )
+    retry_without_summary["_quality_retry_retry_summary"] = ""
+    try:
+        review.split_findings_with_review_body_fallback(
+            retry_without_summary,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("terminal disposition trusted the initial summary after an empty retry summary")
+
     production_problem_summary = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
         "A correctness issue remains after semantic adjudication.",

@@ -38,6 +38,8 @@ def quality_retry_metadata_is_valid(result: dict[str, Any]) -> bool:
         for key in ("_quality_retry_initial_summary", "_quality_retry_retry_summary")
     ):
         return False
+    if not result["_quality_retry_retry_summary"].strip():
+        return False
     if not str(result.get("_quality_retry_initial_raw_digest", "") or "").strip():
         return False
 
