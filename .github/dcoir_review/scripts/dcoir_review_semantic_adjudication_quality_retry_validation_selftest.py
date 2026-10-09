@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from dcoir_review import review_scope_guard as scope_guard
 from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 from dcoir_review_semantic_adjudication_quality_retry_selftest_support import (
     CLEAN,
@@ -50,6 +51,25 @@ def _failed_retry_keeps_first_pass(review, config) -> None:
         ) == ([], [])
 
 
+def _run_aborts_are_not_swallowed(review) -> None:
+    # Script timeouts and superseded/unverifiable PR heads must end the run,
+    # never fall back to the first-pass result.
+    for abort in (
+        TimeoutError("script timeout"),
+        scope_guard.ReviewSupersededError("newer head"),
+        scope_guard.ReviewHeadVerificationError("head unverifiable"),
+    ):
+        harness = Harness(review)
+        try:
+            harness.run(response(finding(0.60)), abort, merge=forbidden_merge)
+        except type(abort):
+            pass
+        else:
+            raise AssertionError(f"retry swallowed run-level abort {type(abort).__name__}")
+        assert len(harness.calls) == 2
+        assert quality_retry.RETRY_FAILED_ARTIFACT_PATH not in harness.debug_json
+
+
 def _malformed_initial_findings_fail_before_retry(review) -> None:
     # A clean retry must never hide malformed first-pass output, and the
     # bounded retry provider call is not spent on it.
@@ -81,6 +101,7 @@ def main() -> None:
     _summary_contract()
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     _failed_retry_keeps_first_pass(review, config)
+    _run_aborts_are_not_swallowed(review)
     _malformed_initial_findings_fail_before_retry(review)
     print("dcoir_review_semantic_adjudication_quality_retry_validation_selftest passed")
 

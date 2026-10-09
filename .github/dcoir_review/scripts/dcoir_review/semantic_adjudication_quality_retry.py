@@ -7,6 +7,7 @@ from typing import Any
 
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
 from dcoir_review import semantic_adjudication_normalization as normalization
+from dcoir_review import review_scope_guard as scope_guard
 from dcoir_review import structured_result_disposition_state as disposition
 
 # Explicit marker on the retry provider config. The final-adjudication policy
@@ -17,6 +18,13 @@ FINAL_ADJUDICATION_RETRY_ATTR = "_semantic_adjudication_quality_retry_call"
 # final-adjudication policy inserts into the retry prompt, so that insertion
 # never truncates the previous-findings evidence at the end of the prompt.
 FLOOR_INSTRUCTION_RESERVE_CHARS = 400
+# Run-level aborts (script timeout, superseded or unverifiable PR head) must
+# end the review; they never fall back to the first-pass result.
+RUN_ABORT_ERRORS = (
+    TimeoutError,
+    scope_guard.ReviewSupersededError,
+    scope_guard.ReviewHeadVerificationError,
+)
 RETRY_FAILED_ARTIFACT_PATH = (
     "responses/07-semantic-adjudication-quality-retry-failed.json"
 )
@@ -232,6 +240,8 @@ def retry_rejected_adjudication(
         retry_result, retry_model, retry_tier, retry_provider_keys = _request_retry(
             module, retry_prompt, schema, retry_config, config, reporter, normalize_result
         )
+    except RUN_ABORT_ERRORS:
+        raise
     except Exception as exc:  # noqa: BLE001 - the repair is optional; see below.
         # The first pass is still authoritative. A failed or malformed retry is
         # never merged; the first-pass result continues to the downstream
