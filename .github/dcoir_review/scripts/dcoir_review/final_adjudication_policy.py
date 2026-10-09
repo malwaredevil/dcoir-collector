@@ -8,6 +8,7 @@ import math
 from typing import Any
 
 from dcoir_review import semantic_adjudication as adjudication
+from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 from dcoir_review import review_telemetry
 
 
@@ -183,7 +184,11 @@ def _terminal_disposition(
 
     if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
-    if not set(result.keys()).issubset(_RESULT_ALLOWED_KEYS):
+    if not set(result.keys()).issubset(
+        _RESULT_ALLOWED_KEYS | quality_retry.QUALITY_RETRY_RESULT_KEYS
+    ):
+        return None
+    if not quality_retry.quality_retry_metadata_is_valid(result):
         return None
     if not _provider_envelope_matches_schema(result):
         return None
@@ -309,6 +314,12 @@ def _is_final_semantic_adjudication_call(prompt: Any) -> bool:
                     "semantic_adjudication_stage",
                 )
                 and locals_map.get("prompt") is prompt
+            ):
+                return True
+            if (
+                filename == "semantic_adjudication_quality_retry.py"
+                and function == "retry_rejected_adjudication"
+                and locals_map.get("retry_prompt") is prompt
             ):
                 return True
             current = current.f_back

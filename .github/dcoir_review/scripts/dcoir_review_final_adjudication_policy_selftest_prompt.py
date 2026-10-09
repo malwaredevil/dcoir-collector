@@ -47,6 +47,26 @@ def semantic_adjudication_stage(prompt):
     return namespace["semantic_adjudication_stage"](prompt)
 
 
+def _run_with_semantic_adjudication_retry_callsite(module: Any, prompt: str, config: Any):
+    namespace: dict[str, Any] = {
+        "_run_projected": _run_projected,
+        "module": module,
+        "config": config,
+    }
+    exec(
+        compile(
+            """
+def retry_rejected_adjudication(retry_prompt):
+    return _run_projected(module, retry_prompt, config)
+""",
+            "semantic_adjudication_quality_retry.py",
+            "exec",
+        ),
+        namespace,
+    )
+    return namespace["retry_rejected_adjudication"](prompt)
+
+
 def run_prompt_regressions(module: Any, config: Any) -> None:
     semantic_prompt = (
         "Final semantic adjudication pass.\n\n"
@@ -67,6 +87,12 @@ def run_prompt_regressions(module: Any, config: Any) -> None:
     composed_injected = module.hardened.review_prompts[-1]
     assert final_policy.PROMPT_MARKER in composed_injected
     assert "empty findings list and a clean summary" in composed_injected
+    assert module.hardened.review_stages[-1] == "semantic-adjudicator"
+
+    _run_with_semantic_adjudication_retry_callsite(module, semantic_prompt, config)
+    retry_injected = module.hardened.review_prompts[-1]
+    assert final_policy.PROMPT_MARKER in retry_injected
+    assert "0.70" in retry_injected
     assert module.hardened.review_stages[-1] == "semantic-adjudicator"
 
     escalation_prompt = (

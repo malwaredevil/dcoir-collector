@@ -50,6 +50,51 @@ def run_production_regressions(
     assert production_live_shape["summary"] == final_policy.CLEAN_SUMMARY
     assert production_live_shape[final_policy.DISPOSITION_MARKER]["candidate_count"] == 3
 
+    retried_low_confidence = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        final_policy.CLEAN_SUMMARY,
+    )
+    retried_low_confidence.update(
+        {
+            "_quality_retry_attempted": True,
+            "_quality_retry_reason": "none met the configured confidence floor",
+            "_quality_retry_initial_summary": "First adjudication candidate.",
+            "_quality_retry_retry_summary": final_policy.CLEAN_SUMMARY,
+            "_quality_retry_merge_contract": "filtered-initial-v1",
+            "_quality_retry_initial_finding_count": 1,
+            "_quality_retry_initial_survivor_count": 0,
+            "_quality_retry_initial_rejected_count": 1,
+            "_quality_retry_retry_finding_count": 1,
+            "_quality_retry_initial_raw_digest": "AGENTS.md:248 confidence 0.55 (Candidate)",
+        }
+    )
+    assert review.split_findings_with_review_body_fallback(
+        retried_low_confidence,
+        prod_config,
+        {("AGENTS.md", 248): 1},
+        "+governance",
+        [],
+    ) == ([], [])
+    assert retried_low_confidence[final_policy.DISPOSITION_MARKER]["candidate_count"] == 1
+
+    incomplete_retry_metadata = adjudicated_result(
+        [finding("AGENTS.md", 248, 0.55)],
+        final_policy.CLEAN_SUMMARY,
+    )
+    incomplete_retry_metadata["_quality_retry_attempted"] = True
+    try:
+        review.split_findings_with_review_body_fallback(
+            incomplete_retry_metadata,
+            prod_config,
+            {("AGENTS.md", 248): 1},
+            "+governance",
+            [],
+        )
+    except review.hardened.ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("terminal disposition accepted incomplete final-retry metadata")
+
     production_problem_summary = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
         "A correctness issue remains after semantic adjudication.",

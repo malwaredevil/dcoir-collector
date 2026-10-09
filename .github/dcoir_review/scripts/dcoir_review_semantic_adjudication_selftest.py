@@ -161,6 +161,7 @@ def main() -> None:
         semantic_adjudication_candidate_digest_chars=24000,
         semantic_adjudication_model_stack=["adjudicator-model"],
         max_prompt_chars=120000,
+        minimum_confidence=0.70,
     )
     result, model_label, tier = v35_hybrid(
         {"number": 1},
@@ -231,6 +232,7 @@ def main() -> None:
     assert repaired["_quality_retry_attempted"] is True
     assert "prompts/07-semantic-adjudication-quality-retry.txt" in debug_text
     assert "responses/07-semantic-adjudication-quality-retry-result.json" in debug_json
+    assert "responses/07-semantic-adjudication-quality-retry-initial-result.json" in debug_json
 
     # A second low-confidence adjudication is never silently upgraded to
     # an accepted finding or reported as a clean review. Retry exactly once.
@@ -283,6 +285,48 @@ def main() -> None:
     assert clean_result["findings"] == []
     assert clean_result["_quality_retry_attempted"] is True
     assert review.hardened.split_findings(clean_result, config, {("probe.py", 12): 1}) == ([], [])
+
+    # Complete findings with omitted confidence are admitted only at the normal
+    # floor and survive a clean retry so the downstream verifier can assess them.
+    missing_confidence_calls: list[str] = []
+
+    def missing_confidence_then_clean(prompt, schema, cfg, reporter=None):
+        missing_confidence_calls.append(prompt)
+        if "Review quality retry:" in prompt:
+            return {"summary": "No remaining actionable findings.", "findings": []}, "adjudicator-model", "default"
+        return (
+            {
+                "summary": "The scoped source conflict is backed by the changed lines.",
+                "findings": [{
+                    "path": "probe.py", "line": 12, "severity": "medium",
+                    "title": "Source scope conflict",
+                    "body": "The changed rule still narrows by an alert label alone.",
+                    "suggested_replacement": "",
+                    "validation": "Compare the added rule with the unchanged routing condition.",
+                }],
+            },
+            "adjudicator-model",
+            "default",
+        )
+
+    missing_confidence_hardened = SimpleNamespace(**vars(repair_hardened))
+    missing_confidence_hardened.openrouter_review = missing_confidence_then_clean
+    missing_confidence_hardened.merge_quality_retry_results = review.hardened.merge_quality_retry_results
+    missing_confidence_module = SimpleNamespace(**vars(repair_module))
+    missing_confidence_module.hardened = missing_confidence_hardened
+    missing_confidence_result, _, _ = adjudication.build_semantic_adjudication_stage(
+        missing_confidence_module, fake_detector
+    )(
+        {"number": 1}, [], "diff", {}, fake_config, reporter, [], {("probe.py", 12): 1},
+        "", "deep-forced", "", object(),
+    )
+    assert len(missing_confidence_calls) == 2
+    assert len(missing_confidence_result["findings"]) == 1
+    assert missing_confidence_result["findings"][0]["confidence"] == 0.70
+    assert missing_confidence_result["_quality_retry_initial_survivor_count"] == 1
+    assert "confidence" not in debug_json[
+        "responses/07-semantic-adjudication-quality-retry-initial-result.json"
+    ]["result"]["findings"][0]
 
     verifier_prompt = v21._verifier_prompt(
         {
