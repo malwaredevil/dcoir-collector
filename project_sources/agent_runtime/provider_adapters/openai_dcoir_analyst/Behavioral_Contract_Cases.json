@@ -42,7 +42,11 @@
         "proposed for analyst execution",
         "first non-whitespace token must be FROM",
         "complete executable pipeline",
-        "never mix KQL and ESQL syntax"
+        "never mix KQL and ESQL syntax",
+        "FROM \"logs-*\"",
+        "selected Kibana data view",
+        "data_stream.dataset",
+        "Narrow only with evidence"
       ]
     },
     {
