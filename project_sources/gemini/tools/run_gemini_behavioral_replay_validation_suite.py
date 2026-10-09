@@ -45,6 +45,7 @@ from lib.gemini_behavioral_replay_fixture_schema_precision import run_fixture_sc
 SUPPORT = Path("project_sources/gemini/fixtures/behavioral_replay/supporting_artifacts")
 
 KNOWN_GOOD = [
+    ("dcoir_broad_logs_scope_issue_612", SUPPORT / "dcoir_broad_logs_scope_issue_612_known_good_response_pack.json", "run_good_issue_612"),
     (
         "dcoir_operator_state_first_issue_124",
         SUPPORT / "dcoir_operator_state_first_issue_124_known_good_response_pack.json",
@@ -68,6 +69,11 @@ KNOWN_GOOD = [
 ]
 
 KNOWN_BAD = [
+    ("dcoir_broad_logs_scope_issue_612", "dcoir_broad_logs_scope_issue_612_known_bad_kql_speculative_dataset_response_pack.json", "Issue 612 KQL speculative dataset"),
+    ("dcoir_broad_logs_scope_issue_612", "dcoir_broad_logs_scope_issue_612_known_bad_metrics_log_only_response_pack.json", "Issue 612 metrics source conflation"),
+    ("dcoir_broad_logs_scope_issue_612", "dcoir_broad_logs_scope_issue_612_known_bad_negated_broad_repair_response_pack.json", "Issue 612 negated source repair"),
+    ("dcoir_broad_logs_scope_issue_612", "dcoir_broad_logs_scope_issue_612_known_bad_premature_narrowing_response_pack.json", "Issue 612 premature narrowing"),
+    ("dcoir_broad_logs_scope_issue_612", "dcoir_broad_logs_scope_issue_612_known_bad_zero_result_absence_response_pack.json", "Issue 612 miss-to-absence"),
     ("dcoir_byovd_evidence_discipline_issue_122", "dcoir_byovd_evidence_discipline_issue_122_known_bad_response_pack.json", "Issue 122 baseline"),
     ("dcoir_byovd_evidence_discipline_issue_122", "dcoir_byovd_evidence_discipline_issue_122_known_bad_negated_required_response_pack.json", "Issue 122 negated-required"),
     ("dcoir_byovd_evidence_discipline_issue_122", "dcoir_byovd_evidence_discipline_issue_122_known_bad_post_rejection_response_pack.json", "Issue 122 post-marker rejection"),

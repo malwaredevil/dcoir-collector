@@ -122,6 +122,26 @@
         "openai_dcoir_analyst"
       ],
       "openai_api_eligible": true
+    },
+    {
+      "fixture_id": "dcoir_broad_logs_scope_issue_612",
+      "path": "project_sources/gemini/fixtures/behavioral_replay/dcoir_broad_logs_scope_issue_612.json",
+      "source_issue_numbers": [
+        612
+      ],
+      "status": "active",
+      "live_api_eligible": false,
+      "mode_support": [
+        "deterministic",
+        "agent_designer_capture",
+        "openai_webui_capture",
+        "live_openai_api"
+      ],
+      "capture_targets": [
+        "gemini_agent_designer",
+        "openai_dcoir_analyst"
+      ],
+      "openai_api_eligible": true
     }
   ],
   "openai_webui_capture_profile": {

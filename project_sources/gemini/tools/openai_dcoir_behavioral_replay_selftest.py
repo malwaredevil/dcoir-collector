@@ -26,6 +26,7 @@ from lib.gemini_behavioral_replay_workflow_report import redact_report_value
 FIXTURES_ROOT = Path("project_sources/gemini/fixtures/behavioral_replay")
 SUPPORT = FIXTURES_ROOT / "supporting_artifacts"
 GOOD_PACKS = {
+    "dcoir_broad_logs_scope_issue_612": "dcoir_broad_logs_scope_issue_612_known_good_response_pack.json",
     "dcoir_operator_state_first_issue_124": "dcoir_operator_state_first_issue_124_known_good_response_pack.json",
     "dcoir_byovd_evidence_discipline_issue_122": "dcoir_byovd_evidence_discipline_issue_122_known_good_response_pack.json",
     "dcoir_long_transcript_continuity_issue_123": "dcoir_long_transcript_continuity_issue_123_known_good_response_pack.json",
