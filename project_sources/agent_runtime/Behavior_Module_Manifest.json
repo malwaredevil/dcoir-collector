@@ -108,12 +108,12 @@
       "kind": "prime_chunk",
       "order": 6,
       "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.06.md",
-      "sha256": "d06faac89de986d2140d7674e6f2b6448a95da95cd807eb5f6e1e603e507f5d9",
+      "sha256": "c0a19b9d6230ff00fb0f46ace79dee455f91e72a1fa7407704f4ff59da114291",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_06_Zero_Result_Retrieval_Misses_And_Web_Intel.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "d06faac89de986d2140d7674e6f2b6448a95da95cd807eb5f6e1e603e507f5d9"
+          "sha256": "c0a19b9d6230ff00fb0f46ace79dee455f91e72a1fa7407704f4ff59da114291"
         }
       }
     },
@@ -332,12 +332,12 @@
       "kind": "specialist",
       "order": 2,
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.02.md",
-      "sha256": "4ee82729b228250a112e0fc791e819749489cffb03703725b2602450496d69b3",
+      "sha256": "f07bd802a717802c6d4613b30a31d34aa39a37ccff66e0261a84eb8716369cb1",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_02_Environment_and_Coverage_Mapper.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "4ee82729b228250a112e0fc791e819749489cffb03703725b2602450496d69b3"
+          "sha256": "f07bd802a717802c6d4613b30a31d34aa39a37ccff66e0261a84eb8716369cb1"
         }
       }
     },
@@ -374,12 +374,12 @@
       "kind": "specialist",
       "order": 5,
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.05.md",
-      "sha256": "441d47db3c94d9d93aa09365f34b921b9a1a355b8ecac1af86f4a1d4281d6473",
+      "sha256": "efc3beda4f60403fc67a278e372297ead9607e4dc696a00723d27d36a1d180fa",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_05_Query_Planner_and_Syntax_Guard.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "441d47db3c94d9d93aa09365f34b921b9a1a355b8ecac1af86f4a1d4281d6473"
+          "sha256": "efc3beda4f60403fc67a278e372297ead9607e4dc696a00723d27d36a1d180fa"
         }
       }
     },
