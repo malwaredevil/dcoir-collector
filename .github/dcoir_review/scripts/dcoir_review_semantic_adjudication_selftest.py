@@ -479,6 +479,99 @@ def main() -> None:
     assert overflow_result["_quality_retry_attempted"] is True
     assert overflow_result["findings"][0]["confidence"] == 0.60
 
+    # Regression from Copilot review 5474109201: every first-pass finding is
+    # validated before the retry filter, so a clean retry cannot hide a
+    # partial missing-confidence finding or a non-numeric confidence.
+    for invalid_initial in (
+        {"path": "probe.py", "line": 12, "severity": "medium",
+         "title": "Partial hypothesis", "body": "Missing fields",
+         "validation": "Check logs scope"},
+        {"path": "probe.py", "line": 12, "severity": "medium",
+         "confidence": "0.60", "title": "String confidence",
+         "body": "Source scope was narrowed", "suggested_replacement": "",
+         "validation": "Check logs scope"},
+    ):
+        invalid_initial_calls: list[str] = []
+
+        def invalid_initial_then_clean(
+            prompt, schema, cfg, provider_reporter=None,
+            calls=invalid_initial_calls, finding=invalid_initial,
+        ):
+            calls.append(prompt)
+            if "Review quality retry:" in prompt:
+                return {"summary": "No remaining actionable findings.", "findings": []}, "adjudicator-model", "default"
+            return {
+                "summary": "Initial adjudication response",
+                "findings": [finding],
+            }, "adjudicator-model", "default"
+
+        invalid_initial_hardened = SimpleNamespace(**vars(repair_hardened))
+        invalid_initial_hardened.openrouter_review = invalid_initial_then_clean
+        invalid_initial_hardened.merge_quality_retry_results = forbidden_merge
+        invalid_initial_hardened.review_quality_retry_reason = (
+            lambda result, cfg, sentinels, lines: "no finding meets confidence 0.70"
+        )
+        invalid_initial_module = SimpleNamespace(**vars(repair_module))
+        invalid_initial_module.hardened = invalid_initial_hardened
+        try:
+            adjudication.build_semantic_adjudication_stage(
+                invalid_initial_module, fake_detector
+            )({"number": 1}, [], "diff", {}, fake_config, reporter,
+              [], {("probe.py", 12): 1}, "", "deep-forced", "", object())
+        except invalid_initial_hardened.ReviewQualityError as exc:
+            assert "semantic-adjudication confidence" in str(exc)
+        else:
+            raise AssertionError("Invalid initial finding was hidden by the retry")
+        # Fail closed before spending the bounded retry provider call.
+        assert len(invalid_initial_calls) == 1
+
+    # A complete flat single-finding retry is an accepted adjudicator shape
+    # without a summary; it must be normalized, not rejected for the summary.
+    flat_calls: list[str] = []
+
+    def low_then_flat(prompt, schema, cfg, provider_reporter=None):
+        flat_calls.append(prompt)
+        result, model, tier = low_then_supported(prompt, schema, cfg, provider_reporter)
+        if "Review quality retry:" in prompt:
+            return dict(result["findings"][0]), model, tier
+        return result, model, tier
+
+    flat_hardened = SimpleNamespace(**vars(repair_hardened))
+    flat_hardened.openrouter_review = low_then_flat
+    flat_hardened.merge_quality_retry_results = review.hardened.merge_quality_retry_results
+    flat_module = SimpleNamespace(**vars(repair_module))
+    flat_module.hardened = flat_hardened
+    flat_result, _, _ = adjudication.build_semantic_adjudication_stage(
+        flat_module, fake_detector
+    )({"number": 1}, [], "diff", {}, fake_config, reporter,
+      [], {("probe.py", 12): 1}, "", "deep-forced", "", object())
+    assert len(flat_calls) == 2
+    assert [item["confidence"] for item in flat_result["findings"]] == [0.88]
+    assert flat_result["_quality_retry_retry_summary"] == ""
+    # No retry summary means no clean terminal disposition can be certified.
+    assert not adjudication.quality_retry.quality_retry_metadata_is_valid(flat_result)
+
+    # A flat retry that is incomplete is still malformed and fails closed.
+    def low_then_partial_flat(prompt, schema, cfg, provider_reporter=None):
+        if "Review quality retry:" in prompt:
+            return {"title": "Partial"}, "adjudicator-model", "default"
+        return low_then_supported(prompt, schema, cfg, provider_reporter)
+
+    partial_flat_hardened = SimpleNamespace(**vars(repair_hardened))
+    partial_flat_hardened.openrouter_review = low_then_partial_flat
+    partial_flat_hardened.merge_quality_retry_results = forbidden_merge
+    partial_flat_module = SimpleNamespace(**vars(repair_module))
+    partial_flat_module.hardened = partial_flat_hardened
+    try:
+        adjudication.build_semantic_adjudication_stage(
+            partial_flat_module, fake_detector
+        )({"number": 1}, [], "diff", {}, fake_config, reporter,
+          [], {}, "", "deep-forced", "", object())
+    except partial_flat_hardened.ReviewQualityError as exc:
+        assert "complete flat single finding" in str(exc)
+    else:
+        raise AssertionError("Partial flat retry was accepted")
+
     verifier_prompt = v21._verifier_prompt(
         {
             "title": "Candidate",

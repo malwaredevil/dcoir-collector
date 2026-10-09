@@ -6,7 +6,7 @@ import copy
 from typing import Any
 
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
-
+from dcoir_review import semantic_adjudication_normalization as normalization
 
 PROJECTED_PROMPT_ARTIFACT_ATTR = "_semantic_adjudication_quality_retry_prompt"
 PROJECTED_PROMPT_ARTIFACT_PATH = (
@@ -70,40 +70,28 @@ def quality_retry_metadata_is_valid(result: dict[str, Any]) -> bool:
 def _normalize_retry_initial_confidence(
     module: Any, result: dict[str, Any], config: Any
 ) -> dict[str, Any]:
-    findings = result.get("findings")
-    if not isinstance(findings, list):
+    """Validate every first-pass finding before the retry can filter it.
+
+    The retry merge drops first-pass findings that fail its publication
+    contract, so a malformed one would vanish behind a clean retry. Run the
+    canonical confidence policy over the whole result first: invalid provided
+    confidence and partial missing-confidence findings fail closed, while
+    complete missing-confidence findings are admitted at the configured floor.
+    """
+
+    candidate = dict(result)
+    candidate["_semantic_adjudication_attempted"] = True
+    normalized, count, _floor = confidence_policy._normalize_semantic_adjudication_confidence(
+        module, candidate, config
+    )
+    if not count:
         return result
-
-    normalized_findings = list(findings)
-    normalized_count = 0
-    for index, finding in enumerate(findings):
-        if not isinstance(finding, dict) or (
-            "confidence" in finding and finding.get("confidence") is not None
-        ):
-            continue
-        candidate = {
-            "_semantic_adjudication_attempted": True,
-            "findings": [finding],
-        }
-        try:
-            normalized, count, _floor = confidence_policy._normalize_semantic_adjudication_confidence(
-                module, candidate, config
-            )
-        except module.hardened.ReviewQualityError:
-            continue
-        if count:
-            normalized_findings[index] = normalized["findings"][0]
-            normalized_count += count
-
-    if not normalized_count:
-        return result
-
     normalized_result = dict(result)
-    normalized_result["findings"] = normalized_findings
+    normalized_result["findings"] = normalized["findings"]
     normalized_result[confidence_policy.NORMALIZATION_MARKER] = (
         confidence_policy.NORMALIZATION_VALUE
     )
-    normalized_result[confidence_policy.NORMALIZATION_COUNT] = normalized_count
+    normalized_result[confidence_policy.NORMALIZATION_COUNT] = count
     return normalized_result
 
 
@@ -121,6 +109,7 @@ def retry_rejected_adjudication(
     reason = reason_fn(adjudicated, config, risk_sentinels, line_index)
     if not reason:
         return adjudicated, None, None
+    merge_initial = _normalize_retry_initial_confidence(module, adjudicated, config)
     if reporter:
         reporter.update(
             "semantic-adjudication-quality-retry",
@@ -142,13 +131,17 @@ def retry_rejected_adjudication(
     retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
         retry_prompt, schema, retry_config, reporter
     )
-    if not isinstance(retry_result, dict) or not valid_retry_summary(
+    # Normalize first: a complete flat single finding is an accepted
+    # adjudicator shape and carries no summary. Canonical envelopes must still
+    # supply a valid summary; a flat retry leaves the retry summary empty, so
+    # terminal clean disposition stays unavailable and fails closed.
+    retry_result = normalize_result(module, retry_result)
+    if normalization.FLAT_SHAPE_MARKER not in retry_result and not valid_retry_summary(
         retry_result.get("summary")
     ):
         raise module.hardened.ReviewQualityError(
             "DCOIR semantic-adjudication retry returned a missing or invalid summary"
         )
-    retry_result = normalize_result(module, retry_result)
     retry_findings = retry_result.get("findings")
     if not isinstance(retry_findings, list) or any(
         not isinstance(finding, dict) for finding in retry_findings
@@ -161,7 +154,6 @@ def retry_rejected_adjudication(
         "responses/07-semantic-adjudication-quality-retry-result.json",
         {"model_used": retry_model, "service_tier": retry_tier, "result": retry_result},
     )
-    merge_initial = _normalize_retry_initial_confidence(module, adjudicated, config)
     raw_initial_digest = None
     if merge_initial is not adjudicated:
         digest_fn = getattr(module.hardened, "raw_findings_digest", None)
