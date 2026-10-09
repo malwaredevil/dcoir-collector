@@ -17,6 +17,7 @@ import json
 from typing import Any
 
 from dcoir_review import review_config
+from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
 from dcoir_review import semantic_evidence_hardening as semantic_evidence
 
@@ -175,12 +176,14 @@ def _cap_adjudicated_findings(module: Any, result: dict[str, Any], limit: int) -
     findings = result.get("findings", [])
     if not isinstance(findings, list):
         raise module.hardened.ReviewQualityError("DCOIR semantic adjudicator returned a non-list findings value")
+    if any(not isinstance(item, dict) for item in findings):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR semantic adjudicator returned a non-object finding"
+        )
     if len(findings) <= limit:
         return result
     capped = dict(result)
-    capped["findings"] = module.rank_findings_for_required_budget(
-        [item for item in findings if isinstance(item, dict)], limit
-    )
+    capped["findings"] = module.rank_findings_for_required_budget(findings, limit)
     capped["_semantic_adjudication_overflow_trimmed"] = len(findings) - len(capped["findings"])
     return capped
 
@@ -283,6 +286,12 @@ def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
 
         adjudicated = semantic_adjudication_normalization.normalize_adjudicator_result(module, adjudicated)
         adjudicated = _cap_adjudicated_findings(module, adjudicated, max_findings)
+
+        adjudicated, retry_model, retry_tier = quality_retry.retry_rejected_adjudication(
+            module, adjudicated, config, risk_sentinels, line_index, prompt, schema,
+            adjudication_config, reporter, max_findings, _cap_adjudicated_findings,
+            semantic_adjudication_normalization.normalize_adjudicator_result,
+        )
         adjudicated[PROVIDER_RESULT_KEYS_ATTR] = provider_result_keys
         adjudicated["_semantic_adjudication_attempted"] = True
         adjudicated["_semantic_adjudication_model"] = adjudicator_model
@@ -312,7 +321,13 @@ def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
                 ),
             )
         model_label = f"{detector_model}; semantic-adjudicator={adjudicator_model}"
-        tier_parts = [str(detector_tier or "").strip(), str(adjudicator_tier or "").strip()]
+        if retry_model:
+            model_label += f"; semantic-adjudicator-retry={retry_model}"
+        tier_parts = [
+            str(detector_tier or "").strip(),
+            str(adjudicator_tier or "").strip(),
+            str(retry_tier or "").strip(),
+        ]
         tier_label = ", ".join(item for item in tier_parts if item)
         return adjudicated, model_label, tier_label
 

@@ -9,10 +9,9 @@ from typing import Any
 from dcoir_review import candidate_escalation_execution as candidate_execution
 from dcoir_review import candidate_escalation_scope as candidate_scope
 from dcoir_review import structured_result_retry as retry
+from dcoir_review.structured_result_disposition_state import ALLOW_ATTR, PENDING_ATTR
 
 VERSION = "v52"
-ALLOW_ATTR = "_dcoir_v52_allow_low_confidence_disposition"
-PENDING_ATTR = "_dcoir_v52_pending_low_confidence_disposition"
 LOW_CONFIDENCE_RETRY_PREFIX = (
     "model returned structured findings, but none met the configured minimum confidence"
 )

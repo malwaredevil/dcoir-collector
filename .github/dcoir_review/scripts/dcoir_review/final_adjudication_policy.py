@@ -8,6 +8,7 @@ import math
 from typing import Any
 
 from dcoir_review import semantic_adjudication as adjudication
+from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 from dcoir_review import review_telemetry
 
 
@@ -169,7 +170,16 @@ def _provider_envelope_matches_schema(result: dict[str, Any]) -> bool:
     if not isinstance(raw_provider_keys, (list, tuple)):
         return False
     provider_keys = {str(key) for key in raw_provider_keys}
-    return provider_keys == {"summary", "findings"}
+    if provider_keys != {"summary", "findings"}:
+        return False
+    # A bounded quality retry is a second provider response; its envelope
+    # must match the schema too before a clean terminal disposition.
+    if result.get("_quality_retry_attempted") is True:
+        retry_keys = result.get("_quality_retry_provider_result_keys")
+        if not isinstance(retry_keys, (list, tuple)):
+            return False
+        return {str(key) for key in retry_keys} == {"summary", "findings"}
+    return True
 
 
 def _terminal_disposition(
@@ -183,7 +193,11 @@ def _terminal_disposition(
 
     if not isinstance(result, dict) or not isinstance(line_index, dict):
         return None
-    if not set(result.keys()).issubset(_RESULT_ALLOWED_KEYS):
+    if not set(result.keys()).issubset(
+        _RESULT_ALLOWED_KEYS | quality_retry.QUALITY_RETRY_RESULT_KEYS
+    ):
+        return None
+    if not quality_retry.quality_retry_metadata_is_valid(result):
         return None
     if not _provider_envelope_matches_schema(result):
         return None
@@ -275,7 +289,10 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
         return prompt
     if bool(getattr(config, PROMPT_INJECTION_ATTR, False)):
         return prompt
-    if not _is_final_semantic_adjudication_call(prompt):
+    if not (
+        bool(getattr(config, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, False))
+        or _is_final_semantic_adjudication_call(prompt)
+    ):
         return prompt
 
     floor = _publication_floor(config)
@@ -349,8 +366,13 @@ def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any
     except Exception:
         return prompt, config
     try:
+        artifact_path = (
+            quality_retry.PROJECTED_PROMPT_ARTIFACT_PATH
+            if getattr(config, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, False)
+            else PROMPT_ARTIFACT_PATH
+        )
         module.hardened.write_debug_text_artifact_safely(
-            config, PROMPT_ARTIFACT_PATH, injected
+            config, artifact_path, injected
         )
     except Exception:
         # Debug-artifact persistence is observational and must not alter review flow.

@@ -161,6 +161,7 @@ def main() -> None:
         semantic_adjudication_candidate_digest_chars=24000,
         semantic_adjudication_model_stack=["adjudicator-model"],
         max_prompt_chars=120000,
+        minimum_confidence=0.70,
     )
     result, model_label, tier = v35_hybrid(
         {"number": 1},

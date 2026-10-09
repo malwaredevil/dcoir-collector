@@ -197,6 +197,8 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_adversarial_confirmation_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_evidence_hardening_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_quality_retry_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_quality_retry_validation_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_repair_set_integration_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_adjudication_normalization_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_repair_contract_selftest.py
