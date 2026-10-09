@@ -134,6 +134,14 @@ def retry_rejected_adjudication(
         {"model_used": retry_model, "service_tier": retry_tier, "result": retry_result},
     )
     merge_initial = _normalize_retry_initial_confidence(module, adjudicated, config)
+    raw_initial_digest = None
+    if merge_initial is not adjudicated:
+        digest_fn = getattr(module.hardened, "raw_findings_digest", None)
+        if not callable(digest_fn):
+            raise RuntimeError(
+                "DCOIR semantic-adjudication retry could not preserve the raw initial finding digest"
+            )
+        raw_initial_digest = digest_fn(adjudicated)
     merged = module.hardened.merge_quality_retry_results(
         initial_result=merge_initial,
         retry_result=retry_result,
@@ -141,4 +149,12 @@ def retry_rejected_adjudication(
         line_index=line_index,
         retry_reason=reason,
     )
+    if raw_initial_digest is not None:
+        merged["_quality_retry_initial_raw_digest"] = raw_initial_digest
+        merged[confidence_policy.NORMALIZATION_MARKER] = (
+            confidence_policy.NORMALIZATION_VALUE
+        )
+        merged[confidence_policy.NORMALIZATION_COUNT] = merge_initial[
+            confidence_policy.NORMALIZATION_COUNT
+        ]
     return cap_findings(module, merged, max_findings), retry_model, retry_tier

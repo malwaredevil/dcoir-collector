@@ -312,6 +312,7 @@ def main() -> None:
     missing_confidence_hardened = SimpleNamespace(**vars(repair_hardened))
     missing_confidence_hardened.openrouter_review = missing_confidence_then_clean
     missing_confidence_hardened.merge_quality_retry_results = review.hardened.merge_quality_retry_results
+    missing_confidence_hardened.raw_findings_digest = review.hardened.raw_findings_digest
     missing_confidence_module = SimpleNamespace(**vars(repair_module))
     missing_confidence_module.hardened = missing_confidence_hardened
     missing_confidence_result, _, _ = adjudication.build_semantic_adjudication_stage(
@@ -324,6 +325,19 @@ def main() -> None:
     assert len(missing_confidence_result["findings"]) == 1
     assert missing_confidence_result["findings"][0]["confidence"] == 0.70
     assert missing_confidence_result["_quality_retry_initial_survivor_count"] == 1
+    assert missing_confidence_result["_quality_retry_initial_raw_digest"] == (
+        review.hardened.raw_findings_digest(
+            debug_json[
+                "responses/07-semantic-adjudication-quality-retry-initial-result.json"
+            ]["result"]
+        )
+    )
+    assert missing_confidence_result[
+        "_semantic_adjudication_confidence_normalization"
+    ] == "minimum-floor-for-verifier-admission"
+    assert missing_confidence_result[
+        "_semantic_adjudication_confidence_normalized_count"
+    ] == 1
     assert "confidence" not in debug_json[
         "responses/07-semantic-adjudication-quality-retry-initial-result.json"
     ]["result"]["findings"][0]
