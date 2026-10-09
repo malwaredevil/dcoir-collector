@@ -7,12 +7,13 @@ from .gemini_behavioral_replay_rejection_patterns import (
     DIRECT_REJECTION_PREFIX,
     GOVERNED_SOURCE_ACTION_SCOPE,
 )
+from .gemini_behavioral_replay_assertion_polarity import occurrence_is_asserted
 from .gemini_behavioral_replay_semantic_assertions import analyze_semantics, response_has_next_evidence_semantics
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
+from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
 from .gemini_behavioral_replay_text_scoring import (
     _find_contextual_term_hits,
     _iter_term_occurrences,
-    _occurrence_is_negated,
-    _occurrence_is_quoted,
     _occurrence_is_rejected_after,
     _occurrence_is_rejected_before,
     normalize_text,
@@ -31,10 +32,20 @@ def _append_once(values: List[str], marker: str) -> None:
         values.append(marker)
 
 
+def _append_semantic_alias(
+    values: List[str],
+    aliases: set[str] | None,
+    marker: str,
+) -> None:
+    _append_once(values, marker)
+    if aliases is not None:
+        aliases.add(marker)
+
+
 def _marker_frames_rejection(lowered: str, marker: str) -> bool:
     """Marker names the governing frame of a rejection ("under the X, I reject that Y")."""
     for occurrence in _iter_term_occurrences(lowered, marker):
-        if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+        if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
             continue
         prefix = lowered[max(0, occurrence.start() - 40):occurrence.start()]
         suffix = lowered[occurrence.end():occurrence.end() + 120]
@@ -66,6 +77,7 @@ def augment_semantic_marker_matches(
     response_text: str,
     markers: List[str],
     matched: List[str],
+    semantic_aliases: set[str] | None = None,
 ) -> List[str]:
     lowered = normalize_text(response_text)
     result = list(matched)
@@ -79,19 +91,21 @@ def augment_semantic_marker_matches(
 
     if "do not guess" in markers and "do not guess" not in result:
         for occurrence in _iter_term_occurrences(lowered, "will not guess"):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
                 continue
             if _occurrence_is_rejected_before(lowered, occurrence.start()):
                 continue
             if _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start()):
                 continue
-            _append_once(result, "do not guess")
+            if not occurrence_is_asserted(lowered, occurrence.start(), occurrence.end()):
+                continue
+            _append_semantic_alias(result, semantic_aliases, "do not guess")
             break
 
     if "governed source" in markers:
         result = [value for value in result if value != "governed source"]
         for occurrence in _iter_term_occurrences(lowered, "governed source"):
-            if _occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
                 continue
             prefix = lowered[max(0, occurrence.start() - 120):occurrence.start()]
             action = GOVERNED_SOURCE_ACTION_SCOPE.search(prefix)
@@ -101,7 +115,7 @@ def augment_semantic_marker_matches(
             ):
                 continue
             if not action and (
-                _occurrence_is_negated(lowered, occurrence.start())
+                occurrence_is_contextually_negated(lowered, occurrence.start())
                 or _occurrence_is_rejected_before(lowered, occurrence.start())
                 or _occurrence_is_rejected_after(lowered, occurrence.end(), occurrence.start())
             ):
@@ -114,10 +128,22 @@ def augment_semantic_marker_matches(
             _append_once(result, "do not claim")
 
     if "interpret" in markers and "interpret" not in result:
-        if _find_contextual_term_hits(
-            lowered, ["interpretation"], skip_negated=True, skip_quoted=True
-        ):
-            _append_once(result, "interpret")
+        for occurrence in _iter_term_occurrences(lowered, "interpretation"):
+            if occurrence_is_quoted(lowered, occurrence.start(), occurrence.end()):
+                continue
+            if (
+                occurrence_is_contextually_negated(lowered, occurrence.start())
+                or _occurrence_is_rejected_before(lowered, occurrence.start())
+                or _occurrence_is_rejected_after(
+                    lowered, occurrence.end(), occurrence.start()
+                )
+                or not occurrence_is_asserted(
+                    lowered, occurrence.start(), occurrence.end()
+                )
+            ):
+                continue
+            _append_semantic_alias(result, semantic_aliases, "interpret")
+            break
 
     unresolved_marker = "unresolved due to evidence gaps"
     if unresolved_marker in markers and unresolved_marker not in result:

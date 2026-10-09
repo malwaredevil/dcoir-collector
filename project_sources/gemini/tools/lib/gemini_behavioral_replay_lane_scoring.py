@@ -3,11 +3,11 @@ from __future__ import annotations
 import re
 from typing import List
 
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
+from .gemini_behavioral_replay_quote_context import occurrence_is_quoted
 from .gemini_behavioral_replay_text_scoring import (
     _iter_clauses,
     _iter_term_occurrences,
-    _occurrence_is_negated,
-    _occurrence_is_quoted,
     _occurrence_is_rejected_after,
     normalize_text,
 )
@@ -168,7 +168,7 @@ def _segment_has_negated_shared_context(segment: str) -> bool:
         return False
     for term in _SHARED_CONTEXT_TERMS:
         for occurrence in _iter_term_occurrences(segment, term):
-            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
                 continue
             if _occurrence_is_rejected_after(segment, occurrence.end()):
                 continue
@@ -294,9 +294,9 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
         "should not combine",
     ):
         for occurrence in _iter_term_occurrences(segment, term):
-            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
                 continue
-            if _occurrence_is_negated(segment, occurrence.start()):
+            if occurrence_is_contextually_negated(segment, occurrence.start()):
                 continue
             if _occurrence_is_rejected_after(segment, occurrence.end()):
                 continue
@@ -311,9 +311,9 @@ def _segment_has_relational_lane_separation(segment: str) -> bool:
         return True
     for term in ("different lane", "distinct lane"):
         for occurrence in _iter_term_occurrences(segment, term):
-            if _occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
+            if occurrence_is_quoted(segment, occurrence.start(), occurrence.end()):
                 continue
-            if _occurrence_is_negated(segment, occurrence.start()):
+            if occurrence_is_contextually_negated(segment, occurrence.start()):
                 continue
             if _occurrence_is_rejected_after(segment, occurrence.end()):
                 continue
@@ -366,7 +366,7 @@ def has_execution_lane_separation(response_text: str) -> bool:
         return False
     normalized = normalize_text(response_text)
     m=re.search(r"\b(this|that|it)\s+is\s+(?:an?\s+)?endpoint\s+response[- ]action(?: syntax)?\s*,?\s+not\s+(?:a\s+)?local powershell\b",normalized)
-    if m and not _occurrence_is_quoted(normalized,m.start(),m.end()) and not _occurrence_has_lane_relation_rejection(normalized,m.start()):
+    if m and not occurrence_is_quoted(normalized,m.start(),m.end()) and not _occurrence_has_lane_relation_rejection(normalized,m.start()):
         return True
     endpoint_only = any(
         any(_assertive_phrase_occurrences(normalized, term))

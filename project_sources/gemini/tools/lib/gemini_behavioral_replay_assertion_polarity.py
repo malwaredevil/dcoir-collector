@@ -3,10 +3,16 @@ from __future__ import annotations
 
 import re
 
+from .gemini_behavioral_replay_polarity_vocabulary import (
+    ASSERTION_CONTRAST as CONTRAST,
+    COMMA_SUBJECT_PREDICATE_START as _COMMA_SUBJECT_PREDICATE_START,
+    INDEPENDENT_PREDICATE_START,
+)
+from .gemini_behavioral_replay_rejection_patterns import (
+    SUFFIX_REJECTION_PATTERN as _SUFFIX_REJECTION,
+)
 from .gemini_behavioral_replay_truth_frame_semantics import NEGATED_TRUTH_FRAME as _NEGATED_TRUTH_FRAME
 
-
-CONTRAST = re.compile(r"\b(?:but|however|yet|nevertheless|instead)\b", re.I)
 
 CLAIM_REJECTION_FRAME = re.compile(
     r"\b(?:do not|don't|dont|does not|doesn't|doesnt|cannot|can't|can not|could not|"
@@ -26,30 +32,19 @@ _NEGATIVE_INVERSION_FRAME = re.compile(
     re.I,
 )
 _COORDINATOR = re.compile(r"\b(?:and|or)\b", re.I)
-INDEPENDENT_PREDICATE_START = re.compile(
-    r"^(?:(?:the\s+evidence|this|that|it|they|we|i|these|those|[a-z0-9_-]+)\s+)?"
-    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:is|are|was|were|will|would|can|could|does|do|has|have|guarantees?|confirms?|proves?|"
-    r"shows?|indicates?|supports?|establishes?|ensures?|produces?|means?|claims?|concludes?|declares?)\b",
-    re.I,
-)
-_COMMA_SUBJECT_PREDICATE_START = re.compile(
-    r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
-    r"the(?:\s+[a-z0-9_-]+){1,5}|(?!(?:that|which|who|and|or|but|so)\b)[a-z0-9_-]+(?:\s+[a-z0-9_-]+){0,2})\s+"
-    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:will|would|should|can|could|must|do|does|did|am|are|is|was|were|have|has|"
-    r"guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
-    r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?)\b",
-    re.I,
-)
 CERTAINTY_TERM = re.compile(r"\b(?:definitely|guarantee|guarantees|guaranteed)\b", re.I)
 _SENTENCE_BOUNDARY = re.compile(r"[.!?;\n]")
+_COMMA_SEPARATOR = re.compile(",")
 
 _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not|will not|would not)\s+claim\s+that\b", re.I),
     re.compile(r"\b(?:do not|don't|dont|cannot|can't|can not|should not|must not)\s+(?:state|assert|conclude|declare|confirm|classify|label)\s+that\b", re.I),
     re.compile(r"\b(?:there\s+is\s+)?insufficient\s+evidence\s+to\s+(?:declare|conclude|confirm|classify|label|call)\b", re.I),
-    re.compile(r"\b(?:it\s+is\s+)?(?:incorrect|wrong|false)\s+to\s+(?:claim|conclude|state|assert|say|declare|confirm|classify|label)\s+that\b", re.I),
+    re.compile(
+        r"\b(?:it\s+is\s+)?(?:incorrect|wrong|false)\s+to\s+"
+        r"(?:(?:claim|conclude|state|assert|declare|confirm|classify|label)\s+that|say(?:\s+that)?)\b",
+        re.I,
+    ),
     re.compile(r"\b(?:(?:it\s+is|it's)\s+)?(?:false|incorrect|untrue|wrong|inaccurate|unsupported|unproven|unjustified|unsubstantiated|unfounded)\s+that\b", re.I),
     re.compile(r"\bno\s+evidence\s+supports?\b", re.I),
     re.compile(r"\b(?:before|without)\s+(?:drawing|reaching|making)\s+(?:any\s+)?conclusions?\s+about\b[^,]{0,80}$", re.I),
@@ -58,12 +53,6 @@ _PREFIX_REJECTION_PATTERNS = (
     re.compile(r"\b(?:do not|don't|dont|does not|doesn't|doesnt|cannot|can't|can not|should not|must not)\b[^.!?;\n]{0,180}\b(?:provide|establish|offer|create|supply)\b[^.!?;\n]{0,180}$", re.I),
 )
 
-_SUFFIX_REJECTION = re.compile(
-    r"^\s+(?:verdict|claim|classification|assessment|conclusion|finding|label|assertion)\b"
-    r"[^.!?;\n]{0,100}\b(?:exceeds?|outstrips?|goes\s+beyond|is\s+unsupported|is\s+unjustified|"
-    r"is\s+not\s+(?:supported|justified|established|proven))\b",
-    re.I,
-)
 _SUFFIX_ASSUMPTION_REJECTION = re.compile(
     r"^\s+(?:cannot|can't|can not|could not)\s+be\s+(?:assumed|confirmed|verified|established)\b",
     re.I,
@@ -114,14 +103,19 @@ _FOCUS_NEGATION = re.compile(
     r"(?:do|does|did|is|are|was|were|will|would|can|could|has|have|had|should|must)\b",
     re.I,
 )
-_CLAUSE_SEPARATOR = re.compile(r":|\s[-\u2013\u2014]\s|\u2014")
+_CLAUSE_SEPARATOR = re.compile(r":\s|\s[-\u2013\u2014]\s|\u2014")
+# "Read, retrieve" remains inside the original rejected complement.
+_COMMA_IMPERATIVE_RESTART = re.compile(
+    r",\s*(?:please|then)\s+(?:determine|provide|send|run|execute|read|retrieve|upload|"
+    r"review|collect|use|check|verify|focus)\b",
+    re.I,
+)
 # A label such as "Not proven:" rejects the clause it introduces.
 _REJECTION_LABEL = re.compile(
     r"\b(?:not\s+(?:proven|established|confirmed|verified|supported)|unproven|unsupported|unverified)\s*$",
     re.I,
 )
-# A subordinator or a new finite verb between a negator and the marker starts a
-# new clause, so the earlier negator no longer governs the marker.
+# Finite clauses end negation scope.
 _NEGATION_SCOPE_BREAK = re.compile(
     r"\b(?:so|because|since|therefore|thus|hence|although|though|whereas|"
     r"is|are|was|were|exists?|remains?)\b",
@@ -149,15 +143,47 @@ def _sentence_slice(text: str, start: int, end: int) -> tuple[str, int, int]:
     return text[left:right], left, right
 
 
+_INDEPENDENT_IMPERATIVE = re.compile(
+    r"^(?:please|then)\s+(?:determine|provide|send|run|execute|read|retrieve|"
+    r"upload|review|collect|use|check|verify|focus)\b", re.I
+)
+
+
+def _is_independent_clause(text: str) -> bool:
+    clause = text.strip()
+    return bool(INDEPENDENT_PREDICATE_START.match(clause)
+                or _COMMA_SUBJECT_PREDICATE_START.match(clause)
+                or _INDEPENDENT_IMPERATIVE.match(clause))
+
+
 def _coordination_starts_independent_assertion(scope: str, target_tail: str) -> bool:
-    coordinators = list(_COORDINATOR.finditer(scope))
-    if not coordinators:
-        return False
-    tail = scope[coordinators[-1].end():] + target_tail
-    stripped = tail.strip()
-    return bool(
-        INDEPENDENT_PREDICATE_START.match(stripped)
-        or _COMMA_SUBJECT_PREDICATE_START.match(stripped)
+    return any(
+        _is_independent_clause(scope[match.end():] + target_tail)
+        and (
+            _is_independent_clause(scope[:match.start()])
+            or re.match(r"^\s*(?:definitely|clearly|certainly|explicitly|actually)\s+",
+                        scope[match.end():] + target_tail, re.I)
+        )
+        for match in _COORDINATOR.finditer(scope)
+        if match.group() != "or" or "either" not in scope[:match.start()]
+    )
+
+
+def _independent_clause_after_separator(
+    scope: str,
+    target_tail: str,
+    separator: re.Pattern[str] = _CLAUSE_SEPARATOR,
+) -> bool:
+    return any(
+        scope[:match.start()].strip()
+        and (
+            _COMMA_SUBJECT_PREDICATE_START.match(
+                (scope[match.end():] + target_tail).lstrip()
+            )
+            if separator is _COMMA_SEPARATOR
+            else _is_independent_clause(scope[match.end():] + target_tail)
+        )
+        for match in separator.finditer(scope)
     )
 
 
@@ -165,8 +191,17 @@ def _rejection_frame_applies(prefix: str, target_tail: str, pattern: re.Pattern[
     frames = list(pattern.finditer(prefix))
     if not frames:
         return False
-    scope = prefix[frames[-1].end():]
+    frame = frames[-1]
+    if _COMMA_IMPERATIVE_RESTART.search(prefix[frame.start():frame.end()]):
+        return False
+    scope = prefix[frame.end():]
+    if _independent_clause_after_separator(scope, target_tail):
+        return False
+    if _independent_clause_after_separator(scope, target_tail, _COMMA_SEPARATOR):
+        return False
     if CONTRAST.search(scope):
+        return False
+    if _COMMA_IMPERATIVE_RESTART.search(scope):
         return False
     if _coordination_starts_independent_assertion(scope, target_tail):
         return False
@@ -228,8 +263,22 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
         return _direct_negation_applies(prefix[focus.end():], target_tail)
     separators = list(_CLAUSE_SEPARATOR.finditer(prefix, negation.start()))
     if separators and not _REJECTION_LABEL.search(prefix[:separators[-1].start()]):
-        # A colon or dash opens a new clause; only a negator inside it applies.
-        return _direct_negation_applies(prefix[separators[-1].end():], target_tail)
+        # Do not reset at labels, timestamps, URLs, or colon-separated complements.
+        for boundary in reversed(separators):
+            preceding = prefix[negation.start():boundary.start()]
+            following = prefix[boundary.end():]
+            if (
+                preceding.strip()
+                and not CLAIM_REJECTION_FRAME.fullmatch(preceding.strip())
+                and not _NEGATED_PREDICATE_FRAME.fullmatch(preceding.strip())
+                and _is_independent_clause(following + target_tail)
+            ):
+                return _direct_negation_applies(following, target_tail)
+    comma_restarts = list(_COMMA_IMPERATIVE_RESTART.finditer(prefix, negation.end()))
+    if comma_restarts:
+        # A new imperative after a comma is independent of the prior negated
+        # premise: "cannot assume X, please determine Y and provide Z."
+        return _direct_negation_applies(prefix[comma_restarts[-1].start() + 1:], target_tail)
     scope = prefix[_NEGATION_TOKEN.match(prefix, negation.start()).end():]
     scope_break = _NEGATION_SCOPE_BREAK.search(scope)
     if scope_break and not _NEGATION_COMPLEMENT.search(scope, 0, scope_break.start()):
@@ -237,7 +286,7 @@ def _direct_negation_applies(prefix: str, target_tail: str) -> bool:
     return True
 
 
-def occurrence_is_assertive_polarity(text: str, start: int, end: int) -> bool:
+def occurrence_is_asserted(text: str, start: int, end: int) -> bool:
     """Return True only when the matched proposition is asserted, not rejected.
 
     Only explicit rejection/negation frames suppress a match. Contrastive

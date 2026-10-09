@@ -11,8 +11,13 @@ from .gemini_behavioral_replay_rejection_patterns import (
     PRE_MARKER_REJECTION_FRAME_PATTERN,
     REJECTION_SCOPE_LIMIT,
 )
-from .gemini_behavioral_replay_semantic_assertions import occurrence_is_backtick_wrapped
-from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated as _occurrence_is_negated
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
+from .gemini_behavioral_replay_quote_context import occurrence_is_backtick_wrapped, occurrence_is_quoted
+from .gemini_behavioral_replay_polarity_vocabulary import (
+    COORDINATED_AFFIRMATIVE_PREDICATE as _COORDINATED_AFFIRMATIVE_PREDICATE,
+    COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE as _COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE,
+    REJECTION_SCOPE_CONTRAST,
+)
 from .gemini_behavioral_replay_assertion_polarity import prefix_has_affirming_negated_truth_frame
 
 UNSUPPORTED_CERTAINTY_TERMS = [
@@ -73,7 +78,6 @@ FINAL_SECTION_HEADERS = [
 
 AMBIGUOUS_LIST_SECTION_HEADERS = {"retrieve", "interpret", "cleanup"}
 
-QUOTE_CHARS = {'"', "'", "`"}
 
 
 def normalize_text(text: str) -> str:
@@ -103,60 +107,6 @@ def _iter_term_occurrences(text: str, term: str) -> Iterable[re.Match[str]]:
         body = r"\s+".join(re.escape(token) for token in variant.split())
         pattern = re.compile(rf"(?<![a-z0-9_-]){body}(?![a-z0-9_-])")
         yield from pattern.finditer(text)
-
-
-def _occurrence_is_quoted(text: str, start: int, end: int) -> bool:
-    if start <= 0 or end >= len(text):
-        return False
-    before = text[start - 1]
-    after = text[end]
-    if before in QUOTE_CHARS and after == before:
-        return True
-
-    # Pair double quotes and backticks in source order. A pair marks a mention
-    # only when the marker ends the span or it is short inline code, so a stray
-    # delimiter cannot hide later asserted prose.
-    for quote in ('"', '`'):
-        positions = [index for index, char in enumerate(text) if char == quote]
-        for offset in range(0, len(positions) - 1, 2):
-            opener, closer = positions[offset], positions[offset + 1]
-            if opener < start and end <= closer:
-                trailing = text[end:closer]
-                if len(trailing) <= 4 and all(char in " ,.;:!?" for char in trailing):
-                    return True
-                if quote == '`' and closer - opener <= 80 and not re.search(r"[.!?]\s", text[opener:closer]):
-                    return True
-
-    # Apostrophes are common in contractions, so only treat a single-quoted
-    # marker as quoted when its opening quote is immediately adjacent and the
-    # closing quote follows only short punctuation.
-    opener = text.rfind("'", max(0, start - 2), start)
-    closer = text.find("'", end, min(len(text), end + 6))
-    if opener != -1 and closer != -1:
-        prefix = text[opener + 1:start]
-        trailing = text[end:closer]
-        if not prefix.strip() and len(trailing) <= 4 and all(char in " ,.;:!?" for char in trailing):
-            return True
-    return False
-
-
-_COORDINATED_AFFIRMATIVE_PREDICATE = re.compile(
-    r"^(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:guarantees?|guaranteed|confirms|confirmed|claims|claimed|states|stated|asserts|asserted|"
-    r"concludes|concluded|proves|proved|establishes|established|shows|showed|indicates|indicated|"
-    r"means|meant|recommends|recommended|requires|required|needs|needed|believes|believed|"
-    r"will|would|can|could|must|should|is|are|was|were|has|have|does|do)\b"
-)
-
-_COORDINATED_AFFIRMATIVE_SUBJECT_PREDICATE = re.compile(
-    r"^(?:i|we|you|they|he|she|it|this|that|these|those|"
-    r"the(?:\s+[a-z0-9_-]+){1,3}|(?!(?:a|an|the)\b)[a-z0-9_-]+)\s+"
-    r"(?:(?:clearly|definitely|certainly|explicitly|actually|also|still|now|then)\s+){0,3}"
-    r"(?:guarantee(?:s|d)?|confirm(?:s|ed)?|claim(?:s|ed)?|state(?:s|d)?|assert(?:s|ed)?|"
-    r"conclude(?:s|d)?|prove(?:s|d)?|establish(?:es|ed)?|show(?:s|ed)?|indicate(?:s|d)?|"
-    r"mean(?:s|t)?|recommend(?:s|ed)?|require(?:s|d)?|need(?:s|ed)?|believe(?:s|d)?|"
-    r"will|would|can|could|must|should|is|are|was|were|has|have|does|do)\b"
-)
 
 
 def _rejection_frame_governs_marker(context: str, marker_tail: str) -> bool:
@@ -215,9 +165,7 @@ def _occurrence_is_rejected_before(text: str, start: int) -> bool:
     context = re.sub(r"[*_`]+", "", context)
     if prefix_has_affirming_negated_truth_frame(context):
         return False
-    contrasts = list(
-        re.finditer(r"\b(?:but|however|yet|nevertheless|instead(?!\s+of\b))\b", context)
-    )
+    contrasts = list(REJECTION_SCOPE_CONTRAST.finditer(context))
     if contrasts:
         context = context[contrasts[-1].end():]
 
@@ -303,7 +251,7 @@ def _find_contextual_term_hits(
     hits: List[str] = []
     for term in terms:
         for match in _iter_term_occurrences(text, term):
-            quoted = _occurrence_is_quoted(text, match.start(), match.end())
+            quoted = occurrence_is_quoted(text, match.start(), match.end())
             if skip_quoted and quoted:
                 allowed_single_token = (
                     allow_quoted_single_tokens
@@ -318,7 +266,7 @@ def _find_contextual_term_hits(
                 if not (allowed_single_token or allowed_markdown):
                     continue
             if skip_negated and (
-                _occurrence_is_negated(text, match.start())
+                occurrence_is_contextually_negated(text, match.start())
                 or _occurrence_is_rejected_before(text, match.start())
             ):
                 continue

@@ -6,21 +6,23 @@ from dataclasses import dataclass
 from .gemini_behavioral_replay_assertion_polarity import (
     CERTAINTY_TERM as _CERTAINTY_TERM,
     CLAIM_REJECTION_FRAME as _CLAIM_REJECTION_FRAME,
-    CONTRAST as _CONTRAST,
-    INDEPENDENT_PREDICATE_START as _INDEPENDENT_PREDICATE_START,
     normalized_surface as _normalized_surface,
-    occurrence_is_assertive_polarity,
+    occurrence_is_asserted,
+)
+from .gemini_behavioral_replay_polarity_vocabulary import (
+    ASSERTION_CONTRAST as _CONTRAST,
+    INDEPENDENT_PREDICATE_START as _INDEPENDENT_PREDICATE_START,
 )
 
-from .gemini_behavioral_replay_lane_equivalence import has_affirmative_cross_lane_equivalence
-
-
-_ENDPOINT_CONTEXT = re.compile(
-    r"\b(?:elastic\s+)?(?:endpoint\s+)?response(?:[- ]action)?\s+(?:console|syntax|wrapper|commands?)\b"
-    r"|\bendpoint\s+response\s+console\b",
-    re.I,
+from .gemini_behavioral_replay_lane_equivalence import (
+    has_affirmative_cross_lane_equivalence,
+    has_rejected_cross_lane_equivalence,
 )
-_LOCAL_POWERSHELL = re.compile(r"\b(?:local|workstation)\s+(?:workstation\s+)?powershell\b|\blocal\s+powershell\b", re.I)
+from .gemini_behavioral_replay_lane_vocabulary import ENDPOINT_CONTEXT_REF, LOCAL_CONTEXT_REF
+
+
+_ENDPOINT_CONTEXT = re.compile(rf"\b{ENDPOINT_CONTEXT_REF}\b", re.I)
+_LOCAL_POWERSHELL = re.compile(rf"\b{LOCAL_CONTEXT_REF}\b", re.I)
 _REFERENTIAL_LOCAL_MIX = re.compile(
     r"\b(?:paste|use|run|execute|wrap)\s+(?:this|that|the)?\s*(?:endpoint\s+)?(?:response[- ]action\s+)?"
     r"(?:wrapper|syntax|command(?:s)?)\b[^.!?;\n]{0,100}\b(?:into|in|with|as)\b[^.!?;\n]{0,50}"
@@ -171,17 +173,6 @@ _NEXT_ACTION_NEGATION = re.compile(
 )
 
 
-def occurrence_is_backtick_wrapped(text: str, start: int, end: int) -> bool:
-    if start > 0 and end < len(text) and text[start - 1] == "`" and text[end] == "`":
-        return True
-    positions = [index for index, char in enumerate(text) if char == "`"]
-    for offset in range(0, len(positions) - 1, 2):
-        opener, closer = positions[offset], positions[offset + 1]
-        if opener < start and end <= closer:
-            return True
-    return False
-
-
 
 def response_has_next_evidence_semantics(text: str) -> bool:
     """Recognize actionable next-evidence guidance without accepting empty headings."""
@@ -210,7 +201,7 @@ class SemanticAnalysis:
         return _normalized_surface(self.text)
 
     def occurrence_is_assertive(self, start: int, end: int) -> bool:
-        return occurrence_is_assertive_polarity(self.text.lower(), start, end)
+        return occurrence_is_asserted(self.text.lower(), start, end)
 
     def has_no_claim_semantics(self) -> bool:
         lowered = self.text.lower()
@@ -236,12 +227,12 @@ class SemanticAnalysis:
         for mix in _AFFIRMATIVE_MIX.finditer(normalized):
             if _CONTRAST.search(mix.group(0)) or _EXPLICIT_SEPARATION_RELATION.search(mix.group(0)):
                 continue
-            if occurrence_is_assertive_polarity(normalized, mix.start(), mix.end()):
+            if occurrence_is_asserted(normalized, mix.start(), mix.end()):
                 return False
         for mix in _REFERENTIAL_LOCAL_MIX.finditer(normalized):
             if _CONTRAST.search(mix.group(0)) or _EXPLICIT_SEPARATION_RELATION.search(mix.group(0)):
                 continue
-            if occurrence_is_assertive_polarity(normalized, mix.start(), mix.end()):
+            if occurrence_is_asserted(normalized, mix.start(), mix.end()):
                 return False
 
         for relation in _PROHIBITED_CROSS_LANE.finditer(normalized):
@@ -256,7 +247,7 @@ class SemanticAnalysis:
                 return True
 
         for mix in _REFERENTIAL_LOCAL_MIX.finditer(normalized):
-            if occurrence_is_assertive_polarity(normalized, mix.start(), mix.end()):
+            if occurrence_is_asserted(normalized, mix.start(), mix.end()):
                 continue
             prior = normalized[max(0, mix.start() - 260):mix.start()]
             if _ENDPOINT_CONTEXT.search(prior):
@@ -273,6 +264,8 @@ class SemanticAnalysis:
             normalized,
         ))
         if endpoint_only and local_only:
+            return True
+        if has_rejected_cross_lane_equivalence(normalized):
             return True
         return None
 

@@ -6,10 +6,10 @@ from typing import List
 from .gemini_behavioral_replay_lane_context import _clause_has_endpoint_lane, _clause_has_local_lane
 from .gemini_behavioral_replay_rejection_patterns import POST_ACTION_REJECTION_PATTERN
 from .gemini_behavioral_replay_semantic_assertions import analyze_semantics
+from .gemini_behavioral_replay_negation_context import occurrence_is_contextually_negated
 from .gemini_behavioral_replay_text_scoring import (
     _iter_clauses,
     _iter_term_occurrences,
-    _occurrence_is_negated,
     _occurrence_is_rejected_after,
 )
 
@@ -63,7 +63,7 @@ def _has_assertive_phase(response_text: str, required_tokens: List[str]) -> bool
         ):
             continue
         if any(
-            _occurrence_is_negated(clause, occurrence.start())
+            occurrence_is_contextually_negated(clause, occurrence.start())
             or _occurrence_is_rejected_after(clause, occurrence.end())
             or POST_ACTION_REJECTION_PATTERN.search(clause[occurrence.end():])
             for token in required_tokens

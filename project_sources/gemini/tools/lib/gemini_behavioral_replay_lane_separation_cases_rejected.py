@@ -48,6 +48,17 @@ REJECTED_SEPARATION_CASES = (
         'rejected separation assertion',
     ),
     (
+        'It is not wrong to say the endpoint response console and local PowerShell are '
+        'interchangeable.',
+        'affirmed equivalence remains an unsafe lane assertion',
+    ),
+    (
+        'It is wrong to say the endpoint response console and local PowerShell are '
+        'interchangeable, and the endpoint response console and local PowerShell are '
+        'interchangeable.',
+        'later affirmative equivalence overrides an earlier rejection',
+    ),
+    (
         'It would be misleading to say endpoint response-action commands are separate from '
         'local workstation PowerShell.',
         'misleading separation assertion',
