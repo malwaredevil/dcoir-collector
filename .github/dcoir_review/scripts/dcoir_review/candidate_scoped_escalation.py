@@ -9,6 +9,7 @@ from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import candidate_escalation_execution as execution
 from dcoir_review import candidate_escalation_scope as scope
 from dcoir_review import candidate_escalation_telemetry as telemetry
+from dcoir_review import candidate_escalation_quality_retry as quality_retry
 
 
 def _merge_scoped_result(
@@ -340,6 +341,18 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
             if context_scope == "candidate-scoped"
             else adjudicated
         )
+        final, retry_model, retry_tier = quality_retry.retry_candidate_escalation(
+            module, final, schema, config, reporter, risk_sentinels, line_index,
+            evidence, context_scope,
+        )
+        if retry_model:
+            adjudicator_calls += 1
+        if retry_model and context_scope == "candidate-scoped" and _outside_scope(
+            module, final, selected_paths
+        ):
+            raise module.hardened.ReviewQualityError(
+                "DCOIR candidate-escalation quality retry returned an out-of-scope finding"
+            )
         final = telemetry.apply(
             module,
             gh,
@@ -354,6 +367,7 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
         model_label = (
             f"{primary_model}; candidate-challenger={challenger_model}; "
             f"candidate-adjudicator={adjudicator_model}"
+            + (f"; candidate-adjudicator-retry={retry_model}" if retry_model else "")
         )
         tier_label = ", ".join(
             item
@@ -361,6 +375,7 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
                 str(primary_tier or "").strip(),
                 str(challenger_tier or "").strip(),
                 str(adjudicator_tier or "").strip(),
+                str(retry_tier or "").strip(),
             )
             if item
         )

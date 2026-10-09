@@ -36,6 +36,7 @@ DIRECT_IMPORT_MODULES = (
     "adversarial_prompt_policy.py",
     "anchor_scoring.py",
     "candidate_escalation_execution.py",
+    "candidate_escalation_quality_retry.py",
     "candidate_escalation_scope.py",
     "candidate_escalation_telemetry.py",
     "candidate_scoped_escalation.py",
