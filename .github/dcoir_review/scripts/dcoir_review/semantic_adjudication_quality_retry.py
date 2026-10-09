@@ -185,4 +185,12 @@ def retry_rejected_adjudication(
         merged[confidence_policy.NORMALIZATION_COUNT] = merge_initial[
             confidence_policy.NORMALIZATION_COUNT
         ]
-    return cap_findings(module, merged, max_findings), retry_model, retry_tier
+    capped = cap_findings(module, merged, max_findings)
+    # Never lose the original overflow signal during retry-result merging:
+    # the terminal low-confidence disposition must remain fail-closed.
+    overflow_key = "_semantic_adjudication_overflow_trimmed"
+    if overflow_key in adjudicated:
+        capped[overflow_key] = max(
+            adjudicated[overflow_key], capped.get(overflow_key, 0)
+        )
+    return capped, retry_model, retry_tier

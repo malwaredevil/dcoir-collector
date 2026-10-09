@@ -412,6 +412,73 @@ def main() -> None:
         else:
             raise AssertionError("malformed retry findings reached result merging")
 
+    # Regression from Copilot review 5473715885: malformed first-pass
+    # finding entries must not be silently discarded by a clean retry.
+    for initial_findings in ([None], [
+        {"path": "probe.py", "line": 12, "severity": "medium",
+         "confidence": 0.60, "title": "Valid hypothesis",
+         "body": "Source scope was narrowed", "validation": "Check logs scope"},
+        None,
+    ]):
+        malformed_initial_calls: list[str] = []
+
+        def malformed_first(prompt, schema, cfg, provider_reporter=None):
+            malformed_initial_calls.append(prompt)
+            return {
+                "summary": "Initial adjudication response",
+                "findings": initial_findings,
+            }, "adjudicator-model", "default"
+
+        malformed_initial_hardened = SimpleNamespace(**vars(repair_hardened))
+        malformed_initial_hardened.openrouter_review = malformed_first
+        malformed_initial_module = SimpleNamespace(**vars(repair_module))
+        malformed_initial_module.hardened = malformed_initial_hardened
+        malformed_initial_config = SimpleNamespace(**vars(fake_config))
+        malformed_initial_config.semantic_adjudication_max_findings = 1
+        try:
+            adjudication.build_semantic_adjudication_stage(
+                malformed_initial_module, fake_detector
+            )({"number": 1}, [], "diff", {}, malformed_initial_config, reporter,
+              [], {}, "", "deep-forced", "", object())
+        except malformed_initial_hardened.ReviewQualityError as exc:
+            assert "non-object finding" in str(exc)
+        else:
+            raise AssertionError("Malformed initial finding was accepted")
+        assert len(malformed_initial_calls) == 1
+
+    # Regression: trimming the initial hypotheses must survive a retry merge
+    # so the terminal low-confidence classifier cannot certify truncated evidence.
+    overflow_calls: list[str] = []
+
+    def overflow_then_low(prompt, schema, cfg, provider_reporter=None):
+        overflow_calls.append(prompt)
+        result = low_then_supported(prompt, schema, cfg, provider_reporter)[0]
+        result["findings"] = [{
+            **result["findings"][0], "confidence": 0.60,
+        }]
+        if len(overflow_calls) == 1:
+            result["findings"].append({
+                **result["findings"][0], "line": 13,
+                "title": "Second hypothesis",
+            })
+        return result, "adjudicator-model", "default"
+
+    overflow_hardened = SimpleNamespace(**vars(repair_hardened))
+    overflow_hardened.openrouter_review = overflow_then_low
+    overflow_hardened.merge_quality_retry_results = review.hardened.merge_quality_retry_results
+    overflow_module = SimpleNamespace(**vars(repair_module))
+    overflow_module.hardened = overflow_hardened
+    overflow_config = SimpleNamespace(**vars(fake_config))
+    overflow_config.semantic_adjudication_max_findings = 1
+    overflow_result, _, _ = adjudication.build_semantic_adjudication_stage(
+        overflow_module, fake_detector
+    )({"number": 1}, [], "diff", {}, overflow_config, reporter,
+      [], {}, "", "deep-forced", "", object())
+    assert len(overflow_calls) == 2
+    assert overflow_result["_semantic_adjudication_overflow_trimmed"] == 1
+    assert overflow_result["_quality_retry_attempted"] is True
+    assert overflow_result["findings"][0]["confidence"] == 0.60
+
     verifier_prompt = v21._verifier_prompt(
         {
             "title": "Candidate",

@@ -176,12 +176,14 @@ def _cap_adjudicated_findings(module: Any, result: dict[str, Any], limit: int) -
     findings = result.get("findings", [])
     if not isinstance(findings, list):
         raise module.hardened.ReviewQualityError("DCOIR semantic adjudicator returned a non-list findings value")
+    if any(not isinstance(item, dict) for item in findings):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR semantic adjudicator returned a non-object finding"
+        )
     if len(findings) <= limit:
         return result
     capped = dict(result)
-    capped["findings"] = module.rank_findings_for_required_budget(
-        [item for item in findings if isinstance(item, dict)], limit
-    )
+    capped["findings"] = module.rank_findings_for_required_budget(findings, limit)
     capped["_semantic_adjudication_overflow_trimmed"] = len(findings) - len(capped["findings"])
     return capped
 
