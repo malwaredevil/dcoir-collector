@@ -283,6 +283,45 @@ def build_semantic_adjudication_stage(module: Any, next_review: Any) -> Any:
 
         adjudicated = semantic_adjudication_normalization.normalize_adjudicator_result(module, adjudicated)
         adjudicated = _cap_adjudicated_findings(module, adjudicated, max_findings)
+
+        # The earlier quality gate runs BEFORE independent semantic adjudication.
+        # Give newly rejected final-stage findings one bounded opportunity to be
+        # verified or withdrawn; never lower the publication confidence floor.
+        quality_reason_fn = getattr(module.hardened, "review_quality_retry_reason", None)
+        if callable(quality_reason_fn):
+            quality_reason = quality_reason_fn(adjudicated, config, risk_sentinels, line_index)
+            if quality_reason:
+                if reporter:
+                    reporter.update(
+                        "semantic-adjudication-quality-retry",
+                        "Final adjudication produced no actionable findings; requesting one evidence-backed repair",
+                    )
+                retry_prompt = module.hardened.build_quality_retry_prompt(
+                    prompt, adjudicated, risk_sentinels, config, quality_reason
+                )
+                module.hardened.write_debug_text_artifact_safely(
+                    config, "prompts/07-semantic-adjudication-quality-retry.txt", retry_prompt
+                )
+                retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
+                    retry_prompt, schema, adjudication_config, reporter
+                )
+                retry_result = semantic_adjudication_normalization.normalize_adjudicator_result(
+                    module, retry_result
+                )
+                module.hardened.write_debug_json_artifact_safely(
+                    config,
+                    "responses/07-semantic-adjudication-quality-retry-result.json",
+                    {"model_used": retry_model, "service_tier": retry_tier, "result": retry_result},
+                )
+                adjudicated = module.hardened.merge_quality_retry_results(
+                    initial_result=adjudicated,
+                    retry_result=retry_result,
+                    config=config,
+                    line_index=line_index,
+                    retry_reason=quality_reason,
+                )
+                adjudicated = _cap_adjudicated_findings(module, adjudicated, max_findings)
+                adjudicator_model, adjudicator_tier = retry_model, retry_tier
         adjudicated[PROVIDER_RESULT_KEYS_ATTR] = provider_result_keys
         adjudicated["_semantic_adjudication_attempted"] = True
         adjudicated["_semantic_adjudication_model"] = adjudicator_model

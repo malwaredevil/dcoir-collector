@@ -186,6 +186,52 @@ def main() -> None:
     assert "responses/06-semantic-adjudication-result.json" in debug_json
     assert any(stage == "semantic-adjudication" and "input=2; retained=1" in message for stage, message in reporter.events)
 
+    # Regression: the final adjudicator can produce only 0.60-confidence
+    # candidates after the earlier quality gate already ran. Retry once, then
+    # require a newly supported result rather than lowering the 0.70 floor.
+    retry_calls: list[str] = []
+
+    def low_then_supported(prompt: str, schema: dict[str, Any], cfg: Any, reporter: Any = None):
+        retry_calls.append(prompt)
+        confidence = 0.88 if "Review quality retry:" in prompt else 0.60
+        return (
+            {
+                "summary": "The scoped source conflict is backed by the changed lines.",
+                "findings": [{
+                    "path": "probe.py", "line": 12, "severity": "medium",
+                    "confidence": confidence, "title": "Source scope conflict",
+                    "body": "The changed rule still narrows by an alert label alone.",
+                    "validation": "Compare the added rule with the unchanged routing condition.",
+                }],
+            },
+            "adjudicator-model",
+            "default",
+        )
+
+    repair_hardened = SimpleNamespace(**vars(fake_hardened))
+    repair_hardened.openrouter_review = low_then_supported
+    repair_hardened.review_quality_retry_reason = lambda result, cfg, sentinels, lines: (
+        "no finding meets confidence 0.70"
+        if any(item.get("confidence", 0) < 0.70 for item in result.get("findings", []))
+        else ""
+    )
+    repair_hardened.build_quality_retry_prompt = (
+        lambda prompt, prior, sentinels, cfg, reason: "Review quality retry: " + reason + "\n" + prompt
+    )
+    repair_hardened.merge_quality_retry_results = lambda *, initial_result, retry_result, config, line_index, retry_reason: {
+        **retry_result, "_quality_retry_attempted": True,
+    }
+    repair_module = SimpleNamespace(**vars(fake_module))
+    repair_module.hardened = repair_hardened
+    repaired, _, _ = adjudication.build_semantic_adjudication_stage(
+        repair_module, fake_detector
+    )({"number": 1}, [], "diff", {}, fake_config, reporter, [], {}, "", "deep-forced", "", object())
+    assert len(retry_calls) == 2
+    assert repaired["findings"][0]["confidence"] == 0.88
+    assert repaired["_quality_retry_attempted"] is True
+    assert "prompts/07-semantic-adjudication-quality-retry.txt" in debug_text
+    assert "responses/07-semantic-adjudication-quality-retry-result.json" in debug_json
+
     verifier_prompt = v21._verifier_prompt(
         {
             "title": "Candidate",
