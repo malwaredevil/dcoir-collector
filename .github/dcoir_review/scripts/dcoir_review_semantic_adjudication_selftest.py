@@ -29,6 +29,9 @@ def main() -> None:
     v21 = importlib.import_module("dcoir_review.finding_verifier")
     semantic_evidence = importlib.import_module("dcoir_review.semantic_evidence_hardening")
     adjudication = importlib.import_module("dcoir_review.semantic_adjudication")
+    assert adjudication.quality_retry.valid_retry_summary("Clean summary.\nMore evidence.")
+    for malformed_summary in (None, 17, {}, " \n\t", "\x00", "\u200b"):
+        assert not adjudication.quality_retry.valid_retry_summary(malformed_summary)
 
     config = review.load_pareto_context_config(".github/dcoir_review/openrouter-pr-review-pareto.yml")
     assert config.debug is False
@@ -341,6 +344,39 @@ def main() -> None:
     assert "confidence" not in debug_json[
         "responses/07-semantic-adjudication-quality-retry-initial-result.json"
     ]["result"]["findings"][0]
+
+    invalid_summary_hardened = SimpleNamespace(**vars(repair_hardened))
+    invalid_summary_calls = 0
+
+    def invalid_retry_summary(prompt, schema, cfg, provider_reporter=None):
+        nonlocal invalid_summary_calls
+        invalid_summary_calls += 1
+        if invalid_summary_calls == 1:
+            return low_then_supported(prompt, schema, cfg, provider_reporter)
+        return (
+            {"summary": {"status": "clean"}, "findings": []},
+            "adjudicator-model",
+            "default",
+        )
+
+    invalid_summary_hardened.openrouter_review = invalid_retry_summary
+    def forbidden_merge(**_kwargs):
+        raise AssertionError("malformed retry summary reached result merging")
+
+    invalid_summary_hardened.merge_quality_retry_results = forbidden_merge
+    invalid_summary_module = SimpleNamespace(**vars(repair_module))
+    invalid_summary_module.hardened = invalid_summary_hardened
+    try:
+        adjudication.build_semantic_adjudication_stage(
+            invalid_summary_module, fake_detector
+        )(
+            {"number": 1}, [], "diff", {}, fake_config, reporter, [], {},
+            "", "deep-forced", "", object(),
+        )
+    except invalid_summary_hardened.ReviewQualityError as exc:
+        assert "missing or invalid summary" in str(exc)
+    else:
+        raise AssertionError("malformed retry summary did not fail closed")
 
     verifier_prompt = v21._verifier_prompt(
         {

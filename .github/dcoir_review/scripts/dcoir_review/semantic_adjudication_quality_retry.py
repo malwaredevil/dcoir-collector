@@ -21,6 +21,14 @@ QUALITY_RETRY_RESULT_KEYS = {
 }
 
 
+def valid_retry_summary(value: Any) -> bool:
+    return (
+        isinstance(value, str)
+        and bool(value.strip())
+        and all(character.isprintable() or character.isspace() for character in value)
+    )
+
+
 def quality_retry_metadata_is_valid(result: dict[str, Any]) -> bool:
     present = QUALITY_RETRY_RESULT_KEYS.intersection(result)
     if not present:
@@ -33,12 +41,9 @@ def quality_retry_metadata_is_valid(result: dict[str, Any]) -> bool:
         return False
     if not str(result.get("_quality_retry_reason", "") or "").strip():
         return False
-    if not all(
-        isinstance(result.get(key), str)
-        for key in ("_quality_retry_initial_summary", "_quality_retry_retry_summary")
-    ):
+    if not isinstance(result.get("_quality_retry_initial_summary"), str):
         return False
-    if not result["_quality_retry_retry_summary"].strip():
+    if not valid_retry_summary(result.get("_quality_retry_retry_summary")):
         return False
     if not str(result.get("_quality_retry_initial_raw_digest", "") or "").strip():
         return False
@@ -129,6 +134,12 @@ def retry_rejected_adjudication(
     retry_result, retry_model, retry_tier = module.hardened.openrouter_review(
         retry_prompt, schema, adjudication_config, reporter
     )
+    if not isinstance(retry_result, dict) or not valid_retry_summary(
+        retry_result.get("summary")
+    ):
+        raise module.hardened.ReviewQualityError(
+            "DCOIR semantic-adjudication retry returned a missing or invalid summary"
+        )
     retry_result = normalize_result(module, retry_result)
     module.hardened.write_debug_json_artifact_safely(
         config,
