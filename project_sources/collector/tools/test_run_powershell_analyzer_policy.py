@@ -37,6 +37,9 @@ class PowerShellAnalyzerPolicyTests(PowerShellAnalyzerTestCase):
             write(part, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION, "suppressions": [
                 {"path": "one.ps1", "rule_name": "PSAvoidUsingWriteHost", "fingerprint": "a" * 64,
                  "reason": "existing reviewed warning"}]}, indent=2) + "\n")
+            # Text writes on Windows may already use CRLF: fix the starting
+            # fixture to known LF bytes before simulating Windows checkout.
+            part.write_bytes(part.read_bytes().replace(b"\r\n", b"\n"))
             manifest = root / "baseline.json"
             write(manifest, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION,
                 "shards": [{"name": part.name, "sha256": hashlib.sha256(part.read_bytes()).hexdigest()}]}))
