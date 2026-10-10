@@ -4,23 +4,23 @@
     {
       "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "a6a2d61b76ce1a131b1aa071fe0fdf0e88f4ea607723cc91fda187847383f14a",
+      "fingerprint": "29b7a52ce33da8a72cb3e76bd8fc1f5da65973550beed9630bc63989dc591f3d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 145. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "fa14bb1ca1a4b1024878b7550f873b14acdcb6c496b9aa9eb7063e1c47a19671",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 136. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "d72e3b075485dd59abc87dbc3e815c542a69e505227dce0bbbe5b41467e83bc8",
+      "fingerprint": "fb74a7dd73106abe10de0a190b9a6eff368587a1680f756d94019fbb065f8053",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 127. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
-    },
-    {
-      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
-      "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "dbcc9f9db2ee674345599488b6d525800fce3e5b8769ca45dbf26c92b7d16636",
-      "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 131. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 140. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",

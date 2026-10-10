@@ -116,16 +116,16 @@
     {
       "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "1e67f9c40aa6eaca7aadffd8fc05209a0c46745a5d9921ca6fe4965ee5f4ffaf",
+      "fingerprint": "98d9a797ff89992987957c305693f436ced9e4b9a514ba9a4742a04da0a51126",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 128. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 137. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "974a5b4f7f15dd01f405ea267228a2ab2b18638188979a774069ac43a41aa8db",
+      "fingerprint": "b32c6282e0eead0537ee9421ddbefd8a2a77ac804fe090f226d04b25703c3e85",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 129. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 138. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     }
   ]
 }

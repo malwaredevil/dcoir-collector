@@ -36,12 +36,16 @@ class PowerShellAnalyzerPolicyTests(PowerShellAnalyzerTestCase):
             part = parts / "part-001.json"
             write(part, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION, "suppressions": [
                 {"path": "one.ps1", "rule_name": "PSAvoidUsingWriteHost", "fingerprint": "a" * 64,
-                 "reason": "existing reviewed warning"}]}))
+                 "reason": "existing reviewed warning"}]}, indent=2) + "\n")
             manifest = root / "baseline.json"
             write(manifest, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION,
                 "shards": [{"name": part.name, "sha256": hashlib.sha256(part.read_bytes()).hexdigest()}]}))
             self.assertEqual(len(analyzer.load_baseline(manifest)["suppressions"]), 1)
-            part.write_text(part.read_text() + " ")
+            # GitHub's Windows checkout may translate LF to CRLF. Identical
+            # JSON must remain trusted, while content edits must still fail.
+            part.write_bytes(part.read_bytes().replace(b"\n", b"\r\n"))
+            self.assertEqual(len(analyzer.load_baseline(manifest)["suppressions"]), 1)
+            part.write_bytes(part.read_bytes().replace(b"reviewed warning", b"new exception"))
             with self.assertRaisesRegex(analyzer.AnalyzerContractError, "hash mismatch"):
                 analyzer.load_baseline(manifest)
 

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from powershell_analyzer_baseline import apply_baseline, baseline_metadata, load_baseline
+from collector_tool_path_safety import repo_relative_input_path
 from powershell_analyzer_contract import (
     DEFAULT_INVENTORY,
     DEFAULT_JSON_OUTPUT,
@@ -18,7 +19,6 @@ from powershell_analyzer_contract import (
     ISSUE_NUMBER,
     SCHEMA_VERSION,
     AnalyzerContractError,
-    repo_relative_input_path,
     relpath,
     severity_at_or_above,
     sha256_file,

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import run_powershell_analyzer as analyzer
-from powershell_analyzer_contract import AnalyzerContractError, repo_relative_input_path
+from collector_tool_path_safety import AnalyzerContractError, repo_relative_input_path
 
 SCHEMA_VERSION = "dcoir_powershell_rule_risk_fixture_report_v1"
 MATRIX_SCHEMA_VERSION = "dcoir_powershell_rule_risk_matrix_v1"

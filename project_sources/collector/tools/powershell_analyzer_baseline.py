@@ -2,7 +2,6 @@
 """Baseline loading and suppression matching for analyzer findings."""
 from __future__ import annotations
 
-import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -13,6 +12,7 @@ from powershell_analyzer_contract import (
     read_json,
     safe_relpath,
     scalar,
+    sha256_line_ending_stable_file,
 )
 
 def load_baseline(path: Path | None) -> dict[str, Any] | None:
@@ -55,7 +55,7 @@ def load_baseline(path: Path | None) -> dict[str, Any] | None:
                 target.resolve(strict=True).relative_to(shard_dir.resolve(strict=True))
                 if not target.is_file() or target.stat().st_size > 15000:
                     raise AnalyzerContractError("PowerShell analyzer baseline shard is missing or oversized: " + name)
-                actual_sha = hashlib.sha256(target.read_bytes()).hexdigest()
+                actual_sha = sha256_line_ending_stable_file(target)
             except (OSError, RuntimeError, ValueError) as exc:
                 raise AnalyzerContractError("PowerShell analyzer baseline shard is unavailable or unsafe: " + name) from exc
             if actual_sha != expected_sha:
