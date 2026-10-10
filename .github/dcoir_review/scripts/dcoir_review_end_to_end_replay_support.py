@@ -112,6 +112,9 @@ def judge(spec, res):
         problems.append(f"comments {res['comments']} < {spec['min_comments']}")
     if ok and spec.get("body_contains") and spec["body_contains"] not in res.get("body_full", ""):
         problems.append("review body missing expected text")
+    spent = sorted(set(spec.get("forbid_kinds", ())) & set(res["kinds"]))
+    if spent:
+        problems.append(f"unexpected model calls {spent}")
     if res["unknown_gh"]:
         problems.append(f"unhandled GitHub calls {res['unknown_gh']}")
     return problems

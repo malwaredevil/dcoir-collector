@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Offline end-to-end DCOIR Review replay across every review path.
 
-Each scenario drives the real entrypoint through first-pass-deep, deep, diff,
-and incremental re-review paths with scripted provider and GitHub behavior,
-including the run 37983201801 adjudication sequence. Run from the repository
-root; ``--only <substr>`` narrows the matrix and ``--scenario <name>`` runs one
+Drives the real entrypoint through first-pass-deep, deep, diff, and incremental
+paths with scripted provider/GitHub behavior, including run 37983201801's
+sequence. ``--only <substr>`` narrows the matrix; ``--scenario <name>`` runs one
 case in-process (used by the parallel driver).
 """
 
@@ -45,7 +44,7 @@ def live(**overrides):
 
 
 # --- first-pass-deep (default /dcoir-review) ---
-scenario("fpd-clean", model={"first-pass": [CLEAN]}, expect="ok", comments=0)
+scenario("fpd-clean", model={"first-pass": [CLEAN]}, expect="ok", comments=0, forbid_kinds=("quality-retry",))
 scenario("fpd-high-confidence", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, expect="ok", min_comments=1)
 scenario("fpd-high-verifier-rejects", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [REJECTED]}, expect="ok", comments=0)
 scenario("fpd-live-retry-repairs", model=live(**{"v44-adjudication-retry": [R(F(0.86, line=11))], "v35-adjudication-retry": [R(F(0.86, line=11))]}), expect="ok", min_comments=1)
@@ -104,7 +103,7 @@ scenario("files-pagination-120", files=files_default(120), model={"first-pass": 
 # --- explicit modes ---
 scenario("deep-live-retry-low", suffix="deep", model=live(**{"v35-adjudication-retry": [R(F(0.64, line=11), summary="Still uncertain.")]}), expect="ok", comments=0)
 scenario("deep-live-retry-repairs", suffix="deep", model=live(**{"v35-adjudication-retry": [R(F(0.86, line=11))]}), expect="ok", min_comments=1)
-scenario("deep-clean", suffix="deep", model={"first-pass": [CLEAN]}, expect="ok", comments=0)
+scenario("deep-clean", suffix="deep", model={"first-pass": [CLEAN]}, expect="ok", comments=0, forbid_kinds=("quality-retry",))
 scenario("diff-clean", suffix="diff", model={"first-pass": [CLEAN]}, expect="ok", comments=0)
 scenario("diff-high", suffix="diff", model={"first-pass": [R(F(0.9))], "verifier": [VERIFIED]}, expect="ok", min_comments=1)
 scenario("diff-near-threshold", suffix="diff", model={"first-pass": [R(F(0.62))], "v44-adjudicator": [R(F(0.86))], "verifier": [VERIFIED]}, expect="ok", min_comments=1)
@@ -119,6 +118,8 @@ scenario("diff-very-low-many-paths", suffix="diff", files=files_default(6), mode
     "quality-retry": [R(*[F(0.45, path=f"tools/replay_{i}.py") for i in range(6)], summary="Still uncertain.")],
     "v44-adjudicator": [R(F(0.50), summary="Still uncertain.")]}, expect="ok", comments=0)
 scenario("diff-very-low-adjudicator-confirms", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [R(F(0.45))], "v44-adjudicator": [R(F(0.88))], "verifier": [VERIFIED]}, expect="ok", min_comments=1)
+scenario("diff-very-low-offdiff", suffix="diff", model={"first-pass": [R(F(0.40, line=40))], "quality-retry": [R(F(0.45, line=40), summary="Still uncertain.")],
+    "v44-adjudicator": [R(F(0.50, line=40), summary="Still uncertain.")]}, expect="ok", comments=0)
 scenario("deep-sentinel-low", suffix="deep", files=files_default(2, SENTINEL_LINES), model=live(**{"v35-adjudication-retry": [R(F(0.64, line=11), summary="Still uncertain.")]}), expect="ok", min_comments=2)
 
 # --- provider failure shapes ---

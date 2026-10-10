@@ -70,8 +70,10 @@ def eligible_low_confidence_findings(
 ) -> tuple[list[dict[str, Any]], float]:
     """Return only anchored/actionable near-threshold findings safe to bound.
 
-    ``exhausted`` admits any sub-floor confidence once the whole-PR quality
-    retry has already run; it is evaluated outside the inner allow window.
+    ``exhausted`` admits any schema-valid sub-floor finding once the whole-PR
+    quality retry has already run (advisory framing and off-diff anchors are
+    for the independent adjudicator to dispose); it is evaluated outside the
+    inner allow window.
     """
     if (
         not (exhausted or bool(getattr(config, ALLOW_ATTR, False)))
@@ -111,7 +113,7 @@ def eligible_low_confidence_findings(
         ):
             return [], floor
         item = dict(raw)
-        if module.hardened.non_actionable_finding_reason(item):
+        if not exhausted and module.hardened.non_actionable_finding_reason(item):
             return [], floor
         item_confidence = confidence(raw_confidence)
         path = str(item.get("path", "") or "").strip()
@@ -122,7 +124,7 @@ def eligible_low_confidence_findings(
             or item_confidence >= minimum
             or not path
             or line <= 0
-            or (path, line) not in line_index
+            or (not exhausted and (path, line) not in line_index)
         ):
             return [], floor
         eligible.append(item)

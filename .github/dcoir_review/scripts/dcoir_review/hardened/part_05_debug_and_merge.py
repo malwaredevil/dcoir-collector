@@ -106,7 +106,14 @@ def merge_review_results(
     retry_summary = str(retry_result.get("summary", "") if isinstance(retry_result, dict) else "").strip()
     initial_summary = str(initial_result.get("summary", "") if isinstance(initial_result, dict) else "").strip()
     summary = retry_summary or initial_summary
-    if initial_summary and retry_summary and normalized_quality_text(initial_summary) != normalized_quality_text(retry_summary):
+    # Only claim preserved first-pass findings when there are some; the note
+    # otherwise reads as a summary-only problem and forces a needless retry.
+    if (
+        result_findings(initial_result)
+        and initial_summary
+        and retry_summary
+        and normalized_quality_text(initial_summary) != normalized_quality_text(retry_summary)
+    ):
         summary = (
             f"{retry_summary}\n\n"
             "The review result also preserves distinct actionable findings returned by the first pass when they "
