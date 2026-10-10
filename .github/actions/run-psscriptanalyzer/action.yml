@@ -40,5 +40,9 @@ runs:
         if ($env:FAIL_ON_ERROR_SEVERITY -eq 'true' -and $report.summary.error_count -gt 0) {
           throw "PSScriptAnalyzer found $($report.summary.error_count) Error-severity violations."
         }
+        # Native negative and safe-control proofs use isolated temporary inventory
+        # and never replace the production analyzer report artifact.
+        python project_sources/collector/tools/verify_powershell_analyzer_policy_ci.py
+        if ($LASTEXITCODE -ne 0) { throw 'PSScriptAnalyzer negative policy fixture did not block.' }
 # Compensating evidence: caller-visible action steps, pinned module version, JSON/Markdown analyzer report, and central policy gate retain authoritative output despite composite log grouping.
 # CI consumers and reviewers read the same canonical JSON and Markdown output.

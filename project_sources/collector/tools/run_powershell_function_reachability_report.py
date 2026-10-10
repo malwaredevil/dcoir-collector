@@ -18,7 +18,6 @@ from pathlib import Path
 from powershell_function_reachability_ast import (
     parse_with_powershell_ast as _parse_with_powershell_ast,
 )
-from powershell_analyzer_contract import sha256_file
 from powershell_function_reachability_contract import (
     CLASSIFICATIONS,
     DEFAULT_JSON_OUTPUT,

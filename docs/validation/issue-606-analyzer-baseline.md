@@ -19,3 +19,12 @@ The October 10 GHAS autofixes on PR #617 remove two unused import aliases and re
 ## PSScriptAnalyzer intermittent engine exception
 
 Main Push Validation run `38048689136`, first attempt on commit `81c80502`, scanned seven targets before the PSScriptAnalyzer 1.25.0 engine threw `Object reference not set to an instance of an object` against `Dcoir.Actions.psm1`. No incomplete scan was accepted; the 126 unmatched baseline entries reflect this stopped run rather than unreviewed new suppressions. An upstream PSScriptAnalyzer issue documents intermittent crashes of this kind caused by concurrent rule evaluation (https://github.com/PowerShell/PSScriptAnalyzer/issues/1867). The wrapper may retry **only** this exact internal error in a fresh process, up to three total attempts. Other crashes, invalid output, missing tools, or exhausted retries remain blocking; every scan must still return a complete valid per-target report. Positive recovery and exhausted/unrelated failure tests provide evidence.
+
+## Native Warning-gate fixture evidence
+
+The analyzer action runs an isolated negative/positive fixture pair through the
+production Python analyzer with the live PowerShell policy and no baseline.
+The existing `bad/invoke_expression.ps1` must raise an unsuppressed Warning from
+`PSAvoidUsingInvokeExpression` that would fail the severity gate. The safe
+`Write-Output` control must pass. This verifies the documented matrix claim
+without creating a competing report producer or changing the source inventory.

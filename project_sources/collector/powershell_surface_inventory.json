@@ -1022,14 +1022,14 @@
           "step_or_action": "Analyze inventory through canonical Python owner",
           "shell": "pwsh",
           "line_start": 29,
-          "line_end": 42,
-          "command_sha256": "962d5a4f91e67fa0cea084f6d9eb4865603469ffa4ac975b2769ccf005deeb2f",
+          "line_end": 46,
+          "command_sha256": "1595347b6a17dae250395c3702462e2df01a82e43dd6998101cf550ffb620508",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --base"
         }
       ],
-      "size_bytes": 2748,
-      "line_count": 44,
-      "sha256": "fe8e46ce6dc153657b92c150f6418c8aef16904bd3e809191b7ee3456bcbffba"
+      "size_bytes": 3088,
+      "line_count": 48,
+      "sha256": "0778f0ad3efe72e76d7175b52bb533f20ae3a40956baabedd477b33a8a6ffc5c"
     },
     {
       "path": ".github/actions/run-validate-dcoir-fixtures/action.yml",
