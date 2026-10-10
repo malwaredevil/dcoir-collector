@@ -27,6 +27,34 @@ except ImportError:  # pragma: no cover - direct file execution support
 
 
 class PowerShellAnalyzerCoreTests(PowerShellAnalyzerTestCase):
+    def test_transient_null_reference_retries_and_returns_complete_data(self) -> None:
+        import subprocess
+        from powershell_analyzer_execution import run_analyzer_command
+        failure = subprocess.CompletedProcess(["pwsh"], 1, "", "Object reference not set to an instance of an object")
+        success = subprocess.CompletedProcess(["pwsh"], 0, json.dumps({"analyzed": True, "findings": []}), "")
+        with unittest.mock.patch("powershell_analyzer_execution.subprocess.run", side_effect=[failure, success]) as call:
+            result = run_analyzer_command(["pwsh"], "psscriptanalyzer_pwsh", {"target": {"path": "module.psm1"}}, 5)
+        self.assertEqual(call.call_count, 2)
+        self.assertTrue(result["analyzed"])
+        self.assertEqual(result["command_kind"], "psscriptanalyzer_pwsh")
+
+    def test_repeated_null_reference_still_fails_closed(self) -> None:
+        import subprocess
+        from powershell_analyzer_execution import run_analyzer_command
+        crash = subprocess.CompletedProcess(["pwsh"], 1, "", "Object reference not set to an instance of an object")
+        with unittest.mock.patch("powershell_analyzer_execution.subprocess.run", return_value=crash) as call:
+            with self.assertRaisesRegex(analyzer.AnalyzerContractError, "analyzer crash"):
+                run_analyzer_command(["pwsh"], "psscriptanalyzer_pwsh", {"target": {"path": "module.psm1"}}, 5)
+        self.assertEqual(call.call_count, 3)
+
+    def test_unrelated_analyzer_failure_does_not_retry(self) -> None:
+        import subprocess
+        from powershell_analyzer_execution import run_analyzer_command
+        crash = subprocess.CompletedProcess(["pwsh"], 9, "", "Other analyzer failure")
+        with unittest.mock.patch("powershell_analyzer_execution.subprocess.run", return_value=crash) as call:
+            with self.assertRaisesRegex(analyzer.AnalyzerContractError, "Other analyzer failure"):
+                run_analyzer_command(["pwsh"], "psscriptanalyzer_pwsh", {"target": {"path": "module.psm1"}}, 5)
+        self.assertEqual(call.call_count, 1)
     def test_control_report_passes_and_records_counts(self) -> None:
         with self.make_repo() as temp:
             report, errors, _warnings = analyzer.build_report(self.make_args(Path(temp)))

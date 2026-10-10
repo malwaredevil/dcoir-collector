@@ -6,6 +6,7 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -95,26 +96,43 @@ def run_analyzer_command(
     request: dict[str, Any],
     timeout_seconds: int,
 ) -> dict[str, Any]:
-    try:
-        completed = subprocess.run(
-            command,
-            input=json.dumps(request),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise AnalyzerContractError(f"analyzer tool missing: {command[0]}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise AnalyzerContractError(
-            f"analyzer timeout after {timeout_seconds} seconds for {request['target']['path']}"
-        ) from exc
-    except OSError as exc:
-        raise AnalyzerContractError(f"analyzer launch failed for {request['target']['path']}: {exc}") from exc
+    # PSScriptAnalyzer can intermittently throw this known internal error while
+    # evaluating built-in rules concurrently. Retry only that exact failure in
+    # a fresh PowerShell process. Never return an incomplete or skipped scan.
+    attempts = 3 if command_kind == "psscriptanalyzer_pwsh" else 1
+    for attempt in range(1, attempts + 1):
+        try:
+            completed = subprocess.run(
+                command,
+                input=json.dumps(request),
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise AnalyzerContractError(f"analyzer tool missing: {command[0]}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise AnalyzerContractError(
+                f"analyzer timeout after {timeout_seconds} seconds for {request['target']['path']}"
+            ) from exc
+        except OSError as exc:
+            raise AnalyzerContractError(f"analyzer launch failed for {request['target']['path']}: {exc}") from exc
 
-    if completed.returncode != 0:
+        if completed.returncode == 0:
+            break
         stderr = completed.stderr.strip()[-2000:]
+        if (
+            command_kind == "psscriptanalyzer_pwsh"
+            and "Object reference not set to an instance of an object" in stderr
+            and attempt < attempts
+        ):
+            print(
+                f"PSScriptAnalyzer transient null-reference while scanning "
+                f"{request['target']['path']}; retry {attempt + 1}/{attempts}",
+                file=sys.stderr,
+            )
+            continue
         raise AnalyzerContractError(
             f"analyzer crash for {request['target']['path']} with exit {completed.returncode}: {stderr}"
         )
