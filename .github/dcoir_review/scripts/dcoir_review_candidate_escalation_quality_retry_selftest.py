@@ -227,12 +227,12 @@ def run_scoped_stage(retry_findings):
         )
     finally:
         stage_test.restore_execution(originals)
-    return outcome, scoped, passthrough, seen_sentinels, prompts, review
+    return outcome, scoped, passthrough, seen_sentinels, prompts, review, debug, cfg, lines
 
 
 def test_candidate_scoped_retry_keeps_passthrough_findings():
     repaired = {**stage_test.finding("src/a.py", "scoped"), "confidence": 0.86}
-    (result, model_label, _), _, passthrough, seen, prompts, _ = run_scoped_stage([repaired])
+    (result, model_label, _), _, passthrough, seen, prompts, *_ = run_scoped_stage([repaired])
     assert len(prompts) == 1
     assert seen == [["src/a.py"]], seen
     assert "Escalation context scope: candidate-scoped." in prompts[0]
@@ -243,14 +243,41 @@ def test_candidate_scoped_retry_keeps_passthrough_findings():
     assert "candidate-adjudicator-retry=retry-opus" in model_label
 
 
-def test_candidate_scoped_retry_out_of_scope_is_blocked():
-    escaped = {**stage_test.finding("src/c.py", "escaped"), "confidence": 0.9, "line": 4}
-    try:
+def test_candidate_scoped_retry_out_of_scope_keeps_first_pass():
+    escaped = {**stage_test.finding("src/c.py", "escaped"), "confidence": 0.9}
+    (result, model_label, _), scoped, passthrough, _, prompts, review, debug, cfg, lines = (
         run_scoped_stage([escaped])
-    except Exception as exc:  # the stage raises the module's ReviewQualityError
-        assert "out-of-scope" in str(exc)
-    else:
-        raise AssertionError("A retry finding outside the bounded scope must not publish")
+    )
+    assert len(prompts) == 1
+    # The escaped finding is rejected; the run keeps the pre-retry adjudication.
+    assert escaped not in result["findings"]
+    assert passthrough in result["findings"]
+    assert {**scoped, "confidence": 0.62} in result["findings"]
+    assert "_quality_retry_attempted" not in result
+    assert result["_candidate_escalation"]["adjudicator_call_count"] == 2
+    assert "candidate-adjudicator-retry" not in model_label
+    record = debug[
+        "responses/09-v44-candidate-adjudication-quality-retry-out-of-scope.json"
+    ]
+    assert record["kept"] == "first-pass-adjudication"
+    assert record["rejected_result"]["findings"][0]["title"] == "escaped"
+    # The publishable passthrough survives; the sub-floor finding does not.
+    published = review.hardened.split_findings(result, cfg, lines)[0]
+    assert published == [passthrough]
+
+
+def test_retry_normalization_adds_to_first_pass_count():
+    from dcoir_review import semantic_adjudication_confidence as confidence
+
+    initial = response(finding(None, line=12), finding(0.62, title="Low"))
+    retry = response(
+        finding(None, title="Retry A"), finding(None, title="Retry B"),
+    )
+    result, model, *_ = run(
+        initial, retry, reason=lambda *_args: "forced repair for count coverage"
+    )
+    assert model == "repair-adjudicator"
+    assert result[confidence.NORMALIZATION_COUNT] == 3, result[confidence.NORMALIZATION_COUNT]
 
 
 def main():
@@ -262,7 +289,8 @@ def main():
     test_publishable_final_skips_retry()
     test_outer_candidate_stage_uses_final_retry()
     test_candidate_scoped_retry_keeps_passthrough_findings()
-    test_candidate_scoped_retry_out_of_scope_is_blocked()
+    test_candidate_scoped_retry_out_of_scope_keeps_first_pass()
+    test_retry_normalization_adds_to_first_pass_count()
     print("dcoir_review_candidate_escalation_quality_retry_selftest passed")
 
 

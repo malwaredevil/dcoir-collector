@@ -12,6 +12,8 @@ from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 
 
 REPORT_STAGE = "candidate-escalation-adjudication-quality-retry"
+# Only candidate-scoped retries have a bounded scope to escape.
+OUT_OF_SCOPE_ARTIFACT_STAGE = "09-v44-candidate-adjudication"
 _PROVENANCE_KEYS = (
     "_semantic_adjudication_attempted",
     "_semantic_adjudication_model",
@@ -58,10 +60,41 @@ def retry_candidate_escalation(
     # The first v44 adjudication admits complete missing-confidence findings at
     # the floor, and no confidence stage runs after this one, so the retry
     # output must receive the same admission rather than failing closed.
-    repaired, _count, _floor = confidence._normalize_semantic_adjudication_confidence(
+    # Add to, never replace, any first-pass count the shared owner recorded.
+    prior_count = int(repaired.get(confidence.NORMALIZATION_COUNT, 0) or 0)
+    repaired, count, _floor = confidence._normalize_semantic_adjudication_confidence(
         module, repaired, config
     )
+    if count:
+        repaired[confidence.NORMALIZATION_COUNT] = prior_count + count
     repaired["_semantic_adjudication_output_findings"] = len(
         module.hardened.result_findings(repaired)
     )
     return repaired, retry_model, retry_tier
+
+
+def reject_out_of_scope(
+    module: Any, config: Any, reporter: Any, retry_model: str,
+    retry_result: dict[str, Any],
+) -> None:
+    """Record a bounded-scope retry rejection; the caller keeps the first pass.
+
+    The escaped findings are never merged. Like any failed optional retry, the
+    pre-retry adjudication continues to the downstream fail-closed gates, so
+    publishable passthrough findings are not lost to one stray retry finding.
+    """
+    module.hardened.write_debug_json_artifact_safely(
+        config,
+        f"responses/{OUT_OF_SCOPE_ARTIFACT_STAGE}-quality-retry-out-of-scope.json",
+        {
+            "retry_model": retry_model,
+            "kept": "first-pass-adjudication",
+            "rejected_result": retry_result,
+        },
+    )
+    if reporter:
+        reporter.update(
+            REPORT_STAGE,
+            "retry returned a finding outside the bounded scope; "
+            "keeping the first-pass adjudication for downstream gates",
+        )

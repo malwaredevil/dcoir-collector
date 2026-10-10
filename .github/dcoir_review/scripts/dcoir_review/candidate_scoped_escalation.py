@@ -345,12 +345,14 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
             )
             adjudicator_calls += 1
         # Retry only the adjudication; scoped passthrough findings stay outside
-        # it and are merged back afterwards, so they never trip the scope check.
+        # it and are merged back afterwards. A retry that escapes the bounded
+        # scope is rejected like any failed optional retry.
         retry_sentinels = (
             [item for item in risk_sentinels or [] if getattr(item, "path", "") in selected_paths]
             if context_scope == "candidate-scoped"
             else risk_sentinels
         )
+        pre_retry = adjudicated
         adjudicated, retry_model, retry_tier = quality_retry.retry_candidate_escalation(
             module, adjudicated, schema, config, reporter, retry_sentinels,
             line_index, hypotheses, evidence, context_scope,
@@ -360,9 +362,8 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
         if retry_model and context_scope == "candidate-scoped" and _outside_scope(
             module, adjudicated, selected_paths
         ):
-            raise module.hardened.ReviewQualityError(
-                "DCOIR candidate-escalation quality retry returned an out-of-scope finding"
-            )
+            quality_retry.reject_out_of_scope(module, config, reporter, retry_model, adjudicated)
+            adjudicated, retry_model, retry_tier = pre_retry, None, None
         final = (
             _merge_scoped_result(module, primary, passthrough, adjudicated)
             if context_scope == "candidate-scoped"
