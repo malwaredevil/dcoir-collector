@@ -8,6 +8,7 @@ from typing import Any, Callable
 
 from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import final_adjudication_policy as final_policy
+from dcoir_review import terminal_low_confidence_disposition as terminal_policy
 
 
 def run_production_regressions(
@@ -23,7 +24,7 @@ def run_production_regressions(
         ".github/dcoir_review/openrouter-pr-review-pareto.yml"
     )
     assert round(float(prod_config.minimum_confidence), 2) == 0.70
-    assert review.hardened.summary_suggests_problem(final_policy.CLEAN_SUMMARY) is False
+    assert review.hardened.summary_suggests_problem(terminal_policy.CLEAN_SUMMARY) is False
 
     production_live_shape = adjudicated_result(
         [
@@ -31,7 +32,7 @@ def run_production_regressions(
             finding("AGENTS.md", 248, 0.50),
             finding(".github/agent-governance/codex_cloud_environment.md", 77, 0.45),
         ],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     production_live_shape["_candidate_escalation"] = {"mode": "full-deep"}
     production_live_shape["_semantic_context_package_id"] = "package-123"
@@ -47,19 +48,19 @@ def run_production_regressions(
         "+governance",
         [],
     ) == ([], [])
-    assert production_live_shape["summary"] == final_policy.CLEAN_SUMMARY
-    assert production_live_shape[final_policy.DISPOSITION_MARKER]["candidate_count"] == 3
+    assert production_live_shape["summary"] == terminal_policy.CLEAN_SUMMARY
+    assert production_live_shape[terminal_policy.DISPOSITION_MARKER]["candidate_count"] == 3
 
     retried_low_confidence = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     retried_low_confidence.update(
         {
             "_quality_retry_attempted": True,
             "_quality_retry_reason": "none met the configured confidence floor",
             "_quality_retry_initial_summary": "First adjudication candidate.",
-            "_quality_retry_retry_summary": final_policy.CLEAN_SUMMARY,
+            "_quality_retry_retry_summary": terminal_policy.CLEAN_SUMMARY,
             "_quality_retry_merge_contract": "filtered-initial-v1",
             "_quality_retry_initial_finding_count": 1,
             "_quality_retry_initial_survivor_count": 0,
@@ -77,11 +78,11 @@ def run_production_regressions(
         "+governance",
         [],
     ) == ([], [])
-    assert retried_low_confidence[final_policy.DISPOSITION_MARKER]["candidate_count"] == 1
+    assert retried_low_confidence[terminal_policy.DISPOSITION_MARKER]["candidate_count"] == 1
 
     incomplete_retry_metadata = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     incomplete_retry_metadata["_quality_retry_attempted"] = True
     try:
@@ -99,7 +100,7 @@ def run_production_regressions(
 
     retry_without_summary = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     retry_without_summary.update(
         {
@@ -125,7 +126,7 @@ def run_production_regressions(
     # The retry response envelope is checked too, not only the first response.
     flat_retry_envelope = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     flat_retry_envelope.update(
         {
@@ -169,7 +170,7 @@ def run_production_regressions(
 
     production_overflow = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     production_overflow["_semantic_adjudication_overflow_trimmed"] = 1
     try:
@@ -205,7 +206,7 @@ def run_production_regressions(
 
     spoofed_metadata = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     spoofed_metadata[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = "spoofed"
     try:
@@ -223,7 +224,7 @@ def run_production_regressions(
 
     spoofed_provider_marker = adjudicated_result(
         [finding("AGENTS.md", 248, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
         provider_result_keys=("summary", "findings", "_semantic_adjudication_result_shape"),
     )
     spoofed_provider_marker["_semantic_adjudication_result_shape"] = "flat-single-finding"

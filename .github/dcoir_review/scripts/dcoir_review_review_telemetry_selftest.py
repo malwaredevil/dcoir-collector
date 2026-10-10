@@ -12,7 +12,7 @@ from types import SimpleNamespace
 
 from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
-from dcoir_review import structured_result_disposition as structured_disposition
+from dcoir_review import structured_result_disposition_state as structured_disposition
 from dcoir_review import progress_reporting
 from dcoir_review import review_telemetry_state
 

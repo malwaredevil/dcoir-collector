@@ -19,6 +19,8 @@ _PROVENANCE_KEYS = (
     "_semantic_adjudication_model",
     "_semantic_adjudication_input_candidates",
     "_semantic_adjudication_context_scope",
+    # The first provider envelope; the retry envelope is recorded separately.
+    adjudication.PROVIDER_RESULT_KEYS_ATTR,
 )
 
 

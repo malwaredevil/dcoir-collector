@@ -27,6 +27,7 @@ import copy
 from typing import Any
 
 from dcoir_review import reasoning_policy
+from dcoir_review import review_scope_guard as scope_guard
 
 
 RESPONSE_HEALING_PLUGIN_ID = "response-healing"
@@ -120,6 +121,35 @@ def _write_request_telemetry(module: Any, projected: Any, index: int, context: A
     return dict(telemetry)
 
 
+def _stage_local_fallback_allowed(module: Any, projected: Any, config: Any, exc: Exception) -> bool:
+    """Allow the shared-route fallback only for non-transient stage-local failures."""
+
+    if not bool(getattr(projected, PER_FILE_PROJECTION_ATTR, False)):
+        return False  # No stage-local route was applied; nothing to fall back from.
+    if isinstance(exc, (TimeoutError, scope_guard.ReviewSupersededError, scope_guard.ReviewHeadVerificationError)):
+        return False  # Run-level aborts must end the review.
+    saturation = getattr(module, "_is_transient_inflight_credit_saturation_error", None)
+    if callable(saturation) and saturation(exc):
+        return False  # Owned by the bounded credit-saturation recovery.
+    return bool(getattr(config, "per_file_shared_route_fallback", True))
+
+
+def _write_fallback_record(module: Any, config: Any, index: int, context: Any, exc: Exception) -> None:
+    path = str(context.get("path", "") or "") if isinstance(context, dict) else ""
+    artifact_id = module.safe_artifact_name(path, f"file-{index:02d}")
+    module.hardened.write_debug_json_artifact_safely(
+        config,
+        f"metadata/per-file/{index:02d}-{artifact_id}-shared-route-fallback.json",
+        {
+            "path": path,
+            "stage_local_failure": module.hardened.sanitize_github_output(
+                f"{exc.__class__.__name__}: {exc}"[:500], config
+            ),
+            "fallback_model_stack": list(getattr(config, "model_stack", []) or []),
+        },
+    )
+
+
 def build_per_file_routing_stage(module: Any, next_review: Any) -> Any:
     """Compose stage-local routing and request telemetry around a per-file callable."""
 
@@ -149,12 +179,27 @@ def build_per_file_routing_stage(module: Any, next_review: Any) -> Any:
                 risk_sentinels,
                 review_mode,
             )
-        except Exception:
+        except Exception as exc:
             # Preserve provider/finish/usage/cost evidence for capped failures
-            # before allowing the existing fail-closed coverage path to handle
-            # the exception.
+            # before deciding whether the stage-local route may fall back.
             _write_request_telemetry(module, projected, index, context)
-            raise
+            if not _stage_local_fallback_allowed(module, projected, config, exc):
+                raise
+            # One bounded fallback on the shared premium review route for a
+            # non-transient stage-local failure (for example a completion that
+            # hit the stage-local output cap). A second failure still reaches
+            # the fail-closed per-file coverage gate.
+            _write_fallback_record(module, config, index, context, exc)
+            return original(
+                index,
+                context,
+                pr,
+                diff,
+                schema,
+                config,
+                risk_sentinels,
+                review_mode,
+            )
 
         telemetry = _write_request_telemetry(module, projected, index, context)
         if isinstance(result, dict) and isinstance(telemetry, dict):

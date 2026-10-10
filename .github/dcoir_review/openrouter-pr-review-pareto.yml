@@ -214,6 +214,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_candidate_escalation_scope_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_candidate_scoped_escalation_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_candidate_escalation_quality_retry_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_end_to_end_replay_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_review_context_ledger_integration_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_publication_disposition_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_semantic_context_selftest.py

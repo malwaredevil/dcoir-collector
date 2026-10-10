@@ -23,7 +23,6 @@ automatic remediation is introduced.
 
 from __future__ import annotations
 
-import copy
 import math
 from typing import Any
 
@@ -195,54 +194,26 @@ def run_adjudicator(
 ) -> tuple[dict[str, Any], str, str]:
     """Run the historical v44 adjudicator with one bounded post-parse fallback."""
 
-    staged = copy.copy(config)
-    models = adjudication.adjudication_models(config)
-    staged.model_stack = models
-    staged.model = models[0]
+    staged = execution.adjudicator_config(config)
     # v54 is already installed before this stable owner. Give its observational
     # wrapper an explicit stage label because the callsite now lives here.
     setattr(staged, _STAGE_LABEL_ATTR, "semantic-adjudicator")
     setattr(staged, _LEGACY_STAGE_LABEL_ATTR, "semantic-adjudicator")
-
-    max_findings = int(
-        getattr(
-            config,
-            "semantic_adjudication_max_findings",
-            adjudication.DEFAULT_ADJUDICATION_MAX_FINDINGS,
-        )
-    )
-    digest_chars = int(
-        getattr(
-            config,
-            "semantic_adjudication_candidate_digest_chars",
-            adjudication.DEFAULT_CANDIDATE_DIGEST_CHARS,
-        )
-    )
-    digest = scope.candidate_digest(hypotheses, digest_chars)
-    instruction = adjudication.ADJUDICATION_BLOCK.format(max_findings=max_findings)
-    prompt = execution.prompt_with_budget(
-        (
-            f"{instruction}\n\n"
-            "Candidate hypotheses from the bounded primary/challenger evidence:\n"
-            f"```json\n{module.base.sanitize_text(digest, config)}\n```\n\n"
-            f"Escalation context scope: {context_scope}.\n"
-            "Adjudicate only what the supplied exact-head evidence can prove.\n\n"
-            f"{evidence}"
-        ),
-        staged,
-        "\n\n[v44 adjudication evidence truncated by reviewer budget]",
-    )
-    artifact_scope = "candidate" if context_scope == "candidate-scoped" else "broad"
+    max_findings = execution.adjudication_max_findings(config)
+    # The single v44 adjudicator prompt owner; its quality retry reuses it.
+    prompt = execution.adjudicator_prompt(module, config, hypotheses, evidence, context_scope)
+    artifact_scope = execution.artifact_scope(context_scope)
     module.hardened.write_debug_text_artifact_safely(
         config, f"prompts/09-v44-{artifact_scope}-adjudication.txt", prompt
     )
     if reporter:
         reporter.update(
             "candidate-escalation-adjudication",
-            f"scope={context_scope}; hypotheses={len(hypotheses)}; adjudicator={models[0]}",
+            f"scope={context_scope}; hypotheses={len(hypotheses)}; adjudicator={staged.model}",
         )
 
     raw, model, tier = module.hardened.openrouter_review(prompt, schema, staged, reporter)
+    provider_keys = tuple(sorted(str(key) for key in raw)) if isinstance(raw, dict) else ()
     recovered_shape = False
     try:
         normalized = normalization.normalize_adjudicator_result(module, raw)
@@ -270,6 +241,9 @@ def run_adjudicator(
     # hard-capped to v33's verifier capacity; applying the smaller adjudicator
     # cap again could discard required-risk reservations before verification.
     capped = normalized if recovered_shape else adjudication._cap_adjudicated_findings(module, normalized, max_findings)
+    # A recovered shape keeps the unrelated provider keys, so it can never take
+    # the terminal clean disposition, which requires a schema-valid envelope.
+    capped[adjudication.PROVIDER_RESULT_KEYS_ATTR] = provider_keys
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model
     capped["_semantic_adjudication_input_candidates"] = len(hypotheses)

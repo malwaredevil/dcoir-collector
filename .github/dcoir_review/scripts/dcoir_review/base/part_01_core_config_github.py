@@ -261,7 +261,26 @@ class GitHubClient:
         payload: dict[str, Any] = {"event": event, "comments": comments, "commit_id": commit_id}
         if body.strip():
             payload["body"] = body
-        return self.request("POST", f"/repos/{self.repo}/pulls/{number}/reviews", payload)
+        path = f"/repos/{self.repo}/pulls/{number}/reviews"
+        try:
+            return self.request("POST", path, payload)
+        except RuntimeError as exc:
+            # GitHub rejects the whole review (422) when any inline comment
+            # cannot be resolved against its diff. Publish once more with the
+            # findings rendered in the review body so they are not lost.
+            if not comments or f"POST {path} failed: 422" not in str(exc):
+                raise
+            fallback = {"event": event, "comments": [], "commit_id": commit_id,
+                        "body": inline_comments_as_review_body(body, comments)}
+            return self.request("POST", path, fallback)
+
+
+def inline_comments_as_review_body(body: str, comments: list[dict[str, Any]]) -> str:
+    sections = [body.rstrip(), "", "### Findings GitHub could not anchor inline", ""]
+    for comment in comments:
+        location = f"{comment.get('path', '')}:{comment.get('line', '')}"
+        sections.extend([f"**`{location}`**", "", str(comment.get("body", "") or "").strip(), ""])
+    return github_safe_body("\n".join(sections).strip())
 
 
 def github_safe_body(text: str, limit: int = 65000) -> str:

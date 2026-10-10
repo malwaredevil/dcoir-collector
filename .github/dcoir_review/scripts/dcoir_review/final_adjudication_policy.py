@@ -4,284 +4,19 @@ from __future__ import annotations
 
 import copy
 import inspect
-import math
 from typing import Any
 
-from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import semantic_adjudication_quality_retry as quality_retry
 from dcoir_review import review_telemetry
+from dcoir_review import terminal_low_confidence_disposition as terminal
 
 
-VERSION = "v57"
 APPLIED_MARKER = "_dcoir_review_final_adjudication_policy_applied"
-DISPOSITION_MARKER = "_dcoir_v57_terminal_low_confidence_disposition"
 PROMPT_INJECTION_ATTR = "_dcoir_v57_publication_floor_injected"
 PROMPT_MARKER = "DCOIR downstream publication confidence floor:"
 FINAL_ADJUDICATION_PROMPT_MARKER = "Candidate hypotheses from the earlier detector/challenger stages:"
 PROMPT_TRUNCATION_MARKER = "\n\n[semantic adjudication PR evidence truncated by reviewer budget]"
 PROMPT_ARTIFACT_PATH = "prompts/06-semantic-adjudication-prompt.txt"
-CLEAN_SUMMARY = "No high confidence findings were found after semantic adjudication."
-_VALID_SEVERITIES = {"critical", "high", "medium", "low"}
-_MAX_TITLE_LENGTH = 120
-_REQUIRED_FINDING_FIELDS = (
-    "title",
-    "severity",
-    "confidence",
-    "path",
-    "line",
-    "body",
-    "suggested_replacement",
-    "validation",
-)
-_STRING_FINDING_FIELDS = ("title", "severity", "path", "body", "suggested_replacement", "validation")
-_RESULT_ALLOWED_KEYS = {
-    "summary",
-    "findings",
-    "_semantic_adjudication_attempted",
-    "_semantic_adjudication_model",
-    "_semantic_adjudication_input_candidates",
-    "_semantic_adjudication_output_findings",
-    "_semantic_adjudication_context_scope",
-    "_semantic_adjudication_overflow_trimmed",
-    "_semantic_adjudication_result_shape",
-    "_semantic_adjudication_shape_recovery",
-    "_semantic_adjudication_confidence_normalization",
-    "_semantic_adjudication_confidence_normalized_count",
-    adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR,
-    "_candidate_escalation",
-    "_semantic_context_package_id",
-    "_adaptive_semantic_budget_mode",
-    adjudication.PROVIDER_RESULT_KEYS_ATTR,
-}
-
-
-def _confidence(value: Any) -> float | None:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return None
-    try:
-        parsed = float(value)
-    except (OverflowError, TypeError, ValueError):
-        return None
-    if not math.isfinite(parsed) or not 0.0 <= parsed <= 1.0:
-        return None
-    return parsed
-
-
-def _publication_floor(config: Any) -> float | None:
-    return _confidence(getattr(config, "minimum_confidence", None))
-
-
-def _complete_subthreshold_candidate(
-    module: Any,
-    item: Any,
-    floor: float,
-    line_index: dict[tuple[str, int], int],
-) -> tuple[dict[str, Any], float] | None:
-    """Return a complete, changed-line-anchored candidate below the floor."""
-
-    if not isinstance(item, dict):
-        return None
-    if set(item.keys()) != set(_REQUIRED_FINDING_FIELDS):
-        return None
-    if any(not isinstance(item.get(field), str) for field in _STRING_FINDING_FIELDS):
-        return None
-    for field in ("title", "severity", "path", "body", "validation"):
-        if not str(item.get(field) or "").strip():
-            return None
-    if str(item.get("suggested_replacement", "") or ""):
-        return None
-    if len(str(item.get("title", "") or "")) > _MAX_TITLE_LENGTH:
-        return None
-    if item.get("severity") not in _VALID_SEVERITIES:
-        return None
-
-    raw_line = item.get("line")
-    if isinstance(raw_line, bool) or not isinstance(raw_line, int) or raw_line <= 0:
-        return None
-    path = str(item.get("path", "") or "").strip()
-    if (path, raw_line) not in line_index:
-        return None
-
-    confidence = _confidence(item.get("confidence"))
-    if confidence is None or confidence >= floor:
-        return None
-
-    try:
-        if module.hardened.non_actionable_finding_reason(item):
-            return None
-    except Exception:
-        return None
-
-    return dict(item), confidence
-
-
-def _required_sentinels_absent(module: Any, risk_sentinels: list[Any]) -> bool:
-    try:
-        required = module.hardened.required_risk_sentinels(risk_sentinels)
-    except Exception:
-        return False
-    return not bool(required)
-
-
-def _summary_allows_clean(module: Any, result: dict[str, Any], config: Any) -> bool:
-    """Honor existing summary-only problem gating before clearing findings."""
-
-    raw_summary = result.get("summary")
-    if not isinstance(raw_summary, str) or not raw_summary.strip():
-        return False
-    if not bool(getattr(config, "fail_on_summary_only_problem", True)):
-        return True
-    try:
-        return not bool(module.hardened.summary_suggests_problem(raw_summary.strip()))
-    except Exception:
-        return False
-
-
-def _completed_final_adjudication_matches_result(result: dict[str, Any], raw_findings: list[Any]) -> bool:
-    """Require internally recorded final semantic-adjudication evidence."""
-
-    if result.get("_semantic_adjudication_attempted") is not True:
-        return False
-    model = result.get("_semantic_adjudication_model")
-    if not isinstance(model, str) or not model.strip():
-        return False
-    input_count = result.get("_semantic_adjudication_input_candidates")
-    if isinstance(input_count, bool) or not isinstance(input_count, int) or input_count <= 0:
-        return False
-
-    if "_semantic_adjudication_overflow_trimmed" in result:
-        return False
-
-    output_count = result.get("_semantic_adjudication_output_findings")
-    if isinstance(output_count, bool) or not isinstance(output_count, int):
-        return False
-    if output_count != len(raw_findings):
-        return False
-
-    if "_semantic_adjudication_context_scope" in result:
-        return False
-    if result.get(adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR) is not adjudication.FINAL_ADJUDICATION_COMPLETION_TOKEN:
-        return False
-    return True
-
-
-def _provider_envelope_matches_schema(result: dict[str, Any]) -> bool:
-    raw_provider_keys = result.get(adjudication.PROVIDER_RESULT_KEYS_ATTR)
-    if not isinstance(raw_provider_keys, (list, tuple)):
-        return False
-    provider_keys = {str(key) for key in raw_provider_keys}
-    if provider_keys != {"summary", "findings"}:
-        return False
-    # A bounded quality retry is a second provider response; its envelope
-    # must match the schema too before a clean terminal disposition.
-    if result.get("_quality_retry_attempted") is True:
-        retry_keys = result.get("_quality_retry_provider_result_keys")
-        if not isinstance(retry_keys, (list, tuple)):
-            return False
-        return {str(key) for key in retry_keys} == {"summary", "findings"}
-    return True
-
-
-def _terminal_disposition(
-    module: Any,
-    result: Any,
-    config: Any,
-    line_index: dict[tuple[str, int], int],
-    risk_sentinels: list[Any] | None,
-) -> dict[str, Any] | None:
-    """Classify only the final semantic-adjudication all-sub-threshold terminal shape."""
-
-    if not isinstance(result, dict) or not isinstance(line_index, dict):
-        return None
-    if not set(result.keys()).issubset(
-        _RESULT_ALLOWED_KEYS | quality_retry.QUALITY_RETRY_RESULT_KEYS
-    ):
-        return None
-    if not quality_retry.quality_retry_metadata_is_valid(result):
-        return None
-    if not _provider_envelope_matches_schema(result):
-        return None
-
-    raw_findings = result.get("findings")
-    if not isinstance(raw_findings, list) or not raw_findings:
-        return None
-    if not _completed_final_adjudication_matches_result(result, raw_findings):
-        return None
-    if not _summary_allows_clean(module, result, config):
-        return None
-
-    sentinels = list(risk_sentinels or [])
-    if not _required_sentinels_absent(module, sentinels):
-        return None
-
-    floor = _publication_floor(config)
-    if floor is None:
-        return None
-
-    candidates: list[dict[str, Any]] = []
-    confidences: list[float] = []
-    for raw in raw_findings:
-        qualified = _complete_subthreshold_candidate(module, raw, floor, line_index)
-        if qualified is None:
-            return None
-        item, confidence = qualified
-        candidates.append(item)
-        confidences.append(confidence)
-
-    return {
-        "version": VERSION,
-        "candidate_count": len(candidates),
-        "minimum_confidence": floor,
-        "lowest_confidence": min(confidences),
-        "highest_confidence": max(confidences),
-        "adjudication_model": str(result.get("_semantic_adjudication_model", "") or ""),
-        "adjudication_scope": "final-v35",
-        "candidates": [
-            {
-                "path": str(item.get("path", "") or ""),
-                "line": int(item.get("line", 0) or 0),
-                "severity": str(item.get("severity", "") or ""),
-                "confidence": confidence,
-                "title": str(item.get("title", "") or "")[:_MAX_TITLE_LENGTH],
-            }
-            for item, confidence in zip(candidates, confidences)
-        ],
-    }
-
-
-def _record_terminal_disposition(module: Any, result: dict[str, Any], disposition: dict[str, Any], config: Any) -> None:
-    result[DISPOSITION_MARKER] = disposition
-    result["findings"] = []
-    result["summary"] = CLEAN_SUMMARY
-
-    try:
-        module.hardened.write_debug_json_artifact_safely(
-            config,
-            "metadata/v57-terminal-low-confidence-disposition.json",
-            disposition,
-        )
-    except Exception as exc:
-        emit = getattr(module.base, "emit_status", None)
-        if callable(emit):
-            emit(
-                "terminal-low-confidence-disposition",
-                f"version={VERSION}; artifact_write_failed={exc.__class__.__name__}",
-            )
-
-    try:
-        emit = getattr(module.base, "emit_status", None)
-        if callable(emit):
-            emit(
-                "terminal-low-confidence-disposition",
-                (
-                    f"version={VERSION}; candidates={disposition['candidate_count']}; "
-                    f"publication_floor={float(disposition['minimum_confidence']):.2f}; "
-                    f"confidence_range={float(disposition['lowest_confidence']):.2f}-"
-                    f"{float(disposition['highest_confidence']):.2f}; result=clean"
-                ),
-            )
-    except Exception as exc:
-        print(f"[dcoir {VERSION}] terminal-low-confidence-disposition emit failed: {exc.__class__.__name__}")
 
 
 def _inject_publication_floor(prompt: Any, config: Any) -> Any:
@@ -295,7 +30,7 @@ def _inject_publication_floor(prompt: Any, config: Any) -> Any:
     ):
         return prompt
 
-    floor = _publication_floor(config)
+    floor = terminal.publication_floor(config)
     if floor is None:
         return prompt
 
@@ -391,13 +126,27 @@ def _install_terminal_split(module: Any) -> None:
     def split_findings_with_review_body_fallback(
         result, config, line_index, diff="", risk_sentinels=None
     ):
-        disposition = _terminal_disposition(
+        disposition = terminal.terminal_disposition(
             module, result, config, line_index, risk_sentinels
         )
         if disposition is not None:
-            _record_terminal_disposition(module, result, disposition, config)
+            terminal.record_terminal_disposition(module, result, disposition, config)
             return [], []
-        return original(result, config, line_index, diff, risk_sentinels)
+        try:
+            return original(result, config, line_index, diff, risk_sentinels)
+        except module.hardened.ReviewQualityError:
+            # A sub-floor-only model result must not suppress the required
+            # deterministic sentinel findings that the caller adds next.
+            fallback = terminal.sentinel_fallback_disposition(
+                module, result, config, line_index, risk_sentinels
+            )
+            if fallback is None:
+                raise
+            terminal.record_terminal_disposition(
+                module, result, fallback, config,
+                terminal.SENTINEL_FALLBACK_MARKER, terminal.SENTINEL_FALLBACK_SUMMARY,
+            )
+            return [], []
 
     module.split_findings_with_review_body_fallback = (
         split_findings_with_review_body_fallback

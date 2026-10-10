@@ -223,7 +223,7 @@ def main() -> None:
     }
     reason = review.hardened.review_quality_retry_reason(near, config, [], line_index)
     assert reason == ""
-    pending = getattr(config, disposition.PENDING_ATTR)
+    pending = importlib.import_module("dcoir_review.structured_result_disposition_state").get_pending(config)
     assert pending["candidate_count"] == 2
     assert round(float(pending["candidate_floor"]), 2) == 0.60
 

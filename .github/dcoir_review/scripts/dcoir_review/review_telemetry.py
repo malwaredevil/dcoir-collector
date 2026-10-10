@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from dcoir_review.per_file_routing import PER_FILE_PROJECTION_ATTR
-from dcoir_review import structured_result_disposition as structured_disposition
+from dcoir_review import structured_result_disposition_state as structured_disposition
 from dcoir_review.review_telemetry_state import (
     LEGACY_STAGE_LABEL_ATTR,
     SCHEMA_VERSION,
@@ -128,7 +128,7 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
     explicit = _explicit_stage_label(config)
     if explicit:
         if explicit == "semantic-adjudicator":
-            pending = getattr(config, structured_disposition.PENDING_ATTR, None)
+            pending = structured_disposition.get_pending(config)
             if isinstance(pending, dict) and pending:
                 return "bounded-low-confidence-disposition"
         return explicit
@@ -138,7 +138,7 @@ def classify_stage(prompt: Any, schema: Any, config: Any) -> str:
     callsite = _callsite_stage_label(prompt)
     if callsite:
         if callsite == "semantic-adjudicator":
-            pending = getattr(config, structured_disposition.PENDING_ATTR, None)
+            pending = structured_disposition.get_pending(config)
             if isinstance(pending, dict) and pending:
                 return "bounded-low-confidence-disposition"
         return callsite

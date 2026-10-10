@@ -35,17 +35,21 @@ def _merge_scoped_result(
     )
     final["_semantic_adjudication_output_findings"] = len(final["findings"])
     final["_semantic_adjudication_context_scope"] = "candidate-scoped"
-    if adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR in adjudicated:
-        final[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = adjudicated[
-            adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR
-        ]
+    for key in (
+        adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR,
+        adjudication.PROVIDER_RESULT_KEYS_ATTR,
+    ):
+        if key in adjudicated:
+            final[key] = adjudicated[key]
+    if not passthrough:
+        # The adjudication is the whole disposition: its summary and its own
+        # quality-retry record (if any) replace the primary's.
+        final["summary"] = adjudicated.get("summary", final.get("summary", ""))
+        for key in retry_policy.QUALITY_RETRY_RESULT_KEYS:
+            final.pop(key, None)
     if adjudicated.get("_quality_retry_attempted") is True:
-        # The adjudication's quality retry, not the primary's, describes this
-        # result; with no passthrough its summary is the whole disposition.
         for key in retry_policy.QUALITY_RETRY_RESULT_KEYS & set(adjudicated):
             final[key] = adjudicated[key]
-        if not passthrough:
-            final["summary"] = adjudicated.get("summary", final.get("summary", ""))
     return final
 
 
@@ -369,6 +373,12 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
             if context_scope == "candidate-scoped"
             else adjudicated
         )
+        if context_scope != "candidate-scoped" or not passthrough:
+            # The adjudication is the whole disposition, so an all-sub-floor
+            # result may take the terminal clean disposition like v35.
+            final[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = (
+                adjudication.FINAL_ADJUDICATION_COMPLETION_TOKEN
+            )
         final = telemetry.apply(
             module,
             gh,

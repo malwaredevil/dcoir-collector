@@ -147,14 +147,14 @@ def _retry_reason(
     neither overwrite it nor divert final findings away from this retry.
     """
 
-    saved_pending = getattr(config, disposition.PENDING_ATTR, None)
+    saved_pending = disposition.get_pending(config)
     saved_allow = getattr(config, disposition.ALLOW_ATTR, False)
     setattr(config, disposition.ALLOW_ATTR, False)
     try:
         return str(reason_fn(result, config, risk_sentinels, line_index) or "")
     finally:
         setattr(config, disposition.ALLOW_ATTR, saved_allow)
-        setattr(config, disposition.PENDING_ATTR, saved_pending)
+        disposition.set_pending(config, saved_pending)
 
 
 def build_retry_prompt(

@@ -143,8 +143,10 @@ def run_adjudicator(
     raw, model, tier = module.hardened.openrouter_review(
         prompt, schema, staged, reporter
     )
+    provider_keys = tuple(sorted(str(key) for key in raw)) if isinstance(raw, dict) else ()
     normalized = normalization.normalize_adjudicator_result(module, raw)
     capped = adjudication._cap_adjudicated_findings(module, normalized, max_findings)
+    capped[adjudication.PROVIDER_RESULT_KEYS_ATTR] = provider_keys
     capped["_semantic_adjudication_attempted"] = True
     capped["_semantic_adjudication_model"] = model
     capped["_semantic_adjudication_input_candidates"] = len(hypotheses)

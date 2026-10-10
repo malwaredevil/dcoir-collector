@@ -7,7 +7,7 @@ import copy
 
 from dcoir_review import semantic_adjudication_confidence as confidence_policy
 from dcoir_review import semantic_adjudication_quality_retry as quality_retry
-from dcoir_review import structured_result_disposition as disposition
+from dcoir_review import structured_result_disposition_state as disposition
 from dcoir_review_semantic_adjudication_quality_retry_selftest_support import (
     CLEAN,
     INITIAL_MODEL,
