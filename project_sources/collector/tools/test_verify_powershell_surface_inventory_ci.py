@@ -50,6 +50,20 @@ class PowerShellInventoryFreshnessTests(InventoryTestCase):
             inventory.write_text(json.dumps(updated), encoding='utf-8')
             self.assertEqual(verify_inventory(root, Path('inventory.json')), 1)
 
+    def test_nonsemantic_runner_metadata_does_not_invalidate_source_evidence(self) -> None:
+        with self.make_minimal_repo() as temp:
+            root = Path(temp)
+            doc = build_inventory(root)
+            doc['discovery_command'] = 'CI checkout context can differ by runner'
+            doc['source_of_truth'] = 'different checkout discovery label'
+            doc['controls'] = {'diagnostic_metadata': 'not a source fact'}
+            inventory = root / 'inventory.json'
+            inventory.write_text(json.dumps(doc), encoding='utf-8')
+            self.assertEqual(verify_inventory(root, Path('inventory.json')), 0)
+            doc['summary']['total_surfaces'] = 9999
+            inventory.write_text(json.dumps(doc), encoding='utf-8')
+            self.assertEqual(verify_inventory(root, Path('inventory.json')), 1)
+
     def test_line_endings_only_are_stable(self) -> None:
         with self.make_minimal_repo() as temp:
             root = Path(temp)
