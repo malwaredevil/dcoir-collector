@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any
 
 from collector_tool_path_safety import AnalyzerContractError, repo_relative_input_path
-from powershell_analyzer_contract import sha256_file
 
 SCHEMA_VERSION = "dcoir_powershell_function_reachability_report_v1"
 ISSUE_NUMBER = 306
