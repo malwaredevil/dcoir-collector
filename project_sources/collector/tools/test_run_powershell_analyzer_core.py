@@ -42,6 +42,24 @@ class PowerShellAnalyzerCoreTests(PowerShellAnalyzerTestCase):
         self.assertEqual(report["analyzer"]["name"], "FakePSScriptAnalyzer")
         self.assertEqual(report["powershell"]["version"], "7.4.1")
 
+    def test_non_policy_legacy_warning_is_reported_without_becoming_blocking(self) -> None:
+        with self.make_repo() as temp:
+            report, errors, _ = analyzer.build_report(self.make_args(Path(temp), "legacy_warning"))
+        self.assertEqual(errors, [])
+        assert report is not None
+        self.assertEqual(report["summary"]["warning_count"], 2)
+        self.assertEqual(report["summary"]["policy_warning_count"], 0)
+        self.assertEqual(report["summary"]["blocking_finding_count"], 0)
+        self.assertEqual(len(report["findings"]), 2)
+
+    def test_legacy_error_still_blocks_even_when_outside_policy_rules(self) -> None:
+        with self.make_repo() as temp:
+            report, errors, _ = analyzer.build_report(self.make_args(Path(temp), "legacy_error"))
+        self.assertTrue(any("unsuppressed analyzer findings" in e for e in errors))
+        assert report is not None
+        self.assertEqual(report["summary"]["error_count"], 2)
+        self.assertEqual(report["summary"]["blocking_finding_count"], 2)
+
     def test_windows_separator_target_path_selects_inventory_target(self) -> None:
         with self.make_repo() as temp:
             root = Path(temp)

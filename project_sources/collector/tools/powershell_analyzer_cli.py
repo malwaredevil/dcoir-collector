@@ -105,10 +105,18 @@ def build_report(args: argparse.Namespace) -> tuple[dict[str, Any] | None, list[
         errors.extend(expected_finding_errors(all_findings, args))
 
         unsuppressed_findings = [finding for finding in all_findings if not finding["suppressed_by_baseline"]]
+        # The six explicitly enabled policy rules block at Warning; preserve
+        # all legacy Error findings. Other built-in warnings remain evidence,
+        # not newly invented blocking rules.
+        policy_rules = set(policy["active_include_rules"])
         blocking_findings = [
-            finding
-            for finding in unsuppressed_findings
+            finding for finding in unsuppressed_findings
             if severity_at_or_above(finding["severity"], args.fail_on_severity)
+            and (
+                finding["severity"].casefold() == "error"
+                or args.fail_on_severity == "Information"
+                or finding["rule_name"] in policy_rules
+            )
         ]
         if blocking_findings and not args.allow_findings:
             errors.append(
@@ -170,6 +178,15 @@ def build_report(args: argparse.Namespace) -> tuple[dict[str, Any] | None, list[
                 "finding_count": len(all_findings),
                 "suppressed_finding_count": len(all_findings) - len(unsuppressed_findings),
                 "unsuppressed_finding_count": len(unsuppressed_findings),
+                "error_count": sum(f["severity"].casefold() == "error" for f in all_findings),
+                "warning_count": sum(f["severity"].casefold() == "warning" for f in all_findings),
+                "information_count": sum(f["severity"].casefold() == "information" for f in all_findings),
+                "policy_warning_count": sum(
+                    f["severity"].casefold() == "warning" and f["rule_name"] in policy_rules
+                    and not f["suppressed_by_baseline"] for f in all_findings
+                ),
+                "blocking_finding_count": len(blocking_findings),
+                "skipped_count": skipped_target_count,
             },
             "targets": analyzed_targets,
             "skipped_surfaces": skipped_surfaces,

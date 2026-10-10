@@ -36,9 +36,46 @@ if (-not (Test-Path -LiteralPath $AnalyzerPath)) {
     $failures.Add('PSScriptAnalyzer validation did not report success.')
   }
 
+  # The canonical Python report preserves all legacy Error findings while
+  # the six declared policy rules become blocking at Warning severity.
   $errorCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'error_count' -Label 'PSScriptAnalyzer'
+  $policyWarningCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'policy_warning_count' -Label 'PSScriptAnalyzer'
+  $blockingCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'blocking_finding_count' -Label 'PSScriptAnalyzer'
+  $policyRules = @(
+    'PSAvoidUsingPlainTextForPassword', 'PSAvoidUsingConvertToSecureStringWithPlainText',
+    'PSAvoidUsingInvokeExpression', 'PSAvoidUsingWriteHost',
+    'PSUseDeclaredVarsMoreThanAssignments', 'PSUseShouldProcessForStateChangingFunctions'
+  )
+  if ($analyzer.settings.path -ne 'project_sources/collector/PSScriptAnalyzerSettings.psd1') {
+    $failures.Add('PSScriptAnalyzer report does not identify the active repository policy file.')
+  }
+  foreach ($rule in $policyRules) {
+    if (@($analyzer.settings.active_include_rules) -cnotcontains $rule) {
+      $failures.Add("PSScriptAnalyzer policy is missing blocking rule: $rule")
+    }
+  }
+  if ($null -eq $analyzer.findings -or $analyzer.findings -isnot [array]) {
+    $failures.Add('PSScriptAnalyzer findings must be an array for count readback.')
+  } else {
+    $actualErrorCount = @($analyzer.findings | Where-Object { $_.severity -eq 'Error' }).Count
+    $actualPolicyWarnings = @($analyzer.findings | Where-Object {
+      $_.severity -eq 'Warning' -and $policyRules -contains $_.rule_name -and $_.suppressed_by_baseline -eq $false
+    }).Count
+    if ($actualErrorCount -ne $errorCount) {
+      $failures.Add('PSScriptAnalyzer Error count disagrees with findings.')
+    }
+    if ($actualPolicyWarnings -ne $policyWarningCount -or $blockingCount -ne ($actualErrorCount + $actualPolicyWarnings)) {
+      $failures.Add('PSScriptAnalyzer blocking count disagrees with policy findings.')
+    }
+  }
   if ($errorCount -gt 0) {
     $failures.Add("PSScriptAnalyzer reported $errorCount Error-severity finding(s).")
+  }
+  if ($policyWarningCount -gt 0) {
+    $failures.Add("PSScriptAnalyzer reported $policyWarningCount new unbaselined policy Warning finding(s).")
+  }
+  if ($blockingCount -gt 0) {
+    $failures.Add("PSScriptAnalyzer has $blockingCount blocking policy or Error finding(s).")
   }
 }
 

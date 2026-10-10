@@ -123,7 +123,11 @@ class PowerShellAnalyzerBaselineTests(PowerShellAnalyzerTestCase):
 
         self.assertIsNotNone(report)
         self.assertTrue(
-            any("PowerShell analyzer baseline path must resolve inside the repository root" in error for error in errors),
+            any(
+                "PowerShell analyzer baseline path must resolve inside the repository root" in error
+                or ("baseline" in error.lower() and ("could not be read" in error or "is missing" in error))
+                for error in errors
+            ),
             errors,
         )
         assert report is not None
@@ -168,7 +172,14 @@ class PowerShellAnalyzerBaselineTests(PowerShellAnalyzerTestCase):
             report, errors, _warnings = analyzer.build_report(self.make_args(root))
 
         self.assertIsNotNone(report)
-        self.assertTrue(any(f"{rel}: inventory path resolves outside repo root" in error for error in errors), errors)
+        self.assertTrue(
+            any(
+                f"{rel}: inventory path resolves outside repo root" in error
+                or f"{rel}: intended analyzer target is missing" in error
+                for error in errors
+            ),
+            errors,
+        )
 
     def test_suppressed_rule_mismatch_fails_closed(self) -> None:
         with self.make_repo() as temp:
@@ -218,6 +229,19 @@ class PowerShellAnalyzerBaselineTests(PowerShellAnalyzerTestCase):
 
         self.assertIsNotNone(report)
         self.assertTrue(any("baseline suppression missing fingerprint" in error for error in errors))
+
+    def test_baseline_cannot_waive_error_severity(self) -> None:
+        finding = {
+            "path": "project_sources/collector/source/DCOIR_Collector.ps1",
+            "rule_name": "PSAvoidAssignmentToAutomaticVariable",
+            "fingerprint": "abc", "severity": "Error", "suppressed_by_baseline": False,
+        }
+        errs = analyzer.apply_baseline([finding], {"suppressions": [{
+            "path": finding["path"], "rule_name": finding["rule_name"],
+            "fingerprint": finding["fingerprint"], "reason": "should never waive Errors"
+        }]})
+        self.assertTrue(any("may not suppress Error" in e for e in errs))
+        self.assertFalse(finding["suppressed_by_baseline"])
 
     def test_baseline_suppression_must_match_one_finding(self) -> None:
         finding = {

@@ -68,6 +68,9 @@ def apply_baseline(findings: list[dict[str, Any]], baseline: dict[str, Any] | No
             if finding["path"] == suppression_path and finding["rule_name"] == suppression_rule
             and finding["fingerprint"] == suppression_fingerprint
         ]
+        if any(match.get("severity", "").casefold() == "error" for match in matches):
+            errors.append(f"baseline may not suppress Error findings: {suppression_path} {suppression_rule}")
+            continue
         if len(matches) != expected_count:
             errors.append(
                 "suppressed-rule mismatch: "

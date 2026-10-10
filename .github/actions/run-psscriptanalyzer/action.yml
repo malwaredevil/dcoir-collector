@@ -1,30 +1,43 @@
-name: Run PSScriptAnalyzer on collector source
+name: Run governed PowerShell analyzer
 description: >
-  Run PSScriptAnalyzer against all collector PS1 source files and emit a
-  dcoir_powershell_analyzer_report_v1 JSON report.  The report is written
-  to the output-json path so the run-powershell-review-assist action can
-  promote it from optional_missing to present_validated.
-  Fails the step on any Error-severity finding.
+  Run the single canonical Python analyzer against the source-inventory target set.
+  Preserve legacy built-in diagnostics and enforce configured PowerShell policy
+  warnings through the central static-analysis validation gate.
 inputs:
   output-json:
     description: Repo-relative path for the JSON report.
     required: false
     default: project_sources/collector/powershell_analyzer_report.json
   fail-on-error-severity:
-    description: Exit non-zero when any Error-severity finding is found.
+    description: Legacy direct Error-finding failure control; callers use the central gate. Owner cleanup belongs to issue 608.
     required: false
     default: 'true'
 runs:
   using: composite
   steps:
-    - name: Run PSScriptAnalyzer against collector source
+    - name: Install pinned PSScriptAnalyzer
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        $required = '1.25.0'
+        if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer | Where-Object { $_.Version.ToString() -eq $required })) {
+          Install-Module -Name PSScriptAnalyzer -RequiredVersion $required -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop
+        }
+        Import-Module PSScriptAnalyzer -RequiredVersion $required -Force -ErrorAction Stop
+        Write-Host "PSScriptAnalyzer pinned version: $((Get-Module PSScriptAnalyzer).Version)"
+    - name: Analyze inventory through canonical Python owner
       shell: pwsh
       env:
         PSSCRIPTANALYZER_OUTPUT_JSON: ${{ inputs.output-json }}
         FAIL_ON_ERROR_SEVERITY: ${{ inputs.fail-on-error-severity }}
-        DCOIR_ACTION_SCRIPT: ${{ github.action_path }}/Invoke-DcoirPSScriptAnalyzer.ps1
+        DCOIR_PSSCRIPTANALYZER_VERSION: '1.25.0'
       run: |
         $ErrorActionPreference = 'Stop'
-        & $env:DCOIR_ACTION_SCRIPT
-# Compensating evidence: step name, stdout severity breakdown, and generated JSON artifact
-# preserve review evidence despite composite action grouping.
+        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings
+        if ($LASTEXITCODE -ne 0) { throw 'Canonical PowerShell analyzer execution or report generation failed.' }
+        $report = Get-Content -LiteralPath $env:PSSCRIPTANALYZER_OUTPUT_JSON -Raw | ConvertFrom-Json
+        if ($report.validation.success -ne $true) { throw 'Canonical PowerShell analyzer reported invalid evidence.' }
+        if ($env:FAIL_ON_ERROR_SEVERITY -eq 'true' -and $report.summary.error_count -gt 0) {
+          throw "PSScriptAnalyzer found $($report.summary.error_count) Error-severity violations."
+        }
+# CI consumers and reviewers read the same canonical JSON and Markdown output.

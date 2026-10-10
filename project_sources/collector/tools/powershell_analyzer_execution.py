@@ -37,11 +37,21 @@ def psscriptanalyzer_script() -> str:
 $ErrorActionPreference = 'Stop'
 $requestJson = [Console]::In.ReadToEnd()
 $request = $requestJson | ConvertFrom-Json
-Import-Module PSScriptAnalyzer -ErrorAction Stop
+if ($env:DCOIR_PSSCRIPTANALYZER_VERSION) {
+  Import-Module PSScriptAnalyzer -RequiredVersion $env:DCOIR_PSSCRIPTANALYZER_VERSION -ErrorAction Stop
+} else {
+  Import-Module PSScriptAnalyzer -ErrorAction Stop
+}
 $module = Get-Module PSScriptAnalyzer
-$rawFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -Settings $request.settings_path -ErrorAction Stop)
+# Preserve the legacy all-built-in diagnostic coverage, including Error findings.
+# Add the six governed policy rules without emitting duplicate findings.
+$legacyFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -ErrorAction Stop)
+$policyFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -Settings $request.settings_path -ErrorAction Stop)
+$seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 $findings = @(
-  foreach ($finding in $rawFindings) {
+  foreach ($finding in @($legacyFindings) + @($policyFindings)) {
+    $key = @([string]$finding.ScriptPath, [string]$finding.Line, [string]$finding.Column, [string]$finding.RuleName, [string]$finding.Severity, [string]$finding.Message) -join [char]0
+    if (-not $seen.Add($key)) { continue }
     $recommendedFix = ''
     if ($finding.PSObject.Properties.Name -contains 'SuggestedCorrections' -and $finding.SuggestedCorrections) {
       $recommendedFix = ($finding.SuggestedCorrections | Select-Object -First 1 | ForEach-Object { $_.Description }) -join '; '

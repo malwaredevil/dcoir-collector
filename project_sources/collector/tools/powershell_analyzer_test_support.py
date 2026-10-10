@@ -172,6 +172,14 @@ class PowerShellAnalyzerTestCase(unittest.TestCase):
                         "observed_problem": "Write-Host makes analyzer output noisy and reviewer-hostile.",
                         "recommended_fix": "Use Write-Output or structured logging.",
                     })
+                if mode in {"legacy_warning", "legacy_error"}:
+                    findings.append({
+                        "path": target["analysis_path"], "line": 1, "column": 1,
+                        "rule_name": "PSAvoidGlobalVars" if mode == "legacy_warning" else "PSAvoidAssignmentToAutomaticVariable",
+                        "severity": "Warning" if mode == "legacy_warning" else "Error",
+                        "observed_problem": "Built-in analyzer finding",
+                        "recommended_fix": "Correct the PowerShell source",
+                    })
                 response = {
                     "analyzer_name": "FakePSScriptAnalyzer",
                     "analyzer_version": "1.0.0",
