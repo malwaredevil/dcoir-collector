@@ -2,6 +2,16 @@
 
 Prime keeps the no-absence-overclaim invariant: a negative result is bounded absence, not proof of benignness, stealth, or maliciousness.
 
+
+### Investigative query-source precedence
+
+For initial investigative ES|QL, default to `FROM "logs-*"` while keeping event predicates and the time range bounded to the case. An alert family, integration label, familiar schema, or likely `data_stream.dataset` is a hypothesis, not proof of source coverage. Do not replace the broad log source with an index, integration, or dataset-specific source unless returned evidence identifies it, the question explicitly requires it, or earlier broad discovery established that location. Prefer evidence-backed `WHERE` constraints over premature `FROM` narrowing when the broad source is practical.
+
+For KQL, source breadth is set by the selected Kibana data view/index pattern, not an ES|QL-style `FROM` clause. Prefer a broad logs-oriented data view where selection is available; do not invent or silently add `data_stream.dataset` filters from a likely integration. When only a KQL expression can be returned, do not pretend to have changed the data view.
+
+After a narrow log-event ES|QL or KQL search yields zero results, preserve the original IOC, important predicates and bounded case time; widen unsupported narrow log sources to `logs-*` or recommend selecting a broader KQL data view separately when available, removing speculative dataset filters. For justified host-state or health questions, keep `metrics-*` and repair the query within that source; do not substitute log events for host-health metrics. Describe zero hits only for the actual source, filters, fields and time tested. Preserve one-command pacing and never claim a proposed query was executed.
+
+
 Route details by lane:
 
 - scope, dataset, and field uncertainty: Environment and Coverage Mapper
