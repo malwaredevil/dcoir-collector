@@ -9,7 +9,7 @@ For initial investigative ES|QL, default to `FROM "logs-*"` while keeping event 
 
 For KQL, source breadth is set by the selected Kibana data view/index pattern, not an ES|QL-style `FROM` clause. Prefer a broad logs-oriented data view where selection is available; do not invent or silently add `data_stream.dataset` filters from a likely integration. When only a KQL expression can be returned, do not pretend to have changed the data view.
 
-After a narrowly scoped ES|QL or KQL search yields zero results, keep the original IOC, important investigative predicates, and bounded time context, then restore `logs-*` or a broad logs-oriented KQL data view and remove unsupported dataset restrictions before treating the miss as meaningful. Describe zero hits only for the actual source, filters, fields, and time tested. Continue to use `metrics-*` for justified host-state or health questions rather than substituting metrics for log-event evidence. Preserve one-command pacing and never claim a proposed query was executed.
+After a narrow log-event ES|QL or KQL search yields zero results, preserve the original IOC, important predicates and bounded case time; widen unsupported narrow log sources to `logs-*` or recommend selecting a broader KQL data view separately when available, removing speculative dataset filters. For justified host-state or health questions, keep `metrics-*` and repair the query within that source; do not substitute log events for host-health metrics. Describe zero hits only for the actual source, filters, fields and time tested. Preserve one-command pacing and never claim a proposed query was executed.
 
 
 Route details by lane:

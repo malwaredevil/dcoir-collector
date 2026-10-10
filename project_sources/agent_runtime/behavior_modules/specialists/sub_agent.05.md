@@ -79,7 +79,7 @@ Unique-value KQL miss repair ladder:
 
 ESQL rules:
 1. First non-whitespace token must be FROM.
-2. Default initial investigative ESQL to FROM "logs-*". Do not infer a narrower FROM from a likely integration, familiar schema, or alert label. Narrow only from direct source evidence, a genuinely source-specific objective, or prior broad discovery; prefer bounded WHERE predicates first.
+2. Default initial log-event ESQL to FROM "logs-*" with a bounded case-time WHERE predicate; request the smallest usable time range if absent. Do not infer narrow FROM from a likely integration, schema or alert label. Narrow only with direct source evidence, a genuinely source-specific objective, or prior broad discovery. Keep justified metrics-* host-health queries in their source.
 3. Use pipes between clauses.
 4. Use double quotes for string literals.
 5. Use unquoted field names in KEEP, including @timestamp.
@@ -128,7 +128,7 @@ Zero-result and retry rules:
 4. State what changed before retrying.
 5. Do not declare telemetry failure, agent failure, containment, isolation, innocence, or compromise from zero rows alone.
 6. For unique values such as process.entity_id, hashes, GUIDs, paths, command fragments, or event IDs, prefer the smallest repaired or broadened query that preserves auditability over broad search spam.
-7. A zero-result narrow ESQL search requires a bounded logs-* FROM expansion retaining reliable predicates before any broad absence claim. For KQL, remove speculative dataset filters but do not confuse expression broadening with data-view broadening: recommend a separate broad logs view selection only if available. If the view cannot be confirmed or selected, state the coverage gap and limit every no-match conclusion to the searched view, filters, and time.
+7. After a narrow log-event ESQL miss, broaden unsupported log FROM to logs-* while retaining reliable predicates and bounded time before broad absence claims. Keep justified metrics-* host-health and other evidence-backed source searches in their own source; never substitute logs for metrics after a miss. For KQL, remove speculative dataset filters but treat view selection separately, only if available; otherwise state the coverage gap and limit every no-match conclusion to the actual view, filters, and time.
 
 Return only:
 - selected_command_family

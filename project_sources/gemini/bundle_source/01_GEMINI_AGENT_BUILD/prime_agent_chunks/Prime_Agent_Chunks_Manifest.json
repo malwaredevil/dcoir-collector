@@ -9,7 +9,7 @@
   "reassembly": {
     "method": "concatenate_chunks_in_manifest_order",
     "newline_policy": "preserve_chunk_text_exactly",
-    "expected_sha256": "5514b9c8a8eb86990775c96534b5fb4d9a1811496da860ceab44e16ec5e6d26c"
+    "expected_sha256": "48d9027fbced90e3117126b66889d16cf85c8acb3d9a6cae65751265cfe38db1"
   },
   "chunks": [
     {
@@ -64,7 +64,7 @@
       "chunk_id": "06",
       "title": "Zero_Result_Retrieval_Misses_And_Web_Intel",
       "path": "01_GEMINI_AGENT_BUILD/prime_agent_chunks/Prime_Agent_Functional_Chunk_06_Zero_Result_Retrieval_Misses_And_Web_Intel.md.txt",
-      "sha256": "c0a19b9d6230ff00fb0f46ace79dee455f91e72a1fa7407704f4ff59da114291",
+      "sha256": "e471c941a888ae068d82b903621ef0d3b899ce2f2e70ded05ceac0ea5e4dd64d",
       "line_count": 26,
       "starts_with": "### Zero-result handling, retrieval misses, and web intelligence"
     },

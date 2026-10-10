@@ -24,21 +24,23 @@
     },
     {
       "id": "zero_result",
-      "scenario": "A narrow query returns zero hits and the operator asks whether the activity therefore did not occur.",
-      "expected_behavior": "Treat the result as bounded absence in the reviewed lane and preserve mapping, scope, filter, and telemetry limitations.",
+      "scenario": "A narrow log search or a justified metrics-* host-health search returns zero, and the operator asks to interpret or retry.",
+      "expected_behavior": "Broaden unsupported narrow log sources only; retain justified metrics searches and evidence-based sources, limiting every no-match claim to searched scope.",
       "required_markers": [
         "bounded absence",
         "Do not turn a miss into proof",
         "widen ES|QL FROM to logs-*",
         "KQL text cannot change data views",
         "propose broad logs separately",
-        "qualify scope"
+        "qualify scope",
+        "only for unsupported narrow log sources",
+        "retain metrics-* for justified host health"
       ]
     },
     {
       "id": "query_without_execution",
-      "scenario": "The operator asks for an ESQL query, but the GPT has no live Elastic access and no query result is supplied.",
-      "expected_behavior": "Return one copy-paste-ready proposed ESQL query with FROM-first complete-pipeline syntax, keep KQL and ESQL separate, and never imply that it ran.",
+      "scenario": "The operator asks for initial broad ES|QL but no usable case time range is supplied and the GPT has no live Elastic access.",
+      "expected_behavior": "Require a case-bounded time filter for broad log searches and ask for missing case time or field before providing a broad query; never imply execution.",
       "required_markers": [
         "one copy-paste-ready query or command",
         "proposed for analyst execution",
@@ -48,7 +50,9 @@
         "FROM \"logs-*\"",
         "selected Kibana data view",
         "data_stream.dataset",
-        "Narrow only with evidence"
+        "Narrow only with evidence",
+        "case-bounded time WHERE",
+        "ask before a broad query"
       ]
     },
     {

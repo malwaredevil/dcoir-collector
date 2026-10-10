@@ -57,7 +57,7 @@
         "analysis_workflow",
         "ioc_encoded_content"
       ],
-      "sha256": "c0a19b9d6230ff00fb0f46ace79dee455f91e72a1fa7407704f4ff59da114291",
+      "sha256": "e471c941a888ae068d82b903621ef0d3b899ce2f2e70ded05ceac0ea5e4dd64d",
       "source_path": "project_sources/agent_runtime/behavior_modules/prime/prime.chunk.06.md"
     },
     {
@@ -212,7 +212,7 @@
       "sections": [
         "queries_commands_collection"
       ],
-      "sha256": "8c589b50fb74ddc0d9d464e09a46170a30c216ff95e38ba1f4d623808b5a071c",
+      "sha256": "e652f2d2d507e125a0b2b791ea59120c455de04c3b27467e4ed21c890df7315e",
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.05.md"
     },
     {
@@ -258,7 +258,7 @@
     }
   ],
   "behavior_coverage_count": 30,
-  "behavior_source_snapshot_sha256": "6615db08488f62357e414ac95ac995990601bbe07aff51636b401df82996d1e7",
+  "behavior_source_snapshot_sha256": "eb1da8556387aa0bd95676451482ec4488b0be0df133156369d1f78fe1fea573",
   "behavioral_case_count": 22,
   "behavioral_case_ids": [
     "elastic_alert_triage",
@@ -289,9 +289,9 @@
   "direct_target_edits_require_reverse_reconciliation": true,
   "generated_files": [
     {
-      "bytes": 7908,
+      "bytes": 7872,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",
-      "sha256": "cb6527086ff9230b1fd8766e2b09bc5581c42cb515059ef6f3fd02b417d3fa43"
+      "sha256": "c10bacb63ae4c26d70b1bd654337ef68baf971837bd6b19946bf4d91fd274fd0"
     },
     {
       "bytes": 3218,
@@ -301,7 +301,7 @@
   ],
   "generated_outputs_are_canonical": false,
   "instruction_character_ceiling": 8000,
-  "instruction_character_count": 7908,
+  "instruction_character_count": 7872,
   "knowledge_file_count": 7,
   "knowledge_files": [
     {
@@ -360,15 +360,15 @@
   "source_contracts": {
     "behavior_module_manifest": {
       "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
-      "sha256": "7694a6bad3929f6b423071f354763c96bf54342f576751296f0821882af897e5"
+      "sha256": "6c58328b670278fcf84840a45937cfb91426a2ad5d6b0125524170848c958a25"
     },
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",
-      "sha256": "2fab8c00cbf188fe86c885586a647a280130c8a045f625a12be977d977ae3f5f"
+      "sha256": "adfd891a93d7538b5b7fdf03d5ea089021f7bbf995b8994e924dc06d93dafe6d"
     },
     "canonical_instructions_source": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Instructions.md",
-      "sha256": "cb6527086ff9230b1fd8766e2b09bc5581c42cb515059ef6f3fd02b417d3fa43"
+      "sha256": "c10bacb63ae4c26d70b1bd654337ef68baf971837bd6b19946bf4d91fd274fd0"
     },
     "knowledge_projection_manifest": {
       "path": "project_sources/agent_runtime/Knowledge_Projection_Manifest.json",
