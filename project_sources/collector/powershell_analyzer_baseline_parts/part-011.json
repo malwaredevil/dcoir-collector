@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-011.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "df7ea091a81ebc69edb5419f5116bd4fb98486546de29b52cd683de250515804",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 216. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/harness/validate_DCOIR_Run.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "b9074bb79983b75d5f3151c6b59200177b3e65554b886e0ea8ce4e17b16f50c5",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 103. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/DCOIR_Collector.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "a78ef30c3b221f67e4fd7381bc0a9948f4ac232ea07221c70e9aa3a72e0a296a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 155. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01A2_Core_Logging_And_Process_Capture.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "e78fe2ef0a1b241f082e57cff6a248553d2e1cec17a2ea6987aad239eb13ccf9",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 75. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01C_Runtime_Paths_Artifacts_And_Reports.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "8c31740194759cfd72f3d1f0b66b071159a5c6ad537bddb444d8c77f1aac954f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 95. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.01E_Tool_Staging_And_Availability.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "928d06a4a1876d06225460f95d60933d6d29de821bb4a5b06723f8c6eb449758",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 67. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02A_Baseline_Collection_And_Reports.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "3475313281dced886acbb0584edcf9a08ec16aab56f3ec0c59401937a820f04a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 246. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D1B_Baseline_Collection_And_Reports.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "e64e7e848232d2f21e7540f4a10054ce66a5237e8ac1c8c3f22f14befb38d910",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 36. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.02D2_Baseline_Collection_And_Reports.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "facbb02ead961efa1d47cb220eb202e5bb5e16e3c1aa53010d6776f74ba5359f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 35. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.03B_Enrich_Actions_Review.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "770fd4d603104ab8c74dc50ce918e53a8f48fe9d344b2a76d7a63df37aa8cf3a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 60. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.03B_Enrich_Actions_Review.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "b51ad1c49be29a468d8b1576f42e8881ceabeae28b4ea3f72ff40bb3c174f3a1",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 58. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04A3_Quick_Interface_And_Output.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "f092960f5251b7ceed1783dfc6ad9565a0ad05d13259073e6bd8c829f0b097a6",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 167. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04B2_Feature_Wave_Targeted_Collection.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "78e29a402b8aaace6acd1f5413f7fd087844ef41e262612fd62db28540b521af",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 39. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04D1_Bounded_Parallel_Runtime.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "1ec4c4f67426602b93b594ee2baae90c7d4c7734b52318c4118761b9f2a0e42d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 43. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04D2_Bounded_Parallel_Runtime.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "fb65379f8b8d51e93927c0b65d4d72a8dc2d88422eed85c35ea48c5fc155f5dc",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 70. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04E2_Diagnostic_Context_Overrides.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "a86198ea1d4a6fb8dd704498106e6c2221ce227158e005a00c3983e25dc86195",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 90. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "26bf43ce516ab3554fa9e59fe7195efbe6cc583682a602565e364292abeaa510",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 109. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.04H1_PR212_Metadata_Finalization_Fixes.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "85e2cac42fef4e697eff406c9a044e4c88deb4f30b45425a36841af8d9842db4",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 39. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

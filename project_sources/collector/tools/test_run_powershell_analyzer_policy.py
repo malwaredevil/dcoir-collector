@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import textwrap
@@ -27,6 +28,23 @@ except ImportError:  # pragma: no cover - direct file execution support
 
 
 class PowerShellAnalyzerPolicyTests(PowerShellAnalyzerTestCase):
+    def test_hash_pinned_warning_shard_and_tampering(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            parts = root / "powershell_analyzer_baseline_parts"
+            parts.mkdir()
+            part = parts / "part-001.json"
+            write(part, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION, "suppressions": [
+                {"path": "one.ps1", "rule_name": "PSAvoidUsingWriteHost", "fingerprint": "a" * 64,
+                 "reason": "existing reviewed warning"}]}))
+            manifest = root / "baseline.json"
+            write(manifest, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION,
+                "shards": [{"name": part.name, "sha256": hashlib.sha256(part.read_bytes()).hexdigest()}]}))
+            self.assertEqual(len(analyzer.load_baseline(manifest)["suppressions"]), 1)
+            part.write_text(part.read_text() + " ")
+            with self.assertRaisesRegex(analyzer.AnalyzerContractError, "hash mismatch"):
+                analyzer.load_baseline(manifest)
+
     def test_missing_policy_fails_closed(self) -> None:
         with self.make_repo() as temp:
             root = Path(temp)

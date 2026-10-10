@@ -41,6 +41,9 @@ if (-not (Test-Path -LiteralPath $AnalyzerPath)) {
   $errorCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'error_count' -Label 'PSScriptAnalyzer'
   $policyWarningCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'policy_warning_count' -Label 'PSScriptAnalyzer'
   $blockingCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'blocking_finding_count' -Label 'PSScriptAnalyzer'
+  $parseCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'parse_error_count' -Label 'PSScriptAnalyzer'
+  $fragmentParseCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'harness_fragment_parse_error_count' -Label 'PSScriptAnalyzer'
+  $unexpectedSeverityCount = Get-DcoirReportSummaryCount -Report $analyzer -Field 'unexpected_severity_count' -Label 'PSScriptAnalyzer'
   $policyRules = @(
     'PSAvoidUsingPlainTextForPassword', 'PSAvoidUsingConvertToSecureStringWithPlainText',
     'PSAvoidUsingInvokeExpression', 'PSAvoidUsingWriteHost',
@@ -61,6 +64,28 @@ if (-not (Test-Path -LiteralPath $AnalyzerPath)) {
     $actualPolicyWarnings = @($analyzer.findings | Where-Object {
       $_.severity -eq 'Warning' -and $policyRules -contains $_.rule_name -and $_.suppressed_by_baseline -eq $false
     }).Count
+    $actualParseErrors = @($analyzer.findings | Where-Object { $_.severity -eq 'ParseError' }).Count
+    $knownFragments = @($analyzer.targets | Where-Object {
+      $_.category -eq 'collector_harness_source_part' -and $_.path -match '^project_sources/collector/harness/source/parts/'
+    } | ForEach-Object { $_.path })
+    $actualFragmentErrors = @($analyzer.findings | Where-Object {
+      $_.severity -eq 'ParseError' -and $knownFragments -contains $_.target_path
+    }).Count
+    $actualUnknownSeverities = @($analyzer.findings | Where-Object {
+      $_.severity -notin @('Error', 'Warning', 'Information', 'ParseError')
+    }).Count
+    if ($parseCount -ne $actualParseErrors -or $fragmentParseCount -ne $actualFragmentErrors) {
+      $failures.Add('PSScriptAnalyzer parser-error counts disagree with per-target evidence.')
+    }
+    if ($unexpectedSeverityCount -ne $actualUnknownSeverities) {
+      $failures.Add('PSScriptAnalyzer unknown severity count disagrees with findings.')
+    }
+    if ($actualParseErrors -ne $actualFragmentErrors) {
+      $failures.Add('PSScriptAnalyzer has parser errors outside known split harness fragments.')
+    }
+    if ($actualUnknownSeverities -gt 0) {
+      $failures.Add('PSScriptAnalyzer has unrecognized finding severity.')
+    }
     if ($actualErrorCount -ne $errorCount) {
       $failures.Add('PSScriptAnalyzer Error count disagrees with findings.')
     }

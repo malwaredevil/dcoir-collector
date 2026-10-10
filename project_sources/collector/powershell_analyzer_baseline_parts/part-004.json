@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/RunRecords.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "28e158b5392a4829e5fbd89a3360ea5ee3cec7f15711bd8128d6073da3b9c04e",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 1. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Summary.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "936b9059f5cf30c4a67db484c543e9612f53140b8b1bc59abfa18eace2620c96",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 55. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Summary.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "c4f1afcd49a3b4e33009b42dc78814b1733e9438bb2951c01511b024a8a7259c",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 55. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Private/00-Common.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "377ac3ecd72e94d098eb37ad0a9dbbe1371fac7bf93c91735c135b6e545d4cb1",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 25. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Private/00-Common.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "ae8b0a4a891e40fa7aa2de8e403314210c9ef1510eea54381c8cd0f3d9f6525e",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 1. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Private/00-Common.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "c0ba55e867a8423dbbf63e1736b8c9597d3add8c82730ec9e5ef73c1c76a25a7",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 60. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.ActionsExec/Private/10-Process.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "7cf50fe0b31a421f94eff6e00d37ec23a3bda8caaab9f6c0e98b184db3894430",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 1. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "6b4015375dfa0f4f92c23ce7de87fa824ab4cbc0bf6bfd6d564b13b72eea5eaa",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 146. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "cfe41aa3534eb4d8b7ff82012f84628e92c40016cf44e0e1e20b5141cfaf7796",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 139. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "0da17ac5545e040e580893df6c166a24353546f730fc5902caf83f9dbf43e896",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 6. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Common/Dcoir.Common.psm1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "f6ac7040e1eae5df634c1e349a1e3f07984e9ddd94e0977ca0d69be5c51cc90b",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 29. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "29d4d36485c5b9d6a00ea10496b1566c20803b162b4744db89dfdc110ad576b0",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 73. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "54dc9a2500dbe7068c126d70a67e0814b71bd513ad350a1851796fe8fd99dfe4",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 98. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Git/Dcoir.Git.psm1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "fc8f906f7fdde24f8f8d6671e758f9ac5157101a9d5dfcc85cfc5de081bcc94c",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 157. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.GitHub/Dcoir.GitHub.psm1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "3a435c59e65e0032c8839c63f3e02953540f65af9b2d52c990296104ebd91118",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 11. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "ae8462275bf6bb209f4beb656eefe2a246f808b3eb832b47c6478ef980dcb023",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 80. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "3843f424682d49799ae59a13519169cbdf96a46d6429891c81bf34668f025acc",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 21. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Logging/Dcoir.Logging.psm1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "f2d76639b69e0cdb9b8cdd50b447d160c396bd38ec782aa958c4247797db0b06",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 69. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

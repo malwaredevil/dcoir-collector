@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "f1d8d46c835cbc742fec1f9d08b8847a02d2d12a4befc82e56c86de7aa0315bc",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 26. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "f569627e8788c32a992b6c705a437deb11fc93082dd4709aac595474ff422fde",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 32. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "fa7f993b1825fe98808c4d17ae145cc1319651d4019270aae1626a73745d31c3",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 100. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "110d137d1a73758544e48e9e263a542c88d8c827a38988cdaaa456c0433d67cb",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 192. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "1aa44d57cca101a5b2eb048fa3e9eb28f11432fefa3b40969d93a4fa650fe180",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 186. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "53e6cae6cceadd53c3be84ff224fdbf066a123738bbf5631b39c246eb75f5e57",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 194. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "87e43404348f72003bff79bbc7978ae2d340296ccbe8dae51c252d654bcedb0b",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 188. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "d115c328ef34b3d183c4be18d6dfb9dd888e8178a7c38c4b4e48a1deb22dea0f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 187. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "ddfaa82f371278fc2e1218676de431d66c83cd1bea909fe932a98e5e80b3ad1f",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 60. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "012da4f2f90809c08a25787e02d273647e7536f0d0ebfe038709e5db543405b8",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 105. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "50073974bc9ff317323bebc16fd810201d7814fe561624474684d608dec60637",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 13. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "8f0e90b7a44bd4db51cf1ceea8850498bcba18a34e435039a75c8843722d9db2",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 12. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "8fae3bf06c3f2575b3a9d5de462b2979550c0e7a949b677944900643860d6bc2",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 91. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "c56b1d37385a6fc43bb7bad4cafa62e55c90d9bd1debab1eb0ef245494153016",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 123. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/dcoir_review/scripts/validate-windows-powershell-51.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "cd6ef33e43b7d37011ed4efecff12a2d9a565ea36bb6db969f54c48a7927bdec",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 99. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Dispatch.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "12e24d7ee006aef5786f49a881f85171dcd92f60c283f876d07c0c40a699c07d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 9. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Monitor.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "3af31e6bb1a153cc6aac4722784a374ec99e1c1b4f579aaa4998db951f41f13c",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 9. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/operator_tools/github_desktop_lane/modules/Dcoir.Actions/Private/Monitor.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "ec274d36d4361c12729334a99241623f914cf7543aa1280401bbefeffb848e7c",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 1. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

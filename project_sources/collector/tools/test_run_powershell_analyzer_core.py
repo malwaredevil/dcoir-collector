@@ -60,6 +60,41 @@ class PowerShellAnalyzerCoreTests(PowerShellAnalyzerTestCase):
         self.assertEqual(report["summary"]["error_count"], 2)
         self.assertEqual(report["summary"]["blocking_finding_count"], 2)
 
+    def test_parser_error_in_regular_source_fails_closed_even_with_allow_findings(self) -> None:
+        with self.make_repo() as temp:
+            report, errors, _ = analyzer.build_report(
+                self.make_args(Path(temp), "parse_error", allow_findings=True)
+            )
+        assert report is not None
+        self.assertTrue(any("parse errors outside" in e for e in errors), errors)
+        self.assertEqual(report["summary"]["parse_error_count"], 2)
+        self.assertEqual(report["summary"]["harness_fragment_parse_error_count"], 0)
+
+    def test_unrecognized_severity_fails_closed(self) -> None:
+        with self.make_repo() as temp:
+            report, errors, _ = analyzer.build_report(
+                self.make_args(Path(temp), "unknown_severity", allow_findings=True)
+            )
+        assert report is not None
+        self.assertTrue(any("unknown severity" in e for e in errors), errors)
+        self.assertEqual(report["summary"]["unexpected_severity_count"], 2)
+
+    def test_fragment_parse_error_is_classified_not_silently_hidden(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            rel = "project_sources/collector/harness/source/parts/run_DCOIR_Tests.part-000.ps1"
+            source = "Write-Output 'split source not assembled here'\n"
+            write(root / rel, source)
+            inventory = json.loads((root / analyzer.DEFAULT_INVENTORY).read_text(encoding="utf-8"))
+            inventory["surfaces"].append(surface(rel, "collector_harness_source_part", ".ps1", sha256=analyzer.sha256_text(source)))
+            write(root / analyzer.DEFAULT_INVENTORY, json.dumps(inventory))
+            report, errors, _ = analyzer.build_report(self.make_args(root, "harness_fragment_parse"))
+        self.assertEqual(errors, [])
+        assert report is not None
+        self.assertTrue(report["validation"]["success"])
+        self.assertEqual(report["summary"]["parse_error_count"], 1)
+        self.assertEqual(report["summary"]["harness_fragment_parse_error_count"], 1)
+
     def test_windows_separator_target_path_selects_inventory_target(self) -> None:
         with self.make_repo() as temp:
             root = Path(temp)

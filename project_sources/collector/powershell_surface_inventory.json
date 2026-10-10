@@ -1027,9 +1027,9 @@
           "command_preview": "$ErrorActionPreference = 'Stop'\npython project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --base"
         }
       ],
-      "size_bytes": 2556,
-      "line_count": 43,
-      "sha256": "52a794d9d3824c6f20d9fa28f6385f7d83c94a8668226379383c3cac4a205bb6"
+      "size_bytes": 2748,
+      "line_count": 44,
+      "sha256": "fe8e46ce6dc153657b92c150f6418c8aef16904bd3e809191b7ee3456bcbffba"
     },
     {
       "path": ".github/actions/run-validate-dcoir-fixtures/action.yml",
@@ -4725,9 +4725,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 4946,
-      "line_count": 111,
-      "sha256": "2e3b9cfcb065dbf2892216f7a9187ed957d8401f1e9f36d8794eacd638cc77c8"
+      "size_bytes": 6614,
+      "line_count": 136,
+      "sha256": "2a86e9214b5daf4a7372e165fcc87be713f7182b2dbdc1bff4274d00c363b6c5"
     },
     {
       "path": ".github/scripts/Wait-ChatGptWorkflowReport.ps1",

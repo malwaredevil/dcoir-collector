@@ -40,4 +40,5 @@ runs:
         if ($env:FAIL_ON_ERROR_SEVERITY -eq 'true' -and $report.summary.error_count -gt 0) {
           throw "PSScriptAnalyzer found $($report.summary.error_count) Error-severity violations."
         }
+# Compensating evidence: caller-visible action steps, pinned module version, JSON/Markdown analyzer report, and central policy gate retain authoritative output despite composite log grouping.
 # CI consumers and reviewers read the same canonical JSON and Markdown output.

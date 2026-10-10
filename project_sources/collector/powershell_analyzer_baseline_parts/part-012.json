@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A1_Main_Entry.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "c328fc5e276d1b1c6dd4438b7c35785ced8e01181e6b702ef7d08499e9ed42cc",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 81. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "1f81bff9ea3f36fdedffac0044cc1ad1acc31beb0452cbbb8135947ef6a89a60",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 34. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/source/parts/DCOIR_Collector.05A2_Main_Entry.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "8a4366f905161ea8c90895f1add60931d4ef4379d45ea75a1f547255abb01ba2",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 110. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/tools/run_validate_dcoir_run_fixture_tests.ps1",
+      "rule_name": "PSUseDeclaredVarsMoreThanAssignments",
+      "fingerprint": "3f9e7870dcbc0bb32dff27d1dbec7e19f3da338f5dc1e995284d475e0836df0e",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 169. Preexisting unused-assignment warning; behavior-preserving removal requires focused source review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/tools/run_validate_dcoir_run_fixture_tests.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "70ded93d509b98c41170c3e6183ab1c00dc7f40e02d6b1e2d7259640f00346d8",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 34. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/collector/tools/run_validate_dcoir_run_fixture_tests.ps1",
+      "rule_name": "PSUseShouldProcessForStateChangingFunctions",
+      "fingerprint": "dce09767bce718865307b993ea140e0bd80292f57bbfef8eb63bcfd9144c3577",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 22. Preexisting state-changing command lacks ShouldProcess contract; interface/WhatIf remediation requires separate security review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "071bf50a7c456d5ebd20d4e49c6e16d9059250c7c285b414b3b76eb7ce3520be",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 92. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "0d87f0edeb9f108d2a8f01aaea510a3ede0fd0057261d85a64e52ca7468f81bc",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 34. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "1627062f7d7f4d526045b028d839ec5bf67f17a467a5b04c49f347182360b6ec",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 113. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "1dffda84dce6cb4aa5172f5cc7c1df683a40a71a8ec76de86a6dfab579c26929",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 97. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "1e70b19689c0d418c40310dd91235e0e1ece786aee82b947249886795173ba16",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 36. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "26bc1a977e8bec2244840ab69141a350145f5abaa6b4c2c6316c03198811de87",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 70. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "2e0e23f307e3b0d28d36aea6e414e1071e79d3c8ca002c51ad8d294a9e1c88dd",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 104. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "56ed0011471305ac133143e5938782e989e30781ce5f276b95de2282a66eae94",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 35. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "59672bc188501ec9304a91767a2e4c43b9067bca3f1d6c9ede84696167d38d04",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 106. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "67edf229d8964a6b58b8afbb9211bb827f2da7bbee08b01f75fb34cf05a84b1d",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 105. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "6db64d3ccd270d69a161d36020081f9d49287d4c708f7836dba2452175b4a532",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 75. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": "project_sources/validation/manual_test_framework/install_and_run_from_downloads.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "73c4da33b85b44a6e6f26ce0955c7b63619e214d875e0525e1f985efcbc8c120",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 33. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    }
+  ]
+}
