@@ -193,13 +193,6 @@ class ReviewTimeoutError(TimeoutError):
     """Raised by the script-level timeout before the workflow job timeout."""
 
 
-class GitHubAPIError(RuntimeError):
-    def __init__(self, method: str, path: str, status_code: int, detail: str) -> None:
-        self.status_code = status_code
-        self.detail = detail
-        super().__init__(f"GitHub API {method} {path} failed: {status_code} {detail}")
-
-
 class GitHubClient:
     def __init__(self, token: str, repo: str) -> None:
         self.token = token
@@ -231,7 +224,7 @@ class GitHubClient:
                 return json.loads(payload.decode("utf-8"))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            raise GitHubAPIError(method, path, exc.code, detail) from exc
+            raise RuntimeError(f"GitHub API {method} {path} failed: {exc.code} {detail}") from exc
 
     def get_pr(self, number: int) -> dict[str, Any]:
         return self.request("GET", f"/repos/{self.repo}/pulls/{number}")
@@ -271,32 +264,26 @@ class GitHubClient:
         path = f"/repos/{self.repo}/pulls/{number}/reviews"
         try:
             return self.request("POST", path, payload)
-        except GitHubAPIError as exc:
-            # GitHub rejects the whole review (422) when any inline comment
-            # cannot be resolved against its diff. Publish once more with the
-            # findings rendered in the review body so they are not lost.
-            if not comments or not _is_unresolvable_inline_comment_error(exc):
+        except RuntimeError as exc:
+            # Preserve findings in the body when GitHub rejects their inline anchors.
+            if not comments or not _is_unresolvable_inline_comment_error(exc, path):
                 raise
             fallback = {"event": event, "comments": [], "commit_id": commit_id,
                         "body": inline_comments_as_review_body(body, comments)}
             return self.request("POST", path, fallback)
 
 
-def _is_unresolvable_inline_comment_error(exc: GitHubAPIError) -> bool:
-    if exc.status_code != 422:
-        return False
+def _is_unresolvable_inline_comment_error(exc: RuntimeError, path: str) -> bool:
     try:
-        payload = json.loads(exc.detail)
-    except (TypeError, ValueError):
+        errors = json.loads(
+            str(exc).split(f"GitHub API POST {path} failed: 422 ", 1)[1]
+        )["errors"]
+    except (IndexError, KeyError, TypeError, ValueError):
         return False
-    errors = payload.get("errors") if isinstance(payload, dict) else None
-    if not isinstance(errors, list) or not errors:
-        return False
-    anchor_fields = {"line", "path", "side", "start_line", "start_side"}
-    return all(
+    return isinstance(errors, list) and bool(errors) and all(
         isinstance(error, dict)
         and error.get("resource") == "PullRequestReviewComment"
-        and error.get("field") in anchor_fields
+        and error.get("field") in {"line", "path", "side", "start_line", "start_side"}
         for error in errors
     )
 
@@ -397,4 +384,3 @@ def sanitize_public_identity(text: str) -> str:
     for old, new in PUBLIC_IDENTITY_REPLACEMENTS:
         cleaned = cleaned.replace(old, new)
     return cleaned
-
