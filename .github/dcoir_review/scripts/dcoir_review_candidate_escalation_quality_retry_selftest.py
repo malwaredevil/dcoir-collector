@@ -7,6 +7,7 @@ import copy
 from types import SimpleNamespace
 
 from dcoir_review import candidate_escalation_quality_retry as candidate_retry
+import dcoir_review_candidate_scoped_escalation_selftest as stage_test
 from dcoir_review_semantic_adjudication_quality_retry_selftest_support import (
     LINES, RETRY_MARKER, Reporter, base_config, finding,
     load_review, response,
@@ -151,19 +152,15 @@ def test_publishable_final_skips_retry():
 # Exercise the actual v44 stage composition, not only the extracted helper.
 def test_outer_candidate_stage_uses_final_retry():
     from dcoir_review import candidate_scoped_escalation as stage
-    from dcoir_review_candidate_scoped_escalation_selftest import (
-        FILES, finding as stage_finding, make_module, patch_execution, restore_execution, invoke,
-    )
-
-    module, _original_calls, _debug = make_module([
-        stage_finding("src/a.py", "first-pass")
+    module, _original_calls, _debug = stage_test.make_module([
+        stage_test.finding("src/a.py", "first-pass")
     ])
-    originals, calls = patch_execution(
+    originals, calls = stage_test.patch_execution(
         {"mode": "broader-context", "reasons": ["scoped-path-budget-exceeded"],
-         "candidate_count": 1, "selected_paths": [item["filename"] for item in FILES],
+         "candidate_count": 1, "selected_paths": [item["filename"] for item in stage_test.FILES],
          "escalated_candidate_keys": []},
-        [{"findings": [stage_finding("src/a.py", "challenger")]}],
-        [{**stage_finding("src/a.py", "low-final"), "confidence": 0.62}],
+        [{"findings": [stage_test.finding("src/a.py", "challenger")]}],
+        [{**stage_test.finding("src/a.py", "low-final"), "confidence": 0.62}],
     )
     original_retry = stage.quality_retry.retry_candidate_escalation
     retry_calls = []
@@ -181,10 +178,10 @@ def test_outer_candidate_stage_uses_final_retry():
 
     stage.quality_retry.retry_candidate_escalation = repaired
     try:
-        result, model_label, tier_label = invoke(module)
+        result, model_label, tier_label = stage_test.invoke(module)
     finally:
         stage.quality_retry.retry_candidate_escalation = original_retry
-        restore_execution(originals)
+        stage_test.restore_execution(originals)
     assert len(calls["adjudicator"]) == 1
     assert retry_calls == [(0.62, 2, "BROAD", "broader-context")]
     assert result["findings"][0]["confidence"] == 0.88
@@ -195,8 +192,6 @@ def test_outer_candidate_stage_uses_final_retry():
 
 def run_scoped_stage(retry_findings):
     """Run the candidate-scoped stage with the real retry and merge owners."""
-    import dcoir_review_candidate_scoped_escalation_selftest as stage_test
-
     review = load_review()
     scoped = stage_test.finding("src/a.py", "scoped")
     passthrough = stage_test.finding("src/c.py", "pass through")
@@ -236,8 +231,6 @@ def run_scoped_stage(retry_findings):
 
 
 def test_candidate_scoped_retry_keeps_passthrough_findings():
-    import dcoir_review_candidate_scoped_escalation_selftest as stage_test
-
     repaired = {**stage_test.finding("src/a.py", "scoped"), "confidence": 0.86}
     (result, model_label, _), _, passthrough, seen, prompts, _ = run_scoped_stage([repaired])
     assert len(prompts) == 1
@@ -251,8 +244,6 @@ def test_candidate_scoped_retry_keeps_passthrough_findings():
 
 
 def test_candidate_scoped_retry_out_of_scope_is_blocked():
-    import dcoir_review_candidate_scoped_escalation_selftest as stage_test
-
     escaped = {**stage_test.finding("src/c.py", "escaped"), "confidence": 0.9, "line": 4}
     try:
         run_scoped_stage([escaped])
