@@ -18,6 +18,12 @@ def verify_inventory(repo_root: Path, inventory_path: Path = DEFAULT_JSON_OUTPUT
         tracked = repo_relative_cli_path(root, inventory_path, 'checked-in PowerShell inventory')
         expected: Any = json.loads(tracked.read_text(encoding='utf-8'))
         current = build_inventory(root)
+        # CI must never accept filesystem fallback when Git-backed discovery fails.
+        # A tracked but missing working-tree file would otherwise disappear from
+        # the fresh scan, potentially making a stale checked-in inventory pass.
+        if current.get('source_of_truth') != 'git ls-files -z':
+            raise ValueError('Git-backed PowerShell inventory discovery is required in CI; '
+                             f'got {current.get("source_of_truth")!r}')
         if not isinstance(expected, dict) or expected.get('mode') != 'full':
             raise ValueError('checked-in inventory must be a full JSON object')
         if not expected.get('validation', {}).get('success') or not current['validation']['success']:

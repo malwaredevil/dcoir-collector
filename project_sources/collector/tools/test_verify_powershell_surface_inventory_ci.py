@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from powershell_surface_inventory_test_cases.common import InventoryTestCase, write
 from powershell_surface_inventory_outputs import build_inventory
@@ -13,11 +15,18 @@ from verify_powershell_surface_inventory_ci import verify_inventory
 
 
 class PowerShellInventoryFreshnessTests(InventoryTestCase):
+    def make_minimal_repo(self) -> tempfile.TemporaryDirectory[str]:
+        # The CI verifier intentionally requires Git-backed discovery. Keep
+        # test fixtures realistic without altering other inventory test suites.
+        temp = super().make_minimal_repo()
+        root = Path(temp.name)
+        subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
+        subprocess.run(['git', '-C', str(root), 'add', '-A'], check=True, capture_output=True)
+        return temp
+
     def test_new_tracked_invoke_expression_tool_is_rejected_until_regenerated(self) -> None:
         with self.make_minimal_repo() as temp:
             root = Path(temp)
-            subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
-            subprocess.run(['git', '-C', str(root), 'add', '-A'], check=True, capture_output=True)
             inventory = root / 'inventory.json'
             inventory.write_text(json.dumps(build_inventory(root)), encoding='utf-8')
             self.assertEqual(verify_inventory(root, Path('inventory.json')), 0)
@@ -33,6 +42,34 @@ class PowerShellInventoryFreshnessTests(InventoryTestCase):
             self.assertIn(rel, [s['path'] for s in discovered['surfaces']])
             inventory.write_text(json.dumps(discovered), encoding='utf-8')
             self.assertEqual(verify_inventory(root, Path('inventory.json')), 0)
+
+    def test_git_discovery_errors_never_accept_a_partial_filesystem_fallback(self) -> None:
+        with self.make_minimal_repo() as temp:
+            root = Path(temp)
+            inventory = root / 'inventory.json'
+            expected = build_inventory(root)
+            inventory.write_text(json.dumps(expected), encoding='utf-8')
+            self.assertEqual(verify_inventory(root, Path('inventory.json')), 0)
+
+            # Git still tracks this staged tool after its working copy vanishes.
+            # A filesystem fallback would incorrectly match the old inventory.
+            rel = '.github/scripts/index_only_bad.ps1'
+            write(root / rel, 'Invoke-Expression $untrusted\n')
+            subprocess.run(['git', '-C', str(root), 'add', rel], check=True, capture_output=True)
+            (root / rel).unlink()
+            self.assertEqual(verify_inventory(root, Path('inventory.json')), 1)
+
+            with patch('powershell_surface_inventory_discovery.subprocess.run',
+                       side_effect=OSError('simulated git executable failure')):
+                fallback = build_inventory(root)
+                self.assertEqual(fallback['source_of_truth'], 'filesystem recursive scan fallback')
+                self.assertEqual(fallback['surfaces'], expected['surfaces'])
+                self.assertEqual(verify_inventory(root, Path('inventory.json')), 1)
+
+            failure = subprocess.CompletedProcess(args=['git'], returncode=128,
+                                                  stdout=b'', stderr=b'simulated Git error')
+            with patch('powershell_surface_inventory_discovery.subprocess.run', return_value=failure):
+                self.assertEqual(verify_inventory(root, Path('inventory.json')), 1)
 
     def test_modified_file_or_false_exclusion_is_rejected(self) -> None:
         with self.make_minimal_repo() as temp:
