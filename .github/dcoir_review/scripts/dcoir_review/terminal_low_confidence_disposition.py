@@ -270,8 +270,12 @@ def sentinel_fallback_disposition(
 
     Required deterministic risk sentinels are published from exact head
     evidence by the downstream fallback, so a sub-floor-only model result must
-    not abort the run and suppress them. Malformed, unanchored, informational,
-    or publishable findings never qualify; those keep the fail-closed split.
+    not abort the run and suppress them. This is never a clean claim, so the
+    model summary (which naturally names the flagged risk) does not gate it.
+    The result must already have been repaired: either a completed final
+    adjudication with matching evidence, or a whole-PR quality retry with
+    valid retry metadata. Partial or unrepaired results, malformed findings,
+    and publishable findings keep the fail-closed split.
     """
 
     if not isinstance(result, dict) or not set(result.keys()).issubset(
@@ -280,12 +284,16 @@ def sentinel_fallback_disposition(
         return None
     if not quality_retry.quality_retry_metadata_is_valid(result):
         return None
-    if not _provider_envelope_matches_schema(result):
-        return None
     findings = result.get("findings")
-    if not isinstance(findings, list) or not _completed_final_adjudication_matches_result(result, findings):
+    if not isinstance(findings, list):
         return None
-    if not _summary_allows_clean(module, result, config):
+    if adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR in result:
+        if not (
+            _provider_envelope_matches_schema(result)
+            and _completed_final_adjudication_matches_result(result, findings)
+        ):
+            return None
+    elif result.get("_quality_retry_attempted") is not True:
         return None
     if _required_sentinels_absent(module, list(risk_sentinels or [])):
         return None

@@ -273,29 +273,6 @@ class GitHubClient:
             return self.request("POST", path, fallback)
 
 
-def _is_unresolvable_inline_comment_error(exc: RuntimeError, path: str) -> bool:
-    try:
-        errors = json.loads(
-            str(exc).split(f"GitHub API POST {path} failed: 422 ", 1)[1]
-        )["errors"]
-    except (IndexError, KeyError, TypeError, ValueError):
-        return False
-    return isinstance(errors, list) and bool(errors) and all(
-        isinstance(error, dict)
-        and error.get("resource") == "PullRequestReviewComment"
-        and error.get("field") in {"line", "path", "side", "start_line", "start_side"}
-        for error in errors
-    )
-
-
-def inline_comments_as_review_body(body: str, comments: list[dict[str, Any]]) -> str:
-    sections = [body.rstrip(), "", "### Findings GitHub could not anchor inline", ""]
-    for comment in comments:
-        location = f"{comment.get('path', '')}:{comment.get('line', '')}"
-        sections.extend([f"**`{location}`**", "", str(comment.get("body", "") or "").strip(), ""])
-    return github_safe_body("\n".join(sections).strip())
-
-
 def github_safe_body(text: str, limit: int = 65000) -> str:
     if len(text) <= limit:
         return text

@@ -324,6 +324,7 @@ def build_quality_gate_stage(module: Any, next_review: Any) -> Any:
             config=config,
             line_index=line_index,
             retry_reason=retry_reason,
+            retry_model=str(retry_model_used or ""),
         )
         hardened.write_debug_json_artifact_safely(
             config,

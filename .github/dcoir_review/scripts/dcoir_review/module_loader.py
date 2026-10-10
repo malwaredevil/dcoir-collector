@@ -8,6 +8,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
     'base': (
         'base/part_01_core_config_github.py',
         'base/part_01a_progress_diff.py',
+        'base/part_01b_review_publication.py',
         'base/part_02_redaction_core.py',
         'base/part_03_redaction_shell.py',
         'base/part_03a_redaction_command_shell.py',

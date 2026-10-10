@@ -134,7 +134,10 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
             if gh_opts.get("review_422_always"):
                 raise HTTP(422, '{"message":"Validation Failed","errors":[{"resource":"PullRequestReview","code":"invalid","field":"event"}]}')
             if gh_opts.get("review_422_once") and state["review_posts"] == 1 and body.get("comments"):
-                raise HTTP(422, '{"message":"Validation Failed","errors":[{"resource":"PullRequestReviewComment","code":"unprocessable","field":"line"}]}')
+                if gh_opts.get("review_422_shape") == "structured":
+                    raise HTTP(422, '{"message":"Validation Failed","errors":[{"resource":"PullRequestReviewComment","code":"unprocessable","field":"line"}]}')
+                # GitHub's actual create-review response for an unresolvable inline anchor.
+                raise HTTP(422, '{"message":"Unprocessable Entity","errors":["Line could not be resolved"],"status":"422"}')
             state["posted"] = body
             return {"id": 777, "commit_id": body.get("commit_id"), "html_url": "https://example.invalid/review/777"}
         state["unknown"].append(f"{method} {path}")

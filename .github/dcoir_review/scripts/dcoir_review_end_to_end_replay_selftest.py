@@ -16,7 +16,7 @@ from pathlib import Path
 
 from dcoir_review_end_to_end_replay_support import (
     CLEAN, F, HTTP, MD_LINES, PS_LINES, PY_LINES, R, REJECTED, Raw, SENTINEL_LINES,
-    TimeoutErr, VERIFIED, files_default, run_matrix,
+    TimeoutErr, VERIFIED, files_default, live, run_matrix,
 )
 
 REPO_ROOT = str(Path(__file__).resolve().parents[3])
@@ -25,22 +25,6 @@ SCENARIOS: dict[str, dict] = {}
 
 def scenario(name, **spec):
     SCENARIOS[name] = spec
-
-
-LIVE = {  # run 37983201801 shape
-    "first-pass": lambda st, p: R(F(0.60, path=st["file_in_prompt"])),
-    "quality-retry": [R(F(0.72), F(0.70, path="tools/replay_1.py", line=11))],
-    "challenger": [R(F(0.66, line=11, title="Scoring gate too broad"))],
-    "v44-adjudicator": [R(F(0.62, line=11, title="Scoring gate"), F(0.55), F(0.58, path="tools/replay_1.py", line=11), summary="Hypotheses remain uncertain.")],
-    "v35-adjudicator": [R(F(0.62, line=11, title="Scoring gate"), F(0.55), F(0.58, path="tools/replay_1.py", line=11), summary="Hypotheses remain uncertain.")],
-    "verifier": [VERIFIED],
-}
-
-
-def live(**overrides):
-    model = dict(LIVE)
-    model.update(overrides)
-    return model
 
 
 # --- first-pass-deep (default /dcoir-review) ---
@@ -70,6 +54,7 @@ scenario("fpd-summary-only-problem", model={"first-pass": [{"summary": "A correc
     "quality-retry": [R(F(0.9, line=11))], "verifier": [VERIFIED]}, expect="ok")
 scenario("fpd-sentinel-low", files=files_default(2, SENTINEL_LINES), model=live(**{
     "v44-adjudication-retry": [R(F(0.64, line=11), summary="Still uncertain.")]}), expect="ok", min_comments=2)
+scenario("fpd-sentinel-low-problem-summary", files=files_default(2, SENTINEL_LINES), model=live(**{"v44-adjudication-retry": [R(F(0.64, line=11), summary="pickle.loads on untrusted input remains a correctness issue.")]}), expect="ok", min_comments=2)
 scenario("fpd-sentinel-clean", files=files_default(2, SENTINEL_LINES), model={"first-pass": [CLEAN], "verifier": [VERIFIED]}, expect="ok", min_comments=2)
 scenario("fpd-many-findings", model={"first-pass": lambda st, p: R(*[F(0.9, path=st["file_in_prompt"], line=l, title=f"Defect {l}") for l in (3, 5, 6, 7, 10, 11, 12)]), "verifier": [VERIFIED]}, expect="ok", min_comments=1)
 scenario("fpd-per-file-provider-error", model={"first-pass": lambda st, p: (_ for _ in ()).throw(HTTP(500)) if st["file_in_prompt"].endswith("_3.py") else CLEAN}, expect="fail", fail_contains="Per-file first-pass coverage incomplete")
@@ -110,7 +95,8 @@ scenario("diff-near-threshold", suffix="diff", model={"first-pass": [R(F(0.62))]
 scenario("diff-near-threshold-low-twice", suffix="diff", model={"first-pass": [R(F(0.62))], "v44-adjudicator": [R(F(0.63), summary="Still uncertain.")], "v44-adjudication-retry": [R(F(0.64), summary="Still uncertain.")]}, expect="ok", comments=0)
 scenario("diff-very-low", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [R(F(0.45), summary="Still uncertain.")]}, expect="ok", comments=0)
 scenario("diff-very-low-retry-clean", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [CLEAN]}, expect="ok", comments=0)
-scenario("diff-sentinel-low-nonfinal-fails-closed", suffix="diff", files=files_default(2, SENTINEL_LINES), model={"first-pass": [R(F(0.62, line=11))], "quality-retry": [R(F(0.63, line=11), summary="Still uncertain.")]}, expect="fail", fail_contains="quality failure")
+scenario("diff-sentinel-low", suffix="diff", files=files_default(2, SENTINEL_LINES), model={"first-pass": [R(F(0.62, line=11))], "quality-retry": [R(F(0.63, line=11), summary="pickle.loads remains a risk.")]}, expect="ok", min_comments=2)
+scenario("diff-sentinel-low-unrepaired-fails-closed", suffix="diff", files=files_default(2, SENTINEL_LINES), model={"first-pass": [R(F(0.62, line=11))], "quality-retry": [HTTP(500)]}, expect="fail")
 
 scenario("diff-very-low-adjudicated-low", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [R(F(0.45), summary="Still uncertain.")],
     "v44-adjudicator": [R(F(0.50), summary="Still uncertain.")], "v44-adjudication-retry": [R(F(0.52), summary="Still uncertain.")]}, expect="ok", comments=0)
@@ -139,6 +125,7 @@ scenario("pr-single-file-high", files=files_default(1), model={"first-pass": [R(
 
 # --- GitHub behaviors ---
 scenario("gh-review-422-unresolvable-inline", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, gh={"review_422_once": True}, expect="ok", comments=0, body_contains="Findings GitHub could not anchor inline", review_attempts=2)
+scenario("gh-review-422-structured-inline", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"]))}, gh={"review_422_once": True, "review_422_shape": "structured"}, expect="ok", comments=0, review_attempts=2)
 scenario("gh-reaction-fails", model={"first-pass": [CLEAN]}, gh={"reaction_fail": True}, expect="ok", comments=0)
 scenario("gh-head-moves", model={"first-pass": [CLEAN]}, gh={"head_moves_after": 3}, expect="superseded")
 scenario("gh-review-422-unrelated", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, gh={"review_422_always": True}, expect="fail", fail_contains="422", review_attempts=1)

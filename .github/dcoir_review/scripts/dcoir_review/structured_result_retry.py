@@ -59,6 +59,7 @@ def broad_retry_fallback(
         config=config,
         line_index=line_index,
         retry_reason=reason,
+        retry_model=str(model or ""),
     )
     module.hardened.write_debug_json_artifact_safely(
         config,

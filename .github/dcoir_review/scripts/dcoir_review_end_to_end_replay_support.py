@@ -92,6 +92,22 @@ def files_default(n=6, lines=PY_LINES):
     return [{"path": f"tools/replay_{i}.py", "lines": lines} for i in range(n)]
 
 
+LIVE = {  # run 37983201801 shape
+    "first-pass": lambda st, p: R(F(0.60, path=st["file_in_prompt"])),
+    "quality-retry": [R(F(0.72), F(0.70, path="tools/replay_1.py", line=11))],
+    "challenger": [R(F(0.66, line=11, title="Scoring gate too broad"))],
+    "v44-adjudicator": [R(F(0.62, line=11, title="Scoring gate"), F(0.55), F(0.58, path="tools/replay_1.py", line=11), summary="Hypotheses remain uncertain.")],
+    "v35-adjudicator": [R(F(0.62, line=11, title="Scoring gate"), F(0.55), F(0.58, path="tools/replay_1.py", line=11), summary="Hypotheses remain uncertain.")],
+    "verifier": [VERIFIED],
+}
+
+
+def live(**overrides):
+    model = dict(LIVE)
+    model.update(overrides)
+    return model
+
+
 def judge(spec, res):
     expect = spec.get("expect", "ok")
     ok = res["outcome"] == "ok"

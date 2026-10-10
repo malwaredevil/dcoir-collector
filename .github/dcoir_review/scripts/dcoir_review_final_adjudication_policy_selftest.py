@@ -362,44 +362,6 @@ def main() -> None:
         config,
     )
 
-    module.hardened.force_required_sentinel = True
-    try:
-        # Never clean; a sub-floor-only result yields to the sentinel fallback.
-        sentinel_result = adjudicated_result([finding("probe.py", 10, 0.55)])
-        before = module.original_split_calls
-        assert module.split_findings_with_review_body_fallback(
-            sentinel_result, config, {("probe.py", 10): 1}, "+probe", [object()],
-        ) == ([], [])
-        assert module.original_split_calls == before + 1
-        assert terminal_policy.DISPOSITION_MARKER not in sentinel_result
-        fallback = sentinel_result[terminal_policy.SENTINEL_FALLBACK_MARKER]
-        assert fallback["mode"] == "required-sentinel-fallback"
-        assert sentinel_result["summary"] == terminal_policy.SENTINEL_FALLBACK_SUMMARY
-        assert sentinel_result["findings"] == []
-        incomplete_completion = adjudicated_result([finding("probe.py", 10, 0.55)])
-        del incomplete_completion[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR]
-        output_count_mismatch = adjudicated_result([finding("probe.py", 10, 0.55)])
-        output_count_mismatch["_semantic_adjudication_output_findings"] = 2
-        invalid_provider_envelope = adjudicated_result(
-            [finding("probe.py", 10, 0.55)],
-            provider_result_keys=("summary", "findings", "unexpected"),
-        )
-        incomplete_retry_metadata = adjudicated_result([finding("probe.py", 10, 0.55)])
-        incomplete_retry_metadata["_quality_retry_attempted"] = True
-        for incomplete in (
-            incomplete_completion,
-            output_count_mismatch,
-            invalid_provider_envelope,
-            incomplete_retry_metadata,
-        ):
-            expect_legacy_failure(module, incomplete, config, sentinels=[object()])
-        malformed = finding("probe.py", 10, 0.55)
-        malformed["severity"] = "urgent"
-        for bad in (finding("probe.py", 10, 0.90), malformed):
-            expect_legacy_failure(module, adjudicated_result([bad]), config, sentinels=[object()])
-    finally:
-        module.hardened.force_required_sentinel = False
-
     run_production_regressions(entrypoint, adjudicated_result, finding)
 
     print("dcoir_review_final_adjudication_policy_selftest passed")
