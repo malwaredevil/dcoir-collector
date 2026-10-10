@@ -5737,13 +5737,13 @@
           "shell": "pwsh",
           "line_start": 292,
           "line_end": 335,
-          "command_sha256": "10a838d731669fed8eb827059197bad2122fc8e4433c94a739114384840a7e07",
+          "command_sha256": "9f32f246a6c8a5f64e1357f138ef45fbb79b905395dafeb5f7f272e5b6421ea6",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -e"
         }
       ],
-      "size_bytes": 15887,
+      "size_bytes": 15926,
       "line_count": 343,
-      "sha256": "d1fd4d1ca6c45c5bff107af6ba4c24c548a7b1ba873a059f5094da1cb57747db"
+      "sha256": "c08ebc8fa2523a33707b305f39c11fac73dd544499b791c9df4fb1563d4e0833"
     },
     {
       "path": ".github/workflows/reusable-validate-on-push.yml",
@@ -5933,13 +5933,13 @@
           "shell": "pwsh",
           "line_start": 265,
           "line_end": 308,
-          "command_sha256": "9610c0df0f30b6cc18c1be1cbdaf6e2a27ad1a28c276c05800cf7254a62664f0",
+          "command_sha256": "3ba5289a0b26a4bf6cd7181cc0542be0354815d82fffbb54c59d12814f7e168a",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME "
         }
       ],
-      "size_bytes": 14586,
+      "size_bytes": 14625,
       "line_count": 316,
-      "sha256": "a1eedd998ff95d6e42459717a9809be07e353d8690280ff32bf96a84e57cba31"
+      "sha256": "36d9562023641a65f5e0b28b8fd92ad4b63379b5e48c059b810bb45f92ef2448"
     },
     {
       "path": ".github/workflows/reusable-windows-powershell-51.yml",
