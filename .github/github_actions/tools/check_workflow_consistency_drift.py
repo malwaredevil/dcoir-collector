@@ -389,7 +389,7 @@ def expected_agent_runtime_report_lines(event_name: str) -> list[str]:
         "- agent_runtime_artifact: $agentRuntimeArtifact",
         "- job_summary: review-assist report written to GITHUB_STEP_SUMMARY.",
         "- duplicate_function_check: emits JSON/Markdown artifacts before the static analysis validation gate blocks merge on any cross-file function name collision in collector source.",
-        "- psscriptanalyzer_gate: emits JSON before the static analysis validation gate blocks merge on any Error-severity finding; Warnings reported but non-blocking.",
+        "- psscriptanalyzer_gate: emits canonical analyzer JSON; the static gate blocks Error findings and unbaselined Warnings from six governed policy rules; incomplete or malformed evidence fails closed.",
         "- static_analysis_gate: runs after static reports are generated so review tooling can consume the evidence artifact even when the gate fails.",
         f"The workflow conclusion is the authoritative pass/fail signal for the {lane.upper() if lane == 'pr' else lane} validation lane. Use artifact readback for {artifact_claims}.",
         '"@ | Set-Content -Path chatgpt_workflow_report_section/chatgpt_workflow_report_section.md -Encoding utf8',
