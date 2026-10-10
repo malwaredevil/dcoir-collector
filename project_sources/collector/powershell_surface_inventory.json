@@ -63,7 +63,7 @@
       "include": 133,
       "reference": 54
     },
-    "embedded_snippet_count": 119
+    "embedded_snippet_count": 120
   },
   "controls": {
     "collector_manifest": {
@@ -1005,15 +1005,25 @@
       "exists": true,
       "marker_lines": [
         19,
-        29
+        25,
+        35
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/actions/run-psscriptanalyzer/action.yml",
-          "step_or_action": "Install pinned PSScriptAnalyzer",
+          "step_or_action": "Verify PowerShell inventory covers the checked-out source",
           "shell": "pwsh",
           "line_start": 19,
-          "line_end": 27,
+          "line_end": 23,
+          "command_sha256": "39751b1cf885ae99dbe243c23bb122f7860776912e475823616492f244bd920c",
+          "command_preview": "$ErrorActionPreference = 'Stop'\npython project_sources/collector/tools/verify_powershell_surface_inventory_ci.py --repo-root . --inventory project_sources/collector/powershell_surface_inventory.json\nif ($LASTEXITCODE -ne 0) { throw 'PowerSh"
+        },
+        {
+          "source_file": ".github/actions/run-psscriptanalyzer/action.yml",
+          "step_or_action": "Install pinned PSScriptAnalyzer",
+          "shell": "pwsh",
+          "line_start": 25,
+          "line_end": 33,
           "command_sha256": "294fa651f21805ae988b68929feef3410dd661c6e8daa3b028bd7ca938c506ca",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$required = '1.25.0'\nif (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer | Where-Object { $_.Version.ToString() -eq $required })) {\n  Install-Module -Name PSScriptAnalyzer -RequiredVersion $required -F"
         },
@@ -1021,15 +1031,15 @@
           "source_file": ".github/actions/run-psscriptanalyzer/action.yml",
           "step_or_action": "Analyze inventory through canonical Python owner",
           "shell": "pwsh",
-          "line_start": 29,
-          "line_end": 46,
+          "line_start": 35,
+          "line_end": 52,
           "command_sha256": "1595347b6a17dae250395c3702462e2df01a82e43dd6998101cf550ffb620508",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --base"
         }
       ],
-      "size_bytes": 3088,
-      "line_count": 48,
-      "sha256": "0778f0ad3efe72e76d7175b52bb533f20ae3a40956baabedd477b33a8a6ffc5c"
+      "size_bytes": 3525,
+      "line_count": 54,
+      "sha256": "09a62842cb1a33bfdaedefc40360c1df9c4799ec4786e9b473d969440a84eed7"
     },
     {
       "path": ".github/actions/run-validate-dcoir-fixtures/action.yml",

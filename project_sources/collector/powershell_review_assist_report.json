@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-10-10T12:25:20+00:00",
+    "generated_at_utc": "2026-10-10T13:36:03+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -4468,7 +4468,7 @@
         "tooling": 67,
         "workflow_embedded": 30
       },
-      "embedded_snippet_count": 119,
+      "embedded_snippet_count": 120,
       "total_surfaces": 383
     }
   },

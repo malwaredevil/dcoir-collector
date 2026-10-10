@@ -15,6 +15,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Verify PowerShell inventory covers the checked-out source
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py --repo-root . --inventory project_sources/collector/powershell_surface_inventory.json
+        if ($LASTEXITCODE -ne 0) { throw 'PowerShell source inventory is stale or invalid; refusing partial analysis.' }
     - name: Install pinned PSScriptAnalyzer
       shell: pwsh
       run: |
