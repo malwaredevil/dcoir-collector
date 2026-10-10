@@ -374,12 +374,12 @@
       "kind": "specialist",
       "order": 5,
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.05.md",
-      "sha256": "efc3beda4f60403fc67a278e372297ead9607e4dc696a00723d27d36a1d180fa",
+      "sha256": "8c589b50fb74ddc0d9d464e09a46170a30c216ff95e38ba1f4d623808b5a071c",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_05_Query_Planner_and_Syntax_Guard.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "efc3beda4f60403fc67a278e372297ead9607e4dc696a00723d27d36a1d180fa"
+          "sha256": "8c589b50fb74ddc0d9d464e09a46170a30c216ff95e38ba1f4d623808b5a071c"
         }
       }
     },

@@ -30,7 +30,9 @@
         "bounded absence",
         "Do not turn a miss into proof",
         "widen ES|QL FROM to logs-*",
-        "KQL data view to broad logs"
+        "KQL text cannot change data views",
+        "propose broad logs separately",
+        "qualify scope"
       ]
     },
     {

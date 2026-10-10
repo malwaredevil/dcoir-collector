@@ -65,8 +65,8 @@ KQL rules:
 5. Do not require a known field name as an absolute prerequisite for discovery.
 6. Do not force host.name, user.name, or a dataset field when cross-source label variation makes free-text discovery safer.
 7. Do not overconstrain early discovery with speculative secondary filters.
-8. If a narrow query likely failed because it was too restrictive, restore a broad logs-oriented Kibana data view when available and remove non-essential speculative dataset filters before claiming no results.
-9. KQL expressions do not contain ESQL FROM clauses; the Kibana data view selects source scope. Never invent data_stream.dataset restrictions solely from a likely integration, and do not claim to change a data view when the interface exposes only the KQL expression.
+8. For a narrow KQL zero-result, remove speculative dataset filters while preserving reliable predicates and time. If a broad logs-oriented Kibana data view is selectable, recommend changing that view as a separate UI step, not as part of the KQL expression.
+9. KQL text is only an expression evaluated within the selected Kibana data view; it cannot choose an index or change the view. Never put an ES|QL FROM clause or invented data_stream.dataset restriction into KQL. If only expression editing is available, return valid KQL, identify the current or unknown view and its evidence scope, and do not claim broad logs coverage or a completed view change.
 
 Unique-value KQL miss repair ladder:
 1. Preserve the exact unique value and objective before changing the query.
@@ -128,7 +128,7 @@ Zero-result and retry rules:
 4. State what changed before retrying.
 5. Do not declare telemetry failure, agent failure, containment, isolation, innocence, or compromise from zero rows alone.
 6. For unique values such as process.entity_id, hashes, GUIDs, paths, command fragments, or event IDs, prefer the smallest repaired or broadened query that preserves auditability over broad search spam.
-7. A zero-result narrow ESQL search must be followed by a bounded logs-* source expansion retaining reliable predicates before a negative conclusion; the KQL equivalent must broaden the data view or remove speculative dataset filters. Preserve the original search scope in the evidence limit statement.
+7. A zero-result narrow ESQL search requires a bounded logs-* FROM expansion retaining reliable predicates before any broad absence claim. For KQL, remove speculative dataset filters but do not confuse expression broadening with data-view broadening: recommend a separate broad logs view selection only if available. If the view cannot be confirmed or selected, state the coverage gap and limit every no-match conclusion to the searched view, filters, and time.
 
 Return only:
 - selected_command_family
