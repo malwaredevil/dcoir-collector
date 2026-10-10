@@ -132,9 +132,9 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
         if method == "POST" and path == f"/repos/{REPO}/pulls/{PR}/reviews":
             state["review_posts"] += 1
             if gh_opts.get("review_422_always"):
-                raise HTTP(422, '{"message":"Unprocessable Entity"}')
+                raise HTTP(422, '{"message":"Validation Failed","errors":[{"resource":"PullRequestReview","code":"invalid","field":"event"}]}')
             if gh_opts.get("review_422_once") and state["review_posts"] == 1 and body.get("comments"):
-                raise HTTP(422, '{"message":"Unprocessable Entity","errors":["Line could not be resolved"]}')
+                raise HTTP(422, '{"message":"Validation Failed","errors":[{"resource":"PullRequestReviewComment","code":"unprocessable","field":"line"}]}')
             state["posted"] = body
             return {"id": 777, "commit_id": body.get("commit_id"), "html_url": "https://example.invalid/review/777"}
         state["unknown"].append(f"{method} {path}")
@@ -262,6 +262,7 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
     result = {
         "name": name, "outcome": outcome, "kinds": state["kinds"],
         "review_posted": posted is not None,
+        "review_attempts": state["review_posts"],
         "comments": len(posted.get("comments", [])) if posted else None,
         "event": posted.get("event") if posted else None,
         "body_head": (posted.get("body", "") if posted else "")[:300],

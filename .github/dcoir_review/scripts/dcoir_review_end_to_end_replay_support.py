@@ -108,6 +108,8 @@ def judge(spec, res):
         problems.append("no review posted")
     if ok and "comments" in spec and res["comments"] != spec["comments"]:
         problems.append(f"comments {res['comments']} != {spec['comments']}")
+    if "review_attempts" in spec and res.get("review_attempts") != spec["review_attempts"]:
+        problems.append(f"review attempts {res.get('review_attempts')} != {spec['review_attempts']}")
     if ok and "min_comments" in spec and (res["comments"] or 0) < spec["min_comments"]:
         problems.append(f"comments {res['comments']} < {spec['min_comments']}")
     if ok and spec.get("body_contains") and spec["body_contains"] not in res.get("body_full", ""):

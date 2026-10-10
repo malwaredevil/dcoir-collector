@@ -110,7 +110,7 @@ scenario("diff-near-threshold", suffix="diff", model={"first-pass": [R(F(0.62))]
 scenario("diff-near-threshold-low-twice", suffix="diff", model={"first-pass": [R(F(0.62))], "v44-adjudicator": [R(F(0.63), summary="Still uncertain.")], "v44-adjudication-retry": [R(F(0.64), summary="Still uncertain.")]}, expect="ok", comments=0)
 scenario("diff-very-low", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [R(F(0.45), summary="Still uncertain.")]}, expect="ok", comments=0)
 scenario("diff-very-low-retry-clean", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [CLEAN]}, expect="ok", comments=0)
-scenario("diff-sentinel-low", suffix="diff", files=files_default(2, SENTINEL_LINES), model={"first-pass": [R(F(0.62, line=11))], "quality-retry": [R(F(0.63, line=11), summary="Still uncertain.")]}, expect="ok", min_comments=2)
+scenario("diff-sentinel-low-nonfinal-fails-closed", suffix="diff", files=files_default(2, SENTINEL_LINES), model={"first-pass": [R(F(0.62, line=11))], "quality-retry": [R(F(0.63, line=11), summary="Still uncertain.")]}, expect="fail", fail_contains="quality failure")
 
 scenario("diff-very-low-adjudicated-low", suffix="diff", model={"first-pass": [R(F(0.40))], "quality-retry": [R(F(0.45), summary="Still uncertain.")],
     "v44-adjudicator": [R(F(0.50), summary="Still uncertain.")], "v44-adjudication-retry": [R(F(0.52), summary="Still uncertain.")]}, expect="ok", comments=0)
@@ -138,10 +138,10 @@ scenario("pr-huge-file-no-patch", files=[{"path": "tools/replay_0.py", "lines": 
 scenario("pr-single-file-high", files=files_default(1), model={"first-pass": [R(F(0.9))], "verifier": [VERIFIED]}, expect="ok", min_comments=1)
 
 # --- GitHub behaviors ---
-scenario("gh-review-422-once", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, gh={"review_422_once": True}, expect="ok", comments=0, body_contains="Findings GitHub could not anchor inline")
+scenario("gh-review-422-unresolvable-inline", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, gh={"review_422_once": True}, expect="ok", comments=0, body_contains="Findings GitHub could not anchor inline", review_attempts=2)
 scenario("gh-reaction-fails", model={"first-pass": [CLEAN]}, gh={"reaction_fail": True}, expect="ok", comments=0)
 scenario("gh-head-moves", model={"first-pass": [CLEAN]}, gh={"head_moves_after": 3}, expect="superseded")
-scenario("gh-review-422-twice", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, gh={"review_422_always": True}, expect="fail", fail_contains="422")
+scenario("gh-review-422-unrelated", model={"first-pass": lambda st, p: R(F(0.92, path=st["file_in_prompt"])), "verifier": [VERIFIED]}, gh={"review_422_always": True}, expect="fail", fail_contains="422", review_attempts=1)
 scenario("gh-pr-closed", model={"first-pass": [CLEAN]}, gh={"state": "closed"}, expect="superseded")
 
 # --- incremental re-review (prior DCOIR review exists, new head) ---

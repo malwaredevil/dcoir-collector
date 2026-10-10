@@ -274,9 +274,22 @@ def sentinel_fallback_disposition(
     or publishable findings never qualify; those keep the fail-closed split.
     """
 
-    if not isinstance(result, dict) or _required_sentinels_absent(module, list(risk_sentinels or [])):
+    if not isinstance(result, dict) or not set(result.keys()).issubset(
+        _RESULT_ALLOWED_KEYS | quality_retry.QUALITY_RETRY_RESULT_KEYS
+    ):
         return None
-    disposition = _subthreshold_disposition(module, result.get("findings"), config, line_index)
+    if not quality_retry.quality_retry_metadata_is_valid(result):
+        return None
+    if not _provider_envelope_matches_schema(result):
+        return None
+    findings = result.get("findings")
+    if not isinstance(findings, list) or not _completed_final_adjudication_matches_result(result, findings):
+        return None
+    if not _summary_allows_clean(module, result, config):
+        return None
+    if _required_sentinels_absent(module, list(risk_sentinels or [])):
+        return None
+    disposition = _subthreshold_disposition(module, findings, config, line_index)
     if disposition is not None:
         disposition["mode"] = "required-sentinel-fallback"
     return disposition

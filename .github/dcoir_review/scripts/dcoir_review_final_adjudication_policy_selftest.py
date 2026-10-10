@@ -376,6 +376,23 @@ def main() -> None:
         assert fallback["mode"] == "required-sentinel-fallback"
         assert sentinel_result["summary"] == terminal_policy.SENTINEL_FALLBACK_SUMMARY
         assert sentinel_result["findings"] == []
+        incomplete_completion = adjudicated_result([finding("probe.py", 10, 0.55)])
+        del incomplete_completion[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR]
+        output_count_mismatch = adjudicated_result([finding("probe.py", 10, 0.55)])
+        output_count_mismatch["_semantic_adjudication_output_findings"] = 2
+        invalid_provider_envelope = adjudicated_result(
+            [finding("probe.py", 10, 0.55)],
+            provider_result_keys=("summary", "findings", "unexpected"),
+        )
+        incomplete_retry_metadata = adjudicated_result([finding("probe.py", 10, 0.55)])
+        incomplete_retry_metadata["_quality_retry_attempted"] = True
+        for incomplete in (
+            incomplete_completion,
+            output_count_mismatch,
+            invalid_provider_envelope,
+            incomplete_retry_metadata,
+        ):
+            expect_legacy_failure(module, incomplete, config, sentinels=[object()])
         malformed = finding("probe.py", 10, 0.55)
         malformed["severity"] = "urgent"
         for bad in (finding("probe.py", 10, 0.90), malformed):
