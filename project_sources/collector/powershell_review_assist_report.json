@@ -1519,7 +1519,7 @@
     }
   ],
   "generated_from": {
-    "generated_at_utc": "2026-10-07T14:07:19+00:00",
+    "generated_at_utc": "2026-10-10T13:36:03+00:00",
     "schema_contract": "project_sources/collector/powershell_review_assist_report.schema.json",
     "source_reports": [
       "project_sources/collector/powershell_surface_inventory.json",
@@ -3131,13 +3131,6 @@
       },
       {
         "category": "github_workflow_support_script",
-        "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
-        "reason": "GitHub workflow support script is maintained repo PowerShell.",
-        "source_type": ".ps1",
-        "status": "tooling"
-      },
-      {
-        "category": "github_workflow_support_script",
         "path": ".github/dcoir_review/scripts/test-collector-fullregression-mission-readiness.ps1",
         "reason": "GitHub workflow support script is maintained repo PowerShell.",
         "source_type": ".ps1",
@@ -4047,7 +4040,7 @@
     },
     "path_decision_counts": {
       "exclude": 196,
-      "include": 134,
+      "include": 133,
       "reference": 54,
       "skip": 0
     },
@@ -4442,7 +4435,7 @@
         "collector_validation_tooling": 2,
         "fixture_or_example": 23,
         "generated_or_assembled_output": 1,
-        "github_workflow_support_script": 24,
+        "github_workflow_support_script": 23,
         "invalid_workflow_surface": 0,
         "missing_authoritative_surface": 0,
         "missing_changed_powershell_surface": 0,
@@ -4455,11 +4448,11 @@
       },
       "by_inclusion_decision": {
         "exclude": 196,
-        "include": 134,
+        "include": 133,
         "reference": 54
       },
       "by_source_type": {
-        ".ps1": 335,
+        ".ps1": 334,
         ".ps1.txt": 0,
         ".ps1xml": 0,
         ".psd1": 9,
@@ -4472,11 +4465,11 @@
         "source_part": 18,
         "staging": 196,
         "superseded_pointer": 1,
-        "tooling": 68,
+        "tooling": 67,
         "workflow_embedded": 30
       },
-      "embedded_snippet_count": 118,
-      "total_surfaces": 384
+      "embedded_snippet_count": 120,
+      "total_surfaces": 383
     }
   },
   "unclaimed_artifacts": [

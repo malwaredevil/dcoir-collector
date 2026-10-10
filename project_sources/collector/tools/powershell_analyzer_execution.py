@@ -6,6 +6,7 @@ import argparse
 import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -37,11 +38,21 @@ def psscriptanalyzer_script() -> str:
 $ErrorActionPreference = 'Stop'
 $requestJson = [Console]::In.ReadToEnd()
 $request = $requestJson | ConvertFrom-Json
-Import-Module PSScriptAnalyzer -ErrorAction Stop
+if ($env:DCOIR_PSSCRIPTANALYZER_VERSION) {
+  Import-Module PSScriptAnalyzer -RequiredVersion $env:DCOIR_PSSCRIPTANALYZER_VERSION -ErrorAction Stop
+} else {
+  Import-Module PSScriptAnalyzer -ErrorAction Stop
+}
 $module = Get-Module PSScriptAnalyzer
-$rawFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -Settings $request.settings_path -ErrorAction Stop)
+# Preserve the legacy all-built-in diagnostic coverage, including Error findings.
+# Add the six governed policy rules without emitting duplicate findings.
+$legacyFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -ErrorAction Stop)
+$policyFindings = @(Invoke-ScriptAnalyzer -Path $request.target.analysis_path -Settings $request.settings_path -ErrorAction Stop)
+$seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
 $findings = @(
-  foreach ($finding in $rawFindings) {
+  foreach ($finding in @($legacyFindings) + @($policyFindings)) {
+    $key = @([string]$finding.ScriptPath, [string]$finding.Line, [string]$finding.Column, [string]$finding.RuleName, [string]$finding.Severity, [string]$finding.Message) -join [char]0
+    if (-not $seen.Add($key)) { continue }
     $recommendedFix = ''
     if ($finding.PSObject.Properties.Name -contains 'SuggestedCorrections' -and $finding.SuggestedCorrections) {
       $recommendedFix = ($finding.SuggestedCorrections | Select-Object -First 1 | ForEach-Object { $_.Description }) -join '; '
@@ -85,26 +96,43 @@ def run_analyzer_command(
     request: dict[str, Any],
     timeout_seconds: int,
 ) -> dict[str, Any]:
-    try:
-        completed = subprocess.run(
-            command,
-            input=json.dumps(request),
-            capture_output=True,
-            text=True,
-            timeout=timeout_seconds,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise AnalyzerContractError(f"analyzer tool missing: {command[0]}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise AnalyzerContractError(
-            f"analyzer timeout after {timeout_seconds} seconds for {request['target']['path']}"
-        ) from exc
-    except OSError as exc:
-        raise AnalyzerContractError(f"analyzer launch failed for {request['target']['path']}: {exc}") from exc
+    # PSScriptAnalyzer can intermittently throw this known internal error while
+    # evaluating built-in rules concurrently. Retry only that exact failure in
+    # a fresh PowerShell process. Never return an incomplete or skipped scan.
+    attempts = 3 if command_kind == "psscriptanalyzer_pwsh" else 1
+    for attempt in range(1, attempts + 1):
+        try:
+            completed = subprocess.run(
+                command,
+                input=json.dumps(request),
+                capture_output=True,
+                text=True,
+                timeout=timeout_seconds,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise AnalyzerContractError(f"analyzer tool missing: {command[0]}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise AnalyzerContractError(
+                f"analyzer timeout after {timeout_seconds} seconds for {request['target']['path']}"
+            ) from exc
+        except OSError as exc:
+            raise AnalyzerContractError(f"analyzer launch failed for {request['target']['path']}: {exc}") from exc
 
-    if completed.returncode != 0:
+        if completed.returncode == 0:
+            break
         stderr = completed.stderr.strip()[-2000:]
+        if (
+            command_kind == "psscriptanalyzer_pwsh"
+            and "Object reference not set to an instance of an object" in stderr
+            and attempt < attempts
+        ):
+            print(
+                f"PSScriptAnalyzer transient null-reference while scanning "
+                f"{request['target']['path']}; retry {attempt + 1}/{attempts}",
+                file=sys.stderr,
+            )
+            continue
         raise AnalyzerContractError(
             f"analyzer crash for {request['target']['path']} with exit {completed.returncode}: {stderr}"
         )

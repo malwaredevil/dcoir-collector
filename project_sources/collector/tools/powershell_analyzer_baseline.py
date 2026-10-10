@@ -2,6 +2,7 @@
 """Baseline loading and suppression matching for analyzer findings."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +12,7 @@ from powershell_analyzer_contract import (
     read_json,
     safe_relpath,
     scalar,
+    sha256_line_ending_stable_file,
 )
 
 def load_baseline(path: Path | None) -> dict[str, Any] | None:
@@ -24,6 +26,48 @@ def load_baseline(path: Path | None) -> dict[str, Any] | None:
             "PowerShell analyzer baseline schema mismatch: "
             f"expected {BASELINE_SCHEMA_VERSION}, got {baseline.get('schema_version')!r}"
         )
+    # A source-maintained baseline may be split into small hash-pinned parts.
+    # Direct single-file suppressions remain supported for existing tools/tests.
+    if "shards" in baseline:
+        if "suppressions" in baseline:
+            raise AnalyzerContractError("PowerShell analyzer baseline must choose shards or direct suppressions")
+        shards = baseline["shards"]
+        if not isinstance(shards, list) or not shards or len(shards) > 64:
+            raise AnalyzerContractError("PowerShell analyzer baseline shards must be a nonempty bounded list")
+        suppressions = []
+        seen_names: set[str] = set()
+        shard_dir = path.parent / "powershell_analyzer_baseline_parts"
+        for entry in shards:
+            if not isinstance(entry, dict):
+                raise AnalyzerContractError("PowerShell analyzer baseline shard entry must be an object")
+            name = scalar(entry.get("name"))
+            expected_sha = scalar(entry.get("sha256"))
+            if not re.fullmatch(r"part-[0-9]{3}\.json", name) or name in seen_names:
+                raise AnalyzerContractError("PowerShell analyzer baseline shard name is invalid or duplicated")
+            if not re.fullmatch(r"[0-9a-f]{64}", expected_sha):
+                raise AnalyzerContractError("PowerShell analyzer baseline shard has invalid sha256")
+            seen_names.add(name)
+            target = shard_dir / name
+            if shard_dir.is_symlink() or target.is_symlink():
+                raise AnalyzerContractError("PowerShell analyzer baseline shard must not be a symlink: " + name)
+            try:
+                shard_dir.resolve(strict=True).relative_to(path.parent.resolve(strict=True))
+                target.resolve(strict=True).relative_to(shard_dir.resolve(strict=True))
+                if not target.is_file() or target.stat().st_size > 15000:
+                    raise AnalyzerContractError("PowerShell analyzer baseline shard is missing or oversized: " + name)
+                actual_sha = sha256_line_ending_stable_file(target)
+            except (OSError, RuntimeError, ValueError) as exc:
+                raise AnalyzerContractError("PowerShell analyzer baseline shard is unavailable or unsafe: " + name) from exc
+            if actual_sha != expected_sha:
+                raise AnalyzerContractError("PowerShell analyzer baseline shard hash mismatch: " + name)
+            part = read_json(target, "PowerShell analyzer baseline shard")
+            if not isinstance(part, dict) or part.get("schema_version") != BASELINE_SCHEMA_VERSION:
+                raise AnalyzerContractError("PowerShell analyzer baseline shard schema mismatch: " + name)
+            entries = part.get("suppressions")
+            if not isinstance(entries, list) or not entries:
+                raise AnalyzerContractError("PowerShell analyzer baseline shard suppressions missing: " + name)
+            suppressions.extend(entries)
+        baseline["suppressions"] = suppressions
     suppressions = baseline.get("suppressions", [])
     if not isinstance(suppressions, list):
         raise AnalyzerContractError("PowerShell analyzer baseline suppressions must be a list")
@@ -68,12 +112,18 @@ def apply_baseline(findings: list[dict[str, Any]], baseline: dict[str, Any] | No
             if finding["path"] == suppression_path and finding["rule_name"] == suppression_rule
             and finding["fingerprint"] == suppression_fingerprint
         ]
+        if any(match.get("severity", "").casefold() == "error" for match in matches):
+            errors.append(f"baseline may not suppress Error findings: {suppression_path} {suppression_rule}")
+            continue
         if len(matches) != expected_count:
             errors.append(
                 "suppressed-rule mismatch: "
                 f"{suppression_path} {suppression_rule} {suppression_fingerprint} "
                 f"matched {len(matches)} analyzer findings, expected {expected_count}"
             )
+            continue
+        if any(finding.get("severity", "").casefold() != "warning" for finding in matches):
+            errors.append(f"baseline may only suppress Warning findings: {suppression_path} {suppression_rule}")
             continue
         for finding in matches:
             finding["suppressed_by_baseline"] = True

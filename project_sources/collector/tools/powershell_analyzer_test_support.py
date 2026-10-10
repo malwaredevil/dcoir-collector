@@ -172,6 +172,23 @@ class PowerShellAnalyzerTestCase(unittest.TestCase):
                         "observed_problem": "Write-Host makes analyzer output noisy and reviewer-hostile.",
                         "recommended_fix": "Use Write-Output or structured logging.",
                     })
+                if mode in {"legacy_warning", "legacy_error"}:
+                    findings.append({
+                        "path": target["analysis_path"], "line": 1, "column": 1,
+                        "rule_name": "PSAvoidGlobalVars" if mode == "legacy_warning" else "PSAvoidAssignmentToAutomaticVariable",
+                        "severity": "Warning" if mode == "legacy_warning" else "Error",
+                        "observed_problem": "Built-in analyzer finding",
+                        "recommended_fix": "Correct the PowerShell source",
+                    })
+                if mode in {"parse_error", "unknown_severity", "harness_fragment_parse"}:
+                    if mode != "harness_fragment_parse" or "part-000.ps1" in target["path"]:
+                        findings.append({
+                            "path": target["analysis_path"], "line": 1, "column": 1,
+                            "rule_name": "MissingEndCurlyBrace" if mode != "unknown_severity" else "UnexpectedSeverity",
+                            "severity": "ParseError" if mode != "unknown_severity" else "Unknown",
+                            "observed_problem": "Malformed fragment or unexpected analyzer severity",
+                            "recommended_fix": "Repair invalid whole-script syntax",
+                        })
                 response = {
                     "analyzer_name": "FakePSScriptAnalyzer",
                     "analyzer_version": "1.0.0",

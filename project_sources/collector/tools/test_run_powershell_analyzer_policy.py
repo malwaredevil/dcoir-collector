@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import textwrap
@@ -27,6 +28,30 @@ except ImportError:  # pragma: no cover - direct file execution support
 
 
 class PowerShellAnalyzerPolicyTests(PowerShellAnalyzerTestCase):
+    def test_hash_pinned_warning_shard_and_tampering(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            parts = root / "powershell_analyzer_baseline_parts"
+            parts.mkdir()
+            part = parts / "part-001.json"
+            write(part, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION, "suppressions": [
+                {"path": "one.ps1", "rule_name": "PSAvoidUsingWriteHost", "fingerprint": "a" * 64,
+                 "reason": "existing reviewed warning"}]}, indent=2) + "\n")
+            # Text writes on Windows may already use CRLF: fix the starting
+            # fixture to known LF bytes before simulating Windows checkout.
+            part.write_bytes(part.read_bytes().replace(b"\r\n", b"\n"))
+            manifest = root / "baseline.json"
+            write(manifest, json.dumps({"schema_version": analyzer.BASELINE_SCHEMA_VERSION,
+                "shards": [{"name": part.name, "sha256": hashlib.sha256(part.read_bytes()).hexdigest()}]}))
+            self.assertEqual(len(analyzer.load_baseline(manifest)["suppressions"]), 1)
+            # GitHub's Windows checkout may translate LF to CRLF. Identical
+            # JSON must remain trusted, while content edits must still fail.
+            part.write_bytes(part.read_bytes().replace(b"\n", b"\r\n"))
+            self.assertEqual(len(analyzer.load_baseline(manifest)["suppressions"]), 1)
+            part.write_bytes(part.read_bytes().replace(b"reviewed warning", b"new exception"))
+            with self.assertRaisesRegex(analyzer.AnalyzerContractError, "hash mismatch"):
+                analyzer.load_baseline(manifest)
+
     def test_missing_policy_fails_closed(self) -> None:
         with self.make_repo() as temp:
             root = Path(temp)

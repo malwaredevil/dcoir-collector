@@ -1,0 +1,57 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "shards": [
+    {
+      "name": "part-001.json",
+      "sha256": "09a18f94a81cdade10e8fef4717444ff81d60ebac095d481117236e22719d906"
+    },
+    {
+      "name": "part-002.json",
+      "sha256": "975ac49434a435d4612031669cd4cd2d6f4b68c9d253bbfca8b2ee7039e85449"
+    },
+    {
+      "name": "part-003.json",
+      "sha256": "21e380cbdcd3c46534bcaeb55ea78296082a7b5a6f0d3dec1b6557716fb16710"
+    },
+    {
+      "name": "part-004.json",
+      "sha256": "9afc070b0c5ebdf5456e0f674df79fbd275504c545811a8641c6a8a365d39b8a"
+    },
+    {
+      "name": "part-005.json",
+      "sha256": "4a1c361f0c34309d4568655357003726c9473dbd4c34cd29cc456a990cc4703e"
+    },
+    {
+      "name": "part-006.json",
+      "sha256": "d2899dbcca0c7064a00d1d71df9ae9397151653ada9092dc9d35c69a6cfd7123"
+    },
+    {
+      "name": "part-007.json",
+      "sha256": "3224af73b89af7f1a606829f6d53e85b89632d1ddbeff8410904b322f1157dac"
+    },
+    {
+      "name": "part-008.json",
+      "sha256": "772b929ffdcb5d07f4af0e426fa34aa4d32f8b1bdf1e4727ce0ad0f641a5534a"
+    },
+    {
+      "name": "part-009.json",
+      "sha256": "1bb4ae312beadddae23d9e25eeb5088d1346fdf38da7e63344c907b3e8b34a34"
+    },
+    {
+      "name": "part-010.json",
+      "sha256": "41015b54a453b8bf3e4a6c4445b12538405e43672502c91f90ba496641497b41"
+    },
+    {
+      "name": "part-011.json",
+      "sha256": "5a27e91e3d1fe21f30b1e57a5503ee6c5645d6cdf47595d75693bf956ac65c6f"
+    },
+    {
+      "name": "part-012.json",
+      "sha256": "8567acc15978f3b1974d13a1fdb877d5af27ae6a054e4a79ca688a237038ea22"
+    },
+    {
+      "name": "part-013.json",
+      "sha256": "4326bbb5859133c2b51ccdf75c6e12d1cc5f18f779bd5b629470ea1c592d6964"
+    }
+  ]
+}

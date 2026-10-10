@@ -1,0 +1,131 @@
+{
+  "schema_version": "dcoir_powershell_analyzer_baseline_v1",
+  "suppressions": [
+    {
+      "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "de82fd2995c0f8f4488c4cd4b122c66b42c319090b9365f3880ba0d8fa1b1ac3",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 269. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "e7adfc5f0900128ea8a9bf9456a94a43cb2e90f922976e57907e43ba85de2c8b",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 235. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Paths.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "6fcabc258ed1fa42e3d8a89af89e849fad7e0aa942dcc1538c177105d1f9c9b1",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 47. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "23d2de9631f2f721dabdd76450120dfb5ccd08ce4fa66a2b413d2ee53b49d262",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 95. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "2c6cb975b6cd0c0b08797775c305b03450198c0a69b0f95b08ae68eaa062b306",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 102. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "4304e98df8a0b9f8eeff9fd02179bddb3e1bee95574e8018072330edfa7cebda",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 97. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "65a22d542c4be01ff7beb4c305f320101cc64b184dbb62b320c9535639ab177a",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 98. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "748d610ebb7e66ab2a3dae443bc7dd1c01838de37313f9bbc0e5b72edb55f744",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 33. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "833565e6c58237f64f08eba9a0a66fa179963e8262e957af02a50f6593855fec",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 29. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "86e76ef20419876a9d245629317424d740fac64569a62e69883c09c378284c0e",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 31. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "925981b1298cfac49e76f7566dfde093aa5b56664ed72143b2408b2de836bb5b",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 28. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "98063be76fb6d63ae2f24f646349c9e71782ba539c2620cbea9f1b04c9b117ca",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 99. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "acb8ef92d57c98ffafbf8835a81efbc15b6ba16cca5c7a6d0fc6671c8abf95b0",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 25. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "c9e3dc66a9129577d15ebb29d58ab32e8114d17969a0cd0b65bb17acc52cf400",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 24. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "ced417423571792913a1d955e434e66989df8358e9fefeefa7b5c01bac6496e4",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 27. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "cf701158b9a0600043625f14f9f7d0ed5ea558e8169562fcbb0d0a5e85c5cf72",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 96. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "e8dc49c6c4806e123cf4ded4f845ffb2d239b9f22f1b44157256eb05c6979efa",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 30. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    },
+    {
+      "path": ".github/actions/run-powershell-review-assist/DcoirPowerShellReviewAssist.Reports.ps1",
+      "rule_name": "PSAvoidUsingWriteHost",
+      "fingerprint": "ec21ddb27fe184bee0b6d3f07ef15c1a4e0575c4b7b474e2267448d2a19bedf2",
+      "expected_match_count": 1,
+      "reason": "Observed in approved #606 CI 38041902823; line 101. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+    }
+  ]
+}

@@ -11,7 +11,7 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_powershell_surface_inventory as inventory_builder
-from powershell_analyzer_contract import AnalyzerContractError, repo_relative_input_path
+from collector_tool_path_safety import AnalyzerContractError, repo_relative_input_path
 
 SCHEMA_VERSION = "dcoir_powershell_custom_check_report_v1"
 CHECKS_SCHEMA_VERSION = "dcoir_powershell_custom_checks_v1"
