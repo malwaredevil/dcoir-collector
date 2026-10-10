@@ -187,7 +187,7 @@
         "authority_evidence_lanes",
         "analysis_workflow"
       ],
-      "sha256": "f07bd802a717802c6d4613b30a31d34aa39a37ccff66e0261a84eb8716369cb1",
+      "sha256": "120c57c1464db6f7c17d87995f5dd22fa148a8c4e335c144b960b81550628da1",
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.02.md"
     },
     {
@@ -258,7 +258,7 @@
     }
   ],
   "behavior_coverage_count": 30,
-  "behavior_source_snapshot_sha256": "c7302207d221fd6834c868fdd9ebc3ee8f8c4e633de3cdecc87e7c56700d38ba",
+  "behavior_source_snapshot_sha256": "dc5c5610089252a5440f972d19e1bbb0777fcff8cc7a6694ef5b40ac5d961d1c",
   "behavioral_case_count": 22,
   "behavioral_case_ids": [
     "elastic_alert_triage",
@@ -360,7 +360,7 @@
   "source_contracts": {
     "behavior_module_manifest": {
       "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
-      "sha256": "23bed9790c7e52e5e6f45e5ebf1f64d61ac1367ad9b2a53791e2a0c48deaeb04"
+      "sha256": "abe7ffac3abae40f2066d63f35674aeefe33c4359064d8ee499474b49fbe04cc"
     },
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_dcoir_analyst/Behavioral_Contract_Cases.json",

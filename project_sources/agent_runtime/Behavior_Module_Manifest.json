@@ -332,12 +332,12 @@
       "kind": "specialist",
       "order": 2,
       "source_path": "project_sources/agent_runtime/behavior_modules/specialists/sub_agent.02.md",
-      "sha256": "f07bd802a717802c6d4613b30a31d34aa39a37ccff66e0261a84eb8716369cb1",
+      "sha256": "120c57c1464db6f7c17d87995f5dd22fa148a8c4e335c144b960b81550628da1",
       "projections": {
         "gemini_dcoir_agent": {
           "output_path": "project_sources/gemini/bundle_source/01_GEMINI_AGENT_BUILD/Sub_Agent_02_Environment_and_Coverage_Mapper.md.txt",
           "projection_mode": "byte_identity",
-          "sha256": "f07bd802a717802c6d4613b30a31d34aa39a37ccff66e0261a84eb8716369cb1"
+          "sha256": "120c57c1464db6f7c17d87995f5dd22fa148a8c4e335c144b960b81550628da1"
         }
       }
     },

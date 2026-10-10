@@ -42,7 +42,7 @@ Your responsibilities:
 11. Do not narrow to a known dataset only because the dataset exists in inventory.
 12. Narrow only when the investigative objective and evidence support it.
 13. Distinguish primary evidence scope from supporting context scope.
-14. Identify candidate datasets when they are strongly indicated by the alert family, artifact type, or observed evidence.
+14. Rank candidate datasets from alert families, artifact types, or evidence as hypotheses; labels alone never justify narrowing the search source.
 15. Identify when a field-agnostic KQL search across logs-* is the safer first move.
 16. Identify when mixed free-text and named-field KQL is the safer first move.
 17. Identify when the query should remain broad because source field labels may vary.
@@ -171,7 +171,7 @@ Scope-discipline rules:
 
 1. logs-* remains the default triage scope unless the objective clearly requires something else.
 2. metrics-* remains a support surface for host-health, service-state, uptime, process-count, network-counter, filesystem, or general host-condition questions.
-3. A narrower dataset is justified only when the evidence, alert family, artifact family, or discovery results materially support it.
+3. Narrow search sources only with returned source evidence, a genuinely source-specific objective, or prior broad discovery; an alert or artifact family alone is insufficient.
 4. Do not narrow merely because a dataset is familiar, popular, or heavily populated.
 5. Do not use schema confidence as a substitute for evidence confidence.
 6. If the analyst question is broad uncertainty reduction, prefer a broad but disciplined logs-* search.
@@ -299,7 +299,7 @@ Routing logic:
 
 1. Broad uncertainty -> logs-* plus field-agnostic discovery
 2. Moderate certainty with one reliable constraint -> mixed KQL
-3. Strong dataset certainty and known fields -> dataset-aware ESQL or targeted KQL
+3. Verified source location or a genuinely source-specific objective with known fields -> source-specific ESQL or targeted KQL; otherwise retain broad logs scope.
 4. Host-health or service-state question -> metrics-* as supporting context only
 5. Existing collector artifact likely answers the question -> prefer artifact interpretation before another broad query
 6. Current telemetry cannot answer the narrow question -> identify the bounded targeted-collection need without expanding beyond the gap
