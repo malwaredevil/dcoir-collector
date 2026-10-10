@@ -1,0 +1,120 @@
+{
+  "schema_version": "dcoir_cross_file_review_cases_v1",
+  "purpose": "Offline labeled recall and precision inputs; source-backed historical defect classes plus safe controls. Structural checks do not prove model recall.",
+  "cases": [
+    {
+      "id": "stale-tracked-source-inventory-p1",
+      "expected": "finding",
+      "severity": "P1",
+      "defect_class": "source-inventory-coverage",
+      "provenance": {
+        "pr": 617,
+        "reviewed_head": "50c69b9eb72779b43dd70b2c2e4b316db4f7d83f",
+        "dcoir_review_result": "missed",
+        "reference": "https://github.com/malwaredevil/dcoir-collector/pull/617#discussion_r4237756268"
+      },
+      "focus_path": ".github/actions/run-analyzer/action.yml",
+      "changed_diff": "diff --git a/.github/actions/run-analyzer/action.yml b/.github/actions/run-analyzer/action.yml\nindex 1111111..2222222 100644\n--- a/.github/actions/run-analyzer/action.yml\n+++ b/.github/actions/run-analyzer/action.yml\n@@ -1,2 +1,2 @@\n-run: powershell -File old_analyzer.ps1\n+run: python tools/run_analyzer.py --inventory state/source_inventory.json\ndiff --git a/ops/Invoke-Inspect.ps1 b/ops/Invoke-Inspect.ps1\nnew file mode 100644\nindex 0000000..2222222\n--- /dev/null\n+++ b/ops/Invoke-Inspect.ps1\n@@ -0,0 +1,1 @@\n+Invoke-Expression $untrusted\n",
+      "supporting_contract": "Analyzer iterates the checked-in target list. A newly Git-tracked operator script is absent from that list; no independent fresh source discovery is compared before an apparently green CI scan.",
+      "expected_anchor": "run: python tools/run_analyzer.py --inventory",
+      "related_path": "ops/Invoke-Inspect.ps1",
+      "counterexample": "A tracked script containing a governed policy violation was never scanned.",
+      "safe_control_id": "fresh-tracked-inventory-verified"
+    },
+    {
+      "id": "git-unavailable-filesystem-fallback-p1",
+      "expected": "finding",
+      "severity": "P1",
+      "defect_class": "fail-open-discovery-fallback",
+      "provenance": {
+        "pr": 617,
+        "reviewed_head": "959e916a6671c9d89e25842f4a170b917ad08b93",
+        "dcoir_review_result": "not_run_on_this_head",
+        "reference": "https://github.com/malwaredevil/dcoir-collector/pull/617#discussion_r4237933704"
+      },
+      "focus_path": "tools/verify_source_inventory.py",
+      "changed_diff": "diff --git a/tools/verify_source_inventory.py b/tools/verify_source_inventory.py\nindex 1111111..2222222 100644\n--- a/tools/verify_source_inventory.py\n+++ b/tools/verify_source_inventory.py\n@@ -1,2 +1,3 @@\n def verify():\n+    current = build_inventory(root)\n+    return same_paths_and_hashes(expected, current)\ndiff --git a/tools/inventory_discovery.py b/tools/inventory_discovery.py\nindex 3333333..4444444 100644\n--- a/tools/inventory_discovery.py\n+++ b/tools/inventory_discovery.py\n@@ -1,3 +1,4 @@\n def discover():\n     tracked = git_ls_files()\n+    if tracked is None: return filesystem_files()\n     return tracked\n",
+      "supporting_contract": "Git discovery failure silently switches to a working-tree-only filesystem scan, and the freshness checker ignores discovery source. An index-only tracked file deleted from worktree is omitted and the checker can return success.",
+      "expected_anchor": "current = build_inventory(root)",
+      "related_path": "tools/inventory_discovery.py",
+      "counterexample": "A staged new tracked script remains in the Git index but is absent from the filesystem fallback.",
+      "safe_control_id": "git-discovery-error-fails-closed"
+    },
+    {
+      "id": "rejected-claim-colon-scope",
+      "expected": "finding",
+      "severity": "medium",
+      "defect_class": "polarity-rejection-scope",
+      "provenance": {
+        "pr": 613,
+        "reviewed_head": "35b3ab5877a6305835a59887235697be065109b3",
+        "dcoir_review_result": "published",
+        "reference": "https://github.com/malwaredevil/dcoir-collector/pull/613#discussion_r4216739624"
+      },
+      "focus_path": "tools/replay_polarity.py",
+      "changed_diff": "diff --git a/tools/replay_polarity.py b/tools/replay_polarity.py\nindex 1111111..2222222 100644\n--- a/tools/replay_polarity.py\n+++ b/tools/replay_polarity.py\n@@ -1,3 +1,4 @@\n def rejection_applies(scope):\n+    if CLAUSE_SEPARATOR.search(scope): return False\n     return True\n",
+      "supporting_contract": "An unconditional colon/dash reset defeats a rejection scope even for 'Do not claim: high confidence malicious' or timestamp '03:14' in a rejected sentence.",
+      "expected_anchor": "if CLAUSE_SEPARATOR.search(scope): return False",
+      "related_path": "",
+      "counterexample": "Do not claim: high confidence malicious. The 03:14 logon is not proof of compromise.",
+      "safe_control_id": "rejection-clause-boundary-safe"
+    },
+    {
+      "id": "fresh-tracked-inventory-verified",
+      "expected": "clean",
+      "severity": "none",
+      "defect_class": "precision-fresh-inventory-check",
+      "provenance": {
+        "pr": 617,
+        "reviewed_head": "13ef93fe52851a5800bcdf6714733abecc1ce76a",
+        "dcoir_review_result": "not_run_on_this_head",
+        "reference": "https://github.com/malwaredevil/dcoir-collector/pull/617"
+      },
+      "focus_path": ".github/actions/run-analyzer/action.yml",
+      "changed_diff": "diff --git a/.github/actions/run-analyzer/action.yml b/.github/actions/run-analyzer/action.yml\nindex 1111111..2222222 100644\n--- a/.github/actions/run-analyzer/action.yml\n+++ b/.github/actions/run-analyzer/action.yml\n@@ -1,2 +1,3 @@\n name: Analyzer\n+run: python tools/verify_source_inventory.py && python tools/run_analyzer.py\ndiff --git a/ops/Invoke-Inspect.ps1 b/ops/Invoke-Inspect.ps1\nnew file mode 100644\nindex 0000000..2222222\n--- /dev/null\n+++ b/ops/Invoke-Inspect.ps1\n@@ -0,0 +1,1 @@\n+Write-Output 'safe'\n",
+      "supporting_contract": "Fresh Git-tracked source discovery and semantic hashes must match committed inventory before analyzer runs; missing or renamed scripts block. No unsafe command is present.",
+      "expected_anchor": "",
+      "related_path": "ops/Invoke-Inspect.ps1",
+      "counterexample": "Benign added source appears in the checked inventory and the pre-scan verifier fails closed on mismatches.",
+      "safe_control_id": ""
+    },
+    {
+      "id": "git-discovery-error-fails-closed",
+      "expected": "clean",
+      "severity": "none",
+      "defect_class": "precision-git-discovery-fail-closed",
+      "provenance": {
+        "pr": 617,
+        "reviewed_head": "13ef93fe52851a5800bcdf6714733abecc1ce76a",
+        "dcoir_review_result": "not_run_on_this_head",
+        "reference": "https://github.com/malwaredevil/dcoir-collector/pull/617"
+      },
+      "focus_path": "tools/verify_source_inventory.py",
+      "changed_diff": "diff --git a/tools/verify_source_inventory.py b/tools/verify_source_inventory.py\nindex 1111111..2222222 100644\n--- a/tools/verify_source_inventory.py\n+++ b/tools/verify_source_inventory.py\n@@ -1,2 +1,3 @@\n def verify():\n+    if current['source_of_truth'] != 'git ls-files -z': raise ValueError('Git required')\n     return same_paths_and_hashes(expected, current)\ndiff --git a/tools/inventory_discovery.py b/tools/inventory_discovery.py\nindex 3333333..4444444 100644\n--- a/tools/inventory_discovery.py\n+++ b/tools/inventory_discovery.py\n@@ -1,3 +1,3 @@\n def discover():\n     tracked = git_ls_files()\n     if tracked is None: return filesystem_files()\n",
+      "supporting_contract": "The diagnostic discovery helper may fall back, but the CI checker explicitly rejects every discovery source other than successful Git-backed enumeration.",
+      "expected_anchor": "",
+      "related_path": "tools/inventory_discovery.py",
+      "counterexample": "Git subprocess raises OSError or returns nonzero: CI inventory checker exits nonzero before analyzer.",
+      "safe_control_id": ""
+    },
+    {
+      "id": "rejection-clause-boundary-safe",
+      "expected": "clean",
+      "severity": "none",
+      "defect_class": "precision-polarity-rejection",
+      "provenance": {
+        "pr": 613,
+        "reviewed_head": "8eb2709182a8f658dd90d9887832a5e262f2fdaf",
+        "dcoir_review_result": "clean_after_fix",
+        "reference": "https://github.com/malwaredevil/dcoir-collector/pull/613"
+      },
+      "focus_path": "tools/replay_polarity.py",
+      "changed_diff": "diff --git a/tools/replay_polarity.py b/tools/replay_polarity.py\nindex 1111111..2222222 100644\n--- a/tools/replay_polarity.py\n+++ b/tools/replay_polarity.py\n@@ -1,3 +1,3 @@\n def rejection_applies(scope):\n+    if is_independent_clause_separator(scope): return False\n     return True\n",
+      "supporting_contract": "Only an independently asserted clause resets rejection framing. Quote labels and token-internal colon timestamps do not.",
+      "expected_anchor": "",
+      "related_path": "",
+      "counterexample": "Do not claim: high confidence malicious is rejected; a genuinely independent positive clause remains assertive.",
+      "safe_control_id": ""
+    }
+  ]
+}

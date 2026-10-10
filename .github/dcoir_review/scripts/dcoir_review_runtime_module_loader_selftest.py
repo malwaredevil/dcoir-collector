@@ -40,6 +40,7 @@ DIRECT_IMPORT_MODULES = (
     "candidate_escalation_scope.py",
     "candidate_escalation_telemetry.py",
     "candidate_scoped_escalation.py",
+    "cross_file_contract_context.py",
     "entrypoint.py",
     "environment_token_detection.py",
     "final_adjudication_policy.py",

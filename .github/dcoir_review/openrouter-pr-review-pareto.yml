@@ -175,6 +175,7 @@ ignored_providers:
 
 validation_commands:
   - python3 .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_cross_file_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_coverage_policy_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_finding_family_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_risk_sentinel_semantics_selftest.py

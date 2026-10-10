@@ -86,6 +86,7 @@ LAYER_SEGMENTS: dict[str, tuple[str, ...]] = {
         'selftests/pareto_context_selftest/part_04c_scope_regressions.py',
         'selftests/pareto_context_selftest/part_04d_scope_statement_regressions.py',
         'selftests/pareto_context_selftest/part_05.py',
+        'selftests/pareto_context_selftest/part_05a.py',
     ),
     'dcoir_review_required_runtime_patch_v14_selftest': (
         'selftests/dcoir_review_required_runtime_patch_v14_selftest/part_01.py',
