@@ -41,6 +41,11 @@ def main() -> None:
     for case in cases:
         assert case["expected"] in {"finding", "clean"}
         assert case["defect_class"] and case["counterexample"] and case["supporting_contract"]
+        assert case["focus_source"] and "def " in case["focus_source"]
+        if case["expected"] == "finding":
+            assert len(case["match_groups"]) >= 2
+        else:
+            assert "match_groups" not in case
         assert case["provenance"]["pr"] in (613, 617)
         assert len(case["provenance"]["reviewed_head"]) == 40
         assert case["provenance"]["reference"].startswith(
