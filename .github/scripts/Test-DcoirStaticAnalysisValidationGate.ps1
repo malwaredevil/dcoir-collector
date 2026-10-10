@@ -61,8 +61,17 @@ if (-not (Test-Path -LiteralPath $AnalyzerPath)) {
     $failures.Add('PSScriptAnalyzer findings must be an array for count readback.')
   } else {
     $actualErrorCount = @($analyzer.findings | Where-Object { $_.severity -eq 'Error' }).Count
-    $actualPolicyWarnings = @($analyzer.findings | Where-Object {
-      $_.severity -eq 'Warning' -and $policyRules -contains $_.rule_name -and $_.suppressed_by_baseline -eq $false
+    $policyWarningFindings = @($analyzer.findings | Where-Object {
+      $_.severity -eq 'Warning' -and $policyRules -contains $_.rule_name
+    })
+    $invalidPolicyWarningSuppressionMetadataCount = @($policyWarningFindings | Where-Object {
+      (-not $_.PSObject.Properties.Match('suppressed_by_baseline')) -or ($_.suppressed_by_baseline -isnot [bool])
+    }).Count
+    if ($invalidPolicyWarningSuppressionMetadataCount -gt 0) {
+      $failures.Add('PSScriptAnalyzer policy Warning findings must include boolean suppressed_by_baseline metadata.')
+    }
+    $actualPolicyWarnings = @($policyWarningFindings | Where-Object {
+      $_.suppressed_by_baseline -ne $true
     }).Count
     $actualParseErrors = @($analyzer.findings | Where-Object { $_.severity -eq 'ParseError' }).Count
     $knownFragments = @($analyzer.targets | Where-Object {
