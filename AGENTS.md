@@ -18,6 +18,18 @@ This file is the repository/workspace adapter. It keeps local bootstrapping and 
 * GitHub Copilot review requests are operator-controlled. Do not request a Copilot review unless the operator explicitly approves the request or manually triggers that review.
 * Before posting or confirming any `/dcoir-review`, `/or-review`, or `/openrouter-review` command, including standard, `deep`, `diff`, `debug`, or any other current or future variant, draft the exact proposed command text, show it to the operator, and receive explicit operator approval in the current session. No approval means no internal review request. Approval is per invocation: every rerun or later internal review request requires fresh explicit operator approval. If another rule says an internal review is the next gate, interpret that as the next gate to propose to the operator, not permission to post it automatically. See `.github/agent-governance/review_request_operator_approval.md`.
 
+## Mandatory small-batch execution (all agent runtimes)
+
+Small, bounded work batches are a permanent requirement for work on this repository, including ChatGPT WebUI/connector-only, Codex, Claude Code, Replit, and other agents. This is not a chat-specific preference and does not depend on a turnover file.
+
+* At the start of substantive work, retrieve the current repository instructions and live GitHub issue/PR state. Consult governed `ircore` preferences/readbacks where available; never assume a prior chat or uploaded turnover is required for resumption.
+* Break complex repairs into small, independently checkable steps. Default to **one to three related tool operations per batch**, or one short edit-plus-targeted-test batch. Avoid long chained mutations, huge unreviewed edits, unbounded commands, and tool calls likely to freeze or time out. Increase batch size only cautiously when evidence shows it is safe; retain an explicit bound.
+* For long tests, builds, provider calls, and GitHub Actions, start the operation once, record its job/run ID, and check it in separate bounded readback batches. Do not block the conversation waiting for completion, poll tightly, or trigger duplicate paid runs on uncertain status.
+* After each meaningful batch, read back the actual source/job/PR state, briefly state what succeeded, what remains uncertain, an approximate percentage complete where useful, and the next bounded action. Stop at existing operator approval gates; this rule never authorizes reviewer-bot requests, Ready transitions, merges, issue closure, or unsafe operational actions.
+* Keep durable, source-grounded checkpoints: issue/PR/branch/head SHA, completed changes, validation and review evidence, blockers, and next step in the governed `ircore` work-item readback or GitHub issue/PR when `ircore` is unavailable. A turnover document may supplement that record, but a fresh session must be able to resume from GitHub and persistent receipts without one.
+* If a tool fails, hangs, or gives an ambiguous result, first inspect live state before retrying; prevent duplicated writes, reviews, or charges. Preserve the separate 15-minute long-run checkpoint rule.
+* Small execution batches do **not** require fragmented PRs or weak validation. Combine related changes into a coherent, validated commit/PR when practical, and keep all existing governance, security, and operator-approval controls.
+
 ## DCOIR architecture maintenance standard
 
 For DCOIR architecture/refactor work, especially issue #550 / PR #553 and follow-on maintenance, use a responsibility-first professional-maintainer standard rather than a history-preservation standard.
