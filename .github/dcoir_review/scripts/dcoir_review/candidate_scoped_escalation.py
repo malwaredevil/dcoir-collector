@@ -9,6 +9,8 @@ from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import candidate_escalation_execution as execution
 from dcoir_review import candidate_escalation_scope as scope
 from dcoir_review import candidate_escalation_telemetry as telemetry
+from dcoir_review import candidate_escalation_quality_retry as quality_retry
+from dcoir_review import semantic_adjudication_quality_retry as retry_policy
 
 
 def _merge_scoped_result(
@@ -33,10 +35,21 @@ def _merge_scoped_result(
     )
     final["_semantic_adjudication_output_findings"] = len(final["findings"])
     final["_semantic_adjudication_context_scope"] = "candidate-scoped"
-    if adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR in adjudicated:
-        final[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = adjudicated[
-            adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR
-        ]
+    for key in (
+        adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR,
+        adjudication.PROVIDER_RESULT_KEYS_ATTR,
+    ):
+        if key in adjudicated:
+            final[key] = adjudicated[key]
+    if not passthrough:
+        # The adjudication is the whole disposition: its summary and its own
+        # quality-retry record (if any) replace the primary's.
+        final["summary"] = adjudicated.get("summary", final.get("summary", ""))
+        for key in retry_policy.QUALITY_RETRY_RESULT_KEYS:
+            final.pop(key, None)
+    if adjudicated.get("_quality_retry_attempted") is True:
+        for key in retry_policy.QUALITY_RETRY_RESULT_KEYS & set(adjudicated):
+            final[key] = adjudicated[key]
     return final
 
 
@@ -335,11 +348,37 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
                 module, schema, config, reporter, hypotheses, evidence, context_scope
             )
             adjudicator_calls += 1
+        # Retry only the adjudication; scoped passthrough findings stay outside
+        # it and are merged back afterwards. A retry that escapes the bounded
+        # scope is rejected like any failed optional retry.
+        retry_sentinels = (
+            [item for item in risk_sentinels or [] if getattr(item, "path", "") in selected_paths]
+            if context_scope == "candidate-scoped"
+            else risk_sentinels
+        )
+        pre_retry = adjudicated
+        adjudicated, retry_model, retry_tier = quality_retry.retry_candidate_escalation(
+            module, adjudicated, schema, config, reporter, retry_sentinels,
+            line_index, hypotheses, evidence, context_scope,
+        )
+        if retry_model:
+            adjudicator_calls += 1
+        if retry_model and context_scope == "candidate-scoped" and _outside_scope(
+            module, adjudicated, selected_paths
+        ):
+            quality_retry.reject_out_of_scope(module, config, reporter, retry_model, adjudicated)
+            adjudicated, retry_model, retry_tier = pre_retry, None, None
         final = (
             _merge_scoped_result(module, primary, passthrough, adjudicated)
             if context_scope == "candidate-scoped"
             else adjudicated
         )
+        if context_scope != "candidate-scoped" or not passthrough:
+            # The adjudication is the whole disposition, so an all-sub-floor
+            # result may take the terminal clean disposition like v35.
+            final[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = (
+                adjudication.FINAL_ADJUDICATION_COMPLETION_TOKEN
+            )
         final = telemetry.apply(
             module,
             gh,
@@ -354,6 +393,7 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
         model_label = (
             f"{primary_model}; candidate-challenger={challenger_model}; "
             f"candidate-adjudicator={adjudicator_model}"
+            + (f"; candidate-adjudicator-retry={retry_model}" if retry_model else "")
         )
         tier_label = ", ".join(
             item
@@ -361,6 +401,7 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
                 str(primary_tier or "").strip(),
                 str(challenger_tier or "").strip(),
                 str(adjudicator_tier or "").strip(),
+                str(retry_tier or "").strip(),
             )
             if item
         )

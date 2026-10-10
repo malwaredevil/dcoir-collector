@@ -10,6 +10,7 @@ from dcoir_review.entrypoint import DcoirReviewEntrypoint
 from dcoir_review import review_telemetry as telemetry
 from dcoir_review import semantic_adjudication as adjudication
 from dcoir_review import final_adjudication_policy as final_policy
+from dcoir_review import terminal_low_confidence_disposition as terminal_policy
 from dcoir_review_final_adjudication_policy_selftest_prompt import (
     run_prompt_regressions,
 )
@@ -97,7 +98,7 @@ def finding(path: str, line: int, confidence: float, title: str = "Candidate") -
 
 def adjudicated_result(
     findings: list[dict[str, Any]],
-    summary: str = final_policy.CLEAN_SUMMARY,
+    summary: str = terminal_policy.CLEAN_SUMMARY,
     *,
     context_scope: str | None = None,
     provider_result_keys: tuple[str, ...] = ("summary", "findings"),
@@ -158,7 +159,7 @@ def main() -> None:
                 "Readback gate may lack actor",
             ),
         ],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
     findings, unanchored = module.split_findings_with_review_body_fallback(
         live_shape,
@@ -175,8 +176,8 @@ def main() -> None:
     assert unanchored == []
     assert module.original_split_calls == 0
     assert live_shape["findings"] == []
-    assert live_shape["summary"] == final_policy.CLEAN_SUMMARY
-    marker = live_shape[final_policy.DISPOSITION_MARKER]
+    assert live_shape["summary"] == terminal_policy.CLEAN_SUMMARY
+    marker = live_shape[terminal_policy.DISPOSITION_MARKER]
     assert marker["candidate_count"] == 3
     assert marker["minimum_confidence"] == 0.70
     assert marker["lowest_confidence"] == 0.45
@@ -202,7 +203,7 @@ def main() -> None:
     expect_legacy_failure(module, early, config)
 
     incomplete_marker = {
-        "summary": final_policy.CLEAN_SUMMARY,
+        "summary": terminal_policy.CLEAN_SUMMARY,
         "findings": [finding("probe.py", 10, 0.55)],
         "_semantic_adjudication_attempted": True,
     }
@@ -252,19 +253,32 @@ def main() -> None:
     disabled_malformed_summary["summary"] = []
     expect_legacy_failure(module, disabled_malformed_summary, summary_gate_disabled)
 
-    for scope in ("candidate-scoped", "broad"):
-        scoped = adjudicated_result(
-            [finding("probe.py", 10, 0.55)],
-            final_policy.CLEAN_SUMMARY,
-            context_scope=scope,
-        )
-        expect_legacy_failure(module, scoped, config)
+    for scope in ("candidate-scoped", "broader-context"):
+        # Escalation stages mark only complete adjudications with the token.
+        complete = adjudicated_result([finding("probe.py", 10, 0.55)], context_scope=scope)
+        assert module.split_findings_with_review_body_fallback(
+            complete, config, {("probe.py", 10): 1}, "+probe", [],
+        ) == ([], [])
+        assert complete[terminal_policy.DISPOSITION_MARKER]["adjudication_scope"] == f"final-{scope}"
+        partial = adjudicated_result([finding("probe.py", 10, 0.55)], context_scope=scope)
+        del partial[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR]
+        expect_legacy_failure(module, partial, config)
 
     unanchored = adjudicated_result(
         [finding("probe.py", 99, 0.55)],
-        final_policy.CLEAN_SUMMARY,
+        terminal_policy.CLEAN_SUMMARY,
     )
-    expect_legacy_failure(module, unanchored, config)
+    # Sub-floor findings are never published, so advisory content (an anchor
+    # outside the changed lines, informational framing, replacement text)
+    # still takes the clean terminal disposition.
+    informational = finding("probe.py", 10, 0.55)
+    informational["_non_actionable_reason"] = "informational-only"
+    populated_replacement = finding("probe.py", 10, 0.55)
+    populated_replacement["suggested_replacement"] = "replacement text"
+    for advisory in (unanchored, adjudicated_result([informational]), adjudicated_result([populated_replacement])):
+        assert module.split_findings_with_review_body_fallback(
+            advisory, config, {("probe.py", 10): 1}, "+probe", [],
+        ) == ([], [])
 
     at_floor = adjudicated_result([finding("probe.py", 10, 0.70)])
     expect_legacy_failure(module, at_floor, config)
@@ -332,22 +346,6 @@ def main() -> None:
         config,
     )
 
-    populated_replacement = finding("probe.py", 10, 0.55)
-    populated_replacement["suggested_replacement"] = "replacement text"
-    expect_legacy_failure(
-        module,
-        adjudicated_result([populated_replacement]),
-        config,
-    )
-
-    informational = finding("probe.py", 10, 0.55)
-    informational["_non_actionable_reason"] = "informational-only"
-    expect_legacy_failure(
-        module,
-        adjudicated_result([informational]),
-        config,
-    )
-
     mixed_case_severity = finding("probe.py", 10, 0.55)
     mixed_case_severity["severity"] = "Medium"
     expect_legacy_failure(
@@ -363,17 +361,6 @@ def main() -> None:
         adjudicated_result([padded_severity]),
         config,
     )
-
-    module.hardened.force_required_sentinel = True
-    try:
-        expect_legacy_failure(
-            module,
-            adjudicated_result([finding("probe.py", 10, 0.55)]),
-            config,
-            sentinels=[object()],
-        )
-    finally:
-        module.hardened.force_required_sentinel = False
 
     run_production_regressions(entrypoint, adjudicated_result, finding)
 

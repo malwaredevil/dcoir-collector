@@ -20,6 +20,7 @@ import re
 from typing import Any
 
 from dcoir_review import structured_result_disposition as disposition
+from dcoir_review import structured_result_disposition_state as disposition_state
 from dcoir_review import review_telemetry_state
 
 
@@ -207,7 +208,7 @@ def _patch_hardened_helpers(module: Any, hardened: Any) -> None:
         if not reason:
             reason = semantic_recovery_reason(result, config)
 
-        setattr(config, disposition.PENDING_ATTR, None)
+        disposition_state.set_pending(config, None)
         if not reason.startswith(disposition.LOW_CONFIDENCE_RETRY_PREFIX):
             return reason
         eligible, floor = disposition.eligible_low_confidence_findings(
@@ -221,7 +222,7 @@ def _patch_hardened_helpers(module: Any, hardened: Any) -> None:
             "candidate_floor": floor,
             "paths": sorted({str(item.get("path", "") or "") for item in eligible}),
         }
-        setattr(config, disposition.PENDING_ATTR, pending)
+        disposition_state.set_pending(config, pending)
         hardened.write_debug_json_artifact_safely(
             config,
             "metadata/v52-structured-low-confidence.json",
@@ -323,6 +324,7 @@ def build_quality_gate_stage(module: Any, next_review: Any) -> Any:
             config=config,
             line_index=line_index,
             retry_reason=retry_reason,
+            retry_model=str(retry_model_used or ""),
         )
         hardened.write_debug_json_artifact_safely(
             config,

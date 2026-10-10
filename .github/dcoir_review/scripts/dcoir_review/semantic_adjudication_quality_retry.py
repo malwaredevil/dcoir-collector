@@ -25,12 +25,24 @@ RUN_ABORT_ERRORS = (
     scope_guard.ReviewSupersededError,
     scope_guard.ReviewHeadVerificationError,
 )
+# Each adjudication stage names its own retry evidence and progress label;
+# the defaults are the v35 semantic-adjudication stage's names.
+DEFAULT_ARTIFACT_STAGE = "07-semantic-adjudication"
+DEFAULT_REPORT_STAGE = "semantic-adjudication-quality-retry"
+PROJECTED_PROMPT_PATH_ATTR = "_semantic_adjudication_quality_retry_projected_path"
 RETRY_FAILED_ARTIFACT_PATH = (
-    "responses/07-semantic-adjudication-quality-retry-failed.json"
+    f"responses/{DEFAULT_ARTIFACT_STAGE}-quality-retry-failed.json"
 )
 PROJECTED_PROMPT_ARTIFACT_PATH = (
-    "prompts/07-semantic-adjudication-quality-retry-projected-prompt.txt"
+    f"prompts/{DEFAULT_ARTIFACT_STAGE}-quality-retry-projected-prompt.txt"
 )
+
+
+def projected_prompt_artifact_path(config: Any) -> str:
+    """Return the projected retry prompt path chosen by the retrying stage."""
+
+    return str(getattr(config, PROJECTED_PROMPT_PATH_ATTR, "") or PROJECTED_PROMPT_ARTIFACT_PATH)
+
 
 QUALITY_RETRY_RESULT_KEYS = {
     "_quality_retry_attempted",
@@ -135,14 +147,14 @@ def _retry_reason(
     neither overwrite it nor divert final findings away from this retry.
     """
 
-    saved_pending = getattr(config, disposition.PENDING_ATTR, None)
+    saved_pending = disposition.get_pending(config)
     saved_allow = getattr(config, disposition.ALLOW_ATTR, False)
     setattr(config, disposition.ALLOW_ATTR, False)
     try:
         return str(reason_fn(result, config, risk_sentinels, line_index) or "")
     finally:
         setattr(config, disposition.ALLOW_ATTR, saved_allow)
-        setattr(config, disposition.PENDING_ATTR, saved_pending)
+        disposition.set_pending(config, saved_pending)
 
 
 def build_retry_prompt(
@@ -162,7 +174,7 @@ def build_retry_prompt(
 
 def _request_retry(
     module: Any, retry_prompt: str, schema: dict[str, Any], retry_config: Any,
-    config: Any, reporter: Any, normalize_result: Any,
+    config: Any, reporter: Any, normalize_result: Any, artifact: str,
 ) -> tuple[dict[str, Any], Any, Any, list[str]]:
     """Run the retry provider call and validate its output; raise on failure."""
 
@@ -171,7 +183,7 @@ def _request_retry(
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
-        "responses/07-semantic-adjudication-quality-retry-raw-result.json",
+        f"responses/{artifact}-raw-result.json",
         {"model_used": retry_model, "service_tier": retry_tier, "result": retry_result},
     )
     retry_provider_keys = (
@@ -200,9 +212,11 @@ def _request_retry(
 
 def retry_rejected_adjudication(
     module: Any, adjudicated: dict[str, Any], config: Any,
-    risk_sentinels: Any, line_index: Any, prompt: str, schema: dict[str, Any],
+    risk_sentinels: Any, line_index: Any, prompt: Any, schema: dict[str, Any],
     adjudication_config: Any, reporter: Any, max_findings: int,
     cap_findings: Any, normalize_result: Any,
+    artifact_stage: str = DEFAULT_ARTIFACT_STAGE,
+    report_stage: str = DEFAULT_REPORT_STAGE,
 ) -> tuple[dict[str, Any], str | None, str | None]:
     # The earlier quality gate runs before final adjudication, so re-check
     # newly adjudicated findings and grant exactly one bounded repair attempt.
@@ -217,28 +231,34 @@ def retry_rejected_adjudication(
     )
     if not reason:
         return adjudicated, None, None
+    artifact = f"{artifact_stage}-quality-retry"
     if reporter:
         safe_reason = module.hardened.sanitize_github_output(reason, config)
         reporter.update(
-            "semantic-adjudication-quality-retry",
+            report_stage,
             f"{safe_reason}; requesting one evidence-backed final-adjudication repair",
         )
+    # A stage may pass a builder so the prompt is only built when retrying.
+    if callable(prompt):
+        prompt = prompt()
     retry_prompt = build_retry_prompt(
         module, prompt, adjudicated, risk_sentinels, config, reason
     )
     module.hardened.write_debug_text_artifact_safely(
-        config, "prompts/07-semantic-adjudication-quality-retry.txt", retry_prompt
+        config, f"prompts/{artifact}.txt", retry_prompt
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
-        "responses/07-semantic-adjudication-quality-retry-initial-result.json",
+        f"responses/{artifact}-initial-result.json",
         {"result": adjudicated},
     )
     retry_config = copy.copy(adjudication_config)
     setattr(retry_config, FINAL_ADJUDICATION_RETRY_ATTR, True)
+    setattr(retry_config, PROJECTED_PROMPT_PATH_ATTR, f"prompts/{artifact}-projected-prompt.txt")
     try:
         retry_result, retry_model, retry_tier, retry_provider_keys = _request_retry(
-            module, retry_prompt, schema, retry_config, config, reporter, normalize_result
+            module, retry_prompt, schema, retry_config, config, reporter,
+            normalize_result, artifact,
         )
     except RUN_ABORT_ERRORS:
         raise
@@ -251,18 +271,18 @@ def retry_rejected_adjudication(
         )
         module.hardened.write_debug_json_artifact_safely(
             config,
-            RETRY_FAILED_ARTIFACT_PATH,
+            f"responses/{artifact}-failed.json",
             {"retry_reason": reason, "failure": failure, "kept": "first-pass-adjudication"},
         )
         if reporter:
             reporter.update(
-                "semantic-adjudication-quality-retry",
+                report_stage,
                 f"retry failed ({failure}); keeping the first-pass adjudication for downstream gates",
             )
         return adjudicated, None, None
     module.hardened.write_debug_json_artifact_safely(
         config,
-        "responses/07-semantic-adjudication-quality-retry-result.json",
+        f"responses/{artifact}-result.json",
         {"model_used": retry_model, "service_tier": retry_tier, "result": retry_result},
     )
     raw_initial_digest = None
