@@ -367,7 +367,7 @@ def project_review_call(module: Any, prompt: Any, config: Any) -> tuple[Any, Any
         return prompt, config
     try:
         artifact_path = (
-            quality_retry.PROJECTED_PROMPT_ARTIFACT_PATH
+            quality_retry.projected_prompt_artifact_path(config)
             if getattr(config, quality_retry.FINAL_ADJUDICATION_RETRY_ATTR, False)
             else PROMPT_ARTIFACT_PATH
         )

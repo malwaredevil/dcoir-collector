@@ -38,9 +38,9 @@ def run_challenger(
         staged,
         "\n\n[v44 challenger evidence truncated by reviewer budget]",
     )
-    artifact_scope = "candidate" if context_scope == "candidate-scoped" else "broad"
+    scope_name = artifact_scope(context_scope)
     module.hardened.write_debug_text_artifact_safely(
-        config, f"prompts/08-v44-{artifact_scope}-challenger.txt", prompt
+        config, f"prompts/08-v44-{scope_name}-challenger.txt", prompt
     )
     if reporter:
         reporter.update(
@@ -52,7 +52,7 @@ def run_challenger(
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
-        f"responses/08-v44-{artifact_scope}-challenger.json",
+        f"responses/08-v44-{scope_name}-challenger.json",
         {
             "context_scope": context_scope,
             "model_used": model,
@@ -61,6 +61,62 @@ def run_challenger(
         },
     )
     return result, model, tier
+
+
+def adjudication_max_findings(config: Any) -> int:
+    return int(
+        getattr(
+            config,
+            "semantic_adjudication_max_findings",
+            adjudication.DEFAULT_ADJUDICATION_MAX_FINDINGS,
+        )
+    )
+
+
+def adjudicator_config(config: Any) -> Any:
+    staged = copy.copy(config)
+    models = adjudication.adjudication_models(config)
+    staged.model_stack = models
+    staged.model = models[0]
+    return staged
+
+
+def artifact_scope(context_scope: str) -> str:
+    return "candidate" if context_scope == "candidate-scoped" else "broad"
+
+
+def adjudicator_prompt(
+    module: Any,
+    config: Any,
+    hypotheses: list[dict[str, Any]],
+    evidence: str,
+    context_scope: str,
+) -> str:
+    """Build the exact v44 adjudicator prompt; its quality retry reuses it."""
+
+    digest_chars = int(
+        getattr(
+            config,
+            "semantic_adjudication_candidate_digest_chars",
+            adjudication.DEFAULT_CANDIDATE_DIGEST_CHARS,
+        )
+    )
+    digest = scope.candidate_digest(hypotheses, digest_chars)
+    instruction = adjudication.ADJUDICATION_BLOCK.format(
+        max_findings=adjudication_max_findings(config)
+    )
+    return prompt_with_budget(
+        (
+            f"{instruction}\n\n"
+            "Candidate hypotheses from the bounded primary/challenger evidence:\n"
+            f"```json\n{module.base.sanitize_text(digest, config)}\n```\n\n"
+            f"Escalation context scope: {context_scope}.\n"
+            "Adjudicate only what the supplied exact-head evidence can prove.\n\n"
+            f"{evidence}"
+        ),
+        config,
+        "\n\n[v44 adjudication evidence truncated by reviewer budget]",
+    )
 
 
 def run_adjudicator(
@@ -72,46 +128,17 @@ def run_adjudicator(
     evidence: str,
     context_scope: str,
 ) -> tuple[dict[str, Any], str, str]:
-    staged = copy.copy(config)
-    models = adjudication.adjudication_models(config)
-    staged.model_stack = models
-    staged.model = models[0]
-    max_findings = int(
-        getattr(
-            config,
-            "semantic_adjudication_max_findings",
-            adjudication.DEFAULT_ADJUDICATION_MAX_FINDINGS,
-        )
-    )
-    digest_chars = int(
-        getattr(
-            config,
-            "semantic_adjudication_candidate_digest_chars",
-            adjudication.DEFAULT_CANDIDATE_DIGEST_CHARS,
-        )
-    )
-    digest = scope.candidate_digest(hypotheses, digest_chars)
-    instruction = adjudication.ADJUDICATION_BLOCK.format(max_findings=max_findings)
-    prompt = prompt_with_budget(
-        (
-            f"{instruction}\n\n"
-            "Candidate hypotheses from the bounded primary/challenger evidence:\n"
-            f"```json\n{module.base.sanitize_text(digest, config)}\n```\n\n"
-            f"Escalation context scope: {context_scope}.\n"
-            "Adjudicate only what the supplied exact-head evidence can prove.\n\n"
-            f"{evidence}"
-        ),
-        staged,
-        "\n\n[v44 adjudication evidence truncated by reviewer budget]",
-    )
-    artifact_scope = "candidate" if context_scope == "candidate-scoped" else "broad"
+    staged = adjudicator_config(config)
+    max_findings = adjudication_max_findings(config)
+    prompt = adjudicator_prompt(module, config, hypotheses, evidence, context_scope)
+    scope_name = artifact_scope(context_scope)
     module.hardened.write_debug_text_artifact_safely(
-        config, f"prompts/09-v44-{artifact_scope}-adjudication.txt", prompt
+        config, f"prompts/09-v44-{scope_name}-adjudication.txt", prompt
     )
     if reporter:
         reporter.update(
             "candidate-escalation-adjudication",
-            f"scope={context_scope}; hypotheses={len(hypotheses)}; adjudicator={models[0]}",
+            f"scope={context_scope}; hypotheses={len(hypotheses)}; adjudicator={staged.model}",
         )
     raw, model, tier = module.hardened.openrouter_review(
         prompt, schema, staged, reporter
@@ -130,7 +157,7 @@ def run_adjudicator(
     )
     module.hardened.write_debug_json_artifact_safely(
         config,
-        f"responses/09-v44-{artifact_scope}-adjudication.json",
+        f"responses/09-v44-{scope_name}-adjudication.json",
         {
             "context_scope": context_scope,
             "model_used": model,

@@ -10,6 +10,7 @@ from dcoir_review import candidate_escalation_execution as execution
 from dcoir_review import candidate_escalation_scope as scope
 from dcoir_review import candidate_escalation_telemetry as telemetry
 from dcoir_review import candidate_escalation_quality_retry as quality_retry
+from dcoir_review import semantic_adjudication_quality_retry as retry_policy
 
 
 def _merge_scoped_result(
@@ -38,6 +39,13 @@ def _merge_scoped_result(
         final[adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR] = adjudicated[
             adjudication.FINAL_ADJUDICATION_COMPLETION_ATTR
         ]
+    if adjudicated.get("_quality_retry_attempted") is True:
+        # The adjudication's quality retry, not the primary's, describes this
+        # result; with no passthrough its summary is the whole disposition.
+        for key in retry_policy.QUALITY_RETRY_RESULT_KEYS & set(adjudicated):
+            final[key] = adjudicated[key]
+        if not passthrough:
+            final["summary"] = adjudicated.get("summary", final.get("summary", ""))
     return final
 
 
@@ -336,23 +344,30 @@ def build_candidate_scoped_escalation_stage(module: Any, next_review: Any) -> An
                 module, schema, config, reporter, hypotheses, evidence, context_scope
             )
             adjudicator_calls += 1
+        # Retry only the adjudication; scoped passthrough findings stay outside
+        # it and are merged back afterwards, so they never trip the scope check.
+        retry_sentinels = (
+            [item for item in risk_sentinels or [] if getattr(item, "path", "") in selected_paths]
+            if context_scope == "candidate-scoped"
+            else risk_sentinels
+        )
+        adjudicated, retry_model, retry_tier = quality_retry.retry_candidate_escalation(
+            module, adjudicated, schema, config, reporter, retry_sentinels,
+            line_index, hypotheses, evidence, context_scope,
+        )
+        if retry_model:
+            adjudicator_calls += 1
+        if retry_model and context_scope == "candidate-scoped" and _outside_scope(
+            module, adjudicated, selected_paths
+        ):
+            raise module.hardened.ReviewQualityError(
+                "DCOIR candidate-escalation quality retry returned an out-of-scope finding"
+            )
         final = (
             _merge_scoped_result(module, primary, passthrough, adjudicated)
             if context_scope == "candidate-scoped"
             else adjudicated
         )
-        final, retry_model, retry_tier = quality_retry.retry_candidate_escalation(
-            module, final, schema, config, reporter, risk_sentinels, line_index,
-            evidence, context_scope,
-        )
-        if retry_model:
-            adjudicator_calls += 1
-        if retry_model and context_scope == "candidate-scoped" and _outside_scope(
-            module, final, selected_paths
-        ):
-            raise module.hardened.ReviewQualityError(
-                "DCOIR candidate-escalation quality retry returned an out-of-scope finding"
-            )
         final = telemetry.apply(
             module,
             gh,
