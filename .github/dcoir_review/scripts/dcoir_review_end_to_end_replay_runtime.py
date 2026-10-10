@@ -12,6 +12,7 @@ import sys
 import tempfile
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any
 
@@ -75,7 +76,8 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
 
     prior_body = ""
     if incremental:
-        prior_body = open(os.environ["E2E_PRIOR_REVIEW"], encoding="utf-8").read()
+        with open(os.environ["E2E_PRIOR_REVIEW"], encoding="utf-8") as handle:
+            prior_body = handle.read()
 
     def gh_handler(method, path, body):
         state["gh_calls"] += 1
@@ -203,7 +205,8 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
         url = req.full_url
         method = req.get_method()
         data = json.loads(req.data.decode()) if req.data else None
-        if "openrouter.ai" in url:
+        parts = urllib.parse.urlsplit(url)
+        if parts.hostname == "openrouter.ai":
             kind = classify(data)
             state["kinds"].append(kind)
             try:
@@ -221,8 +224,8 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
                    "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(parsed)}}],
                    "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}}
             return Resp(json.dumps(out).encode())
-        if "api.github.com" in url:
-            path = url.split("api.github.com", 1)[1]
+        if parts.hostname == "api.github.com":
+            path = parts.path + (f"?{parts.query}" if parts.query else "")
             accept = req.headers.get("Accept", "")
             if method == "GET" and ".diff" in accept:
                 return Resp(diff_text().encode())
@@ -251,7 +254,7 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
         DcoirReviewEntrypoint().run()
     except SystemExit as exc:
         outcome = f"SystemExit {exc.code}"
-    except BaseException as exc:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001 - every run failure is a scenario outcome
         outcome = f"{type(exc).__name__}: {str(exc)[:500]}"
         if os.environ.get("E2E_TB"):
             traceback.print_exc()
