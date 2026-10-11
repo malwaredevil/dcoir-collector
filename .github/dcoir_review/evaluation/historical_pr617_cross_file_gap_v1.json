@@ -1,0 +1,291 @@
+{
+  "schema_version": "dcoir_historical_cross_file_gap_v1",
+  "label": "historically confirmed DCOIR Review miss; provenance evidence, not a model finding",
+  "historical_reference": {
+    "repo": "malwaredevil/dcoir-collector",
+    "pr": 617,
+    "base_sha": "2c59f81e41d89bc804d6b4aabaa86a0500662e90",
+    "reviewed_head": "50c69b9eb72779b43dd70b2c2e4b316db4f7d83f",
+    "review_run_id": 38053403215,
+    "confirmed_external_P1_url": "https://github.com/malwaredevil/dcoir-collector/pull/617#discussion_r4237756268",
+    "per_file_review_record_count": 44,
+    "dependency_expanded_record_count": 0,
+    "original_action_review_summary": "No actionable findings in `.github/actions/run-psscriptanalyzer/action.yml`. The module version is pinned and validated. The Python analyzer owns the report, and its exit code and `validation.success` are both checked. Inputs reach the shell only through `env`, with no direct `${{ }}` interpolation into `run`, and no secrets are forwarded. The review covered only this file's diff, so the central static-analysis gate and the Python tools it calls were not checked.",
+    "original_action_review_findings": []
+  },
+  "action": {
+    "path": ".github/actions/run-psscriptanalyzer/action.yml",
+    "base_sha": "2c59f81e41d89bc804d6b4aabaa86a0500662e90",
+    "head_sha": "50c69b9eb72779b43dd70b2c2e4b316db4f7d83f",
+    "head_content": "name: Run governed PowerShell analyzer\ndescription: >\n  Run the single canonical Python analyzer against the source-inventory target set.\n  Preserve legacy built-in diagnostics and enforce configured PowerShell policy\n  warnings through the central static-analysis validation gate.\ninputs:\n  output-json:\n    description: Repo-relative path for the JSON report.\n    required: false\n    default: project_sources/collector/powershell_analyzer_report.json\n  fail-on-error-severity:\n    description: Legacy direct Error-finding failure control; callers use the central gate. Owner cleanup belongs to issue 608.\n    required: false\n    default: 'true'\nruns:\n  using: composite\n  steps:\n    - name: Install pinned PSScriptAnalyzer\n      shell: pwsh\n      run: |\n        $ErrorActionPreference = 'Stop'\n        $required = '1.25.0'\n        if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer | Where-Object { $_.Version.ToString() -eq $required })) {\n          Install-Module -Name PSScriptAnalyzer -RequiredVersion $required -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop\n        }\n        Import-Module PSScriptAnalyzer -RequiredVersion $required -Force -ErrorAction Stop\n        Write-Host \"PSScriptAnalyzer pinned version: $((Get-Module PSScriptAnalyzer).Version)\"\n    - name: Analyze inventory through canonical Python owner\n      shell: pwsh\n      env:\n        PSSCRIPTANALYZER_OUTPUT_JSON: ${{ inputs.output-json }}\n        FAIL_ON_ERROR_SEVERITY: ${{ inputs.fail-on-error-severity }}\n        DCOIR_PSSCRIPTANALYZER_VERSION: '1.25.0'\n      run: |\n        $ErrorActionPreference = 'Stop'\n        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings\n        if ($LASTEXITCODE -ne 0) { throw 'Canonical PowerShell analyzer execution or report generation failed.' }\n        $report = Get-Content -LiteralPath $env:PSSCRIPTANALYZER_OUTPUT_JSON -Raw | ConvertFrom-Json\n        if ($report.validation.success -ne $true) { throw 'Canonical PowerShell analyzer reported invalid evidence.' }\n        if ($env:FAIL_ON_ERROR_SEVERITY -eq 'true' -and $report.summary.error_count -gt 0) {\n          throw \"PSScriptAnalyzer found $($report.summary.error_count) Error-severity violations.\"\n        }\n        # Native negative and safe-control proofs use isolated temporary inventory\n        # and never replace the production analyzer report artifact.\n        python project_sources/collector/tools/verify_powershell_analyzer_policy_ci.py\n        if ($LASTEXITCODE -ne 0) { throw 'PSScriptAnalyzer negative policy fixture did not block.' }\n# Compensating evidence: caller-visible action steps, pinned module version, JSON/Markdown analyzer report, and central policy gate retain authoritative output despite composite log grouping.\n# CI consumers and reviewers read the same canonical JSON and Markdown output.\n",
+    "patch": "diff --git a/.github/actions/run-psscriptanalyzer/action.yml b/.github/actions/run-psscriptanalyzer/action.yml\nindex 5254e00a3..902d94e79 100644\n--- a/.github/actions/run-psscriptanalyzer/action.yml\n+++ b/.github/actions/run-psscriptanalyzer/action.yml\n@@ -1,30 +1,48 @@\n-name: Run PSScriptAnalyzer on collector source\n+name: Run governed PowerShell analyzer\n description: >\n-  Run PSScriptAnalyzer against all collector PS1 source files and emit a\n-  dcoir_powershell_analyzer_report_v1 JSON report.  The report is written\n-  to the output-json path so the run-powershell-review-assist action can\n-  promote it from optional_missing to present_validated.\n-  Fails the step on any Error-severity finding.\n+  Run the single canonical Python analyzer against the source-inventory target set.\n+  Preserve legacy built-in diagnostics and enforce configured PowerShell policy\n+  warnings through the central static-analysis validation gate.\n inputs:\n   output-json:\n     description: Repo-relative path for the JSON report.\n     required: false\n     default: project_sources/collector/powershell_analyzer_report.json\n   fail-on-error-severity:\n-    description: Exit non-zero when any Error-severity finding is found.\n+    description: Legacy direct Error-finding failure control; callers use the central gate. Owner cleanup belongs to issue 608.\n     required: false\n     default: 'true'\n runs:\n   using: composite\n   steps:\n-    - name: Run PSScriptAnalyzer against collector source\n+    - name: Install pinned PSScriptAnalyzer\n+      shell: pwsh\n+      run: |\n+        $ErrorActionPreference = 'Stop'\n+        $required = '1.25.0'\n+        if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer | Where-Object { $_.Version.ToString() -eq $required })) {\n+          Install-Module -Name PSScriptAnalyzer -RequiredVersion $required -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop\n+        }\n+        Import-Module PSScriptAnalyzer -RequiredVersion $required -Force -ErrorAction Stop\n+        Write-Host \"PSScriptAnalyzer pinned version: $((Get-Module PSScriptAnalyzer).Version)\"\n+    - name: Analyze inventory through canonical Python owner\n       shell: pwsh\n       env:\n         PSSCRIPTANALYZER_OUTPUT_JSON: ${{ inputs.output-json }}\n         FAIL_ON_ERROR_SEVERITY: ${{ inputs.fail-on-error-severity }}\n-        DCOIR_ACTION_SCRIPT: ${{ github.action_path }}/Invoke-DcoirPSScriptAnalyzer.ps1\n+        DCOIR_PSSCRIPTANALYZER_VERSION: '1.25.0'\n       run: |\n         $ErrorActionPreference = 'Stop'\n-        & $env:DCOIR_ACTION_SCRIPT\n-# Compensating evidence: step name, stdout severity breakdown, and generated JSON artifact\n-# preserve review evidence despite composite action grouping.\n+        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings\n+        if ($LASTEXITCODE -ne 0) { throw 'Canonical PowerShell analyzer execution or report generation failed.' }\n+        $report = Get-Content -LiteralPath $env:PSSCRIPTANALYZER_OUTPUT_JSON -Raw | ConvertFrom-Json\n+        if ($report.validation.success -ne $true) { throw 'Canonical PowerShell analyzer reported invalid evidence.' }\n+        if ($env:FAIL_ON_ERROR_SEVERITY -eq 'true' -and $report.summary.error_count -gt 0) {\n+          throw \"PSScriptAnalyzer found $($report.summary.error_count) Error-severity violations.\"\n+        }\n+        # Native negative and safe-control proofs use isolated temporary inventory\n+        # and never replace the production analyzer report artifact.\n+        python project_sources/collector/tools/verify_powershell_analyzer_policy_ci.py\n+        if ($LASTEXITCODE -ne 0) { throw 'PSScriptAnalyzer negative policy fixture did not block.' }\n+# Compensating evidence: caller-visible action steps, pinned module version, JSON/Markdown analyzer report, and central policy gate retain authoritative output despite composite log grouping.\n+# CI consumers and reviewers read the same canonical JSON and Markdown output.\n",
+    "head_source_sha256": "0778f0ad3efe72e76d7175b52bb533f20ae3a40956baabedd477b33a8a6ffc5c",
+    "patch_sha256": "4b6d89472a3e7b06dff2eb5f13e067e0553a3f5270ef466a0572cf5c6af5b8e0"
+  },
+  "consumer_contract_sources": {
+    "default_inventory_path": {
+      "path": "project_sources/collector/tools/powershell_analyzer_contract.py",
+      "ref": "50c69b9eb72779b43dd70b2c2e4b316db4f7d83f",
+      "full_source_sha256": "1dca2587eee48fba0c0bc476254189004bf75cf7cdb4e5d2ac356504cdaff9cf",
+      "line_count": 136,
+      "excerpts": [
+        {
+          "start_line": 13,
+          "end_line": 25,
+          "text": "SCHEMA_VERSION = \"dcoir_powershell_analyzer_report_v1\"\nISSUE_NUMBER = 262\nINVENTORY_SCHEMA_VERSION = \"dcoir_powershell_surface_inventory_v1\"\nBASELINE_SCHEMA_VERSION = \"dcoir_powershell_analyzer_baseline_v1\"\nDEFAULT_INVENTORY = Path(\"project_sources/collector/powershell_surface_inventory.json\")\nDEFAULT_SETTINGS = Path(\"project_sources/collector/PSScriptAnalyzerSettings.psd1\")\nDEFAULT_JSON_OUTPUT = Path(\"project_sources/collector/powershell_analyzer_report.json\")\nDEFAULT_MARKDOWN_OUTPUT = Path(\"project_sources/collector/powershell_analyzer_report.md\")\nANALYZABLE_SOURCE_TYPES = {\".ps1\", \".psm1\", \".psd1\", \".ps1xml\", \".ps1.txt\"}\nPRIMARY_TARGET_CATEGORIES = {\n    \"collector_runtime_wrapper\",\n    \"collector_runtime_source_part\",\n    \"collector_harness_script\","
+        }
+      ]
+    },
+    "analyzer_cli": {
+      "path": "project_sources/collector/tools/powershell_analyzer_cli.py",
+      "ref": "50c69b9eb72779b43dd70b2c2e4b316db4f7d83f",
+      "full_source_sha256": "37af5f839ad84e963f140ad338b56df7a72fe07cdf051f366ccad05385bae49e",
+      "line_count": 268,
+      "excerpts": [
+        {
+          "start_line": 31,
+          "end_line": 82,
+          "text": "def build_report(args: argparse.Namespace) -> tuple[dict[str, Any] | None, list[str], list[str]]:\n    repo_root = Path(args.repo_root).resolve()\n    inventory_path: Path | None = None\n    settings_path: Path | None = None\n    baseline_path: Path | None = None\n    json_output = Path(args.json_output)\n    markdown_output = Path(args.markdown_output)\n    errors: list[str] = []\n    warnings: list[str] = []\n\n    try:\n        inventory_path = repo_relative_input_path(repo_root, args.inventory, \"PowerShell surface inventory path\")\n        settings_path = repo_relative_input_path(repo_root, args.settings, \"analyzer settings path\")\n        baseline_path = (\n            repo_relative_input_path(repo_root, args.baseline_json, \"PowerShell analyzer baseline path\")\n            if args.baseline_json\n            else None\n        )\n        policy = validate_policy(settings_path)\n        policy[\"path\"] = relpath(settings_path, repo_root)\n        warnings.extend(policy[\"warnings\"])\n        inventory = load_inventory(repo_root, inventory_path)\n        baseline = load_baseline(baseline_path)\n        command, command_kind = analyzer_command(args)\n    except AnalyzerContractError as exc:\n        errors = [str(exc)]\n        return empty_report(\n            args=args,\n            repo_root=repo_root,\n            inventory_path=inventory_path,\n            settings_path=settings_path,\n            baseline_path=baseline_path,\n            json_output=json_output,\n            markdown_output=markdown_output,\n            errors=errors,\n            warnings=warnings,\n        ), errors, warnings\n\n    with tempfile.TemporaryDirectory(prefix=\"dcoir-ps-analyzer-\") as temp:\n        temp_root = Path(temp)\n        targets, skipped_surfaces, target_errors = build_target_sets(\n            repo_root=repo_root,\n            inventory=inventory,\n            only_paths=selected_target_paths(args.target_path),\n            temp_root=temp_root,\n        )\n        errors.extend(target_errors)\n\n        analyzed_targets: list[dict[str, Any]] = []\n        all_findings: list[dict[str, Any]] = []\n        analyzer_metadata: list[dict[str, Any]] = []\n        if not errors:"
+        },
+        {
+          "start_line": 218,
+          "end_line": 235,
+          "text": "                \"json\": json_output.as_posix(),\n                \"markdown\": markdown_output.as_posix(),\n            },\n        }\n        return report, errors, warnings\n\n\ndef parse_args() -> argparse.Namespace:\n    parser = argparse.ArgumentParser(description=\"Run the DCOIR PowerShell analyzer contract\")\n    parser.add_argument(\"--repo-root\", default=\".\", help=\"Repository root\")\n    parser.add_argument(\"--inventory\", default=DEFAULT_INVENTORY.as_posix(), help=\"PowerShell surface inventory JSON\")\n    parser.add_argument(\"--settings\", default=DEFAULT_SETTINGS.as_posix(), help=\"PSScriptAnalyzer settings file\")\n    parser.add_argument(\"--json-output\", default=DEFAULT_JSON_OUTPUT.as_posix(), help=\"JSON report output path\")\n    parser.add_argument(\"--markdown-output\", default=DEFAULT_MARKDOWN_OUTPUT.as_posix(), help=\"Markdown report output path\")\n    parser.add_argument(\"--analyzer-command\", action=\"append\", default=[], help=\"Custom JSON analyzer command token; repeat for args\")\n    parser.add_argument(\"--target-path\", action=\"append\", default=[], help=\"Inventory path to analyze; may be repeated\")\n    parser.add_argument(\"--baseline-json\", help=\"Optional analyzer baseline JSON\")\n    parser.add_argument(\"--timeout-seconds\", type=int, default=60, help=\"Analyzer timeout per target\")"
+        }
+      ]
+    },
+    "inventory_loader_target_selector": {
+      "path": "project_sources/collector/tools/powershell_analyzer_inventory.py",
+      "ref": "50c69b9eb72779b43dd70b2c2e4b316db4f7d83f",
+      "full_source_sha256": "fb0d604a3a7631714437a53bb1425755d9387037f381ee27e8c0143d5f33a058",
+      "line_count": 203,
+      "excerpts": [
+        {
+          "start_line": 19,
+          "end_line": 40,
+          "text": "SHA256_HEX_CHARS = set(\"0123456789abcdefABCDEF\")\n\n\ndef load_inventory(repo_root: Path, inventory_path: Path) -> dict[str, Any]:\n    inventory = read_json(inventory_path, \"PowerShell surface inventory\")\n    if not isinstance(inventory, dict):\n        raise AnalyzerContractError(\"PowerShell surface inventory must be a JSON object\")\n    if inventory.get(\"schema_version\") != INVENTORY_SCHEMA_VERSION:\n        raise AnalyzerContractError(\n            \"PowerShell surface inventory schema mismatch: \"\n            f\"expected {INVENTORY_SCHEMA_VERSION}, got {inventory.get('schema_version')!r}\"\n        )\n    validation = inventory.get(\"validation\")\n    if not isinstance(validation, dict) or validation.get(\"success\") is not True:\n        raise AnalyzerContractError(\"PowerShell surface inventory validation is not successful\")\n    surfaces = inventory.get(\"surfaces\")\n    if not isinstance(surfaces, list):\n        raise AnalyzerContractError(\"PowerShell surface inventory is missing surfaces[]\")\n    if not surfaces:\n        raise AnalyzerContractError(\"PowerShell surface inventory contains no surfaces\")\n    if not inventory_path.exists():\n        raise AnalyzerContractError(f\"PowerShell surface inventory is missing: {inventory_path}\")"
+        },
+        {
+          "start_line": 102,
+          "end_line": 156,
+          "text": "    errors: list[str] = []\n    targets: list[dict[str, Any]] = []\n    skipped_surfaces: list[dict[str, Any]] = []\n    inventory_paths: set[str] = set()\n\n    for surface in inventory[\"surfaces\"]:\n        if not isinstance(surface, dict):\n            errors.append(\"PowerShell surface inventory contains a non-object surface entry\")\n            continue\n        raw_path = scalar(surface.get(\"path\"))\n        try:\n            path = safe_inventory_path(raw_path)\n        except AnalyzerContractError as exc:\n            errors.append(str(exc))\n            inventory_paths.add(raw_path)\n            continue\n        inventory_paths.add(path)\n        decision = str(surface.get(\"inclusion_decision\", \"\"))\n        source_type = str(surface.get(\"source_type\", \"\"))\n        if decision == \"reference\" and source_type == \"workflow_yaml\":\n            reference_error = validate_surface_file(repo_root, path, surface, \"reference workflow surface\")\n            if reference_error:\n                errors.append(reference_error)\n        if only_paths is not None and path not in only_paths:\n            continue\n        if decision != \"include\":\n            skipped_surfaces.append(\n                {\n                    \"path\": path,\n                    \"category\": surface.get(\"category\"),\n                    \"source_type\": source_type,\n                    \"decision\": decision,\n                    \"reason\": surface.get(\"decision_reason\", \"\"),\n                }\n            )\n            continue\n        if source_type not in ANALYZABLE_SOURCE_TYPES:\n            skipped_surfaces.append(\n                {\n                    \"path\": path,\n                    \"category\": surface.get(\"category\"),\n                    \"source_type\": source_type,\n                    \"decision\": \"unsupported_source_type\",\n                    \"reason\": \"Included inventory surface has no direct analyzer source type.\",\n                }\n            )\n            errors.append(f\"{path}: included inventory surface has unsupported source type {source_type!r}\")\n            continue\n\n        absolute_path = repo_root / path\n        target_error = validate_surface_file(repo_root, path, surface, \"intended analyzer target\")\n        if target_error:\n            errors.append(target_error)\n            continue\n        actual_sha256 = sha256_line_ending_stable_file(absolute_path)"
+        },
+        {
+          "start_line": 159,
+          "end_line": 193,
+          "text": "        if source_type == \".ps1.txt\":\n            staged = temp_root / path\n            staged = staged.with_name(staged.name + \".ps1\")\n            if not is_relative_to(staged, temp_root):\n                errors.append(f\"{path}: staged analyzer path resolves outside temp root\")\n                continue\n            staged.parent.mkdir(parents=True, exist_ok=True)\n            staged.write_text(absolute_path.read_text(encoding=\"utf-8\", errors=\"ignore\"), encoding=\"utf-8\")\n            analysis_path = staged\n\n        targets.append(\n            {\n                \"path\": path,\n                \"absolute_path\": str(absolute_path),\n                \"analysis_path\": str(analysis_path),\n                \"category\": surface.get(\"category\"),\n                \"source_type\": source_type,\n                \"sha256\": actual_sha256,\n                \"line_count\": surface.get(\"line_count\"),\n                \"size_bytes\": surface.get(\"size_bytes\"),\n            }\n        )\n\n    if only_paths is not None:\n        missing_requested = sorted(path for path in only_paths if path not in inventory_paths)\n        for path in missing_requested:\n            errors.append(f\"{path}: requested target path is not present in the #261 inventory\")\n\n    if not targets:\n        errors.append(\"Analyzer intended target set is empty\")\n    if only_paths is None and not any(target[\"category\"] in PRIMARY_TARGET_CATEGORIES for target in targets):\n        errors.append(\"Analyzer intended target set has no collector or harness source surfaces\")\n    return targets, skipped_surfaces, errors\n\ndef portable_target(target: dict[str, Any]) -> dict[str, Any]:"
+        }
+      ]
+    },
+    "replaced_recursive_producer": {
+      "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
+      "ref": "2c59f81e41d89bc804d6b4aabaa86a0500662e90",
+      "full_source_sha256": "e4e248d320fde8a2465b4fd5affe0b044a24c2e200867215381297c7ddc18e43",
+      "line_count": 215,
+      "excerpts": [
+        {
+          "start_line": 18,
+          "end_line": 62,
+          "text": "$resolvedOutputJson = [System.IO.Path]::GetFullPath((Join-Path -Path (Get-Location).Path -ChildPath $normalized))\nif (-not $resolvedOutputJson.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {\n  throw \"Output path resolves outside the repository: $outputJson\"\n}\n\n# Install PSScriptAnalyzer if not already present.\nif (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer)) {\n  Write-Host 'PSScriptAnalyzer not found; installing...'\n  Install-Module -Name PSScriptAnalyzer -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop\n  Write-Host 'PSScriptAnalyzer installed.'\n}\nImport-Module PSScriptAnalyzer -Force\n\n$analyzerVersion = (Get-Module PSScriptAnalyzer).Version.ToString()\n$psVersion       = $PSVersionTable.PSVersion.ToString()\n$psEditionStr       = [string]($PSVersionTable.PSEdition)\n\n# Discover collector PS1 source files.\n$sourceFiles = [System.Collections.Generic.List[string]]::new()\n$collectorPs1 = 'project_sources/collector/source/DCOIR_Collector.ps1'\nif (Test-Path -LiteralPath $collectorPs1) {\n  $sourceFiles.Add((Resolve-Path -LiteralPath $collectorPs1).Path)\n}\n$partsDir = 'project_sources/collector/source/parts'\nif (Test-Path -LiteralPath $partsDir -PathType Container) {\n  foreach ($f in Get-ChildItem -LiteralPath $partsDir -Filter '*.ps1' -Recurse) {\n    $sourceFiles.Add($f.FullName)\n  }\n}\n$sourceFiles = @($sourceFiles | Select-Object -Unique)\nif ($sourceFiles.Count -eq 0) {\n  throw 'No collector PS1 source files found for PSScriptAnalyzer.'\n}\nWrite-Host \"PSScriptAnalyzer targets: $($sourceFiles.Count) file(s)\"\n\nfunction Get-RepoRelativePath([string]$fullPath) {\n  $normalized = [System.IO.Path]::GetFullPath($fullPath)\n  if ($normalized.StartsWith($repoRoot, [System.StringComparison]::OrdinalIgnoreCase)) {\n    return $normalized.Substring($repoRoot.Length).Replace('\\', '/')\n  }\n  return $fullPath.Replace('\\', '/')\n}\n\n# Hardened rule set: run all built-in rules (PSScriptAnalyzer default) plus\n# explicitly enable the correctness/security rules that are Warning-or-lower"
+        }
+      ]
+    }
+  },
+  "changed_path_metadata": [
+    {
+      "path": ".github/actions/run-psscriptanalyzer/Invoke-DcoirPSScriptAnalyzer.ps1",
+      "status": "changed"
+    },
+    {
+      "path": ".github/actions/run-psscriptanalyzer/README.md",
+      "status": "changed"
+    },
+    {
+      "path": ".github/actions/run-psscriptanalyzer/action.yml",
+      "status": "changed"
+    },
+    {
+      "path": ".github/github_actions/tools/check_workflow_consistency_drift.py",
+      "status": "changed"
+    },
+    {
+      "path": ".github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1",
+      "status": "changed"
+    },
+    {
+      "path": ".github/workflows/reusable-validate-on-pr.yml",
+      "status": "changed"
+    },
+    {
+      "path": ".github/workflows/reusable-validate-on-push.yml",
+      "status": "changed"
+    },
+    {
+      "path": "docs/validation/issue-606-analyzer-baseline.md",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-001.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-002.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-003.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-004.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-005.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-006.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-007.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-008.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-009.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-010.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-011.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-012.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_analyzer_baseline_parts/part-013.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_review_assist_report.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_review_assist_report.md",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_surface_inventory.json",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/powershell_surface_inventory.md",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/collector_tool_path_safety.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_analyzer_baseline.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_analyzer_cli.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_analyzer_contract.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_analyzer_execution.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_analyzer_reporting.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_analyzer_test_support.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_custom_checks_common.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_function_reachability_contract.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_function_reachability_reporting.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_rule_risk_fixtures_common.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/powershell_surface_inventory_common.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/run_powershell_analyzer.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/run_powershell_function_reachability_report.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/test_run_powershell_analyzer_baseline.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/test_run_powershell_analyzer_core.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/test_run_powershell_analyzer_policy.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/test_verify_powershell_analyzer_policy_ci.py",
+      "status": "changed"
+    },
+    {
+      "path": "project_sources/collector/tools/verify_powershell_analyzer_policy_ci.py",
+      "status": "changed"
+    }
+  ],
+  "expected_counterexample": {
+    "tracked_new_surface": ".github/scripts/new_operator_tool.ps1",
+    "policy_violation": "Invoke-Expression",
+    "not_listed_in_checked_inventory": true,
+    "old_gate_observed": "validation.success=true for only listed targets",
+    "meaning": "the analyzer cannot discover a tracked path omitted by the inventory it alone enumerates"
+  },
+  "offline_purpose": "Check whether actual per-file prompt at the historical action could see unchanged consumer/producer contracts; no provider calls, no replayed safety claim",
+  "safe_after_repair": {
+    "commit": "13ef93fe52851a5800bcdf6714733abecc1ce76a",
+    "path": ".github/actions/run-psscriptanalyzer/action.yml",
+    "head_content": "name: Run governed PowerShell analyzer\ndescription: >\n  Run the single canonical Python analyzer against the source-inventory target set.\n  Preserve legacy built-in diagnostics and enforce configured PowerShell policy\n  warnings through the central static-analysis validation gate.\ninputs:\n  output-json:\n    description: Repo-relative path for the JSON report.\n    required: false\n    default: project_sources/collector/powershell_analyzer_report.json\n  fail-on-error-severity:\n    description: Legacy direct Error-finding failure control; callers use the central gate. Owner cleanup belongs to issue 608.\n    required: false\n    default: 'true'\nruns:\n  using: composite\n  steps:\n    - name: Verify PowerShell inventory covers the checked-out source\n      shell: pwsh\n      run: |\n        $ErrorActionPreference = 'Stop'\n        python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py --repo-root . --inventory project_sources/collector/powershell_surface_inventory.json\n        if ($LASTEXITCODE -ne 0) { throw 'PowerShell source inventory is stale or invalid; refusing partial analysis.' }\n    - name: Install pinned PSScriptAnalyzer\n      shell: pwsh\n      run: |\n        $ErrorActionPreference = 'Stop'\n        $required = '1.25.0'\n        if (-not (Get-Module -ListAvailable -Name PSScriptAnalyzer | Where-Object { $_.Version.ToString() -eq $required })) {\n          Install-Module -Name PSScriptAnalyzer -RequiredVersion $required -Force -SkipPublisherCheck -Scope CurrentUser -ErrorAction Stop\n        }\n        Import-Module PSScriptAnalyzer -RequiredVersion $required -Force -ErrorAction Stop\n        Write-Host \"PSScriptAnalyzer pinned version: $((Get-Module PSScriptAnalyzer).Version)\"\n    - name: Analyze inventory through canonical Python owner\n      shell: pwsh\n      env:\n        PSSCRIPTANALYZER_OUTPUT_JSON: ${{ inputs.output-json }}\n        FAIL_ON_ERROR_SEVERITY: ${{ inputs.fail-on-error-severity }}\n        DCOIR_PSSCRIPTANALYZER_VERSION: '1.25.0'\n      run: |\n        $ErrorActionPreference = 'Stop'\n        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings\n        if ($LASTEXITCODE -ne 0) { throw 'Canonical PowerShell analyzer execution or report generation failed.' }\n        $report = Get-Content -LiteralPath $env:PSSCRIPTANALYZER_OUTPUT_JSON -Raw | ConvertFrom-Json\n        if ($report.validation.success -ne $true) { throw 'Canonical PowerShell analyzer reported invalid evidence.' }\n        if ($env:FAIL_ON_ERROR_SEVERITY -eq 'true' -and $report.summary.error_count -gt 0) {\n          throw \"PSScriptAnalyzer found $($report.summary.error_count) Error-severity violations.\"\n        }\n        # Native negative and safe-control proofs use isolated temporary inventory\n        # and never replace the production analyzer report artifact.\n        python project_sources/collector/tools/verify_powershell_analyzer_policy_ci.py\n        if ($LASTEXITCODE -ne 0) { throw 'PSScriptAnalyzer negative policy fixture did not block.' }\n# Compensating evidence: caller-visible action steps, pinned module version, JSON/Markdown analyzer report, and central policy gate retain authoritative output despite composite log grouping.\n# CI consumers and reviewers read the same canonical JSON and Markdown output.\n",
+    "head_source_sha256": "09a62842cb1a33bfdaedefc40360c1df9c4799ec4786e9b473d969440a84eed7",
+    "expected_invocation_order": "inventory verifier before canonical analyzer"
+  }
+}
