@@ -14,7 +14,6 @@ import json
 import os
 from pathlib import Path
 import re
-import sys
 from typing import Any
 
 import dcoir_review_first_pass_candidate_eval as base
