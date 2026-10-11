@@ -10,9 +10,11 @@ sys.path.insert(0, str(HERE))
 import dcoir_review_historical_recall_cases as historical
 from dcoir_review.exact_head_dependency_evidence import (
     MAX_EVIDENCE_CHARS,
+    build_exact_head_dependency_evidence,
+)
+from dcoir_review.source_inventory_contract import (
     _coverage_invariant_note,
     _git_freshness_comparator,
-    build_exact_head_dependency_evidence,
 )
 
 def _case_evidence(case):

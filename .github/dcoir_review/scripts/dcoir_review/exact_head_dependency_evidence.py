@@ -16,7 +16,6 @@ from dcoir_review.source_inventory_contract import (
     MAX_SOURCE_CHARS,
     _COMMAND,
     _coverage_invariant_note,
-    _git_freshness_comparator,
 )
 
 MAX_EVIDENCE_CHARS = 2100
