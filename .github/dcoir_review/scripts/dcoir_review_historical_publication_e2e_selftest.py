@@ -22,6 +22,7 @@ import dcoir_review_historical_recall_cases as historical
 def main(case_name: str) -> int:
     case = historical.cases()[0 if case_name.startswith("bad") else 1]
     large = case_name.endswith("-large")
+    module = case_name.endswith("-module")
     path = case["focus_path"]
     full = case["changed_diff"]
     expected_header = f"diff --git a/{path} b/{path}"
@@ -30,11 +31,22 @@ def main(case_name: str) -> int:
     assert "@@ " in focus_diff
     if case_name.startswith("bad"):
         assert "run_powershell_analyzer.py" in focus_diff
+    source = case["focus_source"]
+    if module:
+        # Deliberate synthetic change atop genuine historic bad/safe source:
+        # not an assertion about what was committed at the immutable SHA.
+        direct = "python project_sources/collector/tools/run_powershell_analyzer.py"
+        dotted = "python -m project_sources.collector.tools.run_powershell_analyzer"
+        assert direct in source
+        source = source.replace(direct, dotted, 1)
+        # Repaired-safe PR617 modified its preflight guard; the analyzer
+        # invocation itself is unchanged context, not an added RIGHT hunk.
+        focus_diff = focus_diff.replace(direct, dotted, 1)
     hunk = focus_diff[focus_diff.index("@@ "):]
     entries = [{
         "path": path,
         "status": "modified",
-        "lines": case["focus_source"].splitlines(),
+        "lines": source.splitlines(),
         "patch_override": hunk,
         "full_diff": focus_diff,
     }]
@@ -70,7 +82,11 @@ def main(case_name: str) -> int:
     assert len(lines) == 1, (stdout.getvalue()[-1800:], stderr.getvalue()[-1000:])
     result = json.loads(lines[0].split("E2E_RESULT ", 1)[1])
     review_body = result.pop("body_full", "")
-    result["source_population"] = "PR617 real action source + real dependency/caller sources"
+    result["source_population"] = (
+        "synthetic module-mode mutation of real PR617 bad/safe action and dependencies; "
+        "source differs from the recorded immutable historic SHA"
+        if module else "PR617 real action source + real dependency/caller sources"
+    )
     result["diff_population"] = (
         "real action hunk + 12 synthetic test-file distractions (not full original PR)"
         if large else "real changed action hunk, narrowed one-file list (not full original PR)"
@@ -96,14 +112,16 @@ def main(case_name: str) -> int:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--case", choices=["bad", "safe", "bad-large", "safe-large"], default=None)
+    ap.add_argument("--case", choices=["bad", "safe", "bad-large", "safe-large",
+                                       "bad-module", "safe-module"], default=None)
     args = ap.parse_args()
     if args.case:
         raise SystemExit(main(args.case))
     # Keep each real-snapshot replay isolated: run_one patches urllib, os
     # and imported reviewer modules, so the sibling control uses a new interpreter.
     import subprocess
-    for label in ("bad", "safe", "bad-large", "safe-large"):
+    for label in ("bad", "safe", "bad-large", "safe-large",
+                  "bad-module", "safe-module"):
         subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--case", label],
             check=True, timeout=120

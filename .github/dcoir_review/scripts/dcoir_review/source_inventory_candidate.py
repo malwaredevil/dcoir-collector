@@ -10,7 +10,7 @@ import ast
 import hashlib
 import re
 
-from dcoir_review.source_inventory_contract import _COMMAND
+from dcoir_review.source_inventory_contract import _python_command_sources
 
 _HEAD = re.compile(r"^[0-9a-f]{40}$")
 _CALLERS = (
@@ -97,8 +97,7 @@ def _anchor_added_python_call(patch: str, source: str, analyzer_path: str) -> in
             continue
         if line.startswith("+"):
             body = line[1:]
-            if (analyzer_path in body
-                    and any(hit.group("path") == analyzer_path for hit in _COMMAND.finditer(body))
+            if (any(path == analyzer_path for path in _python_command_sources(body)[0])
                     and 1 <= right <= len(lines)
                     and lines[right - 1] == body):
                 anchors.append(right)
@@ -181,11 +180,10 @@ def detect_inventory_coverage_candidate(
     ):
         return None
     analyzer_cmds = [
-        (i, hit.group("path"))
+        (i, path)
         for i, line in enumerate(head_source.splitlines(), 1)
-        if not line.lstrip().startswith("#")
-        for hit in _COMMAND.finditer(line)
-        if "run_powershell_analyzer" in hit.group("path")
+        for path in _python_command_sources(line)[0]
+        if "run_powershell_analyzer" in path
     ]
     if len(analyzer_cmds) != 1:
         return None
@@ -198,7 +196,8 @@ def detect_inventory_coverage_candidate(
     for i, line in enumerate(head_source.splitlines(), 1):
         if i >= anchor:
             break
-        if not line.lstrip().startswith("#") and _COMMAND.search(line):
+        paths, unresolved = _python_command_sources(line)
+        if paths or unresolved:
             return None
     if not _existence_only_required_surfaces(
         caller_sources.get(_SURFACE_ACTION, ""),
@@ -261,7 +260,7 @@ def attach_source_inventory_candidate(
         return None
     focus_path = str(context.get("path", ""))
     if (not re.fullmatch(r"\.github/actions/[A-Za-z0-9_-]+/action\.ya?ml", focus_path)
-            or "run_powershell_analyzer.py" not in str(item.get("patch", ""))):
+            or "run_powershell_analyzer" not in str(item.get("patch", ""))):
         return None
     if not isinstance(item.get("patch"), str):
         return None

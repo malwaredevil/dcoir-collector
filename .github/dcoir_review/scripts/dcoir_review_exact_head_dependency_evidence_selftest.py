@@ -35,6 +35,87 @@ def main() -> None:
         log.append((sha, path))
         return all_sources[sha][path]
 
+    # Copilot P1: locally executed -m analyzer is mandatory exact-HEAD code,
+    # never silently accepted as an optional import or absent Python source.
+    dotted = "project_sources.collector.tools.run_powershell_analyzer"
+    module_cmd = "python -m " + dotted
+    module_src = DOC["action"]["head_content"].replace(
+        "python " + ROOT, module_cmd, 1,
+    )
+    assert module_src != DOC["action"]["head_content"]
+    for invocation in (
+        module_cmd, "python3.11 -m " + dotted,
+        "py -3.11 -m " + dotted,
+        "python -I -m " + dotted,
+        'python -m "' + dotted + '"',
+    ):
+        action = DOC["action"]["head_content"].replace("python " + ROOT, invocation, 1)
+        proof = build(FOCUS, action, BAD, fetch)
+        assert ROOT in proof["required_paths"] and ROOT in proof["paths"], (
+            "python -m executable bypassed immutable source check", invocation, proof
+        )
+        assert proof["coverage_guard"] == "not-evidenced-in-action", (invocation, proof)
+    safe_module = DOC["safe_after_repair"]["head_content"].replace(
+        "python " + ROOT, module_cmd, 1,
+    )
+    assert safe_module != DOC["safe_after_repair"]["head_content"]
+    safe_module_proof = build(FOCUS, safe_module, SAFE, fetch)
+    assert safe_module_proof["coverage_guard"] == "pre-analyzer-structural-check"
+
+    for unknown in (
+        "python -m external.analyzer",
+        "python -X utf8 -m " + dotted,
+        "python -m $env:ANALYZER",
+        "python -m ../secret",
+        "python -m project_sources.collector.bad-name",
+    ):
+        action = DOC["action"]["head_content"].replace("python " + ROOT, unknown, 1)
+        evidence = build(FOCUS, action, BAD, fetch)
+        assert "unresolved-python-module-invocation" in evidence["errors"], (unknown, evidence)
+        try:
+            enrich_first_pass_contexts([
+                {"path": FOCUS, "text": action, "item": {"filename": FOCUS}}
+            ], BAD, fetch)
+        except RuntimeError as exc:
+            assert "exact-head executable dependency unavailable" in str(exc)
+        else:
+            raise AssertionError("unresolved direct module must fail closed: " + unknown)
+    unknown_local = "project_sources.collector.tools.no_such_analyzer"
+    absent = build(FOCUS, "python -m " + unknown_local, BAD, fetch)
+    assert "project_sources/collector/tools/no_such_analyzer.py" in absent["required_paths"]
+    assert not absent["paths"], "missing module source was treated as verified"
+    assert build(".github/workflows/simple-check.yml", "python -m external.analyzer", BAD, fetch)["errors"] == []
+
+    # Mixed script/module actions must require both executable sources, not
+    # silently skip an added -m module behind the preferred direct analyzer.
+    hidden_module = "project_sources.collector.tools.hidden_analyzer"
+    mixed_source = DOC["action"]["head_content"].replace(
+        "python " + ROOT,
+        "python -m " + hidden_module + "\n        python " + ROOT, 1,
+    )
+    missing_source = "project_sources/collector/tools/hidden_analyzer.py"
+    mixed = build(FOCUS, mixed_source, BAD, fetch)
+    assert ROOT in mixed["required_paths"] and missing_source in mixed["required_paths"]
+    assert missing_source not in mixed["paths"]
+    try:
+        enrich_first_pass_contexts([
+            {"path": FOCUS, "text": mixed_source, "item": {"filename": FOCUS}}
+        ], BAD, fetch)
+    except RuntimeError as exc:
+        assert "exact-head executable dependency unavailable" in str(exc)
+    else:
+        raise AssertionError("mixed direct/module action skipped a mandatory -m source")
+
+    known_module = "project_sources.collector.tools.powershell_analyzer_cli"
+    known_mix = DOC["action"]["head_content"].replace(
+        "python " + ROOT,
+        "python -m " + known_module + "\n        python " + ROOT, 1,
+    )
+    known_proof = build(FOCUS, known_mix, BAD, fetch)
+    assert "project_sources/collector/tools/powershell_analyzer_cli.py" in known_proof["required_paths"]
+    assert "project_sources/collector/tools/powershell_analyzer_cli.py" in known_proof["paths"]
+
+    log.clear()
     first = build(FOCUS, DOC["action"]["head_content"], BAD, fetch)
     assert first["paths"] and ROOT in first["paths"]
     assert not first["errors"], first["errors"]

@@ -15,7 +15,8 @@ from typing import Any, Callable
 from dcoir_review.source_inventory_candidate import attach_source_inventory_candidate
 from dcoir_review.source_inventory_contract import (
     MAX_SOURCE_CHARS,
-    _COMMAND,
+    _python_command_sources,
+    _python_module_sources,
     _coverage_invariant_note,
 )
 
@@ -58,10 +59,9 @@ def _direct_scripts(path: str, source: str) -> list[str]:
     if not path.startswith((".github/actions/", ".github/workflows/")):
         return []
     candidates = {
-        match.group("path") for line in source.splitlines()
-        if not line.lstrip().startswith("#")
-        for match in _COMMAND.finditer(line)
-        if valid_source_path(match.group("path"))
+        executable for line in source.splitlines()
+        for executable in _python_command_sources(line)[0]
+        if valid_source_path(executable)
     }
     # Prefer the actual analyzer over optional helpers, even if helpers have
     # higher-priority inventory/contract tokens in their names.
@@ -164,6 +164,11 @@ def build_exact_head_dependency_evidence(
         focus_path + "\n" + focus_text[:MAX_SOURCE_CHARS], re.IGNORECASE
     ):
         return result
+    # An unresolved -m invocation may hide a repository-local executable.
+    # Fail closed only for source-coverage-relevant YAML, never infer "clean".
+    if is_yaml and any(_python_command_sources(line)[1] for line in focus_text.splitlines()):
+        result["errors"].append("unresolved-python-module-invocation")
+        return result
     budget = min(MAX_EVIDENCE_CHARS, max(0, int(max_chars)))
     limit = min(MAX_FETCHES, max(0, int(max_fetches)))
     if budget < 600 or limit == 0:
@@ -181,7 +186,14 @@ def build_exact_head_dependency_evidence(
     # not source-evidence dependencies and must not abort the entire review.
     # An unknown pre-analyzer helper separately blocks HIGH promotion.
     candidates = [root]
-    candidates.extend(path for path in seeds[1:] if PurePosixPath(path).name.startswith("verify_"))
+    module_sources = {
+        path for line in focus_text.splitlines()
+        for path in _python_module_sources(line)
+    }
+    candidates.extend(
+        path for path in seeds[1:]
+        if PurePosixPath(path).name.startswith("verify_") or path in module_sources
+    )
     # Only executables directly invoked by YAML are mandatory. Sibling
     # imports from Python source are optional model context: a valid imported
     # module with no relevant excerpt must not abort an unrelated PR review.
@@ -290,7 +302,8 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
         # missing it could make a genuinely safe repair appear vulnerable.
         # Fail closed on unavailable *selected* source evidence, not unrelated helpers.
         if (any(error in evidence["errors"] for error in (
-                    "direct-script-budget-exceeded", "coverage-invariant-exceeds-budget"))
+                    "direct-script-budget-exceeded", "coverage-invariant-exceeds-budget",
+                    "unresolved-python-module-invocation"))
                 or any(path not in evidence["paths"]
                        for path in evidence["required_paths"])):
             raise RuntimeError("exact-head executable dependency unavailable for review")

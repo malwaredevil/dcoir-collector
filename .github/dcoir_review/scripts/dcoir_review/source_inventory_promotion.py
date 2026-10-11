@@ -11,6 +11,9 @@ import re
 from typing import Any, Callable
 
 from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
+from dcoir_review.source_inventory_contract import (
+    _python_command_sources, _potential_pre_analyzer_guard,
+)
 
 _SOURCE_CLI = "project_sources/collector/tools/powershell_analyzer_cli.py"
 _SOURCE_SELECTOR = "project_sources/collector/tools/powershell_analyzer_inventory.py"
@@ -207,19 +210,14 @@ def verify_source_inventory_for_promotion(
                     hashlib.sha256(source.encode("utf-8")).hexdigest()[:16] != claimed):
                 return None
     action = sources[path].splitlines()
-    expected_command = "python project_sources/collector/tools/run_powershell_analyzer.py"
-    if line > len(action) or not action[line - 1].strip().startswith(expected_command + " "):
+    # Accept either an explicit source script or a statically resolvable
+    # repository-local -m module. Never accept unsupported or dynamic targets.
+    if line > len(action):
         return None
-    # Unfamiliar pre-analyzer guards require abstention.
-    before = re.sub(r"`\r?\n[ \t]*", "", "\n".join(action[:line-1]))
-    if re.search(
-        r"(?im)(?:\bls-files\b|\bCompare-Object\b|"
-        r"\bGet-ChildItem\b[^\n]*\.(?:ps1|psm1|psd1)\b|"
-        r"(?:Get-Content|ConvertFrom-Json)[^\n]*(?:inventory|surfaces)|"
-        r"\b(?:python|py)\s+[^\n]*\.py\b|"
-        r"^\s*pwsh\s+[^\n]*(?:verify|check)[^\n]*inventory)",
-        before,
-    ):
+    executed, unresolved = _python_command_sources(action[line - 1])
+    if unresolved or _RUNNER not in executed:
+        return None
+    if _potential_pre_analyzer_guard(action[:line-1]):
         return None
     if not _two_ci_routes(path, sources):
         return None
