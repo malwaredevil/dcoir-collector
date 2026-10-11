@@ -18,6 +18,8 @@ from typing import Any
 
 import dcoir_review_first_pass_candidate_eval as base
 import dcoir_review_pr_mutation_eval as mutation
+import dcoir_review_historical_recall_cases as historical
+from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
 import openrouter_pr_review_pareto_context as review
 
 
@@ -98,7 +100,12 @@ def prompts(case: dict[str, Any], config: Any) -> dict[str, str]:
         "deletions": deletions,
         "changes": additions + deletions,
     }
-    pr = {"number": 9000, "title": "Synthetic cross-file validation change"}
+    pr = (
+        {"number": 617, "title": "Historical PowerShell inventory coverage change",
+         "head": {"sha": case["reviewed_head"]}}
+        if case.get("historical_provenance")
+        else {"number": 9000, "title": "Synthetic cross-file validation change"}
+    )
     args = (pr, item, case["focus_source"], case["changed_diff"], config, [], "first-pass-deep")
     original = review.build_cross_file_contract_context
     try:
@@ -106,15 +113,40 @@ def prompts(case: dict[str, Any], config: Any) -> dict[str, str]:
         baseline = review.build_per_file_review_prompt(*args)
     finally:
         review.build_cross_file_contract_context = original
-    enhanced = review.build_per_file_review_prompt(*args)
+    if case.get("historical_provenance"):
+        target_head = case["reviewed_head"]
+        sources = case["dependency_sources"]
+
+        def frozen_source(path: str, ref: str) -> str:
+            if ref != target_head or path not in sources:
+                raise ValueError("Historical dependency unavailable at requested immutable head")
+            return sources[path]
+
+        context = {"item": item, "text": case["focus_source"], "path": case["focus_path"]}
+        if enrich_first_pass_contexts([context], target_head, frozen_source, max_files=1) != 1:
+            raise ValueError(f"{case['id']}: no exact-head dependency evidence")
+        enhanced = review.build_per_file_review_prompt(
+            pr, context["item"], case["focus_source"], case["changed_diff"], config,
+            [], "first-pass-deep"
+        )
+    else:
+        enhanced = review.build_per_file_review_prompt(*args)
     if not baseline or not enhanced or "Cross-file contract review cues" in baseline:
         raise ValueError(f"{case['id']}: baseline prompt was not baseline")
-    if case["related_path"] and "Cross-file contract review cues" not in enhanced:
-        raise ValueError(f"{case['id']}: enhanced prompt lacks cross-file cues")
-    if case["related_path"] and baseline == enhanced:
-        raise ValueError(f"{case['id']}: cross-file comparator input prompts are identical")
-    if not case["related_path"] and baseline != enhanced:
-        raise ValueError(f"{case['id']}: single-file control unexpectedly changed")
+    if case.get("historical_provenance"):
+        if "Exact-reviewed-head dependency evidence" not in enhanced:
+            raise ValueError(f"{case['id']}: missing source-backed historic evidence")
+        if "Exact-reviewed-head dependency evidence" in baseline or baseline == enhanced:
+            raise ValueError(f"{case['id']}: invalid source-blind baseline")
+        if case["expected"] == "finding" and "Cross-file contract review cues" not in enhanced:
+            raise ValueError(f"{case['id']}: original changed-path context missing")
+    else:
+        if case["related_path"] and "Cross-file contract review cues" not in enhanced:
+            raise ValueError(f"{case['id']}: enhanced prompt lacks cross-file cues")
+        if case["related_path"] and baseline == enhanced:
+            raise ValueError(f"{case['id']}: cross-file comparator input prompts are identical")
+        if not case["related_path"] and baseline != enhanced:
+            raise ValueError(f"{case['id']}: single-file control unexpectedly changed")
     for output in (baseline, enhanced):
         if str(case["supporting_contract"]) in output or str(case["counterexample"]) in output:
             raise ValueError(f"{case['id']}: hidden evaluation answer leaked into model prompt")
@@ -219,7 +251,9 @@ def main(argv: list[str] | None = None) -> int:
     cases = load_cases()
     if args.case:
         requested = set(args.case)
-        cases = [case for case in cases if case["id"] in requested]
+        # Retain the original six synthetic cases, and permit an explicit
+        # historical source-backed pair without changing the default suite.
+        cases = [case for case in (*cases, *historical.cases()) if case["id"] in requested]
         unknown = requested - {case["id"] for case in cases}
         if unknown:
             raise SystemExit(f"Unknown Issue618 case ids: {sorted(unknown)}")
@@ -233,6 +267,9 @@ def main(argv: list[str] | None = None) -> int:
             "case_id": case["id"],
             "expected": case["expected"],
             "fixture_revision": case.get("synthetic_fixture_revision", "v1"),
+            "evidence_class": case.get("historical_case_type", "synthetic-provenance-labelled"),
+            "reviewed_head": case.get("reviewed_head", ""),
+            "focus_source_sha256": hashlib.sha256(case["focus_source"].encode("utf-8")).hexdigest(),
             "scheduled_variants": list(modes_for(case)),
             "prompts": {
                 mode: {"chars": len(prompt), "sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest()}
@@ -241,8 +278,21 @@ def main(argv: list[str] | None = None) -> int:
         }
         for case, variants in case_prompts
     ]
+    kinds = {bool(case.get("historical_provenance")) for case in cases}
+    population = (
+        "historical-source-backed" if kinds == {True}
+        else "synthetic-provenance-labelled" if kinds == {False}
+        else "mixed-historical-and-synthetic"
+    )
     report: dict[str, Any] = {
         "schema_version": REPORT_SCHEMA,
+        "evidence_population": population,
+        "interpretation_limit": (
+            "One real historical P1 source transition and one real repaired control; "
+            "this is a source-grounded model comparison, not a statistical recall estimate."
+            if population == "historical-source-backed" else
+            "Small synthetic fixtures are not statistical recall estimates."
+        ),
         "scoring_contract": "v2-distinguish-root-cause-from-P1-severity",
         "mode": "live" if args.execute_live else "plan",
         "model": candidate["model"],

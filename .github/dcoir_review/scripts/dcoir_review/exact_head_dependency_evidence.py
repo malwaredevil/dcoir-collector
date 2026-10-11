@@ -30,7 +30,7 @@ _INTEREST = re.compile(
     r"for\s+surface\s+in)",
     re.IGNORECASE,
 )
-_CONTRACT_NAMES = ("inventory", "manifest", "contract", "cli", "analyzer", "policy", "validate", "discovery")
+_CONTRACT_NAMES = ("inventory", "cli", "manifest", "contract", "analyzer", "policy", "validate", "discovery")
 
 
 def valid_source_path(path: str) -> bool:
@@ -136,7 +136,7 @@ def build_exact_head_dependency_evidence(
     No source-derived path can escape this repository. Content is never run.
     Returns an auditable result; absent/failing fetches are explicit.
     """
-    result: dict[str, Any] = {"text": "", "paths": [], "attempted": [], "errors": [], "truncated": False}
+    result: dict[str, Any] = {"text": "", "paths": [], "direct_paths": [], "attempted": [], "errors": [], "truncated": False}
     if not isinstance(reviewed_head, str) or not _SHA.fullmatch(reviewed_head):
         result["errors"].append("invalid-reviewed-head")
         return result
@@ -148,8 +148,18 @@ def build_exact_head_dependency_evidence(
     )
     if not (valid_source_path(focus_path) or yaml_focus) or not isinstance(focus_text, str):
         return result
-    if not (".github/actions/" in focus_path or ".github/workflows/" in focus_path or
-            any(token in PurePosixPath(focus_path).name.lower() for token in _CONTRACT_NAMES)):
+    is_yaml = focus_path.startswith((".github/actions/", ".github/workflows/"))
+    if not is_yaml and not any(
+        token in PurePosixPath(focus_path).name.lower() for token in _CONTRACT_NAMES
+    ):
+        return result
+    # Keep the new GitHub reads on source-coverage contracts. Generic CI
+    # workflows with unrelated Python executables must not fail closed merely
+    # because those scripts contain no inventory-relevant excerpt lines.
+    if is_yaml and not re.search(
+        r"powershell|psscriptanalyzer|inventory|manifest|source[- _]?coverage|static[- _]?analy",
+        focus_path + "\n" + focus_text[:MAX_SOURCE_CHARS], re.IGNORECASE
+    ):
         return result
     budget = min(MAX_EVIDENCE_CHARS, max(0, int(max_chars)))
     limit = min(MAX_FETCHES, max(0, int(max_fetches)))
@@ -161,8 +171,15 @@ def build_exact_head_dependency_evidence(
         seeds = _sibling_imports(focus_path, focus_text)
     if not seeds:
         return result
+    result["direct_paths"] = list(seeds) if focus_path.startswith((".github/actions/", ".github/workflows/")) else []
+    if len(result["direct_paths"]) > limit:
+        result["errors"].append("direct-script-budget-exceeded")
+        return result
     root = seeds[0]
+    # Include the verifier when an action invokes one before the analyzer.
+    # Otherwise safe/repaired controls lose the fact that closes the gap.
     candidates = [root]
+    candidates.extend(path for path in seeds[1:] if PurePosixPath(path).name.startswith("verify_"))
     source_cache = cache if cache is not None else {}
     def read(path: str) -> str | None:
         key = (reviewed_head, path)
@@ -237,10 +254,12 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
             str(context.get("path", "")), str(context.get("text", "")),
             reviewed_head, fetch_text, cache=cache,
         )
-        # Never publish a clean review when the directly invoked dependency
-        # cannot be inspected at this exact reviewed commit.
-        if (evidence["attempted"] and evidence["errors"]
-                and evidence["attempted"][0] in evidence["errors"]):
+        # A directly invoked verifier is as important as the analyzer:
+        # missing it could make a genuinely safe repair appear vulnerable.
+        # Fail closed on any unavailable/omitted direct dependency or budget gap.
+        if ("direct-script-budget-exceeded" in evidence["errors"]
+                or any(path not in evidence["paths"]
+                       for path in evidence["direct_paths"])):
             raise RuntimeError("exact-head executable dependency unavailable for review")
         if not evidence["text"]:
             continue

@@ -39,7 +39,8 @@ def main() -> None:
     assert all(ref == BAD for ref, _ in log)
     assert 'inventory = load_inventory(repo_root, inventory_path)' in first["text"]
     assert 'for surface in inventory' in first["text"]
-    assert "DEFAULT_INVENTORY" in first["text"]
+    assert "powershell_analyzer_cli.py" in first["text"]
+    assert "for surface in inventory" in first["text"]
 
     safe = build(FOCUS, DOC["safe_after_repair"]["head_content"], SAFE, fetch)
     assert safe["paths"] and ROOT in safe["paths"]
@@ -111,6 +112,15 @@ def main() -> None:
     assert build("project_sources/collector/tools/example.py",
                  "from .. import secret\n", BAD, fetch)["text"] == ""
     assert build(FOCUS, "# python ../secret.py", BAD, fetch)["text"] == ""
+    def unwanted_fetch(path: str, sha: str) -> str:
+        raise AssertionError("Unrelated YAML review should not fetch dependencies")
+    unrelated_action = ".github/workflows/simple-check.yml"
+    benign_command = "python project_sources/collector/tools/simple_tool.py"
+    assert build(unrelated_action, benign_command, BAD, unwanted_fetch)["text"] == ""
+    limited = build(FOCUS, DOC["safe_after_repair"]["head_content"], SAFE, fetch,
+                    max_fetches=1)
+    assert "direct-script-budget-exceeded" in limited["errors"]
+    assert not limited["text"]
     print("PASS: two exact refs, bounded evidence and same-SHA cache; no live requests")
     print("PASS: path traversal, malformed refs, oversized source, missing fetch, prompt-cache invalidation")
 
