@@ -136,6 +136,22 @@ def main() -> None:
     assert extra in build(FOCUS, extra_action, BAD, fetch)["direct_paths"]
     assert extra not in probe["item"]["_dcoir_exact_head_dependency_paths"]
     assert "_dcoir_source_inventory_candidate" not in probe["item"]
+    # Adva: optional inventory/manifest/policy helpers may outrank a generic
+    # analyzer by name, but must never displace the actual analyzer root.
+    for helper_name in ("inventory_probe.py", "manifest_probe.py", "policy_probe.py"):
+        priority_helper = f"project_sources/collector/tools/{helper_name}"
+        priority_action = DOC["action"]["head_content"].replace(
+            "        python project_sources/collector/tools/run_powershell_analyzer.py",
+            f"        python {priority_helper} --check\n"
+            "        python project_sources/collector/tools/run_powershell_analyzer.py", 1,
+        )
+        root_evidence = build(FOCUS, priority_action, BAD, fetch)
+        assert ROOT in root_evidence["required_paths"], root_evidence
+        assert priority_helper not in root_evidence["required_paths"], root_evidence
+        priority_context = {"path": FOCUS, "text": priority_action,
+                            "item": {"filename": FOCUS, "patch": DOC["action"]["patch"]}}
+        assert enrich_first_pass_contexts([priority_context], BAD, fetch, max_files=1) == 1
+        assert "_dcoir_source_inventory_candidate" not in priority_context["item"]
     # Selected verifier scripts still fail closed if their HEAD source is
     # unavailable; excluding benign helpers must not weaken that protection.
     verifier = "project_sources/collector/tools/verify_missing_contract.py"

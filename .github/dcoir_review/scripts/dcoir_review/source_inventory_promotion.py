@@ -210,7 +210,7 @@ def verify_source_inventory_for_promotion(
         return None
     # Conservatively abstain on shell or auxiliary source-coverage logic
     # before the analyzer; proving it harmless requires separate inspection.
-    before = "\n".join(action[:line-1])
+    before = re.sub(r"`\r?\n[ \t]*", "", "\n".join(action[:line-1]))
     if re.search(
         r"(?im)(?:\bls-files\b|\bCompare-Object\b|"
         r"\bGet-ChildItem\b[^\n]*\.(?:ps1|psm1|psd1)\b|"

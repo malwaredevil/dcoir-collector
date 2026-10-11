@@ -202,6 +202,31 @@ def main():
             lambda name, _ref: alternate[name]
         ) is None, "Possible pre-analyzer guard allowed unsafe HIGH promotion"
 
+    # Codex follow-up P1: PowerShell backtick continuation splits a command
+    # token, and a separate JSON parse must not allow a fabricated HIGH.
+    continued = dict(original_src)
+    proof = (
+        "        $tracked = @(git ls-`\n"
+        "            files -- '*.ps1' '*.psm1')\n"
+        "        $inv = [IO.File]::ReadAllText('project_sources/collector/powershell_surface_inventory.json')\n"
+        "        $obj = $inv | ConvertFrom-Json\n"
+        "        $listed = @($obj.surfaces | ForEach-Object { $_.path })\n"
+        "        $missing = @($tracked | Where-Object { $_ -notin $listed })\n"
+        "        if ($missing.Count -gt 0) { throw 'Inventory stale' }\n"
+    )
+    for proof_text in (proof, proof.replace("\n", "\r\n")):
+        continued[path] = original_src[path].replace(prefix, proof_text + prefix, 1)
+        consistent = copy.deepcopy(candidate)
+        consistent["line"] = next(
+            n for n, row in enumerate(continued[path].splitlines(), 1) if row.startswith(prefix)
+        )
+        consistent["_dcoir_evidence"]["hashes"][path] = hashlib.sha256(
+            continued[path].encode()).hexdigest()[:16]
+        assert verify(
+            consistent, head, {(path, consistent["line"]): 1},
+            lambda name, _ref: continued[name]
+        ) is None, "Continued Git inventory check incorrectly promoted to HIGH"
+
     # Candidate title/body are untrusted metadata; the verifier synthesizes
     # its own bounded wording, so injected GitHub mentions cannot survive.
     tampered=fork(title="EVIL @bot",body="EVIL\n@bot",confidence=1.0)

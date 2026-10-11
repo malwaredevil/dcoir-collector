@@ -63,8 +63,11 @@ def _direct_scripts(path: str, source: str) -> list[str]:
         for match in _COMMAND.finditer(line)
         if valid_source_path(match.group("path"))
     }
-    # Prefer the producing/consuming executable over a separate verifier.
+    # Prefer the actual analyzer over optional helpers, even if helpers have
+    # higher-priority inventory/contract tokens in their names.
     return sorted(candidates, key=lambda item: (
+        PurePosixPath(item).name != "run_powershell_analyzer.py",
+        PurePosixPath(item).name != "run_analyzer.py",
         PurePosixPath(item).name.startswith(("verify_", "check_", "test_")),
         _priority(item),
     ))
