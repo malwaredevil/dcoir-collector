@@ -361,5 +361,3 @@ assert any(stage == "quality-retry" for stage, _detail in hybrid_reporter.update
 workflow_source = (ROOT.parent / "workflows" / "reusable-openrouter-pr-review.yml").read_text(encoding="utf-8")
 assert "dcoir_review_terminal_failure_v1" in workflow_source
 assert 'exit "$review_exit_code"' in workflow_source
-
-print("Pareto context DCOIR Review selftest passed")

@@ -1,3 +1,6 @@
+from dcoir_review.cross_file_contract_context import build_cross_file_contract_context
+
+
 def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
     max_inline = max(0, int(getattr(config, "max_inline_comments", 12)))
     if max_inline <= 0:
@@ -70,6 +73,7 @@ def build_per_file_review_prompt(
     added_lines = added_diff_lines_for_path(diff, path)
     added_line_block = "\n".join(f"{line.line}: {line.text}" for line in added_lines[:80]) or "(no added lines parsed)"
     sentinel_block = hardened.risk_sentinel_block(path_sentinels, config) if path_sentinels else "No deterministic risk anchors detected for this file."
+    cross_file_contract_context = build_cross_file_contract_context(path, diff)
     prompt = f"""
 Context mode: {review_mode}
 Per-file detector pass for `{path}`.
@@ -80,6 +84,8 @@ PR title: {base.sanitized_prompt_value(pr.get('title'), config)}
 
 Specialized review instructions:
 {file_specialization(path, file_text)}
+
+{cross_file_contract_context}
 
 Review rules:
 - Review this single file deeply using the full file context and the file diff.
@@ -153,6 +159,7 @@ def review_single_file_context(
         {
             "path": path,
             "prompt_chars": len(prompt),
+            "cross_file_contract_cues_present": "Cross-file contract review cues" in prompt,
             "risk_sentinel_count": len(path_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(path_sentinels) if path_sentinels else "",
         },
