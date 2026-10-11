@@ -3,7 +3,6 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
     run_credit_aware_primary_wave,
 )
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
-from dcoir_review.source_inventory_candidate import pending_source_inventory_candidate_count
 
 
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
@@ -278,24 +277,10 @@ def openrouter_review_with_hybrid_first_pass(
         model_used = retry_model_used
         service_tier = retry_service_tier
 
+    # Keep candidate evidence private during the model-output quality gate.
+    # The independent source verifier later decides whether it is actionable.
     if inventory_candidates:
-        # Candidate evidence is not a published finding. Avoid a misleading
-        # "fully clean" summary when the model omitted an unadjudicated
-        # source-backed cross-file hypothesis.
-        pending_count = pending_source_inventory_candidate_count(
-            inventory_candidates, hardened.result_findings(merged_result)
-        )
-        if pending_count:
-            suffix = (
-                f"Source-inventory coverage review incomplete: {pending_count} "
-                "deterministic changed-line caller-graph candidate(s) require "
-                "independent verification. They were not promoted to published "
-                "findings and must not be called cleared by this review."
-            )
-            merged_result["summary"] = (
-                str(merged_result.get("summary", "") or "").strip() + "\n\n" + suffix
-            ).strip()
-            reporter.update("source-inventory-candidate", suffix)
+        merged_result["_dcoir_source_inventory_candidates"] = inventory_candidates
 
     return merged_result, model_used, service_tier
 
