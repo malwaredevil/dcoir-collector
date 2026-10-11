@@ -39,6 +39,14 @@ on:
         required: false
         type: string
         default: "300"
+      max_cost_usd:
+        required: false
+        type: string
+        default: "0.50"
+      max_tokens:
+        required: false
+        type: string
+        default: "4096"
     outputs: {}
     secrets:
       OPENROUTER_API_KEY:
@@ -61,6 +69,8 @@ jobs:
       CONFIRM_PAID_EXECUTION: ${{ inputs.confirm_paid_execution }}
       MAX_REQUESTS: ${{ inputs.max_requests }}
       TIMEOUT_SECONDS: ${{ inputs.timeout_seconds }}
+      MAX_COST_USD: ${{ inputs.max_cost_usd }}
+      MAX_TOKENS: ${{ inputs.max_tokens }}
       OUT_DIR: project_sources/validation/out_dcoir_review_model_benchmark
     steps:
       - name: Checkout repository
@@ -85,11 +95,14 @@ jobs:
             .github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py \
             .github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval_selftest.py \
             .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
-            .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
+            .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py \
+            .github/dcoir_review/scripts/dcoir_review_cross_file_recall_eval.py \
+            .github/dcoir_review/scripts/dcoir_review_cross_file_recall_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_repair_candidate_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval_selftest.py
           python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary_selftest.py
+          python .github/dcoir_review/scripts/dcoir_review_cross_file_recall_eval_selftest.py
 
       - name: Validate execution inputs
         shell: bash
@@ -97,7 +110,15 @@ jobs:
           set -euo pipefail
           [[ "$MAX_REQUESTS" =~ ^[1-9][0-9]*$ ]] || { echo "max_requests must be a positive integer" >&2; exit 2; }
           [[ "$TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || { echo "timeout_seconds must be a positive integer" >&2; exit 2; }
-          [[ "$BENCHMARK_STAGE" == "first-pass" || "$BENCHMARK_STAGE" == "repair" || "$BENCHMARK_STAGE" == "repair-critic" ]] || { echo "benchmark_stage must be first-pass, repair, or repair-critic" >&2; exit 2; }
+          [[ "$BENCHMARK_STAGE" == "first-pass" || "$BENCHMARK_STAGE" == "repair" || "$BENCHMARK_STAGE" == "repair-critic" || "$BENCHMARK_STAGE" == "cross-file-recall" ]] || { echo "unsupported benchmark_stage" >&2; exit 2; }
+          if [[ "$BENCHMARK_STAGE" == "cross-file-recall" ]]; then
+            [[ "$MAX_TOKENS" =~ ^[1-9][0-9]*$ ]] && (( MAX_TOKENS <= 8192 )) || { echo "max_tokens must be 1..8192 for cross-file recall" >&2; exit 2; }
+            python -c 'import math,sys; x=float(sys.argv[1]); sys.exit(0 if math.isfinite(x) and 0 < x <= 2.0 else 2)' "$MAX_COST_USD" || { echo "max_cost_usd must be a finite USD amount > 0 and <= 2.00" >&2; exit 2; }
+            if [[ "$EXECUTE_LIVE" == "true" && -z "$CASE_IDS_CSV" ]]; then
+              echo "Paid cross-file recall requires explicitly selected case_ids_csv." >&2
+              exit 2
+            fi
+          fi
           if [[ "$EXECUTE_LIVE" == "true" && "$CONFIRM_PAID_EXECUTION" != "true" ]]; then
             echo "Paid-live execution requires confirm_paid_execution=true." >&2
             exit 2
@@ -118,24 +139,42 @@ jobs:
               case_args+=(--case "$case_id")
             done
           fi
-          evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
-          if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
-          if [[ "$BENCHMARK_STAGE" == "repair-critic" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py; fi
-          python "$evaluator" \
-            --candidate "$CANDIDATE_SELECTOR" \
-            --timeout-seconds "$TIMEOUT_SECONDS" \
-            --output "$OUT_DIR/benchmark_plan.json" \
-            "${case_args[@]}"
-          python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
-            --input "$OUT_DIR/benchmark_plan.json" \
-            --output "$OUT_DIR/benchmark_plan_summary.md"
+          if [[ "$BENCHMARK_STAGE" == "cross-file-recall" ]]; then
+            # Reuse the existing stage and provider contract, but keep the new
+            # production-shaped comparison limited to one pinned candidate.
+            selected="$CANDIDATE_SELECTOR"
+            if [[ "$selected" == "recommended" ]]; then selected=sonnet5.5-high; fi
+            bounded_requests="$MAX_REQUESTS"
+            if (( bounded_requests > 12 )); then bounded_requests=12; fi
+            bounded_timeout="$TIMEOUT_SECONDS"
+            if (( bounded_timeout > 180 )); then bounded_timeout=180; fi
+            python .github/dcoir_review/scripts/dcoir_review_cross_file_recall_eval.py \
+              --candidate "$selected" \
+              --max-requests "$bounded_requests" \
+              --max-tokens "$MAX_TOKENS" \
+              --timeout-seconds "$bounded_timeout" \
+              --output "$OUT_DIR/benchmark_plan.json" \
+              "${case_args[@]}"
+          else
+            evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
+            if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
+            if [[ "$BENCHMARK_STAGE" == "repair-critic" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py; fi
+            python "$evaluator" \
+              --candidate "$CANDIDATE_SELECTOR" \
+              --timeout-seconds "$TIMEOUT_SECONDS" \
+              --output "$OUT_DIR/benchmark_plan.json" \
+              "${case_args[@]}"
+            python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
+              --input "$OUT_DIR/benchmark_plan.json" \
+              --output "$OUT_DIR/benchmark_plan_summary.md"
+          fi
 
       - name: Enforce paid request cap
         if: ${{ inputs.execute_live }}
         shell: bash
         run: |
           set -euo pipefail
-          planned_requests="$(python -c 'import json; print(json.load(open("project_sources/validation/out_dcoir_review_model_benchmark/benchmark_plan.json", encoding="utf-8"))["case_counts"]["planned_total_requests"])')"
+          planned_requests="$(python -c 'import json,os; p=json.load(open("project_sources/validation/out_dcoir_review_model_benchmark/benchmark_plan.json",encoding="utf-8")); print(p["planned_requests"] if os.environ.get("BENCHMARK_STAGE")=="cross-file-recall" else p["case_counts"]["planned_total_requests"])')"
           echo "planned_paid_requests=$planned_requests"
           if (( planned_requests > MAX_REQUESTS )); then
             echo "Refusing paid run: $planned_requests planned requests exceeds max_requests=$MAX_REQUESTS." >&2
@@ -159,18 +198,87 @@ jobs:
               case_args+=(--case "$case_id")
             done
           fi
-          evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
-          if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
-          if [[ "$BENCHMARK_STAGE" == "repair-critic" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py; fi
-          python "$evaluator" \
-            --candidate "$CANDIDATE_SELECTOR" \
-            --timeout-seconds "$TIMEOUT_SECONDS" \
-            --execute-live \
-            --output "$OUT_DIR/benchmark_live.json" \
-            "${case_args[@]}"
-          python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
-            --input "$OUT_DIR/benchmark_live.json" \
-            --output "$OUT_DIR/benchmark_live_summary.md"
+          if [[ "$BENCHMARK_STAGE" == "cross-file-recall" ]]; then
+            selected="$CANDIDATE_SELECTOR"
+            if [[ "$selected" == "recommended" ]]; then selected=sonnet5.5-high; fi
+            bounded_requests="$MAX_REQUESTS"
+            if (( bounded_requests > 12 )); then bounded_requests=12; fi
+            bounded_timeout="$TIMEOUT_SECONDS"
+            if (( bounded_timeout > 180 )); then bounded_timeout=180; fi
+            python .github/dcoir_review/scripts/dcoir_review_cross_file_recall_eval.py \
+              --candidate "$selected" \
+              --max-requests "$bounded_requests" \
+              --max-tokens "$MAX_TOKENS" \
+              --max-cost-usd "$MAX_COST_USD" \
+              --timeout-seconds "$bounded_timeout" \
+              --operator-approved --execute-live \
+              --output "$OUT_DIR/benchmark_live.json" \
+              "${case_args[@]}"
+          else
+            evaluator=.github/dcoir_review/scripts/dcoir_review_first_pass_candidate_eval.py
+            if [[ "$BENCHMARK_STAGE" == "repair" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_candidate_eval.py; fi
+            if [[ "$BENCHMARK_STAGE" == "repair-critic" ]]; then evaluator=.github/dcoir_review/scripts/dcoir_review_repair_critic_candidate_eval.py; fi
+            python "$evaluator" \
+              --candidate "$CANDIDATE_SELECTOR" \
+              --timeout-seconds "$TIMEOUT_SECONDS" \
+              --execute-live \
+              --output "$OUT_DIR/benchmark_live.json" \
+              "${case_args[@]}"
+            python .github/dcoir_review/scripts/dcoir_review_model_benchmark_summary.py \
+              --input "$OUT_DIR/benchmark_live.json" \
+              --output "$OUT_DIR/benchmark_live_summary.md"
+          fi
+
+      - name: Summarize cross-file recall comparison
+        if: ${{ always() && inputs.benchmark_stage == 'cross-file-recall' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          folder = Path(os.environ["OUT_DIR"])
+          live = folder / "benchmark_live.json"
+          planned = folder / "benchmark_plan.json"
+          source = live if live.is_file() else planned
+          if not source.is_file():
+              print("Cross-file recall: no JSON report to summarize")
+              raise SystemExit(0)
+          data = json.loads(source.read_text(encoding="utf-8"))
+          result = [
+              "# Cross-file recall comparison",
+              "",
+              "- Mode: " + str(data.get("mode", "")),
+              "- Candidate model: " + str(data.get("model", "")),
+              "- Planned requests: " + str(data.get("planned_requests", "")),
+              "- Actual network requests: " + str(data.get("network_requests_made", "")),
+              "- Provider-reported cost (USD): " + str(data.get("reported_spend_usd", "")),
+              "- Partial: " + str(data.get("partial", False)),
+              "- Stop reason: " + str(data.get("stop_reason", "")),
+              "",
+              "These are synthetic provenance-labeled fixtures, not a full historical replay.",
+          ]
+          if os.environ.get("EXECUTE_LIVE", "").lower() == "true" and not live.is_file():
+              result.append("Caution: paid execution requested without live report; cost and outcomes are unknown.")
+          labels = {row["case_id"]: row["expected"] for row in data.get("cases", [])}
+          for variant in ("baseline", "enhanced"):
+              rows = [row for row in data.get("results", []) if row.get("variant") == variant]
+              findings = [row for row in rows if labels.get(row.get("case_id")) == "finding"]
+              clean = [row for row in rows if labels.get(row.get("case_id")) == "clean"]
+              detected = sum(bool(row.get("score", {}).get("matched")) for row in findings)
+              false_positives = sum(row.get("score", {}).get("disposition") == "false-positive" for row in clean)
+              request_errors = sum(row.get("score", {}).get("disposition") in {"request-error", "schema-error"} for row in rows)
+              result.append(
+                  f"- {variant}: positive detections={detected}/{len(findings)}, "
+                  f"clean-case false positives={false_positives}/{len(clean)}, "
+                  f"request/schema errors={request_errors}, requests={len(rows)}"
+              )
+          out = folder / ("benchmark_live_summary.md" if live.is_file() else "benchmark_plan_summary.md")
+          out.write_text("\n".join(result) + "\n", encoding="utf-8")
+          print("\n".join(result))
+          PY
 
       - name: Write benchmark run metadata
         if: always()
@@ -193,6 +301,9 @@ jobs:
               "execute_live": os.environ.get("EXECUTE_LIVE", "").lower() == "true",
               "max_requests": int(os.environ.get("MAX_REQUESTS", "0") or 0),
               "timeout_seconds": int(os.environ.get("TIMEOUT_SECONDS", "0") or 0),
+              "cross_file_max_tokens": os.environ.get("MAX_TOKENS", ""),
+              "cross_file_max_cost_usd": os.environ.get("MAX_COST_USD", ""),
+              "cross_file_reactive_cost_limit": True,
               "production_config_mutated": False,
               "github_review_published": False,
           }
