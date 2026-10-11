@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import ast
 import hashlib
-from pathlib import PurePosixPath
 import re
 
 from dcoir_review.source_inventory_contract import _COMMAND, _git_freshness_comparator
