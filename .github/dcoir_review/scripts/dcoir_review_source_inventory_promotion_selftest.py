@@ -56,6 +56,10 @@ def main():
     assert proof["severity"]=="high" and proof["confidence"]>=0.9
     assert len(observed)==10 and len(set(observed))==10, observed
     assert proof["_dcoir_verified_source_inventory"] is True
+    from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
+    assert proof[VERIFIER_MARKER]["mode"] == "deterministic-source-inventory"
+    assert proof[VERIFIER_MARKER]["supported"] is True
+    assert proof[VERIFIER_MARKER]["head_sha"] == head
     assert "newly tracked" in proof["body"].lower()
     assert "not" not in proof["title"].lower().split()
     assert verify(candidate,head,{},fetch) is None

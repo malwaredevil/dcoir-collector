@@ -106,6 +106,50 @@ def test_supported_and_downstream_suppressed_counts() -> None:
     assert "Untrusted summary" not in body
 
 
+def test_independently_verified_source_inventory_counted_without_ordinary_verifier() -> None:
+    module = review_module()
+    publication._patch_review_body(module)
+    source_finding = finding("Source backed")
+    source_finding["severity"] = "high"
+    source_finding["_dcoir_verified_source_inventory"] = True
+    source_finding["_dcoir_verified_head"] = HEAD
+    source_finding[v21.VERIFIER_MARKER]["mode"] = "deterministic-source-inventory"
+    capture(module, [], [])
+    body = module.hardened.build_review_body_with_unanchored(
+        {"summary": "model clean", "findings": []}, [source_finding], [],
+        "DCOIR source-backed verification", config(), HEAD
+    )
+    assert "Published findings: `1`" in body
+    assert "Verifier-supported candidates: `1`" in body
+    assert "Verifier candidates: `1`" in body
+    assert module.artifacts[publication.ARTIFACT_PATH]["independent_source_backed_supported_count"] == 1
+
+    # The diagnostic flag alone is NEVER a verifier credential.
+    fake = dict(source_finding)
+    fake.pop(v21.VERIFIER_MARKER)
+    capture(module, [], [])
+    try:
+        module.hardened.build_review_body_with_unanchored(
+            {}, [fake], [], "model", config(), HEAD
+        )
+    except ReviewQualityError as exc:
+        assert "without exact-head verifier support" in str(exc)
+    else:
+        raise AssertionError("forged source-inventory flag bypassed verifier")
+
+    # Stale independent source proof must be refused even if the marker lies.
+    stale = dict(source_finding, _dcoir_verified_head="b" * 40)
+    capture(module, [], [])
+    try:
+        module.hardened.build_review_body_with_unanchored(
+            {}, [stale], [], "model", config(), HEAD
+        )
+    except ReviewQualityError:
+        pass
+    else:
+        raise AssertionError("source-head mismatch was published")
+
+
 def test_unanchored_and_overflow_are_not_rendered(monkey_summary=None) -> None:
     del monkey_summary
     module = review_module(old_body="UNSAFE LEGACY OVERFLOW PROSE")
@@ -211,6 +255,7 @@ def test_production_registration() -> None:
 def main() -> None:
     test_zero_published_discards_contradictory_summary()
     test_supported_and_downstream_suppressed_counts()
+    test_independently_verified_source_inventory_counted_without_ordinary_verifier()
     test_unanchored_and_overflow_are_not_rendered()
     test_missing_or_stale_verifier_evidence_fails_closed()
     test_rollback_delegates_to_prior_body()
