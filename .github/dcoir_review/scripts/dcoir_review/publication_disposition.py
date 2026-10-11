@@ -60,11 +60,20 @@ def capture_verifier_disposition(
 
 def _verified_for_head(finding: dict[str, Any], reviewed_commit: str) -> bool:
     verifier = finding.get(verifier_contract.VERIFIER_MARKER)
-    return bool(
-        isinstance(verifier, dict)
-        and verifier.get("supported") is True
-        and str(verifier.get("head_sha", "") or "").strip() == reviewed_commit
-    )
+    if not (isinstance(verifier, dict)
+            and verifier.get("supported") is True
+            and str(verifier.get("head_sha", "") or "").strip() == reviewed_commit):
+        return False
+    if verifier.get("mode") == "deterministic-source-inventory":
+        # Proof is minted only after exact-HEAD re-fetch and independent caller
+        # verification, not from a model's source-coverage assertion.
+        return bool(
+            finding.get("_dcoir_verified_source_inventory") is True
+            and finding.get("_dcoir_verified_head") == reviewed_commit
+            and type(verifier.get("line")) is int
+            and verifier["line"] == finding.get("line")
+        )
+    return True
 
 
 def _coverage_counts() -> dict[str, int]:
@@ -113,14 +122,29 @@ def _final_disposition(
         raise module.hardened.ReviewQualityError(
             "DCOIR v45 refused to publish a finding without exact-head verifier support"
         )
+    # The source-backed proof runs after ordinary model verification and fix
+    # synthesis. Account for its independently verified, exact-head additions
+    # without presenting those as model-verifier accepted candidates.
+    source_verified = sum(
+        1 for item in published
+        if (isinstance(item.get(verifier_contract.VERIFIER_MARKER), dict)
+            and item[verifier_contract.VERIFIER_MARKER].get("mode")
+                == "deterministic-source-inventory")
+    )
     verifier_supported = int(verifier.get("verifier_supported_count", 0) or 0)
+    verifier_candidates = int(verifier.get("verifier_candidate_count", 0) or 0)
     raw_findings = _dict_findings(result.get("findings", [])) if isinstance(result, dict) else []
     disposition = {
         **verifier,
+        "verifier_candidate_count": verifier_candidates + source_verified,
+        "verifier_supported_count": verifier_supported + source_verified,
+        "independent_source_backed_supported_count": source_verified,
         **_coverage_counts(),
         "raw_model_candidate_count": len(raw_findings),
         "published_finding_count": len(published),
-        "downstream_suppressed_count": max(0, verifier_supported - len(published)),
+        "downstream_suppressed_count": max(
+            0, verifier_supported + source_verified - len(published)
+        ),
         "unanchored_hypothesis_count": len(_dict_findings(unanchored_findings)),
         "unanchored_disposition": "unpublished-unverified",
         "model_summary_discarded": bool(str(result.get("summary", "") or "").strip())

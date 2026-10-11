@@ -10,6 +10,8 @@ import hashlib
 import re
 from typing import Any, Callable
 
+from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
+
 _SOURCE_CLI = "project_sources/collector/tools/powershell_analyzer_cli.py"
 _SOURCE_SELECTOR = "project_sources/collector/tools/powershell_analyzer_inventory.py"
 _RUNNER = "project_sources/collector/tools/run_powershell_analyzer.py"
@@ -208,8 +210,7 @@ def verify_source_inventory_for_promotion(
     expected_command = "python project_sources/collector/tools/run_powershell_analyzer.py"
     if line > len(action) or not action[line - 1].strip().startswith(expected_command + " "):
         return None
-    # Conservatively abstain on shell or auxiliary source-coverage logic
-    # before the analyzer; proving it harmless requires separate inspection.
+    # Unfamiliar pre-analyzer guards require abstention.
     before = re.sub(r"`\r?\n[ \t]*", "", "\n".join(action[:line-1]))
     if re.search(
         r"(?im)(?:\bls-files\b|\bCompare-Object\b|"
@@ -251,6 +252,12 @@ def verify_source_inventory_for_promotion(
         "suggested_replacement": "",
         "_dcoir_verified_source_inventory": True,
         "_dcoir_verified_head": reviewed_head,
+        VERIFIER_MARKER: {
+            "mode": "deterministic-source-inventory",
+            "supported": True,
+            "head_sha": reviewed_head,
+            "line": line,
+        },
     }
 
 
@@ -322,8 +329,7 @@ def integrate_verified_inventory_findings(
             and str(f.get("line") or "") == str(proof["line"])
         ]
         if prior:
-            # Never overwrite a different issue at the same changed line.
-            # If a suitable model finding already exists, no duplicate needed.
+            # Do not overwrite unrelated same-line model findings.
             from dcoir_review.source_inventory_candidate import (
                 pending_source_inventory_candidate_count,
             )

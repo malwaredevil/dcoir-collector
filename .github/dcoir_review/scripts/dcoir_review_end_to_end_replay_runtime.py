@@ -36,6 +36,8 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
     seq_pos: dict[str, int] = {}
 
     def patch_for(entry):
+        if entry.get("patch_override") is not None:
+            return entry["patch_override"]
         lines = entry.get("lines", PY_LINES)
         body = "\n".join("+" + line for line in lines)
         return f"@@ -0,0 +1,{len(lines)} @@\n{body}"
@@ -43,6 +45,8 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
     def gh_files():
         out = []
         for e in files:
+            if not e.get("changed", True):
+                continue
             status = e.get("status", "added")
             item = {"filename": e["path"], "status": status, "sha": "3" * 40,
                     "additions": 0 if status == "removed" else len(e.get("lines", PY_LINES)),
@@ -60,6 +64,11 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
     def diff_text():
         chunks = []
         for e in files:
+            if not e.get("changed", True):
+                continue
+            if e.get("full_diff"):
+                chunks.append(e["full_diff"])
+                continue
             p = e["path"]
             status = e.get("status", "added")
             if e.get("nopatch"):
@@ -270,6 +279,11 @@ def run_one(repo_root: str, name: str, spec: dict[str, Any]) -> None:
         "event": posted.get("event") if posted else None,
         "body_head": (posted.get("body", "") if posted else "")[:300],
         "body_full": posted.get("body", "") if posted else "",
+        "inline_entries": [
+            {"path": c.get("path"), "line": c.get("line"),
+             "body": str(c.get("body", ""))[:350]}
+            for c in (posted.get("comments", []) if posted else [])
+        ],
         "unknown_gh": sorted(set(state["unknown"]))[:10],
         "status_tail": (state["status"][-1] if state["status"] else "")[-400:],
     }

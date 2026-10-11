@@ -13,6 +13,7 @@ sys.path.insert(0, str(HERE))
 import dcoir_review_historical_recall_cases as h
 from dcoir_review.exact_head_dependency_evidence import build_exact_head_dependency_evidence
 from dcoir_review.source_inventory_candidate import (
+    attach_source_inventory_candidate,
     detect_inventory_coverage_candidate as detect,
 )
 
@@ -63,6 +64,37 @@ def main() -> None:
     assert "newly Git-tracked PowerShell file" in good["body"]
     assert "Check for any additional effective upstream gate" in good["body"]
     assert detect(**arguments(safe, "safe")) is None
+
+    # GitHub's /pulls/{n}/files REST patch is a raw @@ hunk, not a full diff.
+    # Test the actual production attach path, not only direct full-diff detection.
+    def github_hunk_case(case: dict, label: str):
+        param = arguments(case, label)
+        patch = param["patch"]
+        patch = patch[patch.index("@@ "):]
+        item = {
+            "filename": param["focus_path"],
+            "patch": patch,
+            "_dcoir_source_coverage_guard": param["action_guard_status"],
+        }
+        context = {"path": param["focus_path"], "text": param["head_source"], "item": item}
+        cache = {(param["reviewed_head"], path): body
+                 for path, body in param["dependencies"].items()}
+
+        def fetch(path: str, ref: str) -> str:
+            assert ref == param["reviewed_head"], "must read immutable reviewed head"
+            return param["caller_sources"][path]
+
+        return attach_source_inventory_candidate(
+            context, param["reviewed_head"], fetch, cache
+        ), context
+
+    github_candidate, github_context = github_hunk_case(positive, "original")
+    assert isinstance(github_candidate, dict) and github_candidate["line"] == 36, (
+        "GitHub REST @@ hunk must retain confirmed historical P1"
+    )
+    assert github_context["item"]["_dcoir_source_inventory_candidate"] == github_candidate
+    safe_candidate, _safe_context = github_hunk_case(safe, "safe")
+    assert safe_candidate is None, "real repaired-safe GitHub hunk must stay clean"
 
     mutations = []
     def alter(**updates: object) -> dict:

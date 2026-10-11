@@ -286,10 +286,14 @@ def attach_source_inventory_candidate(
                 return None
             source_cache[key] = source
         graph[path] = source
+    patch = item["patch"]
+    # REST pull-file patches omit the diff header; restore a validated path.
+    if re.match(r"^@@ -\d+(?:,\d+)? \+\d+(?:,\d+)? @@", patch):
+        patch = f"diff --git a/{focus_path} b/{focus_path}\n" + patch
     result = detect_inventory_coverage_candidate(
         focus_path=str(context.get("path", "")),
         head_source=str(context.get("text", "")),
-        patch=item["patch"],
+        patch=patch,
         reviewed_head=reviewed_head,
         dependencies=deps,
         caller_sources=graph,
