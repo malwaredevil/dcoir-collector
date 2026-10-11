@@ -1,3 +1,6 @@
+from dcoir_review.source_inventory_promotion import integrate_verified_inventory_findings
+
+
 def review_assist_context_path(raw_path: str) -> Path | None:
     """Return the trusted review-assist context path or reject unexpected paths."""
     if not raw_path.strip():
@@ -183,11 +186,24 @@ def main() -> None:
             findings, normalized_candidates, config, hardened
         )
         findings = synthesize_fixes_for_findings(findings, gh, pr, FIX_SYNTHESIS_SCHEMA, config, reporter)
+        findings, inventory_proof = integrate_verified_inventory_findings(
+            result, findings, config, line_index, reviewed_commit,
+            lambda path, ref: fetch_pr_file_text(gh, path, ref), hardened
+        )
+        hardened.write_debug_json_artifact_safely(
+            config, "metadata/source-inventory-promotion.json", inventory_proof
+        )
+        if inventory_proof["advisories"]:
+            reporter.update("source-inventory-verification", str(inventory_proof))
 
         comments: list[dict[str, Any]] = []
         status_findings: list[dict[str, Any]] = []
         for finding in findings:
-            finding_comments = build_review_comments_for_finding(finding, model_used, config)
+            finding_model = (
+                "DCOIR source-backed verification"
+                if finding.get("_dcoir_verified_source_inventory") is True else model_used
+            )
+            finding_comments = build_review_comments_for_finding(finding, finding_model, config)
             status_finding = dict(finding)
             review_anchors: list[dict[str, Any]] = []
             for comment in finding_comments:

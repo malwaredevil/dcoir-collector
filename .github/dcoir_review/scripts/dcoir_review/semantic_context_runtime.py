@@ -188,6 +188,9 @@ def per_file_prompt_key(
             "blob_sha": str(item.get("sha", "") or ""),
             "file_text_sha256": fingerprints.text_digest(file_text),
             "patch_sha256": fingerprints.text_digest(item.get("patch", "")),
+            "dependency_evidence_sha256": fingerprints.text_digest(
+                item.get("_dcoir_exact_head_dependency_evidence", "")
+            ),
             "diff_sha256": fingerprints.text_digest(diff),
             "config_sha256": fingerprints.digest(fingerprints.config_snapshot(config)),
             "risk_sha256": _risk_digest(module, path_sentinels),

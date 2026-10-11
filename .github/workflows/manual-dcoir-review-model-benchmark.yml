@@ -11,8 +11,10 @@
 # - workflow_dispatch only; paid-live execution additionally requires execute_live=true and confirm_paid_execution=true.
 # Required inputs:
 # - candidate_selector accepts a named candidate group, one candidate id, or comma-separated candidate ids.
-# - case_ids_csv optionally narrows the governed corpus.
-# - max_requests caps paid requests before any live call is made.
+# - case_ids_csv optionally narrows the governed corpus; cross-file-recall paid mode requires an explicit case selection.
+# - cross-file-recall maps candidate_selector=recommended to pinned sonnet5.5-high; it has a maximum of 12 requests.
+# - max_cost_usd is a reactive provider-reported USD stop, not a guaranteed hard charge ceiling.
+# - max_tokens applies only to cross-file-recall; max_requests caps paid requests before any live call is made.
 # Required secrets/config:
 # - OPENROUTER_API_KEY is required only for paid-live execution. Model IDs are version-controlled non-secret configuration.
 # Runtime dependencies:
@@ -37,7 +39,7 @@ on:
         default: recommended
         type: string
       benchmark_stage:
-        description: Benchmark stage (first-pass, repair, or repair-critic)
+        description: Benchmark stage (first-pass, repair, repair-critic, or cross-file-recall)
         required: true
         default: first-pass
         type: string
@@ -57,7 +59,7 @@ on:
         default: false
         type: boolean
       max_requests:
-        description: Maximum paid inference requests allowed for this run
+        description: Max requests; cross-file-recall also caps at 12
         required: true
         default: "200"
         type: string
@@ -65,6 +67,16 @@ on:
         description: Timeout per OpenRouter request
         required: true
         default: "300"
+        type: string
+      max_cost_usd:
+        description: Cross-file-recall only - reactive provider-reported USD limit (one call may exceed it)
+        required: false
+        default: "0.50"
+        type: string
+      max_tokens:
+        description: Cross-file-recall only - per-request output-token limit (1 to 8192)
+        required: false
+        default: "4096"
         type: string
 
 permissions:
@@ -88,5 +100,7 @@ jobs:
       confirm_paid_execution: ${{ inputs.confirm_paid_execution || false }}
       max_requests: ${{ inputs.max_requests || '200' }}
       timeout_seconds: ${{ inputs.timeout_seconds || '300' }}
+      max_cost_usd: ${{ inputs.max_cost_usd || '0.50' }}
+      max_tokens: ${{ inputs.max_tokens || '4096' }}
     secrets:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

@@ -2,6 +2,7 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
     run_bounded_saturation_recovery,
     run_credit_aware_primary_wave,
 )
+from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
 
 
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
@@ -39,7 +40,35 @@ def openrouter_review_with_hybrid_first_pass(
         prompt = build_prompt(pr, files, diff, config, risk_sentinels, deep_context_block, review_mode, context_summary)
         return hardened.openrouter_review_with_quality_retry(prompt, schema, config, reporter, risk_sentinels, line_index)
 
-    reporter.update("per-file", f"running first-pass detector across {len(contexts)} file prompt(s)")
+    # Bounded immutable HEAD context; no additional model calls.
+    enriched_count = enrich_first_pass_contexts(
+        contexts, str(pr.get("head", {}).get("sha", "") or ""),
+        lambda path, ref: fetch_pr_file_text(gh, path, ref),
+    )
+    inventory_candidates = [
+        context["item"]["_dcoir_source_inventory_candidate"]
+        for context in contexts
+        if isinstance(context.get("item"), dict)
+        and isinstance(context["item"].get("_dcoir_source_inventory_candidate"), dict)
+        and context["item"]["_dcoir_source_inventory_candidate"].get("_dcoir_candidate_state")
+            == "source-backed-pending-independent-verification"
+    ]
+    hardened.write_debug_json_artifact_safely(
+        config, "metadata/source-inventory-candidates.json",
+        {
+            "candidate_count": len(inventory_candidates),
+            "advisory_only": True,
+            "independent_verification_required": bool(inventory_candidates),
+            "candidates": inventory_candidates,
+        },
+    )
+    if inventory_candidates:
+        reporter.update(
+            "source-inventory-candidate",
+            f"{len(inventory_candidates)} deterministic caller-graph candidate(s) need independent verification; not published as findings",
+        )
+
+    reporter.update("per-file", f"running first-pass detector across {len(contexts)} file prompt(s); exact-head dependencies={enriched_count}")
     per_file_manifest = "\n".join(
         [
             "Per-file first-pass detector prompt manifest.",
@@ -55,6 +84,8 @@ def openrouter_review_with_hybrid_first_pass(
         {
             "prompt_mode": "per-file",
             "file_prompt_count": len(contexts),
+            "exact_head_dependency_prompt_count": enriched_count,
+            "advisory_inventory_candidate_count": len(inventory_candidates),
             "risk_sentinel_count": len(risk_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(risk_sentinels) if risk_sentinels else "",
             "line_index_entries": len(line_index),
@@ -172,6 +203,7 @@ def openrouter_review_with_hybrid_first_pass(
             "completed_file_prompt_count": len(results),
             "failed_file_count": 0,
             "prompt_chars": total_prompt_chars,
+            "advisory_inventory_candidate_count": len(inventory_candidates),
             "risk_sentinel_count": len(risk_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(risk_sentinels) if risk_sentinels else "",
             "line_index_entries": len(line_index),
@@ -244,6 +276,11 @@ def openrouter_review_with_hybrid_first_pass(
         )
         model_used = retry_model_used
         service_tier = retry_service_tier
+
+    # Keep candidate evidence private during the model-output quality gate.
+    # The independent source verifier later decides whether it is actionable.
+    if inventory_candidates:
+        merged_result["_dcoir_source_inventory_candidates"] = inventory_candidates
 
     return merged_result, model_used, service_tier
 
