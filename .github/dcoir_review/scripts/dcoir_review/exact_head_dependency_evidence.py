@@ -12,17 +12,17 @@ import json
 from pathlib import PurePosixPath
 import re
 from typing import Any, Callable
+from dcoir_review.source_inventory_contract import (
+    MAX_SOURCE_CHARS,
+    _COMMAND,
+    _coverage_invariant_note,
+    _git_freshness_comparator,
+)
 
 MAX_EVIDENCE_CHARS = 2100
 MAX_FETCHES = 4
-MAX_SOURCE_CHARS = 120_000
 _SOURCE = re.compile(r"^[A-Za-z0-9_./-]+\.py$")
 _SHA = re.compile(r"^[0-9a-f]{40}$")
-_COMMAND = re.compile(
-    r"(?<![A-Za-z0-9_])(?:python(?:3(?:\.\d+)?)?|py\s+-3(?:\.\d+)?)"
-    r"\s+(?P<path>[A-Za-z0-9_./-]+\.py)\b",
-    re.IGNORECASE,
-)
 _INTEREST = re.compile(
     r"(?:inventory|manifest|source_of_truth|git\s+ls-files|"
     r"build_target_sets|load_inventory|discovery|fallback|"
@@ -136,7 +136,7 @@ def build_exact_head_dependency_evidence(
     No source-derived path can escape this repository. Content is never run.
     Returns an auditable result; absent/failing fetches are explicit.
     """
-    result: dict[str, Any] = {"text": "", "paths": [], "direct_paths": [], "attempted": [], "errors": [], "truncated": False}
+    result: dict[str, Any] = {"text": "", "paths": [], "direct_paths": [], "attempted": [], "errors": [], "truncated": False, "coverage_guard": "not-applicable"}
     if not isinstance(reviewed_head, str) or not _SHA.fullmatch(reviewed_head):
         result["errors"].append("invalid-reviewed-head")
         return result
@@ -235,6 +235,16 @@ def build_exact_head_dependency_evidence(
     if not result["paths"]:
         result["errors"].append("no-bounded-source-evidence")
     else:
+        note, guard_status = _coverage_invariant_note(
+            focus_text, seeds, reviewed_head, unique, source_cache
+        )
+        if note:
+            if used + len(note) <= budget:
+                lines.append(note)
+                result["coverage_guard"] = guard_status
+            else:
+                result["truncated"] = True
+                result["errors"].append("coverage-invariant-exceeds-budget")
         result["text"] = "".join(lines)
     if len(unique) < len(candidates):
         result["truncated"] = True
@@ -257,7 +267,8 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
         # A directly invoked verifier is as important as the analyzer:
         # missing it could make a genuinely safe repair appear vulnerable.
         # Fail closed on any unavailable/omitted direct dependency or budget gap.
-        if ("direct-script-budget-exceeded" in evidence["errors"]
+        if (any(error in evidence["errors"] for error in (
+                    "direct-script-budget-exceeded", "coverage-invariant-exceeds-budget"))
                 or any(path not in evidence["paths"]
                        for path in evidence["direct_paths"])):
             raise RuntimeError("exact-head executable dependency unavailable for review")
@@ -266,6 +277,7 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
         context["item"] = dict(context["item"])
         context["item"]["_dcoir_exact_head_dependency_evidence"] = evidence["text"]
         context["item"]["_dcoir_exact_head_dependency_paths"] = evidence["paths"]
+        context["item"]["_dcoir_source_coverage_guard"] = evidence["coverage_guard"]
         enriched += 1
     return enriched
 

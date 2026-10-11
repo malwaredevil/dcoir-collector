@@ -178,6 +178,7 @@ validation_commands:
   - python3 .github/dcoir_review/scripts/dcoir_review_cross_file_recall_corpus_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_cross_file_recall_eval_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_historical_recall_eval_selftest.py
+  - python3 .github/dcoir_review/scripts/dcoir_review_inventory_coverage_contract_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_historical_cross_file_gap_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_exact_head_dependency_evidence_selftest.py
   - python3 .github/dcoir_review/scripts/dcoir_review_required_coverage_policy_selftest.py

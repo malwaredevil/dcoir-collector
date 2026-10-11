@@ -79,6 +79,20 @@ def build_per_file_review_prompt(
     cross_file_contract_context = build_cross_file_contract_context(
         path, diff, max_chars=1050 if exact_head_evidence else 2200
     )
+    coverage_verification_rules = ""
+    if "Coverage check (action-local, not a finding)" in exact_head_evidence:
+        coverage_verification_rules = (
+            "Mandatory source-coverage reasoning (not a presumed finding):\\n"
+            "1. Identify whether the analyzer discovers tracked source files or only "
+            "processes entries already present in a checked-in inventory.\\n"
+            "2. Identify evidence of fresh Git-tracked source discovery compared to "
+            "the checked-in inventory BEFORE analysis, with fail-closed behavior.\\n"
+            "3. Analyzer exit status and validation.success for listed targets "
+            "do not, alone, prove inventory completeness.\\n"
+            "4. If changed code creates a demonstrable omission path, anchor a "
+            "finding to its changed line. If evidence remains incomplete, state "
+            "the source-coverage uncertainty in summary rather than claim it verified.\\n"
+        )
     prompt = f"""
 Context mode: {review_mode}
 Per-file detector pass for `{path}`.
@@ -94,6 +108,7 @@ Specialized review instructions:
 
 {exact_head_evidence}
 
+{coverage_verification_rules}
 Review rules:
 - Review this single file deeply using the full file context and the file diff.
 - Return only high-signal findings that matter for correctness, security, validation, or DCOIR governance.
@@ -168,6 +183,7 @@ def review_single_file_context(
             "prompt_chars": len(prompt),
             "cross_file_contract_cues_present": "Cross-file contract review cues" in prompt,
             "exact_head_source_paths": list(context["item"].get("_dcoir_exact_head_dependency_paths", [])),
+            "source_coverage_guard_status": context["item"].get("_dcoir_source_coverage_guard", "not-applicable"),
             "risk_sentinel_count": len(path_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(path_sentinels) if path_sentinels else "",
         },

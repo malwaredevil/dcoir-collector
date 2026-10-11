@@ -54,6 +54,16 @@ def main() -> None:
     assert "git ls-files -z" in after["enhanced"]
     assert "verify_powershell_analyzer_policy_ci.py" in before["enhanced"]
     assert "verify_powershell_analyzer_policy_ci.py" in after["enhanced"]
+    assert "Coverage check (action-local, not a finding)" in before["enhanced"]
+    assert "Coverage check (action-local, not a finding)" in after["enhanced"]
+    assert "not established by directly invoked steps" in before["enhanced"]
+    assert "structural preflight in verify_powershell_surface_inventory_ci.py" in after["enhanced"]
+    assert "Coverage check (action-local, not a finding)" not in before["baseline"]
+    assert "Coverage check (action-local, not a finding)" not in after["baseline"]
+    assert "Mandatory source-coverage reasoning" in before["enhanced"]
+    assert "Mandatory source-coverage reasoning" in after["enhanced"]
+    assert "Mandatory source-coverage reasoning" not in before["baseline"]
+    assert "Mandatory source-coverage reasoning" not in after["baseline"]
 
     # The P1 scoring target is the actual newly added right-side action line.
     anchor = next(line for line, text in evaluation.mutation.added_lines(evaluation.focus_patch(positive))

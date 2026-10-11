@@ -56,6 +56,7 @@ def main() -> None:
     assert len(log) <= 4, log
     assert contexts[0]["item"]["_dcoir_exact_head_dependency_paths"]
     assert contexts[0]["item"]["_dcoir_exact_head_dependency_evidence"] == first["text"]
+    assert contexts[0]["item"]["_dcoir_source_coverage_guard"] == "not-evidenced-in-action"
 
     config = review.load_pareto_context_config(str(HERE.parent / "openrouter-pr-review-pareto.yml"))
     params = ({"number": 617, "title": "Historical regression"}, contexts[0]["item"],
