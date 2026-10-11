@@ -43,6 +43,7 @@ DIRECT_IMPORT_MODULES = (
     "cross_file_contract_context.py",
     "exact_head_dependency_evidence.py",
     "source_inventory_contract.py",
+    "source_inventory_candidate.py",
     "entrypoint.py",
     "environment_token_detection.py",
     "final_adjudication_policy.py",

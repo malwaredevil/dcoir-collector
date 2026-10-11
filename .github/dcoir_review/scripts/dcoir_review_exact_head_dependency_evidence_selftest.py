@@ -25,7 +25,10 @@ ROOT = "project_sources/collector/tools/run_powershell_analyzer.py"
 
 
 def main() -> None:
-    all_sources = {BAD: DOC["original_full_dependency_sources"], SAFE: DOC["safe_full_dependency_sources"]}
+    all_sources = {
+        BAD: {**DOC["original_full_dependency_sources"], **{k: v["source"] for k, v in DOC["original_caller_graph_sources"].items()}},
+        SAFE: {**DOC["safe_full_dependency_sources"], **{k: v["source"] for k, v in DOC["safe_caller_graph_sources"].items()}},
+    }
     log: list[tuple[str, str]] = []
 
     def fetch(path: str, sha: str) -> str:
@@ -53,7 +56,8 @@ def main() -> None:
     contexts = [before, {"path": FOCUS, "text": DOC["action"]["head_content"], "item": dict(item)}]
     log.clear()
     assert enrich_first_pass_contexts(contexts, BAD, fetch) == 2
-    assert len(log) <= 4, log
+    assert len(log) <= 10, log
+    assert contexts[0]["item"].get("_dcoir_source_inventory_candidate", {}).get("line") == 36
     assert contexts[0]["item"]["_dcoir_exact_head_dependency_paths"]
     assert contexts[0]["item"]["_dcoir_exact_head_dependency_evidence"] == first["text"]
     assert contexts[0]["item"]["_dcoir_source_coverage_guard"] == "not-evidenced-in-action"

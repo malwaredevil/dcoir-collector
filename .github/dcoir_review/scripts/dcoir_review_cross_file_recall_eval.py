@@ -115,7 +115,7 @@ def prompts(case: dict[str, Any], config: Any) -> dict[str, str]:
         review.build_cross_file_contract_context = original
     if case.get("historical_provenance"):
         target_head = case["reviewed_head"]
-        sources = case["dependency_sources"]
+        sources = {**case["dependency_sources"], **case.get("caller_sources", {})}
 
         def frozen_source(path: str, ref: str) -> str:
             if ref != target_head or path not in sources:

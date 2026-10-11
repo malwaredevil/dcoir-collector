@@ -12,6 +12,7 @@ import json
 from pathlib import PurePosixPath
 import re
 from typing import Any, Callable
+from dcoir_review.source_inventory_candidate import attach_source_inventory_candidate
 from dcoir_review.source_inventory_contract import (
     MAX_SOURCE_CHARS,
     _COMMAND,
@@ -277,6 +278,7 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
         context["item"]["_dcoir_exact_head_dependency_evidence"] = evidence["text"]
         context["item"]["_dcoir_exact_head_dependency_paths"] = evidence["paths"]
         context["item"]["_dcoir_source_coverage_guard"] = evidence["coverage_guard"]
+        attach_source_inventory_candidate(context, reviewed_head, fetch_text, cache)
         enriched += 1
     return enriched
 

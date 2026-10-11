@@ -83,6 +83,7 @@ def cases() -> list[dict[str, Any]]:
         ],
         "reviewed_head": BAD_SHA,
         "dependency_sources": fixture["original_full_dependency_sources"],
+        "caller_sources": {path: item["source"] for path, item in fixture["original_caller_graph_sources"].items()},
         "historical_case_type": "actual-original-review-head",
     }
     safe = {
@@ -95,6 +96,7 @@ def cases() -> list[dict[str, Any]]:
         "expected_anchor": "verify_powershell_surface_inventory_ci.py",
         "reviewed_head": SAFE_SHA,
         "dependency_sources": fixture["safe_full_dependency_sources"],
+        "caller_sources": {path: item["source"] for path, item in fixture["safe_caller_graph_sources"].items()},
         "historical_case_type": "actual-repaired-control",
     }
     return [defective, safe]

@@ -3,6 +3,7 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
     run_credit_aware_primary_wave,
 )
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
+from dcoir_review.source_inventory_candidate import pending_source_inventory_candidate_count
 
 
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
@@ -45,6 +46,28 @@ def openrouter_review_with_hybrid_first_pass(
         contexts, str(pr.get("head", {}).get("sha", "") or ""),
         lambda path, ref: fetch_pr_file_text(gh, path, ref),
     )
+    inventory_candidates = [
+        context["item"]["_dcoir_source_inventory_candidate"]
+        for context in contexts
+        if isinstance(context.get("item"), dict)
+        and isinstance(context["item"].get("_dcoir_source_inventory_candidate"), dict)
+        and context["item"]["_dcoir_source_inventory_candidate"].get("_dcoir_candidate_state")
+            == "source-backed-pending-independent-verification"
+    ]
+    hardened.write_debug_json_artifact_safely(
+        config, "metadata/source-inventory-candidates.json",
+        {
+            "candidate_count": len(inventory_candidates),
+            "advisory_only": True,
+            "independent_verification_required": bool(inventory_candidates),
+            "candidates": inventory_candidates,
+        },
+    )
+    if inventory_candidates:
+        reporter.update(
+            "source-inventory-candidate",
+            f"{len(inventory_candidates)} deterministic caller-graph candidate(s) need independent verification; not published as findings",
+        )
 
     reporter.update("per-file", f"running first-pass detector across {len(contexts)} file prompt(s); exact-head dependencies={enriched_count}")
     per_file_manifest = "\n".join(
@@ -63,6 +86,7 @@ def openrouter_review_with_hybrid_first_pass(
             "prompt_mode": "per-file",
             "file_prompt_count": len(contexts),
             "exact_head_dependency_prompt_count": enriched_count,
+            "advisory_inventory_candidate_count": len(inventory_candidates),
             "risk_sentinel_count": len(risk_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(risk_sentinels) if risk_sentinels else "",
             "line_index_entries": len(line_index),
@@ -180,6 +204,7 @@ def openrouter_review_with_hybrid_first_pass(
             "completed_file_prompt_count": len(results),
             "failed_file_count": 0,
             "prompt_chars": total_prompt_chars,
+            "advisory_inventory_candidate_count": len(inventory_candidates),
             "risk_sentinel_count": len(risk_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(risk_sentinels) if risk_sentinels else "",
             "line_index_entries": len(line_index),
@@ -252,6 +277,25 @@ def openrouter_review_with_hybrid_first_pass(
         )
         model_used = retry_model_used
         service_tier = retry_service_tier
+
+    if inventory_candidates:
+        # Candidate evidence is not a published finding. Avoid a misleading
+        # "fully clean" summary when the model omitted an unadjudicated
+        # source-backed cross-file hypothesis.
+        pending_count = pending_source_inventory_candidate_count(
+            inventory_candidates, hardened.result_findings(merged_result)
+        )
+        if pending_count:
+            suffix = (
+                f"Source-inventory coverage review incomplete: {pending_count} "
+                "deterministic changed-line caller-graph candidate(s) require "
+                "independent verification. They were not promoted to published "
+                "findings and must not be called cleared by this review."
+            )
+            merged_result["summary"] = (
+                str(merged_result.get("summary", "") or "").strip() + "\n\n" + suffix
+            ).strip()
+            reporter.update("source-inventory-candidate", suffix)
 
     return merged_result, model_used, service_tier
 
