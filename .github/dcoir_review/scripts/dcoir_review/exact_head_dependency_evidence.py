@@ -170,6 +170,7 @@ def build_exact_head_dependency_evidence(
         return result
 
     seeds = _direct_scripts(focus_path, focus_text)
+    directly_invoked = bool(seeds)
     if not seeds and focus_path.endswith(".py"):
         seeds = _sibling_imports(focus_path, focus_text)
     if not seeds:
@@ -181,7 +182,11 @@ def build_exact_head_dependency_evidence(
     # An unknown pre-analyzer helper separately blocks HIGH promotion.
     candidates = [root]
     candidates.extend(path for path in seeds[1:] if PurePosixPath(path).name.startswith("verify_"))
-    result["required_paths"] = list(candidates)
+    # Only executables directly invoked by YAML are mandatory. Sibling
+    # imports from Python source are optional model context: a valid imported
+    # module with no relevant excerpt must not abort an unrelated PR review.
+    # Exact-head source/caller verification still gates published findings.
+    result["required_paths"] = list(candidates) if directly_invoked else []
     if len(candidates) > limit:
         result["errors"].append("direct-script-budget-exceeded")
         return result
@@ -260,7 +265,19 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
     """Attach same-HEAD source evidence to bounded selected file prompts."""
     cache = {}
     enriched = 0
-    for context in contexts:
+    # The model still reviews all changed files in its original order. Prioritize
+    # the exact source-inventory action for the six source-evidence fetch slots:
+    # a large PR must not starve the mandatory action behind ordinary imports.
+    # Python sibling imports remain best-effort; action executables fail closed.
+    action = ".github/actions/run-psscriptanalyzer/action.yml"
+    def _evidence_priority(context: Any) -> int:
+        if (isinstance(context, dict) and context.get("path") == action
+                and isinstance(context.get("item"), dict)
+                and context["item"].get("filename") == action):
+            return 0
+        return 1
+
+    for context in sorted(contexts, key=_evidence_priority):
         if enriched >= max(0, min(6, int(max_files))):
             break
         if not isinstance(context, dict) or not isinstance(context.get("item"), dict):

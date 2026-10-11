@@ -169,6 +169,65 @@ def main() -> None:
     else:
         raise AssertionError("Unfetched selected verifier must fail closed")
 
+    # A Python test/import dependency is optional context, not an executable
+    # explicitly required by an action. A readable but uninteresting sibling
+    # must not abort review of an entire many-file pull request.
+    optional_focus = "project_sources/collector/tools/test_run_powershell_analyzer_core.py"
+    optional_source = "from powershell_analyzer_execution import run\n"
+    optional_dep = "project_sources/collector/tools/powershell_analyzer_execution.py"
+    optional_reads: list[tuple[str, str]] = []
+    def optional_fetch(path: str, sha: str) -> str:
+        optional_reads.append((sha, path))
+        assert (sha, path) == (BAD, optional_dep)
+        return "def run():\n    return 42\n"  # valid source, no matching excerpt
+    optional = build(optional_focus, optional_source, BAD, optional_fetch)
+    assert optional["required_paths"] == [], optional
+    assert optional_dep in optional["attempted"], optional
+    assert not optional["paths"] and "no-bounded-source-evidence" in optional["errors"]
+    optional_context = {
+        "path": optional_focus, "text": optional_source,
+        "item": {"filename": optional_focus,
+                 "patch": "@@ -0,0 +1,1 @@\n+from powershell_analyzer_execution import run\n"},
+    }
+    assert enrich_first_pass_contexts([optional_context], BAD, optional_fetch) == 0
+    assert "_dcoir_exact_head_dependency_evidence" not in optional_context["item"]
+    # In contrast, an action-executed analyzer remains mandatory even when
+    # its content has no excerptable contract lines.
+    no_excerpt = lambda path, sha: "def main():\n    return 42\n"
+    required = build(FOCUS, "python " + ROOT, BAD, no_excerpt)
+    assert required["required_paths"] == [ROOT], required
+    try:
+        enrich_first_pass_contexts([
+            {"path": FOCUS, "text": "python " + ROOT,
+             "item": {"filename": FOCUS, "patch": DOC["action"]["patch"]}}
+        ], BAD, no_excerpt)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("Directly executed action source must fail closed")
+    # Full PR617 regression: the high-risk action was 23rd among changed
+    # contexts. It must be enriched even when six eligible ordinary imports
+    # appear first, without widening the six-context dependency budget.
+    many_contexts = []
+    for index in range(8):
+        name = f"project_sources/collector/tools/test_powershell_analyzer_mock_{index}.py"
+        snippet = "from powershell_analyzer_cli import load_inventory\n"
+        many_contexts.append({
+            "path": name, "text": snippet,
+            "item": {"filename": name,
+                     "patch": "@@ -0,0 +1,1 @@\n+from powershell_analyzer_cli import load_inventory\n"},
+        })
+    many_contexts.append({
+        "path": FOCUS, "text": DOC["action"]["head_content"],
+        "item": {"filename": FOCUS, "status": "modified", "patch": DOC["action"]["patch"]},
+    })
+    enriched = enrich_first_pass_contexts(many_contexts, BAD, fetch, max_files=6)
+    assert 0 < enriched <= 6, enriched
+    assert many_contexts[-1]["item"].get(
+        "_dcoir_source_inventory_candidate", {}
+    ).get("line") == 36, "a high-risk changed action was starved behind other contexts"
+    assert sum("_dcoir_exact_head_dependency_evidence" in ctx["item"]
+               for ctx in many_contexts) <= 6
     limited = build(FOCUS, DOC["safe_after_repair"]["head_content"], SAFE, fetch,
                     max_fetches=1)
     assert "direct-script-budget-exceeded" in limited["errors"]

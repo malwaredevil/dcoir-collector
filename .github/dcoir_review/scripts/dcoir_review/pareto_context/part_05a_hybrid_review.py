@@ -3,6 +3,7 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
     run_credit_aware_primary_wave,
 )
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
+from dcoir_review import source_inventory_candidate_receipt as inventory_receipt
 
 
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
@@ -280,6 +281,10 @@ def openrouter_review_with_hybrid_first_pass(
     # Keep candidate evidence private during the model-output quality gate.
     # The independent source verifier later decides whether it is actionable.
     if inventory_candidates:
+        inventory_receipt.capture(
+            gh, str(pr.get("head", {}).get("sha", "") or ""),
+            inventory_candidates,
+        )
         merged_result["_dcoir_source_inventory_candidates"] = inventory_candidates
 
     return merged_result, model_used, service_tier
