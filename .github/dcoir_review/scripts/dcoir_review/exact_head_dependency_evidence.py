@@ -136,7 +136,7 @@ def build_exact_head_dependency_evidence(
     No source-derived path can escape this repository. Content is never run.
     Returns an auditable result; absent/failing fetches are explicit.
     """
-    result: dict[str, Any] = {"text": "", "paths": [], "direct_paths": [], "attempted": [], "errors": [], "truncated": False, "coverage_guard": "not-applicable"}
+    result: dict[str, Any] = {"text": "", "paths": [], "direct_paths": [], "required_paths": [], "attempted": [], "errors": [], "truncated": False, "coverage_guard": "not-applicable"}
     if not isinstance(reviewed_head, str) or not _SHA.fullmatch(reviewed_head):
         result["errors"].append("invalid-reviewed-head")
         return result
@@ -172,14 +172,16 @@ def build_exact_head_dependency_evidence(
     if not seeds:
         return result
     result["direct_paths"] = list(seeds) if focus_path.startswith((".github/actions/", ".github/workflows/")) else []
-    if len(result["direct_paths"]) > limit:
-        result["errors"].append("direct-script-budget-exceeded")
-        return result
     root = seeds[0]
-    # Include the verifier when an action invokes one before the analyzer.
-    # Otherwise safe/repaired controls lose the fact that closes the gap.
+    # Missing selected executables are fatal; unrelated direct helpers are
+    # not source-evidence dependencies and must not abort the entire review.
+    # An unknown pre-analyzer helper separately blocks HIGH promotion.
     candidates = [root]
     candidates.extend(path for path in seeds[1:] if PurePosixPath(path).name.startswith("verify_"))
+    result["required_paths"] = list(candidates)
+    if len(candidates) > limit:
+        result["errors"].append("direct-script-budget-exceeded")
+        return result
     source_cache = cache if cache is not None else {}
     def read(path: str) -> str | None:
         key = (reviewed_head, path)
@@ -266,11 +268,11 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
         )
         # A directly invoked verifier is as important as the analyzer:
         # missing it could make a genuinely safe repair appear vulnerable.
-        # Fail closed on any unavailable/omitted direct dependency or budget gap.
+        # Fail closed on unavailable *selected* source evidence, not unrelated helpers.
         if (any(error in evidence["errors"] for error in (
                     "direct-script-budget-exceeded", "coverage-invariant-exceeds-budget"))
                 or any(path not in evidence["paths"]
-                       for path in evidence["direct_paths"])):
+                       for path in evidence["required_paths"])):
             raise RuntimeError("exact-head executable dependency unavailable for review")
         if not evidence["text"]:
             continue

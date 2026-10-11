@@ -154,6 +154,54 @@ def main():
     claim["_dcoir_evidence"]["hashes"][entry]=hashlib.sha256(disabled[entry].encode()).hexdigest()[:16]
     assert verify(claim,head,index,lambda n,r:disabled[n]) is None
 
+    # Codex P1: inline PowerShell freshness guard before analyzer must
+    # conservatively block promotion even when all source hashes are forged
+    # to match the safe modified action and the changed anchor is plausible.
+    inline = dict(original_src)
+    prefix = "        python project_sources/collector/tools/run_powershell_analyzer.py "
+    block = (
+        "        $tracked = @(git ls-files -- '*.ps1' '*.psm1')\n"
+        "        $listed = @((Get-Content -LiteralPath 'project_sources/collector/powershell_surface_inventory.json' -Raw | ConvertFrom-Json).surfaces | ForEach-Object { $_.path })\n"
+        "        $delta = @(Compare-Object -ReferenceObject $tracked -DifferenceObject $listed)\n"
+        "        if ($delta.Count -gt 0) { throw 'Inventory freshness failed' }\n"
+    )
+    assert prefix in inline[path]
+    inline[path] = inline[path].replace(prefix, block + prefix, 1)
+    claimed = copy.deepcopy(candidate)
+    claimed["line"] = next(
+        i for i, content in enumerate(inline[path].splitlines(), 1)
+        if content.startswith(prefix)
+    )
+    claimed["_dcoir_evidence"]["hashes"][path] = hashlib.sha256(
+        inline[path].encode()).hexdigest()[:16]
+    assert verify(
+        claimed, head, {(path, claimed["line"]): 1},
+        lambda name, _ref: inline[name]
+    ) is None, "Unsafe HIGH finding despite inline fail-closed freshness guard"
+    # Different inline implementations must also abstain. The verifier is
+    # not a general-purpose PowerShell parser, so unfamiliar checks block
+    # promotion rather than receiving an invented clean bill of health.
+    for command in (
+        "        $tracked = git -C . ls-files -- '*.ps1'\n",
+        "        $missing = Compare-Object $listed $tracked\n",
+        "        $listed = Get-Content -Raw project_sources/collector/powershell_surface_inventory.json\n",
+        "        $tracked = Get-ChildItem -Recurse *.ps1\n",
+        "        python project_sources/collector/tools/check_environment.py --gate\n",
+    ):
+        alternate = dict(original_src)
+        alternate[path] = alternate[path].replace(prefix, command + prefix, 1)
+        hypothesis = copy.deepcopy(candidate)
+        hypothesis["line"] = next(
+            i for i, row in enumerate(alternate[path].splitlines(), 1)
+            if row.startswith(prefix)
+        )
+        hypothesis["_dcoir_evidence"]["hashes"][path] = hashlib.sha256(
+            alternate[path].encode()).hexdigest()[:16]
+        assert verify(
+            hypothesis, head, {(path, hypothesis["line"]): 1},
+            lambda name, _ref: alternate[name]
+        ) is None, "Possible pre-analyzer guard allowed unsafe HIGH promotion"
+
     # Candidate title/body are untrusted metadata; the verifier synthesizes
     # its own bounded wording, so injected GitHub mentions cannot survive.
     tampered=fork(title="EVIL @bot",body="EVIL\n@bot",confidence=1.0)

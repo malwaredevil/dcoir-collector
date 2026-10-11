@@ -122,6 +122,37 @@ def main() -> None:
     unrelated_action = ".github/workflows/simple-check.yml"
     benign_command = "python project_sources/collector/tools/simple_tool.py"
     assert build(unrelated_action, benign_command, BAD, unwanted_fetch)["text"] == ""
+    # P1 regression: an ordinary non-verifier helper is not selected for
+    # source evidence; its presence must not abort the entire review.
+    extra = "project_sources/collector/tools/check_environment.py"
+    extra_action = DOC["action"]["head_content"].replace(
+        "        python project_sources/collector/tools/run_powershell_analyzer.py",
+        f"        python {extra} --probe\n"
+        "        python project_sources/collector/tools/run_powershell_analyzer.py", 1,
+    )
+    probe = {"path": FOCUS, "text": extra_action,
+             "item": {"filename": FOCUS, "patch": DOC["action"]["patch"]}}
+    assert enrich_first_pass_contexts([probe], BAD, fetch, max_files=1) == 1
+    assert extra in build(FOCUS, extra_action, BAD, fetch)["direct_paths"]
+    assert extra not in probe["item"]["_dcoir_exact_head_dependency_paths"]
+    assert "_dcoir_source_inventory_candidate" not in probe["item"]
+    # Selected verifier scripts still fail closed if their HEAD source is
+    # unavailable; excluding benign helpers must not weaken that protection.
+    verifier = "project_sources/collector/tools/verify_missing_contract.py"
+    guarded = DOC["action"]["head_content"].replace(
+        "        python project_sources/collector/tools/run_powershell_analyzer.py",
+        f"        python {verifier}\n"
+        "        python project_sources/collector/tools/run_powershell_analyzer.py", 1,
+    )
+    try:
+        enrich_first_pass_contexts([
+            {"path": FOCUS, "text": guarded, "item": dict(item)}
+        ], BAD, fetch, max_files=1)
+    except RuntimeError as exc:
+        assert "exact-head executable dependency unavailable" in str(exc)
+    else:
+        raise AssertionError("Unfetched selected verifier must fail closed")
+
     limited = build(FOCUS, DOC["safe_after_repair"]["head_content"], SAFE, fetch,
                     max_fetches=1)
     assert "direct-script-budget-exceeded" in limited["errors"]

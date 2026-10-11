@@ -10,7 +10,7 @@ import ast
 import hashlib
 import re
 
-from dcoir_review.source_inventory_contract import _COMMAND, _git_freshness_comparator
+from dcoir_review.source_inventory_contract import _COMMAND
 
 _HEAD = re.compile(r"^[0-9a-f]{40}$")
 _CALLERS = (
@@ -193,13 +193,13 @@ def detect_inventory_coverage_candidate(
     anchor = _anchor_added_python_call(patch, head_source, executable)
     if not anchor or anchor != call_line:
         return None
-    # A directly invoked structurally supported preflight makes this safe.
+    # Any other direct Python executable before the analyzer might supply
+    # an inventory freshness gate. Do not promote a risk we cannot disprove.
     for i, line in enumerate(head_source.splitlines(), 1):
         if i >= anchor:
             break
-        for match in _COMMAND.finditer(line):
-            if _git_freshness_comparator(dependencies.get(match.group("path"), "")):
-                return None
+        if not line.lstrip().startswith("#") and _COMMAND.search(line):
+            return None
     if not _existence_only_required_surfaces(
         caller_sources.get(_SURFACE_ACTION, ""),
         caller_sources.get(_SURFACE_SCRIPT, ""),

@@ -155,8 +155,6 @@ def _two_ci_routes(focus_path: str, sources: dict[str, str]) -> bool:
         before = "\n".join(lines[:action_lines[0]])
         if "uses: ./.github/actions/verify-required-surfaces" not in before:
             return False
-        # Unknown earlier gate => abstain, even when our first-pass heuristic
-        # classified it as existence-only. This check is intentionally strict.
         if re.search(
             r"(?i)(?:verify[-_ ]+(?:source[-_ ]+)?inventory|"
             r"check[-_ ]+(?:powershell[-_ ]+)?inventory|git\s+ls-files)",
@@ -210,11 +208,15 @@ def verify_source_inventory_for_promotion(
     expected_command = "python project_sources/collector/tools/run_powershell_analyzer.py"
     if line > len(action) or not action[line - 1].strip().startswith(expected_command + " "):
         return None
-    # A safety check added before the analyzer invalidates the diagnosis.
+    # Conservatively abstain on shell or auxiliary source-coverage logic
+    # before the analyzer; proving it harmless requires separate inspection.
     before = "\n".join(action[:line-1])
     if re.search(
-        r"(?im)^\s*(?:python|py|pwsh)\s+[^\n]*"
-        r"(?:verify_powershell_surface_inventory|(?:verify|check)[^\n]*inventory|git\s+ls-files)",
+        r"(?im)(?:\bls-files\b|\bCompare-Object\b|"
+        r"\bGet-ChildItem\b[^\n]*\.(?:ps1|psm1|psd1)\b|"
+        r"(?:Get-Content|ConvertFrom-Json)[^\n]*(?:inventory|surfaces)|"
+        r"\b(?:python|py)\s+[^\n]*\.py\b|"
+        r"^\s*pwsh\s+[^\n]*(?:verify|check)[^\n]*inventory)",
         before,
     ):
         return None
@@ -230,8 +232,6 @@ def verify_source_inventory_for_promotion(
         "path": path,
         "line": line,
         "severity": "high",
-        # This value satisfies the existing review filter; it is a policy gate,
-        # not a statistically calibrated probability of a real-world defect.
         "confidence": 0.95,
         "title": "Inventory-only PowerShell analysis can skip new tracked sources",
         "body": (

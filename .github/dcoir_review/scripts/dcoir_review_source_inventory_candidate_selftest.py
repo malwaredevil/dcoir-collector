@@ -84,6 +84,23 @@ def main() -> None:
         alter(dependencies={}),
         alter(caller_sources={}),
     ])
+    # Codex P1: a genuinely added auxiliary Python helper BEFORE analyzer
+    # may perform an unknown inventory gate. Even with a valid updated
+    # changed-RIGHT anchor, do not issue a deterministic HIGH candidate.
+    analyzer = "project_sources/collector/tools/run_powershell_analyzer.py"
+    helper = "project_sources/collector/tools/check_environment.py"
+    original_command = "        python " + analyzer
+    new_source = args["head_source"].replace(
+        original_command, "        python " + helper + " --guard\n" + original_command, 1
+    )
+    new_patch = args["patch"].replace(
+        "+" + original_command,
+        "+        python " + helper + " --guard\n+" + original_command, 1,
+    )
+    from dcoir_review.source_inventory_candidate import _anchor_added_python_call
+    assert new_source != args["head_source"] and new_patch != args["patch"]
+    assert _anchor_added_python_call(new_patch, new_source, analyzer) == 37
+    mutations.append(alter(head_source=new_source, patch=new_patch))
     # Changed RIGHT-side anchor must remain at the *actual* source line.
     mutations.append(alter(patch=args["patch"].replace("+        python", "+    python")))
     # One caller removed, one protected by an independently invoked checker,
