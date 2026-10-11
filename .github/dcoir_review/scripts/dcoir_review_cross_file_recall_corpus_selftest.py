@@ -42,6 +42,13 @@ def main() -> None:
         assert case["expected"] in {"finding", "clean"}
         assert case["defect_class"] and case["counterexample"] and case["supporting_contract"]
         assert case["focus_source"] and "def " in case["focus_source"]
+        if case["id"] == "fresh-tracked-inventory-verified":
+            # A benign control must import every referenced helper; the prior
+            # synthetic snippet did not, producing a legitimate NameError alert.
+            assert "from tools.analyzer_runtime import analyze, report_success" in case["focus_source"]
+            assert "from tools.inventory_gate import git_tracked_source_paths" in case["focus_source"]
+            assert "import json" not in case["focus_source"]
+            assert case.get("synthetic_fixture_revision") == "v2-imported-helpers"
         if case["expected"] == "finding":
             assert len(case["match_groups"]) >= 2
         else:

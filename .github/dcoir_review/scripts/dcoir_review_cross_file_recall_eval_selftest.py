@@ -52,7 +52,11 @@ def main() -> int:
         assert not evaluation.score(case, {"ok": True, "result": {"findings": [good, good]}})["correct"]
         if case["severity"] == "P1":
             too_low = dict(good, severity="low")
-            assert not evaluation.score(case, {"ok": True, "result": {"findings": [too_low]}})["correct"]
+            rescored = evaluation.score(case, {"ok": True, "result": {"findings": [too_low]}})
+            assert not rescored["correct"]
+            assert rescored["root_cause_detected"] is True
+            assert rescored["severity_aligned"] is False
+            assert rescored["disposition"] == "severity-understated"
         assert evaluation.score(case, {"ok": True, "result": {"findings": []}})["disposition"] == "false-negative"
         invalid = sample_finding(case, line=999)
         assert not evaluation.score(case, {"ok": True, "result": {"findings": [invalid]}})["correct"]

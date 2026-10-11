@@ -121,7 +121,9 @@ def prompts(case: dict[str, Any], config: Any) -> dict[str, str]:
     return {"baseline": baseline, "enhanced": enhanced}
 
 
-def _finding_matches(case: dict[str, Any], finding: Any, valid_lines: set[int]) -> bool:
+def _finding_matches(
+    case: dict[str, Any], finding: Any, valid_lines: set[int], *, require_severity: bool = True
+) -> bool:
     if not isinstance(finding, dict) or finding.get("path") != case["focus_path"]:
         return False
     try:
@@ -131,7 +133,7 @@ def _finding_matches(case: dict[str, Any], finding: Any, valid_lines: set[int]) 
     if line not in valid_lines:
         return False
     severity = str(finding.get("severity", "") or "").lower()
-    if case.get("severity") == "P1" and severity not in {"high", "critical"}:
+    if require_severity and case.get("severity") == "P1" and severity not in {"high", "critical"}:
         return False
     prose = " ".join(str(finding.get(key, "") or "") for key in ("title", "body", "validation")).lower()
     return all(any(term.lower() in prose for term in group) for group in case.get("match_groups", []))
@@ -147,14 +149,32 @@ def score(case: dict[str, Any], response: dict[str, Any]) -> dict[str, Any]:
     if case["expected"] == "clean":
         return {"correct": not findings, "disposition": "clean" if not findings else "false-positive", "matched": 0, "extra": len(findings)}
     valid_lines = {line for line, _ in mutation.added_lines(focus_patch(case))}
-    matches = [idx for idx, finding in enumerate(findings) if _finding_matches(case, finding, valid_lines)]
-    # One root cause per positive fixture. Duplicate matching comments do
-    # not improve recall; they are extra review noise for this benchmark.
-    extras = len(findings) - int(bool(matches))
+    root_matches = [
+        idx for idx, finding in enumerate(findings)
+        if _finding_matches(case, finding, valid_lines, require_severity=False)
+    ]
+    severity_matches = [
+        idx for idx, finding in enumerate(findings)
+        if _finding_matches(case, finding, valid_lines, require_severity=True)
+    ]
+    # Separate recognition of the substantive changed-line defect from its
+    # severity calibration. A medium-severity finding can recognize a P1
+    # defect while still failing the high-severity publication requirement.
+    # Additional comments are recorded separately, not called false positives.
+    extras = len(findings) - int(bool(root_matches))
+    if not root_matches:
+        disposition = "false-negative"
+    elif not severity_matches:
+        disposition = "severity-understated"
+    else:
+        disposition = "found-with-extras" if extras else "found"
     return {
-        "correct": bool(matches) and extras == 0,
-        "disposition": ("found" if extras == 0 else "found-with-extras") if matches else "false-negative",
-        "matched": len(matches),
+        "correct": bool(severity_matches) and extras == 0,
+        "disposition": disposition,
+        "matched": len(severity_matches),
+        "root_cause_detected": bool(root_matches),
+        "root_cause_matches": len(root_matches),
+        "severity_aligned": bool(severity_matches),
         "extra": extras,
     }
 
@@ -212,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
         {
             "case_id": case["id"],
             "expected": case["expected"],
+            "fixture_revision": case.get("synthetic_fixture_revision", "v1"),
             "scheduled_variants": list(modes_for(case)),
             "prompts": {
                 mode: {"chars": len(prompt), "sha256": hashlib.sha256(prompt.encode("utf-8")).hexdigest()}
@@ -222,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
     ]
     report: dict[str, Any] = {
         "schema_version": REPORT_SCHEMA,
+        "scoring_contract": "v2-distinguish-root-cause-from-P1-severity",
         "mode": "live" if args.execute_live else "plan",
         "model": candidate["model"],
         "candidate_id": candidate["id"],

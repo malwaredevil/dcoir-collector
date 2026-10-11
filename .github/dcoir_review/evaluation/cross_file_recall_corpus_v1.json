@@ -137,13 +137,14 @@
         "reference": "https://github.com/malwaredevil/dcoir-collector/pull/617"
       },
       "focus_path": "tools/run_analyzer.py",
-      "changed_diff": "diff --git a/tools/run_analyzer.py b/tools/run_analyzer.py\nindex 1111111..3333333 100644\n--- a/tools/run_analyzer.py\n+++ b/tools/run_analyzer.py\n@@ -1,6 +1,9 @@\n import json\n def run():\n-    paths = json.load(open('state/source_inventory.json'))['paths']\n+    paths = git_tracked_source_paths()\n+    assert_exact_inventory_match('state/source_inventory.json', paths)\n     for target in paths:\n         analyze(target)\n+    report_success()\n     return True\ndiff --git a/ops/Invoke-Inspect.ps1 b/ops/Invoke-Inspect.ps1\nnew file mode 100644\nindex 0000000..3333333\n--- /dev/null\n+++ b/ops/Invoke-Inspect.ps1\n@@ -0,0 +1,1 @@\n+Write-Output 'safe'\n",
+      "changed_diff": "diff --git a/tools/run_analyzer.py b/tools/run_analyzer.py\nindex 1111111..3333333 100644\n--- a/tools/run_analyzer.py\n+++ b/tools/run_analyzer.py\n@@ -1,6 +1,9 @@\n-import json\n+from tools.analyzer_runtime import analyze, report_success\n+from tools.inventory_gate import git_tracked_source_paths, assert_exact_inventory_match\n def run():\n-    paths = json.load(open('state/source_inventory.json'))['paths']\n+    paths = git_tracked_source_paths()\n+    assert_exact_inventory_match('state/source_inventory.json', paths)\n     for target in paths:\n         analyze(target)\n+    report_success()\n     return True\ndiff --git a/ops/Invoke-Inspect.ps1 b/ops/Invoke-Inspect.ps1\nnew file mode 100644\nindex 0000000..3333333\n--- /dev/null\n+++ b/ops/Invoke-Inspect.ps1\n@@ -0,0 +1,1 @@\n+Write-Output 'safe'\n",
       "supporting_contract": "Fresh Git-tracked source discovery and semantic hashes must match committed inventory before analyzer runs; missing or renamed scripts block. No unsafe command is present.",
       "expected_anchor": "",
       "related_path": "ops/Invoke-Inspect.ps1",
       "counterexample": "Benign added source appears in the checked inventory and the pre-scan verifier fails closed on mismatches.",
       "safe_control_id": "",
-      "focus_source": "import json\ndef run():\n    paths = git_tracked_source_paths()\n    assert_exact_inventory_match('state/source_inventory.json', paths)\n    for target in paths:\n        analyze(target)\n    report_success()\n    return True\n"
+      "focus_source": "from tools.analyzer_runtime import analyze, report_success\nfrom tools.inventory_gate import git_tracked_source_paths, assert_exact_inventory_match\n\ndef run():\n    paths = git_tracked_source_paths()\n    assert_exact_inventory_match('state/source_inventory.json', paths)\n    for target in paths:\n        analyze(target)\n    report_success()\n    return True\n",
+      "synthetic_fixture_revision": "v2-imported-helpers"
     },
     {
       "id": "git-discovery-error-fails-closed",

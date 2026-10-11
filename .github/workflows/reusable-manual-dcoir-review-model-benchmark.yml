@@ -267,12 +267,20 @@ jobs:
               rows = [row for row in data.get("results", []) if row.get("variant") == variant]
               findings = [row for row in rows if labels.get(row.get("case_id")) == "finding"]
               clean = [row for row in rows if labels.get(row.get("case_id")) == "clean"]
-              detected = sum(bool(row.get("score", {}).get("matched")) for row in findings)
+              recognized = sum(
+                  bool(row.get("score", {}).get("root_cause_detected", row.get("score", {}).get("matched")))
+                  for row in findings
+              )
+              severity_aligned = sum(
+                  bool(row.get("score", {}).get("severity_aligned", row.get("score", {}).get("matched")))
+                  for row in findings
+              )
               false_positives = sum(row.get("score", {}).get("disposition") == "false-positive" for row in clean)
               request_errors = sum(row.get("score", {}).get("disposition") in {"request-error", "schema-error"} for row in rows)
               result.append(
-                  f"- {variant}: positive detections={detected}/{len(findings)}, "
-                  f"clean-case false positives={false_positives}/{len(clean)}, "
+                  f"- {variant}: root cause recognized={recognized}/{len(findings)}, "
+                  f"severity aligned={severity_aligned}/{len(findings)}, "
+                  f"clean-case alerts={false_positives}/{len(clean)}, "
                   f"request/schema errors={request_errors}, requests={len(rows)}"
               )
           out = folder / ("benchmark_live_summary.md" if live.is_file() else "benchmark_plan_summary.md")
