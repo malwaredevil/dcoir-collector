@@ -74,10 +74,16 @@ def reuse_material(
         pr, context["item"], context["text"], diff, config, path_sentinels, review_mode
     )
     prompt_sha = sha_text(prompt)
+    item = context.get("item", {})
+    expanded_paths = (
+        item.get("_dcoir_exact_head_dependency_paths", []) if isinstance(item, dict) else []
+    )
+    if not isinstance(expanded_paths, list):
+        expanded_paths = []
     dependency_context = {
         "contract": DEPENDENCY_CONTRACT,
-        "mode": DEPENDENCY_MODE,
-        "expanded_paths": [],
+        "mode": "exact-head-source-excerpts-v1" if expanded_paths else DEPENDENCY_MODE,
+        "expanded_paths": expanded_paths,
         "semantic_prompt_sha256": prompt_sha,
     }
     material = {

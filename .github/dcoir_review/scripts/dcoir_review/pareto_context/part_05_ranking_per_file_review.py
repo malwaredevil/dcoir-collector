@@ -73,7 +73,12 @@ def build_per_file_review_prompt(
     added_lines = added_diff_lines_for_path(diff, path)
     added_line_block = "\n".join(f"{line.line}: {line.text}" for line in added_lines[:80]) or "(no added lines parsed)"
     sentinel_block = hardened.risk_sentinel_block(path_sentinels, config) if path_sentinels else "No deterministic risk anchors detected for this file."
-    cross_file_contract_context = build_cross_file_contract_context(path, diff)
+    exact_head_evidence = item.get("_dcoir_exact_head_dependency_evidence", "")
+    if not isinstance(exact_head_evidence, str) or len(exact_head_evidence) > 2100:
+        exact_head_evidence = ""
+    cross_file_contract_context = build_cross_file_contract_context(
+        path, diff, max_chars=1050 if exact_head_evidence else 2200
+    )
     prompt = f"""
 Context mode: {review_mode}
 Per-file detector pass for `{path}`.
@@ -86,6 +91,8 @@ Specialized review instructions:
 {file_specialization(path, file_text)}
 
 {cross_file_contract_context}
+
+{exact_head_evidence}
 
 Review rules:
 - Review this single file deeply using the full file context and the file diff.
@@ -160,6 +167,7 @@ def review_single_file_context(
             "path": path,
             "prompt_chars": len(prompt),
             "cross_file_contract_cues_present": "Cross-file contract review cues" in prompt,
+            "exact_head_source_paths": list(context["item"].get("_dcoir_exact_head_dependency_paths", [])),
             "risk_sentinel_count": len(path_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(path_sentinels) if path_sentinels else "",
         },

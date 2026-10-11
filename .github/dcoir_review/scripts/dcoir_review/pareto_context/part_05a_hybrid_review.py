@@ -2,6 +2,7 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
     run_bounded_saturation_recovery,
     run_credit_aware_primary_wave,
 )
+from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
 
 
 def _is_transient_inflight_credit_saturation_error(exc: Exception) -> bool:
@@ -39,7 +40,13 @@ def openrouter_review_with_hybrid_first_pass(
         prompt = build_prompt(pr, files, diff, config, risk_sentinels, deep_context_block, review_mode, context_summary)
         return hardened.openrouter_review_with_quality_retry(prompt, schema, config, reporter, risk_sentinels, line_index)
 
-    reporter.update("per-file", f"running first-pass detector across {len(contexts)} file prompt(s)")
+    # Bounded immutable HEAD context; no additional model calls.
+    enriched_count = enrich_first_pass_contexts(
+        contexts, str(pr.get("head", {}).get("sha", "") or ""),
+        lambda path, ref: fetch_pr_file_text(gh, path, ref),
+    )
+
+    reporter.update("per-file", f"running first-pass detector across {len(contexts)} file prompt(s); exact-head dependencies={enriched_count}")
     per_file_manifest = "\n".join(
         [
             "Per-file first-pass detector prompt manifest.",
@@ -55,6 +62,7 @@ def openrouter_review_with_hybrid_first_pass(
         {
             "prompt_mode": "per-file",
             "file_prompt_count": len(contexts),
+            "exact_head_dependency_prompt_count": enriched_count,
             "risk_sentinel_count": len(risk_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(risk_sentinels) if risk_sentinels else "",
             "line_index_entries": len(line_index),
