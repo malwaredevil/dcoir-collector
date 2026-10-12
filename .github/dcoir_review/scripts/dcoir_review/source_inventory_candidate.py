@@ -10,7 +10,7 @@ import ast
 import hashlib
 import re
 
-from dcoir_review.source_inventory_contract import _COMMAND
+from dcoir_review.source_inventory_contract import _python_command_sources, _logical_shell_commands
 
 _HEAD = re.compile(r"^[0-9a-f]{40}$")
 _CALLERS = (
@@ -87,7 +87,7 @@ def _anchor_added_python_call(patch: str, source: str, analyzer_path: str) -> in
     lines = source.splitlines()
     hunk = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
     right = None
-    anchors = []
+    added: set[int] = set()
     for line in patch.splitlines():
         if line.startswith("@@"):
             match = hunk.match(line)
@@ -96,19 +96,18 @@ def _anchor_added_python_call(patch: str, source: str, analyzer_path: str) -> in
         if right is None or line.startswith(("diff --git ", "---", "+++")):
             continue
         if line.startswith("+"):
-            body = line[1:]
-            if (analyzer_path in body
-                    and any(hit.group("path") == analyzer_path for hit in _COMMAND.finditer(body))
-                    and 1 <= right <= len(lines)
-                    and lines[right - 1] == body):
-                anchors.append(right)
+            if 1 <= right <= len(lines) and lines[right - 1] == line[1:]:
+                added.add(right)
             right += 1
         elif line.startswith(" "):
             right += 1
-        elif line.startswith("-"):
-            continue
-        elif line.startswith("\\"):
-            continue
+    # A continued invocation is only a changed-line finding when ALL physical
+    # lines carrying it are in the added RIGHT-side hunk, not unchanged context.
+    anchors = [
+        start for start, end, command in _logical_shell_commands(source)
+        if all(line in added for line in range(start, end + 1))
+        and analyzer_path in _python_command_sources(command)[0]
+    ]
     return anchors[0] if len(anchors) == 1 else 0
 
 
@@ -181,11 +180,10 @@ def detect_inventory_coverage_candidate(
     ):
         return None
     analyzer_cmds = [
-        (i, hit.group("path"))
-        for i, line in enumerate(head_source.splitlines(), 1)
-        if not line.lstrip().startswith("#")
-        for hit in _COMMAND.finditer(line)
-        if "run_powershell_analyzer" in hit.group("path")
+        (i, path)
+        for i, _end, command in _logical_shell_commands(head_source)
+        for path in _python_command_sources(command)[0]
+        if "run_powershell_analyzer" in path
     ]
     if len(analyzer_cmds) != 1:
         return None
@@ -195,10 +193,11 @@ def detect_inventory_coverage_candidate(
         return None
     # Any other direct Python executable before the analyzer might supply
     # an inventory freshness gate. Do not promote a risk we cannot disprove.
-    for i, line in enumerate(head_source.splitlines(), 1):
+    for i, _end, command in _logical_shell_commands(head_source):
         if i >= anchor:
             break
-        if not line.lstrip().startswith("#") and _COMMAND.search(line):
+        paths, unresolved = _python_command_sources(command)
+        if paths or unresolved:
             return None
     if not _existence_only_required_surfaces(
         caller_sources.get(_SURFACE_ACTION, ""),
@@ -261,7 +260,7 @@ def attach_source_inventory_candidate(
         return None
     focus_path = str(context.get("path", ""))
     if (not re.fullmatch(r"\.github/actions/[A-Za-z0-9_-]+/action\.ya?ml", focus_path)
-            or "run_powershell_analyzer.py" not in str(item.get("patch", ""))):
+            or "run_powershell_analyzer" not in str(item.get("patch", ""))):
         return None
     if not isinstance(item.get("patch"), str):
         return None

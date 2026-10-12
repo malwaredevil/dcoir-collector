@@ -14,6 +14,9 @@ from dcoir_review.exact_head_dependency_evidence import (
     enrich_first_pass_contexts,
     valid_source_path,
 )
+from dcoir_review.source_inventory_contract import (
+    MAX_SOURCE_CHARS, _potential_pre_analyzer_guard, _logical_shell_commands,
+)
 from dcoir_review import semantic_context_runtime as runtime
 import openrouter_pr_review_pareto_context as review
 
@@ -35,6 +38,178 @@ def main() -> None:
         log.append((sha, path))
         return all_sources[sha][path]
 
+    # Copilot P1: locally executed -m analyzer is mandatory exact-HEAD code,
+    # never silently accepted as an optional import or absent Python source.
+    dotted = "project_sources.collector.tools.run_powershell_analyzer"
+    module_cmd = "python -m " + dotted
+    module_src = DOC["action"]["head_content"].replace(
+        "python " + ROOT, module_cmd, 1,
+    )
+    assert module_src != DOC["action"]["head_content"]
+    for invocation in (
+        module_cmd, "python3.11 -m " + dotted,
+        "py -3.11 -m " + dotted,
+        "python -I -m " + dotted,
+        'python -m "' + dotted + '"',
+        "python -m" + dotted,
+        'python "-m" ' + dotted,
+        "python '-m' " + dotted,
+    ):
+        action = DOC["action"]["head_content"].replace("python " + ROOT, invocation, 1)
+        proof = build(FOCUS, action, BAD, fetch)
+        assert ROOT in proof["required_paths"] and ROOT in proof["paths"], (
+            "python -m executable bypassed immutable source check", invocation, proof
+        )
+        assert proof["coverage_guard"] == "not-evidenced-in-action", (invocation, proof)
+    # Copilot third P1 reproduction: pwsh's backtick continues one Python
+    # invocation across two physical YAML run lines, not two commands.
+    continued = "python " + chr(96) + "\n        -m " + dotted
+    continued_bad = DOC["action"]["head_content"].replace(
+        "python " + ROOT, continued, 1,
+    )
+    continued_evidence = build(FOCUS, continued_bad, BAD, fetch)
+    assert ROOT in continued_evidence["required_paths"], (
+        "pwsh continuation bypassed mandatory exact-head module source",
+        continued_evidence,
+    )
+    assert ROOT in continued_evidence["paths"], continued_evidence
+    assert continued_evidence["coverage_guard"] == "not-evidenced-in-action"
+    # Doubled backticks are a literal backtick, not a continued command.
+    assert len(_logical_shell_commands(
+        "python " + chr(96) * 2 + "\n        -m " + dotted
+    )) == 2
+    assert len(_logical_shell_commands(continued)) == 1
+    safe_continued = DOC["safe_after_repair"]["head_content"].replace(
+        "python " + ROOT, continued, 1,
+    )
+    safe_continued_evidence = build(FOCUS, safe_continued, SAFE, fetch)
+    assert ROOT in safe_continued_evidence["required_paths"]
+    assert safe_continued_evidence["coverage_guard"] == "pre-analyzer-structural-check"
+    # A preceding continued Python module may be an unseen guard: never
+    # publish deterministic HIGH before proving it is not a safety preflight.
+    assert _potential_pre_analyzer_guard([
+        "        python " + chr(96),
+        "          -m project_sources.collector.tools.unknown_precheck",
+    ])
+    assert _potential_pre_analyzer_guard(["        python " + chr(96)])
+    assert not _potential_pre_analyzer_guard(["        $ErrorActionPreference = 'Stop'"])
+
+    safe_module = DOC["safe_after_repair"]["head_content"].replace(
+        "python " + ROOT, module_cmd, 1,
+    )
+    assert safe_module != DOC["safe_after_repair"]["head_content"]
+    safe_module_proof = build(FOCUS, safe_module, SAFE, fetch)
+    assert safe_module_proof["coverage_guard"] == "pre-analyzer-structural-check"
+    for safe_invocation in (
+        "python -m" + dotted,
+        'python "-m" ' + dotted,
+        "python '-m' " + dotted,
+    ):
+        safe_action = DOC["safe_after_repair"]["head_content"].replace(
+            "python " + ROOT, safe_invocation, 1,
+        )
+        safe_evidence = build(FOCUS, safe_action, SAFE, fetch)
+        assert ROOT in safe_evidence["required_paths"]
+        assert safe_evidence["coverage_guard"] == "pre-analyzer-structural-check", (
+            safe_invocation, safe_evidence
+        )
+
+    for unknown in (
+        "python -m external.analyzer",
+        "python -X utf8 -m " + dotted,
+        "python -m $env:ANALYZER",
+        "python " + chr(96) + "\n        -m $env:ANALYZER",
+        "python " + chr(96) + "\n        $env:SCRIPT",
+        "python " + chr(96) * 3 + "\n        -m " + dotted,
+        "python -m" + dotted + "$env:SUFFIX",
+        'python "-m" ' + dotted + "${SUFFIX}",
+        'python "-m' + dotted + '"',
+        "python -m ../secret",
+        "python -m project_sources.collector.bad-name",
+    ):
+        action = DOC["action"]["head_content"].replace("python " + ROOT, unknown, 1)
+        evidence = build(FOCUS, action, BAD, fetch)
+        assert "unresolved-python-module-invocation" in evidence["errors"], (unknown, evidence)
+        try:
+            enrich_first_pass_contexts([
+                {"path": FOCUS, "text": action, "item": {"filename": FOCUS}}
+            ], BAD, fetch)
+        except RuntimeError as exc:
+            assert "exact-head executable dependency unavailable" in str(exc)
+        else:
+            raise AssertionError("unresolved direct module must fail closed: " + unknown)
+    unknown_local = "project_sources.collector.tools.no_such_analyzer"
+    absent = build(FOCUS, "python -m " + unknown_local, BAD, fetch)
+    assert "project_sources/collector/tools/no_such_analyzer.py" in absent["required_paths"]
+    assert not absent["paths"], "missing module source was treated as verified"
+    assert build(".github/workflows/simple-check.yml", "python -m external.analyzer", BAD, fetch)["errors"] == []
+
+    # Mixed script/module actions must require both executable sources, not
+    # silently skip an added -m module behind the preferred direct analyzer.
+    hidden_module = "project_sources.collector.tools.hidden_analyzer"
+    mixed_source = DOC["action"]["head_content"].replace(
+        "python " + ROOT,
+        "python -m " + hidden_module + "\n        python " + ROOT, 1,
+    )
+    missing_source = "project_sources/collector/tools/hidden_analyzer.py"
+    mixed = build(FOCUS, mixed_source, BAD, fetch)
+    assert ROOT in mixed["required_paths"] and missing_source in mixed["required_paths"]
+    assert missing_source not in mixed["paths"]
+    try:
+        enrich_first_pass_contexts([
+            {"path": FOCUS, "text": mixed_source, "item": {"filename": FOCUS}}
+        ], BAD, fetch)
+    except RuntimeError as exc:
+        assert "exact-head executable dependency unavailable" in str(exc)
+    else:
+        raise AssertionError("mixed direct/module action skipped a mandatory -m source")
+
+    known_module = "project_sources.collector.tools.powershell_analyzer_cli"
+    known_mix = DOC["action"]["head_content"].replace(
+        "python " + ROOT,
+        "python -m " + known_module + "\n        python " + ROOT, 1,
+    )
+    known_proof = build(FOCUS, known_mix, BAD, fetch)
+    assert "project_sources/collector/tools/powershell_analyzer_cli.py" in known_proof["required_paths"]
+    assert "project_sources/collector/tools/powershell_analyzer_cli.py" in known_proof["paths"]
+
+    # Copilot fourth P1: input accepted by GitHub can exceed the parser's
+    # strict size bound. A relevant action must fail closed, not look clean.
+    original = DOC["action"]["head_content"]
+    oversized_prefix = "#" + ("x" * 140_000) + "\n"
+    assert len(oversized_prefix) > MAX_SOURCE_CHARS
+    for reviewed_head, action in (
+        (BAD, original),
+        (SAFE, DOC["safe_after_repair"]["head_content"]),
+    ):
+        big = oversized_prefix + action  # executable occurs beyond parse limit
+        assert "python " + ROOT in big[MAX_SOURCE_CHARS:]
+        log.clear()
+        proof = build(FOCUS, big, reviewed_head, fetch)
+        assert "oversized-source-coverage-action" in proof["errors"], proof
+        assert not log, "oversized action should abort before dependency reads"
+        try:
+            enrich_first_pass_contexts([
+                {"path": FOCUS, "text": big, "item": {"filename": FOCUS}}
+            ], reviewed_head, fetch)
+        except RuntimeError as exc:
+            assert "exact-head executable dependency unavailable" in str(exc)
+        else:
+            raise AssertionError("oversized relevant action must fail closed")
+    # At the exact character limit the complete command remains parseable.
+    border = "#" + "x" * (MAX_SOURCE_CHARS - len(original) - 2) + "\n" + original
+    assert len(border) == MAX_SOURCE_CHARS
+    assert ROOT in build(FOCUS, border, BAD, fetch)["required_paths"]
+    # An otherwise ordinary action can hide the security-relevant command
+    # AFTER the parse limit. Scan relevance across full fetched source, then
+    # fail closed rather than trusting the truncated prefix.
+    hidden = build(".github/actions/custom-check/action.yml", oversized_prefix + original, BAD, fetch)
+    assert "oversized-source-coverage-action" in hidden["errors"]
+    # Ordinary unrelated workflows retain their existing opt-out behavior.
+    unrelated = build(".github/workflows/simple-check.yml", oversized_prefix, BAD, fetch)
+    assert not unrelated["errors"]
+
+    log.clear()
     first = build(FOCUS, DOC["action"]["head_content"], BAD, fetch)
     assert first["paths"] and ROOT in first["paths"]
     assert not first["errors"], first["errors"]
@@ -169,6 +344,65 @@ def main() -> None:
     else:
         raise AssertionError("Unfetched selected verifier must fail closed")
 
+    # A Python test/import dependency is optional context, not an executable
+    # explicitly required by an action. A readable but uninteresting sibling
+    # must not abort review of an entire many-file pull request.
+    optional_focus = "project_sources/collector/tools/test_run_powershell_analyzer_core.py"
+    optional_source = "from powershell_analyzer_execution import run\n"
+    optional_dep = "project_sources/collector/tools/powershell_analyzer_execution.py"
+    optional_reads: list[tuple[str, str]] = []
+    def optional_fetch(path: str, sha: str) -> str:
+        optional_reads.append((sha, path))
+        assert (sha, path) == (BAD, optional_dep)
+        return "def run():\n    return 42\n"  # valid source, no matching excerpt
+    optional = build(optional_focus, optional_source, BAD, optional_fetch)
+    assert optional["required_paths"] == [], optional
+    assert optional_dep in optional["attempted"], optional
+    assert not optional["paths"] and "no-bounded-source-evidence" in optional["errors"]
+    optional_context = {
+        "path": optional_focus, "text": optional_source,
+        "item": {"filename": optional_focus,
+                 "patch": "@@ -0,0 +1,1 @@\n+from powershell_analyzer_execution import run\n"},
+    }
+    assert enrich_first_pass_contexts([optional_context], BAD, optional_fetch) == 0
+    assert "_dcoir_exact_head_dependency_evidence" not in optional_context["item"]
+    # In contrast, an action-executed analyzer remains mandatory even when
+    # its content has no excerptable contract lines.
+    no_excerpt = lambda path, sha: "def main():\n    return 42\n"
+    required = build(FOCUS, "python " + ROOT, BAD, no_excerpt)
+    assert required["required_paths"] == [ROOT], required
+    try:
+        enrich_first_pass_contexts([
+            {"path": FOCUS, "text": "python " + ROOT,
+             "item": {"filename": FOCUS, "patch": DOC["action"]["patch"]}}
+        ], BAD, no_excerpt)
+    except RuntimeError:
+        pass
+    else:
+        raise AssertionError("Directly executed action source must fail closed")
+    # Full PR617 regression: the high-risk action was 23rd among changed
+    # contexts. It must be enriched even when six eligible ordinary imports
+    # appear first, without widening the six-context dependency budget.
+    many_contexts = []
+    for index in range(8):
+        name = f"project_sources/collector/tools/test_powershell_analyzer_mock_{index}.py"
+        snippet = "from powershell_analyzer_cli import load_inventory\n"
+        many_contexts.append({
+            "path": name, "text": snippet,
+            "item": {"filename": name,
+                     "patch": "@@ -0,0 +1,1 @@\n+from powershell_analyzer_cli import load_inventory\n"},
+        })
+    many_contexts.append({
+        "path": FOCUS, "text": DOC["action"]["head_content"],
+        "item": {"filename": FOCUS, "status": "modified", "patch": DOC["action"]["patch"]},
+    })
+    enriched = enrich_first_pass_contexts(many_contexts, BAD, fetch, max_files=6)
+    assert 0 < enriched <= 6, enriched
+    assert many_contexts[-1]["item"].get(
+        "_dcoir_source_inventory_candidate", {}
+    ).get("line") == 36, "a high-risk changed action was starved behind other contexts"
+    assert sum("_dcoir_exact_head_dependency_evidence" in ctx["item"]
+               for ctx in many_contexts) <= 6
     limited = build(FOCUS, DOC["safe_after_repair"]["head_content"], SAFE, fetch,
                     max_fetches=1)
     assert "direct-script-budget-exceeded" in limited["errors"]

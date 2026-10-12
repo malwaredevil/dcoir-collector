@@ -1,4 +1,5 @@
 from dcoir_review.source_inventory_promotion import integrate_verified_inventory_findings
+from dcoir_review import source_inventory_candidate_receipt as inventory_receipt
 
 
 def review_assist_context_path(raw_path: str) -> Path | None:
@@ -63,6 +64,7 @@ def main() -> None:
 
     schema = json.loads(base.read_text(".github/dcoir_review/schemas/openrouter-pr-review.schema.json"))
     gh = base.GitHubClient(token, repo)
+    inventory_receipt.begin(gh)
     reporter = hardened.ProgressReporter(gh, pr_number, command, config)
     reaction_id = 0
     reaction_status = {"added": "not attempted", "removed": "not attempted"}
@@ -174,6 +176,7 @@ def main() -> None:
             context_summary,
             gh,
         )
+        inventory_receipt.restore(gh, reviewed_commit, result)
         reporter.update("normalize", "mapping model findings to changed diff lines")
         findings, unanchored_findings = split_findings_with_review_body_fallback(result, config, line_index, diff, risk_sentinels)
         normalized_candidates = [dict(item) for item in findings if isinstance(item, dict)]

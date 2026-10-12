@@ -102,6 +102,61 @@ def main() -> None:
         v.update(updates)
         return v
 
+    # Module-mode analyzer execution must retain its changed-RIGHT line and
+    # source-backed candidate; a source-unknown guard before it must abstain.
+    module_call = "python -m project_sources.collector.tools.run_powershell_analyzer"
+    direct_call = "python project_sources/collector/tools/run_powershell_analyzer.py"
+    module_source = args["head_source"].replace(direct_call, module_call, 1)
+    module_patch = args["patch"].replace(direct_call, module_call, 1)
+    assert module_source != args["head_source"] and module_patch != args["patch"]
+    module_proof = build_exact_head_dependency_evidence(
+        args["focus_path"], module_source, args["reviewed_head"],
+        lambda path, ref: args["dependencies"][path],
+    )
+    assert module_proof["coverage_guard"] == "not-evidenced-in-action", module_proof
+    module_args = alter(
+        head_source=module_source, patch=module_patch,
+        action_guard_status=module_proof["coverage_guard"],
+    )
+    module_finding = detect(**module_args)
+    assert isinstance(module_finding, dict) and module_finding["line"] == 36, (
+        "module-mode changed analyzer did not produce real source-backed P1", module_finding
+    )
+    module_hunk = module_patch[module_patch.index("@@ "):]
+    module_item = {
+        "filename": args["focus_path"], "patch": module_hunk,
+        "_dcoir_source_coverage_guard": "not-evidenced-in-action",
+    }
+    module_context = {"path": args["focus_path"], "text": module_source, "item": module_item}
+    module_cache = {(args["reviewed_head"], path): content
+                    for path, content in args["dependencies"].items()}
+    assert attach_source_inventory_candidate(
+        module_context, args["reviewed_head"],
+        lambda path, ref: args["caller_sources"][path], module_cache
+    ) is not None, "module-mode REST hunk lost candidate"
+    uncertain_guard = "python -m project_sources.collector.tools.unknown_precheck"
+    guarded_module = module_source.replace(
+        "        " + module_call, "        " + uncertain_guard + "\n        " + module_call, 1,
+    )
+    guarded_patch = module_patch.replace(
+        "+        " + module_call, "+        " + uncertain_guard + "\n+        " + module_call, 1,
+    )
+    assert detect(**alter(head_source=guarded_module, patch=guarded_patch)) is None, (
+        "unknown pre-analyzer module must prevent deterministic HIGH promotion"
+    )
+    safe_args = arguments(safe, "safe")
+    safe_module = safe_args["head_source"].replace(direct_call, module_call, 1)
+    assert safe_module != safe_args["head_source"]
+    safe_module_patch = safe_args["patch"].replace(direct_call, module_call, 1)
+    safe_module_status = build_exact_head_dependency_evidence(
+        safe_args["focus_path"], safe_module, safe_args["reviewed_head"],
+        lambda path, ref: safe_args["dependencies"][path],
+    )["coverage_guard"]
+    assert safe_module_status == "pre-analyzer-structural-check"
+    assert detect(**{**safe_args, "head_source": safe_module,
+                     "patch": safe_module_patch,
+                     "action_guard_status": safe_module_status}) is None
+
     mutations.extend([
         alter(reviewed_head="main"),
         alter(reviewed_head=h.BAD_SHA.upper()),
