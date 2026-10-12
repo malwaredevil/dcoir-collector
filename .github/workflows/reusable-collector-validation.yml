@@ -152,6 +152,12 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
+    env:
+      # Prevent CPython from writing __pycache__/.pyc into the working tree.
+      # The "Check for packaging residue" step below fails the job when it
+      # finds such residue, and earlier Python steps (e.g. required-surface
+      # checks) would otherwise generate it before the check runs.
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
