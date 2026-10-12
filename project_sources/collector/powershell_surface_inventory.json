@@ -1033,13 +1033,13 @@
           "shell": "pwsh",
           "line_start": 35,
           "line_end": 52,
-          "command_sha256": "1595347b6a17dae250395c3702462e2df01a82e43dd6998101cf550ffb620508",
+          "command_sha256": "ae82c0a3c2d4c155a55ff1682dc52fdc39ae486a5346b64f0d92cdcb10c9c9e8",
           "command_preview": "$ErrorActionPreference = 'Stop'\npython project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --base"
         }
       ],
-      "size_bytes": 3525,
+      "size_bytes": 3567,
       "line_count": 54,
-      "sha256": "09a62842cb1a33bfdaedefc40360c1df9c4799ec4786e9b473d969440a84eed7"
+      "sha256": "799e666b905b4455dd71bdea0f06bbda3f0aa8e230416a67bf33aba1a6009b64"
     },
     {
       "path": ".github/actions/run-validate-dcoir-fixtures/action.yml",
