@@ -48,6 +48,9 @@ def main() -> None:
         "py -3.11 -m " + dotted,
         "python -I -m " + dotted,
         'python -m "' + dotted + '"',
+        "python -m" + dotted,
+        'python "-m" ' + dotted,
+        "python '-m' " + dotted,
     ):
         action = DOC["action"]["head_content"].replace("python " + ROOT, invocation, 1)
         proof = build(FOCUS, action, BAD, fetch)
@@ -61,11 +64,27 @@ def main() -> None:
     assert safe_module != DOC["safe_after_repair"]["head_content"]
     safe_module_proof = build(FOCUS, safe_module, SAFE, fetch)
     assert safe_module_proof["coverage_guard"] == "pre-analyzer-structural-check"
+    for safe_invocation in (
+        "python -m" + dotted,
+        'python "-m" ' + dotted,
+        "python '-m' " + dotted,
+    ):
+        safe_action = DOC["safe_after_repair"]["head_content"].replace(
+            "python " + ROOT, safe_invocation, 1,
+        )
+        safe_evidence = build(FOCUS, safe_action, SAFE, fetch)
+        assert ROOT in safe_evidence["required_paths"]
+        assert safe_evidence["coverage_guard"] == "pre-analyzer-structural-check", (
+            safe_invocation, safe_evidence
+        )
 
     for unknown in (
         "python -m external.analyzer",
         "python -X utf8 -m " + dotted,
         "python -m $env:ANALYZER",
+        "python -m" + dotted + "$env:SUFFIX",
+        'python "-m" ' + dotted + "${SUFFIX}",
+        'python "-m' + dotted + '"',
         "python -m ../secret",
         "python -m project_sources.collector.bad-name",
     ):

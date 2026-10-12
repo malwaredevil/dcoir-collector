@@ -22,7 +22,7 @@ import dcoir_review_historical_recall_cases as historical
 def main(case_name: str) -> int:
     case = historical.cases()[0 if case_name.startswith("bad") else 1]
     large = case_name.endswith("-large")
-    module = case_name.endswith("-module")
+    module = "-module" in case_name
     path = case["focus_path"]
     full = case["changed_diff"]
     expected_header = f"diff --git a/{path} b/{path}"
@@ -36,12 +36,16 @@ def main(case_name: str) -> int:
         # Deliberate synthetic change atop genuine historic bad/safe source:
         # not an assertion about what was committed at the immutable SHA.
         direct = "python project_sources/collector/tools/run_powershell_analyzer.py"
-        dotted = "python -m project_sources.collector.tools.run_powershell_analyzer"
+        dotted = "project_sources.collector.tools.run_powershell_analyzer"
+        invocation = (
+            "python -m" + dotted if case_name.endswith("-attached")
+            else 'python "-m" ' + dotted if case_name.endswith("-quoted")
+            else "python -m " + dotted
+        )
         assert direct in source
-        source = source.replace(direct, dotted, 1)
-        # Repaired-safe PR617 modified its preflight guard; the analyzer
-        # invocation itself is unchanged context, not an added RIGHT hunk.
-        focus_diff = focus_diff.replace(direct, dotted, 1)
+        source = source.replace(direct, invocation, 1)
+        # The safe PR changed its preflight, not the analyzer command.
+        focus_diff = focus_diff.replace(direct, invocation, 1)
     hunk = focus_diff[focus_diff.index("@@ "):]
     entries = [{
         "path": path,
@@ -113,7 +117,9 @@ def main(case_name: str) -> int:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--case", choices=["bad", "safe", "bad-large", "safe-large",
-                                       "bad-module", "safe-module"], default=None)
+                                       "bad-module", "safe-module",
+                                       "bad-module-attached", "safe-module-attached",
+                                       "bad-module-quoted", "safe-module-quoted"], default=None)
     args = ap.parse_args()
     if args.case:
         raise SystemExit(main(args.case))
@@ -121,7 +127,9 @@ if __name__ == "__main__":
     # and imported reviewer modules, so the sibling control uses a new interpreter.
     import subprocess
     for label in ("bad", "safe", "bad-large", "safe-large",
-                  "bad-module", "safe-module"):
+                  "bad-module", "safe-module",
+                  "bad-module-attached", "safe-module-attached",
+                  "bad-module-quoted", "safe-module-quoted"):
         subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--case", label],
             check=True, timeout=120

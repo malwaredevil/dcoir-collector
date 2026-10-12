@@ -22,11 +22,11 @@ _PYTHON_INTERPRETER = re.compile(
 )
 _MODULE_RUN = re.compile(
     _PYTHON_INTERPRETER.pattern
-    + r"(?:\s+-(?:B|I|E|s|S|u|O)){0,3}\s+-m(?=\s|$)",
+    + r"""(?:\s+-(?:B|I|E|s|S|u|O)){0,3}\s+(?:-m|(?P<opt_quote>["'])-m(?P=opt_quote))(?=\s|[A-Za-z_]|["']|$)""",
     re.IGNORECASE,
 )
 _MODULE_NAME = re.compile(
-    r"""^\s*(?P<quote>["']?)(?P<name>[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)(?P=quote)(?![A-Za-z0-9_./-])"""
+    r"""^\s*(?P<quote>["']?)(?P<name>[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)(?P=quote)(?=$|\s|;|\||#)"""
 )
 
 
@@ -50,7 +50,7 @@ def _python_command_sources(line: str) -> tuple[list[str], bool]:
         if interpreter.start() in recognized_starts:
             continue
         tail = re.split(r"[;|#]", line[interpreter.end():], maxsplit=1)[0][:180]
-        if re.search(r"(?<!\S)-m(?=\s|$)", tail):
+        if re.search(r"""(?<![A-Za-z0-9_.-])["']?-m""", tail):
             unresolved = True
     for match in recognized:
         name_match = _MODULE_NAME.match(line[match.end():])
