@@ -14,6 +14,7 @@ from dcoir_review.exact_head_dependency_evidence import (
     enrich_first_pass_contexts,
     valid_source_path,
 )
+from dcoir_review.source_inventory_contract import _potential_pre_analyzer_guard, _logical_shell_commands
 from dcoir_review import semantic_context_runtime as runtime
 import openrouter_pr_review_pareto_context as review
 
@@ -58,6 +59,39 @@ def main() -> None:
             "python -m executable bypassed immutable source check", invocation, proof
         )
         assert proof["coverage_guard"] == "not-evidenced-in-action", (invocation, proof)
+    # Copilot third P1 reproduction: pwsh's backtick continues one Python
+    # invocation across two physical YAML run lines, not two commands.
+    continued = "python " + chr(96) + "\n        -m " + dotted
+    continued_bad = DOC["action"]["head_content"].replace(
+        "python " + ROOT, continued, 1,
+    )
+    continued_evidence = build(FOCUS, continued_bad, BAD, fetch)
+    assert ROOT in continued_evidence["required_paths"], (
+        "pwsh continuation bypassed mandatory exact-head module source",
+        continued_evidence,
+    )
+    assert ROOT in continued_evidence["paths"], continued_evidence
+    assert continued_evidence["coverage_guard"] == "not-evidenced-in-action"
+    # Doubled backticks are a literal backtick, not a continued command.
+    assert len(_logical_shell_commands(
+        "python " + chr(96) * 2 + "\n        -m " + dotted
+    )) == 2
+    assert len(_logical_shell_commands(continued)) == 1
+    safe_continued = DOC["safe_after_repair"]["head_content"].replace(
+        "python " + ROOT, continued, 1,
+    )
+    safe_continued_evidence = build(FOCUS, safe_continued, SAFE, fetch)
+    assert ROOT in safe_continued_evidence["required_paths"]
+    assert safe_continued_evidence["coverage_guard"] == "pre-analyzer-structural-check"
+    # A preceding continued Python module may be an unseen guard: never
+    # publish deterministic HIGH before proving it is not a safety preflight.
+    assert _potential_pre_analyzer_guard([
+        "        python " + chr(96),
+        "          -m project_sources.collector.tools.unknown_precheck",
+    ])
+    assert _potential_pre_analyzer_guard(["        python " + chr(96)])
+    assert not _potential_pre_analyzer_guard(["        $ErrorActionPreference = 'Stop'"])
+
     safe_module = DOC["safe_after_repair"]["head_content"].replace(
         "python " + ROOT, module_cmd, 1,
     )
@@ -82,6 +116,9 @@ def main() -> None:
         "python -m external.analyzer",
         "python -X utf8 -m " + dotted,
         "python -m $env:ANALYZER",
+        "python " + chr(96) + "\n        -m $env:ANALYZER",
+        "python " + chr(96) + "\n        $env:SCRIPT",
+        "python " + chr(96) * 3 + "\n        -m " + dotted,
         "python -m" + dotted + "$env:SUFFIX",
         'python "-m" ' + dotted + "${SUFFIX}",
         'python "-m' + dotted + '"',

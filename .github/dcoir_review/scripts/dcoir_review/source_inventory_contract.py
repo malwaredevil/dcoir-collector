@@ -30,6 +30,36 @@ _MODULE_NAME = re.compile(
 )
 
 
+def _logical_shell_commands(source: str) -> list[tuple[int, int, str]]:
+    """Join bounded PowerShell backtick continuations; retain physical line spans.
+
+    Returned line positions are 1-based and refer to the original reviewed
+    source. Never execute or interpolate the untrusted shell command text.
+    """
+    if not isinstance(source, str) or len(source) > MAX_SOURCE_CHARS:
+        return []
+    commands: list[tuple[int, int, str]] = []
+    pending = ""
+    start = 0
+    for number, line in enumerate(source.splitlines(), 1):
+        if not pending:
+            start = number
+        # Only an odd count of trailing backticks escapes the newline:
+        # doubled backticks represent a literal character in PowerShell.
+        ticks = len(line) - len(line.rstrip(chr(96)))
+        continued = bool(ticks % 2)
+        piece = line[:-1] if continued else line
+        pending += piece if number == start else piece.lstrip()
+        if continued:
+            pending += " "
+        else:
+            commands.append((start, number, pending))
+            pending = ""
+    if pending:
+        commands.append((start, number, pending))
+    return commands
+
+
 def _python_command_sources(line: str) -> tuple[list[str], bool]:
     """Return GitHub-repo Python sources invoked on this line and unknown modules.
 
@@ -119,7 +149,15 @@ def _potential_pre_analyzer_guard(prior_lines: list[str]) -> bool:
         before,
     ):
         return True
-    return any(any(_python_command_sources(line)) for line in prior_lines)
+    if prior_lines:
+        last = prior_lines[-1]
+        if (len(last) - len(last.rstrip(chr(96)))) % 2:
+            return True  # Unfinished invocation cannot prove safety.
+    return any(
+        bool(paths) or unresolved
+        for _start, _end, command in _logical_shell_commands("\n".join(prior_lines))
+        for paths, unresolved in (_python_command_sources(command),)
+    )
 
 
 def _coverage_invariant_note(
@@ -139,7 +177,7 @@ def _coverage_invariant_note(
     ):
         return "", "not-applicable"
     invocations = []
-    for number, line in enumerate(action.splitlines(), 1):
+    for number, _last, line in _logical_shell_commands(action):
         if line.lstrip().startswith("#"):
             continue
         invocations.extend(

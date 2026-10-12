@@ -17,6 +17,7 @@ from dcoir_review.source_inventory_contract import (
     MAX_SOURCE_CHARS,
     _python_command_sources,
     _python_module_sources,
+    _logical_shell_commands,
     _coverage_invariant_note,
 )
 
@@ -59,8 +60,8 @@ def _direct_scripts(path: str, source: str) -> list[str]:
     if not path.startswith((".github/actions/", ".github/workflows/")):
         return []
     candidates = {
-        executable for line in source.splitlines()
-        for executable in _python_command_sources(line)[0]
+        executable for _start, _end, command in _logical_shell_commands(source)
+        for executable in _python_command_sources(command)[0]
         if valid_source_path(executable)
     }
     # Prefer the actual analyzer over optional helpers, even if helpers have
@@ -166,7 +167,21 @@ def build_exact_head_dependency_evidence(
         return result
     # An unresolved -m invocation may hide a repository-local executable.
     # Fail closed only for source-coverage-relevant YAML, never infer "clean".
-    if is_yaml and any(_python_command_sources(line)[1] for line in focus_text.splitlines()):
+    if is_yaml and (
+        (focus_text.splitlines() and (
+            len(focus_text.splitlines()[-1])
+            - len(focus_text.splitlines()[-1].rstrip(chr(96)))
+        ) % 2)
+        or any(
+            unresolved or (
+                end > start and
+                re.search(r"(?<![A-Za-z0-9_.])(?:python|py)\b", command, re.I)
+                and not paths
+            )
+            for start, end, command in _logical_shell_commands(focus_text)
+            for paths, unresolved in (_python_command_sources(command),)
+        )
+    ):
         result["errors"].append("unresolved-python-module-invocation")
         return result
     budget = min(MAX_EVIDENCE_CHARS, max(0, int(max_chars)))
@@ -187,8 +202,8 @@ def build_exact_head_dependency_evidence(
     # An unknown pre-analyzer helper separately blocks HIGH promotion.
     candidates = [root]
     module_sources = {
-        path for line in focus_text.splitlines()
-        for path in _python_module_sources(line)
+        path for _start, _end, command in _logical_shell_commands(focus_text)
+        for path in _python_module_sources(command)
     }
     candidates.extend(
         path for path in seeds[1:]

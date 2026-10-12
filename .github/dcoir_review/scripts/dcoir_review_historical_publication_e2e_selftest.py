@@ -22,7 +22,7 @@ import dcoir_review_historical_recall_cases as historical
 def main(case_name: str) -> int:
     case = historical.cases()[0 if case_name.startswith("bad") else 1]
     large = case_name.endswith("-large")
-    module = "-module" in case_name
+    module = "-module" in case_name or case_name.endswith("-continued")
     path = case["focus_path"]
     full = case["changed_diff"]
     expected_header = f"diff --git a/{path} b/{path}"
@@ -38,14 +38,17 @@ def main(case_name: str) -> int:
         direct = "python project_sources/collector/tools/run_powershell_analyzer.py"
         dotted = "project_sources.collector.tools.run_powershell_analyzer"
         invocation = (
-            "python -m" + dotted if case_name.endswith("-attached")
+            "python " + chr(96) + "\n        -m " + dotted
+            if case_name.endswith("-continued")
+            else "python -m" + dotted if case_name.endswith("-attached")
             else 'python "-m" ' + dotted if case_name.endswith("-quoted")
             else "python -m " + dotted
         )
         assert direct in source
         source = source.replace(direct, invocation, 1)
         # The safe PR changed its preflight, not the analyzer command.
-        focus_diff = focus_diff.replace(direct, invocation, 1)
+        # Additional physical run lines require their own '+' in the diff.
+        focus_diff = focus_diff.replace(direct, invocation.replace("\n", "\n+"), 1)
     hunk = focus_diff[focus_diff.index("@@ "):]
     entries = [{
         "path": path,
@@ -119,7 +122,8 @@ if __name__ == "__main__":
     ap.add_argument("--case", choices=["bad", "safe", "bad-large", "safe-large",
                                        "bad-module", "safe-module",
                                        "bad-module-attached", "safe-module-attached",
-                                       "bad-module-quoted", "safe-module-quoted"], default=None)
+                                       "bad-module-quoted", "safe-module-quoted",
+                                       "bad-continued", "safe-continued"], default=None)
     args = ap.parse_args()
     if args.case:
         raise SystemExit(main(args.case))
@@ -129,7 +133,8 @@ if __name__ == "__main__":
     for label in ("bad", "safe", "bad-large", "safe-large",
                   "bad-module", "safe-module",
                   "bad-module-attached", "safe-module-attached",
-                  "bad-module-quoted", "safe-module-quoted"):
+                  "bad-module-quoted", "safe-module-quoted",
+                  "bad-continued", "safe-continued"):
         subprocess.run(
             [sys.executable, str(Path(__file__).resolve()), "--case", label],
             check=True, timeout=120

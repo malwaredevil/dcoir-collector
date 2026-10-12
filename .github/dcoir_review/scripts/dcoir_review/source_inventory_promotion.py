@@ -12,7 +12,7 @@ from typing import Any, Callable
 
 from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
 from dcoir_review.source_inventory_contract import (
-    _python_command_sources, _potential_pre_analyzer_guard,
+    _python_command_sources, _logical_shell_commands, _potential_pre_analyzer_guard,
 )
 
 _SOURCE_CLI = "project_sources/collector/tools/powershell_analyzer_cli.py"
@@ -210,11 +210,16 @@ def verify_source_inventory_for_promotion(
                     hashlib.sha256(source.encode("utf-8")).hexdigest()[:16] != claimed):
                 return None
     action = sources[path].splitlines()
-    # Accept either an explicit source script or a statically resolvable
-    # repository-local -m module. Never accept unsupported or dynamic targets.
+    # Verify exact-head Python source even for continued module commands.
     if line > len(action):
         return None
-    executed, unresolved = _python_command_sources(action[line - 1])
+    logical = next((
+        command for start, _end, command in _logical_shell_commands(sources[path])
+        if start == line
+    ), None)
+    if logical is None:
+        return None
+    executed, unresolved = _python_command_sources(logical)
     if unresolved or _RUNNER not in executed:
         return None
     if _potential_pre_analyzer_guard(action[:line-1]):
