@@ -5102,19 +5102,19 @@
       "decision_reason": "Workflow or composite-action YAML embeds PowerShell and needs later snippet-aware handling.",
       "exists": true,
       "marker_lines": [
-        176,
-        195,
-        272,
-        294,
-        318
+        182,
+        201,
+        278,
+        300,
+        324
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Check for packaging residue",
           "shell": "pwsh",
-          "line_start": 176,
-          "line_end": 189,
+          "line_start": 182,
+          "line_end": 195,
           "command_sha256": "99e9dc9d6747bbd2ad956be6af9d223cdd36eda4370d481d264c66b4d99dfede",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$residue = Get-ChildItem -Path . -Recurse -Force -File |\n  Where-Object {\n    $_.FullName.Contains('\\__pycache__\\') -or\n    $_.Extension -eq '.pyc' -or\n    $_.Name -eq '.DS_Store'\n  }\nif ($residue) {\n  $resid"
         },
@@ -5122,8 +5122,8 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Run documentation validator self-tests",
           "shell": "pwsh",
-          "line_start": 195,
-          "line_end": 201,
+          "line_start": 201,
+          "line_end": 207,
           "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
           "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
         },
@@ -5131,8 +5131,8 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Run selected collector harness suite",
           "shell": "pwsh",
-          "line_start": 272,
-          "line_end": 285,
+          "line_start": 278,
+          "line_end": 291,
           "command_sha256": "d9404111e33057f010979c4932939ab3cf1bbac3eddf03100b9ea1303bf13072",
           "command_preview": "$suite = $env:SELECTED_HARNESS_SUITE\n$harnessOutputRoot = [System.IO.Path]::GetFullPath((Join-Path $env:GITHUB_WORKSPACE $env:HARNESS_OUTPUT_ROOT))\npowershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests."
         },
@@ -5140,8 +5140,8 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Enforce FullRegression mission-readiness gate",
           "shell": "pwsh",
-          "line_start": 294,
-          "line_end": 306,
+          "line_start": 300,
+          "line_end": 312,
           "command_sha256": "f3d075c457af4bbe053a8d46cbc7647739ab7e209c78be3f16f8d3ea08024b25",
           "command_preview": ".\\.github\\dcoir_review\\scripts\\test-collector-fullregression-mission-readiness.ps1 `\n  -HarnessOutputRoot $env:HARNESS_OUTPUT_ROOT `\n  -SelectedSuite $env:SELECTED_HARNESS_SUITE `\n  -JsonOutputPath $env:MISSION_READINESS_JSON_OUTPUT `\n  -Ma"
         },
@@ -5149,15 +5149,15 @@
           "source_file": ".github/workflows/reusable-collector-validation.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 318,
-          "line_end": 356,
+          "line_start": 324,
+          "line_end": 362,
           "command_sha256": "a2e83b2ad555fa6807e038b04b82100c941b11194e5a3674eeea3b973904ea68",
           "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## $env:REPORT_TITLE\n\n- workflow: $env:WORKFLOW_NAME\n- validation_scope: $env:REPORT_SCOPE\n- workflow_run_id: $env:GITHU"
         }
       ],
-      "size_bytes": 13628,
-      "line_count": 364,
-      "sha256": "b49288673951750d454c1a8068906cf79c706b21fb71b2426bfd23a1a34c0a66"
+      "size_bytes": 13967,
+      "line_count": 370,
+      "sha256": "f779a175e6814cc53f53cd1b631b469917e4c6b19cdd75f0ce306a414cfd862b"
     },
     {
       "path": ".github/workflows/reusable-gemini-bundle-build.yml",
