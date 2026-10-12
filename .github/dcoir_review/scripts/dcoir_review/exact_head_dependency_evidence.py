@@ -162,8 +162,12 @@ def build_exact_head_dependency_evidence(
     # because those scripts contain no inventory-relevant excerpt lines.
     if is_yaml and not re.search(
         r"powershell|psscriptanalyzer|inventory|manifest|source[- _]?coverage|static[- _]?analy",
-        focus_path + "\n" + focus_text[:MAX_SOURCE_CHARS], re.IGNORECASE
+        focus_path + "\n" + focus_text, re.IGNORECASE
     ):
+        return result
+    # A truncated shell parse must never masquerade as no executable.
+    if is_yaml and len(focus_text) > MAX_SOURCE_CHARS:
+        result["errors"].append("oversized-source-coverage-action")
         return result
     # An unresolved -m invocation may hide a repository-local executable.
     # Fail closed only for source-coverage-relevant YAML, never infer "clean".
@@ -318,7 +322,8 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
         # Fail closed on unavailable *selected* source evidence, not unrelated helpers.
         if (any(error in evidence["errors"] for error in (
                     "direct-script-budget-exceeded", "coverage-invariant-exceeds-budget",
-                    "unresolved-python-module-invocation"))
+                    "unresolved-python-module-invocation",
+                    "oversized-source-coverage-action"))
                 or any(path not in evidence["paths"]
                        for path in evidence["required_paths"])):
             raise RuntimeError("exact-head executable dependency unavailable for review")

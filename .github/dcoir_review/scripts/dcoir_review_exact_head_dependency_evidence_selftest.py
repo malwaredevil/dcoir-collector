@@ -14,7 +14,9 @@ from dcoir_review.exact_head_dependency_evidence import (
     enrich_first_pass_contexts,
     valid_source_path,
 )
-from dcoir_review.source_inventory_contract import _potential_pre_analyzer_guard, _logical_shell_commands
+from dcoir_review.source_inventory_contract import (
+    MAX_SOURCE_CHARS, _potential_pre_analyzer_guard, _logical_shell_commands,
+)
 from dcoir_review import semantic_context_runtime as runtime
 import openrouter_pr_review_pareto_context as review
 
@@ -170,6 +172,42 @@ def main() -> None:
     known_proof = build(FOCUS, known_mix, BAD, fetch)
     assert "project_sources/collector/tools/powershell_analyzer_cli.py" in known_proof["required_paths"]
     assert "project_sources/collector/tools/powershell_analyzer_cli.py" in known_proof["paths"]
+
+    # Copilot fourth P1: input accepted by GitHub can exceed the parser's
+    # strict size bound. A relevant action must fail closed, not look clean.
+    original = DOC["action"]["head_content"]
+    oversized_prefix = "#" + ("x" * 140_000) + "\n"
+    assert len(oversized_prefix) > MAX_SOURCE_CHARS
+    for reviewed_head, action in (
+        (BAD, original),
+        (SAFE, DOC["safe_after_repair"]["head_content"]),
+    ):
+        big = oversized_prefix + action  # executable occurs beyond parse limit
+        assert "python " + ROOT in big[MAX_SOURCE_CHARS:]
+        log.clear()
+        proof = build(FOCUS, big, reviewed_head, fetch)
+        assert "oversized-source-coverage-action" in proof["errors"], proof
+        assert not log, "oversized action should abort before dependency reads"
+        try:
+            enrich_first_pass_contexts([
+                {"path": FOCUS, "text": big, "item": {"filename": FOCUS}}
+            ], reviewed_head, fetch)
+        except RuntimeError as exc:
+            assert "exact-head executable dependency unavailable" in str(exc)
+        else:
+            raise AssertionError("oversized relevant action must fail closed")
+    # At the exact character limit the complete command remains parseable.
+    border = "#" + "x" * (MAX_SOURCE_CHARS - len(original) - 2) + "\n" + original
+    assert len(border) == MAX_SOURCE_CHARS
+    assert ROOT in build(FOCUS, border, BAD, fetch)["required_paths"]
+    # An otherwise ordinary action can hide the security-relevant command
+    # AFTER the parse limit. Scan relevance across full fetched source, then
+    # fail closed rather than trusting the truncated prefix.
+    hidden = build(".github/actions/custom-check/action.yml", oversized_prefix + original, BAD, fetch)
+    assert "oversized-source-coverage-action" in hidden["errors"]
+    # Ordinary unrelated workflows retain their existing opt-out behavior.
+    unrelated = build(".github/workflows/simple-check.yml", oversized_prefix, BAD, fetch)
+    assert not unrelated["errors"]
 
     log.clear()
     first = build(FOCUS, DOC["action"]["head_content"], BAD, fetch)
