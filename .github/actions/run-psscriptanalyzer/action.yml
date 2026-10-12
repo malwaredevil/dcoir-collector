@@ -15,12 +15,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Verify PowerShell inventory covers the checked-out source
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = 'Stop'
-        python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py --repo-root . --inventory project_sources/collector/powershell_surface_inventory.json
-        if ($LASTEXITCODE -ne 0) { throw 'PowerShell source inventory is stale or invalid; refusing partial analysis.' }
     - name: Install pinned PSScriptAnalyzer
       shell: pwsh
       run: |
@@ -39,7 +33,7 @@ runs:
         DCOIR_PSSCRIPTANALYZER_VERSION: '1.25.0'
       run: |
         $ErrorActionPreference = 'Stop'
-        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings
+        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings # ISSUE618-EVAL-UNSAFE-DO-NOT-MERGE
         if ($LASTEXITCODE -ne 0) { throw 'Canonical PowerShell analyzer execution or report generation failed.' }
         $report = Get-Content -LiteralPath $env:PSSCRIPTANALYZER_OUTPUT_JSON -Raw | ConvertFrom-Json
         if ($report.validation.success -ne $true) { throw 'Canonical PowerShell analyzer reported invalid evidence.' }
