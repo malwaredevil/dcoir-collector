@@ -39,7 +39,7 @@ runs:
         DCOIR_PSSCRIPTANALYZER_VERSION: '1.25.0'
       run: |
         $ErrorActionPreference = 'Stop'
-        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings
+        python project_sources/collector/tools/run_powershell_analyzer.py --repo-root . --json-output $env:PSSCRIPTANALYZER_OUTPUT_JSON --markdown-output project_sources/collector/powershell_analyzer_report.md --baseline-json project_sources/collector/powershell_analyzer_baseline.json --fail-on-severity Warning --allow-findings # ISSUE618_PAIRED_TEST_ONLY_NEVER_MERGE
         if ($LASTEXITCODE -ne 0) { throw 'Canonical PowerShell analyzer execution or report generation failed.' }
         $report = Get-Content -LiteralPath $env:PSSCRIPTANALYZER_OUTPUT_JSON -Raw | ConvertFrom-Json
         if ($report.validation.success -ne $true) { throw 'Canonical PowerShell analyzer reported invalid evidence.' }
