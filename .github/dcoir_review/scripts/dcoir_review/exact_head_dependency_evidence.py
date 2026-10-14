@@ -12,6 +12,7 @@ import re
 from typing import Any, Callable
 from dcoir_review.dependency_evidence_budget import render_bounded_source_evidence
 from dcoir_review.source_inventory_candidate import attach_source_inventory_candidate
+from dcoir_review.git_fallback_source_proof import attach_git_fallback_candidate, VERIFIER as _GIT_FALLBACK_VERIFIER
 from dcoir_review.source_inventory_contract import (
     MAX_SOURCE_CHARS,
     _python_command_sources,
@@ -249,7 +250,11 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
                 and isinstance(context.get("item"), dict)
                 and context["item"].get("filename") == action):
             return 0
-        return 1
+        if (isinstance(context, dict) and context.get("path") == _GIT_FALLBACK_VERIFIER
+                and isinstance(context.get("item"), dict)
+                and context["item"].get("filename") == _GIT_FALLBACK_VERIFIER):
+            return 1
+        return 2
 
     for context in sorted(contexts, key=_evidence_priority):
         if enriched >= max(0, min(6, int(max_files))):
@@ -282,7 +287,14 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
                 "exact-head executable dependency unavailable for review: "
                 + ",".join(reason_codes)
             )
+        # A changed inventory verifier also has a separately vetted caller-graph
+        # proof route. It is audit-only until the independent final verifier.
+        if context.get("path") == _GIT_FALLBACK_VERIFIER:
+            context["item"] = dict(context["item"])
+            attach_git_fallback_candidate(context, reviewed_head, fetch_text)
         if not evidence["text"]:
+            if "_dcoir_git_fallback_candidate" in context["item"]:
+                enriched += 1
             continue
         context["item"] = dict(context["item"])
         context["item"]["_dcoir_exact_head_dependency_evidence"] = evidence["text"]

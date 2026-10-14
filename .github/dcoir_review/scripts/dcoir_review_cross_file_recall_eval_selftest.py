@@ -83,6 +83,11 @@ def main() -> int:
             assert report["mode"] == "plan"
             assert report["network_requests_made"] == 0
             assert report["planned_requests"] == 4
+            assert report["evaluation_scope"] == "model-only-first-pass"
+            assert report["full_production_pipeline_executed"] is False
+            assert report["independent_source_verification_executed"] is False
+            assert report["github_review_published"] is False
+            assert report["published_finding_count"] is None
             assert report["results"] == []
         try:
             evaluation.main([

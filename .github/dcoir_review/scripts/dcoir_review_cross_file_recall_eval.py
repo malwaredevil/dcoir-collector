@@ -289,11 +289,17 @@ def main(argv: list[str] | None = None) -> int:
         "evidence_population": population,
         "interpretation_limit": (
             "One real historical P1 source transition and one real repaired control; "
-            "this is a source-grounded model comparison, not a statistical recall estimate."
+            "this is model-only source-grounded first-pass output; no production "
+            "candidate verification/publication, nor a statistical recall estimate."
             if population == "historical-source-backed" else
             "Small synthetic fixtures are not statistical recall estimates."
         ),
         "scoring_contract": "v2-distinguish-root-cause-from-P1-severity",
+        "evaluation_scope": "model-only-first-pass",
+        "full_production_pipeline_executed": False,
+        "independent_source_verification_executed": False,
+        "github_review_published": False,
+        "published_finding_count": None,
         "mode": "live" if args.execute_live else "plan",
         "model": candidate["model"],
         "candidate_id": candidate["id"],

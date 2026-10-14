@@ -1,8 +1,4 @@
-"""Fail-closed independent evidence gate for inventory candidate publication.
-
-Re-fetches exact-HEAD CI sources; checks both caller routes and changed lines.
-Never executes fetched source or invokes a provider.
-"""
+"""Fail-closed exact-HEAD verifier for source-inventory candidate publication."""
 from __future__ import annotations
 
 import ast
@@ -11,6 +7,7 @@ import re
 from typing import Any, Callable
 
 from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
+from dcoir_review.git_fallback_source_proof import verify_candidate
 from dcoir_review.source_inventory_contract import (
     _python_command_sources, _logical_shell_commands, _potential_pre_analyzer_guard,
 )
@@ -284,8 +281,8 @@ def verify_bounded_inventory_candidates(
     verified = []
     failed = 0
     for candidate in candidates:
-        finding = verify_source_inventory_for_promotion(
-            candidate, head, added_lines, cached
+        finding = verify_candidate(
+            candidate, head, added_lines, cached, verify_source_inventory_for_promotion
         )
         if finding is None:
             failed += 1

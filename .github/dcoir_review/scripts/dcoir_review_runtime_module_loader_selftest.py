@@ -47,6 +47,7 @@ DIRECT_IMPORT_MODULES = (
     "source_inventory_candidate.py",
     "source_inventory_candidate_receipt.py",
     "source_inventory_promotion.py",
+    "git_fallback_source_proof.py",
     "entrypoint.py",
     "environment_token_detection.py",
     "final_adjudication_policy.py",
