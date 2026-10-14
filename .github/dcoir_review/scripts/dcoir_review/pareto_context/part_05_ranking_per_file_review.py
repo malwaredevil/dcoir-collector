@@ -184,6 +184,11 @@ def review_single_file_context(
             "cross_file_contract_cues_present": "Cross-file contract review cues" in prompt,
             "exact_head_source_paths": list(context["item"].get("_dcoir_exact_head_dependency_paths", [])),
             "source_coverage_guard_status": context["item"].get("_dcoir_source_coverage_guard", "not-applicable"),
+            # Audit only: missing/omitted dependencies are not validated source
+            # relationships and must not be reported as findings on their own.
+            "exact_head_dependency_diagnostics": dict(
+                context["item"].get("_dcoir_exact_head_dependency_diagnostics", {})
+            ),
             "risk_sentinel_count": len(path_sentinels),
             "risk_sentinel_digest": hardened.risk_sentinel_digest(path_sentinels) if path_sentinels else "",
         },
