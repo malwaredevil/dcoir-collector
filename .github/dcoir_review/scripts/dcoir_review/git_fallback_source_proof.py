@@ -31,9 +31,9 @@ ROUTES = (
 PATHS = tuple(sorted((VERIFIER, ACTION, OUTPUTS, DISCOVERY, *ROUTES)))
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
-# AST fingerprint of the audited historical verifier in PR617 at 959e916a.
-# Comments/whitespace do not affect this. Different control flow must abstain.
-_UNGUARDED_VERIFIER_AST = "dd698284e9a2cd4f83f0d5b6e04a24300e333067ea4e263be60d921735d4a61d"
+# SHA256 of the audited historical verify_inventory source segment. This
+# source fingerprint is independent of Python's AST serialization format.
+_UNGUARDED_VERIFIER_SOURCE_SHA256 = "33f1ad0f23d65810b6217cf68cfd03bf3d8f3d56e86a7c3d808aeed1da790426"
 # Audited Git-fallback discovery implementation. Unrecognized revisions abstain.
 _FALLBACK_DISCOVERY_SHA = "9aad0c1d5b0c08fa4fd9c7fe206465cbabcfc569da87070ca0693dd7e61a5e91"
 _MAX_SOURCE = 120_000
@@ -52,17 +52,32 @@ def _function(tree: ast.AST, name: str) -> ast.FunctionDef | None:
                  if isinstance(node, ast.FunctionDef) and node.name == name), None)
 
 
+def _verifier_source_fingerprint(source: str, fn: ast.FunctionDef | None = None) -> str:
+    if fn is None:
+        try:
+            fn = _function(ast.parse(source), "verify_inventory")
+        except (SyntaxError, ValueError, RecursionError):
+            return ""
+        if fn is None:
+            return ""
+    segment = ast.get_source_segment(source, fn)
+    if segment is None:
+        return ""
+    normalized = segment.replace("\r\n", "\n").replace("\r", "\n")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def _verifier_anchor(source: str) -> int:
     if not _safe(source):
         return 0
     try:
-        fn = _function(ast.parse(source), "verify_inventory")
+        tree = ast.parse(source)
     except (SyntaxError, ValueError, RecursionError):
         return 0
+    fn = _function(tree, "verify_inventory")
     if fn is None:
         return 0
-    digest = hashlib.sha256(ast.dump(fn, include_attributes=False).encode()).hexdigest()
-    if digest != _UNGUARDED_VERIFIER_AST:
+    if _verifier_source_fingerprint(source, fn) != _UNGUARDED_VERIFIER_SOURCE_SHA256:
         return 0
     statements = [n for n in ast.walk(fn)
                   if isinstance(n, ast.Assign)

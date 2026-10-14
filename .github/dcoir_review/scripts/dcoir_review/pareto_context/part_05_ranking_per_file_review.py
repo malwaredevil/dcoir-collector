@@ -1,4 +1,5 @@
 from dcoir_review.cross_file_contract_context import build_cross_file_contract_context
+from dcoir_review.git_fallback_source_proof import VERIFIER as _GIT_FALLBACK_VERIFIER
 
 
 def rank_findings_for_required_budget(findings: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
@@ -144,6 +145,7 @@ def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]]
     if not head_sha:
         return []
     contexts: list[dict[str, Any]] = []
+    verifier_context: dict[str, Any] | None = None
     for item in files:
         path = str(item.get("filename", "") or "").strip()
         status = str(item.get("status", "") or "").strip()
@@ -151,13 +153,27 @@ def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]]
             continue
         try:
             file_text = fetch_pr_file_text(gh, path, head_sha)
-        except UnicodeDecodeError:
+        except Exception as exc:
+            if path == _GIT_FALLBACK_VERIFIER:
+                raise RuntimeError("git-fallback-verifier-context-unavailable") from exc
             continue
-        except Exception:
-            continue
-        contexts.append({"item": item, "path": path, "text": file_text})
+        if path == _GIT_FALLBACK_VERIFIER and (
+            not isinstance(file_text, str) or not file_text.strip()
+        ):
+            raise RuntimeError("git-fallback-verifier-context-unavailable")
+        context = {"item": item, "path": path, "text": file_text}
+        contexts.append(context)
+        if path == _GIT_FALLBACK_VERIFIER:
+            verifier_context = context
     contexts.sort(key=lambda context: per_file_priority(context["item"], context["text"]))
-    return contexts[: max(0, int(getattr(config, "per_file_review_max_files", getattr(config, "deep_review_max_files", 8))))]
+    max_files = max(0, int(getattr(config, "per_file_review_max_files", getattr(config, "deep_review_max_files", 8))))
+    selected = contexts[:max_files]
+    if verifier_context is not None and verifier_context not in selected:
+        if max_files == 0:
+            raise RuntimeError("git-fallback-verifier-context-unavailable")
+        selected = contexts[:max_files - 1] + [verifier_context]
+        selected.sort(key=lambda context: per_file_priority(context["item"], context["text"]))
+    return selected
 
 
 def review_single_file_context(

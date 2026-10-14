@@ -15,7 +15,8 @@ import openrouter_pr_review_pareto_context as review
 import dcoir_review_historical_recall_cases as history
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
 from dcoir_review.git_fallback_source_proof import (
-    ACTION, DISCOVERY, OUTPUTS, VERIFIER, PATHS, _exact_proof,
+    ACTION, DISCOVERY, OUTPUTS, VERIFIER, PATHS,
+    _UNGUARDED_VERIFIER_SOURCE_SHA256, _exact_proof, _verifier_source_fingerprint,
     attach_git_fallback_candidate, verify_git_fallback_candidate,
 )
 from dcoir_review import source_inventory_candidate_receipt as receipt
@@ -56,6 +57,12 @@ def context(head: str) -> dict:
 
 def main() -> None:
     assert DATA["bad_sha"] == BAD and DATA["repaired_sha"] == SAFE
+    assert _verifier_source_fingerprint(DATA["historical_bad_verifier"]) == (
+        _UNGUARDED_VERIFIER_SOURCE_SHA256
+    ), "Historical bad verifier fixture does not match its source fingerprint"
+    assert _verifier_source_fingerprint(
+        DATA["historical_bad_verifier"].replace("\n", "\r\n")
+    ) == _UNGUARDED_VERIFIER_SOURCE_SHA256, "CRLF changed the verifier source fingerprint"
     for key in ("historical_discovery_source", "historical_outputs_source", "original_added_verifier_patch"):
         assert digest(DATA[key]) == DATA[key+"_sha256"], key
     original = sources(BAD)
@@ -130,6 +137,23 @@ def main() -> None:
         assert "git-fallback-source-proof-unavailable" in str(exc)
     else:
         raise AssertionError("Missing required exact-head fallback proof passed silently")
+    original_fetch = review.fetch_pr_file_text
+    try:
+        review.fetch_pr_file_text = lambda *_args: (_ for _ in ()).throw(
+            OSError("simulated verifier context fetch failure")
+        )
+        try:
+            review.build_file_contexts(
+                None, {"head": {"sha": BAD}},
+                [{"filename": VERIFIER, "status": "modified"}],
+                SimpleNamespace(per_file_review_max_files=8),
+            )
+        except RuntimeError as exc:
+            assert "git-fallback-verifier-context-unavailable" in str(exc)
+        else:
+            raise AssertionError("Unavailable changed verifier context was dropped silently")
+    finally:
+        review.fetch_pr_file_text = original_fetch
     tampered = copy.deepcopy(candidate)
     tampered["_dcoir_evidence"]["hashes"][VERIFIER] = "a" * 16
     assert verify_git_fallback_candidate(tampered, BAD, index, fetch) is None
