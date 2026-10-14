@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""No-provider historical second-P1 source promotion and hostile negative tests."""
+"""Historical proof and hostile-input tests."""
 from __future__ import annotations
 
 import copy
@@ -15,8 +15,14 @@ import openrouter_pr_review_pareto_context as review
 import dcoir_review_historical_recall_cases as history
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
 from dcoir_review.git_fallback_source_proof import (
-    ACTION, DISCOVERY, OUTPUTS, VERIFIER, PATHS,
-    _UNGUARDED_VERIFIER_SOURCE_SHA256, _exact_proof, _verifier_source_fingerprint,
+    ACTION, ANALYZER, ANALYZER_CLI, ANALYZER_CONTRACT, ANALYZER_EXECUTION,
+    ANALYZER_INVENTORY, COLLECTOR_PATH_SAFETY, INVENTORY_COMMON,
+    INVENTORY_VALIDATION, INVENTORY_CLASSIFICATION, INVENTORY_PROFILES,
+    INVENTORY_CONTROLS, INVENTORY_WORKFLOW_YAML,
+    DISCOVERY, OUTPUTS, VERIFIER, PATHS,
+    _AUDITED_SOURCE_SHA256,
+    _UNGUARDED_VERIFIER_SOURCE_SHA256,
+    _exact_proof, _verifier_anchor, _verifier_source_fingerprint,
     attach_git_fallback_candidate, verify_git_fallback_candidate,
 )
 from dcoir_review import source_inventory_candidate_receipt as receipt
@@ -38,6 +44,25 @@ def sources(sha: str) -> dict[str, str]:
     found[ACTION] = DATA["shared_dependency_sources"][ACTION]
     found[DISCOVERY] = DATA["historical_discovery_source"]
     found[OUTPUTS] = DATA["historical_outputs_source"]
+    found[ANALYZER] = DATA["shared_dependency_sources"][ANALYZER]
+    found[ANALYZER_CLI] = (ROOT / ANALYZER_CLI).read_text(encoding="utf-8")
+    found[ANALYZER_INVENTORY] = (
+        ROOT / ANALYZER_INVENTORY
+    ).read_text(encoding="utf-8")
+    found[ANALYZER_CONTRACT] = (ROOT / ANALYZER_CONTRACT).read_text(encoding="utf-8")
+    found[ANALYZER_EXECUTION] = (
+        ROOT / ANALYZER_EXECUTION
+    ).read_text(encoding="utf-8")
+    found[INVENTORY_COMMON] = (ROOT / INVENTORY_COMMON).read_text(encoding="utf-8")
+    found[COLLECTOR_PATH_SAFETY] = (
+        ROOT / COLLECTOR_PATH_SAFETY
+    ).read_text(encoding="utf-8")
+    found[INVENTORY_VALIDATION] = (
+        ROOT / INVENTORY_VALIDATION
+    ).read_text(encoding="utf-8")
+    for path in (INVENTORY_CLASSIFICATION, INVENTORY_PROFILES,
+                 INVENTORY_CONTROLS, INVENTORY_WORKFLOW_YAML):
+        found[path] = (ROOT / path).read_text(encoding="utf-8")
     found[VERIFIER] = (
         DATA["historical_bad_verifier"] if sha == BAD else DATA["repaired_safe_verifier"]
     )
@@ -55,18 +80,27 @@ def context(head: str) -> dict:
     }
 
 
+def assert_abstains(original: dict[str, str], path: str, old: str, new: str) -> None:
+    changed = dict(original)
+    changed[path] = original[path].replace(old, new)
+    assert changed[path] != original[path], path
+    assert _exact_proof(changed, BAD) == 0, path
+
+
 def main() -> None:
     assert DATA["bad_sha"] == BAD and DATA["repaired_sha"] == SAFE
-    assert _verifier_source_fingerprint(DATA["historical_bad_verifier"]) == (
-        _UNGUARDED_VERIFIER_SOURCE_SHA256
-    ), "Historical bad verifier fixture does not match its source fingerprint"
-    assert _verifier_source_fingerprint(
-        DATA["historical_bad_verifier"].replace("\n", "\r\n")
-    ) == _UNGUARDED_VERIFIER_SOURCE_SHA256, "CRLF changed the verifier source fingerprint"
+    normalized_verifier = DATA["historical_bad_verifier"].replace(
+        "\r\n", "\n"
+    ).replace("\r", "\n")
+    assert _verifier_anchor(normalized_verifier) == 20
+    assert _verifier_anchor(normalized_verifier.replace("\n", "\r\n")) == 20
     for key in ("historical_discovery_source", "historical_outputs_source", "original_added_verifier_patch"):
         assert digest(DATA[key]) == DATA[key+"_sha256"], key
     original = sources(BAD)
     safe = sources(SAFE)
+    for path, expected in _AUDITED_SOURCE_SHA256.items():
+        normalized = original[path].replace("\r\n", "\n").replace("\r", "\n")
+        assert hashlib.sha256(normalized.encode("utf-8")).hexdigest() == expected, path
     bad = context(BAD)
     good = context(SAFE)
     calls = []
@@ -139,6 +173,23 @@ def main() -> None:
         raise AssertionError("Missing required exact-head fallback proof passed silently")
     original_fetch = review.fetch_pr_file_text
     try:
+        try:
+            review.build_file_contexts(
+                None, {"head": {}}, [{"filename": VERIFIER, "status": "modified"}],
+                SimpleNamespace(per_file_review_max_files=8),
+            )
+        except RuntimeError as exc:
+            assert "git-fallback-verifier-context-unavailable" in str(exc)
+        else:
+            raise AssertionError("Missing review head silently bypassed changed verifier context")
+        assert review.build_file_contexts(
+            None, {"head": {}}, [{"filename": "other.py", "status": "modified"}],
+            SimpleNamespace(per_file_review_max_files=8),
+        ) == []
+        assert review.build_file_contexts(
+            None, {"head": {}}, [{"filename": VERIFIER, "status": "removed"}],
+            SimpleNamespace(per_file_review_max_files=8),
+        ) == []
         review.fetch_pr_file_text = lambda *_args: (_ for _ in ()).throw(
             OSError("simulated verifier context fetch failure")
         )
@@ -186,38 +237,22 @@ def main() -> None:
     proof = verify_git_fallback_candidate(forged, BAD, index, fetch)
     assert proof and "@bot" not in str(proof)
 
-    # Adva controls: subtle alternate source, caller guard, disabled route,
-    # changed provenance, missing import, and absence of exact AST shape.
-    changed = dict(original)
-    changed[VERIFIER] = original[VERIFIER].replace(
-        "current = build_inventory(root)", "current = build_inventory(root)\n        "
-        "if current.get('source_of_truth') != 'git ls-files -z': raise ValueError('unsafe')"
-    )
-    assert _exact_proof(changed, BAD) == 0
-    changed = dict(original)
-    changed[DISCOVERY] = original[DISCOVERY] + "\n# unreviewed behavior\n"
-    assert _exact_proof(changed, BAD) == 0
-    changed = dict(original)
-    changed[ACTION] = original[ACTION].replace(
-        "        python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py",
-        "        $tracked = git ls-files -- '*.ps1'\n        "
-        "python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py"
-    )
-    assert _exact_proof(changed, BAD) == 0
-    changed = dict(original)
-    changed[ACTION] = original[ACTION].replace(
-        "        python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py",
-        "        if (Test-Path $env:NEW_INVENTORY_GUARD) { throw 'Blocked' }\n        "
-        "python project_sources/collector/tools/verify_powershell_surface_inventory_ci.py"
-    )
-    assert _exact_proof(changed, BAD) == 0, "Unknown pre-verifier guard was ignored"
-    changed = dict(original)
-    path = ".github/workflows/reusable-validate-on-pr.yml"
-    changed[path] = original[path] + "\nif: false\n"
-    assert _exact_proof(changed, BAD) == 0
-    changed = dict(original)
-    changed.pop(".github/actions/verify-required-surfaces/action.yml")
-    assert _exact_proof(changed, BAD) == 0
+    verifier = original[VERIFIER]
+    assert _verifier_source_fingerprint(verifier.replace(
+        "def verify_inventory(", "@require_git_discovery\n\ndef verify_inventory("
+    )) == _UNGUARDED_VERIFIER_SOURCE_SHA256
+    assert_abstains(original, VERIFIER, "def verify_inventory(",
+                    "@require_git_discovery\n\ndef verify_inventory(")
+    guard = "        if ($source_of_truth -ne 'git ls-files -z') { throw 'Fallback is forbidden.' }\n"
+    assert_abstains(original, ACTION,
+                    "        if ($LASTEXITCODE -ne 0) { throw 'PowerShell source inventory is stale or invalid; refusing partial analysis.' }\n",
+                    "        if ($LASTEXITCODE -ne 0) { throw 'PowerShell source inventory is stale or invalid; refusing partial analysis.' }\n"
+                    + guard)
+    for path in _AUDITED_SOURCE_SHA256:
+        assert_abstains(original, path, "\n", "\n# unreviewed source change\n")
+    assert _exact_proof(
+        {**original, ACTION: original[ACTION].replace("\n", "\r\n")}, BAD
+    ) == 20
 
     # The existing verifier publication budget remains authoritative.
     bounded = copy.copy(config)
@@ -229,10 +264,10 @@ def main() -> None:
     assert findings == [] and report["pending"] == 1 and report["promoted"] == 0
     assert "UNRESOLVED" in result["summary"]
 
-    print("PASS: real PR617 second P1 anchored to newly added verifier line 20")
-    print("PASS: exact-head 10-path caller/discovery proof independently promotes HIGH")
-    print("PASS: repaired SHA, source drift, unknown guards, disabled CI and forged metadata abstain")
-    print("PASS: model clean cannot suppress verified proof; budget and untrusted receipt fail closed")
+    print("PASS: historical P1 independently promoted")
+    print(f"PASS: {len(PATHS)} exact-head source fingerprints")
+    print("PASS: hostile and safe controls")
+    print("PASS: receipts and publication limits")
 
 
 if __name__ == "__main__":

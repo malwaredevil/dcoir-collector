@@ -12,7 +12,6 @@ import re
 from typing import Any, Callable
 
 from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
-from dcoir_review.source_inventory_contract import (_logical_shell_commands, _python_command_sources, _potential_pre_analyzer_guard)
 
 KIND = "git-discovery-fallback"
 STATE = "source-backed-pending-independent-verification"
@@ -20,22 +19,67 @@ VERIFIER = "project_sources/collector/tools/verify_powershell_surface_inventory_
 ACTION = ".github/actions/run-psscriptanalyzer/action.yml"
 OUTPUTS = "project_sources/collector/tools/powershell_surface_inventory_outputs.py"
 DISCOVERY = "project_sources/collector/tools/powershell_surface_inventory_discovery.py"
+ANALYZER = "project_sources/collector/tools/run_powershell_analyzer.py"
+ANALYZER_CLI = "project_sources/collector/tools/powershell_analyzer_cli.py"
+ANALYZER_INVENTORY = "project_sources/collector/tools/powershell_analyzer_inventory.py"
+ANALYZER_CONTRACT = "project_sources/collector/tools/powershell_analyzer_contract.py"
+ANALYZER_EXECUTION = "project_sources/collector/tools/powershell_analyzer_execution.py"
+INVENTORY_COMMON = "project_sources/collector/tools/powershell_surface_inventory_common.py"
+COLLECTOR_PATH_SAFETY = "project_sources/collector/tools/collector_tool_path_safety.py"
+INVENTORY_VALIDATION = "project_sources/collector/tools/powershell_surface_inventory_validation.py"
+INVENTORY_CLASSIFICATION = "project_sources/collector/tools/powershell_surface_inventory_classification.py"
+INVENTORY_PROFILES = "project_sources/collector/tools/powershell_surface_inventory_profiles.py"
+INVENTORY_CONTROLS = "project_sources/collector/tools/powershell_surface_inventory_controls.py"
+INVENTORY_WORKFLOW_YAML = "project_sources/collector/tools/powershell_surface_inventory_workflow_yaml.py"
+_REQUIRED_SURFACES_ACTION = ".github/actions/verify-required-surfaces/action.yml"
+_REQUIRED_SURFACES_CHECK = ".github/github_actions/tools/check_required_surfaces.py"
 ROUTES = (
     ".github/workflows/validate-on-pr.yml",
     ".github/workflows/validate-on-push.yml",
     ".github/workflows/reusable-validate-on-pr.yml",
     ".github/workflows/reusable-validate-on-push.yml",
-    ".github/actions/verify-required-surfaces/action.yml",
-    ".github/github_actions/tools/check_required_surfaces.py",
+    _REQUIRED_SURFACES_ACTION,
+    _REQUIRED_SURFACES_CHECK,
 )
-PATHS = tuple(sorted((VERIFIER, ACTION, OUTPUTS, DISCOVERY, *ROUTES)))
+PATHS = tuple(sorted((
+    VERIFIER, ACTION, OUTPUTS, DISCOVERY, ANALYZER, ANALYZER_CLI,
+    ANALYZER_INVENTORY, ANALYZER_CONTRACT, ANALYZER_EXECUTION,
+    INVENTORY_COMMON, COLLECTOR_PATH_SAFETY, INVENTORY_VALIDATION,
+    INVENTORY_CLASSIFICATION, INVENTORY_PROFILES, INVENTORY_CONTROLS,
+    INVENTORY_WORKFLOW_YAML, *ROUTES,
+)))
 _SHA = re.compile(r"^[0-9a-f]{40}$")
 _HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 # SHA256 of the audited historical verify_inventory source segment. This
 # source fingerprint is independent of Python's AST serialization format.
 _UNGUARDED_VERIFIER_SOURCE_SHA256 = "33f1ad0f23d65810b6217cf68cfd03bf3d8f3d56e86a7c3d808aeed1da790426"
-# Audited Git-fallback discovery implementation. Unrecognized revisions abstain.
+# Full source pin also covers decorators and module-level verifier bindings.
+_UNGUARDED_VERIFIER_FILE_SHA256 = "6133b38fd55f0b42271dec81f638e0acfc19ce76034b58472b5c3c184da65e66"
 _FALLBACK_DISCOVERY_SHA = "9aad0c1d5b0c08fa4fd9c7fe206465cbabcfc569da87070ca0693dd7e61a5e91"
+# Exact historical caller/analysis sources; unknown gates or helper steps abstain.
+_AUDITED_SOURCE_SHA256 = {
+    ACTION: "09a62842cb1a33bfdaedefc40360c1df9c4799ec4786e9b473d969440a84eed7",
+    OUTPUTS: "1615467f2934487de2bc58e9ff2fe0b53221ad74b407c7e6e69a4a5807b311d8",
+    DISCOVERY: _FALLBACK_DISCOVERY_SHA,
+    ANALYZER: "3362ae4374d23c66615c9458145ca58b9b0b8031c7b9e980bc17ce5f686cb86b",
+    ANALYZER_CLI: "37af5f839ad84e963f140ad338b56df7a72fe07cdf051f366ccad05385bae49e",
+    ANALYZER_INVENTORY: "fb0d604a3a7631714437a53bb1425755d9387037f381ee27e8c0143d5f33a058",
+    ANALYZER_CONTRACT: "1dca2587eee48fba0c0bc476254189004bf75cf7cdb4e5d2ac356504cdaff9cf",
+    ANALYZER_EXECUTION: "b27ea91cfc0e7340f36e10b25dbadce239606593b3b1c15478b2b27f45b4e526",
+    INVENTORY_COMMON: "d9fe1fdfbf87002d2a437f491eb8602a2f7889237da3213739a858f3e2778562",
+    COLLECTOR_PATH_SAFETY: "5aebb6011407968c74ffe5ea0ebd40d38be7ee01772ae9a83c4fad452cb41b76",
+    INVENTORY_VALIDATION: "7c70a7dc8cdb583717871db66adf61399a77a0c4b176f96a74821643924ad0d0",
+    INVENTORY_CLASSIFICATION: "f41c097e63852bd7a6b5d11b0abd55a2c390d0df70bec73a12e46fd992ae8f3b",
+    INVENTORY_PROFILES: "a92f77806aebf5f4209a77e5e40cfdb99d89991e5fff6d99b24f17f96fd57cbd",
+    INVENTORY_CONTROLS: "1456d8a83b60e56d5e467384dd7dae63a52d89e6bf9c1be7bb4dab61698c0a68",
+    INVENTORY_WORKFLOW_YAML: "af540a1b8d973bd73768fd347c17d53b4a388484f132614c8420740f74ccd5e3",
+    _REQUIRED_SURFACES_ACTION: "57b4fb5fe5ee197b31c95d7dc0cff7425bb9a18f1739a21f2afb3871cb270db6",
+    _REQUIRED_SURFACES_CHECK: "7bae51c61a42635a35e1b2c7119af2e3546f46d2486eec77b961d8c425ab08bc",
+    ".github/workflows/validate-on-pr.yml": "2fe1df3acb85d218c754e8e771603cead9cad2664282b6f54a22e1c3ba277330",
+    ".github/workflows/validate-on-push.yml": "212c059b4609ed73defc8f20c0a1806e3b5f72eac36cd75f2bb2a7147be2ddb1",
+    ".github/workflows/reusable-validate-on-pr.yml": "c08ebc8fa2523a33707b305f39c11fac73dd544499b791c9df4fb1563d4e0833",
+    ".github/workflows/reusable-validate-on-push.yml": "36d9562023641a65f5e0b28b8fd92ad4b63379b5e48c059b810bb45f92ef2448",
+}
 _MAX_SOURCE = 120_000
 
 
@@ -69,6 +113,9 @@ def _verifier_source_fingerprint(source: str, fn: ast.FunctionDef | None = None)
 
 def _verifier_anchor(source: str) -> int:
     if not _safe(source):
+        return 0
+    normalized_source = source.replace("\r\n", "\n").replace("\r", "\n")
+    if hashlib.sha256(normalized_source.encode("utf-8")).hexdigest() != _UNGUARDED_VERIFIER_FILE_SHA256:
         return 0
     try:
         tree = ast.parse(source)
@@ -108,73 +155,25 @@ def _added_right_line(patch: str, source: str, target: int) -> bool:
     return count == 1
 
 
-def _action_contract(action: str) -> bool:
-    if not _safe(action):
-        return False
-    commands = []
-    for start, _end, logical in _logical_shell_commands(action):
-        paths, unresolved = _python_command_sources(logical)
-        if unresolved:
-            return False
-        commands.extend((start, path) for path in paths)
-    verifier = [line for line, path in commands if path == VERIFIER]
-    analyzer = [line for line, path in commands if path ==
-                "project_sources/collector/tools/run_powershell_analyzer.py"]
-    if len(verifier) != 1 or len(analyzer) != 1 or verifier[0] >= analyzer[0]:
-        return False
-    prior = action.splitlines()[:verifier[0] - 1]
-    # Only the original strict-error assignment may precede the verifier in
-    # its PowerShell step. An unfamiliar guard is never assumed ineffective.
-    run_blocks = [i for i, line in enumerate(prior) if line.strip() == "run: |"]
-    if not run_blocks or sum(bool(re.match(r"^\s*-\s*name:", line)) for line in prior) != 1:
-        return False
-    prelude = [line.strip() for line in prior[run_blocks[-1] + 1:]
-               if line.strip() and not line.lstrip().startswith("#")]
-    if prelude != ["$ErrorActionPreference = 'Stop'"]:
-        return False
-    return (all(line >= verifier[0] for line, _ in commands)
-            and not _potential_pre_analyzer_guard(prior))
-
-
-def _outputs_contract(outputs: str) -> bool:
-    if not _safe(outputs):
-        return False
-    try:
-        fn = _function(ast.parse(outputs), "build_inventory")
-    except (SyntaxError, ValueError, RecursionError):
-        return False
-    if fn is None:
-        return False
-    called = any(isinstance(node, ast.Call)
-                 and isinstance(node.func, ast.Name)
-                 and node.func.id == "collect_surfaces" for node in ast.walk(fn))
-    forwards = any(isinstance(node, ast.Dict)
-                   and any(isinstance(key, ast.Constant)
-                           and key.value == "source_of_truth"
-                           and isinstance(val, ast.Name) and val.id == "source"
-                           for key, val in zip(node.keys, node.values))
-                   for node in ast.walk(fn))
-    return called and forwards
-
-
 def _exact_proof(sources: dict[str, str], reviewed_head: str) -> int:
     if not _SHA.fullmatch(reviewed_head) or set(sources) != set(PATHS):
         return 0
     if not all(_safe(item) for item in sources.values()):
         return 0
     anchor = _verifier_anchor(sources[VERIFIER])
-    if not anchor or hashlib.sha256(sources[DISCOVERY].encode()).hexdigest() != _FALLBACK_DISCOVERY_SHA:
+    if not anchor or set(_AUDITED_SOURCE_SHA256) != set(PATHS) - {VERIFIER}:
         return 0
-    if not _outputs_contract(sources[OUTPUTS]) or not _action_contract(sources[ACTION]):
-        return 0
+    for path, expected_hash in _AUDITED_SOURCE_SHA256.items():
+        normalized = sources[path].replace("\r\n", "\n").replace("\r", "\n")
+        if hashlib.sha256(normalized.encode("utf-8")).hexdigest() != expected_hash:
+            return 0
     # Existing independent proof routines validate both active CI entry
     # points and their required-surfaces checks, not only a dormant action.
     from dcoir_review.source_inventory_promotion import _two_ci_routes, _required_surfaces_only
     if not _two_ci_routes(ACTION, sources):
         return 0
     if not _required_surfaces_only(
-            sources[".github/actions/verify-required-surfaces/action.yml"],
-            sources[".github/github_actions/tools/check_required_surfaces.py"]):
+            sources[_REQUIRED_SURFACES_ACTION], sources[_REQUIRED_SURFACES_CHECK]):
         return 0
     return anchor
 

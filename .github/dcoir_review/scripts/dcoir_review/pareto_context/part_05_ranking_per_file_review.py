@@ -143,6 +143,13 @@ Full head-file context:
 def build_file_contexts(gh: Any, pr: dict[str, Any], files: list[dict[str, Any]], config: Any) -> list[dict[str, Any]]:
     head_sha = str(pr.get("head", {}).get("sha", "") or "")
     if not head_sha:
+        if any(
+            isinstance(item, dict)
+            and str(item.get("filename", "") or "").strip() == _GIT_FALLBACK_VERIFIER
+            and str(item.get("status", "") or "").strip() not in {"removed", "deleted"}
+            for item in files
+        ):
+            raise RuntimeError("git-fallback-verifier-context-unavailable")
         return []
     contexts: list[dict[str, Any]] = []
     verifier_context: dict[str, Any] | None = None
