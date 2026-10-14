@@ -27,7 +27,6 @@ from dcoir_review.git_fallback_source_proof import (
     attach_git_fallback_candidate, verify_git_fallback_candidate,
 )
 from dcoir_review import source_inventory_candidate_receipt as receipt
-from dcoir_review.source_inventory_promotion import integrate_verified_inventory_findings
 
 FIXTURE = ROOT / ".github/dcoir_review/evaluation/historical_pr617_git_fallback_p1_v1.json"
 DATA = json.loads(FIXTURE.read_text(encoding="utf-8"))
@@ -174,7 +173,7 @@ def main() -> None:
     assert receipt.restore(client, BAD, result) == 1
     assert result["_dcoir_source_inventory_candidates"] == [candidate]
     config = review.load_pareto_context_config(str(ROOT / ".github/dcoir_review/openrouter-pr-review-pareto.yml"))
-    published, report = integrate_verified_inventory_findings(
+    published, report = promotion.integrate_verified_inventory_findings(
         result, [], config, index, BAD, fetch, review.hardened,
     )
     assert len(published) == 1 and published[0]["line"] == 20, report
@@ -298,7 +297,7 @@ def main() -> None:
     bounded = copy.copy(config)
     bounded.max_inline_comments = 0
     result = {"summary": "No issues", "_dcoir_source_inventory_candidates": [candidate]}
-    findings, report = integrate_verified_inventory_findings(
+    findings, report = promotion.integrate_verified_inventory_findings(
         result, [], bounded, index, BAD, fetch, review.hardened,
     )
     assert findings == [] and report["pending"] == 1 and report["promoted"] == 0
