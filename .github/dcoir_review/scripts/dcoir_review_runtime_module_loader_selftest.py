@@ -41,6 +41,7 @@ DIRECT_IMPORT_MODULES = (
     "candidate_escalation_telemetry.py",
     "candidate_scoped_escalation.py",
     "cross_file_contract_context.py",
+    "dependency_evidence_budget.py",
     "exact_head_dependency_evidence.py",
     "source_inventory_contract.py",
     "source_inventory_candidate.py",
