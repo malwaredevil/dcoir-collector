@@ -7,7 +7,10 @@ import re
 from typing import Any, Callable
 
 from dcoir_review.finding_verifier_contract import VERIFIER_MARKER
-from dcoir_review.git_fallback_source_proof import verify_candidate
+from dcoir_review.git_fallback_source_proof import (
+    KIND as _GIT_FALLBACK_KIND,
+    verify_candidate,
+)
 from dcoir_review.source_inventory_contract import (
     _python_command_sources, _logical_shell_commands, _potential_pre_analyzer_guard,
 )
@@ -281,8 +284,14 @@ def verify_bounded_inventory_candidates(
     verified = []
     failed = 0
     for candidate in candidates:
+        candidate_fetch = (
+            fetch_text if isinstance(candidate, dict)
+            and candidate.get("_dcoir_candidate_kind") == _GIT_FALLBACK_KIND
+            else cached
+        )
         finding = verify_candidate(
-            candidate, head, added_lines, cached, verify_source_inventory_for_promotion
+            candidate, head, added_lines, candidate_fetch,
+            verify_source_inventory_for_promotion,
         )
         if finding is None:
             failed += 1

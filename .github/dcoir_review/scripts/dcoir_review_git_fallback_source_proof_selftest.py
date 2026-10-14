@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import openrouter_pr_review_pareto_context as review
 import dcoir_review_historical_recall_cases as history
+import dcoir_review.source_inventory_promotion as promotion
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
 from dcoir_review.git_fallback_source_proof import (
     ACTION, ANALYZER, ANALYZER_CLI, ANALYZER_CONTRACT, ANALYZER_EXECUTION,
@@ -126,6 +127,31 @@ def main() -> None:
     assert verified is not None and verified["severity"] == "high"
     assert verified["line"] == 20 and verified["_dcoir_verified_source_inventory"]
     assert "fallback" in verified["title"].lower()
+
+    original_legacy_verifier = promotion.verify_source_inventory_for_promotion
+    shared_path = PATHS[0]
+
+    def legacy_probe(_candidate, _head, _added_lines, fetch_source):
+        fetch_source(shared_path, BAD)
+        return None
+
+    try:
+        promotion.verify_source_inventory_for_promotion = legacy_probe
+        for ordered_candidates in ([{}, candidate], [candidate, {}]):
+            shared_reads = []
+
+            def candidate_fetch(name: str, sha: str) -> str:
+                assert sha == BAD and name in PATHS
+                shared_reads.append(name)
+                return original[name]
+
+            bounded, failed = promotion.verify_bounded_inventory_candidates(
+                ordered_candidates, BAD, index, candidate_fetch
+            )
+            assert len(bounded) == 1 and failed == 1
+            assert shared_reads.count(shared_path) == 2, shared_reads
+    finally:
+        promotion.verify_source_inventory_for_promotion = original_legacy_verifier
 
     # A proof requires 22 audited sources. The verifier focus file already
     # came from GitHub; attachment loads 21 more. Independent verification
