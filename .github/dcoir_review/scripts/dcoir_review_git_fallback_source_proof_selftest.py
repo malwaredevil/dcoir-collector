@@ -154,6 +154,29 @@ def main() -> None:
             raise AssertionError("Unavailable changed verifier context was dropped silently")
     finally:
         review.fetch_pr_file_text = original_fetch
+    review.fetch_pr_file_text = lambda _gh, _path, _ref: "source"
+    try:
+        selected = review.build_file_contexts(
+            None, {"head": {"sha": BAD}},
+            [
+                {"filename": "project_sources/collector/tools/other.py", "changes": 100},
+                {"filename": VERIFIER, "changes": 1, "status": "modified"},
+            ],
+            SimpleNamespace(per_file_review_max_files=1),
+        )
+        assert [context["path"] for context in selected] == [VERIFIER]
+        try:
+            review.build_file_contexts(
+                None, {"head": {"sha": BAD}},
+                [{"filename": VERIFIER, "status": "modified"}],
+                SimpleNamespace(per_file_review_max_files=0),
+            )
+        except RuntimeError as exc:
+            assert "git-fallback-verifier-context-unavailable" in str(exc)
+        else:
+            raise AssertionError("A zero context cap silently bypassed the changed verifier")
+    finally:
+        review.fetch_pr_file_text = original_fetch
     tampered = copy.deepcopy(candidate)
     tampered["_dcoir_evidence"]["hashes"][VERIFIER] = "a" * 16
     assert verify_git_fallback_candidate(tampered, BAD, index, fetch) is None
