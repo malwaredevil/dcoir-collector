@@ -251,14 +251,16 @@ def verify_git_fallback_candidate(candidate: dict, head: str,
     # Independently re-read every source at the reviewed immutable commit.
     try:
         sources = {path: fetch(path, head) for path in PATHS}
-    except Exception:
-        return None
+    except Exception as exc:
+        raise RuntimeError("git-fallback-source-proof-unavailable") from exc
     if not all(_safe(value) for value in sources.values()):
-        return None
+        raise RuntimeError("git-fallback-source-proof-unavailable")
     if any(evidence["hashes"].get(path) != _sha(sources[path]) for path in PATHS):
-        return None
+        raise RuntimeError("git-fallback-source-proof-unavailable")
     anchor = _exact_proof(sources, head)
-    if not anchor or candidate["line"] != anchor or (VERIFIER, anchor) not in added_lines:
+    if not anchor:
+        raise RuntimeError("git-fallback-source-proof-unavailable")
+    if candidate["line"] != anchor or (VERIFIER, anchor) not in added_lines:
         return None
     return {
         "path": VERIFIER,
