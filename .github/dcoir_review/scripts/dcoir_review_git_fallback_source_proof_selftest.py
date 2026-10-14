@@ -50,9 +50,7 @@ def sources(sha: str) -> dict[str, str]:
         ROOT / ANALYZER_INVENTORY
     ).read_text(encoding="utf-8")
     found[ANALYZER_CONTRACT] = (ROOT / ANALYZER_CONTRACT).read_text(encoding="utf-8")
-    found[ANALYZER_EXECUTION] = (
-        ROOT / ANALYZER_EXECUTION
-    ).read_text(encoding="utf-8")
+    found[ANALYZER_EXECUTION] = DATA["historical_analyzer_execution_source"]
     found[INVENTORY_COMMON] = (ROOT / INVENTORY_COMMON).read_text(encoding="utf-8")
     found[COLLECTOR_PATH_SAFETY] = (
         ROOT / COLLECTOR_PATH_SAFETY
@@ -96,6 +94,9 @@ def main() -> None:
     assert _verifier_anchor(normalized_verifier.replace("\n", "\r\n")) == 20
     for key in ("historical_discovery_source", "historical_outputs_source", "original_added_verifier_patch"):
         assert digest(DATA[key]) == DATA[key+"_sha256"], key
+    assert digest(DATA["historical_analyzer_execution_source"]) == (
+        DATA["historical_analyzer_execution_source_sha256"]
+    )
     original = sources(BAD)
     safe = sources(SAFE)
     for path, expected in _AUDITED_SOURCE_SHA256.items():
@@ -125,6 +126,19 @@ def main() -> None:
     assert verified is not None and verified["severity"] == "high"
     assert verified["line"] == 20 and verified["_dcoir_verified_source_inventory"]
     assert "fallback" in verified["title"].lower()
+
+    # A proof requires 22 audited sources. The verifier focus file already
+    # came from GitHub; attachment loads 21 more. Independent verification
+    # re-fetches all 22 at the same immutable reviewed commit.
+    calls.clear()
+    budget_context = context(BAD)
+    attach_git_fallback_candidate(budget_context, BAD, fetch)
+    assert len(calls) == len(PATHS) - 1, ("attachment source reads", calls)
+    budget_candidate = budget_context["item"]["_dcoir_git_fallback_candidate"]
+    calls.clear()
+    assert verify_git_fallback_candidate(budget_candidate, BAD, index, fetch)
+    assert len(calls) == len(PATHS), ("independent verifier reads", calls)
+    assert 2 * len(PATHS) - 1 == 43
 
     client = SimpleNamespace()
     receipt.begin(client)
@@ -266,6 +280,7 @@ def main() -> None:
 
     print("PASS: historical P1 independently promoted")
     print(f"PASS: {len(PATHS)} exact-head source fingerprints")
+    print(f"PASS: bounded witness reads: {len(PATHS)-1} attach + {len(PATHS)} independent verify")
     print("PASS: hostile and safe controls")
     print("PASS: receipts and publication limits")
 
