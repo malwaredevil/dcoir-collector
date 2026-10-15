@@ -118,8 +118,7 @@ def call_model(api_key: str, api_base: str, resolved_model: Dict[str, Any], prom
         except Exception as exc:
             latency_ms = round((time.monotonic() - start) * 1000, 2)
             attempts.append({"attempt": attempt_index, "latency_ms": latency_ms, "error": str(exc)})
-            if attempt_index < max_retries:
-                time.sleep(retry_base_seconds * attempt_index)
-                continue
+            # The POST may have generated despite an exception or invalid
+            # HTTP 200 body. Retrying would risk a duplicate paid generation.
             return {"ok": False, "attempts": attempts, "error": str(exc)}
     return {"ok": False, "attempts": attempts, "error": "unknown"}
