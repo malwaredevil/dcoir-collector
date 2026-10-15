@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 from pathlib import Path
 from unittest.mock import patch
@@ -377,7 +378,7 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
         (ConnectionResetError("reset after send"), "runtime_error", 1),
         (replay_live.urllib.error.URLError("connection refused"), "connection_error", 1),
         (replay_live.urllib.error.URLError(TimeoutError("read timed out")), "read_timeout", 1),
-        (replay_live.urllib.error.HTTPError("https://invalid.test", 503, "mock unavailable", {}, __import__("io").BytesIO(b"mock")), "http_503", 1),
+        (replay_live.urllib.error.HTTPError("https://invalid.test", 503, "mock unavailable", {}, io.BytesIO(b"mock")), "http_503", 1),
     ):
         with patch.object(replay_live.urllib.request, "urlopen", side_effect=raised) as posted:
             outcome = replay_live.call_openai_body("test-key", "", retry_args, {"model": OPENAI_MODEL_ID})
