@@ -116,9 +116,11 @@ def call_openai_body(
                 continue
             return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": error_text[:4000]}
         except urllib.error.URLError as exc:
-            # urllib raises URLError only while sending the request, before any response
-            # exists, so the server has not produced a billable generation; retrying is safe.
+            # URLError can wrap a read timeout after the server accepted the
+            # POST. Never retry that unknown-outcome generation on either GPT lane.
             attempts.append({"attempt": attempt, "latency_ms": elapsed_ms(), "error": str(exc.reason)})
+            if isinstance(exc.reason, TimeoutError):
+                return {"ok": False, "attempts": attempts, "error": "read_timeout"}
             if attempt < args.max_retries:
                 time.sleep(args.retry_base_seconds * attempt)
                 continue
