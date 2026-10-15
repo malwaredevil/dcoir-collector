@@ -75,6 +75,37 @@ def run_scorer_module_size_selftest() -> None:
         )
 
 
+def run_scorer_module_eol_boundary_selftest() -> None:
+    """Prove that CRLF normalization cannot hide genuine source-size growth."""
+    from tempfile import TemporaryDirectory
+    from unittest.mock import patch
+
+    if _canonical_source_byte_size("ø\r\n".encode("utf-8")) != 3:
+        raise SystemExit("Multibyte UTF-8 source-size accounting changed.")
+    if _canonical_source_byte_size(b"x\ry\n") != 4:
+        raise SystemExit("Bare CR source bytes were incorrectly discarded.")
+
+    with TemporaryDirectory() as directory:
+        path = Path(directory) / "synthetic_source.py"
+        with patch.dict(globals(), {
+            "SCORER_MODULES": [path],
+            "SCORER_MODULE_SIZE_EXEMPTIONS": {},
+            "SCORER_MODULE_CHARACTER_CEILING": 10,
+        }):
+            # Raw CRLF is 12 bytes, but canonical LF is exactly the 10-byte cap.
+            path.write_bytes(b"1234\r\n5678\r\n")
+            run_scorer_module_size_selftest()
+            for payload in (b"1234\n56789\n", b"1234\r\n56789\r\n"):
+                path.write_bytes(payload)
+                try:
+                    run_scorer_module_size_selftest()
+                except SystemExit as exc:
+                    if f"{path}:11>10" not in str(exc):
+                        raise SystemExit("Genuinely oversized source was not rejected.") from exc
+                else:
+                    raise SystemExit("Genuinely oversized source passed the size cap.")
+
+
 def run_marker_frame_rejection_selftest() -> None:
     marker = "latest acknowledged state"
     for response in (
