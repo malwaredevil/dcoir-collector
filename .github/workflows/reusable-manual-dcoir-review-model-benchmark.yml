@@ -251,6 +251,9 @@ jobs:
               "# Cross-file recall comparison",
               "",
               "- Mode: " + str(data.get("mode", "")),
+              "- Evaluation scope: " + str(data.get("evaluation_scope", "model-only-first-pass")),
+              "- Production verification/publication: NOT EXECUTED (not a clean review)",
+              "- Published finding count: not measured (null)",
               "- Candidate model: " + str(data.get("model", "")),
               "- Planned requests: " + str(data.get("planned_requests", "")),
               "- Actual network requests: " + str(data.get("network_requests_made", "")),
@@ -258,7 +261,8 @@ jobs:
               "- Partial: " + str(data.get("partial", False)),
               "- Stop reason: " + str(data.get("stop_reason", "")),
               "",
-              "These are synthetic provenance-labeled fixtures, not a full historical replay.",
+              "Source population: " + str(data.get("evidence_population", "")),
+              "Model-only first pass; neither independent source-backed verification nor full-review publication runs here.",
           ]
           if os.environ.get("EXECUTE_LIVE", "").lower() == "true" and not live.is_file():
               result.append("Caution: paid execution requested without live report; cost and outcomes are unknown.")

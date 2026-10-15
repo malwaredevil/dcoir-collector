@@ -54,6 +54,14 @@ def openrouter_review_with_hybrid_first_pass(
         and context["item"]["_dcoir_source_inventory_candidate"].get("_dcoir_candidate_state")
             == "source-backed-pending-independent-verification"
     ]
+    inventory_candidates.extend(
+        context["item"]["_dcoir_git_fallback_candidate"]
+        for context in contexts
+        if isinstance(context.get("item"), dict)
+        and isinstance(context["item"].get("_dcoir_git_fallback_candidate"), dict)
+        and context["item"]["_dcoir_git_fallback_candidate"].get("_dcoir_candidate_state")
+            == "source-backed-pending-independent-verification"
+    )
     hardened.write_debug_json_artifact_safely(
         config, "metadata/source-inventory-candidates.json",
         {
