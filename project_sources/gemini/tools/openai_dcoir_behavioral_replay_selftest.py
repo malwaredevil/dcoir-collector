@@ -573,8 +573,12 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
             raise SystemExit("Invalid governed package must fail closed.")
         invalid_report = json.loads((Path(scratch) / dcoir_runner.REPORT_NAME).read_text(encoding="utf-8"))
     invalid_metadata = invalid_report["metadata"]
-    if invalid_metadata["baseline_model"] is not None or invalid_metadata["model_resolution"]["selected_models_to_run"]:
+    if invalid_metadata["baseline_model"] != "not_selected" or invalid_metadata["model_resolution"]["selected_models_to_run"]:
         raise SystemExit(f"Invalid package claimed a selected model: {invalid_metadata}")
+    if invalid_metadata["model_resolution"]["baseline_model"] is not None:
+        raise SystemExit("Invalid package claimed a governed model-resolution baseline.")
+    if invalid_report["summary"]["baseline_relative_summary"]["baseline_model"] != "not_selected":
+        raise SystemExit("The shared report writer replaced the missing OpenAI model with an unrelated baseline.")
 
     print(json.dumps({"success": True, "model": OPENAI_MODEL_ID, "fixture_count": len(selected_ids), "knowledge_file_count": len(package["knowledge_files"])}, indent=2))
     return 0
