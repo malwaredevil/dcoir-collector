@@ -214,7 +214,7 @@ def run_replay(
         'checked_evidence': [
             'exact governed OpenAI USB Instructions',
             'exact generated USB Knowledge projection',
-            'live GPT-5.6 Terra Responses API output',
+            'live OpenAI Responses API output for governed package model',
             'sanitized governed USB fixture rows',
             'semantic bounded-clarification behavior',
             'semantic final email construction and row/classification fidelity',
@@ -233,7 +233,7 @@ def run_replay(
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Run live GPT-5.6 Terra behavioral replay for the governed AFRICOM USB Reporting package.')
+    parser = argparse.ArgumentParser(description='Run live OpenAI behavioral replay for the governed AFRICOM USB Reporting package.')
     parser.add_argument('--output-dir', required=True)
     parser.add_argument('--fixture', action='append', default=[])
     parser.add_argument('--start-date', default='9/18/2026')
