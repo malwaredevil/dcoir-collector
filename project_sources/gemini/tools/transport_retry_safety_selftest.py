@@ -2,8 +2,8 @@
 """No-network replay POST retry regressions for Gemini and both OpenAI GPTs.
 
 Run directly: python project_sources/gemini/tools/transport_retry_safety_selftest.py
-No live provider calls or credentials. This intentionally leaves existing 5xx and
-non-timeout OpenAI URLError retry policy unchanged until idempotency is resolved.
+No live provider calls or credentials. Unknown-outcome errors fail closed;
+only explicit HTTP 429 rate limiting retains its bounded retry path.
 """
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ class TransportRetrySafetyTests(unittest.TestCase):
             return urllib.error.URLError("connection refused")
         if kind == "runtime_error":
             return RuntimeError("unexpected transport error")
-        if kind in ("http_429", "http_503"):
+        if kind in ("http_429", "http_500", "http_502", "http_503", "http_504"):
             code = int(kind.split("_")[1])
             return urllib.error.HTTPError(
                 "https://invalid.test/v1", code, "mock", {},
@@ -86,13 +86,14 @@ class TransportRetrySafetyTests(unittest.TestCase):
 
     def test_failures_are_bounded_and_accounted_for(self):
         expected = {
-            "gemini_replay": (1, 1, 1, 1, 3, 1, 1),
-            "gemini_compare": (1, 1, 1, 1, 3, 1, 1),
-            "openai_shared": (1, 1, 3, 1, 3, 3, 1),
+            "gemini_replay": (1, 1, 1, 1, 3, 1, 1, 1, 1, 1),
+            "gemini_compare": (1, 1, 1, 1, 3, 1, 1, 1, 1, 1),
+            "openai_shared": (1, 1, 1, 1, 3, 1, 1, 1, 1, 1),
         }
         kinds = (
             "timeout", "wrapped_timeout", "urlerror", "runtime_error",
-            "http_429", "http_503", "malformed_http_200",
+            "http_429", "http_500", "http_502", "http_503", "http_504",
+            "malformed_http_200",
         )
         for engine, counts in expected.items():
             for kind, count in zip(kinds, counts):
@@ -130,6 +131,48 @@ class TransportRetrySafetyTests(unittest.TestCase):
                 self.assertEqual(len(seen), 2)
                 self.assertEqual(len(result["attempts"]), 2)
                 self.assertEqual(result["response_text"], "good")
+
+    def test_rate_limit_then_ambiguous_outcome_never_posts_third_time(self):
+        # 429 permits one bounded retry. If that attempt might have been
+        # accepted, it must fail rather than send a third generation POST.
+        for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
+            for kind in (
+                "timeout", "wrapped_timeout", "urlerror", "runtime_error",
+                "http_503", "malformed_http_200",
+            ):
+                with self.subTest(engine=engine, next_failure=kind):
+                    seen = []
+
+                    def urlopen(request, *, timeout):
+                        seen.append(request)
+                        if len(seen) == 1:
+                            raise self._failure("http_429")
+                        if kind == "malformed_http_200":
+                            return MockResponse(b"{broken-json")
+                        raise self._failure(kind)
+
+                    result = self._call(engine, urlopen)
+                    self.assertFalse(result["ok"])
+                    self.assertEqual(len(seen), 2)
+                    self.assertEqual(len(result["attempts"]), 2)
+
+    def test_5xx_never_resends_even_if_second_attempt_would_succeed(self):
+        for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
+            for code in ("http_500", "http_502", "http_503", "http_504"):
+                with self.subTest(engine=engine, status=code):
+                    seen = []
+
+                    def urlopen(request, *, timeout):
+                        seen.append(request)
+                        if len(seen) == 1:
+                            raise self._failure(code)
+                        return self._success(engine)
+
+                    result = self._call(engine, urlopen)
+                    self.assertFalse(result["ok"], result)
+                    self.assertEqual(result["error"], code)
+                    self.assertEqual(len(seen), 1)
+                    self.assertEqual(len(result["attempts"]), 1)
 
     def test_one_success_is_one_request(self):
         for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
