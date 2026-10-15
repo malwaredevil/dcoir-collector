@@ -5,6 +5,7 @@ import argparse
 import importlib.util
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
 RUNNER_PATH = ROOT / 'project_sources/gemini/tools/run_openai_usb_reporting_behavioral_replay.py'
@@ -56,12 +57,32 @@ def main() -> int:
     report = runner.run_replay(args, caller=fake_caller, api_key_override='test-key', project_id_override='')
     assert report['workflow_verdict'] == 'success', report
     assert report['target_id'] == 'openai_usb_reporting'
-    assert report['model_id'] == 'gpt-5.6-terra'
+    assert report['model_id'] == runner.load_governed_openai_usb_package(ROOT)['model_id']
     assert len(report['results']) == 2
     assert all(item['passed'] for item in report['results'])
     assert report['results'][0]['classification_counts'] == {'NIPR': 7, 'SIPR': 0}
     assert report['results'][1]['classification_counts'] == {'NIPR': 5, 'SIPR': 2}
     assert 'Custom GPT WebUI host behavior' in report['unchecked_evidence']
+
+    # The USB GPT must use the governed package model for both actual request
+    # bodies and its rendered report, even when that model changes later.
+    renamed_model = 'gpt-usb-model-identity-selftest'
+    renamed_package = {**runner.load_governed_openai_usb_package(ROOT), 'model_id': renamed_model}
+    seen_model_ids = []
+    call_index['value'] = 0
+
+    def model_identity_caller(api_key, project_id, args, body):
+        seen_model_ids.append(body['model'])
+        return fake_caller(api_key, project_id, args, body)
+
+    with patch.object(runner, 'load_governed_openai_usb_package', return_value=renamed_package):
+        renamed = runner.run_replay(args, caller=model_identity_caller, api_key_override='test-key', project_id_override='')
+    if renamed['workflow_verdict'] != 'success' or renamed['model_id'] != renamed_model:
+        raise AssertionError(f'USB report model drifted from governed package: {renamed}')
+    if seen_model_ids != [renamed_model] * 4:
+        raise AssertionError(f'USB provider request models did not follow governed package: {seen_model_ids}')
+    if f'- Model: `{renamed_model}`' not in runner.render_report_section(renamed):
+        raise AssertionError('USB rendered report did not show governed package model ID')
 
     failed_calls = {'value': 0}
 
