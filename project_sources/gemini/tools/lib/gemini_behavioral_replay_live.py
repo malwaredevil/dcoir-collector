@@ -48,8 +48,8 @@ def call_gemini(api_key: str, args: argparse.Namespace, model: str, prompt: str)
             return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": body_text[:4000]}
         except Exception as exc:
             attempts.append({"attempt": attempt, "latency_ms": round((time.monotonic() - start) * 1000, 2), "error": str(exc)})
-            if attempt < args.max_retries:
-                time.sleep(args.retry_base_seconds * attempt); continue
+            # A generation POST may already have been accepted. An exception
+            # or invalid 200 response gives no proof that re-POSTing is safe.
             return {"ok": False, "attempts": attempts, "error": str(exc)}
     return {"ok": False, "attempts": attempts, "error": "unknown"}
 
