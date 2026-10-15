@@ -52,7 +52,9 @@ def main() -> int:
     metadata: Dict[str, Any] = {
         "workflow_verdict": "success",
         "replay_mode": "live_openai_api",
-        "baseline_model": None,
+        # This is a status, not a model ID. The shared report writer otherwise
+        # defaults missing baselines to an unrelated Gemini model on errors.
+        "baseline_model": "not_selected",
         "validation_messages": [],
         "checked_evidence": ["fixture index", "fixture definitions"],
         "unchecked_evidence": [
