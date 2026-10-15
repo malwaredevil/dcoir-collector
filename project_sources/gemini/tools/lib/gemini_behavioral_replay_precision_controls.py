@@ -55,12 +55,17 @@ def run_governed_source_override_selftest() -> None:
             raise SystemExit(f"Governed-source marker was incorrectly suppressed: {text}")
 
 
+def _canonical_source_byte_size(data: bytes) -> int:
+    """Count GitHub LF source bytes, not OS-specific CRLF checkout inflation."""
+    return len(data.replace(b"\r\n", b"\n"))
+
+
 def run_scorer_module_size_selftest() -> None:
     oversized = []
     limits = {path: SCORER_MODULE_CHARACTER_CEILING for path in SCORER_MODULES}
     limits.update(SCORER_MODULE_SIZE_EXEMPTIONS)
     for path, limit in limits.items():
-        size = len(path.read_bytes())
+        size = _canonical_source_byte_size(path.read_bytes())
         if size > limit:
             oversized.append(f"{path}:{size}>{limit}")
     if oversized:
