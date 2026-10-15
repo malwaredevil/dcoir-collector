@@ -1,4 +1,4 @@
-"""Fail-closed exact-HEAD verifier for source-inventory candidate publication."""
+"""Inventory proof."""
 from __future__ import annotations
 
 import ast
@@ -175,7 +175,7 @@ def verify_source_inventory_for_promotion(
     added_lines: dict[tuple[str, int], int],
     fetch_text: Callable[[str, str], str],
 ) -> dict[str, Any] | None:
-    """Return whitelisted finding fields only when independent evidence agrees."""
+    """Return proven fields."""
     if (not isinstance(candidate, dict) or not isinstance(reviewed_head, str)
             or not _FULL_SHA.fullmatch(reviewed_head)
             or candidate.get("_dcoir_candidate_state") !=
@@ -210,7 +210,7 @@ def verify_source_inventory_for_promotion(
                     hashlib.sha256(source.encode("utf-8")).hexdigest()[:16] != claimed):
                 return None
     action = sources[path].splitlines()
-    # Verify exact-head Python source even for continued module commands.
+    # Check continued Python calls.
     if line > len(action):
         return None
     logical = next((
@@ -268,7 +268,7 @@ def verify_bounded_inventory_candidates(
     candidates: Any, head: str, added_lines: dict[tuple[str, int], int],
     fetch_text: Callable[[str, str], str],
 ) -> tuple[list[dict[str, Any]], int]:
-    """Bound verification fanout. Never trust candidate-originated filenames."""
+    """Bound untrusted candidates."""
     if not isinstance(candidates, list):
         return [], 0
     if len(candidates) > _MAX_CANDIDATES:
@@ -309,7 +309,7 @@ def integrate_verified_inventory_findings(
     fetch_text: Callable[[str, str], str],
     hardened: Any,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
-    """Apply validated candidates after model normalizer and fix synthesis."""
+    """Publish findings."""
     candidates = result.pop("_dcoir_source_inventory_candidates", [])
     if not candidates:
         return findings, {"advisories": 0, "verified": 0, "promoted": 0, "pending": 0}
@@ -338,7 +338,7 @@ def integrate_verified_inventory_findings(
             and str(f.get("line") or "") == str(proof["line"])
         ]
         if prior:
-            # Do not overwrite unrelated same-line model findings.
+            # Keep unrelated model findings.
             from dcoir_review.source_inventory_candidate import (
                 pending_source_inventory_candidate_count,
             )
