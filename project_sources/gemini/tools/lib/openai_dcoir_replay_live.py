@@ -111,19 +111,18 @@ def call_openai_body(
         except urllib.error.HTTPError as exc:
             error_text = exc.read().decode("utf-8", errors="ignore")
             attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": elapsed_ms(), "error_body_excerpt": error_text[:1000]})
-            if exc.code in {429, 500, 502, 503, 504} and attempt < args.max_retries:
+            # Only an explicit rate limit has a bounded retry path. A 5xx
+            # response does not prove that the generation never started.
+            if exc.code == 429 and attempt < args.max_retries:
                 time.sleep(args.retry_base_seconds * attempt)
                 continue
             return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": error_text[:4000]}
         except urllib.error.URLError as exc:
-            # URLError can wrap a read timeout after the server accepted the
-            # POST. Never retry that unknown-outcome generation on either GPT lane.
+            # A connection error may also occur after the server accepted the
+            # generation POST. Without idempotency proof, do not re-POST.
             attempts.append({"attempt": attempt, "latency_ms": elapsed_ms(), "error": str(exc.reason)})
             if isinstance(exc.reason, TimeoutError):
                 return {"ok": False, "attempts": attempts, "error": "read_timeout"}
-            if attempt < args.max_retries:
-                time.sleep(args.retry_base_seconds * attempt)
-                continue
             return {"ok": False, "attempts": attempts, "error": "connection_error"}
         except TimeoutError:
             # The request was sent and may already be generating (and billed); re-POSTing
