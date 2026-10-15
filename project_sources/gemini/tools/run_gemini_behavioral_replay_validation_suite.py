@@ -22,6 +22,7 @@ from lib.gemini_behavioral_replay_polarity_precision import run_polarity_consist
 from lib.gemini_behavioral_replay_precision_controls import (
     run_governed_source_override_selftest,
     run_marker_frame_rejection_selftest,
+    run_scorer_module_eol_boundary_selftest,
     run_scorer_module_size_selftest,
 )
 from lib.gemini_behavioral_replay_lane_separation_regressions import run_lane_separation_scoring_selftest
@@ -266,6 +267,7 @@ def main() -> int:
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_fixture_schema_precision_selftest()
+    run_scorer_module_eol_boundary_selftest()
     run_scorer_module_size_selftest()
     run_marker_frame_rejection_selftest()
     run_governed_source_override_selftest()
