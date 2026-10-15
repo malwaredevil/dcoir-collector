@@ -174,6 +174,37 @@ class TransportRetrySafetyTests(unittest.TestCase):
                     self.assertEqual(len(seen), 1)
                     self.assertEqual(len(result["attempts"]), 1)
 
+    def test_post_send_reset_wrapped_as_urlerror_does_not_repost(self):
+        for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
+            with self.subTest(engine=engine):
+                seen = []
+
+                def urlopen(request, *, timeout):
+                    seen.append(request)
+                    raise urllib.error.URLError(ConnectionResetError("reset after POST"))
+
+                result = self._call(engine, urlopen)
+                self.assertFalse(result["ok"])
+                self.assertEqual(len(seen), 1)
+                self.assertEqual(len(result["attempts"]), 1)
+                if engine == "openai_shared":
+                    self.assertEqual(result["error"], "connection_error")
+
+    def test_rate_limit_is_bounded_by_retry_budget(self):
+        for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
+            with self.subTest(engine=engine):
+                seen = []
+
+                def urlopen(request, *, timeout):
+                    seen.append(request)
+                    raise self._failure("http_429")
+
+                result = self._call(engine, urlopen)
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["error"], "http_429")
+                self.assertEqual(len(seen), 3)
+                self.assertEqual(len(result["attempts"]), 3)
+
     def test_one_success_is_one_request(self):
         for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
             with self.subTest(engine=engine):
