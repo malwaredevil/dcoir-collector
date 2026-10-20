@@ -23,7 +23,7 @@ permissions:
 jobs:
   analyze:
     name: CodeQL (${{ matrix.language }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       security-events: write
@@ -81,7 +81,7 @@ jobs:
 
   combine-report-sections:
     name: Combine CodeQL report sections
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs:
       - analyze
     if: always()

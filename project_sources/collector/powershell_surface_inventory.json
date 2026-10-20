@@ -4819,9 +4819,9 @@
           "command_preview": "set -euo pipefail\nPAYLOAD=\"${PAYLOAD:-${{ steps.payload.outputs.payload_path }}}\"\nREQUEST_ID=\"${REQUEST_ID:-${{ steps.payload.outputs.request_id }}}\"\ncase \"$REQUEST_ID\" in\n  *[!A-Za-z0-9._-]*|'') REQUEST_ID=\"unsafe_or_unknown\" ;;\nesac\nWORK_"
         }
       ],
-      "size_bytes": 14652,
+      "size_bytes": 14651,
       "line_count": 319,
-      "sha256": "bd9af49e6513cb60e6084855dbebe2e6f5ecfa2987281f6e4460b8ea1a56b383"
+      "sha256": "eb23e3186b830a70673a3d3618088cca9be55f2c400745f83ff17f69d164dffd"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-exec.yml",
@@ -4971,9 +4971,9 @@
           "command_preview": "set -euo pipefail\nREQUEST_PATH='${{ steps.request.outputs.request_path }}'\nREQUEST_ID='${{ steps.request.outputs.request_id }}'\ncase \"$REQUEST_ID\" in\n  *[!A-Za-z0-9._-]*|'') REQUEST_ID=\"unsafe_or_unknown\" ;;\nesac\nREPORT_DIR=\".github/chatgpt"
         }
       ],
-      "size_bytes": 11700,
+      "size_bytes": 11699,
       "line_count": 263,
-      "sha256": "04242cde8d8ece115cbab80ee013382062c80aa3a47531f6c1ea8a639b29d363"
+      "sha256": "099a82bbde677151ab9b946678f0188580c2791b53755e1a68ce029f64dc5ee5"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-workflow-run-reporter.yml",
@@ -4997,9 +4997,9 @@
           "command_preview": "$reportPath = Get-Content -Path .github/tmp/chatgpt_workflow_report_path.txt -Raw\n$reportPath = $reportPath.Trim()\nif ([string]::IsNullOrWhiteSpace($reportPath)) {\n  throw 'Current workflow report path was not written.'\n}\n.github/scripts/In"
         }
       ],
-      "size_bytes": 8113,
+      "size_bytes": 8112,
       "line_count": 183,
-      "sha256": "71b155970076b539d0229defc408cea8c4b45e8cc8f64fe6bfa39a85394d653b"
+      "sha256": "0717d3d6a6738a6f563eb682be7337265be4bde7ca81b11b59a3873514ffa5ef"
     },
     {
       "path": ".github/workflows/reusable-collector-documentation-quality.yml",
@@ -5373,9 +5373,9 @@
           "command_preview": "set -euo pipefail\npython .github/scripts/write_github_artifact_readback_failure_report.py \\\n  --request-id \"$REQUEST_ID\" \\\n  --request-path \"$REQUEST_PATH\" \\\n  --source-run-id \"$SOURCE_RUN_ID\" \\\n  --artifact-name \"$ARTIFACT_NAME\" \\\n  --arti"
         }
       ],
-      "size_bytes": 14332,
+      "size_bytes": 14331,
       "line_count": 309,
-      "sha256": "6da7067c7ba091e2e1e5b717353f644a2a4e8292b44177875f1821ae2c7446a8"
+      "sha256": "aba85705593a322d5858ed24a03486d200b77f3bd6acb5c7d18190d4c80057ed"
     },
     {
       "path": ".github/workflows/reusable-manual-test-framework-validate.yml",
