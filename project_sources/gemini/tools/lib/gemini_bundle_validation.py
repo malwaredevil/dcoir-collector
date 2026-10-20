@@ -99,6 +99,6 @@ def validate_bundle(
     knowledge_sources = validate_knowledge_inventory(manifest, source_root, repo_root, required_files, checks, errors)
     validate_operator_file_suffixes(source_root, required_files, checks, warnings)
     topology, prime_rel, sub_rel_list = validate_topology(manifest, source_root, checks, errors, warnings)
-    validate_runtime_surfaces(source_root, repo_root, topology, prime_rel, sub_rel_list, knowledge_sources, checks, errors, warnings)
+    validate_runtime_surfaces(source_root, repo_root, topology, prime_rel, sub_rel_list, knowledge_sources, checks, errors)
 
     return finish(manifest, effective_version)

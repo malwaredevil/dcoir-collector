@@ -267,6 +267,8 @@ def main() -> int:
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_fixture_schema_precision_selftest()
+    # Validate canonical Gemini manifest helpers and fail-closed source markers offline.
+    run([sys.executable, "project_sources/gemini/tools/gemini_manifest_visibility_selftest.py"])
     run_scorer_module_eol_boundary_selftest()
     run_scorer_module_size_selftest()
     # Actual scorer self-tests only; does not claim compiled-bundle content coverage.

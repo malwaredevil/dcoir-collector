@@ -5,12 +5,9 @@ import re
 from pathlib import Path
 
 from lib.gemini_bundle_validation_common import (
-    AGENT_DIR,
     ATTACHMENT_MAP,
     QUICK_START,
     RUNTIME_GOVERNANCE_LEAK_PATTERNS,
-    VISIBILITY_CHECKS,
-    gather_text,
     rel_posix,
 )
 
@@ -24,11 +21,9 @@ def validate_runtime_surfaces(
     knowledge_sources: list[str],
     checks: dict[str, object],
     errors: list[str],
-    warnings: list[str],
 ) -> None:
     validate_attachment_map(source_root, knowledge_sources, checks, errors)
     validate_runtime_governance_leaks(source_root, repo_root, topology, prime_rel, sub_rel_list, knowledge_sources, checks, errors)
-    validate_visibility_markers(source_root, repo_root, knowledge_sources, checks, warnings)
 
 
 def validate_attachment_map(
@@ -83,19 +78,3 @@ def validate_runtime_governance_leaks(
     checks['runtime_governance_leaks'] = runtime_governance_leaks
     if runtime_governance_leaks:
         errors.append('runtime-facing Gemini files contain builder/governance source references: ' + json.dumps(runtime_governance_leaks, sort_keys=True))
-
-
-def validate_visibility_markers(
-    source_root: Path,
-    repo_root: Path,
-    knowledge_sources: list[str],
-    checks: dict[str, object],
-    warnings: list[str],
-) -> None:
-    combined_paths = list((source_root / AGENT_DIR).glob('*.txt')) + [source_root / QUICK_START] + [repo_root / rel for rel in knowledge_sources]
-    combined = gather_text(combined_paths).lower()
-    for key, needles in VISIBILITY_CHECKS.items():
-        present = all(needle in combined for needle in needles)
-        checks[key] = present
-        if not present:
-            warnings.append(f'visibility check did not find all markers for {key}: {needles}')

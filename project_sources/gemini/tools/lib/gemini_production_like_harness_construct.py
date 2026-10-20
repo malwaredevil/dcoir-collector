@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from lib.gemini_bundle_validation_common import derive_bundle_version
+from lib.gemini_bundle_validation_common import MANIFEST_NAME, derive_bundle_version, load_manifest
 from lib.gemini_bundle_zip_contract import (
     BundleZipContractError,
     compiled_zip_path,
@@ -36,8 +36,8 @@ def expected_construct_counts(root: Path) -> dict[str, int]:
 
 def validate_construct(root: Path, output_dir: Path, messages: list[dict[str, str]], mode: str) -> dict[str, Any]:
     source_root = root / "project_sources/gemini/bundle_source"
-    manifest_path = source_root / "Gemini_Bundle_Source_Manifest.json"
-    manifest = load_json(manifest_path)
+    manifest_path = source_root / MANIFEST_NAME
+    manifest = load_manifest(source_root)
     topology = manifest["topology"]
     chunks = load_json(source_root / manifest["prime_agent_chunk_manifest"])
     counts = {
