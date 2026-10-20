@@ -9,16 +9,17 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
+from lib.gemini_behavioral_replay_models import DEFAULT_API_BASE
+from lib.gemini_behavioral_replay_live import call_gemini
 from lib.gemini_model_comparison_api import (
-    DEFAULT_API_BASE,
     DEFAULT_CANDIDATES,
     DEFAULT_REFERENCE_MODEL,
     build_case_prompt,
-    call_model,
     ensure_dir,
     estimate_tokens,
     list_models,
     load_json,
+    model_resolution_warning,
     resolve_requested_models,
 )
 from lib.gemini_model_comparison_eval import (
@@ -73,12 +74,18 @@ def main() -> int:
         resolved_model = resolved_models.get(model_name)
         if resolved_model is None:
             for case in cases:
-                all_case_records.append({"requested_model": model_name, "resolved_model_name": None, "case_id": case["id"], "protocol_ok": False, "protocol_error": "model_not_available", "rubric_score": 0.0, "case_pass": False, "closeness_to_reference": 0.0, "attempt_count": 0, "latency_ms": None, "anomaly_terms": [], "contradictions": []})
+                all_case_records.append({"requested_model": model_name, "resolved_model_name": None, "called_model": None, "model_resolution_warning": model_resolution_warning(model_name, available_models), "case_id": case["id"], "protocol_ok": False, "protocol_error": "model_not_available", "rubric_score": 0.0, "case_pass": False, "closeness_to_reference": 0.0, "attempt_count": 0, "latency_ms": None, "anomaly_terms": [], "contradictions": []})
             continue
         for case in cases:
             for repetition in range(1, args.repeat_count + 1):
                 prompt = build_case_prompt(case)
-                call = call_model(api_key, args.api_base, resolved_model, prompt, args.temperature, args.max_retries, args.retry_base_seconds)
+                call = call_gemini(
+                    api_key, args, str(resolved_model["name"]), prompt,
+                    generation_config={
+                        "temperature": args.temperature,
+                        "responseMimeType": "application/json",
+                    },
+                )
                 protocol_ok = False
                 parsed_response: Dict[str, Any] = {}
                 protocol_error = None
@@ -97,6 +104,7 @@ def main() -> int:
                 all_case_records.append({
                     "requested_model": model_name,
                     "resolved_model_name": resolved_model.get("name"),
+                    "called_model": call.get("called_model"),
                     "case_id": case["id"],
                     "case_description": case.get("description"),
                     "repeat_index": repetition,
@@ -141,7 +149,13 @@ def main() -> int:
         "fixture_path": str(fixture_path),
         "requested_models": requested_models,
         "resolved_models": {name: model.get("name") for name, model in resolved_models.items()},
+        "model_resolution_warnings": {
+            name: warning for name in requested_models
+            if name not in resolved_models
+            for warning in [model_resolution_warning(name, available_models)] if warning
+        },
         "reference_model": args.reference_model,
+        "reference_model_called": resolved_models.get(args.reference_model, {}).get("name"),
         "repeat_count": args.repeat_count,
         "case_count": len(cases),
         "available_model_catalog_size": len(available_models),
@@ -150,6 +164,9 @@ def main() -> int:
         "critical_case_ids": critical_case_ids,
         "best_relative_model": rankings[0]["requested_model"] if rankings else None,
         "recommended_model": qualified[0]["requested_model"] if qualified else None,
+        "recommended_model_called": (
+            resolved_models.get(qualified[0]["requested_model"], {}).get("name") if qualified else None
+        ),
         "model_summaries": model_summaries,
         "rankings": rankings,
         "case_results": all_case_records,
@@ -157,7 +174,7 @@ def main() -> int:
     report = redact_report_value(report)
     # The report is recursively redacted above before it reaches disk or stdout.
     (output_dir / "gemini_model_comparison_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
-    lines = ["# Gemini model comparison summary", "", f"- reference_model: {args.reference_model}", f"- fixture_path: {fixture_path.as_posix()}", f"- repeat_count: {args.repeat_count}", f"- case_count: {len(cases)}", f"- minimum_case_score: {args.minimum_case_score}", f"- minimum_behavior_score: {args.minimum_behavior_score}", f"- best_relative_model: {report['best_relative_model']}", f"- recommended_model: {report['recommended_model'] or 'none'}", "", "## Ranking", ""]
+    lines = ["# Gemini model comparison summary", "", f"- reference_model: {args.reference_model}", f"- fixture_path: {fixture_path.as_posix()}", f"- repeat_count: {args.repeat_count}", f"- case_count: {len(cases)}", f"- minimum_case_score: {args.minimum_case_score}", f"- minimum_behavior_score: {args.minimum_behavior_score}", f"- best_relative_model: {report['best_relative_model']}", f"- recommended_model: {report['recommended_model'] or 'none'}", f"- recommended_model_called: {report['recommended_model_called'] or 'none'}", "", "## Ranking", ""]
     for rank, summary in enumerate(rankings, start=1):
         lines.append(f"{rank}. `{summary['requested_model']}` -> composite={summary['composite_score']}, behavior={summary['behavior_score']}, closeness={summary['closeness_score']}, operational_fit={summary['operational_fit_score']}, protocol={summary['protocol_score']}, behavior_pass={str(summary['behavior_pass']).lower()}, status={summary['recommendation_status']}")
         if summary.get("failed_cases"):

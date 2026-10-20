@@ -23,9 +23,29 @@ def extract_text(payload: Dict[str, Any]) -> str:
                 out.append(str(part["text"]))
     return "\n".join(out).strip()
 
-def call_gemini(api_key: str, args: argparse.Namespace, model: str, prompt: str) -> Dict[str, Any]:
-    endpoint = f"{args.api_base}/models/{model}:generateContent"
-    body = json.dumps({"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"temperature": args.temperature, "candidateCount": 1}}).encode()
+def call_gemini(
+    api_key: str, args: argparse.Namespace, model: str, prompt: str,
+    *, generation_config: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """Only generation POST owner for Gemini replay and model comparison.
+
+    Retry only explicit HTTP 429 responses; any ambiguous response, including
+    5xx and read/parse failures, can follow a billable generation.
+    """
+    model_id = str(model or "").strip()
+    if model_id.startswith("models/"):
+        model_id = model_id[len("models/"):]
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", model_id) or model_id.lower().endswith("-latest"):
+        return {"ok": False, "attempts": [], "error": "invalid_model_name"}
+    endpoint = f"{args.api_base.rstrip('/')}/models/{model_id}:generateContent"
+    config = (
+        {"temperature": args.temperature, "candidateCount": 1}
+        if generation_config is None else dict(generation_config)
+    )
+    body = json.dumps({
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": config,
+    }).encode("utf-8")
     attempts = []
     for attempt in range(1, args.max_retries + 1):
         start = time.monotonic()
@@ -38,20 +58,41 @@ def call_gemini(api_key: str, args: argparse.Namespace, model: str, prompt: str)
             )
             with urllib.request.urlopen(req, timeout=120) as response:
                 payload = json.loads(response.read().decode("utf-8"))
-                attempts.append({"attempt": attempt, "status_code": response.status, "latency_ms": round((time.monotonic() - start) * 1000, 2)})
-                return {"ok": True, "attempts": attempts, "payload": payload, "response_text": extract_text(payload)}
+                attempts.append({
+                    "attempt": attempt, "status_code": response.status,
+                    "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                })
+                return {
+                    "ok": True, "attempts": attempts, "payload": payload,
+                    "response_text": extract_text(payload),
+                    "usage_metadata": payload.get("usageMetadata", {}),
+                    "called_model": f"models/{model_id}",
+                }
         except urllib.error.HTTPError as exc:
             body_text = exc.read().decode("utf-8", errors="ignore")
-            attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": round((time.monotonic() - start) * 1000, 2), "error_body_excerpt": body_text[:1000]})
+            attempts.append({
+                "attempt": attempt, "status_code": exc.code,
+                "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                "error_body_excerpt": body_text[:1000],
+            })
             if exc.code == 429 and attempt < args.max_retries:
-                time.sleep(args.retry_base_seconds * attempt); continue
-            return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": body_text[:4000]}
+                time.sleep(args.retry_base_seconds * attempt)
+                continue
+            return {
+                "ok": False, "attempts": attempts,
+                "error": f"http_{exc.code}", "error_body": body_text[:4000],
+                "called_model": f"models/{model_id}",
+            }
         except Exception as exc:
-            attempts.append({"attempt": attempt, "latency_ms": round((time.monotonic() - start) * 1000, 2), "error": str(exc)})
-            # A generation POST may already have been accepted. An exception
-            # or invalid 200 response gives no proof that re-POSTing is safe.
-            return {"ok": False, "attempts": attempts, "error": str(exc)}
-    return {"ok": False, "attempts": attempts, "error": "unknown"}
+            attempts.append({
+                "attempt": attempt, "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                "error": str(exc),
+            })
+            return {
+                "ok": False, "attempts": attempts, "error": str(exc),
+                "called_model": f"models/{model_id}",
+            }
+    return {"ok": False, "attempts": attempts, "error": "unknown", "called_model": f"models/{model_id}"}
 
 def runtime_unavailable_reason(call: Dict[str, Any]) -> str:
     text_parts = [str(call.get("error", "")), str(call.get("error_body", ""))]
