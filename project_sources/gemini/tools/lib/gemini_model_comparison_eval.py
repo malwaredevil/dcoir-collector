@@ -4,9 +4,10 @@ import json
 import statistics
 from typing import Any, Dict, List, Tuple
 
+from .gemini_behavioral_replay_text_scoring import CONTRADICTION_PAIRS
+
 ANOMALY_TERMS = ["routing_state", "planner_payloads", "readiness_confirmed", "enterprise_web_search_status", "missing_minimum_evidence"]
 
-CONTRADICTION_PAIRS = [("wait", "kill"), ("rerun", "leave it alone"), ("cleanup now", "do not clean up yet")]
 
 def parse_model_json(response_text: str) -> Tuple[bool, Dict[str, Any], str | None]:
     try:

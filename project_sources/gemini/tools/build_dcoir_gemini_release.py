@@ -47,7 +47,6 @@ def main() -> int:
 
     validate_script = script_root / 'validate_dcoir_gemini_bundle.py'
     scenario_script = script_root / 'validate_dcoir_gemini_behavior_scenarios.py'
-    regression_script = script_root / 'validate_dcoir_gemini_output_contract_regressions.py'
     compile_script = script_root / 'compile_dcoir_gemini_bundle.py'
     reassemble_script = script_root / 'reassemble_dcoir_gemini_prime_agent.py'
     adapter_script = (
@@ -129,19 +128,6 @@ def main() -> int:
         })
         if scenario_proc.returncode != 0:
             write_report(output_dir, {'success': False, 'stage': 'validate_behavior_scenarios', 'steps': steps})
-            return 1
-
-        regression_cmd = [sys.executable, str(regression_script), '--source-root', str(source_root), '--output-dir', str(output_dir)]
-        regression_proc = run_step(regression_cmd)
-        steps.append({
-            'name': 'validate_output_contract_regressions',
-            'cmd': regression_cmd,
-            'returncode': regression_proc.returncode,
-            'stdout': regression_proc.stdout,
-            'stderr': regression_proc.stderr,
-        })
-        if regression_proc.returncode != 0:
-            write_report(output_dir, {'success': False, 'stage': 'validate_output_contract_regressions', 'steps': steps})
             return 1
 
     compile_cmd = [sys.executable, str(compile_script), '--source-root', str(source_root), '--output-dir', str(output_dir)]

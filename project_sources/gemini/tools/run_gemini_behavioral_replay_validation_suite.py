@@ -269,6 +269,8 @@ def main() -> int:
     run_fixture_schema_precision_selftest()
     run_scorer_module_eol_boundary_selftest()
     run_scorer_module_size_selftest()
+    # Actual scorer self-tests only; does not claim compiled-bundle content coverage.
+    run([sys.executable, "project_sources/gemini/tools/gemini_output_contract_scorer_selftest.py"])
     run_marker_frame_rejection_selftest()
     run_governed_source_override_selftest()
     run_truth_frame_modifier_selftest()
