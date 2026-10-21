@@ -79,8 +79,8 @@ def _nipr_response(rows: list[dict[str, str]]) -> str:
 
 
 def _mixed_response(rows: list[dict[str, str]]) -> str:
-    nipr = [row for row in rows if module._classification(row) == 'NIPR']
-    sipr = [row for row in rows if module._classification(row) == 'SIPR']
+    nipr = [row for row in rows if module.classify_usb_row(row) == 'NIPR']
+    sipr = [row for row in rows if module.classify_usb_row(row) == 'SIPR']
     nipr_open, sipr_open = module._expected_openings(len(nipr), len(sipr), PREVIOUS, START, END)
     return f'''NIPR Recipient:\n```text\n{module.NIPR_RECIPIENT}\n```\n\nNIPR Subject:\n```text\n{module._subject(START, END)}\n```\n\nNIPR Message Draft:\n```text\n{_body(nipr, nipr_open)}\n```\n\nSIPR Recipient:\n```text\n{module.SIPR_RECIPIENT}\n```\n\nSIPR Subject:\n```text\n{module._subject(START, END)}\n```\n\nSIPR Message Draft:\n```text\n{_body(sipr, sipr_open or '')}\n```\n\nSIPR Transfer Instructions:\nCopy the SIPR recipient, SIPR subject, and SIPR message draft into a text document and move that text document to SIPR using Intelink iSafe: {module.ISAFE_URL}'''
 
@@ -113,6 +113,18 @@ def test_bluf_scaffolding_is_rejected_even_with_valid_email() -> None:
     result = module.score_final_response(response, rows, start_date=START, end_date=END, previous_count=PREVIOUS)
     assert not result['passed'], result
     assert any('BLUF' in error for error in result['errors'])
+
+
+def test_public_usb_classification_contract() -> None:
+    classify = module.classify_usb_row
+    assert classify({'snowticketnumber': 'incn1234'}) == 'NIPR'
+    assert classify({'snowticketnumber': 'INCS5678'}) == 'SIPR'
+    assert classify({'snowticketnumber': 'UNKNOWN'}) == 'UNKNOWN'
+    assert classify({'snowticketnumber': ' '}) == 'UNKNOWN'
+    assert classify({}) == 'UNKNOWN'
+    rows = module.load_fixture_rows(MIXED_FIXTURE)
+    assert sum(classify(r) == 'NIPR' for r in rows) == 5
+    assert sum(classify(r) == 'SIPR' for r in rows) == 2
 
 
 def test_mixed_classification_leakage_is_rejected() -> None:
@@ -263,6 +275,7 @@ def main() -> int:
         test_positive_mixed_email_construction,
         test_marker_only_email_shape_is_rejected,
         test_bluf_scaffolding_is_rejected_even_with_valid_email,
+        test_public_usb_classification_contract,
         test_mixed_classification_leakage_is_rejected,
         test_missing_real_row_is_rejected,
         test_missing_date_line_is_rejected,

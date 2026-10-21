@@ -84,7 +84,8 @@ def _ticket(row: dict[str, str]) -> str:
     return _value(row, 'SNOW Ticket Number')
 
 
-def _classification(row: dict[str, str]) -> str:
+def classify_usb_row(row: dict[str, str]) -> str:
+    """Classify a sanitized USB fixture row from its SNOW ticket prefix."""
     ticket = _ticket(row).upper()
     if ticket.startswith('INCN'):
         return 'NIPR'
@@ -129,7 +130,7 @@ def _lane_rows(rows: list[dict[str, str]], lane: str) -> list[dict[str, str]]:
         line = _expected_date_line(row) or ''
         match = re.match(r'Date: (\d\d)/(\d\d)/(\d{4}) (\d{4})', line)
         return (0, match[3], match[1], match[2], match[4]) if match else (1,)
-    return sorted((row for row in rows if _classification(row) == lane), key=key)
+    return sorted((row for row in rows if classify_usb_row(row) == lane), key=key)
 
 
 def _labeled_values(block: str, label: str) -> list[str]:
@@ -218,7 +219,7 @@ def _expected_openings(nipr_count: int, sipr_count: int, previous_count: int, st
 def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     errors: list[str] = []
     expected = _lane_rows(rows, lane)
-    forbidden = [row for row in rows if _classification(row) not in {lane, 'UNKNOWN'}]
+    forbidden = [row for row in rows if classify_usb_row(row) not in {lane, 'UNKNOWN'}]
     incident_name_count = len(re.findall(r'(?mi)^[ \t]*Name\(s\):', body))
     if incident_name_count != len(expected):
         errors.append(f'{lane} body incident count mismatch: expected {len(expected)}, saw {incident_name_count}')
@@ -302,11 +303,11 @@ def score_final_response(
     previous_count: int,
 ) -> dict[str, Any]:
     errors = _forbidden_scaffold_errors(text)
-    unknown = [_ticket(row) for row in rows if _classification(row) == 'UNKNOWN']
+    unknown = [_ticket(row) for row in rows if classify_usb_row(row) == 'UNKNOWN']
     if unknown:
         errors.append('fixture contains unknown ticket prefix: ' + ', '.join(unknown))
-    nipr = [row for row in rows if _classification(row) == 'NIPR']
-    sipr = [row for row in rows if _classification(row) == 'SIPR']
+    nipr = [row for row in rows if classify_usb_row(row) == 'NIPR']
+    sipr = [row for row in rows if classify_usb_row(row) == 'SIPR']
     errors.extend(_global_incident_evidence_errors(text, rows))
     mixed = bool(sipr)
     if mixed:
