@@ -52,7 +52,7 @@ def analyze_visible_output(
     if require_bluf_preamble:
         first = BLUF_SECTION.search(text)
         preamble = text[:first.start()].strip() if first else text.strip()
-        if preamble:
+        if preamble or first is None or not text[first.end():].strip():
             findings.append("malformed_preamble")
             details["preamble_excerpt"] = preamble[:400]
     return {"accepted": not findings, "findings": sorted(findings), "details": details}

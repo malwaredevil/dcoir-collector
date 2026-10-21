@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Any
 
 from lib.gemini_production_like_harness_common import add_message, load_json, repo_relative, sha_text
@@ -37,6 +38,18 @@ def validate_blind_scenarios(
         scenario = load_json(scenario_path)
         message_start = len(messages)
         scenario_id = scenario.get("id", reference.get("id"))
+        # Scenario IDs become filenames. Fail closed before any prompt write.
+        if "id" not in scenario:
+            add_message(messages, "error", f"{scenario_id} missing required field id", repo_relative(scenario_path, root))
+            continue
+        if (
+            not isinstance(scenario_id, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}", scenario_id)
+            or scenario_id.endswith(".")
+            or scenario_id.split(".")[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
+        ):
+            add_message(messages, "error", f"{scenario_id} invalid required field id", repo_relative(scenario_path, root))
+            continue
         scenario_dir = scenario_path.parent
         for required in ("id", "owner", "family", "visible", "hidden", "artifact_expectations"):
             if required not in scenario:

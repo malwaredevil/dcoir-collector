@@ -102,6 +102,29 @@ class BlindHarnessOwnershipTests(unittest.TestCase):
                     messages,
                 )
                 self.assertEqual(report["coverage_tags"], [])
+                if field == "id":
+                    prompts = self.root / "out/model_visible_prompts"
+                    self.assertFalse(list(prompts.iterdir()), "invalid scenario IDs must not create files")
+
+    def test_scenario_id_rejects_nonportable_filename_values(self) -> None:
+        for bad_id in ("CON", "bad name", "trailing.", "x" * 121, "nested/leaf"):
+            with self.subTest(bad_id=bad_id):
+                entry = self.scenario("safe")
+                target = self.blind / entry["path"]
+                payload = json.loads(target.read_text(encoding="utf-8"))
+                payload["id"] = bad_id
+                self.put_json(target, payload)
+                report, messages = self.blind_report({"scenarios": [entry]})
+                self.assertTrue(any("invalid required field id" in m["message"] for m in messages), messages)
+                self.assertFalse(report["coverage_tags"])
+                self.assertFalse(list((self.root / "out/model_visible_prompts").iterdir()))
+
+    def test_safe_scenario_id_still_generates_prompt(self) -> None:
+        entry = self.scenario("safe-id.v2")
+        report, messages = self.blind_report({"scenarios": [entry]})
+        self.assertFalse([m for m in messages if m["level"] == "error"], messages)
+        self.assertEqual(report["scenario_count"], 1)
+        self.assertTrue((self.root / "out/model_visible_prompts/safe-id.v2.prompt.txt").is_file())
 
     def test_prior_invalid_scenario_does_not_mask_later_valid_tags(self) -> None:
         broken = self.scenario("broken", owner="ghost_owner")

@@ -235,7 +235,7 @@ def run_replay(
             'live deployed GPT configuration state unless separately read back',
         ],
         'live_environment_fidelity_gap': (
-            'This is real GPT-5.6 Terra Responses API evidence using the exact repository Instructions and Knowledge package. '
+            f'This is real OpenAI Responses API evidence for governed model {package["model_id"]} using the exact repository Instructions and Knowledge package. '
             'It does not by itself prove the hosted Custom GPT WebUI has been redeployed or behaves identically.'
         ),
         'results': results,

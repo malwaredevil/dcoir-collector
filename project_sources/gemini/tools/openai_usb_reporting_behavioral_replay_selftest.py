@@ -111,6 +111,11 @@ def main() -> int:
         renamed = runner.run_replay(args, caller=model_identity_caller, api_key_override='test-key', project_id_override='')
     if renamed['workflow_verdict'] != 'success' or renamed['model_id'] != renamed_model:
         raise AssertionError(f'USB report model drifted from governed package: {renamed}')
+    if renamed_model not in renamed["live_environment_fidelity_gap"]:
+        raise AssertionError("USB fidelity note does not identify the governed model")
+    if "GPT-5.6 Terra" in renamed["live_environment_fidelity_gap"]:
+        raise AssertionError("USB fidelity note still claims a fixed model")
+
     if seen_model_ids != [renamed_model] * 4:
         raise AssertionError(f'USB provider request models did not follow governed package: {seen_model_ids}')
     if f'- Model: `{renamed_model}`' not in runner.render_report_section(renamed):

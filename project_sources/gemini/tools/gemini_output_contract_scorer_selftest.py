@@ -108,6 +108,14 @@ class OutputContractScorerTests(unittest.TestCase):
         self.assertTrue(analyze_visible_output(
             "## Executive summary\nEvidence.",require_bluf_preamble=True)["accepted"])
 
+    def test_empty_output_fails_opt_in_preamble(self):
+        for response in ("", " ", "\n\t", "## BLUF\n", "## Executive summary\n\n"):
+            with self.subTest(response=response):
+                result = analyze_visible_output(response, require_bluf_preamble=True)
+                self.assertIn("malformed_preamble", result["findings"])
+                self.assertFalse(result["accepted"])
+                self.assertTrue(analyze_visible_output(response)["accepted"])
+
     def test_narrow_internal_state_and_scaffold_detection(self):
         self.assertTrue(analyze_visible_output(
             "The analyst handoff summarizes normalized evidence.")["accepted"])
