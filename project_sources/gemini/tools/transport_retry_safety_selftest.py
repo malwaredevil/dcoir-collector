@@ -159,6 +159,74 @@ class TransportRetrySafetyTests(unittest.TestCase):
                     self.assertEqual(len(seen), 2)
                     self.assertEqual(len(result["attempts"]), 2)
 
+    def test_http_error_body_read_failures_keep_one_post_and_http_status(self):
+        # urllib.HTTPError is also a file-like response; even reading its
+        # diagnostic body can fail after the provider has seen the POST.
+        class FailingErrorBody(io.BytesIO):
+            def __init__(self, exception_class):
+                super().__init__(b"")
+                self.exception_class = exception_class
+
+            def read(self, *args, **kwargs):
+                raise self.exception_class("secret error-body diagnostic")
+
+        for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
+            for status in (429, 503):
+                for failure in (TimeoutError, ConnectionResetError, RuntimeError):
+                    with self.subTest(engine=engine, status=status, failure=failure.__name__):
+                        requests = []
+
+                        def opener(request, *, timeout):
+                            requests.append(request)
+                            if len(requests) != 1:
+                                return self._success(engine)
+                            raise urllib.error.HTTPError(
+                                "https://invalid.test/v1", status, "mock", {},
+                                FailingErrorBody(failure),
+                            )
+
+                        outcome = self._call(engine, opener)
+                        self.assertFalse(outcome["ok"])
+                        self.assertEqual(outcome["error"], f"http_{status}")
+                        self.assertEqual(outcome["error_body"], "")
+                        self.assertEqual(outcome["error_body_error"], "error_body_unavailable")
+                        self.assertEqual(len(outcome["attempts"]), 1)
+                        self.assertEqual(outcome["attempts"][0]["status_code"], status)
+                        self.assertEqual(outcome["attempts"][0]["error_body_error"], "error_body_unavailable")
+                        self.assertEqual(len(requests), 1, "never re-POST after failed error-body read")
+                        self.assertNotIn("secret error-body diagnostic", repr(outcome))
+
+
+    def test_rate_limit_followed_by_unreadable_5xx_body_stops_safely(self):
+        # A previously allowed 429 retry must never authorize another POST
+        # when the following response is ambiguous.
+        class ReadTimeout(io.BytesIO):
+            def read(self, *args, **kwargs):
+                raise TimeoutError("sensitive diagnostic fragment")
+
+        for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
+            with self.subTest(engine=engine):
+                calls = []
+
+                def opener(request, *, timeout):
+                    calls.append(request)
+                    if len(calls) == 1:
+                        raise self._failure("http_429")
+                    if len(calls) == 2:
+                        raise urllib.error.HTTPError(
+                            "https://invalid.test/v1", 503, "mock", {}, ReadTimeout(),
+                        )
+                    return self._success(engine)
+
+                result = self._call(engine, opener)
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["error"], "http_503")
+                self.assertEqual(result["error_body_error"], "error_body_unavailable")
+                self.assertEqual([a["status_code"] for a in result["attempts"]], [429, 503])
+                self.assertEqual(len(calls), 2)
+                self.assertNotIn("sensitive diagnostic fragment", repr(result))
+
+
     def test_5xx_never_resends_even_if_second_attempt_would_succeed(self):
         for engine in ("gemini_replay", "gemini_compare", "openai_shared"):
             for code in ("http_500", "http_502", "http_503", "http_504"):

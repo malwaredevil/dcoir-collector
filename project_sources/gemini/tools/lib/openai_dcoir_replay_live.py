@@ -109,7 +109,21 @@ def call_openai_body(
                 status_code = response.status
                 raw = response.read()
         except urllib.error.HTTPError as exc:
-            error_text = exc.read().decode("utf-8", errors="ignore")
+            try:
+                error_text = exc.read().decode("utf-8", errors="ignore")
+            except Exception:
+                # The POST may already have been accepted: preserve its
+                # HTTP status even if reading the error body fails.
+                attempts.append({
+                    "attempt": attempt, "status_code": exc.code,
+                    "latency_ms": elapsed_ms(), "error_body_excerpt": "",
+                    "error_body_error": "error_body_unavailable",
+                })
+                return {
+                    "ok": False, "attempts": attempts,
+                    "error": f"http_{exc.code}", "error_body": "",
+                    "error_body_error": "error_body_unavailable",
+                }
             attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": elapsed_ms(), "error_body_excerpt": error_text[:1000]})
             # Only an explicit rate limit has a bounded retry path. A 5xx
             # response does not prove that the generation never started.

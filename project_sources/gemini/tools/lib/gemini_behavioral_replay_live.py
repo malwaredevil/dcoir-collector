@@ -69,7 +69,24 @@ def call_gemini(
                     "called_model": f"models/{model_id}",
                 }
         except urllib.error.HTTPError as exc:
-            body_text = exc.read().decode("utf-8", errors="ignore")
+            try:
+                body_text = exc.read().decode("utf-8", errors="ignore")
+            except Exception:
+                # An error response can arrive after a billable POST, yet
+                # reading its diagnostic body can still fail. Account for
+                # the known HTTP status without a speculative re-POST.
+                attempts.append({
+                    "attempt": attempt, "status_code": exc.code,
+                    "latency_ms": round((time.monotonic() - start) * 1000, 2),
+                    "error_body_excerpt": "",
+                    "error_body_error": "error_body_unavailable",
+                })
+                return {
+                    "ok": False, "attempts": attempts,
+                    "error": f"http_{exc.code}", "error_body": "",
+                    "error_body_error": "error_body_unavailable",
+                    "called_model": f"models/{model_id}",
+                }
             attempts.append({
                 "attempt": attempt, "status_code": exc.code,
                 "latency_ms": round((time.monotonic() - start) * 1000, 2),
