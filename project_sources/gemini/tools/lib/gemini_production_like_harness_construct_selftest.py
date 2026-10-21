@@ -15,6 +15,7 @@ TOOLS_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TOOLS_DIR))
 
 from lib.gemini_bundle_zip_contract import COMPILE_REPORT_NAME
+from lib.gemini_bundle_validation_common import MANIFEST_NAME
 from lib.gemini_production_like_harness_construct import (
     validate_construct,
 )
@@ -51,6 +52,11 @@ class ValidateConstructTests(unittest.TestCase):
                 "prime_agent_chunk_manifest": "chunks.json",
                 "knowledge_attachment_sources": [],
             }
+            source_root = root / "project_sources/gemini/bundle_source"
+            source_root.mkdir(parents=True, exist_ok=True)
+            (source_root / MANIFEST_NAME).write_text(
+                json.dumps(manifest), encoding="utf-8",
+            )
             messages: list[dict[str, str]] = []
 
             def run_build(command: list[str], **_: object) -> SimpleNamespace:
@@ -78,7 +84,7 @@ class ValidateConstructTests(unittest.TestCase):
             with (
                 patch(
                     "lib.gemini_production_like_harness_construct.load_json",
-                    side_effect=[manifest, {"chunks": []}],
+                    side_effect=[{"chunks": []}],
                 ),
                 patch(
                     "lib.gemini_production_like_harness_construct.expected_construct_counts",
