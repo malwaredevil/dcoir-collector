@@ -64,7 +64,6 @@ def manifest_surface_errors(source_root: Path) -> tuple[dict, list[str]]:
         knowledge_sources,
         checks,
         errors,
-        warnings,
     )
     return manifest, errors
 

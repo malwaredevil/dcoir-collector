@@ -81,6 +81,15 @@ class GeminiManifestSurfaceHelperTests(unittest.TestCase):
         self.assertIn("required_files", result.stderr)
         self.assertNotIn("missing required source-root files", result.stderr)
 
+    def test_missing_attachment_map_reference_fails_runtime_check(self) -> None:
+        """CI helper must reach the canonical eight-argument runtime validator."""
+        attachment_map = self.source_root / "00_START_HERE" / "Agent_Attachment_Map.md.txt"
+        self.assertTrue(attachment_map.is_file())
+        attachment_map.write_text("", encoding="utf-8")
+        self.assert_rejected(
+            "attachment map does not mention every manifest-listed knowledge source file"
+        )
+
     def test_runtime_governance_leak_is_rejected(self) -> None:
         manifest = json.loads(
             (self.source_root / MANIFEST_NAME).read_text(encoding="utf-8")
