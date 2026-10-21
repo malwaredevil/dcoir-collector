@@ -267,6 +267,8 @@ def main() -> int:
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_fixture_schema_precision_selftest()
+    # Only validated real blind scenarios contribute coverage, not legacy matrix rows.
+    run([sys.executable, "project_sources/gemini/tools/gemini_production_like_harness_blind_selftest.py"])
     # Keep entrypoint fixture loading and validation messages owned by shared library helpers.
     run([sys.executable, "project_sources/gemini/tools/gemini_replay_loader_ownership_selftest.py"])
     # Validate canonical Gemini manifest helpers and fail-closed source markers offline.
