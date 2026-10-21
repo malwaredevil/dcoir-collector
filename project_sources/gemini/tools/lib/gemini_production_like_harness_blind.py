@@ -23,6 +23,7 @@ def validate_blind_scenarios(
 
     rows: list[dict[str, Any]] = []
     coverage_tags: set[str] = set()
+    seen_prompt_names: set[str] = set()
 
     for reference in index.get("scenarios", []):
         scenario_path = (blind_root / reference["path"]).resolve()
@@ -50,6 +51,15 @@ def validate_blind_scenarios(
         ):
             add_message(messages, "error", f"{scenario_id} invalid required field id", repo_relative(scenario_path, root))
             continue
+        prompt_name = f"{scenario_id}.prompt.txt"
+        normalized_name = prompt_name.casefold()
+        if normalized_name in seen_prompt_names:
+            add_message(
+                messages, "error", f"{scenario_id} case-insensitive prompt filename collision",
+                repo_relative(scenario_path, root),
+            )
+            continue
+        seen_prompt_names.add(normalized_name)
         scenario_dir = scenario_path.parent
         for required in ("id", "owner", "family", "visible", "hidden", "artifact_expectations"):
             if required not in scenario:
@@ -63,7 +73,7 @@ def validate_blind_scenarios(
         check_prompt(index, scenario, scenario_path, prompt, messages, root)
         signal_report = check_signals(scenario, scenario_path, prompt, messages, root)
 
-        prompt_path = prompt_dir / f"{scenario_id}.prompt.txt"
+        prompt_path = prompt_dir / prompt_name
         prompt_path.write_text(prompt, encoding="utf-8")
         owner = str(scenario.get("owner", reference.get("owner", "")))
         family = str(scenario.get("family", reference.get("family", "")))

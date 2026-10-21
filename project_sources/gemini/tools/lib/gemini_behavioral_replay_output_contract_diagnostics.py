@@ -23,7 +23,7 @@ INTERNAL_OUTPUT_KEYS = (
     "command planning state",
 )
 SCAFFOLD_FENCE = re.compile(r"(?im)^[ \t]*\x60{3}(?:yaml|json)\b")
-BLUF_SECTION = re.compile(r"(?im)^[ \t]*##[ \t]+(?:bluf|executive summary)[ \t]*$")
+BLUF_SECTION = re.compile(r"(?im)^[ \t]*##[ \t]+(?:bluf|executive summary)[ \t]*\r?$")
 
 
 def analyze_visible_output(
@@ -52,7 +52,11 @@ def analyze_visible_output(
     if require_bluf_preamble:
         first = BLUF_SECTION.search(text)
         preamble = text[:first.start()].strip() if first else text.strip()
-        if preamble or first is None or not text[first.end():].strip():
+        body = text[first.end():] if first else ""
+        next_heading = re.search(r"(?m)^[ \t]*#{1,6}[ \t]+\S", body)
+        if next_heading:
+            body = body[:next_heading.start()]
+        if preamble or first is None or not any(ch.isalnum() for ch in body):
             findings.append("malformed_preamble")
             details["preamble_excerpt"] = preamble[:400]
     return {"accepted": not findings, "findings": sorted(findings), "details": details}

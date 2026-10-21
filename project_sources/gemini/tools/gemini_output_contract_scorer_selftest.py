@@ -116,6 +116,32 @@ class OutputContractScorerTests(unittest.TestCase):
                 self.assertFalse(result["accepted"])
                 self.assertTrue(analyze_visible_output(response)["accepted"])
 
+    def test_bluf_requires_substantive_content_before_next_heading_when_opted_in(self):
+        for heading in ("## BLUF", "## Executive summary"):
+            for next_section in ("## FACTS AND SOURCES", "## ANALYSIS", "### Subsection"):
+                response = f"{heading}\n  \n{next_section}\nGrounded evidence."
+                with self.subTest(heading=heading, next_section=next_section):
+                    result = analyze_visible_output(response, require_bluf_preamble=True)
+                    self.assertIn("malformed_preamble", result["findings"], result)
+                    self.assertFalse(result["accepted"], result)
+                    self.assertTrue(analyze_visible_output(response)["accepted"])
+            substantive = f"{heading}\nEvidence supports further investigation.\n\n## FACTS AND SOURCES\nA finding."
+            self.assertTrue(analyze_visible_output(substantive, require_bluf_preamble=True)["accepted"])
+
+    def test_bluf_body_cannot_be_only_formatting_or_invisible_characters(self):
+        for marker in ("---", "-", "** **", "\u200b", "\u2060"):
+            response = f"## BLUF\n{marker}\n## FACTS AND SOURCES\nEvidence."
+            with self.subTest(marker=repr(marker)):
+                self.assertIn("malformed_preamble", analyze_visible_output(
+                    response, require_bluf_preamble=True)["findings"])
+                self.assertTrue(analyze_visible_output(response)["accepted"])
+
+    def test_windows_line_endings_are_valid_for_substantive_bluf(self):
+        for heading in ("## BLUF", "## Executive summary"):
+            response = f"{heading}\r\nEvidence supports review.\r\n## FACTS AND SOURCES\r\nDetails."
+            with self.subTest(heading=heading):
+                self.assertTrue(analyze_visible_output(response, require_bluf_preamble=True)["accepted"])
+
     def test_narrow_internal_state_and_scaffold_detection(self):
         self.assertTrue(analyze_visible_output(
             "The analyst handoff summarizes normalized evidence.")["accepted"])

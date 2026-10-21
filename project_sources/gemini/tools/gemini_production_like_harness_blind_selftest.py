@@ -126,6 +126,25 @@ class BlindHarnessOwnershipTests(unittest.TestCase):
         self.assertEqual(report["scenario_count"], 1)
         self.assertTrue((self.root / "out/model_visible_prompts/safe-id.v2.prompt.txt").is_file())
 
+    def test_case_insensitive_prompt_filename_collision_rejected_before_overwrite(self) -> None:
+        upper = self.scenario("Alpha")
+        lower = self.scenario("alpha")
+        distinct = self.scenario("Beta")
+        report, messages = self.blind_report({"scenarios": [upper, lower, distinct]})
+        self.assertTrue(any("case-insensitive prompt filename collision" in m["message"] for m in messages), messages)
+        self.assertEqual(len(report["prompts"]), 2, report)
+        self.assertEqual(
+            sorted(p.name for p in (self.root / "out/model_visible_prompts").iterdir()),
+            ["Alpha.prompt.txt", "Beta.prompt.txt"],
+        )
+        self.assertIn("Beta_owner", report["coverage_tags"])
+
+    def test_duplicate_prompt_id_does_not_double_count_coverage(self) -> None:
+        repeated = self.scenario("Repeat")
+        report, messages = self.blind_report({"scenarios": [repeated, repeated]})
+        self.assertTrue(any("case-insensitive prompt filename collision" in m["message"] for m in messages), messages)
+        self.assertEqual(len(report["prompts"]), 1, report)
+
     def test_prior_invalid_scenario_does_not_mask_later_valid_tags(self) -> None:
         broken = self.scenario("broken", owner="ghost_owner")
         path = self.blind / broken["path"]
