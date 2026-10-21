@@ -267,6 +267,8 @@ def main() -> int:
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_fixture_schema_precision_selftest()
+    # Keep entrypoint fixture loading and validation messages owned by shared library helpers.
+    run([sys.executable, "project_sources/gemini/tools/gemini_replay_loader_ownership_selftest.py"])
     # Validate canonical Gemini manifest helpers and fail-closed source markers offline.
     run([sys.executable, "project_sources/gemini/tools/gemini_manifest_visibility_selftest.py"])
     run_scorer_module_eol_boundary_selftest()
