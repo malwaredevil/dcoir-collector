@@ -17,6 +17,7 @@ from unittest.mock import patch
 from lib import gemini_behavioral_replay_live as gemini_replay
 from lib import openai_dcoir_replay_live as openai_shared
 import run_gemini_model_comparison as comparison_runner
+import transport_request_contract_selftest
 
 
 class MockResponse:
@@ -288,6 +289,13 @@ class TransportRetrySafetyTests(unittest.TestCase):
                 self.assertTrue(result["ok"], result)
                 self.assertEqual(len(seen), 1)
                 self.assertEqual(len(result["attempts"]), 1)
+
+def load_tests(loader, tests, pattern):
+    tests.addTests(loader.loadTestsFromTestCase(
+        transport_request_contract_selftest.TransportRequestContractTests,
+    ))
+    return tests
+
 
 if __name__ == "__main__":
     unittest.main()
