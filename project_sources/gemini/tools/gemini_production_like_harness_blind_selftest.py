@@ -77,6 +77,19 @@ class BlindHarnessOwnershipTests(unittest.TestCase):
         self.assertEqual(report["scenario_count"], 2)
         self.assertEqual(len(report["prompts"]), 2)
 
+    def test_non_object_required_scenario_fields_fail_without_crashing(self) -> None:
+        for field in ("visible", "hidden", "artifact_expectations"):
+            with self.subTest(field=field):
+                entry = self.scenario("malformed_" + field, **{field: "malformed"})
+                report, messages = self.blind_report({"scenarios": [entry]})
+                self.assertTrue(
+                    any("invalid required field " + field in m["message"] for m in messages),
+                    messages,
+                )
+                self.assertEqual(report["coverage_tags"], [])
+                self.assertEqual(report["scenario_count"], 1)
+                self.assertEqual(len(report["prompts"]), 1)
+
     def test_prompt_leak_or_signal_failure_does_not_claim_coverage(self) -> None:
         leaked = self.scenario(
             "leaked", visible={"turn": "NEVER_EXPOSE_KEYWORD"},

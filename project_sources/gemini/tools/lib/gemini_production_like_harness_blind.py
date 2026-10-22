@@ -68,6 +68,9 @@ def validate_blind_scenarios(
                 not isinstance(scenario[required], str) or not scenario[required].strip()
             ):
                 add_message(messages, "error", f"{scenario_id} invalid required field {required}", repo_relative(scenario_path, root))
+            elif required in ("visible", "hidden", "artifact_expectations") and not isinstance(scenario[required], dict):
+                add_message(messages, "error", f"{scenario_id} invalid required field {required}", repo_relative(scenario_path, root))
+                scenario[required] = {}
 
         prompt, attachments = build_prompt(index, scenario, scenario_dir, root, messages)
         check_prompt(index, scenario, scenario_path, prompt, messages, root)
