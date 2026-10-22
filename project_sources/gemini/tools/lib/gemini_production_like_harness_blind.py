@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from lib.gemini_production_like_harness_common import add_message, load_json, repo_relative, sha_text
+from lib.gemini_bundle_path_safety import UnsafePathError, resolve_contained_path
 from lib.gemini_production_like_harness_prompts import build_prompt, check_prompt, check_signals
 
 
@@ -151,7 +152,22 @@ def validate_collector_fixtures(root: Path, messages: list[dict[str, str]]) -> d
             add_message(messages, "error", "collector fixture missing required manifest", "project_sources/collector/fixtures/blind/index.json")
         if not (valid_id and valid_manifest):
             continue
-        manifest_path = root / manifest_ref
+        try:
+            manifest_path = resolve_contained_path(
+                root,
+                manifest_ref,
+                "collector fixture manifest",
+                root_kind="repository",
+                root_name="the repository",
+            )
+        except UnsafePathError as exc:
+            add_message(
+                messages,
+                "error",
+                f"collector fixture manifest path is unsafe for {fixture_id}: {exc}",
+                "project_sources/collector/fixtures/blind/index.json",
+            )
+            continue
         if not manifest_path.is_file():
             add_message(
                 messages,

@@ -222,6 +222,44 @@ class BlindHarnessOwnershipTests(unittest.TestCase):
             }],
         })
 
+    def test_collector_manifest_traversal_is_rejected_before_read(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="external-manifest-", dir=self.root.parent) as outside:
+            external_manifest = Path(outside) / "manifest.json"
+            self.put_json(external_manifest, {"artifacts": ["external"]})
+            manifest_ref = f"../{Path(outside).name}/manifest.json"
+
+            report, messages = self.collector_report([{
+                "id": "external", "manifest": manifest_ref,
+            }])
+
+        self.assertEqual(report["manifests"], [])
+        self.assertTrue(
+            any("must not be absolute or contain traversal" in message["message"] for message in messages),
+            messages,
+        )
+
+    def test_collector_manifest_symlink_escape_is_rejected_before_read(self) -> None:
+        with tempfile.TemporaryDirectory() as outside:
+            external_manifest = Path(outside) / "manifest.json"
+            self.put_json(external_manifest, {"artifacts": ["external"]})
+            link = self.root / "project_sources/collector/fixtures/blind/external.json"
+            link.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                link.symlink_to(external_manifest)
+            except OSError as exc:
+                self.skipTest(f"symlinks are not supported: {exc}")
+
+            manifest_ref = link.relative_to(self.root).as_posix()
+            report, messages = self.collector_report([{
+                "id": "external", "manifest": manifest_ref,
+            }])
+
+        self.assertEqual(report["manifests"], [])
+        self.assertTrue(
+            any("escapes the repository" in message["message"] for message in messages),
+            messages,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
