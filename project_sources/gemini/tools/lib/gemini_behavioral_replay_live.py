@@ -81,6 +81,9 @@ def call_gemini(
                     "error_body_excerpt": "",
                     "error_body_error": "error_body_unavailable",
                 })
+                if exc.code == 429 and attempt < args.max_retries:
+                    time.sleep(args.retry_base_seconds * attempt)
+                    continue
                 return {
                     "ok": False, "attempts": attempts,
                     "error": f"http_{exc.code}", "error_body": "",
