@@ -92,6 +92,81 @@ class GeminiComparisonClientTests(unittest.TestCase):
             {},
         )
 
+    def test_empty_or_zero_repeat_cases_do_not_claim_called_models(self):
+        catalog = [{
+            "name": "models/gemini-3.1-pro-preview",
+            "supportedGenerationMethods": ["generateContent"],
+        }]
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            for cases, repeats in (([], 1), ([{"id": "MOCK-001", "turns": []}], 0)):
+                with self.subTest(case_count=len(cases), repeat_count=repeats):
+                    fixture = root / "fixtures.json"
+                    fixture.write_text(json.dumps({"cases": cases}), encoding="utf-8")
+                    output_dir = root / f"report_{len(cases)}"
+                    argv = [
+                        "run_gemini_model_comparison.py", "--fixtures", str(fixture),
+                        "--output-dir", str(output_dir),
+                        "--reference-model", "gemini-3.1-pro-preview",
+                        "--candidate-models", "", "--repeat-count", str(repeats),
+                    ]
+                    with patch.dict(os.environ, {"DCOIR_GEMINI_API": "fake-key"}), \
+                         patch.object(sys, "argv", argv), \
+                         patch.object(comparison_runner, "list_models", return_value=catalog), \
+                         patch.object(comparison_runner, "call_gemini") as generate, \
+                         contextlib.redirect_stdout(io.StringIO()):
+                        self.assertEqual(comparison_runner.main(), 2)
+                    generate.assert_not_called()
+                    report = json.loads((output_dir / "gemini_model_comparison_report.json").read_text())
+                    self.assertEqual(report["case_results"], [])
+                    self.assertIsNone(report["reference_model_called"])
+                    self.assertIsNone(report["recommended_model_called"])
+                    self.assertEqual(report["resolved_models"]["gemini-3.1-pro-preview"], "models/gemini-3.1-pro-preview")
+
+    def test_qualified_model_reports_generation_identity_not_catalog_guess(self):
+        catalog = [{
+            "name": "models/gemini-3.1-pro-preview",
+            "supportedGenerationMethods": ["generateContent"],
+        }]
+        response = json.dumps({
+            "protocol_version": "1", "decision_summary": "Evidence reviewed",
+            "state_gaps": [], "recommended_actions": [], "caution_notes": [],
+            "final_response_markdown": "Grounded response with no forbidden markers",
+        })
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            fixture = root / "fixture.json"
+            fixture.write_text(json.dumps({"cases": [{
+                "id": "MOCK-GOOD", "forbidden_markers": ["not-in-answer"],
+            }]}), encoding="utf-8")
+            output_dir = root / "out"
+            argv = [
+                "run_gemini_model_comparison.py", "--fixtures", str(fixture),
+                "--output-dir", str(output_dir),
+                "--reference-model", "gemini-3.1-pro-preview",
+                "--candidate-models", "", "--critical-case-ids", "",
+                "--inter-request-delay-seconds", "0",
+            ]
+            observed_model = "models/provider-reported-identity"
+            mocked_result = {
+                "ok": True, "called_model": observed_model, "response_text": response,
+                "attempts": [{"attempt": 1, "status_code": 200, "latency_ms": 1}],
+                "usage_metadata": {},
+            }
+            with patch.dict(os.environ, {"DCOIR_GEMINI_API": "fake-key"}), \
+                 patch.object(sys, "argv", argv), \
+                 patch.object(comparison_runner, "list_models", return_value=catalog), \
+                 patch.object(comparison_runner, "call_gemini", return_value=mocked_result) as generate, \
+                 patch.object(comparison_runner.time, "sleep", return_value=None), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(comparison_runner.main(), 0)
+            generate.assert_called_once()
+            report = json.loads((output_dir / "gemini_model_comparison_report.json").read_text())
+            self.assertEqual(report["reference_model_called"], observed_model)
+            self.assertEqual(report["recommended_model_called"], observed_model)
+            self.assertEqual(report["case_results"][0]["called_model"], observed_model)
+            self.assertEqual(report["resolved_models"]["gemini-3.1-pro-preview"], catalog[0]["name"])
+
     def test_comparison_report_names_actual_called_model_and_flags_alias(self):
         catalog = [
             {"name": "models/gemini-3.5-flash", "supportedGenerationMethods": ["generateContent"]},

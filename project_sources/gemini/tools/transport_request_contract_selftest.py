@@ -112,6 +112,44 @@ class TransportRequestContractTests(unittest.TestCase):
                     self.assertEqual(result["error"], "invalid_model_name")
                     self.assertEqual(result["attempts"], [])
 
+    def test_unreadable_http_error_body_preserves_only_safe_failure_marker(self):
+        fixture = {
+            "fixture_id": "MOCK-503",
+            "turns": [{
+                "turn_id": "one", "speaker": "user", "content": "Investigate",
+                "scoring_notes": "Confirm evidence provenance",
+            }],
+        }
+        raw_failure = {
+            "ok": False, "error": "http_503", "called_model": "models/mock-model",
+            "attempts": [{
+                "attempt": 1, "status_code": 503, "latency_ms": 2.5,
+                "error_body_error": "error_body_unavailable",
+                "error_body_excerpt": "PRIVATE PROVIDER ERROR BODY",
+            }],
+        }
+        with patch.object(gemini_replay, "call_gemini", return_value=raw_failure):
+            pack = gemini_replay.make_pack(fixture, argparse.Namespace(), "mock-model", "live", "fake-key", "")
+        persisted = pack["metadata"]["turn_calls"][0]
+        self.assertEqual(persisted["error"], "http_503")
+        self.assertEqual(persisted["attempts"], [{
+            "attempt": 1, "status_code": 503, "latency_ms": 2.5,
+            "error_body_error": "error_body_unavailable",
+        }])
+        self.assertNotIn("PRIVATE PROVIDER ERROR BODY", json.dumps(pack))
+        from lib.gemini_behavioral_replay_workflow_report import redact_report_value
+        redacted = redact_report_value(pack)
+        self.assertEqual(
+            redacted["metadata"]["turn_calls"][0]["attempts"][0]["error_body_error"],
+            "error_body_unavailable",
+        )
+        from lib.gemini_behavioral_replay_utils import safe_attempts
+        untrusted = [{
+            "attempt": 1, "error_body_error": "PRIVATE arbitrary text",
+            "error_body_excerpt": "SECRET", "response_body": "PRIVATE",
+        }]
+        self.assertEqual(safe_attempts(untrusted), [{"attempt": 1}])
+
     def test_both_openai_replays_share_the_guarded_client(self):
         import run_openai_usb_reporting_behavioral_replay as usb_replay
         self.assertIs(usb_replay.call_openai_body, openai_shared.call_openai_body)

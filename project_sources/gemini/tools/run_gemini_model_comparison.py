@@ -144,6 +144,16 @@ def main() -> int:
     ]
     rankings = sorted(model_summaries, key=lambda item: (-item["composite_score"], -item["behavior_score"], -item["closeness_score"]))
     qualified = [item for item in rankings if item["behavior_pass"]]
+    # A catalog resolution is not evidence of a generation attempt.
+    called_models = {
+        name: next((
+            row["called_model"] for row in all_case_records
+            if row.get("requested_model") == name
+            and row.get("called_model")
+            and row.get("attempt_count", 0) > 0
+        ), None)
+        for name in requested_models
+    }
     report = {
         "success": bool(qualified),
         "fixture_path": str(fixture_path),
@@ -155,7 +165,7 @@ def main() -> int:
             for warning in [model_resolution_warning(name, available_models)] if warning
         },
         "reference_model": args.reference_model,
-        "reference_model_called": resolved_models.get(args.reference_model, {}).get("name"),
+        "reference_model_called": called_models.get(args.reference_model),
         "repeat_count": args.repeat_count,
         "case_count": len(cases),
         "available_model_catalog_size": len(available_models),
@@ -165,7 +175,7 @@ def main() -> int:
         "best_relative_model": rankings[0]["requested_model"] if rankings else None,
         "recommended_model": qualified[0]["requested_model"] if qualified else None,
         "recommended_model_called": (
-            resolved_models.get(qualified[0]["requested_model"], {}).get("name") if qualified else None
+            called_models.get(qualified[0]["requested_model"]) if qualified else None
         ),
         "model_summaries": model_summaries,
         "rankings": rankings,
