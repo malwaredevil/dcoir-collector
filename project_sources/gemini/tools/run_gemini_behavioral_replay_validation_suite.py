@@ -307,6 +307,7 @@ def main() -> int:
     # These no-network tests exercise the real shared generateContent caller,
     # both OpenAI retry contracts, pinned model resolution, and report IDs.
     run([sys.executable, "project_sources/gemini/tools/transport_retry_safety_selftest.py"])
+    run([sys.executable, "project_sources/gemini/tools/transport_request_contract_selftest.py"])
     run([sys.executable, "project_sources/gemini/tools/gemini_model_comparison_client_selftest.py"])
     run([sys.executable, "project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py"])
     run([sys.executable, "project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py"])
