@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List
 
-from lib.gemini_behavioral_replay_models import model_exclusion_reason, normalize_model_name
+from lib.gemini_behavioral_replay_models import model_exclusion_reason
 
 DEFAULT_REFERENCE_MODEL = "gemini-3.1-pro-preview"
 
@@ -29,6 +30,18 @@ def list_models(api_key: str, api_base: str) -> List[Dict[str, Any]]:
     with urllib.request.urlopen(request, timeout=60) as response:
         return json.loads(response.read().decode("utf-8")).get("models", [])
 
+def _canonical_model_id(model_name: Any) -> str:
+    name = str(model_name or "")
+    if name.startswith("models/"):
+        name = name.removeprefix("models/")
+        if not name or "/" in name:
+            return ""
+    elif "/" in name:
+        return ""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
+        return ""
+    return name.lower()
+
 def resolve_requested_models(
     requested: List[str], available_models: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
@@ -39,12 +52,13 @@ def resolve_requested_models(
     """
     exact: Dict[str, Dict[str, Any]] = {}
     for model in sorted(available_models, key=lambda item: str(item.get("name", ""))):
-        if model_exclusion_reason(model):
+        model_id = _canonical_model_id(model.get("name", ""))
+        if not model_id or model_exclusion_reason(model):
             continue
-        exact.setdefault(normalize_model_name(model.get("name", "")), model)
+        exact.setdefault(model_id, model)
     resolved: Dict[str, Dict[str, Any]] = {}
     for requested_name in requested:
-        model_id = normalize_model_name(requested_name)
+        model_id = _canonical_model_id(requested_name)
         if not model_id.endswith("-latest") and model_id in exact:
             resolved[requested_name] = exact[model_id]
     return resolved
@@ -52,12 +66,14 @@ def resolve_requested_models(
 
 def model_resolution_warning(requested_name: str, available_models: List[Dict[str, Any]]) -> str:
     """Describe a tempting unpinned match without silently selecting it."""
-    model_id = normalize_model_name(requested_name)
+    model_id = _canonical_model_id(requested_name)
+    if not model_id:
+        return ""
     if model_id.endswith("-latest"):
         return "unpinned_latest_alias_rejected"
     stem = model_id.removesuffix("-preview").removesuffix("-latest")
     for model in available_models:
-        available_id = normalize_model_name(model.get("name", ""))
+        available_id = _canonical_model_id(model.get("name", ""))
         if available_id != model_id and available_id.removesuffix("-preview").removesuffix("-latest") == stem:
             return "similar_model_alias_not_selected"
     return ""

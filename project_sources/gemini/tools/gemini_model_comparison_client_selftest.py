@@ -32,6 +32,7 @@ class GeminiComparisonClientTests(unittest.TestCase):
         resolved = gemini_compare.resolve_requested_models([
             "gemini-3.1-pro-preview", "models/gemini-3.1-pro-preview",
             "gemini-3.1-pro-latest", "gemini-3.5-flash",
+            "models/nested/gemini-3.5-flash", "gemini-3.5-flash?x",
             "gemini-3.5-flash-preview", "gemini-3.5-flash-image",
             "gemini-3.1-flash-lite",
         ], catalog)
@@ -53,7 +54,8 @@ class GeminiComparisonClientTests(unittest.TestCase):
         )
         for unsupported in (
             "gemini-3.1-pro-latest", "gemini-3.5-flash-image",
-            "gemini-3.1-flash-lite",
+            "gemini-3.1-flash-lite", "models/nested/gemini-3.5-flash",
+            "gemini-3.5-flash?x",
         ):
             self.assertNotIn(unsupported, resolved)
         only_alias = [model("gemini-3.1-pro-latest")]
@@ -70,6 +72,24 @@ class GeminiComparisonClientTests(unittest.TestCase):
             gemini_compare.model_resolution_warning(
                 "gemini-3.1-pro-latest", catalog,
             ), "unpinned_latest_alias_rejected",
+        )
+
+    def test_model_resolution_rejects_nested_catalog_paths(self):
+        malformed_catalog = [
+            {
+                "name": "models/nested/gemini-3.5-flash",
+                "supportedGenerationMethods": ["generateContent"],
+            },
+            {
+                "name": "models/gemini-3.5-flash?x",
+                "supportedGenerationMethods": ["generateContent"],
+            },
+        ]
+        self.assertEqual(
+            gemini_compare.resolve_requested_models(
+                ["gemini-3.5-flash"], malformed_catalog,
+            ),
+            {},
         )
 
     def test_comparison_report_names_actual_called_model_and_flags_alias(self):
