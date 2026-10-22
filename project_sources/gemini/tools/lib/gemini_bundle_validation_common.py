@@ -18,15 +18,6 @@ RUNTIME_GOVERNANCE_LEAK_PATTERNS = {
     'ircore_gemini_research_surface': r'\bircore\.(?:gemini_research_findings|gemini_research_consultation_receipts|get_gemini_research_(?:consultation|receipt)(?:_v\d+)?)\b',
     'gemini_builder_governance': r'\bGemini Builder Governance Rule\b',
 }
-VISIBILITY_CHECKS = {
-    'collector_artifact_interpretation_visibility': ['collector artifact', 'upload summary'],
-    'collector_pivot_visibility': ['targeted collection', 'collector'],
-    'ioc_ownership_visibility': ['ioc', 'provenance'],
-    'mixed_format_ioc_parsing_visibility': ['csv', 'pdf', 'docx'],
-    'false_positive_aware_security_product_behavior': ['false-positive-aware', 'security product'],
-    'starter_prompt_visibility': ['starter prompt 1', 'starter prompt 2', 'starter prompt 3'],
-    'operator_state_awareness_visibility': ['operator', 'analyst'],
-}
 
 
 def load_manifest(source_root: Path) -> Dict:

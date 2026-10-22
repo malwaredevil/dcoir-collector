@@ -24,7 +24,7 @@ REPORT_LABEL = "OpenAI DCOIR Behavioral Replay"
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="Run automated live GPT-5.6 Terra behavioral replay for the governed AFRICOM DCOIR Analyst package.")
+    p = argparse.ArgumentParser(description="Run automated live OpenAI behavioral replay for the governed AFRICOM DCOIR Analyst package.")
     p.add_argument("--fixtures-root", required=True)
     p.add_argument("--output-dir", required=True)
     p.add_argument("--custom-fixtures-csv", default="")
@@ -52,7 +52,9 @@ def main() -> int:
     metadata: Dict[str, Any] = {
         "workflow_verdict": "success",
         "replay_mode": "live_openai_api",
-        "baseline_model": "gpt-5.6-terra",
+        # This is a status, not a model ID. The shared report writer otherwise
+        # defaults missing baselines to an unrelated Gemini model on errors.
+        "baseline_model": "not_selected",
         "validation_messages": [],
         "checked_evidence": ["fixture index", "fixture definitions"],
         "unchecked_evidence": [
@@ -65,12 +67,12 @@ def main() -> int:
             "selection_source": "governed_openai_package",
             "catalog_ok": None,
             "catalog_error": "not_required_fixed_model",
-            "hardcoded_models": ["gpt-5.6-terra"],
-            "governed_pair_models": ["gpt-5.6-terra"],
-            "baseline_model": "gpt-5.6-terra",
-            "selected_models_to_run": ["gpt-5.6-terra"],
+            "hardcoded_models": [],
+            "governed_pair_models": [],
+            "baseline_model": None,
+            "selected_models_to_run": [],
             "rejected_selected_models": [],
-            "hardcoded_and_viable": ["gpt-5.6-terra"],
+            "hardcoded_and_viable": [],
             "viable_missing_from_hardcoded": [],
             "hardcoded_not_currently_viable": [],
         },
@@ -78,6 +80,12 @@ def main() -> int:
     }
     try:
         package = load_governed_openai_package(repo_root)
+        model_id = package["model_id"]
+        metadata["baseline_model"] = model_id
+        resolution = metadata["model_resolution"]
+        resolution["baseline_model"] = model_id
+        for key in ("hardcoded_models", "governed_pair_models", "selected_models_to_run", "hardcoded_and_viable"):
+            resolution[key] = [model_id]
         metadata["checked_evidence"].append("governed AFRICOM DCOIR Analyst package hashes")
         metadata["package_evidence"] = {
             "model_id": package["model_id"],
@@ -151,7 +159,7 @@ def main() -> int:
         "prompt_profile": PROMPT_PROFILE,
         "production_prompt_equivalent": PRODUCTION_PROMPT_EQUIVALENT,
         "live_environment_fidelity_gap": (
-            "Real GPT-5.6 Terra Responses API evidence with the exact repository Instructions and Knowledge, "
+            "Real OpenAI Responses API evidence using the governed model and exact repository Instructions and Knowledge, "
             "driven by a marker-tuned fixture replay prompt that discloses the required and forbidden scorer markers. "
             "It measures marker-assisted behavior, not unassisted operator-prompt behavior, and does not prove "
             "Custom GPT WebUI host or proprietary Knowledge-retrieval parity."

@@ -5,21 +5,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from lib.gemini_behavior_scenario_catalog import SCENARIOS
-
-MANIFEST_NAME = "Gemini_Bundle_Source_Manifest.json"
-QUICK_START = "00_START_HERE/Gemini_Build_Quick_Start.md.txt"
-
-
-def load_manifest(source_root: Path) -> Dict:
-    return json.loads((source_root / MANIFEST_NAME).read_text(encoding="utf-8"))
-
-
-def gather_text(paths: List[Path]) -> str:
-    parts: List[str] = []
-    for path in paths:
-        if path.exists() and path.is_file():
-            parts.append(path.read_text(encoding="utf-8", errors="ignore").lower())
-    return "\n".join(parts)
+from lib.gemini_bundle_validation_common import QUICK_START, gather_text, load_manifest
 
 
 def evaluate_scenario(combined_text: str, config: Dict[str, object]) -> Dict[str, object]:

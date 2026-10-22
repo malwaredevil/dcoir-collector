@@ -23,14 +23,19 @@ DEFAULT_FIXTURES = (
 )
 
 
-def _load_semantic_module(repo_root: Path):
-    path = repo_root / 'project_sources/agent_runtime/tools/score_usb_reporting_behavior.py'
-    spec = importlib.util.spec_from_file_location('score_usb_reporting_behavior_live', path)
+def _load_agent_runtime_tool(repo_root: Path, name: str):
+    """Load a canonical Agent Runtime tool without duplicating its behavior."""
+    path = repo_root / 'project_sources/agent_runtime/tools' / f'{name}.py'
+    spec = importlib.util.spec_from_file_location(f'{name}_usb_replay', path)
     if spec is None or spec.loader is None:
-        raise RuntimeError(f'Unable to load USB semantic scorer: {path}')
+        raise RuntimeError(f'Unable to load Agent Runtime tool: {path}')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _load_semantic_module(repo_root: Path):
+    return _load_agent_runtime_tool(repo_root, 'score_usb_reporting_behavior')
 
 
 def _request_body(package: Dict[str, Any], history: List[Dict[str, str]], user_text: str, args: argparse.Namespace) -> Dict[str, Any]:
@@ -71,11 +76,16 @@ def _completion_prompt(previous_count: int, start_date: str, end_date: str) -> s
 def _resolve_fixture_paths(repo_root: Path, requested: Sequence[str]) -> List[Path]:
     """Validate every fixture before any billable API call is made."""
     root = repo_root.resolve()
+    path_safety = _load_agent_runtime_tool(root, 'agent_runtime_path_safety')
     paths: List[Path] = []
     for raw in requested:
-        path = (root / raw).resolve()
-        if not path.is_relative_to(root):
-            raise ValueError(f'USB replay fixture must be inside the repository: {raw}')
+        errors: list[str] = []
+        path = path_safety.resolve_repo_path(root, raw, 'USB replay fixture', errors)
+        if path is None:
+            raise ValueError(
+                f'USB replay fixture must be inside the repository: {raw}; '
+                + '; '.join(errors)
+            )
         if not path.is_file():
             raise ValueError(f'USB replay fixture does not exist: {raw}')
         paths.append(path)
@@ -170,8 +180,8 @@ def run_replay(
             'fixture': str(path.relative_to(repo_root)),
             'row_count': len(rows),
             'classification_counts': {
-                'NIPR': sum(1 for row in rows if scorer._classification(row) == 'NIPR'),
-                'SIPR': sum(1 for row in rows if scorer._classification(row) == 'SIPR'),
+                'NIPR': sum(1 for row in rows if scorer.classify_usb_row(row) == 'NIPR'),
+                'SIPR': sum(1 for row in rows if scorer.classify_usb_row(row) == 'SIPR'),
             },
             'clarification': {
                 'call_ok': bool(first_call.get('ok')),
@@ -214,7 +224,7 @@ def run_replay(
         'checked_evidence': [
             'exact governed OpenAI USB Instructions',
             'exact generated USB Knowledge projection',
-            'live GPT-5.6 Terra Responses API output',
+            'live OpenAI Responses API output for governed package model',
             'sanitized governed USB fixture rows',
             'semantic bounded-clarification behavior',
             'semantic final email construction and row/classification fidelity',
@@ -225,7 +235,7 @@ def run_replay(
             'live deployed GPT configuration state unless separately read back',
         ],
         'live_environment_fidelity_gap': (
-            'This is real GPT-5.6 Terra Responses API evidence using the exact repository Instructions and Knowledge package. '
+            f'This is real OpenAI Responses API evidence for governed model {package["model_id"]} using the exact repository Instructions and Knowledge package. '
             'It does not by itself prove the hosted Custom GPT WebUI has been redeployed or behaves identically.'
         ),
         'results': results,
@@ -233,7 +243,7 @@ def run_replay(
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Run live GPT-5.6 Terra behavioral replay for the governed AFRICOM USB Reporting package.')
+    parser = argparse.ArgumentParser(description='Run live OpenAI behavioral replay for the governed AFRICOM USB Reporting package.')
     parser.add_argument('--output-dir', required=True)
     parser.add_argument('--fixture', action='append', default=[])
     parser.add_argument('--start-date', default='9/18/2026')

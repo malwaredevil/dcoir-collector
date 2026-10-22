@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from lib.gemini_behavioral_replay_runner import load_fixtures, load_response_pack
-from lib.gemini_behavioral_replay_schema import validate_response_pack_shape
+from lib.gemini_behavioral_replay_schema import ValidationMessage, validate_response_pack_shape
 from lib.gemini_behavioral_replay_scoring import score_response_pack
 
 
@@ -25,7 +25,12 @@ def main() -> int:
     response_pack = load_response_pack(Path(args.response_pack).resolve())
     validation_messages = validate_response_pack_shape(response_pack, fixture)
     if args.expected_mode and response_pack.get("mode") != args.expected_mode:
-        validation_messages.append(type("ValidationMessage", (), {"level": "error", "message": f"Response pack mode {response_pack.get('mode')!r} does not match expected mode {args.expected_mode!r}."})())
+        validation_messages.append(
+            ValidationMessage(
+                "error",
+                f"Response pack mode {response_pack.get('mode')!r} does not match expected mode {args.expected_mode!r}.",
+            )
+        )
     if any(message.level == "error" for message in validation_messages):
         payload = {"success": False, "validation_messages": [{"level": message.level, "message": message.message} for message in validation_messages]}
         print(json.dumps(payload, indent=2))

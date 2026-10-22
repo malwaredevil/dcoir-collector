@@ -109,19 +109,37 @@ def call_openai_body(
                 status_code = response.status
                 raw = response.read()
         except urllib.error.HTTPError as exc:
-            error_text = exc.read().decode("utf-8", errors="ignore")
+            try:
+                error_text = exc.read().decode("utf-8", errors="ignore")
+            except Exception:
+                # The POST may already have been accepted: preserve its
+                # HTTP status even if reading the error body fails.
+                attempts.append({
+                    "attempt": attempt, "status_code": exc.code,
+                    "latency_ms": elapsed_ms(), "error_body_excerpt": "",
+                    "error_body_error": "error_body_unavailable",
+                })
+                if exc.code == 429 and attempt < args.max_retries:
+                    time.sleep(args.retry_base_seconds * attempt)
+                    continue
+                return {
+                    "ok": False, "attempts": attempts,
+                    "error": f"http_{exc.code}", "error_body": "",
+                    "error_body_error": "error_body_unavailable",
+                }
             attempts.append({"attempt": attempt, "status_code": exc.code, "latency_ms": elapsed_ms(), "error_body_excerpt": error_text[:1000]})
-            if exc.code in {429, 500, 502, 503, 504} and attempt < args.max_retries:
+            # Only an explicit rate limit has a bounded retry path. A 5xx
+            # response does not prove that the generation never started.
+            if exc.code == 429 and attempt < args.max_retries:
                 time.sleep(args.retry_base_seconds * attempt)
                 continue
             return {"ok": False, "attempts": attempts, "error": f"http_{exc.code}", "error_body": error_text[:4000]}
         except urllib.error.URLError as exc:
-            # urllib raises URLError only while sending the request, before any response
-            # exists, so the server has not produced a billable generation; retrying is safe.
+            # A connection error may also occur after the server accepted the
+            # generation POST. Without idempotency proof, do not re-POST.
             attempts.append({"attempt": attempt, "latency_ms": elapsed_ms(), "error": str(exc.reason)})
-            if attempt < args.max_retries:
-                time.sleep(args.retry_base_seconds * attempt)
-                continue
+            if isinstance(exc.reason, TimeoutError):
+                return {"ok": False, "attempts": attempts, "error": "read_timeout"}
             return {"ok": False, "attempts": attempts, "error": "connection_error"}
         except TimeoutError:
             # The request was sent and may already be generating (and billed); re-POSTing

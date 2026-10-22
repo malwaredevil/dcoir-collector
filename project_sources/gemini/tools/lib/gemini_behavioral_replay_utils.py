@@ -18,11 +18,16 @@ def safe_attempts(value: object) -> List[Dict[str, Any]]:
     if not isinstance(value, list):
         return []
     allowed = ("attempt", "status_code", "latency_ms")
-    return [
-        {key: row[key] for key in allowed if key in row}
-        for row in value
-        if isinstance(row, dict)
-    ]
+    sanitized = []
+    for row in value:
+        if not isinstance(row, dict):
+            continue
+        attempt = {key: row[key] for key in allowed if key in row}
+        # Preserve only the known safe diagnostic, never arbitrary error bodies.
+        if row.get("error_body_error") == "error_body_unavailable":
+            attempt["error_body_error"] = "error_body_unavailable"
+        sanitized.append(attempt)
+    return sanitized
 
 
 def safe_error(value: object) -> str | None:

@@ -267,8 +267,16 @@ def main() -> int:
     )
     run_fixture_mode_selection_selftests(args.fixtures_root)
     run_fixture_schema_precision_selftest()
+    # Only validated real blind scenarios contribute coverage, not legacy matrix rows.
+    run([sys.executable, "project_sources/gemini/tools/gemini_production_like_harness_blind_selftest.py"])
+    # Keep entrypoint fixture loading and validation messages owned by shared library helpers.
+    run([sys.executable, "project_sources/gemini/tools/gemini_replay_loader_ownership_selftest.py"])
+    # Validate canonical Gemini manifest helpers and fail-closed source markers offline.
+    run([sys.executable, "project_sources/gemini/tools/gemini_manifest_visibility_selftest.py"])
     run_scorer_module_eol_boundary_selftest()
     run_scorer_module_size_selftest()
+    # Actual scorer self-tests only; does not claim compiled-bundle content coverage.
+    run([sys.executable, "project_sources/gemini/tools/gemini_output_contract_scorer_selftest.py"])
     run_marker_frame_rejection_selftest()
     run_governed_source_override_selftest()
     run_truth_frame_modifier_selftest()
@@ -296,6 +304,10 @@ def main() -> int:
     )
     run_known_bad(args.fixtures_root, args.output_dir)
     run_agent_designer_capture_selftests(args.fixtures_root, args.output_dir)
+    # These no-network tests exercise the real shared generateContent caller,
+    # both OpenAI retry contracts, pinned model resolution, and report IDs.
+    run([sys.executable, "project_sources/gemini/tools/transport_retry_safety_selftest.py"])
+    run([sys.executable, "project_sources/gemini/tools/gemini_model_comparison_client_selftest.py"])
     run([sys.executable, "project_sources/gemini/tools/openai_dcoir_behavioral_replay_selftest.py"])
     run([sys.executable, "project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py"])
     run_openai_webui_capture_selftests(args.fixtures_root, args.output_dir, SUPPORT)

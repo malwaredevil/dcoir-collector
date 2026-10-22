@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import json
 from pathlib import Path
 from unittest.mock import patch
@@ -375,7 +376,9 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
     for raised, expected_error, expected_calls in (
         (TimeoutError("read timed out"), "read_timeout", 1),
         (ConnectionResetError("reset after send"), "runtime_error", 1),
-        (replay_live.urllib.error.URLError("connection refused"), "connection_error", 3),
+        (replay_live.urllib.error.URLError("connection refused"), "connection_error", 1),
+        (replay_live.urllib.error.URLError(TimeoutError("read timed out")), "read_timeout", 1),
+        (replay_live.urllib.error.HTTPError("https://invalid.test", 503, "mock unavailable", {}, io.BytesIO(b"mock")), "http_503", 1),
     ):
         with patch.object(replay_live.urllib.request, "urlopen", side_effect=raised) as posted:
             outcome = replay_live.call_openai_body("test-key", "", retry_args, {"model": OPENAI_MODEL_ID})
@@ -537,6 +540,48 @@ SECURITY_HIGH_SIGNAL_SUMMARY_PATH
                                        "--custom-fixtures-csv", f"{sorted(selected_ids)[0]},not_a_governed_fixture"]):
         if dcoir_runner.main() != 1 or billable_calls:
             raise SystemExit("OpenAI DCOIR replay made provider calls despite a rejected fixture selection.")
+
+    # A future governed model rename must flow into the *written* replay report,
+    # even when fixture selection succeeds but API credentials are absent.
+    renamed_model = "gpt-dcoir-model-identity-selftest"
+    renamed_package = {**package, "model_id": renamed_model}
+    with tempfile.TemporaryDirectory() as scratch, \
+            patch.object(dcoir_runner, "load_governed_openai_package", return_value=renamed_package), \
+            patch.object(dcoir_runner, "make_pack", side_effect=AssertionError("Unexpected billable call")), \
+            patch.dict(os.environ, {"DCOIR_OPENAI_API_KEY": "", "OPENAI_API_KEY": ""}), \
+            patch.object(sys, "argv", ["run", "--fixtures-root", str(FIXTURES_ROOT), "--output-dir", scratch,
+                                       "--custom-fixtures-csv", sorted(selected_ids)[0]]):
+        if dcoir_runner.main() != 1:
+            raise SystemExit("Replay without API credentials must fail closed.")
+        report = json.loads((Path(scratch) / dcoir_runner.REPORT_NAME).read_text(encoding="utf-8"))
+    report_metadata = report["metadata"]
+    resolution = report_metadata["model_resolution"]
+    if report_metadata["baseline_model"] != renamed_model or report_metadata["package_evidence"]["model_id"] != renamed_model:
+        raise SystemExit(f"DCOIR report model diverged from the governed package: {report_metadata}")
+    if resolution["baseline_model"] != renamed_model:
+        raise SystemExit(f"DCOIR baseline model is stale: {resolution}")
+    for key in ("hardcoded_models", "governed_pair_models", "selected_models_to_run", "hardcoded_and_viable"):
+        if resolution[key] != [renamed_model]:
+            raise SystemExit(f"DCOIR model-resolution field {key} drifted: {resolution}")
+    renamed_body = replay_live.build_request_body(renamed_package, first_fixture, first_fixture["turns"][0], [], args)
+    if renamed_body["model"] != renamed_model:
+        raise SystemExit("DCOIR request body did not follow the governed package model.")
+
+    # A rejected package must not report a model as selected or trigger an API call.
+    with tempfile.TemporaryDirectory() as scratch, \
+            patch.object(dcoir_runner, "load_governed_openai_package", side_effect=ValueError("invalid test package")), \
+            patch.object(dcoir_runner, "make_pack", side_effect=AssertionError("Unexpected billable call")), \
+            patch.object(sys, "argv", ["run", "--fixtures-root", str(FIXTURES_ROOT), "--output-dir", scratch]):
+        if dcoir_runner.main() != 1:
+            raise SystemExit("Invalid governed package must fail closed.")
+        invalid_report = json.loads((Path(scratch) / dcoir_runner.REPORT_NAME).read_text(encoding="utf-8"))
+    invalid_metadata = invalid_report["metadata"]
+    if invalid_metadata["baseline_model"] != "not_selected" or invalid_metadata["model_resolution"]["selected_models_to_run"]:
+        raise SystemExit(f"Invalid package claimed a selected model: {invalid_metadata}")
+    if invalid_metadata["model_resolution"]["baseline_model"] is not None:
+        raise SystemExit("Invalid package claimed a governed model-resolution baseline.")
+    if invalid_report["summary"]["baseline_relative_summary"]["baseline_model"] != "not_selected":
+        raise SystemExit("The shared report writer replaced the missing OpenAI model with an unrelated baseline.")
 
     print(json.dumps({"success": True, "model": OPENAI_MODEL_ID, "fixture_count": len(selected_ids), "knowledge_file_count": len(package["knowledge_files"])}, indent=2))
     return 0

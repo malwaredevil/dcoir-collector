@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 from typing import Any
 
 from lib.gemini_production_like_harness_common import add_message, load_json, repo_relative, sha_text
+from lib.gemini_bundle_path_safety import UnsafePathError, resolve_contained_path
 from lib.gemini_production_like_harness_prompts import build_prompt, check_prompt, check_signals
 
 
@@ -22,9 +24,7 @@ def validate_blind_scenarios(
 
     rows: list[dict[str, Any]] = []
     coverage_tags: set[str] = set()
-    for legacy in index.get("matrix", []):
-        if len(legacy) >= 3:
-            coverage_tags.update(str(item) for item in legacy[:3] if item)
+    seen_prompt_names: set[str] = set()
 
     for reference in index.get("scenarios", []):
         scenario_path = (blind_root / reference["path"]).resolve()
@@ -38,22 +38,52 @@ def validate_blind_scenarios(
             continue
 
         scenario = load_json(scenario_path)
+        message_start = len(messages)
         scenario_id = scenario.get("id", reference.get("id"))
+        # Scenario IDs become filenames. Fail closed before any prompt write.
+        if "id" not in scenario:
+            add_message(messages, "error", f"{scenario_id} missing required field id", repo_relative(scenario_path, root))
+            continue
+        if (
+            not isinstance(scenario_id, str)
+            or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,119}", scenario_id)
+            or scenario_id.endswith(".")
+            or scenario_id.split(".")[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
+        ):
+            add_message(messages, "error", f"{scenario_id} invalid required field id", repo_relative(scenario_path, root))
+            continue
+        prompt_name = f"{scenario_id}.prompt.txt"
+        normalized_name = prompt_name.casefold()
+        if normalized_name in seen_prompt_names:
+            add_message(
+                messages, "error", f"{scenario_id} case-insensitive prompt filename collision",
+                repo_relative(scenario_path, root),
+            )
+            continue
+        seen_prompt_names.add(normalized_name)
         scenario_dir = scenario_path.parent
         for required in ("id", "owner", "family", "visible", "hidden", "artifact_expectations"):
             if required not in scenario:
                 add_message(messages, "error", f"{scenario_id} missing required field {required}", repo_relative(scenario_path, root))
+            elif required in ("id", "owner", "family") and (
+                not isinstance(scenario[required], str) or not scenario[required].strip()
+            ):
+                add_message(messages, "error", f"{scenario_id} invalid required field {required}", repo_relative(scenario_path, root))
+            elif required in ("visible", "hidden", "artifact_expectations") and not isinstance(scenario[required], dict):
+                add_message(messages, "error", f"{scenario_id} invalid required field {required}", repo_relative(scenario_path, root))
+                scenario[required] = {}
 
         prompt, attachments = build_prompt(index, scenario, scenario_dir, root, messages)
         check_prompt(index, scenario, scenario_path, prompt, messages, root)
         signal_report = check_signals(scenario, scenario_path, prompt, messages, root)
 
-        prompt_path = prompt_dir / f"{scenario_id}.prompt.txt"
+        prompt_path = prompt_dir / prompt_name
         prompt_path.write_text(prompt, encoding="utf-8")
         owner = str(scenario.get("owner", reference.get("owner", "")))
         family = str(scenario.get("family", reference.get("family", "")))
         tier = str(scenario.get("tier", reference.get("tier", "medium")))
-        coverage_tags.update([owner, family, tier])
+        if not any(message["level"] == "error" for message in messages[message_start:]):
+            coverage_tags.update([owner, family, tier])
         rows.append(
             {
                 "scenario_id": scenario_id,
@@ -112,19 +142,44 @@ def validate_collector_fixtures(root: Path, messages: list[dict[str, str]]) -> d
     index = load_json(index_path)
     rows: list[dict[str, Any]] = []
     for fixture in index.get("fixtures", []):
-        manifest_path = root / fixture.get("manifest", fixture.get("manifest_path", ""))
+        fixture_id = fixture.get("id")
+        manifest_ref = fixture.get("manifest")
+        valid_id = isinstance(fixture_id, str) and bool(fixture_id.strip())
+        valid_manifest = isinstance(manifest_ref, str) and bool(manifest_ref.strip())
+        if not valid_id:
+            add_message(messages, "error", "collector fixture missing required id", "project_sources/collector/fixtures/blind/index.json")
+        if not valid_manifest:
+            add_message(messages, "error", "collector fixture missing required manifest", "project_sources/collector/fixtures/blind/index.json")
+        if not (valid_id and valid_manifest):
+            continue
+        try:
+            manifest_path = resolve_contained_path(
+                root,
+                manifest_ref,
+                "collector fixture manifest",
+                root_kind="repository",
+                root_name="the repository",
+            )
+        except UnsafePathError as exc:
+            add_message(
+                messages,
+                "error",
+                f"collector fixture manifest path is unsafe for {fixture_id}: {exc}",
+                "project_sources/collector/fixtures/blind/index.json",
+            )
+            continue
         if not manifest_path.is_file():
             add_message(
                 messages,
                 "error",
-                f"collector fixture manifest missing for {fixture.get('id', fixture.get('fixture_id'))}",
+                f"collector fixture manifest missing for {fixture_id}",
                 repo_relative(manifest_path, root),
             )
             continue
         manifest = load_json(manifest_path)
         rows.append(
             {
-                "fixture_id": fixture.get("id", fixture.get("fixture_id")),
+                "fixture_id": fixture_id,
                 "manifest_path": repo_relative(manifest_path, root),
                 "artifact_count": len(manifest.get("artifacts", [])),
                 "derived_scenarios": manifest.get("derived_scenarios", []),
