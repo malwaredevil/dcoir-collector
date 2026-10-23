@@ -3,6 +3,7 @@ from dcoir_review.pareto_context.credit_aware_concurrency import (
     run_credit_aware_primary_wave,
 )
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
+from dcoir_review.unittest_source_guard import fetch_verified_unittest_root_tree
 from dcoir_review import source_inventory_candidate_receipt as inventory_receipt
 
 
@@ -45,9 +46,7 @@ def openrouter_review_with_hybrid_first_pass(
     enriched_count = enrich_first_pass_contexts(
         contexts, str(pr.get("head", {}).get("sha", "") or ""),
         lambda path, ref: fetch_pr_file_text(gh, path, ref),
-        fetch_root_tree=lambda ref: gh.request(
-            "GET", f"/repos/{gh.repo}/git/trees/{ref}"
-        ),
+        fetch_root_tree=lambda ref: fetch_verified_unittest_root_tree(gh, ref),
     )
     inventory_candidates = [
         context["item"]["_dcoir_source_inventory_candidate"]

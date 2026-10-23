@@ -155,7 +155,9 @@ def build_exact_head_dependency_evidence(
             - len(focus_text.splitlines()[-1].rstrip(chr(96)))
         ) % 2)
         or any(
-            not collector_discovery_is_safe(command, root_tree, reviewed_head) and (
+            not collector_discovery_is_safe(
+                command, root_tree, reviewed_head, focus_text, start
+            ) and (
                 unresolved or (
                     end > start and
                     re.search(r"(?<![A-Za-z0-9_.])(?:python|py)\b", command, re.I)
