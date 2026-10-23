@@ -63,7 +63,7 @@
       "include": 133,
       "reference": 54
     },
-    "embedded_snippet_count": 129
+    "embedded_snippet_count": 131
   },
   "controls": {
     "collector_manifest": {
@@ -5444,12 +5444,12 @@
       "marker_lines": [
         49,
         61,
-        89,
-        121,
-        131,
-        148,
-        162,
-        191
+        90,
+        123,
+        133,
+        150,
+        164,
+        193
       ],
       "embedded_snippets": [
         {
@@ -5466,25 +5466,25 @@
           "step_or_action": "Run governed agent-runtime validation contract",
           "shell": "pwsh",
           "line_start": 61,
-          "line_end": 87,
-          "command_sha256": "3a1558dc450a05085acd1fbc81ab5b29f867ac71776b03cce75e0817c15269b9",
+          "line_end": 88,
+          "command_sha256": "188672f2a70826aa88c01a5cb3e7afce567542c24a2983c5aa121fd5ae7350b0",
           "command_preview": "$commands = @(\n  @('Shared source contract', 'python', 'project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'),\n  @('Shared source contract self-tests', 'python', 'project_sources/agent_runtime/tests/validate_shared_"
         },
         {
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Write agent-runtime validation receipt",
           "shell": "pwsh",
-          "line_start": 89,
-          "line_end": 119,
-          "command_sha256": "94ab887c9e9e59a40cd1bcc6c0ab4fcf8d7289c8eda6911d3094885edd44f73c",
+          "line_start": 90,
+          "line_end": 121,
+          "command_sha256": "e8f7774ad3c6443336645272acf8177a5610e834001e571bde6c48e33ed321ca",
           "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py',\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py',\n  'python project_sources/agent_runtim"
         },
         {
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Build unified static release and parity report",
           "shell": "pwsh",
-          "line_start": 121,
-          "line_end": 129,
+          "line_start": 123,
+          "line_end": 131,
           "command_sha256": "d53521a4d4964dec743bde3e0898c6bb6e30de56bf4612bdbf73c35cfe7aaf9d",
           "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py `\n  --source-commit $env:GITHUB_SHA `\n  --output-root project_sources/validation/out_openai_gpt_deployment/parity\nif ($LASTEXITCODE -ne 0) {\n  throw 'Unified agent re"
         },
@@ -5492,8 +5492,8 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Build combined OpenAI GPT deployment release",
           "shell": "pwsh",
-          "line_start": 131,
-          "line_end": 146,
+          "line_start": 133,
+          "line_end": 148,
           "command_sha256": "e508bb0acd32480d2db94dbbd2b32d61cb09b5ccce33cb0b9d15463e3c3d7749",
           "command_preview": "$buildArgs = @(\n  'project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py',\n  '--source-commit', $env:GITHUB_SHA,\n  '--output-dir', 'project_sources/validation/out_openai_gpt_deployment',\n  '--parity-root', 'project_sour"
         },
@@ -5501,8 +5501,8 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Surface OpenAI GPT delivery ZIP",
           "shell": "pwsh",
-          "line_start": 148,
-          "line_end": 160,
+          "line_start": 150,
+          "line_end": 162,
           "command_sha256": "3687f4b30bda619174428d3146384d4ad6071e9379965de4ffad1df6035e417a",
           "command_preview": "python .github/github_actions/tools/surface_delivery_zip.py `\n  --build-report project_sources/validation/out_openai_gpt_deployment/build_openai_gpt_deployment_release_report.json `\n  --output-dir project_sources/validation/delivery_artifac"
         },
@@ -5510,8 +5510,8 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Set OpenAI delivery artifact name",
           "shell": "pwsh",
-          "line_start": 162,
-          "line_end": 170,
+          "line_start": 164,
+          "line_end": 172,
           "command_sha256": "9706631ea8777a9e6e56876157aca15d489b679864760563dcf8d8fa61b93270",
           "command_preview": "$manifest = Get-Content -Raw -Path project_sources/validation/out_openai_gpt_deployment/delivery_surface_manifest/delivery_manifest.json | ConvertFrom-Json\n$artifactName = [System.IO.Path]::GetFileNameWithoutExtension([string]$manifest.deli"
         },
@@ -5519,15 +5519,15 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 191,
-          "line_end": 230,
+          "line_start": 193,
+          "line_end": 232,
           "command_sha256": "425f4ba003eb6821372c6c3f741c6d6d2c1cf9f5e5489282ce04193af2aac8d8",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n$reportPath = 'project_sources/validation/out_openai_gpt_deployment/build_openai_gpt_deployment_release_report.json'\nif (Test-Path -LiteralPath $reportPath"
         }
       ],
-      "size_bytes": 12508,
-      "line_count": 238,
-      "sha256": "5c95fd8dfe307d9ff3abfb91b9534e0e838f57fd247d28c9cd27791f8cb9f500"
+      "size_bytes": 12794,
+      "line_count": 240,
+      "sha256": "37c6f3ef189809b09e146ebfde771749bfe5700304cc507d141a6f6f03ec5a59"
     },
     {
       "path": ".github/workflows/reusable-validate-on-pr.yml",
@@ -5553,17 +5553,18 @@
         136,
         144,
         152,
-        187,
-        195,
-        203,
-        211,
-        219,
-        227,
-        274,
-        286,
-        292,
-        302,
-        334
+        160,
+        196,
+        204,
+        212,
+        220,
+        228,
+        236,
+        283,
+        295,
+        301,
+        311,
+        343
       ],
       "embedded_snippets": [
         {
@@ -5631,10 +5632,19 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
-          "step_or_action": "Verify OpenAI DCOIR package materialization",
+          "step_or_action": "Run Gemini Knowledge consolidation evaluation self-tests",
           "shell": "pwsh",
           "line_start": 96,
           "line_end": 102,
+          "command_sha256": "1319c4d2a23e1296dde87486c0d8c866f35bb4ca02a849ad0f9ab4be1cac0bde",
+          "command_preview": "python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Gemini Knowledge consolidation evaluation self-tests failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-pr.yml",
+          "step_or_action": "Verify OpenAI DCOIR package materialization",
+          "shell": "pwsh",
+          "line_start": 104,
+          "line_end": 110,
           "command_sha256": "ecbc638ab8f94e4bc443e77c897b6bf8deb5f275ea54c29ebb3f7b77de69d3b3",
           "command_preview": "python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI DCOIR package materialization check failed.'\n}"
         },
@@ -5642,8 +5652,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run OpenAI DCOIR package self-tests",
           "shell": "pwsh",
-          "line_start": 104,
-          "line_end": 110,
+          "line_start": 112,
+          "line_end": 118,
           "command_sha256": "cc4f96fe6cf769481d172a62220ab77d61a9e4f61002dbd9b5a3e2b2f3ed793b",
           "command_preview": "python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI DCOIR package self-tests failed.'\n}"
         },
@@ -5651,8 +5661,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Verify OpenAI USB package materialization",
           "shell": "pwsh",
-          "line_start": 112,
-          "line_end": 118,
+          "line_start": 120,
+          "line_end": 126,
           "command_sha256": "5f63b1869df6ac7d661b81b0a9b94b2e2bbc161caec741d6d29ca34e3517a733",
           "command_preview": "python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI USB package materialization check failed.'\n}"
         },
@@ -5660,8 +5670,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run OpenAI USB package self-tests",
           "shell": "pwsh",
-          "line_start": 120,
-          "line_end": 126,
+          "line_start": 128,
+          "line_end": 134,
           "command_sha256": "5e93ade116ff1f78a29cdedb12d2a6e8cedf4e7e66fa2ef9eba9b6aa624cf3eb",
           "command_preview": "python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI USB package self-tests failed.'\n}"
         },
@@ -5669,8 +5679,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run USB reporting behavior scorer self-tests",
           "shell": "pwsh",
-          "line_start": 128,
-          "line_end": 134,
+          "line_start": 136,
+          "line_end": 142,
           "command_sha256": "ceb72fbc4ca0df897002c4b22e816b892c144eda89093f97c5b6796bb37da3b3",
           "command_preview": "python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'USB reporting behavior scorer self-tests failed.'\n}"
         },
@@ -5678,8 +5688,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run agent release parity self-tests",
           "shell": "pwsh",
-          "line_start": 136,
-          "line_end": 142,
+          "line_start": 144,
+          "line_end": 150,
           "command_sha256": "c515fdcbad1ef889deff8cd2046733fe9360da5ceef0d54c308eb615f44a49d2",
           "command_preview": "python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity self-tests failed.'\n}"
         },
@@ -5687,8 +5697,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Build unified agent release parity report",
           "shell": "pwsh",
-          "line_start": 144,
-          "line_end": 150,
+          "line_start": 152,
+          "line_end": 158,
           "command_sha256": "fad6c4860780879abcfba5141e37b057010158a264d9b3951d15d48478eae182",
           "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity report failed.'\n}"
         },
@@ -5696,17 +5706,17 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write agent-runtime validation receipt",
           "shell": "pwsh",
-          "line_start": 152,
-          "line_end": 185,
-          "command_sha256": "03882ae86db1346d929906a9d5ed4e28db4d6e19f8eb80173c62de4337b660c2",
+          "line_start": 160,
+          "line_end": 194,
+          "command_sha256": "f51578f8a465fdd41e8ad61f88f95f5eb73f59d015f1d87299dcb78a67b09523",
           "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'\n  'python project_sources/agent_runtime/"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Validate GitHub intake taxonomy",
           "shell": "pwsh",
-          "line_start": 187,
-          "line_end": 193,
+          "line_start": 196,
+          "line_end": 202,
           "command_sha256": "039b97c3f437dcb8da3f1cb280393a733f040b2ba8b7a99e10b013c7d99b5e11",
           "command_preview": "python .github/github_actions/tools/check_github_intake_taxonomy.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'GitHub intake taxonomy validation failed.'\n}"
         },
@@ -5714,8 +5724,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run apply-patch tool self-tests",
           "shell": "pwsh",
-          "line_start": 195,
-          "line_end": 201,
+          "line_start": 204,
+          "line_end": 210,
           "command_sha256": "7cf741caf6feae3006b81458f9124e05504593ea7536e1a14026e8f1fe979638",
           "command_preview": "python .github/ops/tools/apply_patch_request_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Apply-patch tool self-tests failed.'\n}"
         },
@@ -5723,8 +5733,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run documentation validator self-tests",
           "shell": "pwsh",
-          "line_start": 203,
-          "line_end": 209,
+          "line_start": 212,
+          "line_end": 218,
           "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
           "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
         },
@@ -5732,8 +5742,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run duplicate-function action contract tests",
           "shell": "pwsh",
-          "line_start": 211,
-          "line_end": 217,
+          "line_start": 220,
+          "line_end": 226,
           "command_sha256": "8f17ae21b2d3cfac2acefaf41ccb19fc6a70b464fa04e04128d2debdbbee7b25",
           "command_preview": "python .github/github_actions/tools/test_duplicate_function_action_contract.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function action contract tests failed.'\n}"
         },
@@ -5741,8 +5751,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run DCOIR Review runtime module-loader selftest",
           "shell": "pwsh",
-          "line_start": 219,
-          "line_end": 225,
+          "line_start": 228,
+          "line_end": 234,
           "command_sha256": "0bd3829f3ba4e23e31aadf350f6b59de190dcfbac5bee413094f38803653499c",
           "command_preview": "python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'DCOIR Review runtime module-loader selftest failed.'\n}"
         },
@@ -5750,8 +5760,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run DCOIR Review Pareto-context selftest",
           "shell": "pwsh",
-          "line_start": 227,
-          "line_end": 233,
+          "line_start": 236,
+          "line_end": 242,
           "command_sha256": "6155e080d9e696c7970f88c6157a5bd06534bd831ac003513158f3bad526b2ff",
           "command_preview": "python .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'DCOIR Review Pareto-context selftest failed.'\n}"
         },
@@ -5759,8 +5769,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Validate duplicate-function reports",
           "shell": "pwsh",
-          "line_start": 274,
-          "line_end": 280,
+          "line_start": 283,
+          "line_end": 289,
           "command_sha256": "88e968a4b20b7ba363fa6041456955001c1161f563749c751543dbbeb6e3daa2",
           "command_preview": "python .github/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
         },
@@ -5768,8 +5778,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write review-assist report to job summary",
           "shell": "pwsh",
-          "line_start": 286,
-          "line_end": 289,
+          "line_start": 295,
+          "line_end": 298,
           "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
           "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
         },
@@ -5777,8 +5787,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Enforce static analysis validation gates",
           "shell": "pwsh",
-          "line_start": 292,
-          "line_end": 295,
+          "line_start": 301,
+          "line_end": 304,
           "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
           "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
         },
@@ -5786,8 +5796,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run collector core pre-live suite",
           "shell": "pwsh",
-          "line_start": 302,
-          "line_end": 309,
+          "line_start": 311,
+          "line_end": 318,
           "command_sha256": "4b3fe558d1b5e2d8abf121acb02e1a8c2c8ab03d1eb6a36f177bb7017df591d5",
           "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite Core -MasterZipPath $env:HARNESS_RUNTIME_ZIP\nif ($LASTEXITCODE -ne 0) {\n  throw 'Col"
         },
@@ -5795,15 +5805,15 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 334,
-          "line_end": 377,
-          "command_sha256": "950d927bbca0a03d39e7ac80106e69db4478b1bae053d1698840f8addb8fd67b",
+          "line_start": 343,
+          "line_end": 386,
+          "command_sha256": "a3627265e606707d15000c0da6694f0db27ebccd81bb57631e5354bc99c87850",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -e"
         }
       ],
-      "size_bytes": 17531,
-      "line_count": 385,
-      "sha256": "cdd8ff9cff99ad168f6ce9d4782fdb552ef9450a5c68e2940c0e467a65db1b8a"
+      "size_bytes": 17988,
+      "line_count": 394,
+      "sha256": "125b2e1a2733d4b4e8bd9399c97082a657a834616640c95f091d9e9d6fb90c6d"
     },
     {
       "path": ".github/workflows/reusable-validate-on-push.yml",
@@ -5829,13 +5839,14 @@
         134,
         142,
         150,
-        185,
-        193,
-        201,
-        253,
-        265,
-        271,
-        299
+        158,
+        194,
+        202,
+        210,
+        262,
+        274,
+        280,
+        308
       ],
       "embedded_snippets": [
         {
@@ -5903,10 +5914,19 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
-          "step_or_action": "Verify OpenAI DCOIR package materialization",
+          "step_or_action": "Run Gemini Knowledge consolidation evaluation self-tests",
           "shell": "pwsh",
           "line_start": 94,
           "line_end": 100,
+          "command_sha256": "1319c4d2a23e1296dde87486c0d8c866f35bb4ca02a849ad0f9ab4be1cac0bde",
+          "command_preview": "python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Gemini Knowledge consolidation evaluation self-tests failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-validate-on-push.yml",
+          "step_or_action": "Verify OpenAI DCOIR package materialization",
+          "shell": "pwsh",
+          "line_start": 102,
+          "line_end": 108,
           "command_sha256": "ecbc638ab8f94e4bc443e77c897b6bf8deb5f275ea54c29ebb3f7b77de69d3b3",
           "command_preview": "python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI DCOIR package materialization check failed.'\n}"
         },
@@ -5914,8 +5934,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run OpenAI DCOIR package self-tests",
           "shell": "pwsh",
-          "line_start": 102,
-          "line_end": 108,
+          "line_start": 110,
+          "line_end": 116,
           "command_sha256": "cc4f96fe6cf769481d172a62220ab77d61a9e4f61002dbd9b5a3e2b2f3ed793b",
           "command_preview": "python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI DCOIR package self-tests failed.'\n}"
         },
@@ -5923,8 +5943,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Verify OpenAI USB package materialization",
           "shell": "pwsh",
-          "line_start": 110,
-          "line_end": 116,
+          "line_start": 118,
+          "line_end": 124,
           "command_sha256": "5f63b1869df6ac7d661b81b0a9b94b2e2bbc161caec741d6d29ca34e3517a733",
           "command_preview": "python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI USB package materialization check failed.'\n}"
         },
@@ -5932,8 +5952,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run OpenAI USB package self-tests",
           "shell": "pwsh",
-          "line_start": 118,
-          "line_end": 124,
+          "line_start": 126,
+          "line_end": 132,
           "command_sha256": "5e93ade116ff1f78a29cdedb12d2a6e8cedf4e7e66fa2ef9eba9b6aa624cf3eb",
           "command_preview": "python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI USB package self-tests failed.'\n}"
         },
@@ -5941,8 +5961,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run USB reporting behavior scorer self-tests",
           "shell": "pwsh",
-          "line_start": 126,
-          "line_end": 132,
+          "line_start": 134,
+          "line_end": 140,
           "command_sha256": "ceb72fbc4ca0df897002c4b22e816b892c144eda89093f97c5b6796bb37da3b3",
           "command_preview": "python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'USB reporting behavior scorer self-tests failed.'\n}"
         },
@@ -5950,8 +5970,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run agent release parity self-tests",
           "shell": "pwsh",
-          "line_start": 134,
-          "line_end": 140,
+          "line_start": 142,
+          "line_end": 148,
           "command_sha256": "c515fdcbad1ef889deff8cd2046733fe9360da5ceef0d54c308eb615f44a49d2",
           "command_preview": "python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity self-tests failed.'\n}"
         },
@@ -5959,8 +5979,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Build unified agent release parity report",
           "shell": "pwsh",
-          "line_start": 142,
-          "line_end": 148,
+          "line_start": 150,
+          "line_end": 156,
           "command_sha256": "fad6c4860780879abcfba5141e37b057010158a264d9b3951d15d48478eae182",
           "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity report failed.'\n}"
         },
@@ -5968,17 +5988,17 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write agent-runtime validation receipt",
           "shell": "pwsh",
-          "line_start": 150,
-          "line_end": 183,
-          "command_sha256": "d07abc945c433a896d1b841d182b0590c0339167a9a5f7805573219dffada12a",
+          "line_start": 158,
+          "line_end": 192,
+          "command_sha256": "2991199de0a89d573c5ebfa6811e4e7b5fd0acf2fbe24c379c30da1bf3a4173f",
           "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'\n  'python project_sources/agent_runtime/"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run documentation validator self-tests",
           "shell": "pwsh",
-          "line_start": 185,
-          "line_end": 191,
+          "line_start": 194,
+          "line_end": 200,
           "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
           "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
         },
@@ -5986,8 +6006,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run duplicate-function action contract tests",
           "shell": "pwsh",
-          "line_start": 193,
-          "line_end": 199,
+          "line_start": 202,
+          "line_end": 208,
           "command_sha256": "8f17ae21b2d3cfac2acefaf41ccb19fc6a70b464fa04e04128d2debdbbee7b25",
           "command_preview": "python .github/github_actions/tools/test_duplicate_function_action_contract.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function action contract tests failed.'\n}"
         },
@@ -5995,8 +6015,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run DCOIR Review runtime module-loader selftest",
           "shell": "pwsh",
-          "line_start": 201,
-          "line_end": 207,
+          "line_start": 210,
+          "line_end": 216,
           "command_sha256": "0bd3829f3ba4e23e31aadf350f6b59de190dcfbac5bee413094f38803653499c",
           "command_preview": "python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'DCOIR Review runtime module-loader selftest failed.'\n}"
         },
@@ -6004,8 +6024,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Validate duplicate-function reports",
           "shell": "pwsh",
-          "line_start": 253,
-          "line_end": 259,
+          "line_start": 262,
+          "line_end": 268,
           "command_sha256": "88e968a4b20b7ba363fa6041456955001c1161f563749c751543dbbeb6e3daa2",
           "command_preview": "python .github/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
         },
@@ -6013,8 +6033,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write review-assist report to job summary",
           "shell": "pwsh",
-          "line_start": 265,
-          "line_end": 268,
+          "line_start": 274,
+          "line_end": 277,
           "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
           "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
         },
@@ -6022,8 +6042,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Enforce static analysis validation gates",
           "shell": "pwsh",
-          "line_start": 271,
-          "line_end": 274,
+          "line_start": 280,
+          "line_end": 283,
           "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
           "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
         },
@@ -6031,15 +6051,15 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 299,
-          "line_end": 342,
-          "command_sha256": "6c7fdccef0d2ea4438081923ecbec11fc6d740120a88f85651fa454ab8a168ce",
+          "line_start": 308,
+          "line_end": 351,
+          "command_sha256": "e8f292c73e5d722eb50e826779aa8c3e8a92854792341090d822b1516c4f39d6",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME "
         }
       ],
-      "size_bytes": 15976,
-      "line_count": 350,
-      "sha256": "68a1251cc396fe9bf8f9d95196147dfc4fef78d9d9efc0339988b5024bc2ce9f"
+      "size_bytes": 16433,
+      "line_count": 359,
+      "sha256": "112e47b86481cb3de6cde51cd31f654e0d4248a2205296953eeee93e2976d184"
     },
     {
       "path": ".github/workflows/reusable-windows-powershell-51.yml",

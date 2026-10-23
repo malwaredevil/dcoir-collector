@@ -1,6 +1,6 @@
 # DCOIR REUSABLE WORKFLOW CONTRACT
 # Source entry workflow: validate-on-pr.yml
-# Purpose: reusable implementation module for validate-on-pr, including the twelve-command shared agent-runtime contract; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
+# Purpose: reusable implementation module for validate-on-pr, including the thirteen-command shared agent-runtime contract; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
 # Dispatch posture: workflow_dispatch runs are trusted baseline static-validation context only when the entry workflow runs from the repository default branch.
 name: 99 Module - Validate On Pr
 run-name: Module Validate On Pr | ${{ github.workflow }} | #${{ github.run_number }}
@@ -92,6 +92,14 @@ jobs:
             throw 'Agent knowledge projection self-tests failed.'
           }
 
+      - name: Run Gemini Knowledge consolidation evaluation self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Gemini Knowledge consolidation evaluation self-tests failed.'
+          }
+
       - name: Verify OpenAI DCOIR package materialization
         shell: pwsh
         run: |
@@ -161,6 +169,7 @@ jobs:
             'python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py'
             'python project_sources/agent_runtime/tools/project_agent_knowledge.py --check'
             'python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py'
+            'python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py'
             'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check'
             'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'
             'python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check'
@@ -350,7 +359,7 @@ jobs:
           }
           else {
             $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'
-            $agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the twelve-command contract did not complete successfully.'
+            $agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the thirteen-command contract did not complete successfully.'
           }
           New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
           @"
@@ -364,7 +373,7 @@ jobs:
           - ref: $env:GITHUB_REF
           - event_name: $env:GITHUB_EVENT_NAME
           - primary_artifact: validate-on-pr-results
-          - artifact_note: includes the agent-runtime validation receipt only when all twelve commands pass; also includes Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
+          - artifact_note: includes the agent-runtime validation receipt only when all thirteen commands pass; also includes Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
           - agent_runtime_validation: $agentRuntimeValidation
           - agent_runtime_artifact: $agentRuntimeArtifact
           - job_summary: review-assist report written to GITHUB_STEP_SUMMARY.
