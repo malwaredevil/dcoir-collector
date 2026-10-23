@@ -18,6 +18,10 @@ from dcoir_review.source_inventory_contract import (
     MAX_SOURCE_CHARS, _potential_pre_analyzer_guard, _logical_shell_commands,
 )
 from dcoir_review import semantic_context_runtime as runtime
+from dcoir_review.unittest_source_guard import (
+    fetch_verified_unittest_root_tree,
+    _unittest_origin_verified,
+)
 import openrouter_pr_review_pareto_context as review
 
 DOC = json.loads((HERE.parent / "evaluation" / "historical_pr617_cross_file_gap_v1.json").read_text(encoding="utf-8"))
@@ -138,6 +142,293 @@ def main() -> None:
             assert "exact-head executable dependency unavailable" in str(exc)
         else:
             raise AssertionError("unresolved direct module must fail closed: " + unknown)
+    # Issue #636: named collector unittest discovery is a standard-library
+    # test runner, not an unresolved repository analyzer executable.
+    # Its exact static invocation must not abort review of a related workflow.
+    collector_discovery = (
+        "python -m unittest discover -s project_sources/collector/tools "
+        "-p 'test_*.py'"
+    )
+    safe_root = {
+        "commit_sha": BAD, "expected_tree_sha": SAFE,
+        "sha": SAFE, "truncated": False,
+        "tree": [
+            {"path": ".github", "type": "tree"},
+            {"path": "project_sources", "type": "tree"},
+            {"path": "AGENTS.md", "type": "blob"},
+        ],
+    }
+    def collector_workflow(module_command: str) -> str:
+        return (
+            "name: Collector source-coverage workflow\n"
+            "jobs:\n  validate:\n    runs-on: windows-latest\n    steps:\n"
+            "      - name: Run collector tool unit tests\n"
+            "        shell: pwsh\n        run: |\n"
+            f"          {module_command}\n"
+            "          if ($LASTEXITCODE -ne 0) {\n"
+            "            throw 'Collector tool unit tests failed.'\n"
+            "          }\n"
+            "      - name: Validate analyzer\n"
+            "        shell: pwsh\n        run: |\n"
+            f"          python {ROOT}\n"
+        )
+
+    for workflow_path in (
+        ".github/workflows/reusable-validate-on-pr.yml",
+        ".github/workflows/reusable-validate-on-push.yml",
+    ):
+        source = collector_workflow(collector_discovery)
+        proof = build(workflow_path, source, BAD, fetch, root_tree=safe_root)
+        assert not proof["errors"], (workflow_path, proof)
+        assert ROOT in proof["required_paths"] and ROOT in proof["paths"], (
+            workflow_path, proof
+        )
+        contexts = [{"path": workflow_path, "text": source,
+                     "item": {"filename": workflow_path}}]
+        assert enrich_first_pass_contexts(
+            contexts, BAD, fetch, fetch_root_tree=lambda ref: safe_root
+        ) == 1
+        assert contexts[0]["item"].get("_dcoir_exact_head_dependency_evidence")
+
+        # Adva negative controls: the narrow exception may not swallow
+        # external/local unknown modules, shell chaining, dynamic paths,
+        # unsafe interpreter switches, or malformed unittest invocations.
+        hostile_commands = (
+            "python -m unittest",
+            "python -m unittest discover",
+            "python -m unittest discover -s $env:TESTS -p 'test_*.py'",
+            collector_discovery + " --unknown-option",
+            collector_discovery + "; python -m external.analyzer",
+            collector_discovery + " | python -m external.analyzer",
+            collector_discovery + " && python -m external.analyzer",
+            "python -X utf8 -m unittest discover -s "
+            "project_sources/collector/tools -p 'test_*.py'",
+            "python -m project_sources.collector.tools.unknown_test discover "
+            "-s project_sources/collector/tools -p 'test_*.py'",
+        )
+        for hostile in hostile_commands:
+            bad_source = source.replace(collector_discovery, hostile, 1)
+            evidence = build(workflow_path, bad_source, BAD, fetch, root_tree=safe_root)
+            # Unknown local modules are syntactically resolvable but must
+            # still fail closed when exact-HEAD source cannot be fetched.
+            if "project_sources.collector.tools.unknown_test" in hostile:
+                missing = "project_sources/collector/tools/unknown_test.py"
+                assert missing in evidence["required_paths"], evidence
+                assert missing not in evidence["paths"], evidence
+                expected_reason = "required-dependency-excerpt-unavailable"
+            else:
+                assert "unresolved-python-module-invocation" in evidence["errors"], (
+                    workflow_path, hostile, evidence
+                )
+                expected_reason = "unresolved-python-module-invocation"
+            try:
+                enrich_first_pass_contexts([
+                    {"path": workflow_path, "text": bad_source,
+                     "item": {"filename": workflow_path}}
+                ], BAD, fetch, fetch_root_tree=lambda ref: safe_root)
+            except RuntimeError as exc:
+                assert expected_reason in str(exc), (hostile, str(exc))
+            else:
+                raise AssertionError("unsafe module command was accepted: " + hostile)
+
+
+        # Codex P1: a top-level repository module/package shadows stdlib
+        # even when the command text matches the allowlist exactly.
+        for shadow in ("unittest.py", "unittest", "UNITTEST.py",
+                       "UnItTeSt", "unittest.pyc", "unittest.pyd",
+                       "unittest.cpython-312-x86_64-linux-gnu.so"):
+            shadow_root = {
+                **safe_root,
+                "tree": [*safe_root["tree"],
+                         {"path": shadow, "type": "tree" if "." not in shadow else "blob"}],
+            }
+            bad = build(workflow_path, source, BAD, fetch, root_tree=shadow_root)
+            assert "unresolved-python-module-invocation" in bad["errors"], (shadow, bad)
+            try:
+                enrich_first_pass_contexts(
+                    [{"path": workflow_path, "text": source,
+                      "item": {"filename": workflow_path}}],
+                    BAD, fetch, fetch_root_tree=lambda ref: shadow_root,
+                )
+            except RuntimeError as exc:
+                assert "unresolved-python-module-invocation" in str(exc)
+            else:
+                raise AssertionError("shadowing root was trusted: " + shadow)
+
+        # Fail closed on absent, stale, truncated, incomplete, duplicate or
+        # structurally invalid immutable root-tree API responses.
+        invalid_trees = (
+            None,
+            {},
+            {**safe_root, "sha": BAD},
+            {**safe_root, "commit_sha": SAFE},
+            {**safe_root, "expected_tree_sha": BAD},
+            {**safe_root, "truncated": True},
+            {**safe_root, "truncated": None},
+            {**safe_root, "tree": []},
+            {**safe_root, "tree": [{"path": ".github", "type": "tree"}]},
+            {**safe_root, "tree": [
+                {"path": ".github", "type": "tree"},
+                {"path": "project_sources", "type": "blob"}]},
+            {**safe_root, "tree": [
+                *safe_root["tree"], {"path": ".github", "type": "tree"}]},
+            {**safe_root, "tree": [
+                *safe_root["tree"], {"path": "parent/unittest.py", "type": "blob"}]},
+        )
+        for bad_tree in invalid_trees:
+            ev = build(workflow_path, source, BAD, fetch, root_tree=bad_tree)
+            assert "unresolved-python-module-invocation" in ev["errors"], bad_tree
+        assert "unresolved-python-module-invocation" in build(
+            workflow_path, source, BAD, fetch
+        )["errors"], "Missing tree proof must fail closed"
+        try:
+            enrich_first_pass_contexts(
+                [{"path": workflow_path, "text": source,
+                  "item": {"filename": workflow_path}}], BAD, fetch,
+                fetch_root_tree=lambda ref: (_ for _ in ()).throw(OSError("API unavailable")),
+            )
+        except RuntimeError as exc:
+            assert "unresolved-python-module-invocation" in str(exc)
+        else:
+            raise AssertionError("GitHub tree API failure was trusted")
+
+        # Python import spelling is platform-sensitive. Exemption must be
+        # case-sensitive even though the older parser looks for modules
+        # without case restrictions.
+        for hostile in (collector_discovery.replace("unittest", "UNITTEST"),
+                        collector_discovery.replace("python", "Python")):
+            case_ev = build(workflow_path,
+                            source.replace(collector_discovery, hostile),
+                            BAD, fetch, root_tree=safe_root)
+            assert "unresolved-python-module-invocation" in case_ev["errors"], hostile
+
+        # Codex second P1: no ambient path/cwd/alias state may shadow unittest.
+        # These all still contain the exact discovery line and safe root tree.
+        mutants = (
+            source.replace(
+                "      - name: Run collector tool unit tests",
+                "      - name: Change path\n        shell: pwsh\n"
+                "        run: |\n          Set-Location project_sources/collector/tools\n"
+                "      - name: Run collector tool unit tests", 1),
+            source.replace(
+                "      - name: Run collector tool unit tests",
+                "      - name: Change path\n        shell: pwsh\n"
+                "        run: |\n"
+                "          $env:PYTHONPATH = 'project_sources/collector/tools'\n"
+                "      - name: Run collector tool unit tests", 1),
+            source.replace(
+                "      - name: Run collector tool unit tests",
+                "      - name: Change path\n        shell: pwsh\n"
+                "        run: |\n          $env:Path = 'project_sources/collector/tools'\n"
+                "      - name: Run collector tool unit tests", 1),
+            source.replace(
+                "      - name: Run collector tool unit tests",
+                "      - name: Change path\n        shell: pwsh\n"
+                "        run: |\n          Set-Alias python attacker\n"
+                "      - name: Run collector tool unit tests", 1),
+            source.replace(
+                "      - name: Run collector tool unit tests",
+                "      - name: Change path\n        shell: pwsh\n"
+                "        run: |\n          cd project_sources/collector/tools\n"
+                "      - name: Run collector tool unit tests", 1),
+            source.replace(
+                "        shell: pwsh\n        run: |\n",
+                "        working-directory: project_sources/collector/tools\n"
+                "        shell: pwsh\n        run: |\n", 1),
+            source.replace(
+                "        shell: pwsh\n        run: |\n",
+                "        env:\n          PYTHONPATH: project_sources/collector/tools\n"
+                "        shell: pwsh\n        run: |\n", 1),
+            source.replace(
+                "      - name: Validate analyzer",
+                "        env:\n          PATH: project_sources/collector/tools\n"
+                "      - name: Validate analyzer", 1),
+            source.replace(
+                "    runs-on: windows-latest\n",
+                "    runs-on: windows-latest\n"
+                "    defaults:\n      run:\n        working-directory: project_sources/collector/tools\n", 1),
+            source + "    env:\n      PYTHONPATH: project_sources/collector/tools\n",
+            source.replace(
+                "        run: |\n          " + collector_discovery,
+                "        run: |\n          function python { Write-Output hacked }\n"
+                "          " + collector_discovery, 1),
+            source.replace(
+                "        run: |\n          " + collector_discovery,
+                "        run: |\n          Add-Content -Path $env:GITHUB_PATH -Value 'bad'\n"
+                "          " + collector_discovery, 1),
+        )
+        for mutant in mutants:
+            result = build(workflow_path, mutant, BAD, fetch, root_tree=safe_root)
+            assert "unresolved-python-module-invocation" in result["errors"], (
+                workflow_path, mutant, result
+            )
+            try:
+                enrich_first_pass_contexts([
+                    {"path": workflow_path, "text": mutant,
+                     "item": {"filename": workflow_path}}
+                ], BAD, fetch, fetch_root_tree=lambda ref: safe_root)
+            except RuntimeError as exc:
+                assert "unresolved-python-module-invocation" in str(exc)
+            else:
+                raise AssertionError("import-path altered runner accepted")
+
+    # Only one immutable GitHub tree fetch for multiple matching contexts.
+    contexts = []
+    for name in ("reusable-validate-on-pr.yml", "reusable-validate-on-push.yml"):
+        path = ".github/workflows/" + name
+        contexts.append({
+            "path": path,
+            "text": collector_workflow(collector_discovery),
+            "item": {"filename": path},
+        })
+    root_fetches = []
+    def fetch_root_once(ref):
+        root_fetches.append(ref)
+        return safe_root
+    assert enrich_first_pass_contexts(
+        contexts, BAD, fetch, fetch_root_tree=fetch_root_once
+    ) == 2
+    assert root_fetches == [BAD], root_fetches
+
+    # Codex P1: commit SHA and Git tree SHA are distinct. The caller must
+    # resolve the commit object, query its exact tree hash, and cross-check.
+    class HeadGitHub:
+        repo = "example/repo"
+        def __init__(self, commit=None, tree=None):
+            self.requests = []
+            self.commit = commit if commit is not None else {
+                "sha": BAD, "tree": {"sha": SAFE}}
+            self.tree = tree if tree is not None else {
+                "sha": SAFE, "truncated": False,
+                "tree": list(safe_root["tree"])}
+        def request(self, method, path):
+            self.requests.append((method, path))
+            if path.endswith("/git/commits/" + BAD):
+                return self.commit
+            if path.endswith("/git/trees/" + SAFE):
+                return self.tree
+            raise AssertionError("Unexpected GitHub path: " + path)
+
+    good_api = HeadGitHub()
+    verified = fetch_verified_unittest_root_tree(good_api, BAD)
+    assert verified == safe_root, (verified, safe_root)
+    assert _unittest_origin_verified(verified, BAD)
+    assert good_api.requests == [
+        ("GET", "/repos/example/repo/git/commits/" + BAD),
+        ("GET", "/repos/example/repo/git/trees/" + SAFE),
+    ], good_api.requests
+    for bad_api in (
+        HeadGitHub(commit={"sha": SAFE, "tree": {"sha": SAFE}}),
+        HeadGitHub(commit={"sha": BAD, "tree": {}}),
+        HeadGitHub(commit={"sha": BAD, "tree": {"sha": "not-a-sha"}}),
+        HeadGitHub(tree={"sha": BAD, "truncated": False,
+                         "tree": safe_root["tree"]}),
+        HeadGitHub(tree={"sha": SAFE, "truncated": True,
+                         "tree": safe_root["tree"]}),
+    ):
+        checked = fetch_verified_unittest_root_tree(bad_api, BAD)
+        assert not _unittest_origin_verified(checked, BAD), (bad_api.requests, checked)
+
     unknown_local = "project_sources.collector.tools.no_such_analyzer"
     absent = build(FOCUS, "python -m " + unknown_local, BAD, fetch)
     assert "project_sources/collector/tools/no_such_analyzer.py" in absent["required_paths"]
