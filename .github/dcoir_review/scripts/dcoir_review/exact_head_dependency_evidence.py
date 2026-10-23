@@ -20,20 +20,15 @@ from dcoir_review.source_inventory_contract import (
     _logical_shell_commands,
     _coverage_invariant_note,
 )
+from dcoir_review.unittest_source_guard import (
+    collector_discovery_is_safe,
+    maybe_load_unittest_root_tree,
+)
 
 MAX_EVIDENCE_CHARS = 2100
 MAX_FETCHES = 4
 _SOURCE = re.compile(r"^[A-Za-z0-9_./-]+\.py$")
 _SHA = re.compile(r"^[0-9a-f]{40}$")
-# Standard-library unittest discovery is not a repository-local Python module.
-# Permit only the static collector suite command already used in CI; any
-# additional switch, shell operator, variable, or second module stays fail-closed.
-_STDLIB_COLLECTOR_DISCOVERY = re.compile(
-    r"""^\s*python\s+-m\s+unittest\s+discover\s+"""
-    r"""-s\s+project_sources/collector/tools\s+-p\s+"""
-    r"""(?:'test_\*\.py'|"test_\*\.py"|test_\*\.py)\s*$""",
-    re.IGNORECASE,
-)
 _CONTRACT_NAMES = ("inventory", "cli", "manifest", "contract", "analyzer", "policy", "validate", "discovery")
 
 
@@ -111,6 +106,7 @@ def build_exact_head_dependency_evidence(
     cache: dict[tuple[str, str], str] | None = None,
     max_chars: int = MAX_EVIDENCE_CHARS,
     max_fetches: int = MAX_FETCHES,
+    root_tree: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Bounded one-hop source-import expansion. No network except fetch_text.
 
@@ -159,7 +155,7 @@ def build_exact_head_dependency_evidence(
             - len(focus_text.splitlines()[-1].rstrip(chr(96)))
         ) % 2)
         or any(
-            not _STDLIB_COLLECTOR_DISCOVERY.fullmatch(command) and (
+            not collector_discovery_is_safe(command, root_tree, reviewed_head) and (
                 unresolved or (
                     end > start and
                     re.search(r"(?<![A-Za-z0-9_.])(?:python|py)\b", command, re.I)
@@ -247,10 +243,12 @@ def build_exact_head_dependency_evidence(
     return result
 
 
-def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6):
+def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6, *, fetch_root_tree=None):
     """Attach same-HEAD source evidence to bounded selected file prompts."""
     cache = {}
     enriched = 0
+    root_tree = None
+    root_tree_checked = False
     # The model still reviews all changed files in its original order. Prioritize
     # the exact source-inventory action for the six source-evidence fetch slots:
     # a large PR must not starve the mandatory action behind ordinary imports.
@@ -272,9 +270,14 @@ def enrich_first_pass_contexts(contexts, reviewed_head, fetch_text, max_files=6)
             break
         if not isinstance(context, dict) or not isinstance(context.get("item"), dict):
             continue
+        source_text = str(context.get("text", ""))
+        if not root_tree_checked:
+            root_tree, root_tree_checked = maybe_load_unittest_root_tree(
+                source_text, reviewed_head, fetch_root_tree
+            )
         evidence = build_exact_head_dependency_evidence(
-            str(context.get("path", "")), str(context.get("text", "")),
-            reviewed_head, fetch_text, cache=cache,
+            str(context.get("path", "")), source_text,
+            reviewed_head, fetch_text, cache=cache, root_tree=root_tree,
         )
         # A directly invoked verifier is as important as the analyzer:
         # missing it could make a genuinely safe repair appear vulnerable.

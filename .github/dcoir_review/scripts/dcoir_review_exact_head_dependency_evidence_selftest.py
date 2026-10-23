@@ -145,6 +145,14 @@ def main() -> None:
         "python -m unittest discover -s project_sources/collector/tools "
         "-p 'test_*.py'"
     )
+    safe_root = {
+        "sha": BAD, "truncated": False,
+        "tree": [
+            {"path": ".github", "type": "tree"},
+            {"path": "project_sources", "type": "tree"},
+            {"path": "AGENTS.md", "type": "blob"},
+        ],
+    }
     for workflow_path in (
         ".github/workflows/reusable-validate-on-pr.yml",
         ".github/workflows/reusable-validate-on-push.yml",
@@ -155,14 +163,16 @@ def main() -> None:
             f"  {collector_discovery}\n"
             f"  python {ROOT}\n"
         )
-        proof = build(workflow_path, source, BAD, fetch)
+        proof = build(workflow_path, source, BAD, fetch, root_tree=safe_root)
         assert not proof["errors"], (workflow_path, proof)
         assert ROOT in proof["required_paths"] and ROOT in proof["paths"], (
             workflow_path, proof
         )
         contexts = [{"path": workflow_path, "text": source,
                      "item": {"filename": workflow_path}}]
-        assert enrich_first_pass_contexts(contexts, BAD, fetch) == 1
+        assert enrich_first_pass_contexts(
+            contexts, BAD, fetch, fetch_root_tree=lambda ref: safe_root
+        ) == 1
         assert contexts[0]["item"].get("_dcoir_exact_head_dependency_evidence")
 
         # Adva negative controls: the narrow exception may not swallow
@@ -183,7 +193,7 @@ def main() -> None:
         )
         for hostile in hostile_commands:
             bad_source = source.replace(collector_discovery, hostile, 1)
-            evidence = build(workflow_path, bad_source, BAD, fetch)
+            evidence = build(workflow_path, bad_source, BAD, fetch, root_tree=safe_root)
             # Unknown local modules are syntactically resolvable but must
             # still fail closed when exact-HEAD source cannot be fetched.
             if "project_sources.collector.tools.unknown_test" in hostile:
@@ -200,11 +210,99 @@ def main() -> None:
                 enrich_first_pass_contexts([
                     {"path": workflow_path, "text": bad_source,
                      "item": {"filename": workflow_path}}
-                ], BAD, fetch)
+                ], BAD, fetch, fetch_root_tree=lambda ref: safe_root)
             except RuntimeError as exc:
                 assert expected_reason in str(exc), (hostile, str(exc))
             else:
                 raise AssertionError("unsafe module command was accepted: " + hostile)
+
+
+        # Codex P1: a top-level repository module/package shadows stdlib
+        # even when the command text matches the allowlist exactly.
+        for shadow in ("unittest.py", "unittest", "UNITTEST.py",
+                       "UnItTeSt", "unittest.pyc", "unittest.pyd",
+                       "unittest.cpython-312-x86_64-linux-gnu.so"):
+            shadow_root = {
+                **safe_root,
+                "tree": [*safe_root["tree"],
+                         {"path": shadow, "type": "tree" if "." not in shadow else "blob"}],
+            }
+            bad = build(workflow_path, source, BAD, fetch, root_tree=shadow_root)
+            assert "unresolved-python-module-invocation" in bad["errors"], (shadow, bad)
+            try:
+                enrich_first_pass_contexts(
+                    [{"path": workflow_path, "text": source,
+                      "item": {"filename": workflow_path}}],
+                    BAD, fetch, fetch_root_tree=lambda ref: shadow_root,
+                )
+            except RuntimeError as exc:
+                assert "unresolved-python-module-invocation" in str(exc)
+            else:
+                raise AssertionError("shadowing root was trusted: " + shadow)
+
+        # Fail closed on absent, stale, truncated, incomplete, duplicate or
+        # structurally invalid immutable root-tree API responses.
+        invalid_trees = (
+            None,
+            {},
+            {**safe_root, "sha": SAFE},
+            {**safe_root, "truncated": True},
+            {**safe_root, "truncated": None},
+            {**safe_root, "tree": []},
+            {**safe_root, "tree": [{"path": ".github", "type": "tree"}]},
+            {**safe_root, "tree": [
+                {"path": ".github", "type": "tree"},
+                {"path": "project_sources", "type": "blob"}]},
+            {**safe_root, "tree": [
+                *safe_root["tree"], {"path": ".github", "type": "tree"}]},
+            {**safe_root, "tree": [
+                *safe_root["tree"], {"path": "parent/unittest.py", "type": "blob"}]},
+        )
+        for bad_tree in invalid_trees:
+            ev = build(workflow_path, source, BAD, fetch, root_tree=bad_tree)
+            assert "unresolved-python-module-invocation" in ev["errors"], bad_tree
+        assert "unresolved-python-module-invocation" in build(
+            workflow_path, source, BAD, fetch
+        )["errors"], "Missing tree proof must fail closed"
+        try:
+            enrich_first_pass_contexts(
+                [{"path": workflow_path, "text": source,
+                  "item": {"filename": workflow_path}}], BAD, fetch,
+                fetch_root_tree=lambda ref: (_ for _ in ()).throw(OSError("API unavailable")),
+            )
+        except RuntimeError as exc:
+            assert "unresolved-python-module-invocation" in str(exc)
+        else:
+            raise AssertionError("GitHub tree API failure was trusted")
+
+        # Python import spelling is platform-sensitive. Exemption must be
+        # case-sensitive even though the older parser looks for modules
+        # without case restrictions.
+        for hostile in (collector_discovery.replace("unittest", "UNITTEST"),
+                        collector_discovery.replace("python", "Python")):
+            case_ev = build(workflow_path,
+                            source.replace(collector_discovery, hostile),
+                            BAD, fetch, root_tree=safe_root)
+            assert "unresolved-python-module-invocation" in case_ev["errors"], hostile
+
+    # Only one immutable GitHub tree fetch for multiple matching contexts.
+    contexts = []
+    for name in ("reusable-validate-on-pr.yml", "reusable-validate-on-push.yml"):
+        path = ".github/workflows/" + name
+        contexts.append({
+            "path": path,
+            "text": "name: Powershell inventory\nrun: |\n  " + collector_discovery
+                    + "\n  python " + ROOT + "\n",
+            "item": {"filename": path},
+        })
+    root_fetches = []
+    def fetch_root_once(ref):
+        root_fetches.append(ref)
+        return safe_root
+    assert enrich_first_pass_contexts(
+        contexts, BAD, fetch, fetch_root_tree=fetch_root_once
+    ) == 2
+    assert root_fetches == [BAD], root_fetches
 
     unknown_local = "project_sources.collector.tools.no_such_analyzer"
     absent = build(FOCUS, "python -m " + unknown_local, BAD, fetch)
