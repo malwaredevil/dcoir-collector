@@ -211,7 +211,7 @@
       "target_architecture": "Gemini bundle reusable workflow. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
     },
     {
-      "acceptance_evidence": "Exact-head ten-command agent-runtime validation, combined release self-test, static parity report, direct two-GPT delivery artifact contents/hashes, full evidence artifact, workflow run/job readback, and manual/live evidence boundary.",
+      "acceptance_evidence": "Exact-head twelve-command agent-runtime validation, combined release self-test, static parity report, direct two-GPT delivery artifact contents/hashes, full evidence artifact, workflow run/job readback, and manual/live evidence boundary.",
       "contract_family": "openai-gpt-bundle",
       "family": "OpenAI GPT packaging",
       "file": ".github/workflows/manual-openai-gpt-deployment-package-build.yml",

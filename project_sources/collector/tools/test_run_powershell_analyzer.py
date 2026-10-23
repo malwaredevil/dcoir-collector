@@ -19,6 +19,9 @@ except ImportError:  # pragma: no cover - direct file execution support
 
 
 def load_tests(loader: unittest.TestLoader, tests: unittest.TestSuite, pattern: str | None) -> unittest.TestSuite:
+    # Discovery includes the individual modules already; aggregate only for direct invocation.
+    if pattern is not None:
+        return tests
     suite = unittest.TestSuite()
     for module in (core_tests, policy_tests, inventory_tests, baseline_tests, output_tests):
         suite.addTests(loader.loadTestsFromModule(module))
