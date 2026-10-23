@@ -25,6 +25,15 @@ MAX_EVIDENCE_CHARS = 2100
 MAX_FETCHES = 4
 _SOURCE = re.compile(r"^[A-Za-z0-9_./-]+\.py$")
 _SHA = re.compile(r"^[0-9a-f]{40}$")
+# Standard-library unittest discovery is not a repository-local Python module.
+# Permit only the static collector suite command already used in CI; any
+# additional switch, shell operator, variable, or second module stays fail-closed.
+_STDLIB_COLLECTOR_DISCOVERY = re.compile(
+    r"""^\s*python\s+-m\s+unittest\s+discover\s+"""
+    r"""-s\s+project_sources/collector/tools\s+-p\s+"""
+    r"""(?:'test_\*\.py'|"test_\*\.py"|test_\*\.py)\s*$""",
+    re.IGNORECASE,
+)
 _CONTRACT_NAMES = ("inventory", "cli", "manifest", "contract", "analyzer", "policy", "validate", "discovery")
 
 
@@ -150,10 +159,12 @@ def build_exact_head_dependency_evidence(
             - len(focus_text.splitlines()[-1].rstrip(chr(96)))
         ) % 2)
         or any(
-            unresolved or (
-                end > start and
-                re.search(r"(?<![A-Za-z0-9_.])(?:python|py)\b", command, re.I)
-                and not paths
+            not _STDLIB_COLLECTOR_DISCOVERY.fullmatch(command) and (
+                unresolved or (
+                    end > start and
+                    re.search(r"(?<![A-Za-z0-9_.])(?:python|py)\b", command, re.I)
+                    and not paths
+                )
             )
             for start, end, command in _logical_shell_commands(focus_text)
             for paths, unresolved in (_python_command_sources(command),)

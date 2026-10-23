@@ -138,6 +138,74 @@ def main() -> None:
             assert "exact-head executable dependency unavailable" in str(exc)
         else:
             raise AssertionError("unresolved direct module must fail closed: " + unknown)
+    # Issue #636: named collector unittest discovery is a standard-library
+    # test runner, not an unresolved repository analyzer executable.
+    # Its exact static invocation must not abort review of a related workflow.
+    collector_discovery = (
+        "python -m unittest discover -s project_sources/collector/tools "
+        "-p 'test_*.py'"
+    )
+    for workflow_path in (
+        ".github/workflows/reusable-validate-on-pr.yml",
+        ".github/workflows/reusable-validate-on-push.yml",
+    ):
+        source = (
+            "name: Collector source-coverage workflow\n"
+            "run: |\n"
+            f"  {collector_discovery}\n"
+            f"  python {ROOT}\n"
+        )
+        proof = build(workflow_path, source, BAD, fetch)
+        assert not proof["errors"], (workflow_path, proof)
+        assert ROOT in proof["required_paths"] and ROOT in proof["paths"], (
+            workflow_path, proof
+        )
+        contexts = [{"path": workflow_path, "text": source,
+                     "item": {"filename": workflow_path}}]
+        assert enrich_first_pass_contexts(contexts, BAD, fetch) == 1
+        assert contexts[0]["item"].get("_dcoir_exact_head_dependency_evidence")
+
+        # Adva negative controls: the narrow exception may not swallow
+        # external/local unknown modules, shell chaining, dynamic paths,
+        # unsafe interpreter switches, or malformed unittest invocations.
+        hostile_commands = (
+            "python -m unittest",
+            "python -m unittest discover",
+            "python -m unittest discover -s $env:TESTS -p 'test_*.py'",
+            collector_discovery + " --unknown-option",
+            collector_discovery + "; python -m external.analyzer",
+            collector_discovery + " | python -m external.analyzer",
+            collector_discovery + " && python -m external.analyzer",
+            "python -X utf8 -m unittest discover -s "
+            "project_sources/collector/tools -p 'test_*.py'",
+            "python -m project_sources.collector.tools.unknown_test discover "
+            "-s project_sources/collector/tools -p 'test_*.py'",
+        )
+        for hostile in hostile_commands:
+            bad_source = source.replace(collector_discovery, hostile, 1)
+            evidence = build(workflow_path, bad_source, BAD, fetch)
+            # Unknown local modules are syntactically resolvable but must
+            # still fail closed when exact-HEAD source cannot be fetched.
+            if "project_sources.collector.tools.unknown_test" in hostile:
+                missing = "project_sources/collector/tools/unknown_test.py"
+                assert missing in evidence["required_paths"], evidence
+                assert missing not in evidence["paths"], evidence
+                expected_reason = "required-dependency-excerpt-unavailable"
+            else:
+                assert "unresolved-python-module-invocation" in evidence["errors"], (
+                    workflow_path, hostile, evidence
+                )
+                expected_reason = "unresolved-python-module-invocation"
+            try:
+                enrich_first_pass_contexts([
+                    {"path": workflow_path, "text": bad_source,
+                     "item": {"filename": workflow_path}}
+                ], BAD, fetch)
+            except RuntimeError as exc:
+                assert expected_reason in str(exc), (hostile, str(exc))
+            else:
+                raise AssertionError("unsafe module command was accepted: " + hostile)
+
     unknown_local = "project_sources.collector.tools.no_such_analyzer"
     absent = build(FOCUS, "python -m " + unknown_local, BAD, fetch)
     assert "project_sources/collector/tools/no_such_analyzer.py" in absent["required_paths"]
