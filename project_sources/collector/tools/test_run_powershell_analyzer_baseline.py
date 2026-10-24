@@ -73,6 +73,42 @@ class PowerShellAnalyzerBaselineTests(PowerShellAnalyzerTestCase):
 
         self.assertIsNotNone(report)
         self.assertTrue(any("baseline" in error and "invalid JSON" in error for error in errors))
+        assert report is not None
+        self.assertFalse(report["baseline"]["accepted"])
+        self.assertFalse(report["validation"]["success"])
+
+    def test_missing_baseline_fails_without_acceptance(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            report, errors, _warnings = analyzer.build_report(
+                self.make_args(root, baseline_json="missing-baseline.json")
+            )
+
+        self.assertIsNotNone(report)
+        self.assertTrue(any("baseline is missing" in error for error in errors), errors)
+        assert report is not None
+        self.assertFalse(report["baseline"]["accepted"])
+        self.assertFalse(report["validation"]["success"])
+        self.assertEqual(report["baseline"]["path"], "missing-baseline.json")
+
+    def test_baseline_schema_mismatch_fails_without_acceptance(self) -> None:
+        with self.make_repo() as temp:
+            root = Path(temp)
+            baseline = root / "wrong-schema.json"
+            write(baseline, json.dumps({
+                "schema_version": "invalid-baseline-schema",
+                "suppressions": [],
+            }))
+            report, errors, _warnings = analyzer.build_report(
+                self.make_args(root, baseline_json=baseline.name)
+            )
+
+        self.assertIsNotNone(report)
+        self.assertTrue(any("baseline schema mismatch" in error for error in errors), errors)
+        assert report is not None
+        self.assertFalse(report["baseline"]["accepted"])
+        self.assertFalse(report["validation"]["success"])
+        self.assertEqual(report["baseline"]["path"], "wrong-schema.json")
 
     def test_baseline_path_outside_repo_fails_before_reading(self) -> None:
         with self.make_repo() as temp:

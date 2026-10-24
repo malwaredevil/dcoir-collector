@@ -150,7 +150,9 @@ def empty_report(
     baseline_info = baseline_metadata(None, baseline_path, repo_root)
     if args.baseline_json:
         baseline_info["path"] = safe_relpath(baseline_path, repo_root) if baseline_path is not None else str(args.baseline_json)
-        baseline_info["accepted"] = baseline_path is not None
+        # An early error report means the supplied baseline was not accepted.
+        # Path resolution alone does not prove the baseline was read or valid.
+        baseline_info["accepted"] = False
     return {
         "schema_version": SCHEMA_VERSION,
         "issue": ISSUE_NUMBER,
