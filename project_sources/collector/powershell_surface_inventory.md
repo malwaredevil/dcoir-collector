@@ -58,7 +58,7 @@
 - Harness source parts: `18`
 - Profile-required harness source parts: `18`
 - Profile-required harness source parts present: `18`
-- Embedded workflow/action snippets: `120`
+- Embedded workflow/action snippets: `131`
 
 ## Reference And Excluded Surfaces
 

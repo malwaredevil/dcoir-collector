@@ -12,9 +12,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
 sys.path.insert(0, str(SCRIPT.parent))
-RELEASE_REPORTER = ROOT / 'project_sources/agent_runtime/tools/report_agent_release_parity.py'
-RELEASE_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
-USB_SEMANTIC_SELFTEST = ROOT / 'project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'
 USB_LIVE_REPLAY_SELFTEST = ROOT / 'project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py'
 SPEC = importlib.util.spec_from_file_location('build_openai_usb_reporting', SCRIPT)
 if SPEC is None or SPEC.loader is None:
@@ -419,32 +416,9 @@ def test_lone_surrogate_description_fails_closed() -> None:
 
 
 
-def test_usb_reporting_semantic_contract() -> None:
-    selftest = load_module(USB_SEMANTIC_SELFTEST, 'score_usb_reporting_behavior_selftest')
-    assert selftest.main() == 0
-
-
 def test_openai_usb_live_replay_harness() -> None:
     selftest = load_module(USB_LIVE_REPLAY_SELFTEST, 'openai_usb_reporting_behavioral_replay_selftest')
     assert selftest.main() == 0
-
-def test_unified_release_parity_report() -> None:
-    selftest = load_module(RELEASE_SELFTEST, 'report_agent_release_parity_selftest')
-    assert selftest.main() == 0
-
-    reporter = load_module(RELEASE_REPORTER, 'report_agent_release_parity')
-    errors, report = reporter.build_release_report(ROOT, run_target_checks=True)
-    assert not errors, errors
-    assert report['static_parity_status'] == 'pass'
-    assert report['scope']['target_ids'] == list(reporter.EXPECTED_TARGET_IDS)
-    assert report['live_parity_status'] in {'pending_manual_readback', 'readback_recorded'}
-    json_path, markdown_path = reporter.write_outputs(
-        report,
-        reporter.default_output_root(ROOT),
-    )
-    assert json.loads(json_path.read_text(encoding='utf-8')) == report
-    assert '# Agent Release and Parity Report' in markdown_path.read_text(encoding='utf-8')
-
 
 def main() -> int:
     tests = [
@@ -468,9 +442,7 @@ def main() -> int:
         test_whitespace_conversation_starter_is_rejected,
         test_non_bmp_instruction_uses_webui_safe_counting,
         test_lone_surrogate_description_fails_closed,
-        test_usb_reporting_semantic_contract,
         test_openai_usb_live_replay_harness,
-        test_unified_release_parity_report,
     ]
     for test in tests:
         test()

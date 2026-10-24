@@ -67,10 +67,13 @@ jobs:
             @('Behavior adapter self-tests', 'python', 'project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py'),
             @('Knowledge projection check', 'python', 'project_sources/agent_runtime/tools/project_agent_knowledge.py', '--check'),
             @('Knowledge projection self-tests', 'python', 'project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py'),
+            @('Run Gemini Knowledge consolidation evaluation self-tests', 'python', 'project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py'),
             @('OpenAI DCOIR package check', 'python', 'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py', '--check'),
             @('OpenAI DCOIR package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'),
             @('OpenAI USB package check', 'python', 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py', '--check'),
-            @('OpenAI USB package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py')
+            @('OpenAI USB package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'),
+            @('USB reporting behavior scorer self-tests', 'python', 'project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'),
+            @('Agent release parity self-tests', 'python', 'project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py')
           )
           foreach ($command in $commands) {
             $label = $command[0]
@@ -93,10 +96,13 @@ jobs:
             'python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py',
             'python project_sources/agent_runtime/tools/project_agent_knowledge.py --check',
             'python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py',
+            'python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py',
             'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check',
             'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py',
             'python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check',
             'python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'
+            'python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'
+            'python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
           )
           $receipt = [ordered]@{
             schema_version = 'dcoir_agent_runtime_validation_workflow_receipt_v1'
