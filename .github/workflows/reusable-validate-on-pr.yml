@@ -148,14 +148,6 @@ jobs:
             throw 'Agent release parity self-tests failed.'
           }
 
-      - name: Build unified agent release parity report
-        shell: pwsh
-        run: |
-          python project_sources/agent_runtime/tools/report_agent_release_parity.py
-          if ($LASTEXITCODE -ne 0) {
-            throw 'Agent release parity report failed.'
-          }
-
       - name: Write agent-runtime validation receipt
         shell: pwsh
         env:
@@ -191,6 +183,14 @@ jobs:
           }
           New-Item -ItemType Directory -Force -Path project_sources/validation/out_validate_on_pr_agent_runtime | Out-Null
           $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json -Encoding utf8
+
+      - name: Build unified agent release parity report
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/report_agent_release_parity.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent release parity report failed.'
+          }
 
       - name: Validate GitHub intake taxonomy
         shell: pwsh

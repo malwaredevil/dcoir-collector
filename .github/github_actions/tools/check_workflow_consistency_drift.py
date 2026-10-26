@@ -456,7 +456,6 @@ def agent_runtime_contract_findings(
         parity_line, parity_body = parity_matches[0]
         if execution_lines and parity_line <= max(execution_lines):
             findings.append(f"{path}:{parity_line}: parity report must run after self-tests")
-        execution_lines.append(parity_line)
         if active_step_lines(parity_body) != expected_agent_runtime_step_lines(
             AGENT_RUNTIME_PARITY_REPORT_COMMAND, AGENT_RUNTIME_PARITY_REPORT_FAILURE
         ):
@@ -474,6 +473,10 @@ def agent_runtime_contract_findings(
         if execution_lines and receipt_line <= max(execution_lines):
             findings.append(
                 f"{path}:{receipt_line}: agent-runtime receipt must run after all thirteen validation steps"
+            )
+        if parity_matches and parity_matches[0][0] <= receipt_line:
+            findings.append(
+                f"{path}:{receipt_line}: agent-runtime receipt must run before the separate parity report"
             )
         if receipt_lines != expected_agent_runtime_receipt_lines(event_name):
             findings.append(
@@ -553,7 +556,7 @@ def run_agent_runtime_contract_selftests() -> list[str]:
         )]
     )
     entry_text = "\n".join(entry_lines)
-    good_expanded = "\n".join(step_chunks + [parity, receipt, upload, report])
+    good_expanded = "\n".join(step_chunks + [receipt, parity, upload, report])
     test_path = Path("<agent-runtime-contract-selftest>")
     selftest_findings: list[str] = []
     if agent_runtime_contract_findings(
@@ -577,6 +580,11 @@ def run_agent_runtime_contract_selftests() -> list[str]:
         "parity report early exit": good_expanded.replace(
             f"        {AGENT_RUNTIME_PARITY_REPORT_COMMAND}",
             f"        exit 0\n        {AGENT_RUNTIME_PARITY_REPORT_COMMAND}",
+            1,
+        ),
+        "parity report before receipt": good_expanded.replace(
+            f"{receipt}\n{parity}",
+            f"{parity}\n{receipt}",
             1,
         ),
         "receipt-only command": good_expanded.replace(

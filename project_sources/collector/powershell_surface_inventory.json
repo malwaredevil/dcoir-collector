@@ -5553,7 +5553,7 @@
         136,
         144,
         152,
-        160,
+        188,
         196,
         204,
         212,
@@ -5694,21 +5694,21 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
-          "step_or_action": "Build unified agent release parity report",
+          "step_or_action": "Write agent-runtime validation receipt",
           "shell": "pwsh",
           "line_start": 152,
-          "line_end": 158,
-          "command_sha256": "fad6c4860780879abcfba5141e37b057010158a264d9b3951d15d48478eae182",
-          "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity report failed.'\n}"
+          "line_end": 186,
+          "command_sha256": "f51578f8a465fdd41e8ad61f88f95f5eb73f59d015f1d87299dcb78a67b09523",
+          "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'\n  'python project_sources/agent_runtime/"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
-          "step_or_action": "Write agent-runtime validation receipt",
+          "step_or_action": "Build unified agent release parity report",
           "shell": "pwsh",
-          "line_start": 160,
+          "line_start": 188,
           "line_end": 194,
-          "command_sha256": "f51578f8a465fdd41e8ad61f88f95f5eb73f59d015f1d87299dcb78a67b09523",
-          "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'\n  'python project_sources/agent_runtime/"
+          "command_sha256": "fad6c4860780879abcfba5141e37b057010158a264d9b3951d15d48478eae182",
+          "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity report failed.'\n}"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
@@ -5803,7 +5803,7 @@
       ],
       "size_bytes": 17691,
       "line_count": 386,
-      "sha256": "a62581bf89e7ffdde78c4bd1bf89015fbedee2bc37e2f30fc585d354792e58a9"
+      "sha256": "7334319ae5fec2d3e3ec32b8fb8bec2cde685131a50ce865dc4575c4a0294232"
     },
     {
       "path": ".github/workflows/reusable-validate-on-push.yml",
@@ -5829,7 +5829,7 @@
         134,
         142,
         150,
-        158,
+        186,
         194,
         202,
         254,
@@ -5966,21 +5966,21 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
-          "step_or_action": "Build unified agent release parity report",
+          "step_or_action": "Write agent-runtime validation receipt",
           "shell": "pwsh",
           "line_start": 150,
-          "line_end": 156,
-          "command_sha256": "fad6c4860780879abcfba5141e37b057010158a264d9b3951d15d48478eae182",
-          "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity report failed.'\n}"
+          "line_end": 184,
+          "command_sha256": "2991199de0a89d573c5ebfa6811e4e7b5fd0acf2fbe24c379c30da1bf3a4173f",
+          "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'\n  'python project_sources/agent_runtime/"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
-          "step_or_action": "Write agent-runtime validation receipt",
+          "step_or_action": "Build unified agent release parity report",
           "shell": "pwsh",
-          "line_start": 158,
+          "line_start": 186,
           "line_end": 192,
-          "command_sha256": "2991199de0a89d573c5ebfa6811e4e7b5fd0acf2fbe24c379c30da1bf3a4173f",
-          "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py'\n  'python project_sources/agent_runtime/"
+          "command_sha256": "fad6c4860780879abcfba5141e37b057010158a264d9b3951d15d48478eae182",
+          "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Agent release parity report failed.'\n}"
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
@@ -6039,7 +6039,7 @@
       ],
       "size_bytes": 16136,
       "line_count": 351,
-      "sha256": "4fc81ce92fce1d0cce48545f95a0b1bdc4d62aeba948bc1881f0d9c065cf4782"
+      "sha256": "de3947cdce670d53a77a4080f98cb66b7d4a1ae1773955e0746f71395a0e49ca"
     },
     {
       "path": ".github/workflows/reusable-windows-powershell-51.yml",
