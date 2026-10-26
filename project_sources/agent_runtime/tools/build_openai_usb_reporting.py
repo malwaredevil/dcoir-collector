@@ -16,6 +16,10 @@ from openai_builder_validation_kernel import (
     validate_knowledge_file_ceiling,
     validate_behavior_snapshot_pin,
     validate_source_output_binding,
+    validate_behavior_disposition,
+    select_governed_source_target,
+    validate_projection_manifest_binding,
+    index_governed_behavior_modules,
 )
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
@@ -234,28 +238,13 @@ def _behavior_snapshot(
         if isinstance(item, dict)
         and TARGET_ID in (item.get('applies_to') if isinstance(item.get('applies_to'), list) else [])
     ]
-    module_by_id = {
-        module.get('id'): module for module in modules if isinstance(module, dict)
-    }
+    module_by_id = index_governed_behavior_modules(modules, errors)
     coverage_ids = [entry.get('id') for entry in coverage if isinstance(entry, dict)]
     expected_ids = [item.get('id') for item in applicable]
-    expected_owner = 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
-    expected_output = EXPECTED_OUTPUTS['instructions']
     for item in applicable:
-        item_id = item.get('id', '<missing-id>')
-        dispositions = item.get('target_dispositions')
-        disposition = (
-            dispositions.get(TARGET_ID) if isinstance(dispositions, dict) else None
+        validate_behavior_disposition(
+            item, TARGET_ID, EXPECTED_OUTPUTS['instructions'], errors
         )
-        if not isinstance(disposition, dict):
-            errors.append(f'{item_id} lacks a valid {TARGET_ID} disposition')
-            continue
-        if disposition.get('mode') != 'adapt':
-            errors.append(f'{item_id} must be adapted for {TARGET_ID}')
-        if disposition.get('owner') != expected_owner:
-            errors.append(f'{item_id} {TARGET_ID} disposition owner drift')
-        if disposition.get('generated_output') != expected_output:
-            errors.append(f'{item_id} {TARGET_ID} disposition output drift')
     for duplicate in _duplicates([value for value in coverage_ids if isinstance(value, str)]):
         errors.append(f'Duplicate behavior coverage id: {duplicate}')
     if coverage_ids != expected_ids:
@@ -271,6 +260,9 @@ def _behavior_snapshot(
     snapshot: list[dict[str, Any]] = []
     for item, coverage_entry in zip(applicable, coverage):
         item_id = item.get('id')
+        if not isinstance(item_id, str) or not item_id:
+            errors.append('Behavior item id must be a non-empty string')
+            continue
         source_path_value = item.get('source_path')
         source_path = resolve_repo_path(
             repo_root,
@@ -416,13 +408,9 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     if behavior_manifest.get('schema') != BEHAVIOR_SCHEMA:
         errors.append('Unexpected behavior module manifest schema')
     source_contract_sha = _sha256(required_paths['source_contract'].read_bytes())
-    target = next(
-        (item for item in source_contract.get('targets', []) if isinstance(item, dict) and item.get('id') == TARGET_ID),
-        None,
+    target = select_governed_source_target(
+        source_contract, TARGET_ID, errors, 'OpenAI USB Reporting'
     )
-    if not isinstance(target, dict):
-        errors.append('Shared source contract lacks the OpenAI USB Reporting target')
-        target = {}
     for key, expected in (
         ('provider', 'openai_webui_bedrock_hosted'),
         ('runtime_model', EXPECTED_RUNTIME_MODEL),
@@ -440,6 +428,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     target_capabilities = target.get('capabilities')
     if not isinstance(target_capabilities, dict) or set(target_capabilities) != set(REQUIRED_DISABLED_CAPABILITIES):
         errors.append('Source contract capabilities must contain exactly the governed keys')
+        target_capabilities = {}
     for capability in REQUIRED_DISABLED_CAPABILITIES:
         if capabilities.get(capability) is not False:
             errors.append(f'Unsupported capability must remain false: {capability}')
@@ -460,16 +449,10 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     instruction_path = required_paths.get('canonical_instructions_source')
     instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
     case_ids = _validate_instructions(instructions, manifest, cases, errors)
-    if knowledge_projection_manifest.get('schema') != 'dcoir.agent_runtime.knowledge_projection.v1':
-        errors.append('Unexpected knowledge projection manifest schema')
-    knowledge_target_config = knowledge_projection_manifest.get('targets', {}).get(TARGET_ID)
-    if not isinstance(knowledge_target_config, dict):
-        errors.append('Knowledge projection manifest lacks the OpenAI USB target')
-    else:
-        if knowledge_target_config.get('target_manifest_path') != manifest.get('knowledge_target_manifest'):
-            errors.append('Knowledge target manifest path disagrees across contracts')
-        if knowledge_target_config.get('expected_projection_count') != EXPECTED_KNOWLEDGE_FILES:
-            errors.append('Knowledge target projection count disagrees across contracts')
+    validate_projection_manifest_binding(
+        knowledge_projection_manifest, manifest, TARGET_ID,
+        EXPECTED_KNOWLEDGE_FILES, errors, 'OpenAI USB'
+    )
     if target_manifest.get('source_contract') != manifest.get('source_contract'):
         errors.append('Knowledge target points to the wrong shared source contract')
     if target_manifest.get('source_contract_sha256') != source_contract_sha:

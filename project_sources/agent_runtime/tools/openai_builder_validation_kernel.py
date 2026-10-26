@@ -86,3 +86,118 @@ def validate_behavior_snapshot_pin(
             'Behavior source snapshot drift: expected '
             f'{pinned_sha}, got {snapshot_sha}'
         )
+
+
+def validate_behavior_disposition(
+    item: dict,
+    target_id: str,
+    expected_output: str,
+    errors: list[str],
+) -> None:
+    """Enforce each target's governed static-behavior adaptation contract.
+
+    DCOIR Prime chunks are adapted and specialist sub-agents are flattened.
+    USB's eight applicable behavior items must all be adapted.
+    """
+    item_id = item.get('id', '<missing-id>')
+    if not isinstance(item_id, str) or not item_id:
+        errors.append(f'{target_id} behavior item id is invalid')
+        return
+    dispositions = item.get('target_dispositions')
+    disposition = dispositions.get(target_id) if isinstance(dispositions, dict) else None
+    if not isinstance(disposition, dict):
+        errors.append(f'{item_id} lacks a valid {target_id} disposition')
+        return
+
+    if target_id == 'openai_dcoir_analyst':
+        if item_id.startswith('prime.chunk.'):
+            mode = 'adapt'
+        elif item_id.startswith('sub_agent.'):
+            mode = 'flatten'
+        else:
+            mode = None
+    elif target_id == 'openai_usb_reporting':
+        mode = 'adapt'
+    else:
+        mode = None
+    if mode is None:
+        errors.append(f'{item_id} has an unsupported {target_id} disposition class')
+    elif disposition.get('mode') != mode:
+        if target_id == 'openai_usb_reporting':
+            errors.append(f'{item_id} must be adapted for {target_id}')
+        else:
+            errors.append(f'{item_id} {target_id} disposition mode drift: expected {mode}')
+
+    expected_owner = f'project_sources/agent_runtime/tools/build_{target_id}.py'
+    if disposition.get('owner') != expected_owner:
+        errors.append(f'{item_id} {target_id} disposition owner drift')
+    if disposition.get('generated_output') != expected_output:
+        errors.append(f'{item_id} {target_id} disposition output drift')
+
+
+def select_governed_source_target(
+    source_contract: dict,
+    target_id: str,
+    errors: list[str],
+    target_label: str,
+) -> dict:
+    """Require exactly one named source target; never silently pick a duplicate."""
+    targets = source_contract.get('targets')
+    if not isinstance(targets, list):
+        errors.append('Shared source contract targets must be an array')
+        return {}
+    if any(not isinstance(item, dict) for item in targets):
+        errors.append('Shared source contract targets contain a non-object entry')
+    matching = [item for item in targets
+                if isinstance(item, dict) and item.get('id') == target_id]
+    if not matching:
+        errors.append(f'Shared source contract lacks the {target_label} target')
+        return {}
+    if len(matching) != 1:
+        errors.append(f'Shared source contract has duplicate {target_label} targets')
+        return {}
+    return matching[0]
+
+
+def validate_projection_manifest_binding(
+    projection_manifest: dict,
+    adapter_manifest: dict,
+    target_id: str,
+    expected_count: int,
+    errors: list[str],
+    target_label: str,
+) -> None:
+    """Enforce shared Knowledge projection schema, target path and strict count."""
+    if projection_manifest.get('schema') != 'dcoir.agent_runtime.knowledge_projection.v1':
+        errors.append('Unexpected knowledge projection manifest schema')
+    targets = projection_manifest.get('targets')
+    if not isinstance(targets, dict):
+        errors.append('Knowledge projection manifest targets must be an object')
+        return
+    target = targets.get(target_id)
+    if not isinstance(target, dict):
+        errors.append(f'Knowledge projection manifest lacks the {target_label} target')
+        return
+    if target.get('target_manifest_path') != adapter_manifest.get('knowledge_target_manifest'):
+        errors.append('Knowledge target manifest path disagrees across contracts')
+    count = target.get('expected_projection_count')
+    if type(count) is not int or count != expected_count:
+        errors.append('Knowledge target projection count disagrees across contracts')
+
+
+def index_governed_behavior_modules(modules: list, errors: list[str]) -> dict[str, dict]:
+    """Reject non-object, non-string ID and duplicate module records."""
+    by_id: dict[str, dict] = {}
+    for item in modules:
+        if not isinstance(item, dict):
+            errors.append('Behavior module inventory contains a non-object entry')
+            continue
+        module_id = item.get('id')
+        if not isinstance(module_id, str) or not module_id:
+            errors.append('Behavior module inventory has invalid module id')
+            continue
+        if module_id in by_id:
+            errors.append(f'Duplicate behavior module id: {module_id}')
+            continue
+        by_id[module_id] = item
+    return by_id

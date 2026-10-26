@@ -16,6 +16,10 @@ from openai_builder_validation_kernel import (
     validate_knowledge_file_ceiling,
     validate_behavior_snapshot_pin,
     validate_source_output_binding,
+    validate_behavior_disposition,
+    select_governed_source_target,
+    validate_projection_manifest_binding,
+    index_governed_behavior_modules,
 )
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
@@ -154,26 +158,13 @@ def _behavior_snapshot(
             item.get('applies_to') if isinstance(item.get('applies_to'), list) else []
         )
     ]
-    module_by_id = {
-        module.get('id'): module for module in modules if isinstance(module, dict)
-    }
+    module_by_id = index_governed_behavior_modules(modules, errors)
     coverage_ids = [entry.get('id') for entry in coverage if isinstance(entry, dict)]
     expected_ids = [item.get('id') for item in applicable]
-    expected_owner = 'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py'
-    expected_output = EXPECTED_OUTPUTS['instructions']
     for item in applicable:
-        item_id = item.get('id', '<missing-id>')
-        dispositions = item.get('target_dispositions')
-        disposition = (
-            dispositions.get(TARGET_ID) if isinstance(dispositions, dict) else None
+        validate_behavior_disposition(
+            item, TARGET_ID, EXPECTED_OUTPUTS['instructions'], errors
         )
-        if not isinstance(disposition, dict):
-            errors.append(f'{item_id} lacks a valid {TARGET_ID} disposition')
-            continue
-        if disposition.get('owner') != expected_owner:
-            errors.append(f'{item_id} {TARGET_ID} disposition owner drift')
-        if disposition.get('generated_output') != expected_output:
-            errors.append(f'{item_id} {TARGET_ID} disposition output drift')
     for duplicate in _duplicates([value for value in coverage_ids if isinstance(value, str)]):
         errors.append(f'Duplicate behavior coverage id: {duplicate}')
     if coverage_ids != expected_ids:
@@ -189,6 +180,9 @@ def _behavior_snapshot(
     snapshot: list[dict[str, Any]] = []
     for item, coverage_entry in zip(applicable, coverage):
         item_id = item.get('id')
+        if not isinstance(item_id, str) or not item_id:
+            errors.append('Behavior item id must be a non-empty string')
+            continue
         source_path_value = item.get('source_path')
         source_path = resolve_repo_path(
             repo_root, source_path_value, f'{item_id} source_path', errors
@@ -428,36 +422,18 @@ def build_package(
         'openai_dcoir_analyst/Adapter_Manifest.json'
     ):
         errors.append('Shared source contract points to the wrong OpenAI DCOIR adapter')
-    if knowledge_projection_manifest.get('schema') != (
-        'dcoir.agent_runtime.knowledge_projection.v1'
-    ):
-        errors.append('Unexpected knowledge projection manifest schema')
-    knowledge_target_config = knowledge_projection_manifest.get('targets', {}).get(
-        TARGET_ID
+    validate_projection_manifest_binding(
+        knowledge_projection_manifest, manifest, TARGET_ID,
+        EXPECTED_KNOWLEDGE_FILES, errors, 'OpenAI DCOIR'
     )
-    if not isinstance(knowledge_target_config, dict):
-        errors.append('Knowledge projection manifest lacks the OpenAI DCOIR target')
-    else:
-        if knowledge_target_config.get('target_manifest_path') != manifest.get(
-            'knowledge_target_manifest'
-        ):
-            errors.append('Knowledge target manifest path disagrees across contracts')
-        if knowledge_target_config.get('expected_projection_count') != (
-            EXPECTED_KNOWLEDGE_FILES
-        ):
-            errors.append('Knowledge target projection count disagrees across contracts')
     if target_manifest.get('source_contract') != manifest.get('source_contract'):
         errors.append('Knowledge target points to the wrong shared source contract')
     if target_manifest.get('source_contract_sha256') != source_contract_sha:
         errors.append('Knowledge target source-contract hash drift')
-    targets = source_contract.get('targets')
-    target = next(
-        (item for item in targets if isinstance(item, dict) and item.get('id') == TARGET_ID),
-        None,
-    ) if isinstance(targets, list) else None
-    if not isinstance(target, dict):
-        errors.append('Shared source contract lacks the OpenAI DCOIR target')
-    else:
+    target = select_governed_source_target(
+        source_contract, TARGET_ID, errors, 'OpenAI DCOIR'
+    )
+    if target:
         if target.get('provider') != 'openai_webui_bedrock_hosted':
             errors.append('OpenAI DCOIR provider drift')
         if target.get('runtime_model') != EXPECTED_RUNTIME_MODEL:
@@ -477,10 +453,11 @@ def build_package(
         REQUIRED_DISABLED_CAPABILITIES
     ):
         errors.append('Source contract capabilities must contain exactly the governed keys')
+        target_capabilities = {}
     for capability in REQUIRED_DISABLED_CAPABILITIES:
         if capabilities.get(capability) is not False:
             errors.append(f'Unsupported capability must remain false: {capability}')
-        if not isinstance(target, dict) or target.get('capabilities', {}).get(capability) is not False:
+        if target_capabilities.get(capability) is not False:
             errors.append(f'Source contract target capability drift: {capability}')
     coverage = manifest.get('coverage')
     if not isinstance(coverage, list):
