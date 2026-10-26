@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import resolve_repo_path
+from agent_runtime_source_commit import resolve_source_commit
 
 SCHEMA = 'dcoir.agent_runtime.release_parity_report.v1'
 REPORT_VERSION = '1.0.1'
@@ -114,41 +115,6 @@ def _manifest_identity(
         'version': value.get(version_field),
         'schema': value.get('schema'),
     }
-
-
-def resolve_source_commit(repo_root: Path | None, explicit: str | None = None) -> tuple[str, str]:
-    if explicit:
-        return explicit, 'explicit_argument'
-    reviewed = os.environ.get('AGENT_RUNTIME_REVIEWED_HEAD_SHA')
-    if reviewed:
-        return reviewed, 'AGENT_RUNTIME_REVIEWED_HEAD_SHA'
-    event_path = os.environ.get('GITHUB_EVENT_PATH')
-    if event_path:
-        try:
-            event = json.loads(Path(event_path).read_text(encoding='utf-8'))
-            head_sha = event.get('pull_request', {}).get('head', {}).get('sha')
-            if isinstance(head_sha, str) and head_sha:
-                return head_sha, 'github_event_pull_request_head_sha'
-        except (OSError, json.JSONDecodeError, AttributeError) as exc:
-            print(
-                'warning: unable to read pull_request head sha from '
-                f'GITHUB_EVENT_PATH ({event_path}): {exc}',
-                file=sys.stderr,
-            )
-    github_sha = os.environ.get('GITHUB_SHA')
-    if github_sha:
-        return github_sha, 'GITHUB_SHA'
-    if repo_root is not None:
-        try:
-            completed = subprocess.run(
-                ['git', 'rev-parse', 'HEAD'], cwd=repo_root, check=False,
-                capture_output=True, text=True, timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError):
-            completed = None
-        if completed and completed.returncode == 0 and completed.stdout.strip():
-            return completed.stdout.strip(), 'git_rev_parse_head'
-    return 'unknown', 'unavailable'
 
 
 def _target_check_results(repo_root: Path, run_checks: bool) -> tuple[list[dict[str, Any]], list[str]]:

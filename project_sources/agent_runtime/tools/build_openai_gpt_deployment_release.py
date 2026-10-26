@@ -4,10 +4,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import shutil
-import subprocess
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -15,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import UnsafePathError, validate_relative_path_syntax
+from agent_runtime_source_commit import resolve_source_commit
 from openai_release_target_contract import bind_release_targets
 from openai_webui_contract import (
     CAPABILITY_LABELS,
@@ -159,25 +158,8 @@ def _write_output_bytes(
 
 
 def _source_commit(repo_root: Path, explicit: str | None) -> str:
-    if explicit:
-        return explicit
-    github_sha = os.environ.get("GITHUB_SHA")
-    if github_sha:
-        return github_sha
-    try:
-        completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.SubprocessError):
-        completed = None
-    if completed and completed.returncode == 0 and completed.stdout.strip():
-        return completed.stdout.strip()
-    return "unknown"
+    """Backwards-compatible string wrapper around the governed resolver."""
+    return resolve_source_commit(repo_root, explicit)[0]
 
 
 def _copy_record(
@@ -637,7 +619,7 @@ def build_release(
         errors.append("output_dir must be a non-root path inside the repository")
     if not parity_root.is_relative_to(repo_root):
         errors.append("parity_root must be inside the repository")
-    commit = _source_commit(repo_root, source_commit)
+    commit, commit_basis = resolve_source_commit(repo_root, source_commit)
     bundle_version = None
     if version is not None and str(version).strip():
         candidate_version = str(version).strip()
@@ -654,6 +636,7 @@ def build_release(
             "success": False,
             "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "source_commit": commit,
+            "source_commit_basis": commit_basis,
             "bundle_version": bundle_version,
             "delivery_root": None,
             "zip_path": None,
@@ -677,6 +660,7 @@ def build_release(
             "success": False,
             "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "source_commit": commit,
+            "source_commit_basis": commit_basis,
             "bundle_version": bundle_version,
             "delivery_root": None,
             "zip_path": None,
@@ -715,6 +699,7 @@ def build_release(
                 "success": False,
                 "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "source_commit": commit,
+                "source_commit_basis": commit_basis,
                 "bundle_version": bundle_version,
                 "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
                 "zip_path": None,
@@ -775,6 +760,7 @@ def build_release(
         "success": not errors,
         "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "source_commit": commit,
+        "source_commit_basis": commit_basis,
         "bundle_version": bundle_version,
         "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
         "zip_path": zip_path.relative_to(repo_root).as_posix() if zip_path.exists() else None,
