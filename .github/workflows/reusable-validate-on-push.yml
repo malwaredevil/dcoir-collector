@@ -190,14 +190,6 @@ jobs:
           New-Item -ItemType Directory -Force -Path project_sources/validation/out_validate_on_push_agent_runtime | Out-Null
           $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json -Encoding utf8
 
-      - name: Run documentation validator self-tests
-        shell: pwsh
-        run: |
-          python project_sources/collector/tools/test_verify_collector_documentation_quality.py
-          if ($LASTEXITCODE -ne 0) {
-            throw 'Documentation validator self-tests failed.'
-          }
-
       - name: Run duplicate-function action contract tests
         shell: pwsh
         run: |

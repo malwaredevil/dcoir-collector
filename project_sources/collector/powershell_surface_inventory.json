@@ -63,7 +63,7 @@
       "include": 133,
       "reference": 54
     },
-    "embedded_snippet_count": 131
+    "embedded_snippet_count": 129
   },
   "controls": {
     "collector_manifest": {
@@ -5559,12 +5559,11 @@
         212,
         220,
         228,
-        236,
-        283,
-        295,
-        301,
-        311,
-        343
+        275,
+        287,
+        293,
+        303,
+        335
       ],
       "embedded_snippets": [
         {
@@ -5731,19 +5730,10 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
-          "step_or_action": "Run documentation validator self-tests",
+          "step_or_action": "Run duplicate-function action contract tests",
           "shell": "pwsh",
           "line_start": 212,
           "line_end": 218,
-          "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
-          "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
-        },
-        {
-          "source_file": ".github/workflows/reusable-validate-on-pr.yml",
-          "step_or_action": "Run duplicate-function action contract tests",
-          "shell": "pwsh",
-          "line_start": 220,
-          "line_end": 226,
           "command_sha256": "8f17ae21b2d3cfac2acefaf41ccb19fc6a70b464fa04e04128d2debdbbee7b25",
           "command_preview": "python .github/github_actions/tools/test_duplicate_function_action_contract.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function action contract tests failed.'\n}"
         },
@@ -5751,8 +5741,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run DCOIR Review runtime module-loader selftest",
           "shell": "pwsh",
-          "line_start": 228,
-          "line_end": 234,
+          "line_start": 220,
+          "line_end": 226,
           "command_sha256": "0bd3829f3ba4e23e31aadf350f6b59de190dcfbac5bee413094f38803653499c",
           "command_preview": "python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'DCOIR Review runtime module-loader selftest failed.'\n}"
         },
@@ -5760,8 +5750,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run DCOIR Review Pareto-context selftest",
           "shell": "pwsh",
-          "line_start": 236,
-          "line_end": 242,
+          "line_start": 228,
+          "line_end": 234,
           "command_sha256": "6155e080d9e696c7970f88c6157a5bd06534bd831ac003513158f3bad526b2ff",
           "command_preview": "python .github/dcoir_review/scripts/openrouter_pr_review_pareto_context_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'DCOIR Review Pareto-context selftest failed.'\n}"
         },
@@ -5769,8 +5759,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Validate duplicate-function reports",
           "shell": "pwsh",
-          "line_start": 283,
-          "line_end": 289,
+          "line_start": 275,
+          "line_end": 281,
           "command_sha256": "88e968a4b20b7ba363fa6041456955001c1161f563749c751543dbbeb6e3daa2",
           "command_preview": "python .github/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
         },
@@ -5778,8 +5768,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write review-assist report to job summary",
           "shell": "pwsh",
-          "line_start": 295,
-          "line_end": 298,
+          "line_start": 287,
+          "line_end": 290,
           "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
           "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
         },
@@ -5787,8 +5777,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Enforce static analysis validation gates",
           "shell": "pwsh",
-          "line_start": 301,
-          "line_end": 304,
+          "line_start": 293,
+          "line_end": 296,
           "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
           "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
         },
@@ -5796,8 +5786,8 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Run collector core pre-live suite",
           "shell": "pwsh",
-          "line_start": 311,
-          "line_end": 318,
+          "line_start": 303,
+          "line_end": 310,
           "command_sha256": "4b3fe558d1b5e2d8abf121acb02e1a8c2c8ab03d1eb6a36f177bb7017df591d5",
           "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\collector\\harness\\run_DCOIR_Tests.generated.ps1 -CollectorPath $env:HARNESS_COLLECTOR_PATH -Suite Core -MasterZipPath $env:HARNESS_RUNTIME_ZIP\nif ($LASTEXITCODE -ne 0) {\n  throw 'Col"
         },
@@ -5805,15 +5795,15 @@
           "source_file": ".github/workflows/reusable-validate-on-pr.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 343,
-          "line_end": 386,
+          "line_start": 335,
+          "line_end": 378,
           "command_sha256": "a3627265e606707d15000c0da6694f0db27ebccd81bb57631e5354bc99c87850",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME -e"
         }
       ],
-      "size_bytes": 17988,
-      "line_count": 394,
-      "sha256": "125b2e1a2733d4b4e8bd9399c97082a657a834616640c95f091d9e9d6fb90c6d"
+      "size_bytes": 17691,
+      "line_count": 386,
+      "sha256": "a62581bf89e7ffdde78c4bd1bf89015fbedee2bc37e2f30fc585d354792e58a9"
     },
     {
       "path": ".github/workflows/reusable-validate-on-push.yml",
@@ -5842,11 +5832,10 @@
         158,
         194,
         202,
-        210,
-        262,
-        274,
-        280,
-        308
+        254,
+        266,
+        272,
+        300
       ],
       "embedded_snippets": [
         {
@@ -5995,19 +5984,10 @@
         },
         {
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
-          "step_or_action": "Run documentation validator self-tests",
+          "step_or_action": "Run duplicate-function action contract tests",
           "shell": "pwsh",
           "line_start": 194,
           "line_end": 200,
-          "command_sha256": "bf539404366a01f6307d560cf9363abcfcadda9ad69f746a209573fc58399923",
-          "command_preview": "python project_sources/collector/tools/test_verify_collector_documentation_quality.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Documentation validator self-tests failed.'\n}"
-        },
-        {
-          "source_file": ".github/workflows/reusable-validate-on-push.yml",
-          "step_or_action": "Run duplicate-function action contract tests",
-          "shell": "pwsh",
-          "line_start": 202,
-          "line_end": 208,
           "command_sha256": "8f17ae21b2d3cfac2acefaf41ccb19fc6a70b464fa04e04128d2debdbbee7b25",
           "command_preview": "python .github/github_actions/tools/test_duplicate_function_action_contract.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function action contract tests failed.'\n}"
         },
@@ -6015,8 +5995,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Run DCOIR Review runtime module-loader selftest",
           "shell": "pwsh",
-          "line_start": 210,
-          "line_end": 216,
+          "line_start": 202,
+          "line_end": 208,
           "command_sha256": "0bd3829f3ba4e23e31aadf350f6b59de190dcfbac5bee413094f38803653499c",
           "command_preview": "python .github/dcoir_review/scripts/dcoir_review_runtime_module_loader_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'DCOIR Review runtime module-loader selftest failed.'\n}"
         },
@@ -6024,8 +6004,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Validate duplicate-function reports",
           "shell": "pwsh",
-          "line_start": 262,
-          "line_end": 268,
+          "line_start": 254,
+          "line_end": 260,
           "command_sha256": "88e968a4b20b7ba363fa6041456955001c1161f563749c751543dbbeb6e3daa2",
           "command_preview": "python .github/github_actions/tools/validate_duplicate_function_reports.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Duplicate-function report validation failed.'\n}"
         },
@@ -6033,8 +6013,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write review-assist report to job summary",
           "shell": "pwsh",
-          "line_start": 274,
-          "line_end": 277,
+          "line_start": 266,
+          "line_end": 269,
           "command_sha256": "38386ebaa478b84814e4bc2ac6b82dda62eed2843a1b8ce697388c98f4775f90",
           "command_preview": "./.github/scripts/Add-PowerShellReviewAssistSummary.ps1"
         },
@@ -6042,8 +6022,8 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Enforce static analysis validation gates",
           "shell": "pwsh",
-          "line_start": 280,
-          "line_end": 283,
+          "line_start": 272,
+          "line_end": 275,
           "command_sha256": "a5a6f83db3666deceefab3c4fb03be6b81cb85507b83ca3576e17e38388e127c",
           "command_preview": "./.github/scripts/Test-DcoirStaticAnalysisValidationGate.ps1"
         },
@@ -6051,15 +6031,15 @@
           "source_file": ".github/workflows/reusable-validate-on-push.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 308,
-          "line_end": 351,
+          "line_start": 300,
+          "line_end": 343,
           "command_sha256": "e8f292c73e5d722eb50e826779aa8c3e8a92854792341090d822b1516c4f39d6",
           "command_preview": "$agentRuntimeReceiptPath = 'project_sources/validation/out_validate_on_push_agent_runtime/agent_runtime_validation.json'\nif (Test-Path -LiteralPath $agentRuntimeReceiptPath -PathType Leaf) {\n  if ($env:AGENT_RUNTIME_ARTIFACT_UPLOAD_OUTCOME "
         }
       ],
-      "size_bytes": 16433,
-      "line_count": 359,
-      "sha256": "112e47b86481cb3de6cde51cd31f654e0d4248a2205296953eeee93e2976d184"
+      "size_bytes": 16136,
+      "line_count": 351,
+      "sha256": "4fc81ce92fce1d0cce48545f95a0b1bdc4d62aeba948bc1881f0d9c065cf4782"
     },
     {
       "path": ".github/workflows/reusable-windows-powershell-51.yml",
