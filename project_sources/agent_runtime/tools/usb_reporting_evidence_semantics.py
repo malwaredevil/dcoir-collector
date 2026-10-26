@@ -10,17 +10,34 @@ FINAL_LABELS = {
     'SIPR Recipient', 'SIPR Subject', 'SIPR Message Draft',
     'SIPR Transfer Instructions',
 }
+# Named labels keep fixture mappings, field rules and diagnostics anchored to one owner.
+INCIDENT_DATE_LABEL = 'Date'
+INCIDENT_NAME_LABEL = 'Name(s)'
+INCIDENT_COMPUTER_NAME_LABEL = 'Computer Name'
+INCIDENT_USB_DEVICE_LABEL = 'USB Device'
+INCIDENT_SERIAL_NUMBER_LABEL = 'Serial Number'
+INCIDENT_NOTES_LABEL = 'Notes'
 INCIDENT_LABELS = (
-    'Date',
-    'Name(s)',
+    INCIDENT_DATE_LABEL,
+    INCIDENT_NAME_LABEL,
     'Location',
-    'Computer Name',
+    INCIDENT_COMPUTER_NAME_LABEL,
     'User Information',
-    'USB Device',
-    'Serial Number',
+    INCIDENT_USB_DEVICE_LABEL,
+    INCIDENT_SERIAL_NUMBER_LABEL,
     'Network Connection',
-    'Notes',
+    INCIDENT_NOTES_LABEL,
 )
+
+# Derive incident fixture columns from the canonical ordered evidence schema.
+# The source CSV calls the Name(s) field User; all other columns normalize
+# to the incident label via the scorer's case-insensitive header matching.
+INCIDENT_FIELD_COLUMNS = tuple(
+    (label, 'User' if label == INCIDENT_NAME_LABEL else label)
+    for label in INCIDENT_LABELS[1:-1]
+)
+CORRECTION_FIELD_COLUMNS = (*INCIDENT_FIELD_COLUMNS, (INCIDENT_NOTES_LABEL, INCIDENT_NOTES_LABEL))
+
 # Governed Field / Current Value / Suggested Value source-correction labels and
 # correction leads are the only field-like lines permitted outside the drafts.
 CORRECTION_LABELS = frozenset({'field', 'current value', 'suggested value'})
