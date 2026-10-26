@@ -15,6 +15,15 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import UnsafePathError, validate_relative_path_syntax
+from openai_webui_contract import (
+    CAPABILITY_LABELS,
+    DESCRIPTION_CHARACTER_CEILING,
+    INSTRUCTION_CHARACTER_CEILING,
+    contains_lone_surrogate as _contains_lone_surrogate,
+    valid_conversation_starters_shape as _valid_conversation_starters_shape,
+    webui_character_count as _webui_character_count,
+    webui_paste_safe_character_count as _webui_paste_safe_character_count,
+)
 
 SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release.v1"
 REPORT_SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release_report.v1"
@@ -23,21 +32,7 @@ PARITY_JSON = "agent_release_parity_report.json"
 PARITY_MD = "agent_release_parity_report.md"
 GUIDE = Path("project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md")
 HUMAN_WEBUI_FILENAME = "GPT_WebUI_Configuration.md"
-INSTRUCTION_CHARACTER_CEILING = 8000
-DESCRIPTION_CHARACTER_CEILING = 300
 VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
-CAPABILITY_LABELS = {
-    "web_search": "Web search",
-    "code_interpreter_data_analysis": "Code Interpreter / Data Analysis",
-    "canvas": "Canvas",
-    "image_generation": "Image generation",
-    "apps": "Apps",
-    "actions": "Actions",
-    "live_elastic_access": "Live Elastic access",
-    "live_collector_execution": "Live collector execution",
-    "github_supabase_connectors": "GitHub / Supabase connectors",
-    "persistent_cross_conversation_memory": "Persistent cross-conversation memory",
-}
 TARGETS = (
     {
         "target_id": "openai_dcoir_analyst",
@@ -68,21 +63,6 @@ def _sha256_bytes(data: bytes) -> str:
 
 def _sha256_file(path: Path) -> str:
     return _sha256_bytes(path.read_bytes())
-
-
-def _webui_character_count(value: str) -> int:
-    """Count UTF-16 code units conservatively for browser-style WebUI limits."""
-    return len(value.encode("utf-16-le", errors="surrogatepass")) // 2
-
-
-def _webui_paste_safe_character_count(value: str) -> int:
-    """Count UTF-16 code units after normalizing line endings to Windows CRLF."""
-    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
-    return _webui_character_count(normalized.replace("\n", "\r\n"))
-
-
-def _contains_lone_surrogate(value: str) -> bool:
-    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
 
 
 def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
@@ -300,12 +280,12 @@ def _validate_webui_limits(
         errors.append(f"{target_id} package manifest description ceiling drift")
 
     starters = config.get("conversation_starters")
-    if not isinstance(starters, list) or len(starters) != 4 or not all(
-        isinstance(value, str) and value.strip() for value in starters
-    ):
+    if not _valid_conversation_starters_shape(starters):
         errors.append(f"{target_id} must define exactly four non-empty conversation starters")
     elif any(_contains_lone_surrogate(value) for value in starters):
         errors.append(f"{target_id} conversation starters must not contain lone UTF-16 surrogate code points")
+    elif len(set(starters)) != len(starters):
+        errors.append(f"{target_id} conversation starters must be unique")
 
     return instructions_text
 

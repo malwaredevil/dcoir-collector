@@ -12,6 +12,15 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
+from openai_webui_contract import (
+    CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
+    DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
+    INSTRUCTION_CHARACTER_CEILING as EXPECTED_INSTRUCTION_CHARACTER_CEILING,
+    contains_lone_surrogate as _contains_lone_surrogate,
+    valid_conversation_starters_shape as _valid_conversation_starters_shape,
+    webui_character_count as _webui_character_count,
+    webui_paste_safe_character_count as _webui_paste_safe_character_count,
+)
 
 
 SCHEMA = 'dcoir.agent_runtime.openai_dcoir_adapter.v1'
@@ -21,8 +30,6 @@ KNOWLEDGE_SCHEMA = 'dcoir.agent_runtime.knowledge_projection.target.v1'
 TARGET_ID = 'openai_dcoir_analyst'
 EXPECTED_EDITOR_NAME = 'AFRICOM DCOIR Analyst'
 EXPECTED_RUNTIME_MODEL = 'GPT-5.6 Terra'
-EXPECTED_INSTRUCTION_CHARACTER_CEILING = 8000
-EXPECTED_DESCRIPTION_CHARACTER_CEILING = 300
 EXPECTED_KNOWLEDGE_FILES = 7
 EXPECTED_BEHAVIOR_ITEMS = 30
 EXPECTED_CASES = 22
@@ -68,18 +75,6 @@ PROVIDER_TOPOLOGY_LEAKS = (
     'handoff to sub-agent',
     'sub-agent execution',
 )
-REQUIRED_DISABLED_CAPABILITIES = (
-    'web_search',
-    'code_interpreter_data_analysis',
-    'canvas',
-    'image_generation',
-    'apps',
-    'actions',
-    'live_elastic_access',
-    'live_collector_execution',
-    'github_supabase_connectors',
-    'persistent_cross_conversation_memory',
-)
 REQUIRED_STATIC_MARKERS = (
     'user-provided evidence',
     'uploaded file or artifact evidence',
@@ -105,15 +100,6 @@ def _json_bytes(value: Any) -> bytes:
 
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
-
-
-def _webui_character_count(value: str) -> int:
-    """Count UTF-16 code units conservatively for browser-style WebUI limits."""
-    return len(value.encode('utf-16-le', errors='surrogatepass')) // 2
-
-
-def _contains_lone_surrogate(value: str) -> bool:
-    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
 
 
 def _duplicates(values: list[str]) -> list[str]:
@@ -263,7 +249,7 @@ def _validate_instructions(
             f'{instruction_character_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
         )
     # The release package counts WebUI paste-safe characters after CRLF expansion.
-    paste_safe_count = _webui_character_count(text.replace('\r\n', '\n').replace('\n', '\r\n'))
+    paste_safe_count = _webui_paste_safe_character_count(text)
     if paste_safe_count > EXPECTED_INSTRUCTION_CHARACTER_CEILING:
         errors.append(
             'Instructions exceed paste-safe character ceiling after CRLF expansion: '
@@ -537,9 +523,7 @@ def build_package(
             f'{description_character_count} > {EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
         )
     starters = editor.get('conversation_starters')
-    if not isinstance(starters, list) or len(starters) != 4 or not all(
-        isinstance(value, str) and value.strip() for value in starters
-    ):
+    if not _valid_conversation_starters_shape(starters):
         errors.append('Exactly four non-empty conversation starters are required')
     elif any(_contains_lone_surrogate(value) for value in starters):
         errors.append('Conversation starters must not contain lone UTF-16 surrogate code points')
