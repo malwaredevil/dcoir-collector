@@ -6,7 +6,6 @@ import contextlib
 import io
 import json
 import os
-import runpy
 import subprocess
 import sys
 import tempfile
@@ -18,6 +17,7 @@ sys.path.insert(0, str(TOOLS))
 import agent_runtime_source_commit as shared
 import report_agent_release_parity as parity
 import build_openai_gpt_deployment_release as release
+from openai_gpt_release_test_fixture import stage_repo, _build
 
 COMMIT = 'a' * 40
 MERGE = 'b' * 40
@@ -145,15 +145,11 @@ def test_git_and_unavailable_fallback() -> None:
 
 
 def test_release_accepts_same_pr_head_and_rejects_mismatch() -> None:
-    fixture = runpy.run_path(
-        str(TOOLS.parent / 'tests/build_openai_gpt_deployment_release_selftest.py'),
-        run_name='__issue605_identity_fixture__',
-    )
     # Build the baseline within this selftest, independent of any /tmp file,
     # local checkout identity, CI step order or earlier test invocation.
-    temp, root = fixture['stage_repo']()
+    temp, root = stage_repo()
     try:
-        errors, baseline = fixture['_build'](root, 'baseline-identity')
+        errors, baseline = _build(root, 'baseline-identity')
         assert not errors, errors
         baseline_bytes = (root / baseline['zip_path']).read_bytes()
     finally:
@@ -164,7 +160,7 @@ def test_release_accepts_same_pr_head_and_rejects_mismatch() -> None:
          'AGENT_RUNTIME_REVIEWED_HEAD_SHA'),
         ({'GITHUB_SHA': COMMIT}, 'GITHUB_SHA'),
     ):
-        temp, root = fixture['stage_repo']()
+        temp, root = stage_repo()
         try:
             with mock.patch.dict(os.environ, environ, clear=True):
                 errors, report = release.build_release(
@@ -180,7 +176,7 @@ def test_release_accepts_same_pr_head_and_rejects_mismatch() -> None:
             temp.cleanup()
 
     # In PR events GitHub's merge SHA must not override the event's exact head.
-    temp, root = fixture['stage_repo']()
+    temp, root = stage_repo()
     try:
         event = root / 'event.json'
         event.write_text(json.dumps({'pull_request': {'head': {'sha': COMMIT}}}),
@@ -200,7 +196,7 @@ def test_release_accepts_same_pr_head_and_rejects_mismatch() -> None:
     finally:
         temp.cleanup()
 
-    temp, root = fixture['stage_repo']()
+    temp, root = stage_repo()
     try:
         with mock.patch.dict(os.environ, {
             'AGENT_RUNTIME_REVIEWED_HEAD_SHA': OTHER,
