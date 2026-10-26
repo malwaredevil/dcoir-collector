@@ -12,6 +12,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
+from openai_builder_validation_kernel import (
+    validate_generated_root_no_symlink,
+    validate_knowledge_file_ceiling,
+)
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
     DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
@@ -322,9 +326,7 @@ def _knowledge_files(
             f'Expected {EXPECTED_KNOWLEDGE_FILES} DCOIR knowledge files, '
             f'got {len(projections)}'
         )
-    ceiling = target_manifest.get('strict_file_count_ceiling')
-    if type(ceiling) is not int or len(projections) > ceiling or ceiling > 20:
-        errors.append('Knowledge projection count or ceiling is invalid')
+    validate_knowledge_file_ceiling(target_manifest, len(projections), errors)
     knowledge_root = (
         repo_root / 'project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst'
     ).resolve()
@@ -385,6 +387,7 @@ def build_package(
         r'[0-9a-f]{40}', source_base_commit
     ) is None:
         errors.append('source_base_commit must be a lowercase 40-character Git SHA')
+    validate_generated_root_no_symlink(repo_root, manifest.get('generated_root'), errors)
     generated_root = resolve_repo_path(
         repo_root,
         manifest.get('generated_root'),

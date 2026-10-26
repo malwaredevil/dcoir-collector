@@ -12,6 +12,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
+from openai_builder_validation_kernel import (
+    validate_generated_root_no_symlink,
+    validate_knowledge_file_ceiling,
+)
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
     DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
@@ -319,6 +323,7 @@ def _knowledge_files(
         errors.append(
             f'Expected {EXPECTED_KNOWLEDGE_FILES} USB knowledge files, got {len(projections)}'
         )
+    validate_knowledge_file_ceiling(target_manifest, len(projections), errors)
     orders = [entry.get('order') for entry in projections if isinstance(entry, dict)]
     if orders != list(range(len(projections))):
         errors.append('Knowledge projection order must be contiguous')
@@ -376,9 +381,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     if not isinstance(source_base_commit, str) or re.fullmatch(r'[0-9a-f]{40}', source_base_commit) is None:
         errors.append('source_base_commit must be a lowercase 40-character Git SHA')
     generated_root_value = manifest.get('generated_root')
-    generated_root_path = (
-        repo_root / generated_root_value if isinstance(generated_root_value, str) else None
-    )
+    validate_generated_root_no_symlink(repo_root, generated_root_value, errors)
     generated_root = resolve_repo_path(
         repo_root,
         generated_root_value,
@@ -386,12 +389,6 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         errors,
         repo_root / EXPECTED_PATHS['generated_root'],
     ) or repo_root / '.invalid-openai-usb-generated-root'
-    if generated_root_path is not None and generated_root_path.is_symlink():
-        try:
-            generated_root_label = generated_root_path.relative_to(repo_root).as_posix()
-        except ValueError:
-            generated_root_label = str(generated_root_path)
-        errors.append(f'Generated package root must not be a symlink: {generated_root_label}')
     required_paths = {}
     for key in (
         'source_contract',
