@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import UnsafePathError, validate_relative_path_syntax
+from openai_release_target_contract import bind_release_targets
 from openai_webui_contract import (
     CAPABILITY_LABELS,
     DESCRIPTION_CHARACTER_CEILING,
@@ -32,6 +33,8 @@ PARITY_JSON = "agent_release_parity_report.json"
 PARITY_MD = "agent_release_parity_report.md"
 GUIDE = Path("project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md")
 HUMAN_WEBUI_FILENAME = "GPT_WebUI_Configuration.md"
+SOURCE_MANIFEST = Path("project_sources/agent_runtime/Shared_Agent_Source_Manifest.json")
+KNOWLEDGE_MANIFEST = Path("project_sources/agent_runtime/Knowledge_Projection_Manifest.json")
 VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
 TARGETS = (
     {
@@ -40,7 +43,6 @@ TARGETS = (
         "delivery_dir": "AFRICOM_DCOIR_Analyst",
         "package_root": Path("project_sources/agent_runtime/generated/packages/openai_dcoir_analyst"),
         "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst"),
-        "knowledge_count": 7,
     },
     {
         "target_id": "openai_usb_reporting",
@@ -48,7 +50,6 @@ TARGETS = (
         "delivery_dir": "AFRICOM_USB_Reporting",
         "package_root": Path("project_sources/agent_runtime/generated/packages/openai_usb_reporting"),
         "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_usb_reporting"),
-        "knowledge_count": 1,
     },
 )
 
@@ -73,6 +74,9 @@ def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
         return {}
     except json.JSONDecodeError as exc:
         errors.append(f"Invalid JSON in {label} {path.as_posix()}: {exc}")
+        return {}
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"Unreadable or invalid UTF-8 in {label} {path.as_posix()}: {exc}")
         return {}
     if not isinstance(value, dict):
         errors.append(f"{label} must be a JSON object: {path.as_posix()}")
@@ -415,7 +419,7 @@ def _validate_and_copy_target(
         errors.append(f"{target['target_id']} package manifest target_id drift")
     if config.get("name") != target["webui_name"]:
         errors.append(f"{target['target_id']} WebUI name drift")
-    if config.get("runtime_model") != "GPT-5.6 Terra":
+    if config.get("runtime_model") != target["runtime_model"]:
         errors.append(f"{target['target_id']} runtime model drift")
 
     expected_instructions = (target["package_root"] / "Instructions.md").as_posix()
@@ -601,6 +605,22 @@ def _write_deterministic_zip(
     return True
 
 
+def _load_release_target_specs(repo_root: Path, errors: list[str]) -> tuple[dict[str, Any], ...]:
+    """Bind existing delivery targets to the two governed manifest owners."""
+    manifests = []
+    for name, relative in (
+        ("source contract", SOURCE_MANIFEST),
+        ("Knowledge projection", KNOWLEDGE_MANIFEST),
+    ):
+        path = _resolve_inside(repo_root, relative, errors, f"{name} manifest")
+        if path is None:
+            return ()
+        manifests.append(_load_json(path, errors, f"{name} manifest"))
+    if errors:
+        return ()
+    return bind_release_targets(manifests[0], manifests[1], TARGETS, errors)
+
+
 def build_release(
     repo_root: Path,
     output_dir: Path,
@@ -627,6 +647,7 @@ def build_release(
             )
         else:
             bundle_version = candidate_version
+    bound_targets = _load_release_target_specs(repo_root, errors) if not errors else ()
     if errors:
         return errors, {
             "schema": REPORT_SCHEMA,
@@ -709,7 +730,7 @@ def build_release(
 
     target_reports = [
         _validate_and_copy_target(repo_root, delivery_root, target, errors)
-        for target in TARGETS
+        for target in bound_targets
     ]
     if guide_path is not None and guide_path.is_file():
         _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root, repo_root, errors)
