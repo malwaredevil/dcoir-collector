@@ -51,3 +51,38 @@ def validate_generated_root_no_symlink(
         except ValueError:
             label = str(generated_root_path)
         errors.append(f'Generated package root must not be a symlink: {label}')
+
+
+def validate_source_output_binding(
+    source_target: object,
+    target_id: str,
+    expected_outputs: dict[str, str],
+    errors: list[str],
+    target_label: str,
+) -> None:
+    """Bind source-declared target output owner and ordered files to its builder.
+
+    Target-specific adapter output paths are validated by the existing caller;
+    this check prevents silent drift in the shared source contract.
+    """
+    if not isinstance(source_target, dict):
+        return  # Existing callers report missing/non-object targets.
+    expected_owner = f'project_sources/agent_runtime/tools/build_{target_id}.py'
+    if source_target.get('output_owner') != expected_owner:
+        errors.append(f'{target_label} output owner drift')
+    if source_target.get('generated_outputs') != list(expected_outputs.values()):
+        errors.append('Source contract generated outputs disagree with the adapter')
+
+
+def validate_behavior_snapshot_pin(
+    snapshot_sha: str,
+    adapter_manifest: dict,
+    errors: list[str],
+) -> None:
+    """Require a stored adapter snapshot pin that matches the computed SHA."""
+    pinned_sha = adapter_manifest.get('behavior_source_snapshot_sha256')
+    if not isinstance(pinned_sha, str) or pinned_sha != snapshot_sha:
+        errors.append(
+            'Behavior source snapshot drift: expected '
+            f'{pinned_sha}, got {snapshot_sha}'
+        )

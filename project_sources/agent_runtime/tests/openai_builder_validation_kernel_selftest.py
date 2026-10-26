@@ -2,6 +2,7 @@
 """Independent adversarial regression for the shared OpenAI builder safety gates."""
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
@@ -114,11 +115,90 @@ def test_helper_negative_and_opposite_polarity_controls() -> None:
         assert errors == ['Knowledge projection count or ceiling is invalid']
 
 
+def _save_json(path: Path, data: dict) -> None:
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+
+
+def test_source_output_binding_both_targets() -> None:
+    for _, target_id, builder in ADAPTERS:
+        assert builder.validate_source_output_binding is kernel.validate_source_output_binding
+        for variant in ('good', 'wrong_owner', 'reordered_outputs', 'malformed_outputs'):
+            tmp, repo, adapter_path = staged_builder(target_id)
+            try:
+                adapter = json.loads(adapter_path.read_text(encoding='utf-8'))
+                source_path = repo / adapter['source_contract']
+                source = json.loads(source_path.read_text(encoding='utf-8'))
+                target = next(item for item in source['targets'] if item['id'] == target_id)
+                if variant == 'wrong_owner':
+                    target['output_owner'] = 'project_sources/agent_runtime/tools/other.py'
+                elif variant == 'reordered_outputs':
+                    target['generated_outputs'].reverse()
+                elif variant == 'malformed_outputs':
+                    target['generated_outputs'] = {'invalid': 'not a file list'}
+                if variant != 'good':
+                    _save_json(source_path, source)
+                    # Reconcile the dependent Knowledge source checksum so the
+                    # test cannot pass due to an unrelated source-hash failure.
+                    target_manifest_path = repo / adapter['knowledge_target_manifest']
+                    target_manifest = json.loads(target_manifest_path.read_text(encoding='utf-8'))
+                    target_manifest['source_contract_sha256'] = hashlib.sha256(
+                        source_path.read_bytes()
+                    ).hexdigest()
+                    _save_json(target_manifest_path, target_manifest)
+                errors, report = builder.build_package(repo, adapter_path, check=False)
+                if variant == 'good':
+                    assert not errors and report['success'], (target_id, errors)
+                else:
+                    expected = (
+                        'output owner drift' if variant == 'wrong_owner'
+                        else 'Source contract generated outputs disagree with the adapter'
+                    )
+                    assert any(expected in e for e in errors), (target_id, variant, errors)
+                    assert not report['success'], (target_id, variant, report)
+                    root = repo / f'project_sources/agent_runtime/generated/packages/{target_id}'
+                    assert not root.exists(), (target_id, variant)
+            finally:
+                tmp.cleanup()
+
+
+def test_snapshot_pin_both_targets() -> None:
+    for _, target_id, builder in ADAPTERS:
+        assert builder.validate_behavior_snapshot_pin is kernel.validate_behavior_snapshot_pin
+        for variant in ('good', 'missing', 'forged', 'nonstr', 'unpaired_surrogate'):
+            tmp, repo, adapter_path = staged_builder(target_id)
+            try:
+                adapter = json.loads(adapter_path.read_text(encoding='utf-8'))
+                if variant == 'missing':
+                    adapter.pop('behavior_source_snapshot_sha256', None)
+                elif variant == 'forged':
+                    adapter['behavior_source_snapshot_sha256'] = '0' * 64
+                elif variant == 'nonstr':
+                    adapter['behavior_source_snapshot_sha256'] = {'bad': True}
+                elif variant == 'unpaired_surrogate':
+                    adapter['behavior_source_snapshot_sha256'] = '\ud800'
+                if variant != 'good':
+                    _save_json(adapter_path, adapter)
+                errors, report = builder.build_package(repo, adapter_path, check=False)
+                if variant == 'good':
+                    assert not errors and report['success'], (target_id, errors)
+                else:
+                    assert any('Behavior source snapshot drift' in e for e in errors), (
+                        target_id, variant, errors
+                    )
+                    assert not report['success'], (target_id, variant)
+                    root = repo / f'project_sources/agent_runtime/generated/packages/{target_id}'
+                    assert not root.exists(), (target_id, variant)
+            finally:
+                tmp.cleanup()
+
+
 def main() -> int:
     test_knowledge_ceiling_both_targets()
     test_generated_root_symlinks_both_targets()
     test_helper_negative_and_opposite_polarity_controls()
-    print('PASS: both OpenAI builders reject malformed Knowledge ceilings and symlinked roots')
+    test_source_output_binding_both_targets()
+    test_snapshot_pin_both_targets()
+    print('PASS: both OpenAI builders enforce Knowledge ceilings, symlink safety, source output ownership and behavior snapshot pins')
     return 0
 
 

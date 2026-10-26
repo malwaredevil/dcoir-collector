@@ -15,6 +15,8 @@ from agent_runtime_path_safety import resolve_repo_path
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
     validate_knowledge_file_ceiling,
+    validate_behavior_snapshot_pin,
+    validate_source_output_binding,
 )
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
@@ -455,6 +457,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         coverage,
         errors,
     )
+    validate_behavior_snapshot_pin(snapshot_sha, manifest, errors)
     instruction_path = required_paths.get('canonical_instructions_source')
     instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
     case_ids = _validate_instructions(instructions, manifest, cases, errors)
@@ -531,6 +534,7 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     for key, expected in EXPECTED_OUTPUTS.items():
         if output_map.get(key) != expected:
             errors.append(f'generated {key} must remain bound to {expected}')
+    validate_source_output_binding(target, TARGET_ID, EXPECTED_OUTPUTS, errors, 'OpenAI USB Reporting')
     output_paths: dict[str, Path] = {}
     for key in ('instructions', 'configuration', 'package_manifest'):
         path = resolve_repo_path(

@@ -15,6 +15,8 @@ from agent_runtime_path_safety import resolve_repo_path
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
     validate_knowledge_file_ceiling,
+    validate_behavior_snapshot_pin,
+    validate_source_output_binding,
 )
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
@@ -465,10 +467,6 @@ def build_package(
             errors.append('OpenAI DCOIR instruction mode drift')
         if target.get('knowledge_mode') != 'static_knowledge':
             errors.append('OpenAI DCOIR knowledge mode drift')
-        if target.get('output_owner') != (
-            'project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py'
-        ):
-            errors.append('OpenAI DCOIR output owner drift')
     capabilities = manifest.get('capabilities')
     if not isinstance(capabilities, dict):
         errors.append('Adapter capabilities must be an object')
@@ -492,11 +490,7 @@ def build_package(
     behavior_snapshot, snapshot_sha = _behavior_snapshot(
         repo_root, source_contract, behavior_manifest, coverage, errors
     )
-    if snapshot_sha != manifest.get('behavior_source_snapshot_sha256'):
-        errors.append(
-            'Behavior source snapshot drift: expected '
-            f"{manifest.get('behavior_source_snapshot_sha256')}, got {snapshot_sha}"
-        )
+    validate_behavior_snapshot_pin(snapshot_sha, manifest, errors)
     instruction_path = required_paths.get('canonical_instructions_source')
     instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
     case_ids = _validate_instructions(instructions, manifest, cases, errors)
@@ -558,10 +552,7 @@ def build_package(
     for key, expected in EXPECTED_OUTPUTS.items():
         if output_map.get(key) != expected:
             errors.append(f'generated {key} must remain bound to {expected}')
-    if isinstance(target, dict) and target.get('generated_outputs') != list(
-        EXPECTED_OUTPUTS.values()
-    ):
-        errors.append('Source contract generated outputs disagree with the adapter')
+    validate_source_output_binding(target, TARGET_ID, EXPECTED_OUTPUTS, errors, 'OpenAI DCOIR')
     output_paths: dict[str, Path] = {}
     for key in ('instructions', 'configuration', 'package_manifest'):
         path = resolve_repo_path(
