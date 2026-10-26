@@ -5,13 +5,12 @@ import argparse
 import hashlib
 import json
 import re
-import shutil
 import sys
-import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
+from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
     validate_knowledge_file_ceiling,
@@ -603,55 +602,10 @@ def build_package(
     }
     if 'package_manifest' in output_paths:
         expected_files[output_paths['package_manifest']] = _json_bytes(package_manifest)
-    expected_set = set(expected_files)
-    actual_files: set[Path] = set()
-    if generated_root.exists():
-        for path in generated_root.rglob('*'):
-            if path.is_symlink():
-                errors.append(f'Generated package must not contain symlinks: {path}')
-            elif path.is_file():
-                actual_files.add(path.resolve())
-    stale = sorted(
-        path.relative_to(repo_root).as_posix()
-        for path in actual_files - expected_set
+    reconcile_generated_package(
+        repo_root, generated_root, expected_files, errors,
+        check=check, staging_prefix='.openai-dcoir-',
     )
-    if stale:
-        errors.append(f'Stale generated package files: {stale}')
-    if check:
-        for path, expected in expected_files.items():
-            try:
-                actual = path.read_bytes()
-            except FileNotFoundError:
-                errors.append(f'Missing generated package file: {path.relative_to(repo_root)}')
-                continue
-            if actual != expected:
-                errors.append(f'Generated package drift: {path.relative_to(repo_root)}')
-    elif not errors:
-        with tempfile.TemporaryDirectory(prefix='.openai-dcoir-', dir=repo_root) as temp_dir:
-            temp_root = Path(temp_dir).resolve()
-            for path, expected in expected_files.items():
-                with tempfile.NamedTemporaryFile(dir=temp_root, delete=False) as staged:
-                    staged.write(expected)
-                    staged_path = Path(staged.name).resolve()
-                if not staged_path.is_relative_to(temp_root):
-                    errors.append('Generated package staging path escaped its root')
-                    continue
-                if staged_path.read_bytes() != expected:
-                    errors.append('Generated package staging readback failed')
-                    continue
-                resolved_output = resolve_repo_path(
-                    repo_root,
-                    path.relative_to(repo_root).as_posix(),
-                    'generated package output',
-                    errors,
-                    generated_root,
-                )
-                if resolved_output is None:
-                    continue
-                resolved_output.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(staged_path, resolved_output)
-                if resolved_output.read_bytes() != expected:
-                    errors.append(f'Generated package write readback failed: {resolved_output}')
     report = {
         'success': not errors,
         'action': 'check' if check else 'materialize',
