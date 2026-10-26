@@ -92,6 +92,11 @@ AGENT_RUNTIME_VALIDATION_STEPS = [
         "Agent knowledge projection self-tests failed.",
     ),
     (
+        "Run Gemini Knowledge consolidation evaluation self-tests",
+        "python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py",
+        "Gemini Knowledge consolidation evaluation self-tests failed.",
+    ),
+    (
         "Verify OpenAI DCOIR package materialization",
         "python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check",
         "OpenAI DCOIR package materialization check failed.",
@@ -111,8 +116,21 @@ AGENT_RUNTIME_VALIDATION_STEPS = [
         "python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py",
         "OpenAI USB package self-tests failed.",
     ),
+    (
+        "Run USB reporting behavior scorer self-tests",
+        "python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py",
+        "USB reporting behavior scorer self-tests failed.",
+    ),
+    (
+        "Run agent release parity self-tests",
+        "python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py",
+        "Agent release parity self-tests failed.",
+    ),
 ]
 
+AGENT_RUNTIME_PARITY_REPORT_STEP = "Build unified agent release parity report"
+AGENT_RUNTIME_PARITY_REPORT_COMMAND = "python project_sources/agent_runtime/tools/report_agent_release_parity.py"
+AGENT_RUNTIME_PARITY_REPORT_FAILURE = "Agent release parity report failed."
 AGENT_RUNTIME_RECEIPT_STEP = "Write agent-runtime validation receipt"
 AGENT_RUNTIME_UPLOAD_STEP = "Upload validation artifacts"
 AGENT_RUNTIME_REPORT_STEP = "Write ChatGPT workflow report section"
@@ -369,7 +387,7 @@ def expected_agent_runtime_report_lines(event_name: str) -> list[str]:
         "}",
         "else {",
         "$agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'",
-        "$agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the ten-command contract did not complete successfully.'",
+        "$agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the thirteen-command contract did not complete successfully.'",
         "}",
         "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null",
         '@"',
@@ -381,7 +399,7 @@ def expected_agent_runtime_report_lines(event_name: str) -> list[str]:
         "- ref: $env:GITHUB_REF",
         "- event_name: $env:GITHUB_EVENT_NAME",
         f"- primary_artifact: validate-on-{lane}-results",
-        "- artifact_note: includes the agent-runtime validation receipt only when all ten commands pass; "
+        "- artifact_note: includes the agent-runtime validation receipt only when all thirteen commands pass; "
         f"also includes Gemini smoke-build output, {additional_output}, validate_DCOIR_Run fixture output, "
         "documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, "
         "PowerShell review-assist JSON/Markdown, and TestResults when produced.",
@@ -428,6 +446,21 @@ def agent_runtime_contract_findings(
                 f"{path}:{line_no}: agent-runtime step {step_name!r} executable body drifted"
             )
 
+    parity_matches = find_named_step(expanded_text, AGENT_RUNTIME_PARITY_REPORT_STEP)
+    if len(parity_matches) != 1:
+        findings.append(
+            f"{path}:1: expected exactly one enabled {AGENT_RUNTIME_PARITY_REPORT_STEP!r} step; "
+            f"found {len(parity_matches)}"
+        )
+    else:
+        parity_line, parity_body = parity_matches[0]
+        if execution_lines and parity_line <= max(execution_lines):
+            findings.append(f"{path}:{parity_line}: parity report must run after self-tests")
+        if active_step_lines(parity_body) != expected_agent_runtime_step_lines(
+            AGENT_RUNTIME_PARITY_REPORT_COMMAND, AGENT_RUNTIME_PARITY_REPORT_FAILURE
+        ):
+            findings.append(f"{path}:{parity_line}: parity report step contract drifted")
+
     receipt_matches = find_named_step(expanded_text, AGENT_RUNTIME_RECEIPT_STEP)
     if len(receipt_matches) != 1:
         findings.append(
@@ -439,7 +472,11 @@ def agent_runtime_contract_findings(
         receipt_lines = active_step_lines(receipt_body)
         if execution_lines and receipt_line <= max(execution_lines):
             findings.append(
-                f"{path}:{receipt_line}: agent-runtime receipt must run after all ten validation steps"
+                f"{path}:{receipt_line}: agent-runtime receipt must run after all thirteen validation steps"
+            )
+        if parity_matches and parity_matches[0][0] <= receipt_line:
+            findings.append(
+                f"{path}:{receipt_line}: agent-runtime receipt must run before the separate parity report"
             )
         if receipt_lines != expected_agent_runtime_receipt_lines(event_name):
             findings.append(
@@ -512,8 +549,14 @@ def run_agent_runtime_contract_selftests() -> list[str]:
         [f"      - name: {AGENT_RUNTIME_REPORT_STEP}"]
         + [f"        {line}" for line in expected_agent_runtime_report_lines(event_name)]
     )
+    parity = "\n".join(
+        [f"      - name: {AGENT_RUNTIME_PARITY_REPORT_STEP}"]
+        + [f"        {line}" for line in expected_agent_runtime_step_lines(
+            AGENT_RUNTIME_PARITY_REPORT_COMMAND, AGENT_RUNTIME_PARITY_REPORT_FAILURE
+        )]
+    )
     entry_text = "\n".join(entry_lines)
-    good_expanded = "\n".join(step_chunks + [receipt, upload, report])
+    good_expanded = "\n".join(step_chunks + [receipt, parity, upload, report])
     test_path = Path("<agent-runtime-contract-selftest>")
     selftest_findings: list[str] = []
     if agent_runtime_contract_findings(
@@ -533,6 +576,17 @@ def run_agent_runtime_contract_selftests() -> list[str]:
         for _, command, _ in reversed(AGENT_RUNTIME_VALIDATION_STEPS)
     )
     mutations = {
+        "missing parity report": good_expanded.replace(parity, "", 1),
+        "parity report early exit": good_expanded.replace(
+            f"        {AGENT_RUNTIME_PARITY_REPORT_COMMAND}",
+            f"        exit 0\n        {AGENT_RUNTIME_PARITY_REPORT_COMMAND}",
+            1,
+        ),
+        "parity report before receipt": good_expanded.replace(
+            f"{receipt}\n{parity}",
+            f"{parity}\n{receipt}",
+            1,
+        ),
         "receipt-only command": good_expanded.replace(
             f"        {first_command}\n        if ($LASTEXITCODE",
             "        Write-Host 'execution removed'\n        if ($LASTEXITCODE",

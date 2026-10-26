@@ -1,6 +1,6 @@
 # DCOIR REUSABLE WORKFLOW CONTRACT
 # Source entry workflow: validate-on-pr.yml
-# Purpose: reusable implementation module for validate-on-pr, including the ten-command shared agent-runtime contract; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
+# Purpose: reusable implementation module for validate-on-pr, including the thirteen-command shared agent-runtime contract; entry workflow retains triggers, permissions, concurrency, and operator-visible contract notes.
 # Dispatch posture: workflow_dispatch runs are trusted baseline static-validation context only when the entry workflow runs from the repository default branch.
 name: 99 Module - Validate On Pr
 run-name: Module Validate On Pr | ${{ github.workflow }} | #${{ github.run_number }}
@@ -35,6 +35,14 @@ jobs:
 
       - name: Validate Python syntax
         uses: ./.github/actions/validate-python-syntax
+
+      - name: Run collector tool unit tests
+        shell: pwsh
+        run: |
+          python -m unittest discover -s project_sources/collector/tools -p 'test_*.py'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Collector tool unit tests failed.'
+          }
 
       - name: Validate shared agent source contract
         shell: pwsh
@@ -84,6 +92,14 @@ jobs:
             throw 'Agent knowledge projection self-tests failed.'
           }
 
+      - name: Run Gemini Knowledge consolidation evaluation self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Gemini Knowledge consolidation evaluation self-tests failed.'
+          }
+
       - name: Verify OpenAI DCOIR package materialization
         shell: pwsh
         run: |
@@ -116,6 +132,22 @@ jobs:
             throw 'OpenAI USB package self-tests failed.'
           }
 
+      - name: Run USB reporting behavior scorer self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'USB reporting behavior scorer self-tests failed.'
+          }
+
+      - name: Run agent release parity self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent release parity self-tests failed.'
+          }
+
       - name: Write agent-runtime validation receipt
         shell: pwsh
         env:
@@ -129,10 +161,13 @@ jobs:
             'python project_sources/agent_runtime/tests/materialize_agent_behavior_adapters_selftest.py'
             'python project_sources/agent_runtime/tools/project_agent_knowledge.py --check'
             'python project_sources/agent_runtime/tests/project_agent_knowledge_selftest.py'
+            'python project_sources/agent_runtime/tests/evaluate_gemini_knowledge_consolidation_selftest.py'
             'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check'
             'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'
             'python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check'
             'python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'
+            'python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'
+            'python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
           )
           $receipt = [ordered]@{
             schema_version = 'dcoir_agent_runtime_validation_workflow_receipt_v1'
@@ -149,6 +184,14 @@ jobs:
           New-Item -ItemType Directory -Force -Path project_sources/validation/out_validate_on_pr_agent_runtime | Out-Null
           $receipt | ConvertTo-Json -Depth 5 | Set-Content -Path project_sources/validation/out_validate_on_pr_agent_runtime/agent_runtime_validation.json -Encoding utf8
 
+      - name: Build unified agent release parity report
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tools/report_agent_release_parity.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Agent release parity report failed.'
+          }
+
       - name: Validate GitHub intake taxonomy
         shell: pwsh
         run: |
@@ -157,12 +200,12 @@ jobs:
             throw 'GitHub intake taxonomy validation failed.'
           }
 
-      - name: Run documentation validator self-tests
+      - name: Run apply-patch tool self-tests
         shell: pwsh
         run: |
-          python project_sources/collector/tools/test_verify_collector_documentation_quality.py
+          python .github/ops/tools/apply_patch_request_selftest.py
           if ($LASTEXITCODE -ne 0) {
-            throw 'Documentation validator self-tests failed.'
+            throw 'Apply-patch tool self-tests failed.'
           }
 
       - name: Run duplicate-function action contract tests
@@ -308,7 +351,7 @@ jobs:
           }
           else {
             $agentRuntimeValidation = 'incomplete_or_failed_receipt_not_produced'
-            $agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the ten-command contract did not complete successfully.'
+            $agentRuntimeArtifact = 'agent_runtime_validation.json is absent because the thirteen-command contract did not complete successfully.'
           }
           New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null
           @"
@@ -322,7 +365,7 @@ jobs:
           - ref: $env:GITHUB_REF
           - event_name: $env:GITHUB_EVENT_NAME
           - primary_artifact: validate-on-pr-results
-          - artifact_note: includes the agent-runtime validation receipt only when all ten commands pass; also includes Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
+          - artifact_note: includes the agent-runtime validation receipt only when all thirteen commands pass; also includes Gemini smoke-build output, collector runtime output, validate_DCOIR_Run fixture output, documentation-quality output, PSScriptAnalyzer JSON, duplicate-function JSON/Markdown, PowerShell review-assist JSON/Markdown, and TestResults when produced.
           - agent_runtime_validation: $agentRuntimeValidation
           - agent_runtime_artifact: $agentRuntimeArtifact
           - job_summary: review-assist report written to GITHUB_STEP_SUMMARY.
