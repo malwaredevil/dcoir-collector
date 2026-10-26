@@ -20,6 +20,13 @@ from lib.apply_patch_request_selftest_helpers import (
 )
 
 
+def test_fixture_line_endings(repo: pathlib.Path) -> None:
+    # Hash assertions use LF-only payloads even on Windows hosted runners.
+    assert (repo / "project_sources/large.txt").read_bytes() == b"alpha\nbeta\n"
+    assert (repo / "project_sources/other.txt").read_bytes() == b"one\n"
+    assert run(["git", "config", "--local", "--get", "core.autocrlf"], repo).stdout.strip() == "false"
+
+
 def test_happy_path(repo: pathlib.Path) -> None:
     no_global_git_identity = {"GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1"}
     request_id = "selftest-good"
@@ -300,6 +307,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="dcoir-ops-patch-") as tmp:
         repo = pathlib.Path(tmp)
         init_repo(repo)
+        test_fixture_line_endings(repo)
         test_happy_path(repo)
         test_patch_set_happy_path(repo)
         test_patch_set_rejects_create(repo)
