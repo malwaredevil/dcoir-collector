@@ -6,17 +6,22 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
-from openai_builder_package_assembly import PackageSettings, assemble_package_files
+from openai_builder_package_assembly import PackageSettings
 from openai_builder_pipeline import BuilderSpec, run_builder_pipeline
-from openai_builder_source_contract import read_source_bytes as _read_bytes
-from openai_builder_validation_kernel import validate_projection_manifest_binding
-from openai_webui_contract import (
-    DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
-    INSTRUCTION_CHARACTER_CEILING as EXPECTED_INSTRUCTION_CHARACTER_CEILING,
-    contains_lone_surrogate as _contains_lone_surrogate,
-    webui_character_count as _webui_character_count,
-    webui_paste_safe_character_count as _webui_paste_safe_character_count,
-)
+import openai_builder_package_assembly as _package_assembly
+import openai_builder_source_contract as _source_contract
+import openai_builder_validation_kernel as _validation_kernel
+import openai_webui_contract as _webui_contract
+
+# Retain existing builder-facing compatibility exports; implementation is shared.
+assemble_package_files = _package_assembly.assemble_package_files
+_read_bytes = _source_contract.read_source_bytes
+validate_projection_manifest_binding = _validation_kernel.validate_projection_manifest_binding
+EXPECTED_DESCRIPTION_CHARACTER_CEILING = _webui_contract.DESCRIPTION_CHARACTER_CEILING
+EXPECTED_INSTRUCTION_CHARACTER_CEILING = _webui_contract.INSTRUCTION_CHARACTER_CEILING
+_contains_lone_surrogate = _webui_contract.contains_lone_surrogate
+_webui_character_count = _webui_contract.webui_character_count
+_webui_paste_safe_character_count = _webui_contract.webui_paste_safe_character_count
 
 
 SCHEMA = 'dcoir.agent_runtime.openai_dcoir_adapter.v1'
