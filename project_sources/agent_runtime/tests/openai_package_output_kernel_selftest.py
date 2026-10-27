@@ -9,6 +9,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import openai_package_output_kernel as kernel
+import openai_builder_package_assembly as assembly
 import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 
@@ -35,8 +36,9 @@ def reconcile(repo, root, files, check):
 
 
 def main():
-    assert dcoir.reconcile_generated_package is kernel.reconcile_generated_package
-    assert usb.reconcile_generated_package is kernel.reconcile_generated_package
+    assert assembly.reconcile_generated_package is kernel.reconcile_generated_package
+    assert dcoir.assemble_package_files is assembly.assemble_package_files
+    assert usb.assemble_package_files is assembly.assemble_package_files
     temp, repo, root, files = fixture()
     try:
         errors = reconcile(repo, root, files, True)

@@ -6,25 +6,22 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
-from agent_runtime_path_safety import resolve_repo_path
 from openai_builder_knowledge_projection import validate_knowledge_projections
 from openai_builder_behavior_snapshot import validate_behavior_snapshot
 from openai_builder_instruction_contract import validate_instruction_cases
+from openai_builder_package_assembly import PackageSettings, assemble_package_files
 from openai_builder_source_contract import (
     load_adapter_source_inputs, validate_source_target_capabilities,
-    read_source_bytes as _read_bytes, sha256_bytes as _sha256,
+    read_source_bytes as _read_bytes,
 )
-from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
     validate_behavior_snapshot_pin,
-    validate_source_output_binding,
     validate_projection_manifest_binding,
 )
 from openai_webui_contract import (
     DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
     INSTRUCTION_CHARACTER_CEILING as EXPECTED_INSTRUCTION_CHARACTER_CEILING,
     contains_lone_surrogate as _contains_lone_surrogate,
-    valid_conversation_starters_shape as _valid_conversation_starters_shape,
     webui_character_count as _webui_character_count,
     webui_paste_safe_character_count as _webui_paste_safe_character_count,
 )
@@ -67,6 +64,16 @@ EXPECTED_OUTPUTS = {
     'configuration': f"{EXPECTED_PATHS['generated_root']}/GPT_Configuration.json",
     'package_manifest': f"{EXPECTED_PATHS['generated_root']}/manifest.json",
 }
+PACKAGE_SETTINGS = PackageSettings(
+    target_id=TARGET_ID,
+    package_schema='dcoir.agent_runtime.openai_dcoir_package.v1',
+    editor_name=EXPECTED_EDITOR_NAME,
+    expected_outputs=EXPECTED_OUTPUTS,
+    output_label='OpenAI DCOIR',
+    staging_prefix='.openai-dcoir-',
+    description_ceiling=EXPECTED_DESCRIPTION_CHARACTER_CEILING,
+    instruction_ceiling=EXPECTED_INSTRUCTION_CHARACTER_CEILING,
+)
 SECTION_HEADINGS = {
     'identity_scope': '## Identity and scope',
     'authority_evidence_lanes': '## Authority and evidence lanes',
@@ -101,10 +108,6 @@ REQUIRED_STATIC_MARKERS = (
     'Silently omit unavailable or failed enrichment',
     'separate AFRICOM USB Reporting GPT',
 )
-
-
-def _json_bytes(value: Any) -> bytes:
-    return (json.dumps(value, indent=2, sort_keys=True) + '\n').encode('utf-8')
 
 
 def build_package(
@@ -171,119 +174,11 @@ def build_package(
         target_id=TARGET_ID, schema=KNOWLEDGE_SCHEMA,
         expected_count=EXPECTED_KNOWLEDGE_FILES, label='DCOIR',
     )
-    editor = manifest.get('editor')
-    if not isinstance(editor, dict):
-        errors.append('Adapter editor configuration must be an object')
-        editor = {}
-    if editor.get('name') != EXPECTED_EDITOR_NAME:
-        errors.append(f'Editor name must remain {EXPECTED_EDITOR_NAME}')
-    description = editor.get('description')
-    if not isinstance(description, str) or not description.strip():
-        errors.append('Editor description must be a non-empty string')
-        description = ''
-    if _contains_lone_surrogate(description):
-        errors.append('Editor description must not contain lone UTF-16 surrogate code points')
-    description_ceiling = manifest.get('description_character_ceiling')
-    description_character_count = _webui_character_count(description)
-    if type(description_ceiling) is not int or description_ceiling != EXPECTED_DESCRIPTION_CHARACTER_CEILING:
-        errors.append(
-            'description_character_ceiling must remain '
-            f'{EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
-        )
-    if description_character_count > EXPECTED_DESCRIPTION_CHARACTER_CEILING:
-        errors.append(
-            'Description exceeds character ceiling: '
-            f'{description_character_count} > {EXPECTED_DESCRIPTION_CHARACTER_CEILING}'
-        )
-    starters = editor.get('conversation_starters')
-    if not _valid_conversation_starters_shape(starters):
-        errors.append('Exactly four non-empty conversation starters are required')
-    elif any(_contains_lone_surrogate(value) for value in starters):
-        errors.append('Conversation starters must not contain lone UTF-16 surrogate code points')
-    elif len(set(starters)) != len(starters):
-        errors.append('Conversation starters must be unique')
-    configuration = {
-        'schema': 'dcoir.agent_runtime.openai_webui_configuration.v1',
-        'target_id': TARGET_ID,
-        'name': editor.get('name'),
-        'description': description,
-        'conversation_starters': starters,
-        'runtime_model': target.get('runtime_model') if isinstance(target, dict) else None,
-        'instructions_file': manifest.get('generated_outputs', {}).get('instructions'),
-        'capabilities': capabilities,
-        'knowledge_files': knowledge_files,
-    }
-    source_hashes: dict[str, dict[str, Any]] = {}
-    for key, path in required_paths.items():
-        content = _read_bytes(path, f'{key} contract source', errors)
-        source_hashes[key] = {
-            'path': path.relative_to(repo_root).as_posix(),
-            'sha256': _sha256(content),
-        }
-    expected_files: dict[Path, bytes] = {}
-    output_map = manifest.get('generated_outputs')
-    if not isinstance(output_map, dict):
-        errors.append('generated_outputs must be an object')
-        output_map = {}
-    for key, expected in EXPECTED_OUTPUTS.items():
-        if output_map.get(key) != expected:
-            errors.append(f'generated {key} must remain bound to {expected}')
-    validate_source_output_binding(target, TARGET_ID, EXPECTED_OUTPUTS, errors, 'OpenAI DCOIR')
-    output_paths: dict[str, Path] = {}
-    for key in ('instructions', 'configuration', 'package_manifest'):
-        path = resolve_repo_path(
-            repo_root, output_map.get(key), f'generated {key}', errors, generated_root
-        )
-        if path is not None:
-            output_paths[key] = path
-    if 'instructions' in output_paths:
-        expected_files[output_paths['instructions']] = instructions
-    configuration_bytes = _json_bytes(configuration)
-    if 'configuration' in output_paths:
-        expected_files[output_paths['configuration']] = configuration_bytes
-    package_manifest = {
-        'schema': 'dcoir.agent_runtime.openai_dcoir_package.v1',
-        'adapter_contract_version': manifest.get('adapter_contract_version'),
-        'target_id': TARGET_ID,
-        'source_base_commit': manifest.get('source_base_commit'),
-        'source_contracts': source_hashes,
-        'source_contract_sha256': source_contract_sha,
-        'behavior_source_snapshot_sha256': snapshot_sha,
-        'behavior_coverage_count': len(behavior_snapshot),
-        'behavior_coverage': behavior_snapshot,
-        'behavioral_case_count': len(case_ids),
-        'behavioral_case_ids': case_ids,
-        'instruction_character_count': _webui_character_count(
-            instructions.decode('utf-8', errors='ignore')
-        ),
-        'instruction_character_ceiling': EXPECTED_INSTRUCTION_CHARACTER_CEILING,
-        'description_character_count': description_character_count,
-        'description_character_ceiling': EXPECTED_DESCRIPTION_CHARACTER_CEILING,
-        'knowledge_file_count': len(knowledge_files),
-        'strict_knowledge_file_ceiling': target_manifest.get('strict_file_count_ceiling'),
-        'knowledge_files': knowledge_files,
-        'generated_files': [
-            {
-                'path': output_map.get('instructions'),
-                'sha256': _sha256(instructions),
-                'bytes': len(instructions),
-            },
-            {
-                'path': output_map.get('configuration'),
-                'sha256': _sha256(configuration_bytes),
-                'bytes': len(configuration_bytes),
-            },
-        ],
-        'generated_outputs_are_canonical': False,
-        'direct_target_edits_require_reverse_reconciliation': True,
-        'live_webui_validation_performed': False,
-        'manual_deployment_required': True,
-    }
-    if 'package_manifest' in output_paths:
-        expected_files[output_paths['package_manifest']] = _json_bytes(package_manifest)
-    reconcile_generated_package(
-        repo_root, generated_root, expected_files, errors,
-        check=check, staging_prefix='.openai-dcoir-',
+    expected_files = assemble_package_files(
+        repo_root, generated_root, manifest, target, required_paths,
+        instructions, knowledge_files, target_manifest, behavior_snapshot,
+        snapshot_sha, case_ids, capabilities, source_contract_sha, errors,
+        settings=PACKAGE_SETTINGS, check=check,
     )
     report = {
         'success': not errors,

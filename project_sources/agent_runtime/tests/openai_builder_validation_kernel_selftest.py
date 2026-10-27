@@ -17,6 +17,7 @@ import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 import openai_builder_validation_kernel as kernel
 import openai_builder_source_contract as source_contract
+import openai_builder_package_assembly as package_assembly
 import openai_builder_knowledge_projection as knowledge
 
 ADAPTERS = (('dcoir', 'openai_dcoir_analyst', dcoir), ('usb', 'openai_usb_reporting', usb))
@@ -127,7 +128,7 @@ def _save_json(path: Path, data: dict) -> None:
 
 def test_source_output_binding_both_targets() -> None:
     for _, target_id, builder in ADAPTERS:
-        assert builder.validate_source_output_binding is kernel.validate_source_output_binding
+        assert package_assembly.validate_source_output_binding is kernel.validate_source_output_binding
         for variant in ('good', 'wrong_owner', 'reordered_outputs', 'malformed_outputs'):
             tmp, repo, adapter_path = staged_builder(target_id)
             try:
