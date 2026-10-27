@@ -5443,30 +5443,30 @@
       "exists": true,
       "marker_lines": [
         49,
-        61,
-        90,
-        123,
-        133,
-        150,
-        164,
-        193
+        78,
+        107,
+        145,
+        155,
+        172,
+        186,
+        215
       ],
       "embedded_snippets": [
         {
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
-          "step_or_action": "Run combined OpenAI deployment release self-tests",
+          "step_or_action": "Run five independent OpenAI deployment release self-tests",
           "shell": "pwsh",
           "line_start": 49,
-          "line_end": 59,
-          "command_sha256": "38eb4c99838657dc5b060161bcccde85e2048b4080a8f1c9a3209eecc4b4c4da",
-          "command_preview": "python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'Combined OpenAI GPT deployment release self-tests failed.'\n}\npython project_sources/agent_runtime/tests/build_ope"
+          "line_end": 76,
+          "command_sha256": "e5a3bf6130e6daeb08aed9a36c0ffaa9c212669254ff8adc94e8cc40d0af32d5",
+          "command_preview": "Write-Host '=== OpenAI release payload and determinism (6 tests) ==='\npython project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI GPT release payload and determinism self-test"
         },
         {
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Run governed agent-runtime validation contract",
           "shell": "pwsh",
-          "line_start": 61,
-          "line_end": 88,
+          "line_start": 78,
+          "line_end": 105,
           "command_sha256": "188672f2a70826aa88c01a5cb3e7afce567542c24a2983c5aa121fd5ae7350b0",
           "command_preview": "$commands = @(\n  @('Shared source contract', 'python', 'project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py'),\n  @('Shared source contract self-tests', 'python', 'project_sources/agent_runtime/tests/validate_shared_"
         },
@@ -5474,17 +5474,17 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Write agent-runtime validation receipt",
           "shell": "pwsh",
-          "line_start": 90,
-          "line_end": 121,
-          "command_sha256": "e8f7774ad3c6443336645272acf8177a5610e834001e571bde6c48e33ed321ca",
-          "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py',\n  'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py',\n  'python project_sources/agent_runtim"
+          "line_start": 107,
+          "line_end": 143,
+          "command_sha256": "95b0b830887782f31028c8bf7ced7914eb1aa2421ca3f3166956d4eaf2165806",
+          "command_preview": "$commands = @(\n  'python project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py',\n  'python project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py',\n  'python project_sources/agent_runtime/tests/"
         },
         {
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Build unified static release and parity report",
           "shell": "pwsh",
-          "line_start": 123,
-          "line_end": 131,
+          "line_start": 145,
+          "line_end": 153,
           "command_sha256": "d53521a4d4964dec743bde3e0898c6bb6e30de56bf4612bdbf73c35cfe7aaf9d",
           "command_preview": "python project_sources/agent_runtime/tools/report_agent_release_parity.py `\n  --source-commit $env:GITHUB_SHA `\n  --output-root project_sources/validation/out_openai_gpt_deployment/parity\nif ($LASTEXITCODE -ne 0) {\n  throw 'Unified agent re"
         },
@@ -5492,8 +5492,8 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Build combined OpenAI GPT deployment release",
           "shell": "pwsh",
-          "line_start": 133,
-          "line_end": 148,
+          "line_start": 155,
+          "line_end": 170,
           "command_sha256": "e508bb0acd32480d2db94dbbd2b32d61cb09b5ccce33cb0b9d15463e3c3d7749",
           "command_preview": "$buildArgs = @(\n  'project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py',\n  '--source-commit', $env:GITHUB_SHA,\n  '--output-dir', 'project_sources/validation/out_openai_gpt_deployment',\n  '--parity-root', 'project_sour"
         },
@@ -5501,8 +5501,8 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Surface OpenAI GPT delivery ZIP",
           "shell": "pwsh",
-          "line_start": 150,
-          "line_end": 162,
+          "line_start": 172,
+          "line_end": 184,
           "command_sha256": "3687f4b30bda619174428d3146384d4ad6071e9379965de4ffad1df6035e417a",
           "command_preview": "python .github/github_actions/tools/surface_delivery_zip.py `\n  --build-report project_sources/validation/out_openai_gpt_deployment/build_openai_gpt_deployment_release_report.json `\n  --output-dir project_sources/validation/delivery_artifac"
         },
@@ -5510,8 +5510,8 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Set OpenAI delivery artifact name",
           "shell": "pwsh",
-          "line_start": 164,
-          "line_end": 172,
+          "line_start": 186,
+          "line_end": 194,
           "command_sha256": "9706631ea8777a9e6e56876157aca15d489b679864760563dcf8d8fa61b93270",
           "command_preview": "$manifest = Get-Content -Raw -Path project_sources/validation/out_openai_gpt_deployment/delivery_surface_manifest/delivery_manifest.json | ConvertFrom-Json\n$artifactName = [System.IO.Path]::GetFileNameWithoutExtension([string]$manifest.deli"
         },
@@ -5519,15 +5519,15 @@
           "source_file": ".github/workflows/reusable-openai-gpt-deployment-package-build.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 193,
-          "line_end": 232,
-          "command_sha256": "425f4ba003eb6821372c6c3f741c6d6d2c1cf9f5e5489282ce04193af2aac8d8",
+          "line_start": 215,
+          "line_end": 254,
+          "command_sha256": "bd8c563c75a9f3c3b064b5f6aaed7f24352e57d0f7b5281cb5ea8a0d23d76ce5",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n$reportPath = 'project_sources/validation/out_openai_gpt_deployment/build_openai_gpt_deployment_release_report.json'\nif (Test-Path -LiteralPath $reportPath"
         }
       ],
-      "size_bytes": 12794,
-      "line_count": 240,
-      "sha256": "37c6f3ef189809b09e146ebfde771749bfe5700304cc507d141a6f6f03ec5a59"
+      "size_bytes": 14289,
+      "line_count": 262,
+      "sha256": "8984a0b01d1e5c0f0e8ce98eb3a00224142d5f912767957b0c4a58c6aec63ebd"
     },
     {
       "path": ".github/workflows/reusable-validate-on-pr.yml",
