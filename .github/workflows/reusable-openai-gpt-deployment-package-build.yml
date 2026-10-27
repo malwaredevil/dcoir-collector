@@ -45,16 +45,44 @@ jobs:
         with:
           profile: manual_openai_gpt_deployment_package_build
 
-      - name: Run combined OpenAI deployment release self-tests
+      - name: Run OpenAI release payload and determinism self-tests
         shell: pwsh
         run: |
-          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py
+          python project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py
           if ($LASTEXITCODE -ne 0) {
-            throw 'Combined OpenAI GPT deployment release self-tests failed.'
+            throw 'OpenAI GPT release payload and determinism self-tests failed.'
           }
-          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py
+
+      - name: Run OpenAI release WebUI limits self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py
           if ($LASTEXITCODE -ne 0) {
-            throw 'Issue #428 OpenAI GPT deployment release self-tests failed.'
+            throw 'OpenAI GPT release WebUI limits self-tests failed.'
+          }
+
+      - name: Run OpenAI release filesystem safety self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT release filesystem safety self-tests failed.'
+          }
+
+      - name: Run OpenAI release manifest contract self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT release manifest contract self-tests failed.'
+          }
+
+      - name: Run OpenAI release version and handoff self-tests
+        shell: pwsh
+        run: |
+          python project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT release version and handoff self-tests failed.'
           }
 
       - name: Run governed agent-runtime validation contract
@@ -90,6 +118,11 @@ jobs:
         shell: pwsh
         run: |
           $commands = @(
+            'python project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py',
             'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py',
             'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py',
             'python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check',
@@ -219,7 +252,7 @@ jobs:
           - build_result: $buildResult
           - static_parity: $staticParity
           - live_parity: $liveParity
-          - targets: AFRICOM DCOIR Analyst (7 Knowledge files); AFRICOM USB Reporting (2 Knowledge files)
+          - targets: AFRICOM DCOIR Analyst (7 Knowledge files); AFRICOM USB Reporting (1 Knowledge file)
           - primary_artifact: manual-openai-gpt-deployment-package-build
           - direct_delivery_artifact: $env:OPENAI_GPT_DELIVERY_ARTIFACT_NAME
           - direct_delivery_artifact_path: project_sources/validation/delivery_artifact/openai-gpt-deployment/**
