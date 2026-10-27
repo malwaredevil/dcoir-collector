@@ -2,9 +2,7 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -12,16 +10,17 @@ from agent_runtime_path_safety import resolve_repo_path
 from openai_builder_knowledge_projection import validate_knowledge_projections
 from openai_builder_behavior_snapshot import validate_behavior_snapshot
 from openai_builder_instruction_contract import validate_instruction_cases
+from openai_builder_source_contract import (
+    load_adapter_source_inputs, validate_source_target_capabilities,
+    read_source_bytes as _read_bytes, sha256_bytes as _sha256,
+)
 from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
-    validate_generated_root_no_symlink,
     validate_behavior_snapshot_pin,
     validate_source_output_binding,
-    select_governed_source_target,
     validate_projection_manifest_binding,
 )
 from openai_webui_contract import (
-    CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
     DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
     INSTRUCTION_CHARACTER_CEILING as EXPECTED_INSTRUCTION_CHARACTER_CEILING,
     contains_lone_surrogate as _contains_lone_surrogate,
@@ -108,90 +107,23 @@ def _json_bytes(value: Any) -> bytes:
     return (json.dumps(value, indent=2, sort_keys=True) + '\n').encode('utf-8')
 
 
-def _sha256(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    try:
-        value = json.loads(path.read_text(encoding='utf-8'))
-    except FileNotFoundError as exc:
-        raise ValueError(f'Missing JSON file: {path}') from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f'Invalid JSON in {path}: {exc}') from exc
-    if not isinstance(value, dict):
-        raise ValueError(f'Expected a JSON object in {path}')
-    return value
-
-
-def _read_bytes(path: Path, label: str, errors: list[str]) -> bytes:
-    try:
-        return path.read_bytes()
-    except FileNotFoundError:
-        errors.append(f'Missing {label}: {path}')
-        return b''
-    except OSError as exc:
-        errors.append(f'Unreadable {label}: {path} ({type(exc).__name__})')
-        return b''
-
-
-
 def build_package(
     repo_root: Path, manifest_path: Path, check: bool
 ) -> tuple[list[str], dict[str, Any]]:
     repo_root = repo_root.resolve()
     errors: list[str] = []
-    try:
-        manifest = _load_json(manifest_path)
-    except ValueError as exc:
-        return [str(exc)], {'success': False, 'errors': [str(exc)]}
-    if manifest.get('schema') != SCHEMA:
-        errors.append(f'Unexpected adapter schema: {manifest.get("schema")}')
-    if manifest.get('target_id') != TARGET_ID:
-        errors.append(f'Unexpected adapter target: {manifest.get("target_id")}')
-    for key, expected in EXPECTED_PATHS.items():
-        if manifest.get(key) != expected:
-            errors.append(f'{key} must remain bound to {expected}')
-    source_base_commit = manifest.get('source_base_commit')
-    if not isinstance(source_base_commit, str) or re.fullmatch(
-        r'[0-9a-f]{40}', source_base_commit
-    ) is None:
-        errors.append('source_base_commit must be a lowercase 40-character Git SHA')
-    validate_generated_root_no_symlink(repo_root, manifest.get('generated_root'), errors)
-    generated_root = resolve_repo_path(
-        repo_root,
-        manifest.get('generated_root'),
-        'generated_root',
-        errors,
-        repo_root / EXPECTED_PATHS['generated_root'],
+    inputs = load_adapter_source_inputs(
+        repo_root, manifest_path, errors,
+        adapter_schema=SCHEMA, target_id=TARGET_ID,
+        expected_paths=EXPECTED_PATHS, source_schema=SOURCE_SCHEMA,
+        behavior_schema=BEHAVIOR_SCHEMA,
+        invalid_generated_root='.invalid-openai-dcoir-generated-root',
     )
-    if generated_root is None:
-        generated_root = repo_root / '.invalid-openai-dcoir-generated-root'
-    required_paths = {}
-    for key in (
-        'source_contract', 'behavior_module_manifest',
-        'knowledge_projection_manifest', 'knowledge_target_manifest',
-        'canonical_instructions_source', 'behavioral_cases',
-    ):
-        path = resolve_repo_path(repo_root, manifest.get(key), key, errors)
-        if path is not None:
-            required_paths[key] = path
-    try:
-        source_contract = _load_json(required_paths['source_contract'])
-        behavior_manifest = _load_json(required_paths['behavior_module_manifest'])
-        knowledge_projection_manifest = _load_json(
-            required_paths['knowledge_projection_manifest']
-        )
-        target_manifest = _load_json(required_paths['knowledge_target_manifest'])
-        cases = _load_json(required_paths['behavioral_cases'])
-    except (KeyError, ValueError) as exc:
-        errors.append(str(exc))
+    if inputs is None:
         return errors, {'success': False, 'errors': errors}
-    if source_contract.get('schema') != SOURCE_SCHEMA:
-        errors.append('Unexpected shared source contract schema')
-    if behavior_manifest.get('schema') != BEHAVIOR_SCHEMA:
-        errors.append('Unexpected behavior module manifest schema')
-    source_contract_sha = _sha256(required_paths['source_contract'].read_bytes())
+    (manifest, generated_root, required_paths, source_contract,
+     behavior_manifest, knowledge_projection_manifest, target_manifest,
+     cases, source_contract_sha) = inputs
     if source_contract.get('openai_dcoir_adapter_manifest') != (
         'project_sources/agent_runtime/provider_adapters/'
         'openai_dcoir_analyst/Adapter_Manifest.json'
@@ -205,35 +137,12 @@ def build_package(
         errors.append('Knowledge target points to the wrong shared source contract')
     if target_manifest.get('source_contract_sha256') != source_contract_sha:
         errors.append('Knowledge target source-contract hash drift')
-    target = select_governed_source_target(
-        source_contract, TARGET_ID, errors, 'OpenAI DCOIR'
+    target, capabilities = validate_source_target_capabilities(
+        source_contract, manifest, errors,
+        target_id=TARGET_ID, label='OpenAI DCOIR',
+        runtime_model=EXPECTED_RUNTIME_MODEL,
+        profile_error_policy='dcoir',
     )
-    if target:
-        if target.get('provider') != 'openai_webui_bedrock_hosted':
-            errors.append('OpenAI DCOIR provider drift')
-        if target.get('runtime_model') != EXPECTED_RUNTIME_MODEL:
-            errors.append('OpenAI DCOIR runtime model drift')
-        if target.get('instruction_mode') != 'static_instructions':
-            errors.append('OpenAI DCOIR instruction mode drift')
-        if target.get('knowledge_mode') != 'static_knowledge':
-            errors.append('OpenAI DCOIR knowledge mode drift')
-    capabilities = manifest.get('capabilities')
-    if not isinstance(capabilities, dict):
-        errors.append('Adapter capabilities must be an object')
-        capabilities = {}
-    if set(capabilities) != set(REQUIRED_DISABLED_CAPABILITIES):
-        errors.append('Adapter capabilities must contain exactly the governed keys')
-    target_capabilities = target.get('capabilities') if isinstance(target, dict) else {}
-    if not isinstance(target_capabilities, dict) or set(target_capabilities) != set(
-        REQUIRED_DISABLED_CAPABILITIES
-    ):
-        errors.append('Source contract capabilities must contain exactly the governed keys')
-        target_capabilities = {}
-    for capability in REQUIRED_DISABLED_CAPABILITIES:
-        if capabilities.get(capability) is not False:
-            errors.append(f'Unsupported capability must remain false: {capability}')
-        if target_capabilities.get(capability) is not False:
-            errors.append(f'Source contract target capability drift: {capability}')
     coverage = manifest.get('coverage')
     if not isinstance(coverage, list):
         errors.append('Adapter coverage must be an array')

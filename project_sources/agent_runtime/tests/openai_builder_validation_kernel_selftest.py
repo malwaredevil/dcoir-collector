@@ -16,6 +16,7 @@ sys.path.insert(0, str(TOOLS))
 import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 import openai_builder_validation_kernel as kernel
+import openai_builder_source_contract as source_contract
 import openai_builder_knowledge_projection as knowledge
 
 ADAPTERS = (('dcoir', 'openai_dcoir_analyst', dcoir), ('usb', 'openai_usb_reporting', usb))
@@ -75,7 +76,7 @@ def test_knowledge_ceiling_both_targets() -> None:
 
 def test_generated_root_symlinks_both_targets() -> None:
     for _, target_id, builder in ADAPTERS:
-        assert builder.validate_generated_root_no_symlink is kernel.validate_generated_root_no_symlink
+        assert source_contract.validate_generated_root_no_symlink is kernel.validate_generated_root_no_symlink
         for loop in (False, True):
             tmp, repo, manifest = staged_builder(target_id)
             try:
