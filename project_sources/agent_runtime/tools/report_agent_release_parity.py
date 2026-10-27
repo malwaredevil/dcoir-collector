@@ -248,6 +248,38 @@ def _failure_report(commit: str, commit_basis: str, errors: list[str]) -> dict[s
     }
 
 
+def _validate_openai_package_provenance(
+    target_id: str,
+    package_manifest: dict[str, Any],
+    canonical_sha: str | None,
+    errors: list[str],
+) -> None:
+    """Fail static parity when package provenance is absent or disagrees with source."""
+    reported_sha = package_manifest.get('source_contract_sha256')
+    if (
+        not isinstance(canonical_sha, str)
+        or len(canonical_sha) != 64
+        or not isinstance(reported_sha, str)
+        or reported_sha != canonical_sha
+    ):
+        errors.append(f'{target_id} package source_contract_sha256 missing or mismatched')
+
+    if package_manifest.get('manual_deployment_required') is not True:
+        errors.append(f'{target_id} package must declare manual_deployment_required=true')
+
+    source_contracts = package_manifest.get('source_contracts')
+    if not isinstance(source_contracts, dict):
+        errors.append(f'{target_id} package source_contracts must be an object')
+        return
+    nested_source = source_contracts.get('source_contract')
+    if nested_source is not None and (
+        not isinstance(nested_source, dict)
+        or nested_source.get('path') != SHARED_MANIFEST.as_posix()
+        or nested_source.get('sha256') != canonical_sha
+    ):
+        errors.append(f'{target_id} nested package source contract hash/path mismatch')
+
+
 def _openai_target(
     target_id: str,
     target_contract: dict[str, Any],
@@ -505,14 +537,22 @@ def build_release_report(
             behavior_counts['gemini_dcoir_agent'], errors,
         )
     ]
+    package_key_sets: dict[str, set[str]] = {}
     for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
         manifest, identity = _manifest_identity(
             repo_root, OPENAI_PACKAGE_MANIFESTS[target_id], errors, 'adapter_contract_version'
+        )
+        package_key_sets[target_id] = set(manifest)
+        _validate_openai_package_provenance(
+            target_id, manifest, source_identity.get('sha256'), errors,
         )
         targets.append(_openai_target(
             target_id, source_by_id.get(target_id, {}), manifest, identity,
             knowledge_targets.get(target_id, {}), behavior_counts[target_id], errors,
         ))
+
+    if package_key_sets['openai_dcoir_analyst'] != package_key_sets['openai_usb_reporting']:
+        errors.append('OpenAI package manifests must have identical top-level field sets')
 
     guide = _validate_guide(repo_root, errors)
     check_results, check_errors = _target_check_results(repo_root, run_target_checks)

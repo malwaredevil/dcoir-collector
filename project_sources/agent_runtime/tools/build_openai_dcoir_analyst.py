@@ -547,6 +547,7 @@ def build_package(
         'target_id': TARGET_ID,
         'source_base_commit': manifest.get('source_base_commit'),
         'source_contracts': source_hashes,
+        'source_contract_sha256': source_contract_sha,
         'behavior_source_snapshot_sha256': snapshot_sha,
         'behavior_coverage_count': len(behavior_snapshot),
         'behavior_coverage': behavior_snapshot,
@@ -576,6 +577,7 @@ def build_package(
         'generated_outputs_are_canonical': False,
         'direct_target_edits_require_reverse_reconciliation': True,
         'live_webui_validation_performed': False,
+        'manual_deployment_required': True,
     }
     if 'package_manifest' in output_paths:
         expected_files[output_paths['package_manifest']] = _json_bytes(package_manifest)

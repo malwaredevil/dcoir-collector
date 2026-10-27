@@ -355,8 +355,10 @@
     }
   ],
   "live_webui_validation_performed": false,
+  "manual_deployment_required": true,
   "schema": "dcoir.agent_runtime.openai_dcoir_package.v1",
   "source_base_commit": "bd69c7a5e5f236e03774a0aedf93a3d818650d81",
+  "source_contract_sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae",
   "source_contracts": {
     "behavior_module_manifest": {
       "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
