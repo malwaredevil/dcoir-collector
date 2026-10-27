@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / 'project_sources/agent_runtime/tools'))
 import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 import openai_builder_package_assembly as assembly
+import openai_builder_pipeline as pipeline
 
 TARGETS = (('openai_dcoir_analyst', dcoir), ('openai_usb_reporting', usb))
 BASE = Path('project_sources/agent_runtime')
@@ -162,12 +163,70 @@ def test_generated_file_drift_and_extra_files_never_report_success():
             tmp.cleanup()
 
 
+
+def test_shared_pipeline_owner_and_target_specifications():
+    import ast
+    import inspect
+
+    for target, builder in TARGETS:
+        spec = builder.TARGET_SPEC
+        assert isinstance(spec, pipeline.BuilderSpec)
+        assert builder.run_builder_pipeline is pipeline.run_builder_pipeline
+        assert spec.target_id == builder.TARGET_ID == target
+        assert spec.package_settings is builder.PACKAGE_SETTINGS
+        assert spec.expected_paths is builder.EXPECTED_PATHS
+        assert spec.projection_before_target is (target == 'openai_dcoir_analyst')
+        # There must be one source-of-truth pipeline, not duplicated validators.
+        build_function = ast.parse(inspect.getsource(builder.build_package)).body[0]
+        assert len(build_function.body) == 1
+        assert isinstance(build_function.body[0], ast.Return)
+        assert isinstance(build_function.body[0].value, ast.Call)
+        assert build_function.body[0].value.func.id == 'run_builder_pipeline'
+
+
+def test_pipeline_hostile_order_and_cross_target_binding():
+    for target, builder in TARGETS:
+        tmp, repo, adapter, pkg = stage(target)
+        try:
+            # Simultaneously corrupt the knowledge hash and behavior coverage.
+            # The old targets differ in which error must be observed first.
+            mutate_adapter(adapter, lambda a: a.__setitem__('coverage', []))
+            knowledge = repo / BASE / f'generated/knowledge/{target}/manifest.json'
+            data = json.loads(knowledge.read_text(encoding='utf-8'))
+            data['source_contract_sha256'] = '0' * 64
+            knowledge.write_text(json.dumps(data, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+            errors, report = builder.build_package(repo, adapter, check=False)
+            assert not report['success'] and not pkg.exists(), (target, errors)
+            assert len(errors) == 3, (target, errors)
+            hash_error = errors.index('Knowledge target source-contract hash drift')
+            coverage_error = next(i for i, e in enumerate(errors) if e.startswith('Behavior coverage must exactly match'))
+            if target == 'openai_dcoir_analyst':
+                assert hash_error < coverage_error, (target, errors)
+            else:
+                assert coverage_error < hash_error, (target, errors)
+        finally:
+            tmp.cleanup()
+
+        # A valid target must reject another builder's manifest, without output.
+        tmp, repo, adapter, pkg = stage(target)
+        try:
+            other = usb if target == 'openai_dcoir_analyst' else dcoir
+            errors, report = pipeline.run_builder_pipeline(
+                repo, adapter, check=False, spec=other.TARGET_SPEC,
+            )
+            assert errors and not report['success'] and not pkg.exists(), (target, errors)
+        finally:
+            tmp.cleanup()
+
+
 def main() -> int:
     tests = (
         test_valid_package_manifest_configuration_and_hash_scope,
         test_editor_and_starter_mutations_fail_closed_without_writing,
         test_output_map_and_escape_mutations_fail_closed,
         test_generated_file_drift_and_extra_files_never_report_success,
+        test_shared_pipeline_owner_and_target_specifications,
+        test_pipeline_hostile_order_and_cross_target_binding,
     )
     for test in tests:
         test()

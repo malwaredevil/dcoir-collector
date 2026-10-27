@@ -6,18 +6,10 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
-from openai_builder_knowledge_projection import validate_knowledge_projections
-from openai_builder_behavior_snapshot import validate_behavior_snapshot
-from openai_builder_instruction_contract import validate_instruction_cases
 from openai_builder_package_assembly import PackageSettings, assemble_package_files
-from openai_builder_source_contract import (
-    load_adapter_source_inputs, validate_source_target_capabilities,
-    read_source_bytes as _read_bytes,
-)
-from openai_builder_validation_kernel import (
-    validate_behavior_snapshot_pin,
-    validate_projection_manifest_binding,
-)
+from openai_builder_pipeline import BuilderSpec, run_builder_pipeline
+from openai_builder_source_contract import read_source_bytes as _read_bytes
+from openai_builder_validation_kernel import validate_projection_manifest_binding
 from openai_webui_contract import (
     DESCRIPTION_CHARACTER_CEILING as EXPECTED_DESCRIPTION_CHARACTER_CEILING,
     INSTRUCTION_CHARACTER_CEILING as EXPECTED_INSTRUCTION_CHARACTER_CEILING,
@@ -111,81 +103,38 @@ REQUIRED_STATIC_MARKERS = (
 )
 
 
-def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[list[str], dict[str, Any]]:
-    repo_root = repo_root.resolve()
-    errors: list[str] = []
-    inputs = load_adapter_source_inputs(
-        repo_root, manifest_path, errors,
-        adapter_schema=SCHEMA, target_id=TARGET_ID,
-        expected_paths=EXPECTED_PATHS, source_schema=SOURCE_SCHEMA,
-        behavior_schema=BEHAVIOR_SCHEMA,
-        invalid_generated_root='.invalid-openai-usb-generated-root',
-    )
-    if inputs is None:
-        return errors, {'success': False, 'errors': errors}
-    (manifest, generated_root, required_paths, source_contract,
-     behavior_manifest, knowledge_projection_manifest, target_manifest,
-     cases, source_contract_sha) = inputs
-    target, capabilities = validate_source_target_capabilities(
-        source_contract, manifest, errors,
-        target_id=TARGET_ID, label='OpenAI USB Reporting',
-        runtime_model=EXPECTED_RUNTIME_MODEL,
-        profile_error_policy='usb',
-    )
-    coverage = manifest.get('coverage')
-    if not isinstance(coverage, list):
-        errors.append('Adapter coverage must be an array')
-        coverage = []
-    behavior_snapshot, snapshot_sha = validate_behavior_snapshot(
-        repo_root, source_contract, behavior_manifest, coverage, errors,
-        target_id=TARGET_ID, expected_count=EXPECTED_BEHAVIOR_ITEMS,
-        instructions_path=EXPECTED_OUTPUTS['instructions'],
-        section_headings=SECTION_HEADINGS,
-    )
-    validate_behavior_snapshot_pin(snapshot_sha, manifest, errors)
-    instruction_path = required_paths.get('canonical_instructions_source')
-    instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
-    case_ids = validate_instruction_cases(
-        instructions, manifest, cases, errors,
-        target_id=TARGET_ID, case_schema=EXPECTED_CASE_SCHEMA,
-        expected_ceiling=EXPECTED_INSTRUCTION_CHARACTER_CEILING,
-        section_headings=SECTION_HEADINGS,
-        required_static_markers=REQUIRED_STATIC_MARKERS,
-        provider_topology_leaks=PROVIDER_TOPOLOGY_LEAKS,
-        expected_cases=EXPECTED_CASES,
-        marker_error_policy=CASE_MARKER_POLICY,
-    )
-    validate_projection_manifest_binding(
-        knowledge_projection_manifest, manifest, TARGET_ID,
-        EXPECTED_KNOWLEDGE_FILES, errors, 'OpenAI USB'
-    )
-    if target_manifest.get('source_contract') != manifest.get('source_contract'):
-        errors.append('Knowledge target points to the wrong shared source contract')
-    if target_manifest.get('source_contract_sha256') != source_contract_sha:
-        errors.append('Knowledge target source-contract hash drift')
-    knowledge_files = validate_knowledge_projections(
-        repo_root, target_manifest, errors,
-        target_id=TARGET_ID, schema=KNOWLEDGE_SCHEMA,
-        expected_count=EXPECTED_KNOWLEDGE_FILES, label='USB',
-    )
-    expected_files = assemble_package_files(
-        repo_root, generated_root, manifest, target, required_paths,
-        instructions, knowledge_files, target_manifest, behavior_snapshot,
-        snapshot_sha, case_ids, capabilities, source_contract_sha, errors,
-        settings=PACKAGE_SETTINGS, check=check,
-    )
-    report = {
-        'success': not errors,
-        'action': 'check' if check else 'materialize',
-        'target_id': TARGET_ID,
-        'behavior_coverage_count': len(behavior_snapshot),
-        'behavior_source_snapshot_sha256': snapshot_sha,
-        'behavioral_case_count': len(case_ids),
-        'knowledge_file_count': len(knowledge_files),
-        'generated_file_count': len(expected_files),
-        'errors': errors,
-    }
-    return errors, report
+
+TARGET_SPEC = BuilderSpec(
+    target_id=TARGET_ID,
+    adapter_schema=SCHEMA,
+    source_schema=SOURCE_SCHEMA,
+    behavior_schema=BEHAVIOR_SCHEMA,
+    knowledge_schema=KNOWLEDGE_SCHEMA,
+    expected_paths=EXPECTED_PATHS,
+    package_settings=PACKAGE_SETTINGS,
+    runtime_model=EXPECTED_RUNTIME_MODEL,
+    knowledge_count=EXPECTED_KNOWLEDGE_FILES,
+    behavior_count=EXPECTED_BEHAVIOR_ITEMS,
+    case_count=EXPECTED_CASES,
+    case_schema=EXPECTED_CASE_SCHEMA,
+    marker_error_policy=CASE_MARKER_POLICY,
+    section_headings=SECTION_HEADINGS,
+    required_static_markers=REQUIRED_STATIC_MARKERS,
+    provider_topology_leaks=PROVIDER_TOPOLOGY_LEAKS,
+    target_label='OpenAI USB Reporting',
+    projection_label='OpenAI USB',
+    knowledge_label='USB',
+    profile_error_policy='usb',
+    invalid_generated_root='.invalid-openai-usb-generated-root',
+    projection_before_target=False,
+)
+
+
+def build_package(
+    repo_root: Path, manifest_path: Path, check: bool
+) -> tuple[list[str], dict[str, Any]]:
+    # Preserve the existing public API, now delegated to the shared pipeline.
+    return run_builder_pipeline(repo_root, manifest_path, check, spec=TARGET_SPEC)
 
 
 def main() -> int:
