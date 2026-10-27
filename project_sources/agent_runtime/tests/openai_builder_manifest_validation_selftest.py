@@ -14,6 +14,8 @@ sys.path.insert(0, str(ROOT / 'project_sources/agent_runtime/tools'))
 import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 import openai_builder_validation_kernel as kernel
+import openai_builder_behavior_snapshot as behavior_snapshot
+import openai_builder_behavior_snapshot_selftest as behavior_snapshot_tests
 
 TARGETS = (('openai_dcoir_analyst', dcoir), ('openai_usb_reporting', usb))
 COMMON = (
@@ -164,7 +166,7 @@ def test_malformed_behavior_module_inventory() -> None:
          'invalid module id'),
     )
     for target_id, builder in TARGETS:
-        assert builder.index_governed_behavior_modules is kernel.index_governed_behavior_modules
+        assert behavior_snapshot.index_governed_behavior_modules is kernel.index_governed_behavior_modules
         for name, mutation, message in cases:
             errors, report, wrote = run_mutation(
                 target_id, builder, mutation, target_file='behavior',
@@ -201,7 +203,7 @@ def test_malformed_source_item_and_capabilities() -> None:
 
 def test_safe_targets_and_shared_owners() -> None:
     for target_id, builder in TARGETS:
-        assert builder.validate_behavior_disposition is kernel.validate_behavior_disposition
+        assert behavior_snapshot.validate_behavior_disposition is kernel.validate_behavior_disposition
         assert builder.select_governed_source_target is kernel.select_governed_source_target
         assert builder.validate_projection_manifest_binding is kernel.validate_projection_manifest_binding
         tmp, repo, adapter = stage(target_id)
@@ -222,6 +224,7 @@ def main():
     test_malformed_behavior_module_inventory()
     test_malformed_source_item_and_capabilities()
     test_safe_targets_and_shared_owners()
+    behavior_snapshot_tests.main()
     print('PASS: strict DCOIR/USB disposition, source-target and Knowledge manifest gates')
     return 0
 

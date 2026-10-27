@@ -11,15 +11,14 @@ from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
 from openai_builder_knowledge_projection import validate_knowledge_projections
+from openai_builder_behavior_snapshot import validate_behavior_snapshot
 from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
     validate_behavior_snapshot_pin,
     validate_source_output_binding,
-    validate_behavior_disposition,
     select_governed_source_target,
     validate_projection_manifest_binding,
-    index_governed_behavior_modules,
 )
 from openai_webui_contract import (
     CAPABILITY_KEYS as REQUIRED_DISABLED_CAPABILITIES,
@@ -221,84 +220,6 @@ def _validate_instructions(
     return case_ids
 
 
-def _behavior_snapshot(
-    repo_root: Path,
-    source_contract: dict[str, Any],
-    behavior_manifest: dict[str, Any],
-    coverage: list[dict[str, Any]],
-    errors: list[str],
-) -> tuple[list[dict[str, Any]], str]:
-    items = source_contract.get('behavior_items')
-    modules = behavior_manifest.get('modules')
-    if not isinstance(items, list) or not isinstance(modules, list):
-        errors.append('Behavior source inventories must be arrays')
-        return [], _sha256(_json_bytes([]))
-    applicable = [
-        item for item in items
-        if isinstance(item, dict)
-        and TARGET_ID in (item.get('applies_to') if isinstance(item.get('applies_to'), list) else [])
-    ]
-    module_by_id = index_governed_behavior_modules(modules, errors)
-    coverage_ids = [entry.get('id') for entry in coverage if isinstance(entry, dict)]
-    expected_ids = [item.get('id') for item in applicable]
-    for item in applicable:
-        validate_behavior_disposition(
-            item, TARGET_ID, EXPECTED_OUTPUTS['instructions'], errors
-        )
-    for duplicate in _duplicates([value for value in coverage_ids if isinstance(value, str)]):
-        errors.append(f'Duplicate behavior coverage id: {duplicate}')
-    if coverage_ids != expected_ids:
-        errors.append(
-            'Behavior coverage must exactly match source-contract order: '
-            f'{coverage_ids} != {expected_ids}'
-        )
-    if len(expected_ids) != EXPECTED_BEHAVIOR_ITEMS:
-        errors.append(
-            f'Expected {EXPECTED_BEHAVIOR_ITEMS} applicable behavior items, '
-            f'got {len(expected_ids)}'
-        )
-    snapshot: list[dict[str, Any]] = []
-    for item, coverage_entry in zip(applicable, coverage):
-        item_id = item.get('id')
-        if not isinstance(item_id, str) or not item_id:
-            errors.append('Behavior item id must be a non-empty string')
-            continue
-        source_path_value = item.get('source_path')
-        source_path = resolve_repo_path(
-            repo_root,
-            source_path_value,
-            f'{item_id} source_path',
-            errors,
-        )
-        if source_path is None:
-            continue
-        content = _read_bytes(source_path, f'behavior source {item_id}', errors)
-        actual_sha = _sha256(content)
-        module = module_by_id.get(item_id)
-        if module is None:
-            errors.append(f'Behavior module manifest lacks {item_id}')
-        else:
-            if module.get('source_path') != source_path_value:
-                errors.append(f'Behavior path disagreement for {item_id}')
-            if module.get('sha256') != actual_sha:
-                errors.append(f'Behavior source hash drift for {item_id}')
-        sections = coverage_entry.get('sections') if isinstance(coverage_entry, dict) else None
-        if not isinstance(sections, list) or not sections or not all(
-            isinstance(section, str) and section in SECTION_HEADINGS for section in sections
-        ):
-            errors.append(f'{item_id} has invalid instruction section coverage')
-            sections = []
-        snapshot.append(
-            {
-                'id': item_id,
-                'source_path': source_path_value,
-                'sha256': actual_sha,
-                'sections': sections,
-            }
-        )
-    return snapshot, _sha256(_json_bytes(snapshot))
-
-
 def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[list[str], dict[str, Any]]:
     repo_root = repo_root.resolve()
     errors: list[str] = []
@@ -381,12 +302,11 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     if not isinstance(coverage, list):
         errors.append('Adapter coverage must be an array')
         coverage = []
-    behavior_snapshot, snapshot_sha = _behavior_snapshot(
-        repo_root,
-        source_contract,
-        behavior_manifest,
-        coverage,
-        errors,
+    behavior_snapshot, snapshot_sha = validate_behavior_snapshot(
+        repo_root, source_contract, behavior_manifest, coverage, errors,
+        target_id=TARGET_ID, expected_count=EXPECTED_BEHAVIOR_ITEMS,
+        instructions_path=EXPECTED_OUTPUTS['instructions'],
+        section_headings=SECTION_HEADINGS,
     )
     validate_behavior_snapshot_pin(snapshot_sha, manifest, errors)
     instruction_path = required_paths.get('canonical_instructions_source')
