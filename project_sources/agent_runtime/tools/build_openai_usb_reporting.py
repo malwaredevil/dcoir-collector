@@ -10,10 +10,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
+from openai_builder_knowledge_projection import validate_knowledge_projections
 from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
-    validate_knowledge_file_ceiling,
     validate_behavior_snapshot_pin,
     validate_source_output_binding,
     validate_behavior_disposition,
@@ -299,63 +299,6 @@ def _behavior_snapshot(
     return snapshot, _sha256(_json_bytes(snapshot))
 
 
-def _knowledge_files(
-    repo_root: Path,
-    target_manifest: dict[str, Any],
-    errors: list[str],
-) -> list[dict[str, Any]]:
-    if target_manifest.get('schema') != KNOWLEDGE_SCHEMA:
-        errors.append('Unexpected USB knowledge target manifest schema')
-    if target_manifest.get('target_id') != TARGET_ID:
-        errors.append('Knowledge target manifest has the wrong target_id')
-    projections = target_manifest.get('projections')
-    if not isinstance(projections, list):
-        errors.append('Knowledge target projections must be an array')
-        return []
-    if len(projections) != EXPECTED_KNOWLEDGE_FILES:
-        errors.append(
-            f'Expected {EXPECTED_KNOWLEDGE_FILES} USB knowledge files, got {len(projections)}'
-        )
-    validate_knowledge_file_ceiling(target_manifest, len(projections), errors)
-    orders = [entry.get('order') for entry in projections if isinstance(entry, dict)]
-    if orders != list(range(len(projections))):
-        errors.append('Knowledge projection order must be contiguous')
-    knowledge_root = (
-        repo_root / 'project_sources/agent_runtime/generated/knowledge/openai_usb_reporting'
-    ).resolve()
-    result: list[dict[str, Any]] = []
-    for entry in projections:
-        if not isinstance(entry, dict):
-            errors.append('Knowledge projections contain a non-object entry')
-            continue
-        path = resolve_repo_path(
-            repo_root,
-            entry.get('output_path'),
-            f"knowledge projection {entry.get('id')}",
-            errors,
-            knowledge_root,
-        )
-        if path is None:
-            continue
-        if path.is_symlink():
-            errors.append(f'Knowledge projection must not be a symlink: {path}')
-            continue
-        content = _read_bytes(path, 'knowledge projection', errors)
-        actual_sha = _sha256(content)
-        if actual_sha != entry.get('sha256') or len(content) != entry.get('bytes'):
-            errors.append(f"Knowledge projection drift: {entry.get('id')}")
-        result.append(
-            {
-                'id': entry.get('id'),
-                'order': entry.get('order'),
-                'path': entry.get('output_path'),
-                'sha256': actual_sha,
-                'bytes': len(content),
-            }
-        )
-    return result
-
-
 def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[list[str], dict[str, Any]]:
     repo_root = repo_root.resolve()
     errors: list[str] = []
@@ -457,7 +400,11 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
         errors.append('Knowledge target points to the wrong shared source contract')
     if target_manifest.get('source_contract_sha256') != source_contract_sha:
         errors.append('Knowledge target source-contract hash drift')
-    knowledge_files = _knowledge_files(repo_root, target_manifest, errors)
+    knowledge_files = validate_knowledge_projections(
+        repo_root, target_manifest, errors,
+        target_id=TARGET_ID, schema=KNOWLEDGE_SCHEMA,
+        expected_count=EXPECTED_KNOWLEDGE_FILES, label='USB',
+    )
     editor = manifest.get('editor')
     if not isinstance(editor, dict):
         errors.append('Adapter editor configuration must be an object')

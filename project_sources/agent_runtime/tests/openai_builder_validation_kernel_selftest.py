@@ -16,6 +16,7 @@ sys.path.insert(0, str(TOOLS))
 import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 import openai_builder_validation_kernel as kernel
+import openai_builder_knowledge_projection as knowledge
 
 ADAPTERS = (('dcoir', 'openai_dcoir_analyst', dcoir), ('usb', 'openai_usb_reporting', usb))
 COMMON = (
@@ -46,22 +47,26 @@ def staged_builder(target_id: str) -> tuple[tempfile.TemporaryDirectory, Path, P
 
 
 def test_knowledge_ceiling_both_targets() -> None:
-    for _, target_id, builder in ADAPTERS:
-        assert builder.validate_knowledge_file_ceiling is kernel.validate_knowledge_file_ceiling
+    for label, target_id, builder in ADAPTERS:
+        assert knowledge.validate_knowledge_file_ceiling is kernel.validate_knowledge_file_ceiling
         manifest = json.loads((
             ROOT / f'project_sources/agent_runtime/generated/knowledge/{target_id}/manifest.json'
         ).read_text(encoding='utf-8'))
         count = len(manifest['projections'])
         for ceiling in (count, 20):
             errors: list[str] = []
-            entries = builder._knowledge_files(
-                ROOT, {**manifest, 'strict_file_count_ceiling': ceiling}, errors
+            entries = knowledge.validate_knowledge_projections(
+                ROOT, {**manifest, 'strict_file_count_ceiling': ceiling}, errors,
+                target_id=target_id, schema=builder.KNOWLEDGE_SCHEMA,
+                expected_count=builder.EXPECTED_KNOWLEDGE_FILES, label=label.upper(),
             )
             assert not errors and len(entries) == count, (target_id, ceiling, errors)
         for ceiling in (None, False, True, -1, 0, 21, count - 1):
             errors = []
-            builder._knowledge_files(
-                ROOT, {**manifest, 'strict_file_count_ceiling': ceiling}, errors
+            knowledge.validate_knowledge_projections(
+                ROOT, {**manifest, 'strict_file_count_ceiling': ceiling}, errors,
+                target_id=target_id, schema=builder.KNOWLEDGE_SCHEMA,
+                expected_count=builder.EXPECTED_KNOWLEDGE_FILES, label=label.upper(),
             )
             assert 'Knowledge projection count or ceiling is invalid' in errors, (
                 target_id, repr(ceiling), errors

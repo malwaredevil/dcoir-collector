@@ -10,10 +10,10 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
+from openai_builder_knowledge_projection import validate_knowledge_projections
 from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
-    validate_knowledge_file_ceiling,
     validate_behavior_snapshot_pin,
     validate_source_output_binding,
     validate_behavior_disposition,
@@ -303,64 +303,6 @@ def _validate_instructions(
     return case_ids
 
 
-def _knowledge_files(
-    repo_root: Path,
-    target_manifest: dict[str, Any],
-    errors: list[str],
-) -> list[dict[str, Any]]:
-    if target_manifest.get('schema') != KNOWLEDGE_SCHEMA:
-        errors.append('Unexpected DCOIR knowledge target manifest schema')
-    if target_manifest.get('target_id') != TARGET_ID:
-        errors.append('Knowledge target manifest has the wrong target_id')
-    projections = target_manifest.get('projections')
-    if not isinstance(projections, list):
-        errors.append('Knowledge target projections must be an array')
-        return []
-    if len(projections) != EXPECTED_KNOWLEDGE_FILES:
-        errors.append(
-            f'Expected {EXPECTED_KNOWLEDGE_FILES} DCOIR knowledge files, '
-            f'got {len(projections)}'
-        )
-    validate_knowledge_file_ceiling(target_manifest, len(projections), errors)
-    knowledge_root = (
-        repo_root / 'project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst'
-    ).resolve()
-    result: list[dict[str, Any]] = []
-    orders = [entry.get('order') for entry in projections if isinstance(entry, dict)]
-    if orders != list(range(len(projections))):
-        errors.append('Knowledge projection order must be contiguous')
-    for entry in projections:
-        if not isinstance(entry, dict):
-            errors.append('Knowledge projections contain a non-object entry')
-            continue
-        path = resolve_repo_path(
-            repo_root,
-            entry.get('output_path'),
-            f"knowledge projection {entry.get('id')}",
-            errors,
-            knowledge_root,
-        )
-        if path is None:
-            continue
-        if path.is_symlink():
-            errors.append(f'Knowledge projection must not be a symlink: {path}')
-            continue
-        content = _read_bytes(path, 'knowledge projection', errors)
-        actual_sha = _sha256(content)
-        if actual_sha != entry.get('sha256') or len(content) != entry.get('bytes'):
-            errors.append(f"Knowledge projection drift: {entry.get('id')}")
-        result.append(
-            {
-                'id': entry.get('id'),
-                'order': entry.get('order'),
-                'path': entry.get('output_path'),
-                'sha256': actual_sha,
-                'bytes': len(content),
-            }
-        )
-    return result
-
-
 def build_package(
     repo_root: Path, manifest_path: Path, check: bool
 ) -> tuple[list[str], dict[str, Any]]:
@@ -470,7 +412,11 @@ def build_package(
     instruction_path = required_paths.get('canonical_instructions_source')
     instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
     case_ids = _validate_instructions(instructions, manifest, cases, errors)
-    knowledge_files = _knowledge_files(repo_root, target_manifest, errors)
+    knowledge_files = validate_knowledge_projections(
+        repo_root, target_manifest, errors,
+        target_id=TARGET_ID, schema=KNOWLEDGE_SCHEMA,
+        expected_count=EXPECTED_KNOWLEDGE_FILES, label='DCOIR',
+    )
     editor = manifest.get('editor')
     if not isinstance(editor, dict):
         errors.append('Adapter editor configuration must be an object')
