@@ -6,12 +6,12 @@ import hashlib
 import json
 import re
 import sys
-from collections import Counter
 from pathlib import Path
 from typing import Any
 from agent_runtime_path_safety import resolve_repo_path
 from openai_builder_knowledge_projection import validate_knowledge_projections
 from openai_builder_behavior_snapshot import validate_behavior_snapshot
+from openai_builder_instruction_contract import validate_instruction_cases
 from openai_package_output_kernel import reconcile_generated_package
 from openai_builder_validation_kernel import (
     validate_generated_root_no_symlink,
@@ -41,6 +41,8 @@ EXPECTED_RUNTIME_MODEL = 'GPT-5.6 Terra'
 EXPECTED_KNOWLEDGE_FILES = 1
 EXPECTED_BEHAVIOR_ITEMS = 8
 EXPECTED_CASES = 13
+EXPECTED_CASE_SCHEMA = 'dcoir.agent_runtime.openai_usb_reporting_behavioral_cases.v1'
+CASE_MARKER_POLICY = 'per_marker'
 EXPECTED_PATHS = {
     'source_contract': 'project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
     'behavior_module_manifest': 'project_sources/agent_runtime/Behavior_Module_Manifest.json',
@@ -110,10 +112,6 @@ def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def _duplicates(values: list[str]) -> list[str]:
-    return sorted(value for value, count in Counter(values).items() if count > 1)
-
-
 def _load_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding='utf-8'))
@@ -135,89 +133,6 @@ def _read_bytes(path: Path, label: str, errors: list[str]) -> bytes:
     except OSError as exc:
         errors.append(f'Unreadable {label}: {path} ({type(exc).__name__})')
         return b''
-
-
-def _validate_instructions(
-    instructions: bytes,
-    manifest: dict[str, Any],
-    cases: dict[str, Any],
-    errors: list[str],
-) -> list[str]:
-    if cases.get('schema') != 'dcoir.agent_runtime.openai_usb_reporting_behavioral_cases.v1':
-        errors.append('Unexpected behavioral cases schema')
-    if cases.get('target_id') != TARGET_ID:
-        errors.append('Behavioral cases have the wrong target_id')
-    if cases.get('live_model_evidence') is not False:
-        errors.append('Offline behavioral cases must not claim live model evidence')
-    try:
-        text = instructions.decode('utf-8')
-    except UnicodeDecodeError:
-        errors.append('Canonical Instructions must be UTF-8')
-        return []
-    ceiling = manifest.get('instruction_character_ceiling')
-    if type(ceiling) is not int or ceiling != EXPECTED_INSTRUCTION_CHARACTER_CEILING:
-        errors.append(
-            'instruction_character_ceiling must remain '
-            f'{EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
-        )
-    instruction_character_count = _webui_character_count(text)
-    if instruction_character_count > EXPECTED_INSTRUCTION_CHARACTER_CEILING:
-        errors.append(
-            'Instructions exceed character ceiling: '
-            f'{instruction_character_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
-        )
-    # The release package counts WebUI paste-safe characters after CRLF expansion.
-    paste_safe_count = _webui_paste_safe_character_count(text)
-    if paste_safe_count > EXPECTED_INSTRUCTION_CHARACTER_CEILING:
-        errors.append(
-            'Instructions exceed paste-safe character ceiling after CRLF expansion: '
-            f'{paste_safe_count} > {EXPECTED_INSTRUCTION_CHARACTER_CEILING}'
-        )
-    for section_id, heading in SECTION_HEADINGS.items():
-        if text.count(heading) != 1:
-            errors.append(f'Instructions must contain one {section_id} heading')
-    positions = [text.find(heading) for heading in SECTION_HEADINGS.values()]
-    if any(position < 0 for position in positions) or positions != sorted(positions):
-        errors.append('Instruction sections must remain in the governed order')
-    for marker in REQUIRED_STATIC_MARKERS:
-        if marker not in text:
-            errors.append(f'Instructions lack required static contract marker: {marker}')
-    lower = text.lower()
-    for leak in PROVIDER_TOPOLOGY_LEAKS:
-        if leak in lower:
-            errors.append(f'Provider-topology leakage in Instructions: {leak}')
-    case_items = cases.get('cases')
-    if not isinstance(case_items, list):
-        errors.append('Behavioral cases must be an array')
-        return []
-    case_ids: list[str] = []
-    for case in case_items:
-        if not isinstance(case, dict):
-            errors.append('Behavioral cases contain a non-object entry')
-            continue
-        case_id = case.get('id')
-        if not isinstance(case_id, str) or not case_id:
-            errors.append('Behavioral case lacks an id')
-            continue
-        case_ids.append(case_id)
-        for field in ('scenario', 'expected_behavior'):
-            value = case.get(field)
-            if not isinstance(value, str) or not value.strip():
-                errors.append(f'{case_id} lacks a non-empty {field}')
-        markers = case.get('required_markers')
-        if not isinstance(markers, list) or not markers:
-            errors.append(f'{case_id} has invalid required_markers')
-            continue
-        for marker in markers:
-            if not isinstance(marker, str) or not marker:
-                errors.append(f'{case_id} has an invalid required marker')
-            elif marker not in text:
-                errors.append(f'{case_id} missing Instructions marker: {marker}')
-    for duplicate in _duplicates(case_ids):
-        errors.append(f'Duplicate behavioral case id: {duplicate}')
-    if len(case_ids) != EXPECTED_CASES:
-        errors.append(f'Expected {EXPECTED_CASES} behavioral cases, got {len(case_ids)}')
-    return case_ids
 
 
 def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[list[str], dict[str, Any]]:
@@ -311,7 +226,16 @@ def build_package(repo_root: Path, manifest_path: Path, check: bool) -> tuple[li
     validate_behavior_snapshot_pin(snapshot_sha, manifest, errors)
     instruction_path = required_paths.get('canonical_instructions_source')
     instructions = _read_bytes(instruction_path, 'canonical Instructions', errors) if instruction_path else b''
-    case_ids = _validate_instructions(instructions, manifest, cases, errors)
+    case_ids = validate_instruction_cases(
+        instructions, manifest, cases, errors,
+        target_id=TARGET_ID, case_schema=EXPECTED_CASE_SCHEMA,
+        expected_ceiling=EXPECTED_INSTRUCTION_CHARACTER_CEILING,
+        section_headings=SECTION_HEADINGS,
+        required_static_markers=REQUIRED_STATIC_MARKERS,
+        provider_topology_leaks=PROVIDER_TOPOLOGY_LEAKS,
+        expected_cases=EXPECTED_CASES,
+        marker_error_policy=CASE_MARKER_POLICY,
+    )
     validate_projection_manifest_binding(
         knowledge_projection_manifest, manifest, TARGET_ID,
         EXPECTED_KNOWLEDGE_FILES, errors, 'OpenAI USB'

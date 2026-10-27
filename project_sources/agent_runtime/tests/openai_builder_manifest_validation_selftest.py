@@ -16,6 +16,7 @@ import build_openai_usb_reporting as usb
 import openai_builder_validation_kernel as kernel
 import openai_builder_behavior_snapshot as behavior_snapshot
 import openai_builder_behavior_snapshot_selftest as behavior_snapshot_tests
+import openai_builder_instruction_contract_selftest as instruction_tests
 
 TARGETS = (('openai_dcoir_analyst', dcoir), ('openai_usb_reporting', usb))
 COMMON = (
@@ -225,6 +226,7 @@ def main():
     test_malformed_source_item_and_capabilities()
     test_safe_targets_and_shared_owners()
     behavior_snapshot_tests.main()
+    instruction_tests.main()
     print('PASS: strict DCOIR/USB disposition, source-target and Knowledge manifest gates')
     return 0
 
