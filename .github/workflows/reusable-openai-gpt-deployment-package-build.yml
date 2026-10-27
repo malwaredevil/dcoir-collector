@@ -45,41 +45,30 @@ jobs:
         with:
           profile: manual_openai_gpt_deployment_package_build
 
-      - name: Run OpenAI release payload and determinism self-tests
+      - name: Run five independent OpenAI deployment release self-tests
         shell: pwsh
         run: |
+          Write-Host '=== OpenAI release payload and determinism (6 tests) ==='
           python project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release payload and determinism self-tests failed.'
           }
-
-      - name: Run OpenAI release WebUI limits self-tests
-        shell: pwsh
-        run: |
+          Write-Host '=== OpenAI release WebUI limits (6 tests) ==='
           python project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release WebUI limits self-tests failed.'
           }
-
-      - name: Run OpenAI release filesystem safety self-tests
-        shell: pwsh
-        run: |
+          Write-Host '=== OpenAI release filesystem safety (10 tests) ==='
           python project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release filesystem safety self-tests failed.'
           }
-
-      - name: Run OpenAI release manifest contract self-tests
-        shell: pwsh
-        run: |
+          Write-Host '=== OpenAI release manifest contract (3 tests) ==='
           python project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release manifest contract self-tests failed.'
           }
-
-      - name: Run OpenAI release version and handoff self-tests
-        shell: pwsh
-        run: |
+          Write-Host '=== OpenAI release version and handoff (6 tests) ==='
           python project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release version and handoff self-tests failed.'
