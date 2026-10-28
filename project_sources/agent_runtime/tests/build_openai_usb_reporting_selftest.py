@@ -293,10 +293,13 @@ def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
         manifest['generated_root'] = symlink.as_posix()
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-        errors, _ = module.build_package(repo, manifest_path, check=True)
-        assert any('generated_root must remain bound' in error for error in errors), errors
-        assert any('generated_root must not be absolute' in error for error in errors), errors
-        assert any('Generated package root must not be a symlink' in error for error in errors), errors
+        for check in (True, False):
+            errors, report = module.build_package(repo, manifest_path, check=check)
+            assert any('generated_root must remain bound' in error for error in errors), errors
+            assert any('generated_root must not be absolute' in error for error in errors), errors
+            assert not report.get('success'), report
+            assert symlink.is_symlink()
+            assert list(target.iterdir()) == []
     finally:
         outside_td.cleanup()
         td.cleanup()
