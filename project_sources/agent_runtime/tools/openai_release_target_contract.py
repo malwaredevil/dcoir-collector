@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from openai_builder_validation_kernel import MAX_KNOWLEDGE_FILES
+from openai_webui_contract import CAPABILITY_KEYS
 from validate_shared_agent_source_contract import EXPECTED_TARGET_IDS
 
 SOURCE_SCHEMA = 'dcoir.agent_runtime.source_contract.v1'
@@ -55,7 +57,7 @@ def bind_release_targets(
     source_policy = source.get('knowledge_projection_policy')
     policy_limit = source_policy.get('strict_file_count_ceiling') if isinstance(source_policy, dict) else None
     projection_limit = projection.get('strict_file_count_ceiling')
-    if type(policy_limit) is not int or policy_limit < 1 or (
+    if type(policy_limit) is not int or not 1 <= policy_limit <= MAX_KNOWLEDGE_FILES or (
         type(projection_limit) is not int or projection_limit != policy_limit
     ):
         errors.append('OpenAI release Knowledge file ceilings disagree or are invalid')
@@ -71,6 +73,13 @@ def bind_release_targets(
         source_target = matching[0]
         if source_target.get('provider') != 'openai_webui_bedrock_hosted':
             errors.append(f'{target_id} source provider is not the governed OpenAI WebUI provider')
+        capabilities = source_target.get('capabilities')
+        if not isinstance(capabilities, dict) or set(capabilities) != set(CAPABILITY_KEYS):
+            errors.append(f'{target_id} source capabilities must contain exactly the governed keys')
+        else:
+            for capability in CAPABILITY_KEYS:
+                if capabilities[capability] is not False:
+                    errors.append(f'{target_id} source unsupported capability must be false: {capability}')
         model = source_target.get('runtime_model')
         if (
             not isinstance(model, str) or not model.strip()
@@ -107,6 +116,6 @@ def bind_release_targets(
         ]
         if source_group_ids != group_ids:
             errors.append(f'{target_id} cross-manifest Knowledge projection group drift')
-        specs.append({**target, 'runtime_model': model, 'knowledge_count': count})
+        specs.append({**target, 'runtime_model': model, 'knowledge_count': count, 'knowledge_file_ceiling': policy_limit})
 
     return tuple(specs) if not errors and len(specs) == len(target_templates) else ()

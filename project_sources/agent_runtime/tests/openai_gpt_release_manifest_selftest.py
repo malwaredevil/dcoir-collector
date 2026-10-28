@@ -78,6 +78,54 @@ def test_governed_runtime_model_source_and_package_must_agree() -> None:
     finally:
         td.cleanup()
 
+    # Both GPTs must reject disabled-capability drift from either source owner.
+    for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
+        for plane, kind in (
+            ('source', 'enabled'), ('source', 'integer'), ('source', 'missing'),
+            ('config', 'enabled'), ('config', 'integer'), ('config', 'missing'),
+            ('config', 'extra'),
+        ):
+            td, repo = stage_repo()
+            try:
+                def corrupt_capabilities(capabilities):
+                    if kind == 'enabled':
+                        capabilities['image_generation'] = True
+                    elif kind == 'integer':
+                        capabilities['actions'] = 1
+                    elif kind == 'missing':
+                        capabilities.pop('canvas')
+                    else:
+                        capabilities['unauthorized_capability'] = False
+                if plane == 'source':
+                    _rewrite_governed_manifest(
+                        repo, 'Shared_Agent_Source_Manifest.json',
+                        lambda doc: corrupt_capabilities(next(
+                            target for target in doc['targets'] if target['id'] == target_id
+                        )['capabilities']),
+                    )
+                    expected = (
+                        'source capabilities must contain exactly the governed keys'
+                        if kind == 'missing'
+                        else 'source unsupported capability must be false'
+                    )
+                else:
+                    config_path = (
+                        repo / 'project_sources/agent_runtime/generated/packages'
+                        / target_id / 'GPT_Configuration.json'
+                    )
+                    config = json.loads(config_path.read_text(encoding='utf-8'))
+                    corrupt_capabilities(config['capabilities'])
+                    config_path.write_bytes(module._json_bytes(config))
+                    expected = (
+                        'WebUI capabilities must contain exactly the governed keys'
+                        if kind in ('missing', 'extra')
+                        else 'WebUI unsupported capability must be false'
+                    )
+                _assert_rejected_manifest_release(repo, expected)
+            finally:
+                td.cleanup()
+
+
 
 def test_release_source_manifest_invalid_values_fail_before_writing() -> None:
     source_name = 'Shared_Agent_Source_Manifest.json'
@@ -217,9 +265,73 @@ def test_release_knowledge_count_and_cross_manifest_integrity() -> None:
                 'output_path': 'project_sources/agent_runtime/generated/knowledge/openai_usb_reporting/02-usb-second.md'
             }),
         ))
-        _assert_rejected_manifest_release(repo, 'expected 2 Knowledge files, got 1', early=False)
+        _assert_rejected_manifest_release(repo, 'Knowledge target projection file count drift')
     finally:
         td.cleanup()
+
+    # Matching poisoned source/projection ceilings must not bypass the fixed
+    # per-GPT maximum (and bool must never count as an integer ceiling).
+    for poisoned_limit in (21, 2**31, True):
+        td, repo = stage_repo()
+        try:
+            _rewrite_governed_manifest(
+                repo, 'Shared_Agent_Source_Manifest.json',
+                lambda doc: doc['knowledge_projection_policy'].__setitem__(
+                    'strict_file_count_ceiling', poisoned_limit
+                ),
+            )
+            _rewrite_governed_manifest(
+                repo, 'Knowledge_Projection_Manifest.json',
+                lambda doc: doc.__setitem__('strict_file_count_ceiling', poisoned_limit),
+            )
+            _assert_rejected_manifest_release(repo, 'file ceilings disagree or are invalid')
+        finally:
+            td.cleanup()
+
+    # A same-root rogue Knowledge file with a correct hash is still forbidden.
+    for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
+        for kind in ('rogue_file', 'wrong_id', 'boolean_order', 'wrong_hash',
+                     'wrong_bytes', 'missing_file', 'rogue_target_manifest',
+                     'unapproved_target_manifest_path'):
+            td, repo = stage_repo()
+            try:
+                package_root = repo / 'project_sources/agent_runtime/generated/packages' / target_id
+                config_path = package_root / 'GPT_Configuration.json'
+                config = json.loads(config_path.read_text(encoding='utf-8'))
+                entry = config['knowledge_files'][0]
+                expected = 'WebUI Knowledge entry 0 disagrees with governed projection'
+                if kind in ('rogue_file', 'missing_file'):
+                    path = repo / 'project_sources/agent_runtime/generated/knowledge' / target_id / 'rogue.md'
+                    contents = b'unapproved but hash-consistent bytes\n'
+                    if kind == 'rogue_file':
+                        path.write_bytes(contents)
+                    entry.update(id='unapproved_rogue', path=path.relative_to(repo).as_posix(),
+                                 sha256=module._sha256_bytes(contents), bytes=len(contents))
+                elif kind == 'wrong_id':
+                    entry['id'] = 'wrong_id'
+                elif kind == 'boolean_order':
+                    entry['order'] = False
+                elif kind == 'wrong_hash':
+                    entry['sha256'] = '0' * 64
+                elif kind == 'wrong_bytes':
+                    entry['bytes'] += 1
+                elif kind == 'rogue_target_manifest':
+                    mpath = repo / 'project_sources/agent_runtime/generated/knowledge' / target_id / 'manifest.json'
+                    m = json.loads(mpath.read_text(encoding='utf-8'))
+                    m['projections'][0]['id'] = 'unapproved_rogue'
+                    mpath.write_bytes(module._json_bytes(m))
+                    expected = 'Knowledge target projections disagree with governed projection groups'
+                elif kind == 'unapproved_target_manifest_path':
+                    ppath = repo / 'project_sources/agent_runtime/Knowledge_Projection_Manifest.json'
+                    p = json.loads(ppath.read_text(encoding='utf-8'))
+                    p['targets'][target_id]['target_manifest_path'] = 'unapproved/manifest.json'
+                    ppath.write_bytes(module._json_bytes(p))
+                    expected = 'governed Knowledge target manifest path drift'
+                config_path.write_bytes(module._json_bytes(config))
+                _assert_rejected_manifest_release(repo, expected)
+            finally:
+                td.cleanup()
+
 
 
 def test_release_package_source_provenance_must_match_current_manifest() -> None:

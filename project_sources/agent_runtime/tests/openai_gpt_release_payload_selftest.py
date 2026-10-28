@@ -117,7 +117,7 @@ def test_knowledge_drift_fails_closed() -> None:
         errors, report = _build(repo, "out")
         assert errors
         assert report["success"] is False
-        assert any("Knowledge hash/size drift" in error for error in errors), errors
+        assert any("Knowledge projection drift" in error for error in errors), errors
         assert report["zip_path"] is None
     finally:
         td.cleanup()

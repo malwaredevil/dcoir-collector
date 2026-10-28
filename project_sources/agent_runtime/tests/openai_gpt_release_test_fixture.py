@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import importlib.util
 import sys
 import tempfile
@@ -46,6 +47,9 @@ def _stage_target(
         instructions_text = f"# {webui_name}\n\nGoverned instructions.\n"
     instructions = instructions_text.encode("utf-8")
     _write(package_root / "Instructions.md", instructions)
+    governed_projection = json.loads(
+        (ROOT / 'project_sources/agent_runtime/Knowledge_Projection_Manifest.json').read_text()
+    )['targets'][target_id]['projection_groups']
     knowledge_files = []
     for order in range(knowledge_count):
         name = f"{order + 1:02d}-knowledge-{order + 1}.md"
@@ -54,7 +58,7 @@ def _stage_target(
         _write(path, data)
         knowledge_files.append(
             {
-                "id": f"knowledge_{order}",
+                "id": governed_projection[order]["id"],
                 "order": order,
                 "path": path.relative_to(repo).as_posix(),
                 "sha256": _sha(data),
@@ -68,7 +72,7 @@ def _stage_target(
         "runtime_model": "GPT-5.6 Terra",
         "instructions_file": (Path(package_dir) / "Instructions.md").as_posix(),
         "knowledge_files": knowledge_files,
-        "capabilities": {"web_search": False, "image_generation": True},
+        "capabilities": {capability: False for capability in module.CAPABILITY_KEYS},
         "description": description,
         "conversation_starters": ["Starter one", "Starter two", "Starter three", "Starter four"],
     }
@@ -107,6 +111,31 @@ def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
     for basename in ("Shared_Agent_Source_Manifest.json", "Knowledge_Projection_Manifest.json"):
         relative = Path("project_sources/agent_runtime") / basename
         _write(repo / relative, (ROOT / relative).read_bytes())
+    # Projected test bytes use synthetic filenames, but must be governed by
+    # exactly the same source IDs, target manifest, order and hash contracts.
+    projection_path = repo / "project_sources/agent_runtime/Knowledge_Projection_Manifest.json"
+    projection_doc = json.loads(projection_path.read_text(encoding="utf-8"))
+    for target_id in ("openai_dcoir_analyst", "openai_usb_reporting"):
+        package_root = repo / "project_sources/agent_runtime/generated/packages" / target_id
+        config = json.loads((package_root / "GPT_Configuration.json").read_text(encoding="utf-8"))
+        entries = config["knowledge_files"]
+        projection_target = projection_doc["targets"][target_id]
+        for group, entry in zip(projection_target["projection_groups"], entries):
+            assert group["id"] == entry["id"] and group["order"] == entry["order"]
+            group["output_path"] = entry["path"]
+        manifest_relative = Path(projection_target["target_manifest_path"])
+        target_manifest = json.loads((ROOT / manifest_relative).read_text(encoding="utf-8"))
+        target_manifest["projection_file_count"] = len(entries)
+        target_manifest["projections"] = [
+            {
+                "id": entry["id"], "order": entry["order"],
+                "output_path": entry["path"],
+                "sha256": entry["sha256"], "bytes": entry["bytes"],
+            }
+            for entry in entries
+        ]
+        _write(repo / manifest_relative, module._json_bytes(target_manifest))
+    _write(projection_path, module._json_bytes(projection_doc))
     source_path = repo / "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json"
     source_sha256 = _sha(source_path.read_bytes())
     for target_id in ("openai_dcoir_analyst", "openai_usb_reporting"):

@@ -13,10 +13,13 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import UnsafePathError, validate_relative_path_syntax
+from openai_builder_knowledge_projection import validate_knowledge_projections
+from openai_builder_validation_kernel import validate_projection_manifest_binding
 from agent_runtime_source_commit import resolve_source_commit
 from openai_release_target_contract import bind_release_targets
 from openai_webui_contract import (
     CAPABILITY_LABELS,
+    CAPABILITY_KEYS,
     DESCRIPTION_CHARACTER_CEILING,
     INSTRUCTION_CHARACTER_CEILING,
     contains_lone_surrogate as _contains_lone_surrogate,
@@ -587,6 +590,70 @@ def _write_deterministic_zip(
     return True
 
 
+def _validate_release_knowledge_bindings(
+    repo_root: Path,
+    projection: dict[str, Any],
+    targets: tuple[dict[str, Any], ...],
+    errors: list[str],
+) -> None:
+    """Require the exact governed projection and disabled WebUI capability set."""
+    projection_targets = projection['targets']
+    for target in targets:
+        target_id = target['target_id']
+        projection_target = projection_targets[target_id]
+        expected_manifest = (target['knowledge_root'] / 'manifest.json').as_posix()
+        if projection_target.get('target_manifest_path') != expected_manifest:
+            errors.append(f'{target_id} governed Knowledge target manifest path drift')
+            continue
+        manifest_path = _resolve_inside(
+            repo_root, expected_manifest, errors, f'{target_id} Knowledge target manifest'
+        )
+        config_path = _resolve_inside(
+            repo_root, target['package_root'] / 'GPT_Configuration.json',
+            errors, f'{target_id} configuration',
+        )
+        if manifest_path is None or config_path is None:
+            continue
+        target_manifest = _load_json(
+            manifest_path, errors, f'{target_id} Knowledge target manifest'
+        )
+        config = _load_json(config_path, errors, f'{target_id} configuration')
+        if target_manifest.get('strict_file_count_ceiling') != target['knowledge_file_ceiling']:
+            errors.append(f'{target_id} Knowledge target ceiling drift')
+        if target_manifest.get('projection_file_count') != target['knowledge_count']:
+            errors.append(f'{target_id} Knowledge target projection file count drift')
+        validate_projection_manifest_binding(
+            projection, {'knowledge_target_manifest': expected_manifest},
+            target_id, target['knowledge_count'], errors, target_id, target_manifest,
+        )
+        records = validate_knowledge_projections(
+            repo_root, target_manifest, errors, target_id=target_id,
+            schema='dcoir.agent_runtime.knowledge_projection.target.v1',
+            expected_count=target['knowledge_count'], label=target_id,
+        )
+        if len(records) != target['knowledge_count']:
+            errors.append(f'{target_id} Knowledge projection file count drift')
+        capabilities = config.get('capabilities')
+        if not isinstance(capabilities, dict) or set(capabilities) != set(CAPABILITY_KEYS):
+            errors.append(f'{target_id} WebUI capabilities must contain exactly the governed keys')
+        else:
+            for capability in CAPABILITY_KEYS:
+                if capabilities[capability] is not False:
+                    errors.append(f'{target_id} WebUI unsupported capability must be false: {capability}')
+        package_knowledge = config.get('knowledge_files')
+        if not isinstance(package_knowledge, list) or len(package_knowledge) != target['knowledge_count']:
+            errors.append(f'{target_id} WebUI Knowledge entries must match governed count')
+            continue
+        fields = ('id', 'order', 'path', 'sha256', 'bytes')
+        for index, (actual, expected) in enumerate(zip(package_knowledge, records)):
+            if (not isinstance(actual, dict)
+                or type(actual.get('order')) is not int
+                or type(actual.get('bytes')) is not int
+                or any(actual.get(field) != expected[field] for field in fields)):
+                errors.append(f'{target_id} WebUI Knowledge entry {index} disagrees with governed projection')
+
+
+
 def _load_release_target_specs(repo_root: Path, errors: list[str]) -> tuple[dict[str, Any], ...]:
     """Bind existing delivery targets to the two governed manifest owners."""
     manifests = []
@@ -600,7 +667,10 @@ def _load_release_target_specs(repo_root: Path, errors: list[str]) -> tuple[dict
         manifests.append(_load_json(path, errors, f"{name} manifest"))
     if errors:
         return ()
-    return bind_release_targets(manifests[0], manifests[1], TARGETS, errors)
+    targets = bind_release_targets(manifests[0], manifests[1], TARGETS, errors)
+    if not errors:
+        _validate_release_knowledge_bindings(repo_root, manifests[1], targets, errors)
+    return targets if not errors else ()
 
 
 def _validate_package_source_provenance(
