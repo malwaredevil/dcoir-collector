@@ -5458,7 +5458,7 @@
           "shell": "pwsh",
           "line_start": 49,
           "line_end": 76,
-          "command_sha256": "e5a3bf6130e6daeb08aed9a36c0ffaa9c212669254ff8adc94e8cc40d0af32d5",
+          "command_sha256": "b81b872328f963bf4068d100993282dac7de56f22c208b5d00d2f909907d382f",
           "command_preview": "Write-Host '=== OpenAI release payload and determinism (6 tests) ==='\npython project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py\nif ($LASTEXITCODE -ne 0) {\n  throw 'OpenAI GPT release payload and determinism self-test"
         },
         {
@@ -5527,7 +5527,7 @@
       ],
       "size_bytes": 16119,
       "line_count": 276,
-      "sha256": "9042cd67077d4f123388979e2f740dc0463b435e60ca00a7c506e65e6f2a682c"
+      "sha256": "81880613dbe206ff9fdb2a1c503cdf16dae2fc97f651a55845ecf9ddf2006f1d"
     },
     {
       "path": ".github/workflows/reusable-validate-on-pr.yml",
