@@ -2,7 +2,6 @@
 """Independent safe and hostile tests for both static OpenAI GPT Instructions contracts."""
 from __future__ import annotations
 
-import copy
 import json
 import sys
 from pathlib import Path

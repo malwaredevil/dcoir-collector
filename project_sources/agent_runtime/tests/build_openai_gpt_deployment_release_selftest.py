@@ -13,10 +13,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import json
 
-from openai_gpt_release_test_fixture import (
-    ROOT, SCRIPT, SOURCE_COMMIT, module, stage_repo, _build, _stage_target, _write, _sha,
-)
-
 from openai_gpt_release_payload_selftest import (
     test_combined_delivery_and_determinism,
     test_cross_checkout_root_determinism,
