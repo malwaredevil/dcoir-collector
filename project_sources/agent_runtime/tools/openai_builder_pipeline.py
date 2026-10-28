@@ -63,7 +63,7 @@ def _validate_knowledge_binding(
     """Preserve target-specific sequencing of the existing contract checks."""
     validate_projection_manifest_binding(
         projection_manifest, adapter, spec.target_id,
-        spec.knowledge_count, errors, spec.projection_label,
+        spec.knowledge_count, errors, spec.projection_label, target_manifest,
     )
     if target_manifest.get('source_contract') != adapter.get('source_contract'):
         errors.append('Knowledge target points to the wrong shared source contract')

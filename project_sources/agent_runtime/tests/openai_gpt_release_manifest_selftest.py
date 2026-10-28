@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import openai_release_parity_test_fixture as parity
+
 from openai_gpt_release_test_fixture import (
     module,
     stage_repo,
@@ -81,7 +83,10 @@ def test_release_source_manifest_invalid_values_fail_before_writing() -> None:
     source_name = 'Shared_Agent_Source_Manifest.json'
     for case in ('absent', 'bad_json', 'invalid_utf8', 'missing_model',
                  'invalid_model_type', 'invalid_model_control', 'invalid_model_surrogate',
-                 'wrong_provider', 'duplicate_target', 'wrong_schema', 'invalid_target_ids'):
+                 'wrong_provider', 'duplicate_target', 'wrong_schema', 'invalid_target_ids',
+                 'unknown_target', 'missing_gemini', 'ids_only_unknown', 'ids_only_missing',
+                 'targets_only_unknown', 'targets_only_missing', 'unhashable_target_id',
+                 'duplicate_gemini'):
         td, repo = stage_repo()
         try:
             source_path = repo / 'project_sources/agent_runtime' / source_name
@@ -103,6 +108,14 @@ def test_release_source_manifest_invalid_values_fail_before_writing() -> None:
                     'duplicate_target': 'must appear exactly once',
                     'wrong_schema': 'source contract schema drift',
                     'invalid_target_ids': 'target_ids must be',
+                    'unknown_target': 'must contain each governed target exactly once',
+                    'missing_gemini': 'must contain each governed target exactly once',
+                    'ids_only_unknown': 'target_ids must contain each governed target exactly once',
+                    'ids_only_missing': 'target_ids must contain each governed target exactly once',
+                    'targets_only_unknown': 'source targets must contain each governed target exactly once',
+                    'targets_only_missing': 'source targets must contain each governed target exactly once',
+                    'unhashable_target_id': 'source targets must contain each governed target exactly once',
+                    'duplicate_gemini': 'source targets must contain each governed target exactly once',
                 }[case]
                 if case == 'missing_model':
                     del target['runtime_model']
@@ -120,6 +133,24 @@ def test_release_source_manifest_invalid_values_fail_before_writing() -> None:
                     doc['schema'] = 'unsupported'
                 elif case == 'invalid_target_ids':
                     doc['target_ids'] = 'not-an-array'
+                elif case in ('unknown_target', 'ids_only_unknown', 'targets_only_unknown'):
+                    if case != 'targets_only_unknown':
+                        doc['target_ids'].append('rogue_target')
+                    if case != 'ids_only_unknown':
+                        doc['targets'].append({**target, 'id': 'rogue_target'})
+                elif case in ('missing_gemini', 'ids_only_missing', 'targets_only_missing'):
+                    if case != 'targets_only_missing':
+                        doc['target_ids'].remove('gemini_dcoir_agent')
+                    if case != 'ids_only_missing':
+                        doc['targets'] = [
+                            item for item in doc['targets'] if item['id'] != 'gemini_dcoir_agent'
+                        ]
+                elif case == 'unhashable_target_id':
+                    doc['targets'][0]['id'] = []
+                elif case == 'duplicate_gemini':
+                    doc['targets'].append(dict(next(
+                        item for item in doc['targets'] if item['id'] == 'gemini_dcoir_agent'
+                    )))
                 source_path.write_bytes(module._json_bytes(doc))
             _assert_rejected_manifest_release(repo, expected)
         finally:
@@ -192,6 +223,18 @@ def test_release_knowledge_count_and_cross_manifest_integrity() -> None:
 
 
 def test_release_package_source_provenance_must_match_current_manifest() -> None:
+    for nested in ({}, {'source_contract': None}, {'source_contract': []}):
+        td, repo = parity.stage_repo()
+        try:
+            path = parity.module.OPENAI_PACKAGE_MANIFESTS['openai_dcoir_analyst']
+            package = json.loads((repo / path).read_text(encoding='utf-8'))
+            package['source_contracts'] = nested
+            parity.write_json(repo, path.as_posix(), package)
+            errors, report = parity.build(repo)
+            assert any('nested package' in error for error in errors), errors
+            assert report['static_parity_status'] == 'fail'
+        finally:
+            td.cleanup()
     for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
         for field, value, expected in (
             ('source_contract_sha256', None, 'missing source_contract_sha256'),

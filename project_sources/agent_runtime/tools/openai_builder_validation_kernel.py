@@ -185,8 +185,9 @@ def validate_projection_manifest_binding(
     expected_count: int,
     errors: list[str],
     target_label: str,
+    target_manifest: dict,
 ) -> None:
-    """Enforce shared Knowledge projection schema, target path and strict count."""
+    """Bind ordered target projections to the governed shared group records."""
     if projection_manifest.get('schema') != 'dcoir.agent_runtime.knowledge_projection.v1':
         errors.append('Unexpected knowledge projection manifest schema')
     targets = projection_manifest.get('targets')
@@ -202,6 +203,35 @@ def validate_projection_manifest_binding(
     count = target.get('expected_projection_count')
     if type(count) is not int or count != expected_count:
         errors.append('Knowledge target projection count disagrees across contracts')
+    groups = target.get('projection_groups')
+    if not isinstance(groups, list) or len(groups) != expected_count or not all(
+        isinstance(group, dict) for group in groups
+    ):
+        errors.append('Knowledge projection groups must match the expected count')
+        return
+    ids = [group.get('id') for group in groups]
+    if not all(isinstance(value, str) and value.strip() for value in ids):
+        errors.append('Knowledge projection group ids must be nonempty strings')
+    elif len(set(ids)) != len(ids):
+        errors.append('Knowledge projection group ids must be unique')
+    if any(type(group.get('order')) is not int for group in groups) or [
+        group.get('order') for group in groups
+    ] != list(range(expected_count)):
+        errors.append('Knowledge projection group order must be contiguous')
+    if any(not isinstance(group.get('output_path'), str) or not group['output_path'].strip()
+           for group in groups):
+        errors.append('Knowledge projection group output paths must be nonempty strings')
+    projections = target_manifest.get('projections')
+    fields = ('id', 'order', 'output_path')
+    if not isinstance(projections, list) or not all(
+        isinstance(entry, dict) and type(entry.get('order')) is int
+        for entry in projections
+    ) or [
+        {field: entry.get(field) for field in fields} for entry in projections
+    ] != [
+        {field: group.get(field) for field in fields} for group in groups
+    ]:
+        errors.append('Knowledge target projections disagree with governed projection groups')
 
 
 def index_governed_behavior_modules(modules: list, errors: list[str]) -> dict[str, dict]:

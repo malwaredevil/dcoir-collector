@@ -2,6 +2,7 @@
 """Independent hostile tests of the canonical two-target Knowledge projection owner."""
 from __future__ import annotations
 import copy
+import hashlib
 import json
 import sys
 import tempfile
@@ -81,8 +82,30 @@ def test_cross_target_and_symlink_escape_rejected():
             m = fixture(target)
             m['projections'][0]['output_path'] = link.relative_to(root).as_posix()
             _, errors = check(root, label, target, count, m)
-            assert any('outside its declared root' in e for e in errors), errors
+            assert any('must not be a symlink' in e for e in errors), errors
             assert outside.read_text() == 'sentinel'
+            for location in ('leaf', 'ancestor', 'loop'):
+                link.unlink()
+                content = b'same-root governed bytes'
+                real = folder / 'real.md'
+                real.write_bytes(content)
+                if location == 'ancestor':
+                    directory = folder / 'real'
+                    directory.mkdir()
+                    (directory / 'nested.md').write_bytes(content)
+                    link.symlink_to(directory, target_is_directory=True)
+                    output = link / 'nested.md'
+                else:
+                    link.symlink_to(link if location == 'loop' else real)
+                    output = link
+                m['projections'][0].update(
+                    output_path=output.relative_to(root).as_posix(),
+                    bytes=len(content), sha256=hashlib.sha256(content).hexdigest(),
+                )
+                records, errors = check(root, label, target, count, m)
+                assert any('must not be a symlink' in e for e in errors), (location, errors)
+                assert not any(rec['path'] == output.relative_to(root).as_posix() for rec in records)
+                assert real.read_bytes() == content
 
 
 def test_lexical_knowledge_root_symlinks_are_rejected():

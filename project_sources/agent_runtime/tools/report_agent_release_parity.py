@@ -272,7 +272,7 @@ def _validate_openai_package_provenance(
         errors.append(f'{target_id} package source_contracts must be an object')
         return
     nested_source = source_contracts.get('source_contract')
-    if nested_source is not None and (
+    if (target_id == 'openai_dcoir_analyst' or nested_source is not None) and (
         not isinstance(nested_source, dict)
         or nested_source.get('path') != SHARED_MANIFEST.as_posix()
         or nested_source.get('sha256') != canonical_sha

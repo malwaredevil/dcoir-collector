@@ -70,6 +70,10 @@ def run_mutation(target_id, builder, alter, *, target_file='source'):
         elif target_file == 'projection':
             alter(projection)
             write_json(projection_path, projection)
+        elif target_file == 'knowledge':
+            knowledge = json.loads(knowledge_target_path.read_text(encoding='utf-8'))
+            alter(knowledge)
+            write_json(knowledge_target_path, knowledge)
         else:
             alter(behavior)
             write_json(behavior_path, behavior)
@@ -143,6 +147,20 @@ def test_projection_binding_shape_and_count() -> None:
         ('bad-path', lambda proj,t:proj['targets'][t].__setitem__(
             'target_manifest_path', 'wrong'
         ), 'path disagrees'),
+        ('missing-groups', lambda proj,t:proj['targets'][t].pop('projection_groups'),
+         'groups must match'),
+        ('nonobject-group', lambda proj,t:proj['targets'][t]['projection_groups'].__setitem__(
+            0, None
+        ), 'groups must match'),
+        ('blank-group-id', lambda proj,t:proj['targets'][t]['projection_groups'][0].__setitem__(
+            'id', ' '
+        ), 'ids must be nonempty'),
+        ('unhashable-group-id', lambda proj,t:proj['targets'][t]['projection_groups'][0].__setitem__(
+            'id', []
+        ), 'ids must be nonempty'),
+        ('bool-group-order', lambda proj,t:proj['targets'][t]['projection_groups'][0].__setitem__(
+            'order', False
+        ), 'order must be contiguous'),
     )
     for target_id, builder in TARGETS:
         for name, mutate, expected in cases:
@@ -152,6 +170,46 @@ def test_projection_binding_shape_and_count() -> None:
             )
             assert any(expected in error for error in errors), (target_id, name, errors)
             assert report.get('success') is False and not wrote, (target_id,name,report)
+        for field, value in (
+            ('id', ''), ('id', 'rogue'), ('id', []), ('order', False),
+            ('output_path', f'{BASE}/generated/knowledge/{target_id}/rogue.md'),
+        ):
+            errors, report, wrote = run_mutation(
+                target_id, builder,
+                lambda doc: doc['projections'][0].__setitem__(field, value),
+                target_file='knowledge',
+            )
+            assert any('disagree with governed projection groups' in error for error in errors), errors
+            assert not report['success'] and not wrote, (target_id, field, report)
+        tmp, repo, adapter = stage(target_id)
+        try:
+            config = json.loads(adapter.read_text(encoding='utf-8'))
+            path = repo / config['knowledge_target_manifest']
+            manifest = json.loads(path.read_text(encoding='utf-8'))
+            entry = manifest['projections'][0]
+            rogue = (repo / entry['output_path']).with_name('rogue.md')
+            rogue.write_bytes(b'valid hash, ungoverned projection')
+            entry.update(
+                output_path=rogue.relative_to(repo).as_posix(),
+                bytes=rogue.stat().st_size,
+                sha256=hashlib.sha256(rogue.read_bytes()).hexdigest(),
+            )
+            write_json(path, manifest)
+            for check in (False, True):
+                errors, report = builder.build_package(repo, adapter, check=check)
+                assert errors == [
+                    'Knowledge target projections disagree with governed projection groups'
+                ], (target_id, check, errors)
+                assert not report['success']
+                assert not (repo / BASE / f'generated/packages/{target_id}').exists()
+            if target_id == 'openai_dcoir_analyst':
+                manifest['projections'][0]['id'] = manifest['projections'][1]['id']
+                write_json(path, manifest)
+                errors, report = builder.build_package(repo, adapter, check=False)
+                assert any('disagree with governed projection groups' in error for error in errors)
+                assert not report['success']
+        finally:
+            tmp.cleanup()
 
 
 

@@ -56,6 +56,10 @@ def validate_knowledge_projections(
         if not isinstance(entry, dict):
             errors.append('Knowledge projections contain a non-object entry')
             continue
+        if not validate_repo_path_no_symlink(
+            repo_root, entry.get('output_path'), errors, 'Knowledge projection',
+        ):
+            continue
         path = resolve_repo_path(
             repo_root, entry.get('output_path'),
             f"knowledge projection {entry.get('id')}", errors, knowledge_root,

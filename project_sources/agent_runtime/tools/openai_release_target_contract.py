@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from validate_shared_agent_source_contract import EXPECTED_TARGET_IDS
+
 SOURCE_SCHEMA = 'dcoir.agent_runtime.source_contract.v1'
 KNOWLEDGE_SCHEMA = 'dcoir.agent_runtime.knowledge_projection.v1'
 
@@ -39,6 +41,13 @@ def bind_release_targets(
         source_ids = []
     if len(source_ids) != len(set(source_ids)):
         errors.append('OpenAI release source target_ids must be unique')
+    if set(source_ids) != EXPECTED_TARGET_IDS:
+        errors.append('OpenAI release source target_ids must contain each governed target exactly once')
+    item_ids = [item.get('id') for item in source_items]
+    if not all(isinstance(value, str) for value in item_ids) or (
+        len(item_ids) != len(EXPECTED_TARGET_IDS) or set(item_ids) != EXPECTED_TARGET_IDS
+    ):
+        errors.append('OpenAI release source targets must contain each governed target exactly once')
     if not isinstance(projection_items, dict):
         errors.append('OpenAI release Knowledge projection targets must be an object')
         projection_items = {}
