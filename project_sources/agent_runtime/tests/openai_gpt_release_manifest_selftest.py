@@ -368,6 +368,10 @@ def test_release_package_source_provenance_must_match_current_manifest() -> None
         ('remove_record', 'missing its nested source contract'),
         ('remove_hash', 'nested package source contract is missing sha256'),
         ('stale_hash', 'nested package source contract sha256 does not match'),
+        ('wrong_path', 'nested package source contract path does not match'),
+        ('missing_path', 'nested package source contract path does not match'),
+        ('absolute_path', 'nested package source contract path does not match'),
+        ('boolean_path', 'nested package source contract path does not match'),
     ):
         td, repo = stage_repo()
         try:
@@ -376,12 +380,38 @@ def test_release_package_source_provenance_must_match_current_manifest() -> None
                     manifest['source_contracts'].pop('source_contract')
                 elif nested_mutation == 'remove_hash':
                     manifest['source_contracts']['source_contract'].pop('sha256')
-                else:
+                elif nested_mutation == 'stale_hash':
                     manifest['source_contracts']['source_contract']['sha256'] = '0' * 64
+                elif nested_mutation == 'missing_path':
+                    manifest['source_contracts']['source_contract'].pop('path')
+                else:
+                    manifest['source_contracts']['source_contract']['path'] = {
+                        'wrong_path': 'project_sources/agent_runtime/UNRELATED.json',
+                        'absolute_path': '/project_sources/agent_runtime/Shared_Agent_Source_Manifest.json',
+                        'boolean_path': True,
+                    }[nested_mutation]
             _rewrite_package_manifest(repo, 'openai_dcoir_analyst', mutate)
             _assert_rejected_manifest_release(repo, expected)
         finally:
             td.cleanup()
+
+    # Both hosted GPT package manifests must explicitly require manual deployment.
+    # JSON truthy equivalents and absent fields are not valid evidence.
+    for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
+        for value in ('absent', False, None, 0, 1, 'true', {}):
+            td, repo = stage_repo()
+            try:
+                def corrupt(manifest):
+                    if value == 'absent':
+                        manifest.pop('manual_deployment_required', None)
+                    else:
+                        manifest['manual_deployment_required'] = value
+                _rewrite_package_manifest(repo, target_id, corrupt)
+                _assert_rejected_manifest_release(
+                    repo, 'manual_deployment_required=true'
+                )
+            finally:
+                td.cleanup()
 
 
 TESTS = (

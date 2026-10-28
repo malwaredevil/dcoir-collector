@@ -79,6 +79,7 @@ def _stage_target(
     _write(package_root / "GPT_Configuration.json", module._json_bytes(config))
     package_manifest = {
         "target_id": target_id,
+        "manual_deployment_required": True,
         "instruction_character_count": module._webui_character_count(instructions.decode("utf-8")),
         "instruction_character_ceiling": module.INSTRUCTION_CHARACTER_CEILING,
         "description_character_count": module._webui_character_count(config["description"]),

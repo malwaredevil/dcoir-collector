@@ -699,6 +699,11 @@ def _validate_package_source_provenance(
         manifest = _load_json(
             manifest_path, errors, f"{target['target_id']} package manifest"
         )
+        if manifest.get("manual_deployment_required") is not True:
+            errors.append(
+                f"{target['target_id']} package manifest must declare "
+                "manual_deployment_required=true"
+            )
         package_sha256 = manifest.get("source_contract_sha256")
         if not isinstance(package_sha256, str) or not package_sha256:
             errors.append(
@@ -727,6 +732,16 @@ def _validate_package_source_provenance(
                 if isinstance(source_contract, dict)
                 else None
             )
+            nested_path = (
+                source_contract.get("path")
+                if isinstance(source_contract, dict)
+                else None
+            )
+            if nested_path != SOURCE_MANIFEST.as_posix():
+                errors.append(
+                    f"{target['target_id']} nested package source contract path "
+                    "does not match the current source contract manifest"
+                )
             if not isinstance(nested_sha256, str) or not nested_sha256:
                 errors.append(
                     f"{target['target_id']} nested package source contract is missing sha256"
