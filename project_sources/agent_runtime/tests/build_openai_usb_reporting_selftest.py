@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = ROOT / 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py'
 sys.path.insert(0, str(SCRIPT.parent))
+from agent_runtime_path_safety import resolve_repo_path
 USB_LIVE_REPLAY_SELFTEST = ROOT / 'project_sources/gemini/tools/openai_usb_reporting_behavioral_replay_selftest.py'
 SPEC = importlib.util.spec_from_file_location('build_openai_usb_reporting', SCRIPT)
 if SPEC is None or SPEC.loader is None:
@@ -269,7 +270,7 @@ def test_path_below_looping_directory_is_rejected() -> None:
         except (NotImplementedError, OSError):
             return
         errors: list[str] = []
-        resolved = module.resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
+        resolved = resolve_repo_path(repo, 'loop-dir/Instructions.md', 'probe', errors)
         assert resolved is None, resolved
         assert any('probe path could not be resolved: OSError' in error for error in errors), errors
     finally:
@@ -292,10 +293,13 @@ def test_absolute_generated_root_symlink_is_reported_without_crash() -> None:
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
         manifest['generated_root'] = symlink.as_posix()
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
-        errors, _ = module.build_package(repo, manifest_path, check=True)
-        assert any('generated_root must remain bound' in error for error in errors), errors
-        assert any('generated_root must not be absolute' in error for error in errors), errors
-        assert any('Generated package root must not be a symlink' in error for error in errors), errors
+        for check in (True, False):
+            errors, report = module.build_package(repo, manifest_path, check=check)
+            assert any('generated_root must remain bound' in error for error in errors), errors
+            assert any('generated_root must not be absolute' in error for error in errors), errors
+            assert not report.get('success'), report
+            assert symlink.is_symlink()
+            assert list(target.iterdir()) == []
     finally:
         outside_td.cleanup()
         td.cleanup()

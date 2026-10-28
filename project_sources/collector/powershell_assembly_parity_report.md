@@ -34,7 +34,3 @@
 - `stale_inventory_source_part_count`: fails when live collector or harness source-part counts differ from inventory controls in either direction (`test_inventory_source_part_growth_fails and test_inventory_source_part_shrink_fails`)
 - `unexpected_baseline_shrink`: fails when source/generated counts shrink below baseline without an exception record (`test_baseline_shrink_without_exception_fails`)
 - `clean_control`: passes when source parts, generated outputs, parse status, parity status, and mappings are fresh (`test_clean_control_passes_and_maps_counts and test_real_repo_contract_passes`)
-
-## Warnings
-
-- no baseline parity report supplied; shrink checks used current inventory controls only

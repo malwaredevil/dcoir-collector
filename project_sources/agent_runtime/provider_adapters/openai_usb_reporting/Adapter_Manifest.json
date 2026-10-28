@@ -34,6 +34,7 @@
     "github_supabase_connectors": false,
     "persistent_cross_conversation_memory": false
   },
+  "behavior_source_snapshot_sha256": "5ff8585a3692c55f28860a0c45a18f06060621da4fafef93691a19902abe32c5",
   "coverage": [
     {
       "id": "prime.chunk.00",

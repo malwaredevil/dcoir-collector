@@ -20,7 +20,7 @@
     "path": "project_sources/collector/powershell_surface_inventory.json",
     "accepted": true,
     "exists": true,
-    "sha256": "7fcdd46af770caff6d3a42ae876af154e4e4519837c548d03253528f761b269b",
+    "sha256": "16cf1e60543a976e904e6102560c1ef104abd4cdbc5b62c3eb2515623a55c1ad",
     "schema_version": "dcoir_powershell_surface_inventory_v1",
     "control_counts": {
       "collector_manifest_path_count": 44,
@@ -961,8 +961,8 @@
       "sha256": "3c7261b7708bdadd166f44bd3053b9ad8b5737bee99a0f1bf2d781162a63592b",
       "line_count": 10142,
       "parse": {
-        "method": "static_balance_check",
-        "native_parser_available": false,
+        "method": "powershell_language_parser",
+        "native_parser_available": true,
         "success": true,
         "errors": [],
         "line_count": 10142
@@ -1129,8 +1129,8 @@
       "sha256": "7a7bf1b5a842c29a42ede8851cf090ab8019adf74fc2ae7a8bd305839a682d76",
       "line_count": 3120,
       "parse": {
-        "method": "static_balance_check",
-        "native_parser_available": false,
+        "method": "powershell_language_parser",
+        "native_parser_available": true,
         "success": true,
         "errors": [],
         "line_count": 3120
@@ -1201,13 +1201,39 @@
       "expected_result": "passes when source parts, generated outputs, parse status, parity status, and mappings are fresh"
     }
   ],
-  "baseline_comparison": null,
+  "baseline_comparison": {
+    "path": "project_sources/collector/powershell_assembly_parity_report.json",
+    "comparisons": [
+      {
+        "key": "collector_source_part_count",
+        "baseline": 0,
+        "current": 43,
+        "status": "pass"
+      },
+      {
+        "key": "harness_source_part_count",
+        "baseline": 18,
+        "current": 18,
+        "status": "pass"
+      },
+      {
+        "key": "source_part_count",
+        "baseline": 18,
+        "current": 61,
+        "status": "pass"
+      },
+      {
+        "key": "generated_output_count",
+        "baseline": 1,
+        "current": 2,
+        "status": "pass"
+      }
+    ]
+  },
   "validation": {
     "success": true,
     "errors": [],
-    "warnings": [
-      "no baseline parity report supplied; shrink checks used current inventory controls only"
-    ]
+    "warnings": []
   },
   "outputs": {
     "json": "project_sources/collector/powershell_assembly_parity_report.json",

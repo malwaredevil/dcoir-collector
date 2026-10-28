@@ -497,7 +497,6 @@
     "project_sources/agent_runtime/tools/report_agent_release_parity.py",
     "project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py",
     "project_sources/agent_runtime/tools/build_openai_gpt_deployment_release.py",
-    "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py",
     "project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md",
     "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json",
     "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/Instructions.md",

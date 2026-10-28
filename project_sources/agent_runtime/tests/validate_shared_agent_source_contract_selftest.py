@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import tempfile
+import sys
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,8 @@ VALIDATOR_PATH = (
     / 'tools'
     / 'validate_shared_agent_source_contract.py'
 )
+# The file-loaded validator imports shared tools from its own sibling directory.
+sys.path.insert(0, str(VALIDATOR_PATH.parent))
 SPEC = importlib.util.spec_from_file_location('shared_contract_validator', VALIDATOR_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError('Cannot load shared source-contract validator')

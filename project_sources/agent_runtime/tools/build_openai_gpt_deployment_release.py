@@ -4,10 +4,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import shutil
-import subprocess
 import sys
 import zipfile
 from datetime import datetime, timezone
@@ -15,6 +13,20 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import UnsafePathError, validate_relative_path_syntax
+from openai_builder_knowledge_projection import validate_knowledge_projections
+from openai_builder_validation_kernel import validate_projection_manifest_binding
+from agent_runtime_source_commit import resolve_source_commit
+from openai_release_target_contract import bind_release_targets
+from openai_webui_contract import (
+    CAPABILITY_LABELS,
+    CAPABILITY_KEYS,
+    DESCRIPTION_CHARACTER_CEILING,
+    INSTRUCTION_CHARACTER_CEILING,
+    contains_lone_surrogate as _contains_lone_surrogate,
+    valid_conversation_starters_shape as _valid_conversation_starters_shape,
+    webui_character_count as _webui_character_count,
+    webui_paste_safe_character_count as _webui_paste_safe_character_count,
+)
 
 SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release.v1"
 REPORT_SCHEMA = "dcoir.agent_runtime.openai_gpt_deployment_release_report.v1"
@@ -23,21 +35,9 @@ PARITY_JSON = "agent_release_parity_report.json"
 PARITY_MD = "agent_release_parity_report.md"
 GUIDE = Path("project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md")
 HUMAN_WEBUI_FILENAME = "GPT_WebUI_Configuration.md"
-INSTRUCTION_CHARACTER_CEILING = 8000
-DESCRIPTION_CHARACTER_CEILING = 300
+SOURCE_MANIFEST = Path("project_sources/agent_runtime/Shared_Agent_Source_Manifest.json")
+KNOWLEDGE_MANIFEST = Path("project_sources/agent_runtime/Knowledge_Projection_Manifest.json")
 VERSION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
-CAPABILITY_LABELS = {
-    "web_search": "Web search",
-    "code_interpreter_data_analysis": "Code Interpreter / Data Analysis",
-    "canvas": "Canvas",
-    "image_generation": "Image generation",
-    "apps": "Apps",
-    "actions": "Actions",
-    "live_elastic_access": "Live Elastic access",
-    "live_collector_execution": "Live collector execution",
-    "github_supabase_connectors": "GitHub / Supabase connectors",
-    "persistent_cross_conversation_memory": "Persistent cross-conversation memory",
-}
 TARGETS = (
     {
         "target_id": "openai_dcoir_analyst",
@@ -45,7 +45,6 @@ TARGETS = (
         "delivery_dir": "AFRICOM_DCOIR_Analyst",
         "package_root": Path("project_sources/agent_runtime/generated/packages/openai_dcoir_analyst"),
         "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst"),
-        "knowledge_count": 7,
     },
     {
         "target_id": "openai_usb_reporting",
@@ -53,7 +52,6 @@ TARGETS = (
         "delivery_dir": "AFRICOM_USB_Reporting",
         "package_root": Path("project_sources/agent_runtime/generated/packages/openai_usb_reporting"),
         "knowledge_root": Path("project_sources/agent_runtime/generated/knowledge/openai_usb_reporting"),
-        "knowledge_count": 1,
     },
 )
 
@@ -70,21 +68,6 @@ def _sha256_file(path: Path) -> str:
     return _sha256_bytes(path.read_bytes())
 
 
-def _webui_character_count(value: str) -> int:
-    """Count UTF-16 code units conservatively for browser-style WebUI limits."""
-    return len(value.encode("utf-16-le", errors="surrogatepass")) // 2
-
-
-def _webui_paste_safe_character_count(value: str) -> int:
-    """Count UTF-16 code units after normalizing line endings to Windows CRLF."""
-    normalized = value.replace("\r\n", "\n").replace("\r", "\n")
-    return _webui_character_count(normalized.replace("\n", "\r\n"))
-
-
-def _contains_lone_surrogate(value: str) -> bool:
-    return any(0xD800 <= ord(char) <= 0xDFFF for char in value)
-
-
 def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -93,6 +76,9 @@ def _load_json(path: Path, errors: list[str], label: str) -> dict[str, Any]:
         return {}
     except json.JSONDecodeError as exc:
         errors.append(f"Invalid JSON in {label} {path.as_posix()}: {exc}")
+        return {}
+    except (OSError, UnicodeError) as exc:
+        errors.append(f"Unreadable or invalid UTF-8 in {label} {path.as_posix()}: {exc}")
         return {}
     if not isinstance(value, dict):
         errors.append(f"{label} must be a JSON object: {path.as_posix()}")
@@ -175,25 +161,8 @@ def _write_output_bytes(
 
 
 def _source_commit(repo_root: Path, explicit: str | None) -> str:
-    if explicit:
-        return explicit
-    github_sha = os.environ.get("GITHUB_SHA")
-    if github_sha:
-        return github_sha
-    try:
-        completed = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.SubprocessError):
-        completed = None
-    if completed and completed.returncode == 0 and completed.stdout.strip():
-        return completed.stdout.strip()
-    return "unknown"
+    """Backwards-compatible string wrapper around the governed resolver."""
+    return resolve_source_commit(repo_root, explicit)[0]
 
 
 def _copy_record(
@@ -300,12 +269,12 @@ def _validate_webui_limits(
         errors.append(f"{target_id} package manifest description ceiling drift")
 
     starters = config.get("conversation_starters")
-    if not isinstance(starters, list) or len(starters) != 4 or not all(
-        isinstance(value, str) and value.strip() for value in starters
-    ):
+    if not _valid_conversation_starters_shape(starters):
         errors.append(f"{target_id} must define exactly four non-empty conversation starters")
     elif any(_contains_lone_surrogate(value) for value in starters):
         errors.append(f"{target_id} conversation starters must not contain lone UTF-16 surrogate code points")
+    elif len(set(starters)) != len(starters):
+        errors.append(f"{target_id} conversation starters must be unique")
 
     return instructions_text
 
@@ -435,7 +404,7 @@ def _validate_and_copy_target(
         errors.append(f"{target['target_id']} package manifest target_id drift")
     if config.get("name") != target["webui_name"]:
         errors.append(f"{target['target_id']} WebUI name drift")
-    if config.get("runtime_model") != "GPT-5.6 Terra":
+    if config.get("runtime_model") != target["runtime_model"]:
         errors.append(f"{target['target_id']} runtime model drift")
 
     expected_instructions = (target["package_root"] / "Instructions.md").as_posix()
@@ -621,6 +590,169 @@ def _write_deterministic_zip(
     return True
 
 
+def _validate_release_knowledge_bindings(
+    repo_root: Path,
+    projection: dict[str, Any],
+    targets: tuple[dict[str, Any], ...],
+    errors: list[str],
+) -> None:
+    """Require the exact governed projection and disabled WebUI capability set."""
+    projection_targets = projection['targets']
+    for target in targets:
+        target_id = target['target_id']
+        projection_target = projection_targets[target_id]
+        expected_manifest = (target['knowledge_root'] / 'manifest.json').as_posix()
+        if projection_target.get('target_manifest_path') != expected_manifest:
+            errors.append(f'{target_id} governed Knowledge target manifest path drift')
+            continue
+        manifest_path = _resolve_inside(
+            repo_root, expected_manifest, errors, f'{target_id} Knowledge target manifest'
+        )
+        config_path = _resolve_inside(
+            repo_root, target['package_root'] / 'GPT_Configuration.json',
+            errors, f'{target_id} configuration',
+        )
+        if manifest_path is None or config_path is None:
+            continue
+        target_manifest = _load_json(
+            manifest_path, errors, f'{target_id} Knowledge target manifest'
+        )
+        config = _load_json(config_path, errors, f'{target_id} configuration')
+        if target_manifest.get('strict_file_count_ceiling') != target['knowledge_file_ceiling']:
+            errors.append(f'{target_id} Knowledge target ceiling drift')
+        if target_manifest.get('projection_file_count') != target['knowledge_count']:
+            errors.append(f'{target_id} Knowledge target projection file count drift')
+        validate_projection_manifest_binding(
+            projection, {'knowledge_target_manifest': expected_manifest},
+            target_id, target['knowledge_count'], errors, target_id, target_manifest,
+        )
+        records = validate_knowledge_projections(
+            repo_root, target_manifest, errors, target_id=target_id,
+            schema='dcoir.agent_runtime.knowledge_projection.target.v1',
+            expected_count=target['knowledge_count'], label=target_id,
+        )
+        if len(records) != target['knowledge_count']:
+            errors.append(f'{target_id} Knowledge projection file count drift')
+        capabilities = config.get('capabilities')
+        if not isinstance(capabilities, dict) or set(capabilities) != set(CAPABILITY_KEYS):
+            errors.append(f'{target_id} WebUI capabilities must contain exactly the governed keys')
+        else:
+            for capability in CAPABILITY_KEYS:
+                if capabilities[capability] is not False:
+                    errors.append(f'{target_id} WebUI unsupported capability must be false: {capability}')
+        package_knowledge = config.get('knowledge_files')
+        if not isinstance(package_knowledge, list) or len(package_knowledge) != target['knowledge_count']:
+            errors.append(f'{target_id} WebUI Knowledge entries must match governed count')
+            continue
+        fields = ('id', 'order', 'path', 'sha256', 'bytes')
+        for index, (actual, expected) in enumerate(zip(package_knowledge, records)):
+            if (not isinstance(actual, dict)
+                or type(actual.get('order')) is not int
+                or type(actual.get('bytes')) is not int
+                or any(actual.get(field) != expected[field] for field in fields)):
+                errors.append(f'{target_id} WebUI Knowledge entry {index} disagrees with governed projection')
+
+
+
+def _load_release_target_specs(repo_root: Path, errors: list[str]) -> tuple[dict[str, Any], ...]:
+    """Bind existing delivery targets to the two governed manifest owners."""
+    manifests = []
+    for name, relative in (
+        ("source contract", SOURCE_MANIFEST),
+        ("Knowledge projection", KNOWLEDGE_MANIFEST),
+    ):
+        path = _resolve_inside(repo_root, relative, errors, f"{name} manifest")
+        if path is None:
+            return ()
+        manifests.append(_load_json(path, errors, f"{name} manifest"))
+    if errors:
+        return ()
+    targets = bind_release_targets(manifests[0], manifests[1], TARGETS, errors)
+    if not errors:
+        _validate_release_knowledge_bindings(repo_root, manifests[1], targets, errors)
+    return targets if not errors else ()
+
+
+def _validate_package_source_provenance(
+    repo_root: Path,
+    targets: tuple[dict[str, Any], ...],
+    errors: list[str],
+) -> None:
+    source_path = _resolve_inside(repo_root, SOURCE_MANIFEST, errors, "source contract manifest")
+    if source_path is None:
+        return
+    try:
+        source_sha256 = _sha256_file(source_path)
+    except OSError as exc:
+        errors.append(f"Unable to hash current source contract manifest: {exc}")
+        return
+
+    for target in targets:
+        manifest_path = _resolve_inside(
+            repo_root,
+            target["package_root"] / "manifest.json",
+            errors,
+            f"{target['target_id']} package manifest",
+        )
+        if manifest_path is None:
+            continue
+        manifest = _load_json(
+            manifest_path, errors, f"{target['target_id']} package manifest"
+        )
+        if manifest.get("manual_deployment_required") is not True:
+            errors.append(
+                f"{target['target_id']} package manifest must declare "
+                "manual_deployment_required=true"
+            )
+        package_sha256 = manifest.get("source_contract_sha256")
+        if not isinstance(package_sha256, str) or not package_sha256:
+            errors.append(
+                f"{target['target_id']} package manifest is missing source_contract_sha256"
+            )
+        elif package_sha256 != source_sha256:
+            errors.append(
+                f"{target['target_id']} package source_contract_sha256 does not match "
+                "the current source contract manifest"
+            )
+
+        source_contracts = manifest.get("source_contracts")
+        nested_required = target["target_id"] == "openai_dcoir_analyst"
+        nested_present = (
+            isinstance(source_contracts, dict)
+            and "source_contract" in source_contracts
+        )
+        if nested_required and not nested_present:
+            errors.append(
+                f"{target['target_id']} package manifest is missing its nested source contract"
+            )
+        if nested_present:
+            source_contract = source_contracts["source_contract"]
+            nested_sha256 = (
+                source_contract.get("sha256")
+                if isinstance(source_contract, dict)
+                else None
+            )
+            nested_path = (
+                source_contract.get("path")
+                if isinstance(source_contract, dict)
+                else None
+            )
+            if nested_path != SOURCE_MANIFEST.as_posix():
+                errors.append(
+                    f"{target['target_id']} nested package source contract path "
+                    "does not match the current source contract manifest"
+                )
+            if not isinstance(nested_sha256, str) or not nested_sha256:
+                errors.append(
+                    f"{target['target_id']} nested package source contract is missing sha256"
+                )
+            elif nested_sha256 != source_sha256:
+                errors.append(
+                    f"{target['target_id']} nested package source contract sha256 does not "
+                    "match the current source contract manifest"
+                )
+
+
 def build_release(
     repo_root: Path,
     output_dir: Path,
@@ -637,7 +769,7 @@ def build_release(
         errors.append("output_dir must be a non-root path inside the repository")
     if not parity_root.is_relative_to(repo_root):
         errors.append("parity_root must be inside the repository")
-    commit = _source_commit(repo_root, source_commit)
+    commit, commit_basis = resolve_source_commit(repo_root, source_commit)
     bundle_version = None
     if version is not None and str(version).strip():
         candidate_version = str(version).strip()
@@ -647,12 +779,16 @@ def build_release(
             )
         else:
             bundle_version = candidate_version
+    bound_targets = _load_release_target_specs(repo_root, errors) if not errors else ()
+    if not errors:
+        _validate_package_source_provenance(repo_root, bound_targets, errors)
     if errors:
         return errors, {
             "schema": REPORT_SCHEMA,
             "success": False,
             "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "source_commit": commit,
+            "source_commit_basis": commit_basis,
             "bundle_version": bundle_version,
             "delivery_root": None,
             "zip_path": None,
@@ -676,6 +812,7 @@ def build_release(
             "success": False,
             "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "source_commit": commit,
+            "source_commit_basis": commit_basis,
             "bundle_version": bundle_version,
             "delivery_root": None,
             "zip_path": None,
@@ -714,6 +851,7 @@ def build_release(
                 "success": False,
                 "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
                 "source_commit": commit,
+                "source_commit_basis": commit_basis,
                 "bundle_version": bundle_version,
                 "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
                 "zip_path": None,
@@ -729,7 +867,7 @@ def build_release(
 
     target_reports = [
         _validate_and_copy_target(repo_root, delivery_root, target, errors)
-        for target in TARGETS
+        for target in bound_targets
     ]
     if guide_path is not None and guide_path.is_file():
         _copy_record(guide_path, delivery_root / GUIDE.name, delivery_root, repo_root, errors)
@@ -774,6 +912,7 @@ def build_release(
         "success": not errors,
         "build_timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "source_commit": commit,
+        "source_commit_basis": commit_basis,
         "bundle_version": bundle_version,
         "delivery_root": delivery_root.relative_to(repo_root).as_posix(),
         "zip_path": zip_path.relative_to(repo_root).as_posix() if zip_path.exists() else None,

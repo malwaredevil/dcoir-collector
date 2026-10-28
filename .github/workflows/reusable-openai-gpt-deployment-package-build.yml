@@ -45,16 +45,33 @@ jobs:
         with:
           profile: manual_openai_gpt_deployment_package_build
 
-      - name: Run combined OpenAI deployment release self-tests
+      - name: Run five independent OpenAI deployment release self-tests
         shell: pwsh
         run: |
-          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py
+          Write-Host '=== OpenAI release payload and determinism (6 tests) ==='
+          python project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py
           if ($LASTEXITCODE -ne 0) {
-            throw 'Combined OpenAI GPT deployment release self-tests failed.'
+            throw 'OpenAI GPT release payload and determinism self-tests failed.'
           }
-          python project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_issue428_selftest.py
+          Write-Host '=== OpenAI release WebUI limits (6 tests) ==='
+          python project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py
           if ($LASTEXITCODE -ne 0) {
-            throw 'Issue #428 OpenAI GPT deployment release self-tests failed.'
+            throw 'OpenAI GPT release WebUI limits self-tests failed.'
+          }
+          Write-Host '=== OpenAI release filesystem safety (10 tests) ==='
+          python project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT release filesystem safety self-tests failed.'
+          }
+          Write-Host '=== OpenAI release manifest contract (4 tests) ==='
+          python project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT release manifest contract self-tests failed.'
+          }
+          Write-Host '=== OpenAI release version and handoff (6 tests) ==='
+          python project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py
+          if ($LASTEXITCODE -ne 0) {
+            throw 'OpenAI GPT release version and handoff self-tests failed.'
           }
 
       - name: Run governed agent-runtime validation contract
@@ -72,6 +89,13 @@ jobs:
             @('OpenAI DCOIR package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py'),
             @('OpenAI USB package check', 'python', 'project_sources/agent_runtime/tools/build_openai_usb_reporting.py', '--check'),
             @('OpenAI USB package self-tests', 'python', 'project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'),
+            @('OpenAI builder behavior snapshot self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_behavior_snapshot_selftest.py'),
+            @('OpenAI builder instruction contract self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_instruction_contract_selftest.py'),
+            @('OpenAI builder source contract self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_source_contract_selftest.py'),
+            @('OpenAI builder package assembly self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_package_assembly_selftest.py'),
+            @('OpenAI builder Knowledge projection self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_knowledge_projection_selftest.py'),
+            @('OpenAI builder validation kernel self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_validation_kernel_selftest.py'),
+            @('OpenAI builder manifest validation self-tests', 'python', 'project_sources/agent_runtime/tests/openai_builder_manifest_validation_selftest.py'),
             @('USB reporting behavior scorer self-tests', 'python', 'project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'),
             @('Agent release parity self-tests', 'python', 'project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py')
           )
@@ -90,6 +114,11 @@ jobs:
         shell: pwsh
         run: |
           $commands = @(
+            'python project_sources/agent_runtime/tests/openai_gpt_release_payload_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_webui_limits_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_paths_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_gpt_release_version_selftest.py',
             'python project_sources/agent_runtime/tools/validate_shared_agent_source_contract.py',
             'python project_sources/agent_runtime/tests/validate_shared_agent_source_contract_selftest.py',
             'python project_sources/agent_runtime/tools/materialize_agent_behavior_adapters.py --check',
@@ -100,8 +129,15 @@ jobs:
             'python project_sources/agent_runtime/tools/build_openai_dcoir_analyst.py --check',
             'python project_sources/agent_runtime/tests/build_openai_dcoir_analyst_selftest.py',
             'python project_sources/agent_runtime/tools/build_openai_usb_reporting.py --check',
-            'python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py'
-            'python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py'
+            'python project_sources/agent_runtime/tests/build_openai_usb_reporting_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_behavior_snapshot_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_instruction_contract_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_source_contract_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_package_assembly_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_knowledge_projection_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_validation_kernel_selftest.py',
+            'python project_sources/agent_runtime/tests/openai_builder_manifest_validation_selftest.py',
+            'python project_sources/agent_runtime/tests/score_usb_reporting_behavior_selftest.py',
             'python project_sources/agent_runtime/tests/report_agent_release_parity_selftest.py'
           )
           $receipt = [ordered]@{
@@ -219,7 +255,7 @@ jobs:
           - build_result: $buildResult
           - static_parity: $staticParity
           - live_parity: $liveParity
-          - targets: AFRICOM DCOIR Analyst (7 Knowledge files); AFRICOM USB Reporting (2 Knowledge files)
+          - targets: AFRICOM DCOIR Analyst (7 Knowledge files); AFRICOM USB Reporting (1 Knowledge file)
           - primary_artifact: manual-openai-gpt-deployment-package-build
           - direct_delivery_artifact: $env:OPENAI_GPT_DELIVERY_ARTIFACT_NAME
           - direct_delivery_artifact_path: project_sources/validation/delivery_artifact/openai-gpt-deployment/**

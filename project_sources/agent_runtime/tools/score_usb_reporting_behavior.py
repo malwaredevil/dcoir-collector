@@ -11,7 +11,16 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from usb_reporting_evidence_semantics import (
+    CLOSING,
+    CORRECTION_FIELD_COLUMNS,
     FINAL_LABELS,
+    INCIDENT_FIELD_COLUMNS as FIELD_COLUMNS,
+    INCIDENT_DATE_LABEL,
+    INCIDENT_NAME_LABEL,
+    INCIDENT_COMPUTER_NAME_LABEL,
+    INCIDENT_USB_DEVICE_LABEL,
+    INCIDENT_SERIAL_NUMBER_LABEL,
+    INCIDENT_NOTES_LABEL,
     body_line_errors as _body_line_errors,
     incident_shape_errors as _incident_shape_errors,
     presentation_wrapped_incident_evidence as _presentation_wrapped_incident_evidence,
@@ -42,17 +51,6 @@ FORBIDDEN_SCAFFOLD = {
     'NEXT CONFIRMATION',
     'RECOMMENDATIONS',
 }
-# Incident label -> fixture column, in governed incident order.
-FIELD_COLUMNS = (
-    ('Name(s)', 'User'),
-    ('Location', 'Location'),
-    ('Computer Name', 'Computer Name'),
-    ('User Information', 'User Information'),
-    ('USB Device', 'USB Device'),
-    ('Serial Number', 'Serial Number'),
-    ('Network Connection', 'Network connection'),
-)
-CORRECTION_FIELD_COLUMNS = (*FIELD_COLUMNS, ('Notes', 'Notes'))
 
 
 def _correction_source_values(rows: list[dict[str, str]]) -> dict[str, set[str]]:
@@ -115,20 +113,20 @@ def _extract_fenced_value(text: str, label: str) -> tuple[str | None, list[str]]
 
 
 def _expected_date_line(row: dict[str, str]) -> str | None:
-    raw = _value(row, 'Date') or _value(row, 'Date w/Time in Z')
+    raw = _value(row, INCIDENT_DATE_LABEL) or _value(row, 'Date w/Time in Z')
     match = re.match(r'^\s*(\d{1,2})/(\d{1,2})/(\d{4})\s+(.+?)\s*$', raw)
     if not match:
         return None
     month, day, year, time_text = match.groups()
     time_text = re.sub(r'(?<=\d):(?=\d)', '', time_text)
-    return f'Date: {int(month):02d}/{int(day):02d}/{int(year):04d} {time_text}'
+    return f'{INCIDENT_DATE_LABEL}: {int(month):02d}/{int(day):02d}/{int(year):04d} {time_text}'
 
 
 def _lane_rows(rows: list[dict[str, str]], lane: str) -> list[dict[str, str]]:
     """Rows for one lane in governed ascending date order (stable for ties)."""
     def key(row: dict[str, str]) -> tuple:
         line = _expected_date_line(row) or ''
-        match = re.match(r'Date: (\d\d)/(\d\d)/(\d{4}) (\d{4})', line)
+        match = re.match(re.escape(INCIDENT_DATE_LABEL) + r': (\d\d)/(\d\d)/(\d{4}) (\d{4})', line)
         return (0, match[3], match[1], match[2], match[4]) if match else (1,)
     return sorted((row for row in rows if classify_usb_row(row) == lane), key=key)
 
@@ -146,7 +144,7 @@ def _labeled_values(block: str, label: str) -> list[str]:
 def _field_value_matches(label: str, expected: str, actual: str) -> bool:
     if actual == expected:
         return True
-    if label == 'USB Device' and expected.startswith('NetGear'):
+    if label == INCIDENT_USB_DEVICE_LABEL and expected.startswith('NetGear'):
         return actual == 'NETGEAR' + expected[len('NetGear'):]
     return False
 
@@ -169,12 +167,12 @@ def _global_incident_evidence_errors(text: str, rows: list[dict[str, str]]) -> l
         )
 
     expected_counts: dict[str, int] = {
-        'Date': sum(1 for row in rows if _expected_date_line(row) is not None),
-        'Notes': sum(1 for row in rows if _value(row, 'Notes')),
+        INCIDENT_DATE_LABEL: sum(1 for row in rows if _expected_date_line(row) is not None),
+        INCIDENT_NOTES_LABEL: sum(1 for row in rows if _value(row, INCIDENT_NOTES_LABEL)),
     }
     for label, field in FIELD_COLUMNS:
         expected_counts[label] = sum(1 for row in rows if _value(row, field))
-    expected_counts['Name(s)'] = len(rows)
+    expected_counts[INCIDENT_NAME_LABEL] = len(rows)
 
     for label, expected_count in expected_counts.items():
         observed_count = len(re.findall(rf'(?mi)^[ \t]*{re.escape(label)}:', text))
@@ -220,7 +218,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
     errors: list[str] = []
     expected = _lane_rows(rows, lane)
     forbidden = [row for row in rows if classify_usb_row(row) not in {lane, 'UNKNOWN'}]
-    incident_name_count = len(re.findall(r'(?mi)^[ \t]*Name\(s\):', body))
+    incident_name_count = len(re.findall(rf'(?mi)^[ \t]*{re.escape(INCIDENT_NAME_LABEL)}:', body))
     if incident_name_count != len(expected):
         errors.append(f'{lane} body incident count mismatch: expected {len(expected)}, saw {incident_name_count}')
     expected_tickets = [_ticket(row) for row in expected]
@@ -257,7 +255,7 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
             errors.append(f'{lane} fixture date is not parseable for ticket: {ticket}')
         else:
             expected_date_value = expected_date.split(': ', 1)[1]
-            date_values = _labeled_values(block, 'Date')
+            date_values = _labeled_values(block, INCIDENT_DATE_LABEL)
             if date_values != [expected_date_value]:
                 errors.append(
                     f'{lane} body missing source date/time for ticket {ticket}: '
@@ -275,22 +273,22 @@ def _row_errors(body: str, rows: list[dict[str, str]], lane: str) -> list[str]:
                     f'{lane} body missing source value {label} for ticket {ticket}: '
                     f'{value} (found {actual_values!r})'
                 )
-        notes = _value(row, 'Notes')
+        notes = _value(row, INCIDENT_NOTES_LABEL)
         if notes:
-            note_values = _labeled_values(block, 'Notes')
+            note_values = _labeled_values(block, INCIDENT_NOTES_LABEL)
             if note_values != [notes]:
                 errors.append(
                     f'{lane} body missing Notes for ticket {ticket}: '
                     f'{notes} (found {note_values!r})'
                 )
-    if expected and not any(_value(row, 'Notes') for row in expected) and re.search(r'(?mi)^[ \t]*Notes:', body):
+    if expected and not any(_value(row, INCIDENT_NOTES_LABEL) for row in expected) and re.search(rf'(?mi)^[ \t]*{re.escape(INCIDENT_NOTES_LABEL)}:', body):
         errors.append(f'{lane} body must omit blank Notes lines')
     for row in forbidden:
-        for field in ('SNOW Ticket Number', 'User', 'Computer Name', 'Serial Number', 'Notes'):
+        for field in ('SNOW Ticket Number', 'User', INCIDENT_COMPUTER_NAME_LABEL, INCIDENT_SERIAL_NUMBER_LABEL, INCIDENT_NOTES_LABEL):
             value = _value(row, field)
             if value and value in body and all(_value(own, field) != value for own in expected):
                 errors.append(f'{lane} body leaks opposite-classification {field}: {value}')
-    if not body.rstrip().endswith('Please let us know if there are any questions.'):
+    if not body.rstrip().endswith(CLOSING):
         errors.append(f'{lane} body does not use the exact governed closing')
     return errors
 

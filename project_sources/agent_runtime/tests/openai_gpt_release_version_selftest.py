@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
+"""Independent WebUI paste-safe handoff and version-override tests (Issue 428)."""
 from __future__ import annotations
 
-import importlib.util
 import json
 from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[3]
-BASE_SELFTEST = ROOT / "project_sources/agent_runtime/tests/build_openai_gpt_deployment_release_selftest.py"
-SPEC = importlib.util.spec_from_file_location("openai_release_base_selftest", BASE_SELFTEST)
-if SPEC is None or SPEC.loader is None:
-    raise SystemExit("Unable to load base OpenAI deployment release self-test module")
-base = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(base)
-module = base.module
-
+from openai_gpt_release_test_fixture import module, SOURCE_COMMIT, stage_repo
 
 def _build(repo: Path, output_name: str, *, version: str | None = None):
     return module.build_release(
         repo,
         repo / "project_sources/validation" / output_name,
         repo / "project_sources/validation/parity",
-        source_commit=base.SOURCE_COMMIT,
+        source_commit=SOURCE_COMMIT,
         version=version,
     )
 
@@ -34,7 +25,7 @@ def test_crlf_expansion_count() -> None:
 
 
 def test_crlf_expansion_can_fail_when_lf_count_is_at_limit() -> None:
-    td, repo = base.stage_repo()
+    td, repo = stage_repo()
     try:
         package_root = repo / "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst"
         instructions = "x\n" * (module.INSTRUCTION_CHARACTER_CEILING // 2)
@@ -54,7 +45,7 @@ def test_crlf_expansion_can_fail_when_lf_count_is_at_limit() -> None:
 
 
 def test_version_override_controls_zip_and_manifest_identity() -> None:
-    td, repo = base.stage_repo()
+    td, repo = stage_repo()
     try:
         errors, report = _build(repo, "out", version="3_0_1")
         assert not errors, errors
@@ -72,20 +63,20 @@ def test_version_override_controls_zip_and_manifest_identity() -> None:
 
 
 def test_default_zip_identity_remains_source_commit() -> None:
-    td, repo = base.stage_repo()
+    td, repo = stage_repo()
     try:
         errors, report = _build(repo, "out")
         assert not errors, errors
         assert report["bundle_version"] is None
         assert Path(report["zip_path"]).name == (
-            f"DCOIR_OpenAI_GPT_Deployment_Packages_{base.SOURCE_COMMIT[:12]}.zip"
+            f"DCOIR_OpenAI_GPT_Deployment_Packages_{SOURCE_COMMIT[:12]}.zip"
         )
     finally:
         td.cleanup()
 
 
 def test_invalid_version_override_fails_closed() -> None:
-    td, repo = base.stage_repo()
+    td, repo = stage_repo()
     try:
         errors, report = _build(repo, "out", version="../unsafe")
         assert errors
@@ -97,7 +88,7 @@ def test_invalid_version_override_fails_closed() -> None:
 
 
 def test_operator_handoff_reports_paste_safe_count() -> None:
-    td, repo = base.stage_repo()
+    td, repo = stage_repo()
     try:
         errors, report = _build(repo, "out")
         assert not errors, errors
@@ -120,19 +111,19 @@ def test_operator_handoff_reports_paste_safe_count() -> None:
     finally:
         td.cleanup()
 
+TESTS = (
+    test_crlf_expansion_count,
+    test_crlf_expansion_can_fail_when_lf_count_is_at_limit,
+    test_version_override_controls_zip_and_manifest_identity,
+    test_default_zip_identity_remains_source_commit,
+    test_invalid_version_override_fails_closed,
+    test_operator_handoff_reports_paste_safe_count,
+)
 
 def main() -> int:
-    tests = [
-        test_crlf_expansion_count,
-        test_crlf_expansion_can_fail_when_lf_count_is_at_limit,
-        test_version_override_controls_zip_and_manifest_identity,
-        test_default_zip_identity_remains_source_commit,
-        test_invalid_version_override_fails_closed,
-        test_operator_handoff_reports_paste_safe_count,
-    ]
-    for test in tests:
+    for test in TESTS:
         test()
-    print(json.dumps({"success": True, "tests": [test.__name__ for test in tests]}, indent=2))
+    print(json.dumps({"success": True, "tests": [test.__name__ for test in TESTS]}, indent=2))
     return 0
 
 

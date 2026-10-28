@@ -2,6 +2,8 @@
 """Response-wide incident/field evidence regressions for the USB report scorer."""
 from __future__ import annotations
 
+import sys
+
 INVENTED_INCIDENT = [
     'Date: 09/24/2026 0300Z',
     'Name(s): Invented User',
@@ -29,7 +31,19 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         assert not result['passed'], (response[-160:], result)
         assert any(needle in error for error in result['errors'] for needle in needles), result
 
+    # Fail if the scorer reintroduces copies of the governed vocabulary.
+    semantics = sys.modules['usb_reporting_evidence_semantics']
+    assert module.FIELD_COLUMNS is semantics.INCIDENT_FIELD_COLUMNS
+    assert module.CORRECTION_FIELD_COLUMNS is semantics.CORRECTION_FIELD_COLUMNS
+    assert module.CLOSING is semantics.CLOSING
+    assert len(module.FIELD_COLUMNS) == len(semantics.INCIDENT_LABELS) - 2
+    assert module.FIELD_COLUMNS[0] == (semantics.INCIDENT_NAME_LABEL, 'User')
+    assert module._norm_header(module.FIELD_COLUMNS[-1][1]) == module._norm_header('Network connection')
+
     base = nipr_response(rows)
+
+    # Closing changes must fail closed rather than silently accepting drift.
+    assert_rejected(base.replace(module.CLOSING, module.CLOSING[:-1], 1), 'exact governed closing')
 
     # Indented duplicate incident fields inside the governed draft.
     first_date = module._expected_date_line(rows[0])
@@ -127,6 +141,7 @@ def run_evidence_tests(module, nipr_fixture, nipr_response, start, end, previous
         assert_rejected(base + '\n\n' + invented, 'prose outside the governed drafts', 'incomplete source correction', 'not source-backed', 'not a provable normalization')
 
     return [
+        'canonical_incident_field_and_closing_ownership',
         'indented_duplicate_incident_fields',
         'unknown_incident_labels_in_draft',
         'invented_incident_after_message_fence',
