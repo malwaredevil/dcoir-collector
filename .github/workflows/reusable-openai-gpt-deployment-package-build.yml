@@ -63,7 +63,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release filesystem safety self-tests failed.'
           }
-          Write-Host '=== OpenAI release manifest contract (3 tests) ==='
+          Write-Host '=== OpenAI release manifest contract (4 tests) ==='
           python project_sources/agent_runtime/tests/openai_gpt_release_manifest_selftest.py
           if ($LASTEXITCODE -ne 0) {
             throw 'OpenAI GPT release manifest contract self-tests failed.'

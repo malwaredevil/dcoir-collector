@@ -45,6 +45,8 @@ def target(target_id: str, provider: str, instruction_mode: str, knowledge_mode:
 
 
 def source_manifest() -> dict:
+    dcoir_groups = ['dcoir_core', 'dcoir_ops']
+    usb_groups = ['usb_reporting_core']
     return {
         'schema': 'dcoir.agent_runtime.source_contract.v1',
         'source_contract_version': 'fixture-1',
@@ -58,6 +60,22 @@ def source_manifest() -> dict:
             'generated_outputs_are_canonical': False,
             'reverse_reconciliation_required': True,
         },
+        'knowledge_projection_policy': {
+            'strict_file_count_ceiling': 20,
+            'count_unit': 'unique_projection_groups_per_target',
+            'lossless_source_boundaries_required': True,
+            'per_source_sha256_required': True,
+        },
+        'knowledge_projection_groups': [
+            *(
+                {'id': group_id, 'target_id': 'openai_dcoir_analyst'}
+                for group_id in dcoir_groups
+            ),
+            *(
+                {'id': group_id, 'target_id': 'openai_usb_reporting'}
+                for group_id in usb_groups
+            ),
+        ],
         'behavior_items': [
             {'id': 'shared.1', 'canonical': True, 'applies_to': list(module.EXPECTED_TARGET_IDS)},
             {'id': 'shared.2', 'canonical': True, 'applies_to': ['gemini_dcoir_agent', 'openai_dcoir_analyst']},
@@ -94,6 +112,17 @@ def openai_package(target_id: str, behavior_count: int, knowledge_count: int, so
         'manual_deployment_required': True,
         'live_webui_validation_performed': False,
     }
+
+
+def projection_groups(target_id: str, group_ids: list[str]) -> list[dict]:
+    return [
+        {
+            'id': group_id,
+            'order': index,
+            'output_path': f'knowledge/{target_id}/{index}.md',
+        }
+        for index, group_id in enumerate(group_ids)
+    ]
 
 
 def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
@@ -142,6 +171,7 @@ def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
         {
             'schema': 'dcoir.agent_runtime.knowledge_projection.v1',
             'projection_contract_version': 'fixture-1',
+            'strict_file_count_ceiling': 20,
             'targets': {
                 'gemini_dcoir_agent': {
                     'expected_attachment_count': 2,
@@ -150,10 +180,16 @@ def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
                 'openai_dcoir_analyst': {
                     'expected_projection_count': 2,
                     'target_manifest_path': module.OPENAI_PACKAGE_MANIFESTS['openai_dcoir_analyst'].as_posix(),
+                    'projection_groups': projection_groups(
+                        'openai_dcoir_analyst', ['dcoir_core', 'dcoir_ops'],
+                    ),
                 },
                 'openai_usb_reporting': {
                     'expected_projection_count': 1,
                     'target_manifest_path': module.OPENAI_PACKAGE_MANIFESTS['openai_usb_reporting'].as_posix(),
+                    'projection_groups': projection_groups(
+                        'openai_usb_reporting', ['usb_reporting_core'],
+                    ),
                 },
             },
         },

@@ -85,9 +85,56 @@ def test_cross_target_and_symlink_escape_rejected():
             assert outside.read_text() == 'sentinel'
 
 
+def test_lexical_knowledge_root_symlinks_are_rejected():
+    for label, target, count in TARGETS:
+        for location in ('target', 'ancestor'):
+            with tempfile.TemporaryDirectory(prefix='openai-knowledge-root-') as temp:
+                root = Path(temp)
+                knowledge_parent = (
+                    root / 'project_sources/agent_runtime/generated/knowledge'
+                )
+                target_root = knowledge_parent / target
+                if location == 'target':
+                    knowledge_parent.mkdir(parents=True)
+                    other_target = (
+                        'openai_usb_reporting'
+                        if target == 'openai_dcoir_analyst'
+                        else 'openai_dcoir_analyst'
+                    )
+                    redirected = knowledge_parent / other_target
+                    redirected.mkdir()
+                    link = target_root
+                    marker = redirected / 'redirected.md'
+                else:
+                    knowledge_parent.parent.mkdir(parents=True)
+                    redirected = root / 'redirected'
+                    redirected.mkdir()
+                    (redirected / target).mkdir()
+                    link = knowledge_parent
+                    marker = redirected / target / 'redirected.md'
+                marker.write_text('sentinel')
+                try:
+                    link.symlink_to(redirected, target_is_directory=True)
+                except (NotImplementedError, OSError):
+                    continue
+                manifest = fixture(target)
+                manifest['projections'][0]['output_path'] = (
+                    f'project_sources/agent_runtime/generated/knowledge/'
+                    f'{target}/redirected.md'
+                )
+                records, errors = check(root, label, target, count, manifest)
+                assert records == [], (target, location, records)
+                assert any(
+                    'Knowledge target root must not be a symlink' in error
+                    for error in errors
+                ), (target, location, errors)
+                assert marker.read_text() == 'sentinel'
+
+
 def main():
     tests = (test_safe_projection_records, test_hostile_manifest_shapes_and_drift,
-             test_cross_target_and_symlink_escape_rejected)
+             test_cross_target_and_symlink_escape_rejected,
+             test_lexical_knowledge_root_symlinks_are_rejected)
     for case in tests:
         case()
     print(json.dumps({'success': True, 'tests': [t.__name__ for t in tests]}, indent=2))

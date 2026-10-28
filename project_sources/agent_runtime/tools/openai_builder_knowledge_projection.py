@@ -11,7 +11,10 @@ from pathlib import Path
 from typing import Any
 
 from agent_runtime_path_safety import resolve_repo_path
-from openai_builder_validation_kernel import validate_knowledge_file_ceiling
+from openai_builder_validation_kernel import (
+    validate_knowledge_file_ceiling,
+    validate_repo_path_no_symlink,
+)
 
 
 def validate_knowledge_projections(
@@ -41,8 +44,13 @@ def validate_knowledge_projections(
     if orders != list(range(len(projections))):
         errors.append('Knowledge projection order must be contiguous')
     knowledge_root = (
-        repo_root / f'project_sources/agent_runtime/generated/knowledge/{target_id}'
-    ).resolve()
+        f'project_sources/agent_runtime/generated/knowledge/{target_id}'
+    )
+    if not validate_repo_path_no_symlink(
+        repo_root, knowledge_root, errors, 'Knowledge target root',
+    ):
+        return []
+    knowledge_root = repo_root / knowledge_root
     records: list[dict[str, Any]] = []
     for entry in projections:
         if not isinstance(entry, dict):

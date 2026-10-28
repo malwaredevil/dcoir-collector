@@ -78,28 +78,35 @@ def test_knowledge_ceiling_both_targets() -> None:
 def test_generated_root_symlinks_both_targets() -> None:
     for _, target_id, builder in ADAPTERS:
         assert source_contract.validate_generated_root_no_symlink is kernel.validate_generated_root_no_symlink
-        for loop in (False, True):
+        for location, loop in (('leaf', False), ('leaf', True), ('ancestor', False)):
             tmp, repo, manifest = staged_builder(target_id)
             try:
                 root = repo / f'project_sources/agent_runtime/generated/packages/{target_id}'
-                root.parent.mkdir(parents=True, exist_ok=True)
                 external = repo / 'redirect'
                 external.mkdir()
                 marker = external / 'preserve.txt'
                 marker.write_text('sentinel', encoding='utf-8')
+                if location == 'leaf':
+                    root.parent.mkdir(parents=True, exist_ok=True)
+                    link = root
+                else:
+                    root.parent.parent.mkdir(parents=True, exist_ok=True)
+                    link = root.parent
                 try:
-                    root.symlink_to(root if loop else external, target_is_directory=True)
+                    link.symlink_to(link if loop else external, target_is_directory=True)
                 except (NotImplementedError, OSError):
                     continue
                 for check in (True, False):
                     errors, report = builder.build_package(repo, manifest, check=check)
-                    assert errors and not report.get('success'), (target_id, loop, check, report)
+                    assert errors and not report.get('success'), (
+                        target_id, location, loop, check, report
+                    )
                     assert any(
                         'Generated package root must not be a symlink' in e
                         or 'path could not be resolved' in e
                         for e in errors
-                    ), (target_id, loop, check, errors)
-                    assert root.is_symlink() and marker.read_text() == 'sentinel'
+                    ), (target_id, location, loop, check, errors)
+                    assert link.is_symlink() and marker.read_text() == 'sentinel'
                     assert sorted(path.name for path in external.iterdir()) == ['preserve.txt']
             finally:
                 tmp.cleanup()
