@@ -15,6 +15,9 @@ import build_openai_dcoir_analyst as dcoir
 import build_openai_usb_reporting as usb
 import openai_builder_package_assembly as assembly
 import openai_builder_pipeline as pipeline
+import openai_builder_source_contract as source_contract
+import openai_builder_validation_kernel as validation_kernel
+import openai_webui_contract as webui
 
 TARGETS = (('openai_dcoir_analyst', dcoir), ('openai_usb_reporting', usb))
 BASE = Path('project_sources/agent_runtime')
@@ -219,6 +222,38 @@ def test_pipeline_hostile_order_and_cross_target_binding():
             tmp.cleanup()
 
 
+
+def test_builder_legacy_exports_resolve_to_shared_owners():
+    canonical = {
+        'assemble_package_files': assembly.assemble_package_files,
+        '_read_bytes': source_contract.read_source_bytes,
+        'validate_projection_manifest_binding': validation_kernel.validate_projection_manifest_binding,
+        '_contains_lone_surrogate': webui.contains_lone_surrogate,
+        '_webui_character_count': webui.webui_character_count,
+        '_webui_paste_safe_character_count': webui.webui_paste_safe_character_count,
+    }
+    for target, builder in TARGETS:
+        assert builder.PackageSettings is assembly.PackageSettings
+        assert builder.EXPECTED_INSTRUCTION_CHARACTER_CEILING == 8000
+        assert builder.EXPECTED_DESCRIPTION_CHARACTER_CEILING == 300
+        for alias, owner in canonical.items():
+            assert alias not in vars(builder), (target, alias)
+            assert alias in dir(builder), (target, alias)
+            assert getattr(builder, alias) is owner, (target, alias)
+            imported = __import__(builder.__name__, fromlist=[alias])
+            assert getattr(imported, alias) is owner, (target, alias)
+        for missing in ('not_an_export', '_unsafe_export', 'unknown__'):
+            assert not hasattr(builder, missing), (target, missing)
+            try:
+                getattr(builder, missing)
+            except AttributeError:
+                pass
+            else:
+                raise AssertionError((target, missing, 'unexpected export'))
+        assert builder._webui_character_count('x\U0001f600') == 3
+        assert builder._webui_paste_safe_character_count('a\rb') == 4
+
+
 def main() -> int:
     tests = (
         test_valid_package_manifest_configuration_and_hash_scope,
@@ -227,6 +262,7 @@ def main() -> int:
         test_generated_file_drift_and_extra_files_never_report_success,
         test_shared_pipeline_owner_and_target_specifications,
         test_pipeline_hostile_order_and_cross_target_binding,
+        test_builder_legacy_exports_resolve_to_shared_owners,
     )
     for test in tests:
         test()

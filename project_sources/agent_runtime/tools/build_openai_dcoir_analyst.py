@@ -6,22 +6,37 @@ import json
 import sys
 from pathlib import Path
 from typing import Any
-from openai_builder_package_assembly import PackageSettings
 from openai_builder_pipeline import BuilderSpec, run_builder_pipeline
 import openai_builder_package_assembly as _package_assembly
 import openai_builder_source_contract as _source_contract
 import openai_builder_validation_kernel as _validation_kernel
 import openai_webui_contract as _webui_contract
 
-# Retain existing builder-facing compatibility exports; implementation is shared.
-assemble_package_files = _package_assembly.assemble_package_files
-_read_bytes = _source_contract.read_source_bytes
-validate_projection_manifest_binding = _validation_kernel.validate_projection_manifest_binding
+PackageSettings = _package_assembly.PackageSettings
 EXPECTED_DESCRIPTION_CHARACTER_CEILING = _webui_contract.DESCRIPTION_CHARACTER_CEILING
 EXPECTED_INSTRUCTION_CHARACTER_CEILING = _webui_contract.INSTRUCTION_CHARACTER_CEILING
-_contains_lone_surrogate = _webui_contract.contains_lone_surrogate
-_webui_character_count = _webui_contract.webui_character_count
-_webui_paste_safe_character_count = _webui_contract.webui_paste_safe_character_count
+
+# Legacy test/caller exports resolve to their canonical shared owners on access.
+# PEP 562 preserves the module attribute API without unused global aliases.
+_COMPATIBILITY_EXPORTS = {
+    'assemble_package_files': _package_assembly.assemble_package_files,
+    '_read_bytes': _source_contract.read_source_bytes,
+    'validate_projection_manifest_binding': _validation_kernel.validate_projection_manifest_binding,
+    '_contains_lone_surrogate': _webui_contract.contains_lone_surrogate,
+    '_webui_character_count': _webui_contract.webui_character_count,
+    '_webui_paste_safe_character_count': _webui_contract.webui_paste_safe_character_count,
+}
+
+
+def __getattr__(name: str) -> Any:
+    try:
+        return _COMPATIBILITY_EXPORTS[name]
+    except KeyError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_COMPATIBILITY_EXPORTS))
 
 
 SCHEMA = 'dcoir.agent_runtime.openai_dcoir_adapter.v1'
