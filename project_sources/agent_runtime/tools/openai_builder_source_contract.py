@@ -37,6 +37,8 @@ def _load_json(path: Path) -> dict[str, Any]:
         value = json.loads(path.read_text(encoding='utf-8'))
     except FileNotFoundError as exc:
         raise ValueError(f'Missing JSON file: {path}') from exc
+    except (OSError, UnicodeError) as exc:
+        raise ValueError(f'Unreadable JSON file: {path}: {exc}') from exc
     except json.JSONDecodeError as exc:
         raise ValueError(f'Invalid JSON in {path}: {exc}') from exc
     if not isinstance(value, dict):

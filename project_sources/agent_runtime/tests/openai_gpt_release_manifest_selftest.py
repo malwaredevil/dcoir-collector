@@ -16,6 +16,26 @@ def _rewrite_governed_manifest(repo: Path, basename: str, mutate) -> None:
     value = json.loads(path.read_text(encoding='utf-8'))
     mutate(value)
     path.write_bytes(module._json_bytes(value))
+    if basename == 'Shared_Agent_Source_Manifest.json':
+        source_sha256 = module._sha256_file(path)
+        for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
+            package_path = (
+                repo / 'project_sources/agent_runtime/generated/packages'
+                / target_id / 'manifest.json'
+            )
+            package_manifest = json.loads(package_path.read_text(encoding='utf-8'))
+            package_manifest['source_contract_sha256'] = source_sha256
+            nested = package_manifest.get('source_contracts', {}).get('source_contract')
+            if isinstance(nested, dict):
+                nested['sha256'] = source_sha256
+            package_path.write_bytes(module._json_bytes(package_manifest))
+
+
+def _rewrite_package_manifest(repo: Path, target_id: str, mutate) -> None:
+    path = repo / 'project_sources/agent_runtime/generated/packages' / target_id / 'manifest.json'
+    value = json.loads(path.read_text(encoding='utf-8'))
+    mutate(value)
+    path.write_bytes(module._json_bytes(value))
 
 
 def _assert_rejected_manifest_release(repo: Path, *fragments: str, early: bool = True) -> None:
@@ -170,10 +190,50 @@ def test_release_knowledge_count_and_cross_manifest_integrity() -> None:
     finally:
         td.cleanup()
 
+
+def test_release_package_source_provenance_must_match_current_manifest() -> None:
+    for target_id in ('openai_dcoir_analyst', 'openai_usb_reporting'):
+        for field, value, expected in (
+            ('source_contract_sha256', None, 'missing source_contract_sha256'),
+            ('source_contract_sha256', '0' * 64, 'source_contract_sha256 does not match'),
+        ):
+            td, repo = stage_repo()
+            try:
+                def mutate(manifest):
+                    if value is None:
+                        manifest.pop(field, None)
+                    else:
+                        manifest[field] = value
+                _rewrite_package_manifest(repo, target_id, mutate)
+                _assert_rejected_manifest_release(repo, expected)
+            finally:
+                td.cleanup()
+
+    for nested_mutation, expected in (
+        ('remove_record', 'missing its nested source contract'),
+        ('remove_hash', 'nested package source contract is missing sha256'),
+        ('stale_hash', 'nested package source contract sha256 does not match'),
+    ):
+        td, repo = stage_repo()
+        try:
+            def mutate(manifest):
+                if nested_mutation == 'remove_record':
+                    manifest['source_contracts'].pop('source_contract')
+                elif nested_mutation == 'remove_hash':
+                    manifest['source_contracts']['source_contract'].pop('sha256')
+                else:
+                    manifest['source_contracts']['source_contract']['sha256'] = '0' * 64
+            _rewrite_package_manifest(repo, 'openai_dcoir_analyst', mutate)
+            _assert_rejected_manifest_release(repo, expected)
+        finally:
+            td.cleanup()
+
+
 TESTS = (
     test_governed_runtime_model_source_and_package_must_agree,
     test_release_source_manifest_invalid_values_fail_before_writing,
     test_release_knowledge_count_and_cross_manifest_integrity,
+    test_release_package_source_provenance_must_match_current_manifest,
 )
 
 def main() -> int:

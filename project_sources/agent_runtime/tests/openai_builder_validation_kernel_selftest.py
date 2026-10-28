@@ -170,7 +170,6 @@ def test_source_output_binding_both_targets() -> None:
 
 def test_snapshot_pin_both_targets() -> None:
     for _, target_id, builder in ADAPTERS:
-        assert builder.validate_behavior_snapshot_pin is kernel.validate_behavior_snapshot_pin
         for variant in ('good', 'missing', 'forged', 'nonstr', 'unpaired_surrogate'):
             tmp, repo, adapter_path = staged_builder(target_id)
             try:

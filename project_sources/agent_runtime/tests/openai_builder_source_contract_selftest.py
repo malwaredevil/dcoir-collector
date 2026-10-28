@@ -132,6 +132,7 @@ def test_staged_governed_source_schema_and_json_fail_closed():
             ('behavior-schema', 'Unexpected behavior module manifest schema'),
             ('source-nonobject', 'Expected a JSON object'),
             ('source-missing', 'Missing JSON file'),
+            ('source-directory', 'Unreadable JSON file'),
             ('behavior-invalid-json', 'Invalid JSON in'),
         ):
             with tempfile.TemporaryDirectory(prefix='issue605-source-stage-') as temp:
@@ -160,6 +161,9 @@ def test_staged_governed_source_schema_and_json_fail_closed():
                     source.write_text('[]')
                 elif mutation == 'source-missing':
                     source.unlink()
+                elif mutation == 'source-directory':
+                    source.unlink()
+                    source.mkdir()
                 else:
                     behavior.write_text('{invalid json')
                 _, errors = load(root, dst, builder)

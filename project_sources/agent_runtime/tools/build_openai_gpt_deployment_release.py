@@ -603,6 +603,71 @@ def _load_release_target_specs(repo_root: Path, errors: list[str]) -> tuple[dict
     return bind_release_targets(manifests[0], manifests[1], TARGETS, errors)
 
 
+def _validate_package_source_provenance(
+    repo_root: Path,
+    targets: tuple[dict[str, Any], ...],
+    errors: list[str],
+) -> None:
+    source_path = _resolve_inside(repo_root, SOURCE_MANIFEST, errors, "source contract manifest")
+    if source_path is None:
+        return
+    try:
+        source_sha256 = _sha256_file(source_path)
+    except OSError as exc:
+        errors.append(f"Unable to hash current source contract manifest: {exc}")
+        return
+
+    for target in targets:
+        manifest_path = _resolve_inside(
+            repo_root,
+            target["package_root"] / "manifest.json",
+            errors,
+            f"{target['target_id']} package manifest",
+        )
+        if manifest_path is None:
+            continue
+        manifest = _load_json(
+            manifest_path, errors, f"{target['target_id']} package manifest"
+        )
+        package_sha256 = manifest.get("source_contract_sha256")
+        if not isinstance(package_sha256, str) or not package_sha256:
+            errors.append(
+                f"{target['target_id']} package manifest is missing source_contract_sha256"
+            )
+        elif package_sha256 != source_sha256:
+            errors.append(
+                f"{target['target_id']} package source_contract_sha256 does not match "
+                "the current source contract manifest"
+            )
+
+        source_contracts = manifest.get("source_contracts")
+        nested_required = target["target_id"] == "openai_dcoir_analyst"
+        nested_present = (
+            isinstance(source_contracts, dict)
+            and "source_contract" in source_contracts
+        )
+        if nested_required and not nested_present:
+            errors.append(
+                f"{target['target_id']} package manifest is missing its nested source contract"
+            )
+        if nested_present:
+            source_contract = source_contracts["source_contract"]
+            nested_sha256 = (
+                source_contract.get("sha256")
+                if isinstance(source_contract, dict)
+                else None
+            )
+            if not isinstance(nested_sha256, str) or not nested_sha256:
+                errors.append(
+                    f"{target['target_id']} nested package source contract is missing sha256"
+                )
+            elif nested_sha256 != source_sha256:
+                errors.append(
+                    f"{target['target_id']} nested package source contract sha256 does not "
+                    "match the current source contract manifest"
+                )
+
+
 def build_release(
     repo_root: Path,
     output_dir: Path,
@@ -630,6 +695,8 @@ def build_release(
         else:
             bundle_version = candidate_version
     bound_targets = _load_release_target_specs(repo_root, errors) if not errors else ()
+    if not errors:
+        _validate_package_source_provenance(repo_root, bound_targets, errors)
     if errors:
         return errors, {
             "schema": REPORT_SCHEMA,

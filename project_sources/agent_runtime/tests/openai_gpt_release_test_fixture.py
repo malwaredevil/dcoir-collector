@@ -107,6 +107,24 @@ def stage_repo() -> tuple[tempfile.TemporaryDirectory, Path]:
     for basename in ("Shared_Agent_Source_Manifest.json", "Knowledge_Projection_Manifest.json"):
         relative = Path("project_sources/agent_runtime") / basename
         _write(repo / relative, (ROOT / relative).read_bytes())
+    source_path = repo / "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json"
+    source_sha256 = _sha(source_path.read_bytes())
+    for target_id in ("openai_dcoir_analyst", "openai_usb_reporting"):
+        package_manifest_path = (
+            repo / "project_sources/agent_runtime/generated/packages" / target_id / "manifest.json"
+        )
+        package_manifest = module._load_json(
+            package_manifest_path, [], f"{target_id} package manifest"
+        )
+        package_manifest["source_contract_sha256"] = source_sha256
+        if target_id == "openai_dcoir_analyst":
+            package_manifest["source_contracts"] = {
+                "source_contract": {
+                    "path": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
+                    "sha256": source_sha256,
+                }
+            }
+        _write(package_manifest_path, module._json_bytes(package_manifest))
     guide = repo / "project_sources/agent_runtime/docs/Release_Parity_Deployment_Readback.md"
     _write(guide, b"# Agent Release, Parity, Deployment, and Readback\n")
     parity_root = repo / "project_sources/validation/parity"
