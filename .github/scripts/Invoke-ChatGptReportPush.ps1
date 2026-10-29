@@ -202,7 +202,8 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
         } elseif ($diffExit -eq 1) {
           $tree = [string](& git -c core.longpaths=true write-tree)
           if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tree)) {
-            $candidateCommit = [string](& git -c core.longpaths=true commit-tree $tree.Trim() -p $remoteHead -m $CommitMessage)
+            $tree = $tree.Trim()
+            $candidateCommit = [string](& git -c core.longpaths=true commit-tree $tree -p $remoteHead -m $CommitMessage)
             if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($candidateCommit)) {
               $candidateCommit = $candidateCommit.Trim()
               $stageOutcome = 'ready'
