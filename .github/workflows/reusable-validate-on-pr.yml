@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - name: Run cheap Draft validation
         shell: bash
         run: python3 .github/github_actions/tools/run_pr_draft_fail_fast.py

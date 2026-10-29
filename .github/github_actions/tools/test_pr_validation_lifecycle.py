@@ -66,6 +66,13 @@ def contract_errors(entry: str, reusable: str) -> list[str]:
         errors.append("Draft fast check missing")
     if "run_pr_draft_fail_fast.py" not in fast:
         errors.append("Draft gate runner missing")
+    if (
+        "        uses: actions/checkout@v7\n"
+        "        with:\n"
+        "          persist-credentials: false\n"
+        not in fast
+    ):
+        errors.append("Draft checkout must not persist credentials")
     if re.search(r"(?m)^    if:", fast):
         errors.append("Draft gate must not be skipped in Draft")
     if not re.search(r"(?m)^    needs: draft_fail_fast\s*$", heavy):
@@ -140,6 +147,27 @@ class LifecyclePolicyTests(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 check_python_syntax(Path(folder), [Path("missing.py")])
 
+    def test_python_syntax_check_rejects_outside_and_symlink_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            root = base / "checkout"
+            root.mkdir()
+            outside = base / "outside.py"
+            outside.write_text("pass\n", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                check_python_syntax(root, [Path("../outside.py")])
+            with self.assertRaises(ValueError):
+                check_python_syntax(root, [outside])
+            with self.assertRaises(ValueError):
+                check_python_syntax(root, [Path(".")])
+            link = root / "linked.py"
+            try:
+                link.symlink_to(outside)
+            except (NotImplementedError, OSError) as exc:
+                self.skipTest(f"symlink creation unavailable: {exc}")
+            with self.assertRaises(ValueError):
+                check_python_syntax(root, [Path("linked.py")])
+
     def test_missing_or_downgraded_guards_rejected(self) -> None:
         variants = (
             (self.entry.replace("      - ready_for_review\n", ""), self.reusable),
@@ -159,6 +187,8 @@ class LifecyclePolicyTests(unittest.TestCase):
             (self.entry.replace("  validate:\n    uses:", "  full_validate:\n    uses:"), self.reusable),
             (self.entry, self.reusable.replace("  draft_fail_fast:\n", "  draft_fail_fast:\n    if: ${{ github.event.pull_request.draft == false }}\n")),
             (self.entry, self.reusable.replace("  draft_fail_fast:\n    name: draft_fail_fast\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read", "  draft_fail_fast:\n    name: draft_fail_fast\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: write")),
+            (self.entry, self.reusable.replace("          persist-credentials: false\n", "")),
+            (self.entry, self.reusable.replace("          persist-credentials: false", "          persist-credentials: true")),
         )
         for index, (entry, reusable) in enumerate(variants):
             with self.subTest(mutation=index):
