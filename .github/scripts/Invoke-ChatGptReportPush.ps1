@@ -126,6 +126,26 @@ if ($StagePaths.Count -eq 0) {
   exit 0
 }
 
+# Some callers, including ChatGPT Apply-In, stage approved product files before
+# invoking this helper with report paths. Preserve those explicitly staged
+# changes; the original git commit published both groups.
+$CallerStagedPaths = @(& git -c core.longpaths=true -c core.quotepath=false diff --cached --no-renames --name-only)
+if ($LASTEXITCODE -ne 0) {
+  Write-Error 'Cannot inspect pre-staged caller changes; refusing report publication.'
+  exit 1
+}
+$CallerStagedPaths = @($CallerStagedPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+if ($CallerStagedPaths.Count -gt 0) {
+  # The temporary index uses file contents from the worktree. Reject an
+  # unstaged mutation that differs from the caller-approved staged snapshot.
+  & git -c core.longpaths=true diff --quiet -- @CallerStagedPaths
+  if ($LASTEXITCODE -ne 0) {
+    Write-Error 'Unstaged changes differ from the caller-approved index; refusing report publication.'
+    exit 1
+  }
+}
+$CommitPaths = @($StagePaths + $CallerStagedPaths | Select-Object -Unique)
+
 # A request can publish multiple report phases from one runner while main moves.
 # Never rebase this runner's prior report commits onto main: that can replay
 # already-published files as add/add conflicts. Instead build a report-only
@@ -206,6 +226,14 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     exit 0
   }
 
+  if ($CallerStagedPaths.Count -gt 0) {
+    $overlap = @(& git -c core.longpaths=true -c core.quotepath=false diff --no-renames --name-only HEAD $remoteHead -- @CallerStagedPaths)
+    if ($LASTEXITCODE -ne 0 -or $overlap.Count -gt 0) {
+      Write-Error "Main changed pre-staged caller paths since checkout; refusing to overwrite: $($overlap -join ', ')"
+      exit 1
+    }
+  }
+
   $tempIndex = Join-Path ([IO.Path]::GetTempPath()) ('dcoir-report-index-' + [guid]::NewGuid().ToString('N'))
   $previousIndex = $env:GIT_INDEX_FILE
   $hadIndex = Test-Path Env:GIT_INDEX_FILE
@@ -215,8 +243,8 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     $env:GIT_INDEX_FILE = $tempIndex
     & git -c core.longpaths=true read-tree $remoteHead
     if ($LASTEXITCODE -eq 0) {
-      & git -c core.longpaths=true add -A -- @StagePaths
-      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
+      & git -c core.longpaths=true add -A -- @CommitPaths
+      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $CommitPaths)) {
         & git -c core.longpaths=true diff --cached --quiet $remoteHead --
         $diffExit = $LASTEXITCODE
         if ($diffExit -eq 0) {
