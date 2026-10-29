@@ -80,3 +80,10 @@ _AUDITED_SOURCE_HASH_VERSIONS = (
     _AUDITED_SOURCE_SHA256_V1,
     _AUDITED_SOURCE_SHA256,
 )
+
+# Explicit internal exports for the sibling fail-closed source-proof module.
+__all__ = [
+    "_UNGUARDED_VERIFIER_SOURCE_SHA256",
+    "_UNGUARDED_VERIFIER_FILE_SHA256",
+    "_AUDITED_SOURCE_HASH_VERSIONS",
+]
