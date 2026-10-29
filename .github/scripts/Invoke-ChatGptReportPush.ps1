@@ -126,32 +126,42 @@ if ($StagePaths.Count -eq 0) {
   exit 0
 }
 
-& git -c core.longpaths=true add -A -- @StagePaths
-$addExit = $LASTEXITCODE
-if ($addExit -ne 0) {
-  Write-Warning "git add failed with exit code $addExit for: $CommitMessage"
-  git status --short
-  if ($RequirePush) { exit 1 }
-  exit 0
-}
+# A request can publish multiple report phases from one runner while main moves.
+# Never rebase this runner's prior report commits onto main: that can replay
+# already-published files as add/add conflicts. Instead build a report-only
+# commit on the newly fetched main tree with an isolated index each attempt.
+function Test-PublishedProgressIsPreserved {
+  param([string]$RemoteHead, [string[]]$CandidatePaths)
 
-& git -c core.longpaths=true diff --cached --quiet
-if ($LASTEXITCODE -eq 0) {
-  Write-Host "No staged changes to commit for: $CommitMessage"
-  git status --short
-  if ($RequirePush) {
-    Write-Error "Required report push had no staged changes for: $CommitMessage"
-    exit 1
+  $remoteFiles = @(& git -c core.longpaths=true ls-tree -r --name-only $RemoteHead -- @CandidatePaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect committed report history on main.'
+    return $false
   }
-  exit 0
-}
-
-& git -c core.longpaths=true commit -m $CommitMessage
-if ($LASTEXITCODE -ne 0) {
-  Write-Warning "git commit failed for: $CommitMessage"
-  git status --short
-  if ($RequirePush) { exit 1 }
-  exit 0
+  foreach ($remotePath in $remoteFiles) {
+    if ($remotePath -ne 'progress_history.jsonl' -and -not $remotePath.EndsWith('/progress_history.jsonl')) { continue }
+    if (-not (Test-Path -LiteralPath $remotePath -PathType Leaf)) {
+      Write-Warning "Refusing to remove published progress history: $remotePath"
+      return $false
+    }
+    $remoteLines = @(& git -c core.longpaths=true show ($RemoteHead + ':' + $remotePath) 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "Cannot read published progress history: $remotePath"
+      return $false
+    }
+    $localLines = @(Get-Content -LiteralPath $remotePath -Encoding UTF8)
+    if ($remoteLines.Count -gt $localLines.Count) {
+      Write-Warning "Local progress history omits previously published entries: $remotePath"
+      return $false
+    }
+    for ($line = 0; $line -lt $remoteLines.Count; $line++) {
+      if ($remoteLines[$line] -cne $localLines[$line]) {
+        Write-Warning "Divergent progress history requires reconciliation before push: $remotePath"
+        return $false
+      }
+    }
+  }
+  return $true
 }
 
 for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
@@ -162,25 +172,78 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     Start-Sleep -Seconds ([Math]::Min(30, 5 * $attempt))
     continue
   }
-  & git -c core.longpaths=true rebase origin/main
-  if ($LASTEXITCODE -ne 0) {
-    Write-Warning "git rebase failed on attempt $attempt; aborting rebase and retrying."
-    & git -c core.longpaths=true rebase --abort 2>$null
-    git status --short
+  $remoteHead = [string](& git rev-parse --verify FETCH_HEAD)
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remoteHead)) {
+    Write-Warning "Could not determine fetched main on attempt $attempt."
+    continue
+  }
+  $remoteHead = $remoteHead.Trim()
+  if (-not (Test-PublishedProgressIsPreserved -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
+    Write-Warning 'Refusing a report push that would discard published progress history.'
+    if ($RequirePush) { exit 1 }
+    exit 0
+  }
+
+  $tempIndex = Join-Path ([IO.Path]::GetTempPath()) ('dcoir-report-index-' + [guid]::NewGuid().ToString('N'))
+  $previousIndex = $env:GIT_INDEX_FILE
+  $hadIndex = Test-Path Env:GIT_INDEX_FILE
+  $candidateCommit = ''
+  $stageOutcome = 'failure'
+  try {
+    $env:GIT_INDEX_FILE = $tempIndex
+    & git -c core.longpaths=true read-tree $remoteHead
+    if ($LASTEXITCODE -eq 0) {
+      & git -c core.longpaths=true add -A -- @StagePaths
+      if ($LASTEXITCODE -eq 0) {
+        & git -c core.longpaths=true diff --cached --quiet $remoteHead --
+        $diffExit = $LASTEXITCODE
+        if ($diffExit -eq 0) {
+          $stageOutcome = 'no_changes'
+        } elseif ($diffExit -eq 1) {
+          $tree = [string](& git -c core.longpaths=true write-tree)
+          if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tree)) {
+            $candidateCommit = [string](& git -c core.longpaths=true commit-tree $tree.Trim() -p $remoteHead -m $CommitMessage)
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($candidateCommit)) {
+              $candidateCommit = $candidateCommit.Trim()
+              $stageOutcome = 'ready'
+            }
+          }
+        }
+      }
+    }
+  } finally {
+    if ($hadIndex) { $env:GIT_INDEX_FILE = $previousIndex }
+    else { Remove-Item Env:GIT_INDEX_FILE -ErrorAction SilentlyContinue }
+    Remove-Item -LiteralPath $tempIndex -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath ($tempIndex + '.lock') -Force -ErrorAction SilentlyContinue
+  }
+
+  if ($stageOutcome -eq 'no_changes') {
+    Write-Host "No new report changes relative to fetched main for: $CommitMessage"
+    if ($RequirePush) {
+      Write-Error "Required report push had no changes to publish for: $CommitMessage"
+      exit 1
+    }
+    exit 0
+  }
+  if ($stageOutcome -ne 'ready') {
+    Write-Warning "Could not prepare report-only commit on attempt $attempt."
     Start-Sleep -Seconds ([Math]::Min(30, 5 * $attempt))
     continue
   }
-  & git -c core.longpaths=true push origin HEAD:main
+
+  # A concurrent advance of main rejects this non-forced push. Refetch and
+  # reconstruct only the approved report paths rather than replaying commits.
+  & git -c core.longpaths=true push origin ($candidateCommit + ':refs/heads/main')
   if ($LASTEXITCODE -eq 0) {
     Write-Host "Report push succeeded on attempt $attempt."
     Write-ChatGptReportUrls -CandidatePaths $StagePaths
     exit 0
   }
-  Write-Warning "git push failed on attempt $attempt."
+  Write-Warning "git push failed on attempt $attempt; rebuilding from latest main."
   Start-Sleep -Seconds ([Math]::Min(30, 5 * $attempt))
 }
 
 Write-Warning "Report push failed after $MaxAttemptCount attempts."
 if ($RequirePush) { exit 1 }
 exit 0
-
