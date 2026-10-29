@@ -164,6 +164,28 @@ function Test-PublishedProgressIsPreserved {
   return $true
 }
 
+# Staging a directory from a stale runner against a newer main must not delete
+# tracked summaries published by other phases and absent from this checkout.
+# Only explicitly named file paths (such as final request cleanup) may delete.
+function Restore-RemoteOnlyReportFiles {
+  param([string]$RemoteHead, [string[]]$CandidatePaths)
+
+  $deletedPaths = @(& git -c core.longpaths=true diff --cached --name-only --diff-filter=D $RemoteHead -- @CandidatePaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect staged report deletions.'
+    return $false
+  }
+  foreach ($deletedPath in $deletedPaths) {
+    if ($CandidatePaths -contains $deletedPath) { continue }
+    & git -c core.longpaths=true reset -q $RemoteHead -- $deletedPath
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "Could not preserve remote-only report file: $deletedPath"
+      return $false
+    }
+  }
+  return $true
+}
+
 for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
   Write-Host "Report push attempt $attempt of $MaxAttemptCount for: $CommitMessage"
   & git -c core.longpaths=true fetch origin main
@@ -194,7 +216,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     & git -c core.longpaths=true read-tree $remoteHead
     if ($LASTEXITCODE -eq 0) {
       & git -c core.longpaths=true add -A -- @StagePaths
-      if ($LASTEXITCODE -eq 0) {
+      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
         & git -c core.longpaths=true diff --cached --quiet $remoteHead --
         $diffExit = $LASTEXITCODE
         if ($diffExit -eq 0) {
