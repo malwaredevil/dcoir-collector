@@ -15,7 +15,7 @@ import openrouter_pr_review_pareto_context as review
 import dcoir_review_historical_recall_cases as history
 import dcoir_review.source_inventory_promotion as promotion
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
-from dcoir_review.git_fallback_source_proof import (
+from dcoir_review.git_fallback_source_contract import (
     ACTION, ANALYZER, ANALYZER_CLI, ANALYZER_CONTRACT, ANALYZER_EXECUTION,
     ANALYZER_INVENTORY, COLLECTOR_PATH_SAFETY, INVENTORY_COMMON,
     INVENTORY_VALIDATION, INVENTORY_CLASSIFICATION, INVENTORY_PROFILES,
@@ -25,6 +25,8 @@ from dcoir_review.git_fallback_source_proof import (
     _AUDITED_SOURCE_SHA256_V1,
     _AUDITED_SOURCE_HASH_VERSIONS,
     _UNGUARDED_VERIFIER_SOURCE_SHA256,
+)
+from dcoir_review.git_fallback_source_proof import (
     _exact_proof, _verifier_anchor, _verifier_source_fingerprint,
     attach_git_fallback_candidate, verify_git_fallback_candidate,
 )
