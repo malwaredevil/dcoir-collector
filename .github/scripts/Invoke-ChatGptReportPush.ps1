@@ -150,6 +150,39 @@ $CommitPaths = @($StagePaths + $CallerStagedPaths | Select-Object -Unique)
 # Never rebase this runner's prior report commits onto main: that can replay
 # already-published files as add/add conflicts. Instead build a report-only
 # commit on the newly fetched main tree with an isolated index each attempt.
+function Get-ReportArtifactTimestamp {
+  param([string]$Path, [string]$Content)
+
+  $timestampText = ''
+  switch ([IO.Path]::GetFileName($Path)) {
+    'workflow_report.md' {
+      $match = [regex]::Match($Content, '(?m)^- report_updated_utc:\s*(\S+)\s*$')
+      if ($match.Success) { $timestampText = $match.Groups[1].Value }
+    }
+    'latest_progress_marker.json' {
+      try { $timestampText = [string](ConvertFrom-Json -InputObject $Content -ErrorAction Stop).updated_utc }
+      catch { return $null }
+    }
+    'final_readback_marker.json' {
+      try { $timestampText = [string](ConvertFrom-Json -InputObject $Content -ErrorAction Stop).created_utc }
+      catch { return $null }
+    }
+    default { return $null }
+  }
+
+  $timestamp = [DateTimeOffset]::MinValue
+  if ([string]::IsNullOrWhiteSpace($timestampText) -or
+      -not [DateTimeOffset]::TryParse(
+        $timestampText,
+        [Globalization.CultureInfo]::InvariantCulture,
+        [Globalization.DateTimeStyles]::AssumeUniversal,
+        [ref]$timestamp
+      )) {
+    return $null
+  }
+  return $timestamp
+}
+
 function Test-PublishedProgressIsPreserved {
   param([string]$RemoteHead, [string[]]$CandidatePaths)
 
@@ -158,8 +191,18 @@ function Test-PublishedProgressIsPreserved {
     Write-Warning 'Cannot inspect committed report history on main.'
     return $false
   }
+  $baseFiles = @(& git -c core.longpaths=true ls-tree -r --name-only HEAD -- @CandidatePaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect report files from the checkout base.'
+    return $false
+  }
+  $remoteFileSet = @{}
+  foreach ($path in $remoteFiles) { $remoteFileSet[[string]$path] = $true }
+  $baseFileSet = @{}
+  foreach ($path in $baseFiles) { $baseFileSet[[string]$path] = $true }
+
   foreach ($remotePath in $remoteFiles) {
-    if ($remotePath -ne 'progress_history.jsonl' -and -not $remotePath.EndsWith('/progress_history.jsonl')) { continue }
+    if ([IO.Path]::GetFileName([string]$remotePath) -ne 'progress_history.jsonl') { continue }
     if (-not (Test-Path -LiteralPath $remotePath -PathType Leaf)) {
       Write-Warning "Refusing to remove published progress history: $remotePath"
       return $false
@@ -180,6 +223,65 @@ function Test-PublishedProgressIsPreserved {
         return $false
       }
     }
+  }
+
+  $reportPaths = @($remoteFiles + $baseFiles |
+    Where-Object {
+      ([string]$_).StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase) -and
+      [IO.Path]::GetFileName([string]$_) -ne 'progress_history.jsonl'
+    } |
+    Select-Object -Unique)
+  foreach ($reportPath in $reportPaths) {
+    $remoteHash = ''
+    if ($remoteFileSet.ContainsKey([string]$reportPath)) {
+      $remoteHash = [string](& git -c core.longpaths=true rev-parse --verify "$($RemoteHead):$reportPath" 2>$null)
+      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remoteHash)) {
+        Write-Warning "Cannot read published report version: $reportPath"
+        return $false
+      }
+      $remoteHash = $remoteHash.Trim()
+    }
+
+    $baseHash = ''
+    if ($baseFileSet.ContainsKey([string]$reportPath)) {
+      $baseHash = [string](& git -c core.longpaths=true rev-parse --verify "HEAD:$reportPath" 2>$null)
+      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($baseHash)) {
+        Write-Warning "Cannot read checkout-base report version: $reportPath"
+        return $false
+      }
+      $baseHash = $baseHash.Trim()
+    }
+
+    $localHash = ''
+    $localContent = ''
+    if (Test-Path -LiteralPath $reportPath -PathType Leaf) {
+      $localHash = [string](& git -c core.longpaths=true hash-object "--path=$reportPath" -- $reportPath 2>$null)
+      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($localHash)) {
+        Write-Warning "Cannot read local report version: $reportPath"
+        return $false
+      }
+      $localHash = $localHash.Trim()
+      $localContent = [string](Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8)
+    } else {
+      continue
+    }
+
+    if ($localHash -eq $remoteHash -or $remoteHash -eq $baseHash) { continue }
+
+    $remoteContentLines = @(& git -c core.longpaths=true show "$($RemoteHead):$reportPath" 2>$null)
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "Cannot read published report content: $reportPath"
+      return $false
+    }
+    $remoteContent = $remoteContentLines -join "`n"
+    $localTimestamp = Get-ReportArtifactTimestamp -Path $reportPath -Content $localContent
+    $remoteTimestamp = Get-ReportArtifactTimestamp -Path $reportPath -Content $remoteContent
+    if ($null -ne $localTimestamp -and $null -ne $remoteTimestamp -and $localTimestamp -gt $remoteTimestamp) {
+      continue
+    }
+
+    Write-Warning "Divergent published report requires reconciliation before push: $reportPath"
+    return $false
   }
   return $true
 }

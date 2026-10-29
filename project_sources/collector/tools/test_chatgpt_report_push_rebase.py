@@ -63,14 +63,16 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         path.write_text(content, encoding="utf-8")
 
     def report(self, root, phases, result="running"):
+        updated = f"2026-01-01T00:00:{len(phases):02d}Z"
         entries = [json.dumps({"phase": phase, "result": "success" if phase == "final-readback" else "running"},
                               sort_keys=True) for phase in phases]
         self.write(root, f"{REPORT_PATH}/progress_history.jsonl", "\n".join(entries) + "\n")
         self.write(root, f"{REPORT_PATH}/workflow_report.md",
-                   "# ChatGPT workflow report\n- result: " + result + "\n\n## Phase history\n" +
+                   "# ChatGPT workflow report\n- result: " + result + "\n- report_updated_utc: " + updated +
+                   "\n\n## Phase history\n" +
                    "\n".join(f"- {phase}" for phase in phases) + "\n")
         self.write(root, f"{REPORT_PATH}/latest_progress_marker.json",
-                   json.dumps({"phase": phases[-1], "result": result}) + "\n")
+                   json.dumps({"updated_utc": updated, "phase": phases[-1], "result": result}) + "\n")
         if phases[-1] == "final-readback":
             self.write(root, f"{REPORT_PATH}/final_readback_marker.json",
                        '{"result":"success","exit_code":"0"}\n')
@@ -175,6 +177,45 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("remote-exclusive", self.remote_content(f"{REPORT_PATH}/progress_history.jsonl"))
         self.assertNotIn("local-exclusive", self.remote_content(f"{REPORT_PATH}/progress_history.jsonl"))
+
+    def test_newer_remote_report_and_marker_fail_closed_when_history_is_a_prefix(self):
+        self.report(self.other, ["request-resolved"])
+        report_path = self.other / REPORT_PATH / "workflow_report.md"
+        report_path.write_text(
+            report_path.read_text(encoding="utf-8").replace(
+                "2026-01-01T00:00:01Z", "2099-01-01T00:00:00Z"
+            ) + "\nRemote final-readback evidence\n",
+            encoding="utf-8",
+        )
+        self.write(self.other, f"{REPORT_PATH}/latest_progress_marker.json",
+                   json.dumps({"updated_utc": "2099-01-01T00:00:00Z",
+                               "phase": "final-readback", "result": "success"}) + "\n")
+        self.publish_other("concurrent final readback")
+        remote_report = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        remote_marker = self.remote_content(f"{REPORT_PATH}/latest_progress_marker.json")
+
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        result = self.push_report("running-harness")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), remote_report)
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/latest_progress_marker.json"), remote_marker)
+
+    def test_concurrent_summary_update_fails_closed(self):
+        summary = f"{REPORT_PATH}/tracked_summary.md"
+        self.git("config", "user.name", "Test Writer", cwd=self.writer)
+        self.git("config", "user.email", "test@example.invalid", cwd=self.writer)
+        self.write(self.writer, summary, "checkout summary\n")
+        self.git("add", summary, cwd=self.writer)
+        self.git("commit", "-m", "add tracked report summary", cwd=self.writer)
+        self.git("push", "origin", "HEAD:main", cwd=self.writer)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+
+        self.write(self.other, summary, "newer remote summary\n")
+        self.publish_other("update tracked report summary")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(summary), "newer remote summary\n")
 
     def test_require_push_rejects_identical_already_published_content(self):
         self.report(self.writer, ["request-resolved"])

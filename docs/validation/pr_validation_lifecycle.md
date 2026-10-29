@@ -40,9 +40,14 @@ coverage and collector harness checks remain in the existing validation job.
   based only on ruleset metadata.
 - The actual dependency scanner runs only when ENABLE_DEPENDENCY_REVIEW=true.
   A successful disabled-notice job is not dependency scanning.
-- Issue #528's successful-harness/failed-report-push conflict remains to be
-  reproduced and repaired separately. The first increment does not change
-  Invoke-ChatGptReportPush.ps1, RequirePush, reporting, or cleanup behavior.
+- The Issue #528 same-request report-push conflict repair is included in this
+  increment. Invoke-ChatGptReportPush.ps1 publishes from the latest main tree,
+  preserves caller-staged Apply-In files, checks report-history continuity, and
+  fails closed when a concurrently updated report or marker would be replaced
+  by older content. A local bare-remote regression suite covers both successful
+  sequential phases and a newer concurrent report/marker update.
+- The publisher regression is local evidence only; default-branch live
+  ChatGPT Exec execution remains outside this increment and is not claimed.
 - Independent reviewer requests remain operator-controlled. DCOIR Review may
   not review itself. Review/merge decisions require current-head evidence.
 - Local syntax, static contracts, and simulated event cases cannot prove
@@ -56,13 +61,15 @@ The source-level lifecycle regression is
 coverage, Draft/Ready job guards, prerequisite gating, manual dispatch,
 cancellation, and negative controls that remove guards. It also tests
 malformed Python, missing source files, and compiling without executing code.
+The Issue #528 publisher regression is
+project_sources/collector/tools/test_chatgpt_report_push_rebase.py; it uses a
+local bare Git remote and requires PowerShell 7.
 
 Before changing broad push triggers or required check contexts, obtain
 authoritative branch-protection evidence. Then stage remaining PR validation
 and security workflows without weakening required checks, with current-SHA
-artifact receipts and cancellation tests. Finally reproduce and fix the #528
-same-request report conflict with a disposable remote, preserving progress
-history, request cleanup, and RequirePush semantics.
+artifact receipts and cancellation tests. Validate the publisher repair on the
+default branch before claiming live ChatGPT Exec behavior.
 
 See Issue #557 for all acceptance criteria. DCOIR Review source
 consolidation remains a separate responsibility under #550.
