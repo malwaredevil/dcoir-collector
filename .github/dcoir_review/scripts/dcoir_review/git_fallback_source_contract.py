@@ -40,9 +40,9 @@ PATHS = tuple(sorted((
 )))
 # SHA256 of the audited historical verify_inventory source segment. This
 # source fingerprint is independent of Python's AST serialization format.
-_unused_UNGUARDED_VERIFIER_SOURCE_SHA256 = "33f1ad0f23d65810b6217cf68cfd03bf3d8f3d56e86a7c3d808aeed1da790426"
+_UNGUARDED_VERIFIER_SOURCE_SHA256 = "33f1ad0f23d65810b6217cf68cfd03bf3d8f3d56e86a7c3d808aeed1da790426"
 # Full source pin also covers decorators and module-level verifier bindings.
-_unused_UNGUARDED_VERIFIER_FILE_SHA256 = "6133b38fd55f0b42271dec81f638e0acfc19ce76034b58472b5c3c184da65e66"
+_UNGUARDED_VERIFIER_FILE_SHA256 = "6133b38fd55f0b42271dec81f638e0acfc19ce76034b58472b5c3c184da65e66"
 _FALLBACK_DISCOVERY_SHA = "9aad0c1d5b0c08fa4fd9c7fe206465cbabcfc569da87070ca0693dd7e61a5e91"
 # Exact historical caller/analysis sources; unknown gates or helper steps abstain.
 # Version 1 preserves the pre-Draft-gate source set used by historical replay.
@@ -76,7 +76,7 @@ _AUDITED_SOURCE_SHA256 = {
     ".github/workflows/validate-on-pr.yml": "faf2c87167b36244a0cc66d83ef47f121738a32902f3d812bc224de6d8afda6e",
     ".github/workflows/reusable-validate-on-pr.yml": "f984cf67b9e60522dcdf1d1e8d9493e2d39dbf2d38fb21e91951b316fd5fb457",
 }
-_unused_AUDITED_SOURCE_HASH_VERSIONS = (
+_AUDITED_SOURCE_HASH_VERSIONS = (
     _AUDITED_SOURCE_SHA256_V1,
     _AUDITED_SOURCE_SHA256,
 )
