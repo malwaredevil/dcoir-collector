@@ -10,7 +10,8 @@
 # - Do not use as the quick push gate when validate-on-push is sufficient, and do not treat it as a replacement for deeper manual-full-validation coverage.
 # - Do not treat a workflow_dispatch baseline run as exact validation of a feature branch or PR head.
 # Trigger model:
-# - pull_request types: opened, reopened, synchronize, ready_for_review, converted_to_draft; scoped paths include maintained collector, shared agent-runtime, Gemini, knowledge, GitHub intake, operator patch tooling, validation, and governed workflow sources.
+# - pull_request types: opened, reopened, synchronize, ready_for_review; scoped paths include maintained collector, shared agent-runtime, Gemini, knowledge, GitHub intake, operator patch tooling, validation, and governed workflow sources.
+# - A separate unfiltered workflow handles converted_to_draft cancellation.
 # - workflow_dispatch runs from the trusted selected branch and is consumed by /dcoir-review only when the run is from the repository default branch.
 # Required inputs:
 # - none
@@ -45,7 +46,7 @@ run-name: Pull Request Validation | PR #${{ github.event.pull_request.number || 
 #   maintained knowledge, GitHub intake, and workflow definition paths covered by this lane split.
 # - Draft creation and head updates run the cheap deterministic fail-fast gate.
 # - Ready-for-review, opened/reopened non-draft, and non-draft synchronize run heavy validation after the cheap gate.
-# - converted_to_draft cancels any in-flight heavier validation via the PR concurrency group.
+# - cancel-pr-validation-on-draft.yml handles conversion without a path filter.
 # - Manual default-branch dispatch is enabled only to produce trusted baseline static
 #   validation artifacts for review context; it is not exact PR-head validation.
 # - The heavier collector runtime build and Core harness validation now live here.
@@ -63,7 +64,6 @@ on:
       - reopened
       - synchronize
       - ready_for_review
-      - converted_to_draft
     paths:
       - 'project_sources/collector/source/**'
       - 'project_sources/collector/harness/**'

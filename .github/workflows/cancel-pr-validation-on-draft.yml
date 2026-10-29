@@ -1,0 +1,52 @@
+---
+# DCOIR WORKFLOW OPERATOR NOTES
+# Workflow key:
+# - workflow-validation-cancel-pr-on-draft-0001
+# Purpose:
+# - Cancel validation when a PR is converted to Draft.
+# Use when:
+# - A Draft conversion must cancel validation after changed paths revert.
+# Do not use when:
+# - Do not use for validation or events other than PR conversion to Draft.
+# Trigger model:
+# - Unfiltered pull_request converted_to_draft trigger; no paths filter.
+# - Shares validate-on-pr's per-PR concurrency group.
+# Required inputs:
+# - none
+# Required secrets/config:
+# - none
+# Runtime dependencies:
+# - GitHub Actions concurrency control only; no actions or repository scripts.
+# Expected outputs/readback:
+# - This run supersedes active validate-on-pr for the same PR.
+# Safety notes:
+# - Does not check out or execute repository-controlled code.
+# - It requires no repository permissions.
+# Maintenance notes:
+# - Keep the concurrency group identical to validate-on-pr.yml.
+# - Keep the trigger unfiltered so changed paths cannot skip cancellation.
+# Authority routing:
+# - GitHub owns workflows; `ircore` owns validation guidance.
+name: 29 Validation - Cancel PR on Draft
+run-name: 'Cancel PR validation on PR ${{ github.event.pull_request.number }}'
+
+on:
+  pull_request:
+    types:
+      - converted_to_draft
+
+concurrency:
+  group: validate-on-pr-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: none
+
+jobs:
+  cancel:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: none
+    steps:
+      - name: Confirm Draft conversion cancellation signal
+        run: echo "Draft conversion supersedes in-flight PR validation."

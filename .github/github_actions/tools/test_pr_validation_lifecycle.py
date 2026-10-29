@@ -16,16 +16,17 @@ from run_pr_draft_fail_fast import check_python_syntax
 ROOT = Path(__file__).resolve().parents[3]
 ENTRY = ROOT / ".github/workflows/validate-on-pr.yml"
 REUSABLE = ROOT / ".github/workflows/reusable-validate-on-pr.yml"
+UNFILTERED_CANCEL = ROOT / ".github/workflows/cancel-pr-validation-on-draft.yml"
 EVENTS = {
     "opened",
     "reopened",
     "synchronize",
     "ready_for_review",
-    "converted_to_draft",
 }
+CANCEL_EVENTS = {"converted_to_draft"}
 
 
-def contract_errors(entry: str, reusable: str) -> list[str]:
+def contract_errors(entry: str, reusable: str, unfiltered_cancel: str) -> list[str]:
     errors: list[str] = []
     match = re.search(
         r"(?m)^  pull_request:\n    types:\n(?P<events>(?:      - [a-z_]+\n)+)",
@@ -38,9 +39,15 @@ def contract_errors(entry: str, reusable: str) -> list[str]:
     )
     if found != EVENTS:
         errors.append(f"PR event set differs: {sorted(found)}")
+    if not re.search(r"(?m)^    paths:\s*$", entry):
+        errors.append("path-filtered validation trigger missing")
     if not re.search(r"(?m)^  workflow_dispatch:\s*$", entry):
         errors.append("manual baseline workflow_dispatch removed")
-    if not re.search(r"(?m)^  group: validate-on-pr-.*$", entry):
+    entry_group = re.search(
+        r"(?m)^  group: (?P<group>validate-on-pr-.*)$",
+        entry,
+    )
+    if not entry_group:
         errors.append("per-PR concurrency group missing")
     if not re.search(r"(?m)^  cancel-in-progress: true\s*$", entry):
         errors.append("stale-head cancellation missing")
@@ -50,6 +57,35 @@ def contract_errors(entry: str, reusable: str) -> list[str]:
         errors.append("entry no longer forwards caller event")
     if "pull_request_target:" in entry or "issue_comment:" in entry:
         errors.append("unapproved privileged/reviewer trigger")
+    cancel_match = re.search(
+        r"(?m)^  pull_request:\n    types:\n(?P<events>(?:      - [a-z_]+\n)+)",
+        unfiltered_cancel,
+    )
+    cancel_found = (
+        set(re.findall(r"(?m)^      - ([a-z_]+)$", cancel_match["events"].rstrip("\n")))
+        if cancel_match
+        else set()
+    )
+    if cancel_found != CANCEL_EVENTS:
+        errors.append(f"unfiltered cancellation event set differs: {sorted(cancel_found)}")
+    if re.search(r"(?m)^    paths:\s*$", unfiltered_cancel):
+        errors.append("Draft conversion cancellation must not have a path filter")
+    cancel_group = re.search(
+        r"(?m)^  group: (?P<group>validate-on-pr-.*)$",
+        unfiltered_cancel,
+    )
+    if not cancel_group:
+        errors.append("unfiltered cancellation concurrency group missing")
+    elif entry_group and cancel_group["group"] != entry_group["group"]:
+        errors.append("unfiltered cancellation must use the validation concurrency group")
+    if not re.search(r"(?m)^  cancel-in-progress: true\s*$", unfiltered_cancel):
+        errors.append("unfiltered cancellation must supersede in-flight validation")
+    if not re.search(r"(?m)^  contents: none\s*$", unfiltered_cancel):
+        errors.append("unfiltered cancellation workflow must not receive repository access")
+    if re.search(r"(?m)^      contents: (?:read|write)\s*$", unfiltered_cancel):
+        errors.append("unfiltered cancellation job must not receive repository access")
+    if "actions/checkout" in unfiltered_cancel:
+        errors.append("unfiltered cancellation workflow must not check out repository code")
     sections = re.search(
         r"(?ms)^jobs:\n  draft_fail_fast:\n(?P<fast>.*?)^  validate:\n(?P<heavy>.*)$",
         reusable,
@@ -96,12 +132,16 @@ class LifecyclePolicyTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.entry = ENTRY.read_text(encoding="utf-8")
         cls.reusable = REUSABLE.read_text(encoding="utf-8")
+        cls.unfiltered_cancel = UNFILTERED_CANCEL.read_text(encoding="utf-8")
 
     def test_current_files_meet_contract(self) -> None:
-        self.assertEqual([], contract_errors(self.entry, self.reusable))
+        self.assertEqual(
+            [],
+            contract_errors(self.entry, self.reusable, self.unfiltered_cancel),
+        )
 
     def test_draft_ready_and_conversion_matrix(self) -> None:
-        for event in sorted(EVENTS):
+        for event in sorted(EVENTS | CANCEL_EVENTS):
             for draft in (True, False):
                 # GitHub's event and draft status are both checked; a conversion
                 # to Draft always reports draft=true in a real webhook.
@@ -112,10 +152,19 @@ class LifecyclePolicyTests(unittest.TestCase):
                 with self.subTest(event=event, draft=draft):
                     fast = event in EVENTS
                     heavy = fast and not draft
+                    if event == "converted_to_draft":
+                        self.assertIn(event, CANCEL_EVENTS)
+                        self.assertNotIn(event, EVENTS)
+                        self.assertFalse(re.search(r"(?m)^    paths:\s*$", self.unfiltered_cancel))
+                        self.assertTrue(re.search(
+                            r"(?m)^  cancel-in-progress: true\s*$",
+                            self.unfiltered_cancel,
+                        ))
+                        self.assertFalse(fast)
+                        self.assertFalse(heavy)
+                        continue
                     self.assertTrue(fast)
                     self.assertEqual(not draft, heavy)
-                    if event == "converted_to_draft":
-                        self.assertFalse(heavy)
                     if event == "ready_for_review":
                         self.assertTrue(heavy)
 
@@ -171,7 +220,6 @@ class LifecyclePolicyTests(unittest.TestCase):
     def test_missing_or_downgraded_guards_rejected(self) -> None:
         variants = (
             (self.entry.replace("      - ready_for_review\n", ""), self.reusable),
-            (self.entry.replace("      - converted_to_draft\n", ""), self.reusable),
             (self.entry.replace("cancel-in-progress: true", "cancel-in-progress: false"), self.reusable),
             (self.entry.replace("caller_event_name: ${{ github.event_name }}", "caller_event_name: push"), self.reusable),
             (self.entry.replace("  workflow_dispatch:\n", ""), self.reusable),
@@ -193,8 +241,27 @@ class LifecyclePolicyTests(unittest.TestCase):
         for index, (entry, reusable) in enumerate(variants):
             with self.subTest(mutation=index):
                 self.assertTrue(
-                    contract_errors(entry, reusable),
+                    contract_errors(entry, reusable, self.unfiltered_cancel),
                     f"unsafe workflow mutation {index} passed validation",
+                )
+        cancel_variants = (
+            self.unfiltered_cancel.replace("      - converted_to_draft\n", ""),
+            self.unfiltered_cancel.replace("cancel-in-progress: true", "cancel-in-progress: false"),
+            self.unfiltered_cancel.replace("  contents: none", "  contents: read"),
+            self.unfiltered_cancel.replace(
+                "      - converted_to_draft\n",
+                "      - converted_to_draft\n    paths:\n      - 'project_sources/**'\n",
+            ),
+            self.unfiltered_cancel.replace(
+                "validate-on-pr-${{ github.event.pull_request.number || github.run_id }}",
+                "validate-on-pr-${{ github.run_id }}",
+            ),
+        )
+        for index, unfiltered_cancel in enumerate(cancel_variants):
+            with self.subTest(cancel_mutation=index):
+                self.assertTrue(
+                    contract_errors(self.entry, self.reusable, unfiltered_cancel),
+                    f"unsafe cancellation mutation {index} passed validation",
                 )
 
 

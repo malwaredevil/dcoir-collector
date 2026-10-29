@@ -60,7 +60,8 @@ _UNGUARDED_VERIFIER_SOURCE_SHA256 = "33f1ad0f23d65810b6217cf68cfd03bf3d8f3d56e86
 _UNGUARDED_VERIFIER_FILE_SHA256 = "6133b38fd55f0b42271dec81f638e0acfc19ce76034b58472b5c3c184da65e66"
 _FALLBACK_DISCOVERY_SHA = "9aad0c1d5b0c08fa4fd9c7fe206465cbabcfc569da87070ca0693dd7e61a5e91"
 # Exact historical caller/analysis sources; unknown gates or helper steps abstain.
-_AUDITED_SOURCE_SHA256 = {
+# Version 1 preserves the pre-Draft-gate source set used by historical replay.
+_AUDITED_SOURCE_SHA256_V1 = {
     ACTION: "09a62842cb1a33bfdaedefc40360c1df9c4799ec4786e9b473d969440a84eed7",
     OUTPUTS: "1615467f2934487de2bc58e9ff2fe0b53221ad74b407c7e6e69a4a5807b311d8",
     DISCOVERY: _FALLBACK_DISCOVERY_SHA,
@@ -83,6 +84,17 @@ _AUDITED_SOURCE_SHA256 = {
     ".github/workflows/reusable-validate-on-pr.yml": "c08ebc8fa2523a33707b305f39c11fac73dd544499b791c9df4fb1563d4e0833",
     ".github/workflows/reusable-validate-on-push.yml": "36d9562023641a65f5e0b28b8fd92ad4b63379b5e48c059b810bb45f92ef2448",
 }
+# Version 2 adds the current PR lifecycle gate while retaining the historical
+# witnesses for sources that did not change.
+_AUDITED_SOURCE_SHA256 = {
+    **_AUDITED_SOURCE_SHA256_V1,
+    ".github/workflows/validate-on-pr.yml": "faf2c87167b36244a0cc66d83ef47f121738a32902f3d812bc224de6d8afda6e",
+    ".github/workflows/reusable-validate-on-pr.yml": "f984cf67b9e60522dcdf1d1e8d9493e2d39dbf2d38fb21e91951b316fd5fb457",
+}
+_AUDITED_SOURCE_HASH_VERSIONS = (
+    _AUDITED_SOURCE_SHA256_V1,
+    _AUDITED_SOURCE_SHA256,
+)
 _MAX_SOURCE = 120_000
 
 
@@ -164,12 +176,21 @@ def _exact_proof(sources: dict[str, str], reviewed_head: str) -> int:
     if not all(_safe(item) for item in sources.values()):
         return 0
     anchor = _verifier_anchor(sources[VERIFIER])
-    if not anchor or set(_AUDITED_SOURCE_SHA256) != set(PATHS) - {VERIFIER}:
+    expected_paths = set(PATHS) - {VERIFIER}
+    if (not anchor
+            or any(set(version) != expected_paths for version in _AUDITED_SOURCE_HASH_VERSIONS)):
         return 0
-    for path, expected_hash in _AUDITED_SOURCE_SHA256.items():
-        normalized = sources[path].replace("\r\n", "\n").replace("\r", "\n")
-        if hashlib.sha256(normalized.encode("utf-8")).hexdigest() != expected_hash:
-            return 0
+    version_matches = any(
+        all(
+            hashlib.sha256(
+                sources[path].replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+            ).hexdigest() == expected_hash
+            for path, expected_hash in version.items()
+        )
+        for version in _AUDITED_SOURCE_HASH_VERSIONS
+    )
+    if not version_matches:
+        return 0
     # Existing independent proof routines validate both active CI entry
     # points and their required-surfaces checks, not only a dormant action.
     from dcoir_review.source_inventory_promotion import _two_ci_routes, _required_surfaces_only
