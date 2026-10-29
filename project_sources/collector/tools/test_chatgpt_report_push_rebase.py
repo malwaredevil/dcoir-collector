@@ -125,14 +125,47 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         # The publisher never rewrites the runner's checkout or local commit history.
         self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.writer).stdout.strip(), self.seed_head)
 
-    def test_other_staged_files_are_not_included_in_report_commit(self):
-        self.write(self.writer, "seed.txt", "local unapproved code\n")
+    def test_pre_staged_apply_in_paths_are_published_without_unstaged_files(self):
+        # ChatGPT Apply-In stages product files before passing report paths only.
+        self.write(self.writer, "seed.txt", "approved bundle change\n")
         self.git("add", "seed.txt", cwd=self.writer)
+        self.write(self.writer, "unapproved-untracked.txt", "must stay local\n")
         self.report(self.writer, ["request-resolved"])
         result = self.push_report("request-resolved")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(self.remote_content("seed.txt"), "original\n")
+        self.assertEqual(self.remote_content("seed.txt"), "approved bundle change\n")
+        remote_names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                                "main", "--", "unapproved-untracked.txt", cwd=self.root).stdout
+        self.assertEqual(remote_names.strip(), "")
         self.assertIn("seed.txt", self.git("diff", "--cached", "--name-only", cwd=self.writer).stdout)
+
+    def test_pre_staged_deletion_is_published_for_apply_in(self):
+        self.git("rm", "--", "seed.txt", cwd=self.writer)
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        remote_names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                                "main", "--", "seed.txt", cwd=self.root).stdout
+        self.assertEqual(remote_names.strip(), "")
+
+    def test_staged_but_subsequently_modified_file_fails_closed(self):
+        self.write(self.writer, "seed.txt", "approved staged change\n")
+        self.git("add", "seed.txt", cwd=self.writer)
+        self.write(self.writer, "seed.txt", "unapproved edit after staging\n")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content("seed.txt"), "original\n")
+
+    def test_concurrent_main_change_to_pre_staged_file_fails_closed(self):
+        self.write(self.writer, "seed.txt", "approved staged change\n")
+        self.git("add", "seed.txt", cwd=self.writer)
+        self.write(self.other, "seed.txt", "other writer change\n")
+        self.publish_other("concurrent product edit")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content("seed.txt"), "other writer change\n")
 
     def test_divergent_remote_history_fails_closed_without_data_loss(self):
         self.report(self.other, ["request-resolved", "remote-exclusive"])
