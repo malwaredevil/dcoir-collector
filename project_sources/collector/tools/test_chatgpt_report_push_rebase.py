@@ -95,6 +95,7 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
     def test_same_request_add_add_repro_with_advancing_main_and_final_cleanup(self):
         # Another published first heartbeat on main; our checkout still predates it.
         self.report(self.other, ["request-resolved"])
+        self.write(self.other, f"{REPORT_PATH}/prior_tracked_summary.md", "remote summary must survive\n")
         self.publish_other("first heartbeat on main")
         self.report(self.writer, ["request-resolved", "running-harness"])
         first = self.push_report("running-harness")
@@ -117,6 +118,8 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.assertIn('"exit_code":"0"', self.remote_content(f"{REPORT_PATH}/final_readback_marker.json"))
         self.assertIn("- result: success", self.remote_content(f"{REPORT_PATH}/workflow_report.md"))
         self.assertEqual(self.remote_content("unrelated-main.txt"), "main advanced\n")
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/prior_tracked_summary.md"),
+                         "remote summary must survive\n")
         self.assertNotEqual(self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
                                      "main", "--", REQUEST_PATH, cwd=self.root).stdout.strip(), REQUEST_PATH)
         # The publisher never rewrites the runner's checkout or local commit history.
