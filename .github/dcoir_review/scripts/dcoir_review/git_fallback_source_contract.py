@@ -76,7 +76,7 @@ _AUDITED_SOURCE_SHA256 = {
     ".github/workflows/validate-on-pr.yml": "faf2c87167b36244a0cc66d83ef47f121738a32902f3d812bc224de6d8afda6e",
     ".github/workflows/reusable-validate-on-pr.yml": "f984cf67b9e60522dcdf1d1e8d9493e2d39dbf2d38fb21e91951b316fd5fb457",
 }
-_AUDITED_SOURCE_HASH_VERSIONS = (
+_UNUSED_AUDITED_SOURCE_HASH_VERSIONS = (
     _AUDITED_SOURCE_SHA256_V1,
     _AUDITED_SOURCE_SHA256,
 )
