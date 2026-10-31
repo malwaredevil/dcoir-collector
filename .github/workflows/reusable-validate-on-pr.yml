@@ -20,12 +20,33 @@ permissions:
   contents: read
 
 jobs:
+  draft_fail_fast:
+    name: draft_fail_fast
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Run cheap Draft validation
+        shell: bash
+        run: python3 .github/github_actions/tools/run_pr_draft_fail_fast.py
+
   validate:
-    if: ${{ inputs.caller_event_name == 'workflow_dispatch' || github.event.pull_request.draft == false }}
+    needs: draft_fail_fast
+    # Explicit status function prevents GitHub from silently skipping the existing
+    # required validate/validate check when draft_fail_fast fails on Ready.
+    if: ${{ !cancelled() && (inputs.caller_event_name == 'workflow_dispatch' || github.event.pull_request.draft == false) }}
     runs-on: windows-latest
     permissions:
       contents: read
     steps:
+      - name: Fail closed if Draft fail-fast did not succeed
+        if: ${{ !cancelled() && needs.draft_fail_fast.result != 'success' }}
+        shell: pwsh
+        run: throw 'Draft fail-fast gate failed or was skipped; full validation must fail, not become an accepted skipped check.'
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Set up workflow runtime
