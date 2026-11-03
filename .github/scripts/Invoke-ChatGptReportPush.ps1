@@ -178,41 +178,19 @@ foreach ($callerPath in $CallerStagedPaths) {
 # Never rebase this runner's prior report commits onto main: that can replay
 # already-published files as add/add conflicts. Instead build a report-only
 # commit on the newly fetched main tree with an isolated index each attempt.
-function Get-ReportArtifactTimestamp {
-  param([string]$Path, [string]$Content)
-
-  $timestampText = ''
-  switch ([IO.Path]::GetFileName($Path)) {
-    'workflow_report.md' {
-      $match = [regex]::Match($Content, '(?m)^- report_updated_utc:\s*(\S+)\s*$')
-      if ($match.Success) { $timestampText = $match.Groups[1].Value }
-    }
-    'latest_progress_marker.json' {
-      try { $timestampText = [string](ConvertFrom-Json -InputObject $Content -ErrorAction Stop).updated_utc }
-      catch { return $null }
-    }
-    'final_readback_marker.json' {
-      try { $timestampText = [string](ConvertFrom-Json -InputObject $Content -ErrorAction Stop).created_utc }
-      catch { return $null }
-    }
-    default { return $null }
-  }
-
-  $timestamp = [DateTimeOffset]::MinValue
-  if ([string]::IsNullOrWhiteSpace($timestampText) -or
-      -not [DateTimeOffset]::TryParse(
-        $timestampText,
-        [Globalization.CultureInfo]::InvariantCulture,
-        [Globalization.DateTimeStyles]::AssumeUniversal,
-        [ref]$timestamp
-      )) {
-    return $null
-  }
-  return $timestamp
+# Remember the exact main commit successfully published by this checkout.
+# A newer wall-clock timestamp alone is never proof of having incorporated
+# remotely published report evidence. This ref is local to the runner.
+$ObservedReportRef = 'refs/dcoir-report-push/last-published'
+$ObservedReportCommit = [string](& git rev-parse --verify $ObservedReportRef 2>$null)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ObservedReportCommit)) {
+  $ObservedReportCommit = 'HEAD'
+} else {
+  $ObservedReportCommit = $ObservedReportCommit.Trim()
 }
 
 function Test-PublishedProgressIsPreserved {
-  param([string]$RemoteHead, [string[]]$CandidatePaths)
+  param([string]$RemoteHead, [string[]]$CandidatePaths, [string]$ObservedCommit)
 
   $remoteFiles = @(& git -c core.longpaths=true ls-tree -r --name-only $RemoteHead -- @CandidatePaths)
   if ($LASTEXITCODE -ne 0) {
@@ -296,19 +274,25 @@ function Test-PublishedProgressIsPreserved {
 
     if ($localHash -eq $remoteHash -or $remoteHash -eq $baseHash) { continue }
 
-    $remoteContentLines = @(& git -c core.longpaths=true show "$($RemoteHead):$reportPath" 2>$null)
+    # The remote blob must be exactly the version last published or otherwise
+    # observed by THIS checkout. A later timestamp does not prove causality.
+    $observedPaths = @(& git -c core.longpaths=true ls-tree -r --name-only $ObservedCommit -- $reportPath)
     if ($LASTEXITCODE -ne 0) {
-      Write-Warning "Cannot read published report content: $reportPath"
+      Write-Warning "Cannot inspect previously observed report state: $reportPath"
       return $false
     }
-    $remoteContent = $remoteContentLines -join "`n"
-    $localTimestamp = Get-ReportArtifactTimestamp -Path $reportPath -Content $localContent
-    $remoteTimestamp = Get-ReportArtifactTimestamp -Path $reportPath -Content $remoteContent
-    if ($null -ne $localTimestamp -and $null -ne $remoteTimestamp -and $localTimestamp -gt $remoteTimestamp) {
-      continue
+    $observedHash = ''
+    if ($observedPaths -contains $reportPath) {
+      $observedHash = [string](& git -c core.longpaths=true rev-parse --verify "$($ObservedCommit):$reportPath" 2>$null)
+      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($observedHash)) {
+        Write-Warning "Cannot read previously observed report blob: $reportPath"
+        return $false
+      }
+      $observedHash = $observedHash.Trim()
     }
+    if ($remoteHash -eq $observedHash) { continue }
 
-    Write-Warning "Divergent published report requires reconciliation before push: $reportPath"
+    Write-Warning "Unobserved remote report content requires reconciliation before push: $reportPath"
     return $false
   }
   return $true
@@ -350,7 +334,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     continue
   }
   $remoteHead = $remoteHead.Trim()
-  if (-not (Test-PublishedProgressIsPreserved -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
+  if (-not (Test-PublishedProgressIsPreserved -RemoteHead $remoteHead -CandidatePaths $StagePaths -ObservedCommit $ObservedReportCommit)) {
     Write-Warning 'Refusing a report push that would discard published progress history.'
     if ($RequirePush) { exit 1 }
     exit 0
@@ -434,6 +418,10 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
   # reconstruct only the approved report paths rather than replaying commits.
   & git -c core.longpaths=true push origin ($candidateCommit + ':refs/heads/main')
   if ($LASTEXITCODE -eq 0) {
+    & git update-ref $ObservedReportRef $candidateCommit
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning 'Report was published, but the runner-observed ref was not recorded; a later unobserved publication will fail closed.'
+    }
     Write-Host "Report push succeeded on attempt $attempt."
     Write-ChatGptReportUrls -CandidatePaths $StagePaths
     exit 0
