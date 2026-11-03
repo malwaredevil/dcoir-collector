@@ -41,6 +41,8 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.git("push", "-u", "origin", "main", cwd=self.seed)
         self.git("clone", str(self.origin), str(self.writer), cwd=self.root)
         self.git("clone", str(self.origin), str(self.other), cwd=self.root)
+        self.git("config", "user.name", "Test Writer", cwd=self.writer)
+        self.git("config", "user.email", "writer@example.invalid", cwd=self.writer)
         self.git("config", "user.name", "Other Writer", cwd=self.other)
         self.git("config", "user.email", "other@example.invalid", cwd=self.other)
         self.seed_head = self.git("rev-parse", "HEAD", cwd=self.writer).stdout.strip()
