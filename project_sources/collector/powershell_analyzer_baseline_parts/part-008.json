@@ -32,72 +32,72 @@
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "531ddbd0aa004be877c9f419461da45cef0f0ea855a82b45503a26a5f8990142",
+      "fingerprint": "28423ffe36b7b3fc404a1e128c1494fa40f384a7dbf57882884611ba771d030c",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 94. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 94. Refreshed from CI 41609588720; current line 93. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "b206acb17e2586869fee48aa7209dae28bebe29bb44fdd649731e0ae91e6e442",
+      "fingerprint": "3adb5dfc5197f6cc99840e9aa7f24fbb6caddcd5a5b57184517debcd934514af",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 121. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 121. Refreshed from CI 41609588720; current line 120. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "218a02a24a35c0b0b3718c35b3b0d796b311dc6b23382cb696d7f287e7231a5a",
+      "fingerprint": "7d50edfc5ce225bee9838eafc923ebf6c2c81f6e689e6357f1f95512c5815c0b",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 109. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 109. Refreshed from CI 41609588720; current line 108. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "51d0fea789575fca9570393af14f0dbf8d42385b4748804eecdd92bd7a0f1bb3",
+      "fingerprint": "6c93a0e706c5e7d1d737bd2059c9ae0e58d31de1194b7aff68533891557392e0",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 66. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 66. Refreshed from CI 41609588720; current line 66. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "9347d8266719b50f2e85b0e78497e18e81fffd900e39db31f37da72e0bb03680",
+      "fingerprint": "36c0dcf6bdc393d56b5388e1a7910391ab0e5e42afe0d3bf5c735b164fc8566f",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 175. Refreshed from CI 40873785170; current line 392. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 175. Refreshed from CI 41609588720; current line 438. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "dae5217ee58b4e6210b553f9363643fb0b29ef6fe57326ae1be4efdbdc1e789a",
+      "fingerprint": "390d9fb26a18cc547e0fa33fea5716e3f099226d90c45c1be616a99d2d1ec8aa",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 116. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 116. Refreshed from CI 41609588720; current line 115. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "c36f9577c76eabc159975b3031fd32be159e60a2842aca5bc1cfa2bcb26ecddb",
+      "fingerprint": "fb50bdbbfe7bca54fc066fa940d5faaf7ee406e0bb98e37bff5e9403f916fbbf",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 140. Refreshed from CI 40873785170; current line 312. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 140. Refreshed from CI 41609588720; current line 338. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "ecd5d6668306c81f68e36c9e53a8c7fb2c55a73aaf473701f7fe8369908b4a4b",
+      "fingerprint": "be49fa1e548df097ddc295c345d715f77c3671031ebab8746cbfab254085b4e8",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 93. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 93. Refreshed from CI 41609588720; current line 92. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "8a8573a2dcfceb2f06adbd1bd31f14db0dc855b180e50c5d2e3d9f6ed3a423fd",
+      "fingerprint": "643308fb68dc3e366f1141366b6011d78db17d795a1493f5c79449cfb48ecc86",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 85. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 85. Refreshed from CI 41609588720; current line 85. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "227363aed9c7727b15a3f9354ab9df7fd58786e954ef3896581c40a8d1352655",
+      "fingerprint": "b21e2b7a65d010ac74dc302ef3e81eb52b83245e7953539964bf32d8469ab7e1",
       "expected_match_count": 1,
-      "reason": "Observed in approved #606 CI 38041902823; line 158. Refreshed from CI 40873785170; current line 375. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
+      "reason": "Observed in approved #606 CI 38041902823; line 158. Refreshed from CI 41609588720; current line 418. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
