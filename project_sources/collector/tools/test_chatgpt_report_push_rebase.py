@@ -45,11 +45,14 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.git("config", "user.email", "other@example.invalid", cwd=self.other)
         self.seed_head = self.git("rev-parse", "HEAD", cwd=self.writer).stdout.strip()
 
-    def run_cmd(self, args, *, cwd, success=True, timeout=100):
+    def run_cmd(self, args, *, cwd, success=True, timeout=100, extra_env=None):
+        env = {**os.environ, "GITHUB_REPOSITORY": "example/local-test",
+               "GITHUB_SERVER_URL": "https://github.com"}
+        if extra_env:
+            env.update(extra_env)
         result = subprocess.run(args, cwd=cwd, text=True, encoding="utf-8", errors="replace",
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout,
-                                env={**os.environ, "GITHUB_REPOSITORY": "example/local-test",
-                                     "GITHUB_SERVER_URL": "https://github.com"})
+                                env=env)
         if success and result.returncode:
             self.fail(f"Command failed ({result.returncode}): {args}\n{result.stdout}\n{result.stderr}")
         return result
@@ -82,13 +85,14 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.git("commit", "-m", message, cwd=self.other)
         self.git("push", "origin", "HEAD:main", cwd=self.other)
 
-    def push_report(self, phase, *, required=True, paths=REPORT_PATH):
+    def push_report(self, phase, *, required=True, paths=REPORT_PATH, job_name=None):
         args = ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(PUSH_HELPER),
                 "-CommitMessage", f"Report {phase} [skip ci]", "-Paths", paths,
                 "-MaxAttempts", "1"]
         if required:
             args.append("-RequirePush")
-        return self.run_cmd(args, cwd=self.writer, success=False)
+        env = {"GITHUB_JOB": job_name} if job_name is not None else None
+        return self.run_cmd(args, cwd=self.writer, success=False, extra_env=env)
 
     def remote_content(self, relative):
         return self.git("--git-dir=" + str(self.origin), "show", "main:" + relative,
@@ -129,6 +133,16 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
                                      "main", "--", REQUEST_PATH, cwd=self.root).stdout.strip(), REQUEST_PATH)
         # The publisher never rewrites the runner's checkout or local commit history.
         self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.writer).stdout.strip(), self.seed_head)
+
+    def test_other_runner_job_cannot_inherit_observation_for_same_request(self):
+        self.report(self.writer, ["request-resolved"])
+        initial = self.push_report("request-resolved", job_name="first-job")
+        self.assertEqual(initial.returncode, 0, initial.stdout + initial.stderr)
+        prior = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        another_job = self.push_report("running-harness", job_name="different-job")
+        self.assertNotEqual(another_job.returncode, 0, another_job.stdout + another_job.stderr)
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), prior)
 
     def test_pre_staged_apply_in_paths_are_published_without_unstaged_files(self):
         # ChatGPT Apply-In stages product files before passing report paths only.
