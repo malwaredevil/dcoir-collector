@@ -399,8 +399,8 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
   if ($CallerStagedPaths.Count -gt 0) {
     $overlap = @(& git -c core.longpaths=true -c core.quotepath=false diff --no-renames --name-only HEAD $remoteHead -- @CallerStagedPaths)
     if ($LASTEXITCODE -ne 0 -or $overlap.Count -gt 0) {
-      Write-Error "Main changed pre-staged caller paths since checkout; refusing to overwrite: $($overlap -join ', ')"
-      exit 1
+      $message = "Main changed pre-staged caller paths since checkout; refusing to overwrite: $($overlap -join ', ')"
+      throw $message
     }
   }
 
