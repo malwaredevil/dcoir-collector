@@ -178,10 +178,28 @@ foreach ($callerPath in $CallerStagedPaths) {
 # Never rebase this runner's prior report commits onto main: that can replay
 # already-published files as add/add conflicts. Instead build a report-only
 # commit on the newly fetched main tree with an isolated index each attempt.
-# Remember the exact main commit successfully published by this checkout.
-# A newer wall-clock timestamp alone is never proof of having incorporated
-# remotely published report evidence. This ref is local to the runner.
-$ObservedReportRef = 'refs/dcoir-report-push/last-published'
+# Record exact published report evidence in a local ref scoped by request
+# and workflow run/job. Another publisher must not authorize our stale copy.
+$ReportRoots = @()
+foreach ($candidate in $StagePaths) {
+  $rootMatch = [regex]::Match([string]$candidate, '^\.github/chatgpt_staging/status_reports/[^/]+/[^/]+')
+  if ($rootMatch.Success) { $ReportRoots += $rootMatch.Value }
+}
+$ReportRoots = @($ReportRoots | Select-Object -Unique)
+if ($ReportRoots.Count -ne 1) {
+  Write-Error 'Report publication needs exactly one request-scoped report root.'
+  exit 1
+}
+$observedIdentity = @($env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT, $env:GITHUB_JOB, $ReportRoots[0]) -join '|'
+$shaTool = [Security.Cryptography.SHA256]::Create()
+try {
+  $observedId = ([BitConverter]::ToString(
+    $shaTool.ComputeHash([Text.Encoding]::UTF8.GetBytes($observedIdentity))
+  )).Replace('-', '').ToLowerInvariant()
+} finally {
+  $shaTool.Dispose()
+}
+$ObservedReportRef = "refs/dcoir-report-push/last-published/$observedId"
 $ObservedReportCommit = [string](& git rev-parse --verify $ObservedReportRef 2>$null)
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ObservedReportCommit)) {
   $ObservedReportCommit = 'HEAD'
