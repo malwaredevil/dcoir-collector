@@ -277,7 +277,6 @@ function Test-PublishedProgressIsPreserved {
     }
 
     $localHash = ''
-    $localContent = ''
     if (Test-Path -LiteralPath $reportPath -PathType Leaf) {
       $localHash = [string](& git -c core.longpaths=true hash-object "--path=$reportPath" -- $reportPath 2>$null)
       if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($localHash)) {
@@ -285,7 +284,6 @@ function Test-PublishedProgressIsPreserved {
         return $false
       }
       $localHash = $localHash.Trim()
-      $localContent = [string](Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8)
     } else {
       continue
     }

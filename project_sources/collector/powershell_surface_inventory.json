@@ -4707,9 +4707,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 18444,
-      "line_count": 453,
-      "sha256": "fd966a21281e7c7a76ef477e8538b34bd103f00e356a58e0f4eb73bd632ae9e0"
+      "size_bytes": 18332,
+      "line_count": 451,
+      "sha256": "8916af611e82a4fa568a1c20ece4119a4c3608e6d578134aa3ce9abc9c6f4551"
     },
     {
       "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
