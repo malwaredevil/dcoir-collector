@@ -334,6 +334,48 @@ function Restore-RemoteOnlyReportFiles {
   return $true
 }
 
+# Verify ALL non-status staged tracked paths against the checkout base before
+# publishing a candidate constructed on freshly fetched main. git add -A can
+# otherwise reintroduce stale tracked content or delete newer tracked payloads.
+# Status report files have separate history/causal checks above.
+function Test-NonReportStagedPathsSafe {
+  param([string]$RemoteHead, [string[]]$CandidatePaths)
+
+  $nonReportPaths = @($CandidatePaths | Where-Object {
+    $path = ([string]$_).TrimEnd('/')
+    -not ($path -eq '.github/chatgpt_staging/status_reports' -or
+      $path.StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase))
+  })
+  if ($nonReportPaths.Count -eq 0) { return $true }
+
+  # Tree-to-tree changes identify remotely modified, added, or deleted paths.
+  $remoteChangedPaths = @(& git -c core.longpaths=true -c core.quotepath=false diff --no-renames --name-only HEAD $RemoteHead -- @nonReportPaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect remote changes under non-report staged paths.'
+    return $false
+  }
+  if ($remoteChangedPaths.Count -eq 0) { return $true }
+
+  # This runs with the temporary index in scope, AFTER remote-only files have
+  # been restored. A path changed on main is safe only if the staged candidate
+  # preserves exactly the remote tree entry (including deletion).
+  $candidateChanges = @(& git -c core.longpaths=true -c core.quotepath=false diff --cached --no-renames --name-only $RemoteHead -- @nonReportPaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect staged changes under non-report staged paths.'
+    return $false
+  }
+  $candidateChangedSet = @{}
+  foreach ($path in $candidateChanges) { $candidateChangedSet[[string]$path] = $true }
+  foreach ($path in $remoteChangedPaths) {
+    if ($candidateChangedSet.ContainsKey([string]$path)) {
+      Write-Warning "Concurrent tracked file change requires reconciliation before push: $path"
+      return $false
+    }
+  }
+  return $true
+}
+
+
 for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
   Write-Host "Report push attempt $attempt of $MaxAttemptCount for: $CommitMessage"
   & git -c core.longpaths=true fetch origin main
@@ -372,7 +414,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     & git -c core.longpaths=true read-tree $remoteHead
     if ($LASTEXITCODE -eq 0) {
       & git -c core.longpaths=true add -A -- @StagePaths
-      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
+      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths) -and (Test-NonReportStagedPathsSafe -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
         $callerIndexApplied = $true
         foreach ($callerPath in $CallerStagedPaths) {
           $entry = $CallerApprovedIndex[$callerPath]

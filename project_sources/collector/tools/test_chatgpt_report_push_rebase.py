@@ -278,6 +278,73 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), original)
         self.assertIn("Remote-only final-readback appendix", original)
 
+    def test_concurrent_tracked_apply_report_does_not_overwrite_newer_remote(self):
+        shared = ".github/chatgpt_staging/apply_reports/shared.md"
+        self.write(self.writer, shared, "tracked checkout report\n")
+        self.git("add", shared, cwd=self.writer)
+        self.git("commit", "-m", "seed shared tracked report", cwd=self.writer)
+        self.git("push", "origin", "HEAD:main", cwd=self.writer)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        self.write(self.other, shared, "newer remote apply report\n")
+        self.publish_other("remote updated shared apply report")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved",
+                                  paths=REPORT_PATH + "|.github/chatgpt_staging/apply_reports")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(shared), "newer remote apply report\n")
+
+    def test_concurrent_tracked_payload_cleanup_is_rejected(self):
+        updated = '{"approved":true,"newer_remote_payload":true}\n'
+        self.write(self.other, REQUEST_PATH, updated)
+        self.publish_other("concurrent tracked payload update")
+        (self.writer / REQUEST_PATH).unlink()
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("cleanup", paths=REPORT_PATH + "|" + REQUEST_PATH)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(REQUEST_PATH), updated)
+
+    def test_remote_tracked_deletion_cannot_be_resurrected_by_stale_directory(self):
+        shared = ".github/chatgpt_staging/apply_reports/removed.md"
+        self.write(self.writer, shared, "old tracked shared file\n")
+        self.git("add", shared, cwd=self.writer)
+        self.git("commit", "-m", "seed tracked shared file", cwd=self.writer)
+        self.git("push", "origin", "HEAD:main", cwd=self.writer)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        self.git("rm", "--", shared, cwd=self.other)
+        self.publish_other("remove shared file on main")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved",
+                                  paths=REPORT_PATH + "|.github/chatgpt_staging/apply_reports")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        remote_names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                                "main", "--", shared, cwd=self.root).stdout
+        self.assertEqual(remote_names.strip(), "")
+
+    def test_remote_only_shared_report_is_preserved_during_safe_publication(self):
+        shared_remote = ".github/chatgpt_staging/apply_reports/remote-only.md"
+        shared_local = ".github/chatgpt_staging/apply_reports/new-local.md"
+        self.write(self.other, shared_remote, "remote only evidence\n")
+        self.publish_other("concurrent unrelated addition inside shared directory")
+        self.write(self.writer, shared_local, "local apply report\n")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved",
+                                  paths=REPORT_PATH + "|.github/chatgpt_staging/apply_reports")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(shared_remote), "remote only evidence\n")
+        self.assertEqual(self.remote_content(shared_local), "local apply report\n")
+
+    def test_nonconflicting_remote_unrelated_edit_and_local_apply_report_pass(self):
+        shared_local = ".github/chatgpt_staging/apply_reports/local.md"
+        self.write(self.other, "remote-unrelated.txt", "untouched remote advance\n")
+        self.publish_other("unrelated main advance")
+        self.write(self.writer, shared_local, "local new report\n")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved",
+                                  paths=REPORT_PATH + "|.github/chatgpt_staging/apply_reports")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(shared_local), "local new report\n")
+        self.assertEqual(self.remote_content("remote-unrelated.txt"), "untouched remote advance\n")
+
     def test_concurrent_summary_update_fails_closed(self):
         summary = f"{REPORT_PATH}/tracked_summary.md"
         self.git("config", "user.name", "Test Writer", cwd=self.writer)
