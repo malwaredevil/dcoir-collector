@@ -95,10 +95,13 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
                         cwd=self.root).stdout
 
     def test_same_request_add_add_repro_with_advancing_main_and_final_cleanup(self):
-        # Another published first heartbeat on main; our checkout still predates it.
-        self.report(self.other, ["request-resolved"])
+        # The same runner first publishes a report, recording the exact remote version.
+        self.report(self.writer, ["request-resolved"])
+        initial = self.push_report("request-resolved")
+        self.assertEqual(initial.returncode, 0, initial.stdout + initial.stderr)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
         self.write(self.other, f"{REPORT_PATH}/prior_tracked_summary.md", "remote summary must survive\n")
-        self.publish_other("first heartbeat on main")
+        self.publish_other("remote-only summary between phases")
         self.report(self.writer, ["request-resolved", "running-harness"])
         first = self.push_report("running-harness")
         self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
@@ -150,6 +153,15 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
                                 "main", "--", "seed.txt", cwd=self.root).stdout
         self.assertEqual(remote_names.strip(), "")
 
+    def test_recreated_staged_deletion_is_rejected_without_publishing_worktree(self):
+        self.git("rm", "--", "seed.txt", cwd=self.writer)
+        self.write(self.writer, "seed.txt", "unapproved recreated content\n")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content("seed.txt"), "original\n")
+        self.assertIn("seed.txt", self.git("diff", "--cached", "--name-only", cwd=self.writer).stdout)
+
     def test_staged_but_subsequently_modified_file_fails_closed(self):
         self.write(self.writer, "seed.txt", "approved staged change\n")
         self.git("add", "seed.txt", cwd=self.writer)
@@ -199,6 +211,30 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), remote_report)
         self.assertEqual(self.remote_content(f"{REPORT_PATH}/latest_progress_marker.json"), remote_marker)
+
+    def test_unobserved_remote_report_fails_closed_even_with_prefix_history(self):
+        self.report(self.other, ["request-resolved"])
+        self.publish_other("first heartbeat from a different runner")
+        original = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        result = self.push_report("running-harness")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), original)
+
+    def test_later_local_timestamp_cannot_discard_unseen_remote_appendix(self):
+        self.report(self.other, ["request-resolved"])
+        remote_path = self.other / REPORT_PATH / "workflow_report.md"
+        remote_path.write_text(
+            remote_path.read_text(encoding="utf-8") + "\nRemote-only final-readback appendix\n",
+            encoding="utf-8",
+        )
+        self.publish_other("earlier remote appendix")
+        original = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        result = self.push_report("running-harness")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), original)
+        self.assertIn("Remote-only final-readback appendix", original)
 
     def test_concurrent_summary_update_fails_closed(self):
         summary = f"{REPORT_PATH}/tracked_summary.md"
