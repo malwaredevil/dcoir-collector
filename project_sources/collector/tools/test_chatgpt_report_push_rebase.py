@@ -347,6 +347,81 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.assertEqual(self.remote_content(shared_local), "local new report\n")
         self.assertEqual(self.remote_content("remote-unrelated.txt"), "untouched remote advance\n")
 
+    def test_remote_deletion_of_checkout_tracked_history_fails_closed(self):
+        history = f"{REPORT_PATH}/progress_history.jsonl"
+        self.report(self.writer, ["request-resolved"])
+        self.git("add", REPORT_PATH, cwd=self.writer)
+        self.git("commit", "-m", "seed checkout-tracked progress history", cwd=self.writer)
+        self.git("push", "origin", "HEAD:main", cwd=self.writer)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        self.git("rm", "--", history, cwd=self.other)
+        self.publish_other("other runner removed tracked history")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        result = self.push_report_from_caller("running-harness")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("deleted on main", result.stdout + result.stderr)
+        paths = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", history, cwd=self.root).stdout
+        self.assertEqual(paths.strip(), "")
+
+    def test_remote_deletion_of_runner_published_history_fails_closed(self):
+        history = f"{REPORT_PATH}/progress_history.jsonl"
+        self.report(self.writer, ["request-resolved"])
+        first = self.push_report("request-resolved")
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        self.git("rm", "--", history, cwd=self.other)
+        self.publish_other("delete previously published progress history")
+        remote_report = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        result = self.push_report_from_caller("running-harness")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("deleted on main", result.stdout + result.stderr)
+        paths = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", history, cwd=self.root).stdout
+        self.assertEqual(paths.strip(), "")
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), remote_report)
+
+    def test_required_recreated_staged_deletion_stops_call_operator(self):
+        self.git("rm", "--", "seed.txt", cwd=self.writer)
+        self.write(self.writer, "seed.txt", "unapproved reconstructed content\n")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report_from_caller("recreated-delete")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertEqual(self.remote_content("seed.txt"), "original\n")
+
+    def test_required_unstaged_index_mismatch_stops_call_operator(self):
+        self.write(self.writer, "seed.txt", "approved staged content\n")
+        self.git("add", "seed.txt", cwd=self.writer)
+        self.write(self.writer, "seed.txt", "unstaged conflicting content\n")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report_from_caller("index-mismatch")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertEqual(self.remote_content("seed.txt"), "original\n")
+
+    def test_required_report_path_overlap_stops_call_operator(self):
+        self.report(self.writer, ["request-resolved"])
+        self.git("add", f"{REPORT_PATH}/workflow_report.md", cwd=self.writer)
+        result = self.push_report_from_caller("overlapping-report-path")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertNotIn("workflow_report.md", self.git("--git-dir=" + str(self.origin),
+                         "ls-tree", "-r", "--name-only", "main", "--", REPORT_PATH,
+                         cwd=self.root).stdout)
+
+    def test_required_invalid_report_roots_stop_call_operator(self):
+        second = ".github/chatgpt_staging/status_reports/chatgpt-exec/other-request"
+        self.report(self.writer, ["request-resolved"])
+        self.write(self.writer, f"{second}/workflow_report.md", "# other request\n")
+        result = self.push_report_from_caller("two-report-roots", paths=REPORT_PATH + "|" + second)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("exactly one request-scoped report root", result.stdout + result.stderr)
+
     def test_concurrent_summary_update_fails_closed(self):
         summary = f"{REPORT_PATH}/tracked_summary.md"
         self.git("config", "user.name", "Test Writer", cwd=self.writer)

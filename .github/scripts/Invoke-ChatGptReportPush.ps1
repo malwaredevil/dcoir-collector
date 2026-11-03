@@ -129,8 +129,7 @@ if ($StagePaths.Count -eq 0) {
 # changes; the original git commit published both groups.
 $CallerStagedPaths = @(& git -c core.longpaths=true -c core.quotepath=false diff --cached --no-renames --name-only)
 if ($LASTEXITCODE -ne 0) {
-  Write-Error 'Cannot inspect pre-staged caller changes; refusing report publication.'
-  exit 1
+  throw 'Cannot inspect pre-staged caller changes; refusing report publication.'
 }
 $CallerStagedPaths = @($CallerStagedPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
 if ($CallerStagedPaths.Count -gt 0) {
@@ -138,8 +137,7 @@ if ($CallerStagedPaths.Count -gt 0) {
   # unstaged mutation that differs from the caller-approved staged snapshot.
   & git -c core.longpaths=true diff --quiet -- @CallerStagedPaths
   if ($LASTEXITCODE -ne 0) {
-    Write-Error 'Unstaged changes differ from the caller-approved index; refusing report publication.'
-    exit 1
+    throw 'Unstaged changes differ from the caller-approved index; refusing report publication.'
   }
 }
 # Preserve the exact caller-approved index blob/mode or deletion before
@@ -148,25 +146,21 @@ $CallerApprovedIndex = @{}
 foreach ($callerPath in $CallerStagedPaths) {
   $entries = @(& git -c core.longpaths=true -c core.quotepath=false ls-files --stage -- $callerPath)
   if ($LASTEXITCODE -ne 0 -or $entries.Count -gt 1) {
-    Write-Error "Cannot inspect caller-approved staged entry: $callerPath"
-    exit 1
+    throw "Cannot inspect caller-approved staged entry: $callerPath"
   }
   foreach ($reportPath in $StagePaths) {
     if ($callerPath -eq $reportPath -or $callerPath.StartsWith(($reportPath.TrimEnd('/') + '/'), [StringComparison]::Ordinal)) {
-      Write-Error "Caller-staged paths cannot overlap report publishing paths: $callerPath"
-      exit 1
+      throw "Caller-staged paths cannot overlap report publishing paths: $callerPath"
     }
   }
   if ($entries.Count -eq 0) {
     if (Test-Path -LiteralPath $callerPath) {
-      Write-Error "Staged deletion was recreated in the worktree: $callerPath"
-      exit 1
+      throw "Staged deletion was recreated in the worktree: $callerPath"
     }
     $CallerApprovedIndex[$callerPath] = $null
   } else {
     if ([string]$entries[0] -notmatch '^([0-7]{6}) ([0-9a-f]{40,64}) 0\t') {
-      Write-Error "Cannot parse caller-approved index entry: $callerPath"
-      exit 1
+      throw "Cannot parse caller-approved index entry: $callerPath"
     }
     $CallerApprovedIndex[$callerPath] = @{ Mode = $Matches[1]; Blob = $Matches[2] }
   }
@@ -185,8 +179,7 @@ foreach ($candidate in $StagePaths) {
 }
 $ReportRoots = @($ReportRoots | Select-Object -Unique)
 if ($ReportRoots.Count -ne 1) {
-  Write-Error 'Report publication needs exactly one request-scoped report root.'
-  exit 1
+  throw 'Report publication needs exactly one request-scoped report root.'
 }
 $observedIdentity = @($env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT, $env:GITHUB_JOB, $ReportRoots[0]) -join '|'
 $shaTool = [Security.Cryptography.SHA256]::Create()
@@ -222,6 +215,26 @@ function Test-PublishedProgressIsPreserved {
   foreach ($path in $remoteFiles) { $remoteFileSet[[string]$path] = $true }
   $baseFileSet = @{}
   foreach ($path in $baseFiles) { $baseFileSet[[string]$path] = $true }
+
+  # Include the last version published by this runner: HEAD may predate every
+  # report file, while a later runner can explicitly delete published history.
+  # Never silently resurrect history deleted from main with git add -A.
+  $observedFiles = @(& git -c core.longpaths=true ls-tree -r --name-only $ObservedCommit -- @CandidatePaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect previously observed progress history.'
+    return $false
+  }
+  $knownHistoryPaths = @($baseFiles + $observedFiles |
+    Where-Object {
+      ([string]$_).StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase) -and
+      [IO.Path]::GetFileName([string]$_) -eq 'progress_history.jsonl'
+    } | Select-Object -Unique)
+  foreach ($historyPath in $knownHistoryPaths) {
+    if (-not $remoteFileSet.ContainsKey([string]$historyPath)) {
+      Write-Warning "Previously tracked progress history was deleted on main; refusing to recreate it: $historyPath"
+      return $false
+    }
+  }
 
   foreach ($remotePath in $remoteFiles) {
     if ([IO.Path]::GetFileName([string]$remotePath) -ne 'progress_history.jsonl') { continue }
