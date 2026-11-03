@@ -94,6 +94,22 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         env = {"GITHUB_JOB": job_name} if job_name is not None else None
         return self.run_cmd(args, cwd=self.writer, success=False, extra_env=env)
 
+    def push_report_from_caller(self, phase, *, paths=REPORT_PATH):
+        def ps_quote(value):
+            return "'" + str(value).replace("'", "''") + "'"
+
+        caller = self.root / "report-push-caller.ps1"
+        caller.write_text(
+            "$ErrorActionPreference = 'Stop'\n"
+            f"& {ps_quote(PUSH_HELPER)} "
+            f"-CommitMessage {ps_quote(f'Report {phase} [skip ci]')} "
+            f"-Paths {ps_quote(paths)} -MaxAttempts 1 -RequirePush\n"
+            "Write-Output 'caller continued'\n",
+            encoding="utf-8",
+        )
+        return self.run_cmd(["pwsh", "-NoProfile", "-NonInteractive", "-File", str(caller)],
+                            cwd=self.writer, success=False)
+
     def remote_content(self, relative):
         return self.git("--git-dir=" + str(self.origin), "show", "main:" + relative,
                         cwd=self.root).stdout
@@ -233,6 +249,18 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.report(self.writer, ["request-resolved", "running-harness"])
         result = self.push_report("running-harness")
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), original)
+
+    def test_required_failure_propagates_through_call_operator(self):
+        self.report(self.other, ["request-resolved"])
+        self.publish_other("first heartbeat from a different runner")
+        original = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+
+        result = self.push_report_from_caller("running-harness")
+
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
         self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), original)
 
     def test_later_local_timestamp_cannot_discard_unseen_remote_appendix(self):

@@ -84,8 +84,7 @@ $ExpandedPaths = @($ExpandedPaths | Select-Object -Unique)
 if ($ExpandedPaths.Count -eq 0) {
   Write-Host "No report paths supplied for: $CommitMessage"
   if ($RequirePush) {
-    Write-Error "Required report push had no paths to stage for: $CommitMessage"
-    exit 1
+    throw "Required report push had no paths to stage for: $CommitMessage"
   }
   exit 0
 }
@@ -120,8 +119,7 @@ $StagePaths = @($StagePaths | Select-Object -Unique)
 if ($StagePaths.Count -eq 0) {
   Write-Host "No existing or tracked report paths to stage for: $CommitMessage"
   if ($RequirePush) {
-    Write-Error "Required report push had no stageable paths for: $CommitMessage"
-    exit 1
+    throw "Required report push had no stageable paths for: $CommitMessage"
   }
   exit 0
 }
@@ -352,7 +350,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
   $remoteHead = $remoteHead.Trim()
   if (-not (Test-PublishedProgressIsPreserved -RemoteHead $remoteHead -CandidatePaths $StagePaths -ObservedCommit $ObservedReportCommit)) {
     Write-Warning 'Refusing a report push that would discard published progress history.'
-    if ($RequirePush) { exit 1 }
+    if ($RequirePush) { throw 'Required report push could not preserve published progress history.' }
     exit 0
   }
 
@@ -419,8 +417,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
   if ($stageOutcome -eq 'no_changes') {
     Write-Host "No new report changes relative to fetched main for: $CommitMessage"
     if ($RequirePush) {
-      Write-Error "Required report push had no changes to publish for: $CommitMessage"
-      exit 1
+      throw "Required report push had no changes to publish for: $CommitMessage"
     }
     exit 0
   }
@@ -447,5 +444,5 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
 }
 
 Write-Warning "Report push failed after $MaxAttemptCount attempts."
-if ($RequirePush) { exit 1 }
+if ($RequirePush) { throw "Required report push failed after $MaxAttemptCount attempts." }
 exit 0
