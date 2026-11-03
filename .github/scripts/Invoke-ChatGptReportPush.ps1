@@ -144,7 +144,35 @@ if ($CallerStagedPaths.Count -gt 0) {
     exit 1
   }
 }
-$CommitPaths = @($StagePaths + $CallerStagedPaths | Select-Object -Unique)
+# Preserve the exact caller-approved index blob/mode or deletion before
+# entering the temporary index. Worktree paths are not a staging contract.
+$CallerApprovedIndex = @{}
+foreach ($callerPath in $CallerStagedPaths) {
+  $entries = @(& git -c core.longpaths=true -c core.quotepath=false ls-files --stage -- $callerPath)
+  if ($LASTEXITCODE -ne 0 -or $entries.Count -gt 1) {
+    Write-Error "Cannot inspect caller-approved staged entry: $callerPath"
+    exit 1
+  }
+  foreach ($reportPath in $StagePaths) {
+    if ($callerPath -eq $reportPath -or $callerPath.StartsWith(($reportPath.TrimEnd('/') + '/'), [StringComparison]::Ordinal)) {
+      Write-Error "Caller-staged paths cannot overlap report publishing paths: $callerPath"
+      exit 1
+    }
+  }
+  if ($entries.Count -eq 0) {
+    if (Test-Path -LiteralPath $callerPath) {
+      Write-Error "Staged deletion was recreated in the worktree: $callerPath"
+      exit 1
+    }
+    $CallerApprovedIndex[$callerPath] = $null
+  } else {
+    if ([string]$entries[0] -notmatch '^([0-7]{6}) ([0-9a-f]{40,64}) 0\t') {
+      Write-Error "Cannot parse caller-approved index entry: $callerPath"
+      exit 1
+    }
+    $CallerApprovedIndex[$callerPath] = @{ Mode = $Matches[1]; Blob = $Matches[2] }
+  }
+}
 
 # A request can publish multiple report phases from one runner while main moves.
 # Never rebase this runner's prior report commits onto main: that can replay
@@ -345,20 +373,37 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     $env:GIT_INDEX_FILE = $tempIndex
     & git -c core.longpaths=true read-tree $remoteHead
     if ($LASTEXITCODE -eq 0) {
-      & git -c core.longpaths=true add -A -- @CommitPaths
-      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $CommitPaths)) {
-        & git -c core.longpaths=true diff --cached --quiet $remoteHead --
-        $diffExit = $LASTEXITCODE
-        if ($diffExit -eq 0) {
-          $stageOutcome = 'no_changes'
-        } elseif ($diffExit -eq 1) {
-          $tree = [string](& git -c core.longpaths=true write-tree)
-          if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tree)) {
-            $tree = $tree.Trim()
-            $candidateCommit = [string](& git -c core.longpaths=true commit-tree $tree -p $remoteHead -m $CommitMessage)
-            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($candidateCommit)) {
-              $candidateCommit = $candidateCommit.Trim()
-              $stageOutcome = 'ready'
+      & git -c core.longpaths=true add -A -- @StagePaths
+      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
+        $callerIndexApplied = $true
+        foreach ($callerPath in $CallerStagedPaths) {
+          $entry = $CallerApprovedIndex[$callerPath]
+          if ($null -eq $entry) {
+            & git -c core.longpaths=true update-index --force-remove -- $callerPath
+          } else {
+            $cacheinfo = "$($entry.Mode),$($entry.Blob),$callerPath"
+            & git -c core.longpaths=true update-index --add --cacheinfo $cacheinfo
+          }
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Cannot apply approved caller index state: $callerPath"
+            $callerIndexApplied = $false
+            break
+          }
+        }
+        if ($callerIndexApplied) {
+          & git -c core.longpaths=true diff --cached --quiet $remoteHead --
+          $diffExit = $LASTEXITCODE
+          if ($diffExit -eq 0) {
+            $stageOutcome = 'no_changes'
+          } elseif ($diffExit -eq 1) {
+            $tree = [string](& git -c core.longpaths=true write-tree)
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tree)) {
+              $tree = $tree.Trim()
+              $candidateCommit = [string](& git -c core.longpaths=true commit-tree $tree -p $remoteHead -m $CommitMessage)
+              if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($candidateCommit)) {
+                $candidateCommit = $candidateCommit.Trim()
+                $stageOutcome = 'ready'
+              }
             }
           }
         }
