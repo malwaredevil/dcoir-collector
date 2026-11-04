@@ -329,7 +329,7 @@ function Test-PublishedProgressIsPreserved {
       $localHash = $localHash.Trim()
     } else {
       # A named deletion must not erase a remote version unknown to this runner.
-      if ($remoteHash -ne '' -and $remoteHash -ne $baseHash -and $remoteHash -ne $observedHash) {
+      if (($CandidatePaths -contains $reportPath) -and $remoteHash -ne '' -and $remoteHash -ne $baseHash -and $remoteHash -ne $observedHash) {
         Write-Warning "Unobserved remote report content cannot be deleted: $reportPath"
         return $false
       }
