@@ -6,6 +6,6 @@
   "timeout_seconds": 120,
   "artifact_retention_days": 3,
   "cleanup_request_after_run": true,
-  "approved_command_preview": "Approved one-time issue557 retest from isolated corrected PR branch, triggered automatically by temporary branch-only workflow; non-destructive branch-guarded PowerShell marker command.",
+  "approved_command_preview": "Approved isolated Issue557 corrected-head four-phase report and cleanup retest. Temporary push caller YAML quoting corrected; original branch-guarded harmless PowerShell command unchanged.",
   "command": "$ErrorActionPreference = 'Stop'\nif ($env:GITHUB_REF -ne 'refs/heads/test/issue557-chatgpt-exec-retake-20261104') { throw 'Safety stop: wrong workflow ref' }\nWrite-Output 'ISSUE557_RETTEST_MULTIPHASE_SMOKE_OK'"
 }
