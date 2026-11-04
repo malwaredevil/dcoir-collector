@@ -19,6 +19,22 @@ REQUEST_PATH = f".github/chatgpt_staging/exec_requests/{REQUEST_ID}.json"
 REPORT_PATH = f".github/chatgpt_staging/status_reports/chatgpt-exec/{REQUEST_ID}"
 
 
+class ChatGptReportPushSourceSizeTests(unittest.TestCase):
+    def test_helper_sources_stay_within_connector_limit(self):
+        helper_sources = (
+            PUSH_HELPER,
+            PUSH_HELPER.with_name("ChatGptReportPush.Reconciliation.ps1"),
+        )
+        for path in helper_sources:
+            with self.subTest(path=path.name):
+                self.assertLessEqual(path.stat().st_size, 15_000)
+
+        self.assertIn(
+            ". (Join-Path $PSScriptRoot 'ChatGptReportPush.Reconciliation.ps1')",
+            PUSH_HELPER.read_text(encoding="utf-8"),
+        )
+
+
 @unittest.skipUnless(shutil.which("pwsh") and shutil.which("git"), "requires Git and PowerShell 7")
 class ChatGptReportPushRebaseTests(unittest.TestCase):
     def setUp(self):

@@ -20,7 +20,7 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 383,
+    "total_surfaces": 384,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
@@ -30,7 +30,7 @@
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
       "generated_or_assembled_output": 1,
-      "github_workflow_support_script": 23,
+      "github_workflow_support_script": 24,
       "invalid_workflow_surface": 0,
       "missing_authoritative_surface": 0,
       "missing_changed_powershell_surface": 0,
@@ -42,7 +42,7 @@
       "workflow_embedded_powershell": 30
     },
     "by_source_type": {
-      ".ps1": 334,
+      ".ps1": 335,
       ".ps1.txt": 0,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -55,12 +55,12 @@
       "source_part": 18,
       "staging": 196,
       "superseded_pointer": 1,
-      "tooling": 67,
+      "tooling": 68,
       "workflow_embedded": 30
     },
     "by_inclusion_decision": {
       "exclude": 196,
-      "include": 133,
+      "include": 134,
       "reference": 54
     },
     "embedded_snippet_count": 130
@@ -4698,6 +4698,20 @@
       "sha256": "e18d3e665da728781566d6461af28b018580d354e6b1b668a9dd8e7b939dfdb7"
     },
     {
+      "path": ".github/scripts/ChatGptReportPush.Reconciliation.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 8622,
+      "line_count": 186,
+      "sha256": "e9768ee05f0bd7e8542f822c2d6e2a440cfd28f7b545ad701cdf1440b67f1fdc"
+    },
+    {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "category": "github_workflow_support_script",
       "source_type": ".ps1",
@@ -4707,9 +4721,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 22490,
-      "line_count": 522,
-      "sha256": "f097ecca79cd5ded8ee65594faf94da8413db808e4e7bad0c260e3c63dc6b001"
+      "size_bytes": 13934,
+      "line_count": 336,
+      "sha256": "cd9f94ac8b0c7f8bba52f01e80d1ceddb226c4824d6d14ae42748ec1d1d47bdd"
     },
     {
       "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",

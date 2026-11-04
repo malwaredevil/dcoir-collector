@@ -21,7 +21,7 @@
 | `collector_validation_tooling` | 2 |
 | `fixture_or_example` | 23 |
 | `generated_or_assembled_output` | 1 |
-| `github_workflow_support_script` | 23 |
+| `github_workflow_support_script` | 24 |
 | `invalid_workflow_surface` | 0 |
 | `missing_authoritative_surface` | 0 |
 | `missing_changed_powershell_surface` | 0 |
@@ -36,7 +36,7 @@
 
 | Source Type | Count |
 | --- | ---: |
-| `.ps1` | 334 |
+| `.ps1` | 335 |
 | `.ps1.txt` | 0 |
 | `.ps1xml` | 0 |
 | `.psd1` | 9 |
@@ -48,7 +48,7 @@
 | Decision | Count |
 | --- | ---: |
 | `exclude` | 196 |
-| `include` | 133 |
+| `include` | 134 |
 | `reference` | 54 |
 
 ## Control Totals
