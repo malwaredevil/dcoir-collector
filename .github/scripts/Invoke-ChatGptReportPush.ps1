@@ -236,6 +236,21 @@ function Test-PublishedProgressIsPreserved {
     }
   }
 
+  # A runner can have published summaries absent from checkout HEAD. If main
+  # subsequently deletes one, never re-create stale evidence from the worktree.
+  $knownReportPaths = @($baseFiles + $observedFiles |
+    Where-Object {
+      ([string]$_).StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase) -and
+      [IO.Path]::GetFileName([string]$_) -ne 'progress_history.jsonl'
+    } | Select-Object -Unique)
+  foreach ($reportPath in $knownReportPaths) {
+    if ((-not $remoteFileSet.ContainsKey([string]$reportPath)) -and
+        (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
+      Write-Warning "Previously published report was deleted on main; refusing to recreate it: $reportPath"
+      return $false
+    }
+  }
+
   foreach ($remotePath in $remoteFiles) {
     if ([IO.Path]::GetFileName([string]$remotePath) -ne 'progress_history.jsonl') { continue }
     if (-not (Test-Path -LiteralPath $remotePath -PathType Leaf)) {
@@ -287,22 +302,8 @@ function Test-PublishedProgressIsPreserved {
       $baseHash = $baseHash.Trim()
     }
 
-    $localHash = ''
-    if (Test-Path -LiteralPath $reportPath -PathType Leaf) {
-      $localHash = [string](& git -c core.longpaths=true hash-object "--path=$reportPath" -- $reportPath 2>$null)
-      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($localHash)) {
-        Write-Warning "Cannot read local report version: $reportPath"
-        return $false
-      }
-      $localHash = $localHash.Trim()
-    } else {
-      continue
-    }
-
-    if ($localHash -eq $remoteHash -or $remoteHash -eq $baseHash) { continue }
-
-    # The remote blob must be exactly the version last published or otherwise
-    # observed by THIS checkout. A later timestamp does not prove causality.
+    # Remote content must have been present at checkout or published/observed
+    # by this exact runner. The rule also applies to explicit file deletions.
     $observedPaths = @(& git -c core.longpaths=true ls-tree -r --name-only $ObservedCommit -- $reportPath)
     if ($LASTEXITCODE -ne 0) {
       Write-Warning "Cannot inspect previously observed report state: $reportPath"
@@ -317,7 +318,25 @@ function Test-PublishedProgressIsPreserved {
       }
       $observedHash = $observedHash.Trim()
     }
-    if ($remoteHash -eq $observedHash) { continue }
+
+    $localHash = ''
+    if (Test-Path -LiteralPath $reportPath -PathType Leaf) {
+      $localHash = [string](& git -c core.longpaths=true hash-object "--path=$reportPath" -- $reportPath 2>$null)
+      if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($localHash)) {
+        Write-Warning "Cannot read local report version: $reportPath"
+        return $false
+      }
+      $localHash = $localHash.Trim()
+    } else {
+      # A named deletion must not erase a remote version unknown to this runner.
+      if ($remoteHash -ne '' -and $remoteHash -ne $baseHash -and $remoteHash -ne $observedHash) {
+        Write-Warning "Unobserved remote report content cannot be deleted: $reportPath"
+        return $false
+      }
+      continue
+    }
+
+    if ($localHash -eq $remoteHash -or $remoteHash -eq $baseHash -or $remoteHash -eq $observedHash) { continue }
 
     Write-Warning "Unobserved remote report content requires reconciliation before push: $reportPath"
     return $false

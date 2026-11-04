@@ -439,6 +439,72 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.remote_content(summary), "newer remote summary\n")
 
+    def test_deleted_runner_published_nonhistory_report_fails_closed(self):
+        marker = f"{REPORT_PATH}/latest_progress_marker.json"
+        self.report(self.writer, ["request-resolved"])
+        first = self.push_report("request-resolved")
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        self.git("rm", "--", marker, cwd=self.other)
+        self.publish_other("delete previously published nonhistory marker")
+        old_report = self.remote_content(f"{REPORT_PATH}/workflow_report.md")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        result = self.push_report_from_caller("after-marker-deletion")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("Previously published report was deleted on main", result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", marker, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+        self.assertEqual(self.remote_content(f"{REPORT_PATH}/workflow_report.md"), old_report)
+
+    def test_deleted_runner_published_marker_stays_deleted_if_local_also_absent(self):
+        marker = f"{REPORT_PATH}/latest_progress_marker.json"
+        self.report(self.writer, ["request-resolved"])
+        first = self.push_report("request-resolved")
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        self.git("rm", "--", marker, cwd=self.other)
+        self.publish_other("remove published marker")
+        self.report(self.writer, ["request-resolved", "running-harness"])
+        (self.writer / marker).unlink()
+        result = self.push_report("running-harness-without-marker")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", marker, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+        self.assertIn("running-harness", self.remote_content(f"{REPORT_PATH}/progress_history.jsonl"))
+
+    def test_concurrent_explicit_report_file_deletion_fails_closed(self):
+        report_file = f"{REPORT_PATH}/workflow_report.md"
+        self.write(self.writer, report_file, "base report\n")
+        self.git("add", report_file, cwd=self.writer)
+        self.git("commit", "-m", "seed checkout-tracked report", cwd=self.writer)
+        self.git("push", "origin", "HEAD:main", cwd=self.writer)
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.other)
+        newer = "newer remote report evidence\n"
+        self.write(self.other, report_file, newer)
+        self.publish_other("other writer replaced report")
+        (self.writer / report_file).unlink()
+        result = self.push_report_from_caller("delete-newer-report", paths=report_file)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("cannot be deleted", result.stdout + result.stderr)
+        self.assertEqual(self.remote_content(report_file), newer)
+
+    def test_explicit_report_file_deletion_of_unchanged_base_is_allowed(self):
+        report_file = f"{REPORT_PATH}/workflow_report.md"
+        self.write(self.writer, report_file, "approved checkout report\n")
+        self.git("add", report_file, cwd=self.writer)
+        self.git("commit", "-m", "seed checkout report", cwd=self.writer)
+        self.git("push", "origin", "HEAD:main", cwd=self.writer)
+        (self.writer / report_file).unlink()
+        result = self.push_report("delete-unchanged-report", paths=report_file)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", report_file, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+
     def test_require_push_rejects_identical_already_published_content(self):
         self.report(self.writer, ["request-resolved"])
         first = self.push_report("request-resolved")
