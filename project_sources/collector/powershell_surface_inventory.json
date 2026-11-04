@@ -4707,9 +4707,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 10613,
+      "size_bytes": 10661,
       "line_count": 227,
-      "sha256": "d422890051331df3af0e870d4f38540221666ea53811fc1484fc68834f69331f"
+      "sha256": "d1bcb384e083586181b79f0d62c765e62d1cb794cddf73a1584a36e9d358a741"
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
@@ -4721,9 +4721,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 14049,
-      "line_count": 338,
-      "sha256": "96ab5b7645e43b40c3fb97aae53f2ec763eee71ce4d21c31d768da4be294e2e6"
+      "size_bytes": 14047,
+      "line_count": 336,
+      "sha256": "ea8dbd2e37812f2d5e6e0e2ca3cbc4265e4bc25e9d2bd7e7644630410ab32fe8"
     },
     {
       "path": ".github/scripts/Resolve-ChatGptExecRequest.ps1",
