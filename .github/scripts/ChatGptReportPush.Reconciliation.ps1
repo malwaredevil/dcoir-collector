@@ -55,7 +55,7 @@ function Test-PublishedProgressIsPreserved {
   # HEAD and the last runner-observed tree alone cannot identify a report
   # published and deleted by another runner between checkout and first push.
   # Inspect intervening history so stale local evidence cannot be resurrected.
-  $interveningDeletes = @(& git -c core.longpaths=true -c core.quotepath=false log --no-renames --diff-filter=D --format= --name-only "HEAD..$RemoteHead" -- @CandidatePaths)
+  $interveningDeletes = @(& git -c core.longpaths=true -c core.quotepath=false log --first-parent --diff-merges=first-parent --no-renames --diff-filter=D --format= --name-only "HEAD..$RemoteHead" -- @CandidatePaths)
   if ($LASTEXITCODE -ne 0) {
     Write-Warning 'Cannot inspect report deletions in intervening main history.'
     return $false

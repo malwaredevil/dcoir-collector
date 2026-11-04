@@ -538,6 +538,31 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
                          "--name-only", "main", "--", REPORT_PATH, cwd=self.root).stdout
         self.assertEqual(names.strip(), "")
 
+    def test_merge_only_deleted_report_in_remote_history_fails_closed(self):
+        # A merge-resolution deletion is invisible to a plain git log diff.
+        self.report(self.writer, ["request-resolved"])
+        self.report(self.other, ["request-resolved"])
+        self.publish_other("other runner publishes report")
+        published = self.git("rev-parse", "HEAD", cwd=self.other).stdout.strip()
+        self.write(self.other, "merge-side.txt", "side branch change\n")
+        self.git("add", "merge-side.txt", cwd=self.other)
+        self.git("commit", "-m", "other side change", cwd=self.other)
+        side = self.git("rev-parse", "HEAD", cwd=self.other).stdout.strip()
+        base_tree = self.git("rev-parse", f"{self.seed_head}^{{tree}}",
+                             cwd=self.other).stdout.strip()
+        merged = self.git("commit-tree", base_tree, "-p", published, "-p", side,
+                          "-m", "merge resolution deletes status report",
+                          cwd=self.other).stdout.strip()
+        self.git("push", "origin", merged + ":refs/heads/main", cwd=self.other)
+        result = self.push_report_from_caller("stale-after-merge-only-deletion")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("Intervening report deletion on main cannot be resurrected",
+                      result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r",
+                         "--name-only", "main", "--", REPORT_PATH, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+
     def test_unobserved_deleted_marker_absent_locally_allows_new_report(self):
         # A historic deletion is not a blocker when the candidate omits it.
         marker = f"{REPORT_PATH}/latest_progress_marker.json"
