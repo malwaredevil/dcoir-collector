@@ -203,3 +203,25 @@ function Test-NonReportStagedPathsSafe {
   }
   return $true
 }
+
+# Keep branch-only request cleanup safe without growing the main push driver.
+function Get-StageableReportPushPaths {
+  param([string]$RemoteHead, [string[]]$CandidatePaths)
+
+  $stageable = @()
+  foreach ($stagePath in $CandidatePaths) {
+    if ($stagePath -match '^\.github/chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
+      $mainEntries = @(& git -c core.longpaths=true ls-tree -r --name-only $RemoteHead -- $stagePath)
+      if ($LASTEXITCODE -ne 0) { throw "Cannot inspect main exec request path: $stagePath" }
+      if ($mainEntries -notcontains $stagePath) {
+        if (Test-Path -LiteralPath $stagePath -PathType Leaf) {
+          throw "Refusing to publish branch-only exec request to main: $stagePath"
+        }
+        Write-Host "Absent branch-only exec request cleanup is a no-op: $stagePath"
+        continue
+      }
+    }
+    $stageable += $stagePath
+  }
+  return $stageable
+}
