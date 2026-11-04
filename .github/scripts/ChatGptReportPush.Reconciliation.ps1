@@ -217,7 +217,7 @@ function Get-StageableReportPushPaths {
         if (Test-Path -LiteralPath $stagePath -PathType Leaf) {
           throw "Refusing to publish branch-only exec request to main: $stagePath"
         }
-        Write-Host "Absent branch-only exec request cleanup is a no-op: $stagePath"
+        Write-Information -MessageData "Absent branch-only exec request cleanup is a no-op: $stagePath" -InformationAction Continue
         continue
       }
     }
