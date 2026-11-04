@@ -25,24 +25,6 @@ function Test-PublishedProgressIsPreserved {
     return $false
   }
 
-  # HEAD and the last runner-observed tree alone cannot identify a report
-  # published and deleted by another runner between checkout and first push.
-  # Inspect intervening history so stale local evidence cannot be resurrected.
-  $interveningDeletes = @(& git -c core.longpaths=true -c core.quotepath=false log --no-renames --diff-filter=D --format= --name-only "HEAD..$RemoteHead" -- @CandidatePaths)
-  if ($LASTEXITCODE -ne 0) {
-    Write-Warning 'Cannot inspect report deletions in intervening main history.'
-    return $false
-  }
-  foreach ($deletedPath in ($interveningDeletes | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)) {
-    $path = [string]$deletedPath
-    if ($path.StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase) -and
-        (-not $remoteFileSet.ContainsKey($path)) -and
-        (Test-Path -LiteralPath $path -PathType Leaf)) {
-      Write-Warning "Intervening report deletion on main cannot be resurrected: $path"
-      return $false
-    }
-  }
-
   $knownHistoryPaths = @($baseFiles + $observedFiles |
     Where-Object {
       ([string]$_).StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase) -and
@@ -66,6 +48,24 @@ function Test-PublishedProgressIsPreserved {
     if ((-not $remoteFileSet.ContainsKey([string]$reportPath)) -and
         (Test-Path -LiteralPath $reportPath -PathType Leaf)) {
       Write-Warning "Previously published report was deleted on main; refusing to recreate it: $reportPath"
+      return $false
+    }
+  }
+
+  # HEAD and the last runner-observed tree alone cannot identify a report
+  # published and deleted by another runner between checkout and first push.
+  # Inspect intervening history so stale local evidence cannot be resurrected.
+  $interveningDeletes = @(& git -c core.longpaths=true -c core.quotepath=false log --no-renames --diff-filter=D --format= --name-only "HEAD..$RemoteHead" -- @CandidatePaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect report deletions in intervening main history.'
+    return $false
+  }
+  foreach ($deletedPath in ($interveningDeletes | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)) {
+    $path = [string]$deletedPath
+    if ($path.StartsWith('.github/chatgpt_staging/status_reports/', [StringComparison]::OrdinalIgnoreCase) -and
+        (-not $remoteFileSet.ContainsKey($path)) -and
+        (Test-Path -LiteralPath $path -PathType Leaf)) {
+      Write-Warning "Intervening report deletion on main cannot be resurrected: $path"
       return $false
     }
   }
