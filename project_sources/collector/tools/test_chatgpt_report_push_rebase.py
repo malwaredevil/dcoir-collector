@@ -168,6 +168,76 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
         # The publisher never rewrites the runner's checkout or local commit history.
         self.assertEqual(self.git("rev-parse", "HEAD", cwd=self.writer).stdout.strip(), self.seed_head)
 
+    def test_branch_only_exec_request_removed_locally_finalizes_without_main_pathspec(self):
+        # The checkout has a branch-only request but main never tracks it
+        # at publication time, just as in a branch-dispatched live Exec job.
+        self.git("rm", "--", REQUEST_PATH, cwd=self.other)
+        self.publish_other("seed main without exec request")
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.writer)
+        self.write(self.writer, REQUEST_PATH, '{"approved":true}\n')
+        self.git("add", REQUEST_PATH, cwd=self.writer)
+        self.git("commit", "-m", "branch-only test exec request", cwd=self.writer)
+        for count, phase in enumerate(["request-resolved", "running-harness",
+                                       "harness-finished"], start=1):
+            self.report(self.writer, ["request-resolved", "running-harness",
+                                      "harness-finished"][:count])
+            result = self.push_report(phase)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.report(self.writer, ["request-resolved", "running-harness",
+                                  "harness-finished", "final-readback"], result="success")
+        (self.writer / REQUEST_PATH).unlink()
+        result = self.push_report_from_caller("final-branch-only-cleanup",
+                                               paths=REPORT_PATH + "|" + REQUEST_PATH)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Absent branch-only exec request cleanup is a no-op",
+                      result.stdout + result.stderr)
+        self.assertIn("caller continued", result.stdout + result.stderr)
+        phases = [json.loads(line)["phase"] for line in
+                  self.remote_content(f"{REPORT_PATH}/progress_history.jsonl").splitlines()]
+        self.assertEqual(phases, ["request-resolved", "running-harness",
+                                  "harness-finished", "final-readback"])
+        self.assertIn('"result":"success"',
+                      self.remote_content(f"{REPORT_PATH}/final_readback_marker.json"))
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", REQUEST_PATH, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+
+    def test_branch_only_exec_request_present_cannot_be_published_to_main(self):
+        self.git("rm", "--", REQUEST_PATH, cwd=self.other)
+        self.publish_other("seed main without exec request")
+        self.git("pull", "--ff-only", "origin", "main", cwd=self.writer)
+        self.write(self.writer, REQUEST_PATH, '{"approved":true}\n')
+        self.git("add", REQUEST_PATH, cwd=self.writer)
+        self.git("commit", "-m", "branch-only request still present", cwd=self.writer)
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report_from_caller("reject-branch-request-leak",
+                                               paths=REPORT_PATH + "|" + REQUEST_PATH)
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("Refusing to publish branch-only exec request to main",
+                      result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", REQUEST_PATH, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+
+    def test_concurrent_main_exec_request_deletion_is_preserved(self):
+        # Another runner already removed the main-tracked request.
+        self.git("rm", "--", REQUEST_PATH, cwd=self.other)
+        self.publish_other("other writer deletes the main exec request")
+        (self.writer / REQUEST_PATH).unlink()
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report_from_caller("already-removed-request",
+                                               paths=REPORT_PATH + "|" + REQUEST_PATH)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("Absent branch-only exec request cleanup is a no-op",
+                      result.stdout + result.stderr)
+        self.assertIn("caller continued", result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r", "--name-only",
+                         "main", "--", REQUEST_PATH, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+        self.assertIn("request-resolved",
+                      self.remote_content(f"{REPORT_PATH}/progress_history.jsonl"))
+
     def test_other_runner_job_cannot_inherit_observation_for_same_request(self):
         self.report(self.writer, ["request-resolved"])
         initial = self.push_report("request-resolved", job_name="first-job")
