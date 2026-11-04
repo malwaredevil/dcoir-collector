@@ -1,0 +1,37 @@
+# One-time, branch-isolated acceptance caller for Issue #557.
+# The push trigger watches only the explicitly approved request file.
+# The job additionally matches the exact one-time dispatch commit message.
+name: Issue557 - Corrected ChatGPT Exec publisher retest
+run-name: Issue557 publication retest | #${{ github.run_number }}
+on:
+  push:
+    branches:
+      - test/issue557-chatgpt-exec-retake-20261104
+    paths:
+      - '.github/chatgpt_staging/exec_requests/issue557-live-phases-20261104-b.json'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: issue557-chatgpt-exec-retest-20261104-b
+  cancel-in-progress: false
+
+jobs:
+  exec:
+    if: github.ref == 'refs/heads/test/issue557-chatgpt-exec-retake-20261104' && github.event.head_commit.message == 'test(issue557): run isolated corrected publisher retest once'
+    uses: ./.github/workflows/reusable-chatgpt-exec.yml
+    permissions:
+      contents: write
+      actions: read
+    with:
+      caller_event_name: ${{ github.event_name }}
+      request_path: '.github/chatgpt_staging/exec_requests/issue557-live-phases-20261104-b.json'
+    secrets:
+      DCOIR_GEMINI_API: ${{ secrets.DCOIR_GEMINI_API }}
+      DCOIR_GITHUB_CL_TOKEN: ${{ secrets.DCOIR_GITHUB_CL_TOKEN }}
+      DCOIR_GITHUB_FG_TOKEN: ${{ secrets.DCOIR_GITHUB_FG_TOKEN }}
+      DCOIR_OPENAI_API_KEY: ${{ secrets.DCOIR_OPENAI_API_KEY }}
+      DCOIR_OPENAI_PROJECT_ID: ${{ secrets.DCOIR_OPENAI_PROJECT_ID }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
