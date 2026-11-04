@@ -249,9 +249,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
       throw $message
     }
   }
-
   $AttemptStagePaths = @(Get-StageableReportPushPaths -RemoteHead $remoteHead -CandidatePaths $StagePaths)
-
   $tempIndex = Join-Path ([IO.Path]::GetTempPath()) ('dcoir-report-index-' + [guid]::NewGuid().ToString('N'))
   $previousIndex = $env:GIT_INDEX_FILE
   $hadIndex = Test-Path Env:GIT_INDEX_FILE
