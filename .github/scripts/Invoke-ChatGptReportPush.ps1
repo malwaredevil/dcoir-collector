@@ -250,6 +250,25 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     }
   }
 
+  # Request cleanup may target a file committed only on the runner branch.
+  # Skip a deletion that does not exist on main, but never publish a
+  # branch-only executable request into main from a stale worktree.
+  $AttemptStagePaths = @()
+  foreach ($stagePath in $StagePaths) {
+    if ($stagePath -match '^\.github/chatgpt_staging/exec_requests/[A-Za-z0-9._-]+\.json$') {
+      $mainEntries = @(& git -c core.longpaths=true ls-tree -r --name-only $remoteHead -- $stagePath)
+      if ($LASTEXITCODE -ne 0) { throw "Cannot inspect main exec request path: $stagePath" }
+      if ($mainEntries -notcontains $stagePath) {
+        if (Test-Path -LiteralPath $stagePath -PathType Leaf) {
+          throw "Refusing to publish branch-only exec request to main: $stagePath"
+        }
+        Write-Host "Absent branch-only exec request cleanup is a no-op: $stagePath"
+        continue
+      }
+    }
+    $AttemptStagePaths += $stagePath
+  }
+
   $tempIndex = Join-Path ([IO.Path]::GetTempPath()) ('dcoir-report-index-' + [guid]::NewGuid().ToString('N'))
   $previousIndex = $env:GIT_INDEX_FILE
   $hadIndex = Test-Path Env:GIT_INDEX_FILE
@@ -259,7 +278,7 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     $env:GIT_INDEX_FILE = $tempIndex
     & git -c core.longpaths=true read-tree $remoteHead
     if ($LASTEXITCODE -eq 0) {
-      & git -c core.longpaths=true add -A -- @StagePaths
+      & git -c core.longpaths=true add -A -- @AttemptStagePaths
       if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths) -and (Test-NonReportStagedPathsSafe -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
         $callerIndexApplied = $true
         foreach ($callerPath in $CallerStagedPaths) {
