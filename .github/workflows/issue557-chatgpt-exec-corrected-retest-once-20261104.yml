@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   exec:
-    if: github.ref == 'refs/heads/test/issue557-chatgpt-exec-retake-20261104' && github.event.head_commit.message == 'test(issue557): run isolated corrected publisher retest once'
+    if: "github.ref == 'refs/heads/test/issue557-chatgpt-exec-retake-20261104' && github.event.head_commit.message == 'test(issue557): run isolated corrected publisher retest once'"
     uses: ./.github/workflows/reusable-chatgpt-exec.yml
     permissions:
       contents: write
