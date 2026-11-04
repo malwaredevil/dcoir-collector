@@ -521,6 +521,54 @@ class ChatGptReportPushRebaseTests(unittest.TestCase):
                          "main", "--", report_file, cwd=self.root).stdout
         self.assertEqual(names.strip(), "")
 
+    def test_unobserved_other_runner_publish_then_delete_fails_closed(self):
+        # HEAD and this runner's observed ref never contained these reports.
+        # Another runner creates and deletes them before our first fetch.
+        self.report(self.writer, ["request-resolved"])
+        self.report(self.other, ["request-resolved", "running-harness"])
+        self.publish_other("other runner publishes request evidence")
+        self.git("rm", "-r", "--", REPORT_PATH, cwd=self.other)
+        self.publish_other("other runner removes published request evidence")
+        result = self.push_report_from_caller("stale-after-unseen-deletion")
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("caller continued", result.stdout + result.stderr)
+        self.assertIn("Intervening report deletion on main cannot be resurrected",
+                      result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r",
+                         "--name-only", "main", "--", REPORT_PATH, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+
+    def test_unobserved_deleted_marker_absent_locally_allows_new_report(self):
+        # A historic deletion is not a blocker when the candidate omits it.
+        marker = f"{REPORT_PATH}/latest_progress_marker.json"
+        self.write(self.other, marker, '{"phase":"other"}\n')
+        self.publish_other("another runner publishes temporary marker")
+        self.git("rm", "--", marker, cwd=self.other)
+        self.publish_other("another runner removes temporary marker")
+        self.report(self.writer, ["request-resolved"])
+        (self.writer / marker).unlink()
+        result = self.push_report("new-report-omitting-deleted-marker")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        names = self.git("--git-dir=" + str(self.origin), "ls-tree", "-r",
+                         "--name-only", "main", "--", marker, cwd=self.root).stdout
+        self.assertEqual(names.strip(), "")
+        self.assertIn("request-resolved",
+                      self.remote_content(f"{REPORT_PATH}/progress_history.jsonl"))
+
+    def test_unobserved_deletion_in_other_request_does_not_block(self):
+        # Request-root scope must not block an unrelated request's reports.
+        other_root = ".github/chatgpt_staging/status_reports/chatgpt-exec/another-request"
+        other_report = f"{other_root}/workflow_report.md"
+        self.write(self.other, other_report, "other request\n")
+        self.publish_other("publish other request")
+        self.git("rm", "-r", "--", other_root, cwd=self.other)
+        self.publish_other("delete other request")
+        self.report(self.writer, ["request-resolved"])
+        result = self.push_report("request-resolved")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("request-resolved",
+                      self.remote_content(f"{REPORT_PATH}/progress_history.jsonl"))
+
     def test_require_push_rejects_identical_already_published_content(self):
         self.report(self.writer, ["request-resolved"])
         first = self.push_report("request-resolved")
