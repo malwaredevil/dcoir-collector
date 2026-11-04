@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue557-live-phases-20261104-a",
+  "operator_approved": true,
+  "shell": "pwsh",
+  "timeout_seconds": 120,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Issue #557 controlled live publication smoke test: verify the GitHub workflow is running on the isolated test branch, then print ISSUE557_MULTIPHASE_SMOKE_OK. No file edits, network calls, repository changes, or secret reads.",
+  "command": "$ErrorActionPreference = 'Stop'\nif ($env:GITHUB_REF -ne 'refs/heads/test/issue557-chatgpt-exec-live-20261104') { throw 'Safety stop: wrong workflow ref' }\nWrite-Output 'ISSUE557_MULTIPHASE_SMOKE_OK'"
+}
