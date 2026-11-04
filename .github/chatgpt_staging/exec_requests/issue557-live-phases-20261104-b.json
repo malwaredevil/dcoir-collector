@@ -1,0 +1,11 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "issue557-live-phases-20261104-b",
+  "operator_approved": true,
+  "shell": "pwsh",
+  "timeout_seconds": 120,
+  "artifact_retention_days": 3,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Controlled Issue 557 four-phase publication and cleanup retest on an isolated PR-head branch. No secrets, network commands, repository modification, or destructive actions.",
+  "command": "$ErrorActionPreference = 'Stop'\nif ($env:GITHUB_REF -ne 'refs/heads/test/issue557-chatgpt-exec-retake-20261104') { throw 'Safety stop: wrong workflow ref' }\nWrite-Output 'ISSUE557_RETTEST_MULTIPHASE_SMOKE_OK'"
+}
