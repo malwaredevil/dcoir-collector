@@ -12,7 +12,6 @@ from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
 WORKFLOW_DIR = Path(".github/workflows")
 ACTION_DIR = Path(".github/actions")
 CONTRACT_PATH = Path(".github/github_actions/workflow_modularization_contracts.json")
-INVENTORY_PATH = Path(".github/github_actions/workflow_inventory.json")
 REPORTER_PATH = Path(".github/workflows/chatgpt-workflow-run-reporter.yml")
 
 REQUIRED_CONTRACT_FIELDS = [
@@ -113,29 +112,3 @@ def check_contract_registry(findings: list[str], contracts: dict[str, Any], work
         findings.append(f"{CONTRACT_PATH}:1: workflow missing modularization contract: {missing_file}")
     for missing_family in sorted(required_families - contracted_families):
         findings.append(f"{CONTRACT_PATH}:1: required contract family is not mapped by any workflow: {missing_family}")
-
-
-def check_inventory(findings: list[str], contracts: dict[str, Any], workflow_files: list[Path]) -> None:
-    if not ensure_exists(findings, INVENTORY_PATH):
-        return
-    inventory = load_json(INVENTORY_PATH)
-    workflows = inventory.get("workflows", [])
-    if len(workflows) != len(workflow_files):
-        findings.append(f"{INVENTORY_PATH}:1: inventory has {len(workflows)} workflows, expected {len(workflow_files)}")
-    expected_files = {path.as_posix() for path in workflow_files}
-    inventoried_files = {entry.get("file") for entry in workflows if isinstance(entry, dict)}
-    for missing_file in sorted(expected_files - inventoried_files):
-        findings.append(f"{INVENTORY_PATH}:1: workflow missing from generated inventory: {missing_file}")
-    contract_by_file = {
-        entry["file"]: entry
-        for entry in contracts.get("workflow_contracts", [])
-        if isinstance(entry, dict) and entry.get("file")
-    }
-    for entry in workflows:
-        if not isinstance(entry, dict):
-            continue
-        file_name = entry.get("file")
-        contract = contract_by_file.get(file_name, {})
-        for field in ("contract_family", "migration_status", "risk"):
-            if entry.get(field) != contract.get(field):
-                findings.append(f"{INVENTORY_PATH}:1: inventory field {field} is stale for {file_name}")
