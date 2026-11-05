@@ -5,10 +5,24 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 PROFILE_PATH = Path(".github/github_actions/workflow_required_surface_profiles.json")
 SUPPLEMENT_MANIFEST_PATH = Path(".github/github_actions/workflow_required_surface_profile_supplements.json")
+
+
+def validate_repo_relative_path(path: str, label: str) -> None:
+    """Reject required surfaces that could escape or ambiguously name the repo root."""
+    if (
+        not path
+        or path != path.strip()
+        or chr(0) in path
+        or chr(92) in path
+        or Path(path).is_absolute()
+        or bool(PureWindowsPath(path).drive)
+        or any(part in {"", ".", ".."} for part in path.split("/"))
+    ):
+        raise ValueError(f"Required surface must be a normalized repo-relative path in {label}: {path!r}")
 
 
 def validate_profile_map(data: object, label: str) -> dict[str, list[str]]:
@@ -18,6 +32,8 @@ def validate_profile_map(data: object, label: str) -> dict[str, list[str]]:
     for name, paths in data.items():
         if not isinstance(name, str) or not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
             raise ValueError(f"Profile {name!r} must map to a list of string paths: {label}")
+        for path in paths:
+            validate_repo_relative_path(path, label)
         profiles[name] = paths
     return profiles
 
@@ -27,6 +43,17 @@ def load_json_file(path: Path, label: str) -> object:
         return json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid JSON in {label}: {exc}") from exc
+
+
+def ensure_repo_local_source(repo_root: Path, source: Path, label: str) -> None:
+    """Reject profile and supplement files that resolve outside this checkout."""
+    try:
+        normalized_root = repo_root.resolve()
+        resolved = source.resolve()
+    except (OSError, RuntimeError) as exc:
+        raise ValueError(f"Unable to resolve {label}: {exc}") from exc
+    if not resolved.is_relative_to(normalized_root):
+        raise ValueError(f"{label} resolves outside repository: {source}")
 
 
 def merge_profile_paths(profiles: dict[str, list[str]], additions: dict[str, list[str]]) -> None:
@@ -41,6 +68,7 @@ def merge_profile_paths(profiles: dict[str, list[str]], additions: dict[str, lis
 
 def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
     manifest_file = repo_root / SUPPLEMENT_MANIFEST_PATH
+    ensure_repo_local_source(repo_root, manifest_file, "Required surface profile supplement manifest")
     if not manifest_file.is_file():
         raise FileNotFoundError(
             f"Required surface profile supplement manifest missing: {SUPPLEMENT_MANIFEST_PATH.as_posix()}"
@@ -55,10 +83,12 @@ def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
 
     merged: dict[str, list[str]] = {}
     for rel in supplements:
-        supplement_path = Path(rel)
-        if supplement_path.is_absolute() or ".." in supplement_path.parts:
-            raise ValueError(f"Required surface profile supplement path must be repo-relative: {rel}")
-        supplement_file = repo_root / supplement_path
+        try:
+            validate_repo_relative_path(rel, SUPPLEMENT_MANIFEST_PATH.as_posix())
+        except ValueError as exc:
+            raise ValueError(f"Required surface profile supplement path must be repo-relative: {rel}") from exc
+        supplement_file = repo_root / Path(rel)
+        ensure_repo_local_source(repo_root, supplement_file, "Required surface profile supplement file")
         if not supplement_file.is_file():
             raise FileNotFoundError(f"Required surface profile supplement file missing: {rel}")
         merge_profile_paths(merged, validate_profile_map(load_json_file(supplement_file, rel), rel))
@@ -67,6 +97,7 @@ def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
 
 def load_profiles(repo_root: Path) -> dict[str, list[str]]:
     profile_file = repo_root / PROFILE_PATH
+    ensure_repo_local_source(repo_root, profile_file, "Required surface profile file")
     if not profile_file.is_file():
         raise FileNotFoundError(f"Required surface profile file missing: {PROFILE_PATH.as_posix()}")
     profiles = validate_profile_map(load_json_file(profile_file, PROFILE_PATH.as_posix()), PROFILE_PATH.as_posix())
@@ -96,6 +127,24 @@ def main() -> int:
         return 1
 
     required_paths = profiles[args.profile]
+    escaped: list[str] = []
+    for path in required_paths:
+        try:
+            resolved = (repo_root / path).resolve()
+        except (OSError, RuntimeError) as exc:
+            print(
+                f"Unable to resolve required governed surface for profile {args.profile}: {path}: {exc}",
+                file=sys.stderr,
+            )
+            return 1
+        if not resolved.is_relative_to(repo_root):
+            escaped.append(path)
+    if escaped:
+        print(
+            f"Required governed surfaces resolve outside repository for profile {args.profile}: {', '.join(escaped)}",
+            file=sys.stderr,
+        )
+        return 1
     missing = [path for path in required_paths if not (repo_root / path).exists()]
     if missing:
         print(
