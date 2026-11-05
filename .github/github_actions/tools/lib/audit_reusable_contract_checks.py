@@ -8,7 +8,6 @@ from lib.audit_reusable_contract_helpers import (
     BARE_INPUT_FORWARD_RE,
     COMPOSITE_USING_RE,
     DOUBLE_QUOTED_EXPRESSION_LITERAL_RE,
-    EXPECTED_PRIMARY_WORKFLOW_COUNT,
     WORKFLOW_DIR,
     collect_mapping_after,
     collect_mapping_values_after,
@@ -20,6 +19,7 @@ from lib.audit_reusable_contract_helpers import (
     rel,
     required_permissions_for_text,
 )
+from lib.workflow_inventory_core import CONTRACT_PATH, read_contracts
 
 
 def check_inventory(repo_root: Path, findings: list[str]) -> None:
@@ -29,9 +29,14 @@ def check_inventory(repo_root: Path, findings: list[str]) -> None:
 
 def check_reusable_workflows(repo_root: Path, workflow_files: list[Path], findings: list[str]) -> None:
     primary_workflows = [path for path in workflow_files if not path.name.startswith("reusable-")]
-    if len(primary_workflows) != EXPECTED_PRIMARY_WORKFLOW_COUNT:
+    expected_count = read_contracts().get("existing_workflow_count")
+    if type(expected_count) is not int or expected_count < 0:
         findings.append(
-            f"{WORKFLOW_DIR.as_posix()}:1: expected {EXPECTED_PRIMARY_WORKFLOW_COUNT} primary workflows, "
+            f"{CONTRACT_PATH}:1: existing_workflow_count must be a non-negative integer"
+        )
+    elif len(primary_workflows) != expected_count:
+        findings.append(
+            f"{WORKFLOW_DIR.as_posix()}:1: expected {expected_count} primary workflows, "
             f"found {len(primary_workflows)}"
         )
 
