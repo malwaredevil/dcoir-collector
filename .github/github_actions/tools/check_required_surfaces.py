@@ -48,10 +48,11 @@ def load_json_file(path: Path, label: str) -> object:
 def ensure_repo_local_source(repo_root: Path, source: Path, label: str) -> None:
     """Reject profile and supplement files that resolve outside this checkout."""
     try:
+        normalized_root = repo_root.resolve()
         resolved = source.resolve()
     except (OSError, RuntimeError) as exc:
         raise ValueError(f"Unable to resolve {label}: {exc}") from exc
-    if not resolved.is_relative_to(repo_root):
+    if not resolved.is_relative_to(normalized_root):
         raise ValueError(f"{label} resolves outside repository: {source}")
 
 
