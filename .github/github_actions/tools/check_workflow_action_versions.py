@@ -9,7 +9,10 @@ from __future__ import annotations
 
 import re
 import sys
+from functools import partial
 from pathlib import Path
+
+from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
 ACTION_DIR = Path(".github/actions")
@@ -41,13 +44,7 @@ USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 MAJOR_TAG_RE = re.compile(r"^v(\d+)(?:\.|$)")
 
 
-def iter_workflow_files() -> list[Path]:
-    if not WORKFLOW_DIR.exists():
-        return []
-    return sorted(
-        p for p in WORKFLOW_DIR.iterdir()
-        if p.is_file() and p.suffix.lower() in {".yml", ".yaml"}
-    )
+iter_workflow_files = partial(_shared_iter_workflow_files, WORKFLOW_DIR)
 
 
 def iter_composite_action_files() -> list[Path]:
