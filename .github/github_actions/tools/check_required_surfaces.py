@@ -42,7 +42,9 @@ def merge_profile_paths(profiles: dict[str, list[str]], additions: dict[str, lis
 def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
     manifest_file = repo_root / SUPPLEMENT_MANIFEST_PATH
     if not manifest_file.is_file():
-        return {}
+        raise FileNotFoundError(
+            f"Required surface profile supplement manifest missing: {SUPPLEMENT_MANIFEST_PATH.as_posix()}"
+        )
 
     manifest = load_json_file(manifest_file, SUPPLEMENT_MANIFEST_PATH.as_posix())
     if not isinstance(manifest, dict):
