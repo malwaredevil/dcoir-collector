@@ -20,6 +20,7 @@ def run_regression_tests() -> bool:
         "test_check_required_surfaces",
         "test_workflow_file_discovery",
         "test_workflow_composite_action_count",
+        "test_workflow_primary_count_source",
     )
     suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
     return unittest.TextTestRunner(stream=sys.stderr, verbosity=1).run(suite).wasSuccessful()
