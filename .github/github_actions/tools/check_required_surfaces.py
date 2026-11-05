@@ -45,6 +45,16 @@ def load_json_file(path: Path, label: str) -> object:
         raise ValueError(f"Invalid JSON in {label}: {exc}") from exc
 
 
+def ensure_repo_local_source(repo_root: Path, source: Path, label: str) -> None:
+    """Reject profile and supplement files that resolve outside this checkout."""
+    try:
+        resolved = source.resolve()
+    except (OSError, RuntimeError) as exc:
+        raise ValueError(f"Unable to resolve {label}: {exc}") from exc
+    if not resolved.is_relative_to(repo_root):
+        raise ValueError(f"{label} resolves outside repository: {source}")
+
+
 def merge_profile_paths(profiles: dict[str, list[str]], additions: dict[str, list[str]]) -> None:
     for name, paths in additions.items():
         merged = profiles.setdefault(name, [])
@@ -57,6 +67,7 @@ def merge_profile_paths(profiles: dict[str, list[str]], additions: dict[str, lis
 
 def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
     manifest_file = repo_root / SUPPLEMENT_MANIFEST_PATH
+    ensure_repo_local_source(repo_root, manifest_file, "Required surface profile supplement manifest")
     if not manifest_file.is_file():
         raise FileNotFoundError(
             f"Required surface profile supplement manifest missing: {SUPPLEMENT_MANIFEST_PATH.as_posix()}"
@@ -71,10 +82,12 @@ def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
 
     merged: dict[str, list[str]] = {}
     for rel in supplements:
-        supplement_path = Path(rel)
-        if supplement_path.is_absolute() or ".." in supplement_path.parts:
-            raise ValueError(f"Required surface profile supplement path must be repo-relative: {rel}")
-        supplement_file = repo_root / supplement_path
+        try:
+            validate_repo_relative_path(rel, SUPPLEMENT_MANIFEST_PATH.as_posix())
+        except ValueError as exc:
+            raise ValueError(f"Required surface profile supplement path must be repo-relative: {rel}") from exc
+        supplement_file = repo_root / Path(rel)
+        ensure_repo_local_source(repo_root, supplement_file, "Required surface profile supplement file")
         if not supplement_file.is_file():
             raise FileNotFoundError(f"Required surface profile supplement file missing: {rel}")
         merge_profile_paths(merged, validate_profile_map(load_json_file(supplement_file, rel), rel))
@@ -83,6 +96,7 @@ def load_profile_supplements(repo_root: Path) -> dict[str, list[str]]:
 
 def load_profiles(repo_root: Path) -> dict[str, list[str]]:
     profile_file = repo_root / PROFILE_PATH
+    ensure_repo_local_source(repo_root, profile_file, "Required surface profile file")
     if not profile_file.is_file():
         raise FileNotFoundError(f"Required surface profile file missing: {PROFILE_PATH.as_posix()}")
     profiles = validate_profile_map(load_json_file(profile_file, PROFILE_PATH.as_posix()), PROFILE_PATH.as_posix())
