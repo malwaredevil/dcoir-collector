@@ -93,5 +93,76 @@ class RequiredSurfaceSupplementTests(unittest.TestCase):
         self.assert_rejected("Missing required governed surfaces")
 
 
+    def write_base_profiles(self, profiles: dict[str, list[str]]) -> None:
+        (self.root / PROFILE_PATH).write_text(json.dumps(profiles), encoding="utf-8")
+
+    def test_unsafe_required_surface_path_variants_fail_closed(self) -> None:
+        unsafe = (
+            "", ".", "./base.txt", "../outside.txt", "nested/../../outside.txt",
+            "/tmp/outside.txt", r"C:\Temp\outside.txt", r"C:relative.txt",
+            r"\\server\share\file.txt", r"folder\file.txt", "folder//file.txt",
+            " base.txt", "base.txt ", "name" + chr(0) + ".txt",
+        )
+        for value in unsafe:
+            with self.subTest(path=repr(value)):
+                self.write_base_profiles({"sample": [value]})
+                self.assert_rejected("must be a normalized repo-relative path")
+
+    def test_bad_unselected_profile_fails_closed(self) -> None:
+        self.write_base_profiles({"sample": ["base.txt"], "unused": ["../escape.txt"]})
+        self.assert_rejected("must be a normalized repo-relative path")
+
+    def test_supplement_required_path_traversal_fails_closed(self) -> None:
+        (self.root / SUPPLEMENT_REL).write_text(
+            json.dumps({"sample": ["../outside.txt"]}), encoding="utf-8"
+        )
+        self.assert_rejected("must be a normalized repo-relative path")
+
+    def test_supplement_windows_path_fails_closed(self) -> None:
+        (self.root / SUPPLEMENT_REL).write_text(
+            json.dumps({"sample": [r"C:\Temp\outside.txt"]}), encoding="utf-8"
+        )
+        self.assert_rejected("must be a normalized repo-relative path")
+
+    def test_valid_nested_required_path_preserves_success(self) -> None:
+        nested = self.root / "nested"
+        nested.mkdir()
+        (nested / "valid.txt").write_text("valid", encoding="utf-8")
+        self.write_base_profiles({"sample": ["nested/valid.txt"]})
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("validated: 2 paths present", result.stdout)
+
+    def test_required_path_symlink_inside_repo_passes(self) -> None:
+        try:
+            (self.root / "inside-link.txt").symlink_to(self.root / "base.txt")
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Symlinks not supported: {exc}")
+        self.write_base_profiles({"sample": ["inside-link.txt"]})
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("validated: 2 paths present", result.stdout)
+
+    def test_required_path_symlink_outside_repo_fails_closed(self) -> None:
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        target = Path(outside.name) / "external.txt"
+        target.write_text("outside", encoding="utf-8")
+        try:
+            (self.root / "external-link.txt").symlink_to(target)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Symlinks not supported: {exc}")
+        self.write_base_profiles({"sample": ["external-link.txt"]})
+        self.assert_rejected("resolve outside repository")
+
+    def test_required_path_symlink_loop_fails_without_traceback(self) -> None:
+        try:
+            (self.root / "loop-link.txt").symlink_to("loop-link.txt")
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Symlinks not supported: {exc}")
+        self.write_base_profiles({"sample": ["loop-link.txt"]})
+        self.assert_rejected("Unable to resolve required governed surface")
+
+
 if __name__ == "__main__":
     unittest.main()
