@@ -21,6 +21,7 @@ def run_regression_tests() -> bool:
         "test_workflow_file_discovery",
         "test_workflow_composite_action_count",
         "test_workflow_primary_count_source",
+        "test_workflow_inventory_freshness",
     )
     suite = unittest.defaultTestLoader.loadTestsFromNames(modules)
     return unittest.TextTestRunner(stream=sys.stderr, verbosity=1).run(suite).wasSuccessful()
