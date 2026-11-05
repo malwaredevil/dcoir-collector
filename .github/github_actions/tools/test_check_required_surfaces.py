@@ -164,5 +164,67 @@ class RequiredSurfaceSupplementTests(unittest.TestCase):
         self.assert_rejected("Unable to resolve required governed surface")
 
 
+    def external_json(self, data: object) -> Path:
+        outside = tempfile.TemporaryDirectory()
+        self.addCleanup(outside.cleanup)
+        target = Path(outside.name) / "outside.json"
+        target.write_text(json.dumps(data), encoding="utf-8")
+        return target
+
+    def symlink_to(self, link: Path, target: Path | str) -> None:
+        link.unlink()
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Symlinks not supported: {exc}")
+
+    def test_base_profile_json_symlink_escape_fails_closed(self) -> None:
+        target = self.external_json({"sample": ["base.txt"]})
+        self.symlink_to(self.root / PROFILE_PATH, target)
+        self.assert_rejected("Required surface profile file resolves outside repository")
+
+    def test_supplement_manifest_json_symlink_escape_fails_closed(self) -> None:
+        target = self.external_json({"supplements": [SUPPLEMENT_REL.as_posix()]})
+        self.symlink_to(self.root / MANIFEST_PATH, target)
+        self.assert_rejected("Required surface profile supplement manifest resolves outside repository")
+
+    def test_supplement_json_symlink_escape_fails_closed(self) -> None:
+        target = self.external_json({"sample": ["extra.txt"]})
+        self.symlink_to(self.root / SUPPLEMENT_REL, target)
+        self.assert_rejected("Required surface profile supplement file resolves outside repository")
+
+    def test_supplement_json_symlink_loop_fails_without_traceback(self) -> None:
+        supplement_file = self.root / SUPPLEMENT_REL
+        self.symlink_to(supplement_file, supplement_file)
+        self.assert_rejected("Unable to resolve Required surface profile supplement file")
+
+    def test_supplement_json_symlink_within_repo_still_passes(self) -> None:
+        supplement_file = self.root / SUPPLEMENT_REL
+        alternative = supplement_file.with_name("alternate.json")
+        alternative.write_text(json.dumps({"sample": ["extra.txt"]}), encoding="utf-8")
+        self.symlink_to(supplement_file, alternative)
+        result = self.run_helper()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("validated: 2 paths present", result.stdout)
+
+    def test_noncanonical_supplement_manifest_references_fail_closed(self) -> None:
+        unsafe_refs = (
+            "", ".", "./base.txt", "nested/../base.txt", "folder//part.json",
+            "folder/part.json/", r"C:\Temp\outside.json", r"C:outside.json",
+            r"folder\file.json", "/tmp/outside.json", "wrong" + chr(0) + ".json",
+        )
+        for ref in unsafe_refs:
+            with self.subTest(ref=repr(ref)):
+                self.manifest_file.write_text(
+                    json.dumps({"supplements": [ref]}), encoding="utf-8"
+                )
+                self.assert_rejected("Required surface profile supplement path must be repo-relative")
+
+    def test_base_profile_json_symlink_loop_fails_without_traceback(self) -> None:
+        path = self.root / PROFILE_PATH
+        self.symlink_to(path, path)
+        self.assert_rejected("Unable to resolve Required surface profile file")
+
+
 if __name__ == "__main__":
     unittest.main()
