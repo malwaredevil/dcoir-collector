@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import json
 import re
+from functools import partial
 from pathlib import Path
 from typing import Any
+
+from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
 ACTION_DIR = Path(".github/actions")
@@ -30,24 +33,10 @@ WORKFLOW_NAME_PATTERN = re.compile(
 )
 
 
-def iter_workflow_files() -> list[Path]:
-    if not WORKFLOW_DIR.exists():
-        return []
-    return sorted(
-        path for path in WORKFLOW_DIR.iterdir()
-        if path.is_file()
-        and path.suffix.lower() in {".yml", ".yaml"}
-        and not path.name.startswith("reusable-")
-    )
-
-
-def iter_all_workflow_files() -> list[Path]:
-    if not WORKFLOW_DIR.exists():
-        return []
-    return sorted(
-        path for path in WORKFLOW_DIR.iterdir()
-        if path.is_file() and path.suffix.lower() in {".yml", ".yaml"}
-    )
+iter_workflow_files = partial(
+    _shared_iter_workflow_files, WORKFLOW_DIR, include_reusable=False
+)
+iter_all_workflow_files = partial(_shared_iter_workflow_files, WORKFLOW_DIR)
 
 
 def load_json(path: Path) -> Any:
