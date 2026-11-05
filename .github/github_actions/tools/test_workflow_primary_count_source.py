@@ -51,7 +51,7 @@ class PrimaryWorkflowCountSourceTests(unittest.TestCase):
     def test_reusable_workflow_is_not_in_primary_count(self) -> None:
         reusable = self.root / "reusable-build.yml"
         reusable.write_text(
-            "name: Reusable Build\non: workflow_call\npermissions:\n  contents: read\n",
+            "name: Reusable Build\non:\n  workflow_call:\npermissions:\n  contents: read\n",
             encoding="utf-8",
         )
         self.assertEqual(self.audit(1, files=[self.primary, reusable]), [])
