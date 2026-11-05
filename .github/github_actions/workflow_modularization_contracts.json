@@ -1,5 +1,5 @@
 {
-  "composite_action_count": 19,
+  "composite_action_count": 20,
   "existing_workflow_count": 33,
   "governing_issue": 194,
   "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
