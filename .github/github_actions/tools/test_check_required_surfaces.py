@@ -2,7 +2,9 @@
 """Regression tests for required-surface supplement manifest fail-closed handling."""
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -224,6 +226,28 @@ class RequiredSurfaceSupplementTests(unittest.TestCase):
         path = self.root / PROFILE_PATH
         self.symlink_to(path, path)
         self.assert_rejected("Unable to resolve Required surface profile file")
+
+
+    def test_direct_loaders_accept_relative_repository_root(self) -> None:
+        spec = importlib.util.spec_from_file_location("required_surfaces_under_test", HELPER)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(self.root)
+            self.assertEqual(
+                module.load_profiles(Path("."))["sample"],
+                ["base.txt", "extra.txt"],
+            )
+            self.assertEqual(
+                module.load_profile_supplements(Path("."))["sample"],
+                ["extra.txt"],
+            )
+        finally:
+            os.chdir(original_cwd)
 
 
 if __name__ == "__main__":
