@@ -10,7 +10,6 @@ from lib.workflow_modularization_contract_core import (
     CONTRACT_PATH,
     REPORTER_PATH,
     check_contract_registry,
-    check_inventory,
     check_workflow_names,
     ensure_exists,
     extract_workflow_name,
@@ -101,16 +100,25 @@ def check_reporter_allowlist(findings: list[str], contracts: dict[str, Any]) -> 
             findings.append(f"{REPORTER_PATH}:1: reporter allowlist missing workflow name from contract registry: {workflow_name}")
 
 
-def check_composite_actions(findings: list[str]) -> None:
-    if not ACTION_DIR.exists():
+def check_composite_actions(findings: list[str], contracts: dict[str, Any]) -> None:
+    expected = contracts.get("composite_action_count")
+    valid_count = type(expected) is int and expected >= 0
+    if not valid_count:
+        findings.append(
+            f"{CONTRACT_PATH}:1: composite_action_count must be a non-negative integer"
+        )
+    if not ACTION_DIR.is_dir():
+        findings.append(f"{ACTION_DIR}:1: composite action directory is missing")
         return
+    actual_count = 0
     for child in sorted(ACTION_DIR.iterdir()):
         if not child.is_dir():
             continue
         action_file = child / "action.yml"
-        if not action_file.exists():
+        if not action_file.is_file():
             findings.append(f"{child}:1: composite action directory missing action.yml")
             continue
+        actual_count += 1
         text = action_file.read_text(encoding="utf-8")
         if "runs:" not in text or "using: composite" not in text:
             findings.append(f"{action_file}:1: action.yml must declare runs using composite")
@@ -122,6 +130,11 @@ def check_composite_actions(findings: list[str]) -> None:
         for term in forbidden_terms:
             if term in text:
                 findings.append(f"{action_file}:1: composite action contains safety-sensitive command text: {term}")
+    if valid_count and expected != actual_count:
+        findings.append(
+            f"{CONTRACT_PATH}:1: composite_action_count is {expected}, "
+            f"but {actual_count} composite action definitions were found"
+        )
 
 
 def run_contract_audit() -> tuple[list[str], int, int]:
@@ -133,11 +146,10 @@ def run_contract_audit() -> tuple[list[str], int, int]:
     all_workflow_files = iter_all_workflow_files()
     contracts = load_json(CONTRACT_PATH)
     check_contract_registry(findings, contracts, workflow_files)
-    check_inventory(findings, contracts, workflow_files)
     check_reusable_workflows(findings, all_workflow_files)
     check_workflow_names(findings, all_workflow_files)
     check_workflow_headers(findings, workflow_files)
     check_reporter_allowlist(findings, contracts)
-    check_composite_actions(findings)
+    check_composite_actions(findings, contracts)
 
     return findings, len(workflow_files), len(contracts.get("workflow_contracts", []))

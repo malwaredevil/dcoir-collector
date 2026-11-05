@@ -3,8 +3,11 @@ from __future__ import annotations
 
 import json
 import re
+from functools import partial
 from pathlib import Path
 from typing import Any
+
+from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
 CONTRACT_PATH = Path(".github/github_actions/workflow_modularization_contracts.json")
@@ -20,15 +23,9 @@ def read_contracts() -> dict[str, Any]:
     return json.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
 
 
-def iter_workflow_files() -> list[Path]:
-    if not WORKFLOW_DIR.exists():
-        return []
-    return sorted(
-        path for path in WORKFLOW_DIR.iterdir()
-        if path.is_file()
-        and path.suffix.lower() in {".yml", ".yaml"}
-        and not path.name.startswith("reusable-")
-    )
+iter_workflow_files = partial(
+    _shared_iter_workflow_files, WORKFLOW_DIR, include_reusable=False
+)
 
 
 def top_level_key(line: str) -> str | None:
