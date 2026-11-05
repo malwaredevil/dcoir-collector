@@ -112,10 +112,18 @@ def main() -> int:
         return 1
 
     required_paths = profiles[args.profile]
-    escaped = [
-        path for path in required_paths
-        if not (repo_root / path).resolve().is_relative_to(repo_root)
-    ]
+    escaped: list[str] = []
+    for path in required_paths:
+        try:
+            resolved = (repo_root / path).resolve()
+        except (OSError, RuntimeError) as exc:
+            print(
+                f"Unable to resolve required governed surface for profile {args.profile}: {path}: {exc}",
+                file=sys.stderr,
+            )
+            return 1
+        if not resolved.is_relative_to(repo_root):
+            escaped.append(path)
     if escaped:
         print(
             f"Required governed surfaces resolve outside repository for profile {args.profile}: {', '.join(escaped)}",
