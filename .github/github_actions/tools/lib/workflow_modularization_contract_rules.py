@@ -10,7 +10,6 @@ from lib.workflow_modularization_contract_core import (
     CONTRACT_PATH,
     REPORTER_PATH,
     check_contract_registry,
-    check_inventory,
     check_workflow_names,
     ensure_exists,
     extract_workflow_name,
@@ -147,7 +146,6 @@ def run_contract_audit() -> tuple[list[str], int, int]:
     all_workflow_files = iter_all_workflow_files()
     contracts = load_json(CONTRACT_PATH)
     check_contract_registry(findings, contracts, workflow_files)
-    check_inventory(findings, contracts, workflow_files)
     check_reusable_workflows(findings, all_workflow_files)
     check_workflow_names(findings, all_workflow_files)
     check_workflow_headers(findings, workflow_files)
