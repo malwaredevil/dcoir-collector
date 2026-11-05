@@ -84,8 +84,7 @@ $ExpandedPaths = @($ExpandedPaths | Select-Object -Unique)
 if ($ExpandedPaths.Count -eq 0) {
   Write-Host "No report paths supplied for: $CommitMessage"
   if ($RequirePush) {
-    Write-Error "Required report push had no paths to stage for: $CommitMessage"
-    exit 1
+    throw "Required report push had no paths to stage for: $CommitMessage"
   }
   exit 0
 }
@@ -120,38 +119,107 @@ $StagePaths = @($StagePaths | Select-Object -Unique)
 if ($StagePaths.Count -eq 0) {
   Write-Host "No existing or tracked report paths to stage for: $CommitMessage"
   if ($RequirePush) {
-    Write-Error "Required report push had no stageable paths for: $CommitMessage"
-    exit 1
+    throw "Required report push had no stageable paths for: $CommitMessage"
   }
   exit 0
 }
 
-& git -c core.longpaths=true add -A -- @StagePaths
-$addExit = $LASTEXITCODE
-if ($addExit -ne 0) {
-  Write-Warning "git add failed with exit code $addExit for: $CommitMessage"
-  git status --short
-  if ($RequirePush) { exit 1 }
-  exit 0
-}
-
-& git -c core.longpaths=true diff --cached --quiet
-if ($LASTEXITCODE -eq 0) {
-  Write-Host "No staged changes to commit for: $CommitMessage"
-  git status --short
-  if ($RequirePush) {
-    Write-Error "Required report push had no staged changes for: $CommitMessage"
-    exit 1
-  }
-  exit 0
-}
-
-& git -c core.longpaths=true commit -m $CommitMessage
+# Some callers, including ChatGPT Apply-In, stage approved product files before
+# invoking this helper with report paths. Preserve those explicitly staged
+# changes; the original git commit published both groups.
+$CallerStagedPaths = @(& git -c core.longpaths=true -c core.quotepath=false diff --cached --no-renames --name-only)
 if ($LASTEXITCODE -ne 0) {
-  Write-Warning "git commit failed for: $CommitMessage"
-  git status --short
-  if ($RequirePush) { exit 1 }
-  exit 0
+  throw 'Cannot inspect pre-staged caller changes; refusing report publication.'
+}
+$CallerStagedPaths = @($CallerStagedPaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique)
+if ($CallerStagedPaths.Count -gt 0) {
+  # The temporary index uses file contents from the worktree. Reject an
+  # unstaged mutation that differs from the caller-approved staged snapshot.
+  & git -c core.longpaths=true diff --quiet -- @CallerStagedPaths
+  if ($LASTEXITCODE -ne 0) {
+    throw 'Unstaged changes differ from the caller-approved index; refusing report publication.'
+  }
+}
+# Preserve the exact caller-approved index blob/mode or deletion before
+# entering the temporary index. Worktree paths are not a staging contract.
+$CallerApprovedIndex = @{}
+foreach ($callerPath in $CallerStagedPaths) {
+  $entries = @(& git -c core.longpaths=true -c core.quotepath=false ls-files --stage -- $callerPath)
+  if ($LASTEXITCODE -ne 0 -or $entries.Count -gt 1) {
+    throw "Cannot inspect caller-approved staged entry: $callerPath"
+  }
+  foreach ($reportPath in $StagePaths) {
+    if ($callerPath -eq $reportPath -or $callerPath.StartsWith(($reportPath.TrimEnd('/') + '/'), [StringComparison]::Ordinal)) {
+      throw "Caller-staged paths cannot overlap report publishing paths: $callerPath"
+    }
+  }
+  if ($entries.Count -eq 0) {
+    if (Test-Path -LiteralPath $callerPath) {
+      throw "Staged deletion was recreated in the worktree: $callerPath"
+    }
+    $CallerApprovedIndex[$callerPath] = $null
+  } else {
+    if ([string]$entries[0] -notmatch '^([0-7]{6}) ([0-9a-f]{40,64}) 0\t') {
+      throw "Cannot parse caller-approved index entry: $callerPath"
+    }
+    $CallerApprovedIndex[$callerPath] = @{ Mode = $Matches[1]; Blob = $Matches[2] }
+  }
+}
+
+# A request can publish multiple report phases from one runner while main moves.
+# Never rebase this runner's prior report commits onto main: that can replay
+# already-published files as add/add conflicts. Instead build a report-only
+# commit on the newly fetched main tree with an isolated index each attempt.
+# Record exact published report evidence in a local ref scoped by request
+# and workflow run/job. Another publisher must not authorize our stale copy.
+$ReportRoots = @()
+foreach ($candidate in $StagePaths) {
+  $rootMatch = [regex]::Match([string]$candidate, '^\.github/chatgpt_staging/status_reports/[^/]+/[^/]+')
+  if ($rootMatch.Success) { $ReportRoots += $rootMatch.Value }
+}
+$ReportRoots = @($ReportRoots | Select-Object -Unique)
+if ($ReportRoots.Count -ne 1) {
+  throw 'Report publication needs exactly one request-scoped report root.'
+}
+$observedIdentity = @($env:GITHUB_RUN_ID, $env:GITHUB_RUN_ATTEMPT, $env:GITHUB_JOB, $ReportRoots[0]) -join '|'
+$shaTool = [Security.Cryptography.SHA256]::Create()
+try {
+  $observedId = ([BitConverter]::ToString(
+    $shaTool.ComputeHash([Text.Encoding]::UTF8.GetBytes($observedIdentity))
+  )).Replace('-', '').ToLowerInvariant()
+} finally {
+  $shaTool.Dispose()
+}
+$ObservedReportRef = "refs/dcoir-report-push/last-published/$observedId"
+$ObservedReportCommit = [string](& git rev-parse --verify $ObservedReportRef 2>$null)
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ObservedReportCommit)) {
+  $ObservedReportCommit = 'HEAD'
+} else {
+  $ObservedReportCommit = $ObservedReportCommit.Trim()
+}
+
+. (Join-Path $PSScriptRoot 'ChatGptReportPush.Reconciliation.ps1')
+
+# Staging a directory from a stale runner against a newer main must not delete
+# tracked summaries published by other phases and absent from this checkout.
+# Only explicitly named file paths (such as final request cleanup) may delete.
+function Restore-RemoteOnlyReportFiles {
+  param([string]$RemoteHead, [string[]]$CandidatePaths)
+
+  $deletedPaths = @(& git -c core.longpaths=true diff --cached --name-only --diff-filter=D $RemoteHead -- @CandidatePaths)
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning 'Cannot inspect staged report deletions.'
+    return $false
+  }
+  foreach ($deletedPath in $deletedPaths) {
+    if ($CandidatePaths -contains $deletedPath) { continue }
+    & git -c core.longpaths=true reset -q $RemoteHead -- $deletedPath
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning "Could not preserve remote-only report file: $deletedPath"
+      return $false
+    }
+  }
+  return $true
 }
 
 for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
@@ -162,25 +230,107 @@ for ($attempt = 1; $attempt -le $MaxAttemptCount; $attempt++) {
     Start-Sleep -Seconds ([Math]::Min(30, 5 * $attempt))
     continue
   }
-  & git -c core.longpaths=true rebase origin/main
-  if ($LASTEXITCODE -ne 0) {
-    Write-Warning "git rebase failed on attempt $attempt; aborting rebase and retrying."
-    & git -c core.longpaths=true rebase --abort 2>$null
-    git status --short
+  $remoteHead = [string](& git rev-parse --verify FETCH_HEAD)
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remoteHead)) {
+    Write-Warning "Could not determine fetched main on attempt $attempt."
+    continue
+  }
+  $remoteHead = $remoteHead.Trim()
+  if (-not (Test-PublishedProgressIsPreserved -RemoteHead $remoteHead -CandidatePaths $StagePaths -ObservedCommit $ObservedReportCommit)) {
+    Write-Warning 'Refusing a report push that would discard published progress history.'
+    if ($RequirePush) { throw 'Required report push could not preserve published progress history.' }
+    exit 0
+  }
+
+  if ($CallerStagedPaths.Count -gt 0) {
+    $overlap = @(& git -c core.longpaths=true -c core.quotepath=false diff --no-renames --name-only HEAD $remoteHead -- @CallerStagedPaths)
+    if ($LASTEXITCODE -ne 0 -or $overlap.Count -gt 0) {
+      $message = "Main changed pre-staged caller paths since checkout; refusing to overwrite: $($overlap -join ', ')"
+      throw $message
+    }
+  }
+  $AttemptStagePaths = @(Get-StageableReportPushPaths -RemoteHead $remoteHead -CandidatePaths $StagePaths)
+  $tempIndex = Join-Path ([IO.Path]::GetTempPath()) ('dcoir-report-index-' + [guid]::NewGuid().ToString('N'))
+  $previousIndex = $env:GIT_INDEX_FILE
+  $hadIndex = Test-Path Env:GIT_INDEX_FILE
+  $candidateCommit = ''
+  $stageOutcome = 'failure'
+  try {
+    $env:GIT_INDEX_FILE = $tempIndex
+    & git -c core.longpaths=true read-tree $remoteHead
+    if ($LASTEXITCODE -eq 0) {
+      & git -c core.longpaths=true add -A -- @AttemptStagePaths
+      if ($LASTEXITCODE -eq 0 -and (Restore-RemoteOnlyReportFiles -RemoteHead $remoteHead -CandidatePaths $StagePaths) -and (Test-NonReportStagedPathsSafe -RemoteHead $remoteHead -CandidatePaths $StagePaths)) {
+        $callerIndexApplied = $true
+        foreach ($callerPath in $CallerStagedPaths) {
+          $entry = $CallerApprovedIndex[$callerPath]
+          if ($null -eq $entry) {
+            & git -c core.longpaths=true update-index --force-remove -- $callerPath
+          } else {
+            $cacheinfo = "$($entry.Mode),$($entry.Blob),$callerPath"
+            & git -c core.longpaths=true update-index --add --cacheinfo $cacheinfo
+          }
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "Cannot apply approved caller index state: $callerPath"
+            $callerIndexApplied = $false
+            break
+          }
+        }
+        if ($callerIndexApplied) {
+          & git -c core.longpaths=true diff --cached --quiet $remoteHead --
+          $diffExit = $LASTEXITCODE
+          if ($diffExit -eq 0) {
+            $stageOutcome = 'no_changes'
+          } elseif ($diffExit -eq 1) {
+            $tree = [string](& git -c core.longpaths=true write-tree)
+            if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($tree)) {
+              $tree = $tree.Trim()
+              $candidateCommit = [string](& git -c core.longpaths=true commit-tree $tree -p $remoteHead -m $CommitMessage)
+              if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($candidateCommit)) {
+                $candidateCommit = $candidateCommit.Trim()
+                $stageOutcome = 'ready'
+              }
+            }
+          }
+        }
+      }
+    }
+  } finally {
+    if ($hadIndex) { $env:GIT_INDEX_FILE = $previousIndex }
+    else { Remove-Item Env:GIT_INDEX_FILE -ErrorAction SilentlyContinue }
+    Remove-Item -LiteralPath $tempIndex -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath ($tempIndex + '.lock') -Force -ErrorAction SilentlyContinue
+  }
+
+  if ($stageOutcome -eq 'no_changes') {
+    Write-Host "No new report changes relative to fetched main for: $CommitMessage"
+    if ($RequirePush) {
+      throw "Required report push had no changes to publish for: $CommitMessage"
+    }
+    exit 0
+  }
+  if ($stageOutcome -ne 'ready') {
+    Write-Warning "Could not prepare report-only commit on attempt $attempt."
     Start-Sleep -Seconds ([Math]::Min(30, 5 * $attempt))
     continue
   }
-  & git -c core.longpaths=true push origin HEAD:main
+
+  # A concurrent advance of main rejects this non-forced push. Refetch and
+  # reconstruct only the approved report paths rather than replaying commits.
+  & git -c core.longpaths=true push origin ($candidateCommit + ':refs/heads/main')
   if ($LASTEXITCODE -eq 0) {
+    & git update-ref $ObservedReportRef $candidateCommit
+    if ($LASTEXITCODE -ne 0) {
+      Write-Warning 'Report was published, but the runner-observed ref was not recorded; a later unobserved publication will fail closed.'
+    }
     Write-Host "Report push succeeded on attempt $attempt."
     Write-ChatGptReportUrls -CandidatePaths $StagePaths
     exit 0
   }
-  Write-Warning "git push failed on attempt $attempt."
+  Write-Warning "git push failed on attempt $attempt; rebuilding from latest main."
   Start-Sleep -Seconds ([Math]::Min(30, 5 * $attempt))
 }
 
 Write-Warning "Report push failed after $MaxAttemptCount attempts."
-if ($RequirePush) { exit 1 }
+if ($RequirePush) { throw "Required report push failed after $MaxAttemptCount attempts." }
 exit 0
-

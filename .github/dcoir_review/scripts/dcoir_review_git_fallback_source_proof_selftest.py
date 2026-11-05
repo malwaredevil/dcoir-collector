@@ -15,14 +15,18 @@ import openrouter_pr_review_pareto_context as review
 import dcoir_review_historical_recall_cases as history
 import dcoir_review.source_inventory_promotion as promotion
 from dcoir_review.exact_head_dependency_evidence import enrich_first_pass_contexts
-from dcoir_review.git_fallback_source_proof import (
+from dcoir_review.git_fallback_source_contract import (
     ACTION, ANALYZER, ANALYZER_CLI, ANALYZER_CONTRACT, ANALYZER_EXECUTION,
     ANALYZER_INVENTORY, COLLECTOR_PATH_SAFETY, INVENTORY_COMMON,
     INVENTORY_VALIDATION, INVENTORY_CLASSIFICATION, INVENTORY_PROFILES,
     INVENTORY_CONTROLS, INVENTORY_WORKFLOW_YAML,
     DISCOVERY, OUTPUTS, VERIFIER, PATHS,
     _AUDITED_SOURCE_SHA256,
+    _AUDITED_SOURCE_SHA256_V1,
+    _AUDITED_SOURCE_HASH_VERSIONS,
     _UNGUARDED_VERIFIER_SOURCE_SHA256,
+)
+from dcoir_review.git_fallback_source_proof import (
     _exact_proof, _verifier_anchor, _verifier_source_fingerprint,
     attach_git_fallback_candidate, verify_git_fallback_candidate,
 )
@@ -99,9 +103,19 @@ def main() -> None:
     )
     original = sources(BAD)
     safe = sources(SAFE)
-    for path, expected in _AUDITED_SOURCE_SHA256.items():
+    for path, expected in _AUDITED_SOURCE_SHA256_V1.items():
         normalized = original[path].replace("\r\n", "\n").replace("\r", "\n")
         assert hashlib.sha256(normalized.encode("utf-8")).hexdigest() == expected, path
+    current_routes = dict(original)
+    for path in (
+        ".github/workflows/validate-on-pr.yml",
+        ".github/workflows/reusable-validate-on-pr.yml",
+    ):
+        current_routes[path] = (ROOT / path).read_text(encoding="utf-8")
+    assert _exact_proof(current_routes, BAD) == 20, (
+        "Current PR lifecycle sources were not admitted by the versioned proof"
+    )
+    assert len(_AUDITED_SOURCE_HASH_VERSIONS) == 2
     bad = context(BAD)
     good = context(SAFE)
     calls = []

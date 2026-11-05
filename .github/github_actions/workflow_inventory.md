@@ -2,7 +2,7 @@
 
 - schema_version: `dcoir_workflow_inventory_v1`
 - governing_issue: `#194`
-- primary_workflow_count: `32`
+- primary_workflow_count: `33`
 - reusable_workflow_count: `31`
 - composite_action_count: `20`
 - local_reusable_workflow_calls: `37`
@@ -14,6 +14,7 @@ Regenerate it after workflow, reusable workflow, composite action, report, or wo
 
 | File | Workflow name | Triggers | Permissions | Secrets/vars | Artifacts | Report family | Contract family | Status | Risk |
 |---|---|---|---|---|---|---|---|---|---|
+| `.github/workflows/cancel-pr-validation-on-draft.yml` | 29 Validation - Cancel PR on Draft | pull_request | contents:none | 0 | none | none declared | static-validation | intentionally-inline | medium |
 | `.github/workflows/chatgpt-apply-in.yml` | 10 Operator - ChatGPT Apply-In | push, workflow_dispatch | contents:write | 0 | chatgpt-apply-in-failure-${{ github.run_id }} | standalone workflow report | staging-apply-in | active | high |
 | `.github/workflows/chatgpt-exec.yml` | 11 Operator - ChatGPT Exec | push, workflow_dispatch | contents:write, actions:read | 6 | ${{ env.DCOIR_EXEC_ARTIFACT_NAME }} | standalone workflow report | staging-exec | active | high |
 | `.github/workflows/chatgpt-report-retention-cleanup.yml` | 31 Maintenance - ChatGPT Report Retention Cleanup | schedule, workflow_dispatch | contents:write | 0 | none | standalone workflow report | staging-retention-cleanup | active | high |

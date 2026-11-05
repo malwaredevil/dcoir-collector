@@ -1,13 +1,13 @@
 {
   "composite_action_count": 19,
-  "existing_workflow_count": 32,
+  "existing_workflow_count": 33,
   "governing_issue": 194,
   "implementation_phase": "Phase 2+ bundled implementation: entry workflows call reusable workflow modules; reusable modules call local composite actions for shared mechanics.",
   "inventory_outputs": {
     "json": ".github/github_actions/workflow_inventory.json",
     "markdown": ".github/github_actions/workflow_inventory.md"
   },
-  "primary_workflow_count": 32,
+  "primary_workflow_count": 33,
   "required_contract_families": [
     "static-validation",
     "required-surfaces",
@@ -129,6 +129,16 @@
       "risk": "medium",
       "rollback": "Restore prior inline validation workflow body.",
       "target_architecture": "Thin entry workflow calling family-specific reusable validation contracts with PR triggers and path filters visible. Implementation update: entry workflow now calls a repo-local reusable workflow module; shared setup, artifact upload, validation, packaging, and report mechanics are routed through local composite actions where applicable."
+    },
+    {
+      "acceptance_evidence": "Unfiltered converted_to_draft event, matching per-PR concurrency group, cancellation of active validation, and no repository checkout or permissions.",
+      "contract_family": "static-validation",
+      "family": "validation",
+      "file": ".github/workflows/cancel-pr-validation-on-draft.yml",
+      "migration_status": "intentionally-inline",
+      "risk": "medium",
+      "rollback": "Restore the unfiltered Draft-conversion trigger and matching validate-on-pr concurrency group.",
+      "target_architecture": "Intentionally inline concurrency-only PR lifecycle cancellation workflow sharing the validation entry workflow's concurrency group without checking out or executing repository code."
     },
     {
       "acceptance_evidence": "Push, schedule, manual behavior, required-surface coverage, artifacts, and report readback.",
