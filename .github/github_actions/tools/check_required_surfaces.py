@@ -16,8 +16,8 @@ def validate_repo_relative_path(path: str, label: str) -> None:
     if (
         not path
         or path != path.strip()
-        or "\\x00" in path
-        or "\\\\" in path
+        or chr(0) in path
+        or chr(92) in path
         or Path(path).is_absolute()
         or bool(PureWindowsPath(path).drive)
         or any(part in {"", ".", ".."} for part in path.split("/"))
