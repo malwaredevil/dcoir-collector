@@ -5,10 +5,24 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 PROFILE_PATH = Path(".github/github_actions/workflow_required_surface_profiles.json")
 SUPPLEMENT_MANIFEST_PATH = Path(".github/github_actions/workflow_required_surface_profile_supplements.json")
+
+
+def validate_repo_relative_path(path: str, label: str) -> None:
+    """Reject required surfaces that could escape or ambiguously name the repo root."""
+    if (
+        not path
+        or path != path.strip()
+        or "\\x00" in path
+        or "\\\\" in path
+        or Path(path).is_absolute()
+        or bool(PureWindowsPath(path).drive)
+        or any(part in {"", ".", ".."} for part in path.split("/"))
+    ):
+        raise ValueError(f"Required surface must be a normalized repo-relative path in {label}: {path!r}")
 
 
 def validate_profile_map(data: object, label: str) -> dict[str, list[str]]:
@@ -18,6 +32,8 @@ def validate_profile_map(data: object, label: str) -> dict[str, list[str]]:
     for name, paths in data.items():
         if not isinstance(name, str) or not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
             raise ValueError(f"Profile {name!r} must map to a list of string paths: {label}")
+        for path in paths:
+            validate_repo_relative_path(path, label)
         profiles[name] = paths
     return profiles
 
@@ -96,6 +112,16 @@ def main() -> int:
         return 1
 
     required_paths = profiles[args.profile]
+    escaped = [
+        path for path in required_paths
+        if not (repo_root / path).resolve().is_relative_to(repo_root)
+    ]
+    if escaped:
+        print(
+            f"Required governed surfaces resolve outside repository for profile {args.profile}: {', '.join(escaped)}",
+            file=sys.stderr,
+        )
+        return 1
     missing = [path for path in required_paths if not (repo_root / path).exists()]
     if missing:
         print(
