@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from build_workflow_inventory import DEFAULT_JSON_OUTPUT, DEFAULT_MARKDOWN_OUTPUT, build_inventory, check_outputs
 from lib.audit_reusable_contract_helpers import (
     BARE_INPUT_FORWARD_RE,
     COMPOSITE_USING_RE,
@@ -20,11 +19,6 @@ from lib.audit_reusable_contract_helpers import (
     required_permissions_for_text,
 )
 from lib.workflow_inventory_core import CONTRACT_PATH, read_contracts
-
-
-def check_inventory(repo_root: Path, findings: list[str]) -> None:
-    inventory = build_inventory()
-    findings.extend(check_outputs(inventory, repo_root / DEFAULT_JSON_OUTPUT, repo_root / DEFAULT_MARKDOWN_OUTPUT))
 
 
 def check_reusable_workflows(repo_root: Path, workflow_files: list[Path], findings: list[str]) -> None:
