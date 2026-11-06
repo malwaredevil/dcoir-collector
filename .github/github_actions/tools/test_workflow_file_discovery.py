@@ -249,7 +249,7 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(inventory["composite_action_count"], 3)
         self.assertEqual(inventory["local_composite_action_calls"], 1)
         self.assertEqual(
-            [path.relative_to(root / ".github/actions").as_posix() for path in audited],
+            [path.relative_to(Path(".github/actions")).as_posix() for path in audited],
             ["a/action.yml", "b/action.yaml", "c/ACTION.YAML"],
         )
         self.assertTrue(
