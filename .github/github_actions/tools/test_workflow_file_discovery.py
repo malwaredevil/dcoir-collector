@@ -135,5 +135,52 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         self.assertTrue(any("no workflow files found" in finding for finding in findings))
 
 
+    def test_inventory_model_uses_canonical_discovery_for_reusable_variants(self) -> None:
+        import os
+        from unittest.mock import patch
+        from lib.workflow_inventory_core import build_inventory
+
+        repo_root = Path(self.temp.name) / "inventory-checkout"
+        workflows = repo_root / ".github/workflows"
+        workflows.mkdir(parents=True)
+        for name, body in (
+            ("validate.yml", "name: Validate\non: push\njobs:\n  call:\n    uses: ./.github/workflows/reusable-mixed.YAML\n"),
+            ("manual.YmL", "name: Manual\non: workflow_dispatch\n"),
+            ("reusable-standard.yml", "name: Standard\non:\n  workflow_call:\n"),
+            ("reusable-mixed.YAML", "name: Mixed\non:\n  workflow_call:\n"),
+            ("reusable-alt.yaml", "name: Alternate\non:\n  workflow_call:\n"),
+            ("nested/reusable-ignored.yaml", "name: Ignored Nested\n"),
+            ("reusable-ignored.yml.bak", "name: Ignored Backup\n"),
+        ):
+            path = workflows / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        (workflows / "reusable-directory.yaml").mkdir()
+
+        prior_directory = Path.cwd()
+        try:
+            os.chdir(repo_root)
+            with patch(
+                "lib.workflow_inventory_core.read_contracts",
+                return_value={
+                    "governing_issue": 194,
+                    "existing_workflow_count": 2,
+                    "workflow_contracts": [],
+                },
+            ):
+                inventory = build_inventory()
+        finally:
+            os.chdir(prior_directory)
+
+        self.assertEqual(inventory["workflow_count"], 2)
+        self.assertEqual(inventory["reusable_workflow_count"], 3)
+        self.assertEqual(inventory["local_reusable_workflow_calls"], 1)
+        self.assertEqual(inventory["local_composite_action_calls"], 0)
+        self.assertEqual(
+            [entry["file"] for entry in inventory["workflows"]],
+            [".github/workflows/manual.YmL", ".github/workflows/validate.yml"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
