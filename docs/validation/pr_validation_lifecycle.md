@@ -54,13 +54,6 @@ changes materially, requalify the affected code and checks, preferably using
 an operator-approved transition back to Draft for substantive fixes.
 Merging and closing the issue remain separate approval gates.
 
-This is the review **sequence**, not a change to executable CI triggers.
-Feature-branch pushes still run `validate-on-push.yml` during Draft.
-The cost of those push runs is not removed by this policy. Changing push
-filters or required checks requires a separately authorized workflow update
-and authoritative branch-protection evidence; do not make required contexts
-unavailable to merging or suppress security scans to reduce run costs.
-
 ## Current boundaries
 
 - The follow-on #649 cost staging restricts automatic `validate-on-push.yml`

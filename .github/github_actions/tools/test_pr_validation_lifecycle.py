@@ -120,8 +120,10 @@ def contract_errors(entry: str, reusable: str, unfiltered_cancel: str) -> list[s
         errors.append("Ready guard must handle failed prerequisite and Draft state")
     if "!cancelled() && needs.draft_fail_fast.result != 'success'" not in heavy:
         errors.append("Ready job is no longer fail-closed on fast gate")
-    if "uses: ./.github/actions/smoke-build-collector-package" not in heavy:
-        errors.append("Ready job must smoke-test the collector runtime package build")
+    if heavy.count("uses: ./.github/actions/build-collector-runtime-for-harness") != 1:
+        errors.append("Ready job must build the collector runtime package once for the harness")
+    if "uses: ./.github/actions/smoke-build-collector-package" in heavy:
+        errors.append("Ready job must not redundantly rebuild the collector runtime package")
     fail_closed = heavy.find("throw 'Draft fail-fast gate failed")
     checkout = heavy.find("- name: Checkout repository")
     if fail_closed < 0 or checkout < 0 or fail_closed >= checkout:
@@ -239,7 +241,18 @@ class LifecyclePolicyTests(unittest.TestCase):
             (self.entry, self.reusable.replace("  draft_fail_fast:\n    name: draft_fail_fast\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read", "  draft_fail_fast:\n    name: draft_fail_fast\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: write")),
             (self.entry, self.reusable.replace("          persist-credentials: false\n", "")),
             (self.entry, self.reusable.replace("          persist-credentials: false", "          persist-credentials: true")),
-            (self.entry, self.reusable.replace("uses: ./.github/actions/smoke-build-collector-package", "uses: ./.github/actions/removed-package-smoke")),
+            (self.entry, self.reusable.replace("uses: ./.github/actions/build-collector-runtime-for-harness", "uses: ./.github/actions/removed-harness-build")),
+            (
+                self.entry,
+                self.reusable.replace(
+                    "      - name: Build fresh collector runtime zip for harness\n",
+                    "      - name: Smoke-test collector runtime package build\n"
+                    "        uses: ./.github/actions/smoke-build-collector-package\n"
+                    "        with:\n"
+                    "          output-dir: project_sources/validation/out_validate_on_pr_collector\n"
+                    "      - name: Build fresh collector runtime zip for harness\n",
+                ),
+            ),
         )
         for index, (entry, reusable) in enumerate(variants):
             with self.subTest(mutation=index):

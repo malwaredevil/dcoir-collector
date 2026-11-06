@@ -18,6 +18,28 @@ MAIN_GROUP = (
     "-${{ github.ref == 'refs/heads/main' && github.sha || 'latest' }}\n"
 )
 MAIN_CANCEL = "  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}\n"
+EXPECTED_PATHS = (
+    "project_sources/collector/source/**",
+    "project_sources/collector/harness/**",
+    "project_sources/collector/tools/**",
+    "project_sources/collector/manifests/**",
+    "project_sources/agent_runtime/**",
+    "project_sources/gemini/bundle_source/**",
+    "project_sources/gemini/docs/**",
+    "project_sources/gemini/README.md",
+    "project_sources/gemini/tools/**",
+    "project_sources/validation/**",
+    "knowledge/**",
+    ".gitattributes",
+    "docs/validation/dcoir_collector_capability_coverage_matrix.md",
+    "supporting_assets/DCOIR_Collector.zip",
+    ".github/workflows/**",
+    ".github/actions/**",
+    ".github/github_actions/**",
+    ".github/ops/tools/**",
+    ".github/ops/requests/apply_patch/**",
+    ".github/README.md",
+)
 
 
 def main_only_push_errors(push: str) -> list[str]:
@@ -38,6 +60,14 @@ def main_only_push_errors(push: str) -> list[str]:
     unexpected = sorted(set(keys) - {"branches", "paths"})
     if unexpected:
         errors.append(f"push must not add ref filters beyond main: {unexpected}")
+    path_rows = re.search(r"(?m)^    paths:\n(?P<rows>(?:      - .*\n)+)", body)
+    paths = (
+        tuple(r.strip().strip("'\"") for r in re.findall(r"(?m)^      - (.*)$", path_rows["rows"]))
+        if path_rows
+        else ()
+    )
+    if paths != EXPECTED_PATHS:
+        errors.append(f"push paths differ from the approved list: {paths}")
     rows = re.search(r"(?m)^    branches:\n(?P<rows>(?:      - .*\n)+)", body)
     branches = (
         [r.strip().strip("'\"") for r in re.findall(r"(?m)^      - (.*)$", rows["rows"])]
@@ -64,6 +94,16 @@ class MainOnlyPushTriggerTests(unittest.TestCase):
             "main-plus-extra": push.replace(main_row, main_row + "      - develop\n"),
             "wildcard": push.replace(main_row, "    branches:\n      - '**'\n"),
             "tags-added": push.replace("    paths:\n", "    tags:\n      - '**'\n    paths:\n", 1),
+            "paths-empty": push.replace(
+                "    paths:\n      - 'project_sources/collector/source/**'\n",
+                "    paths: []\n",
+                1,
+            ),
+            "paths-unrelated": push.replace(
+                "      - 'project_sources/collector/source/**'\n",
+                "      - 'unrelated/**'\n",
+                1,
+            ),
             "branches-ignore": push.replace(main_row, "    branches-ignore:\n      - develop\n"),
             "no-paths": push.replace("    paths:\n", "    paths_removed:\n", 1),
             "no-dispatch": push.replace("  workflow_dispatch:\n", ""),

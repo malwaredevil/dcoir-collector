@@ -272,11 +272,6 @@ jobs:
         with:
           output-dir: project_sources/validation/out_validate_on_pr_gemini
 
-      - name: Smoke-test collector runtime package build
-        uses: ./.github/actions/smoke-build-collector-package
-        with:
-          output-dir: project_sources/validation/out_validate_on_pr_collector
-
       - name: Run validate_DCOIR_Run fixture tests
         uses: ./.github/actions/run-validate-dcoir-fixtures
         with:
