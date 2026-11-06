@@ -193,6 +193,8 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
 
         root = Path(self.temp.name) / "action-discovery-checkout"
         actions = root / ".github/actions"
+        actions.mkdir(parents=True, exist_ok=True)
+        (actions / "action.yml").write_text("name: container\n", encoding="utf-8")
         for name in (
             "a/action.yml", "b/action.yaml", "c/ACTION.YAML",
             "a/nested/action.yml", "d/action.yml.bak", "e/action.ymml",

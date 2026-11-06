@@ -59,6 +59,6 @@ def iter_action_metadata_files(repo_root: Path, *, top_level_only: bool = False)
     if top_level_only:
         directories = [child for child in action_dir.iterdir() if child.is_dir()]
     else:
-        directories = [action_dir, *(path for path in action_dir.rglob("*") if path.is_dir())]
+        directories = [path for path in action_dir.rglob("*") if path.is_dir()]
     resolved = (resolve_action_metadata(directory) for directory in directories)
     return sorted(path for path in resolved if path is not None)
