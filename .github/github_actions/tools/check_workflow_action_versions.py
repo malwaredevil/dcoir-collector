@@ -13,6 +13,7 @@ from functools import partial
 from pathlib import Path
 
 from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
+from lib.audit_reusable_contract_helpers import iter_action_metadata_files
 
 WORKFLOW_DIR = Path(".github/workflows")
 ACTION_DIR = Path(".github/actions")
@@ -48,9 +49,7 @@ iter_workflow_files = partial(_shared_iter_workflow_files, WORKFLOW_DIR)
 
 
 def iter_composite_action_files() -> list[Path]:
-    if not ACTION_DIR.exists():
-        return []
-    return sorted(ACTION_DIR.glob("*/action.y*ml"))
+    return iter_action_metadata_files(Path("."), top_level_only=True)
 
 
 def iter_audited_files() -> list[Path]:
