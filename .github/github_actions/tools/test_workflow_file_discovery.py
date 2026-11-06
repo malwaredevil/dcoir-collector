@@ -102,15 +102,15 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         workflows = repo_root / ".github/workflows"
         workflows.mkdir(parents=True)
         for name, body in (
-            ("main.yml", "name: Main\\non: push\\n"),
-            ("mixed.YmL", "name: Mixed\\non: push\\n"),
-            ("reusable-build.YAML", "name: Reusable\\non:\\n  workflow_call:\\n"),
-            ("nested/hidden.yml", "name: Ignored\\n"),
-            ("backup.yml.bak", "name: Ignored\\n"),
+            ("main.yml", "name: Main\non: push\n"),
+            ("mixed.YmL", "name: Mixed\non: push\n"),
+            ("reusable-build.YAML", "name: Reusable\non:\n  workflow_call:\n"),
+            ("nested/hidden.yml", "name: Ignored\n"),
+            ("backup.yml.bak", "name: Ignored\n"),
         ):
             path = workflows / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(body.replace("\\\\n", "\\n"), encoding="utf-8")
+            path.write_text(body, encoding="utf-8")
         (workflows / "directory.yaml").mkdir()
 
         with patch(
