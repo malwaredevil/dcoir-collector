@@ -134,6 +134,25 @@ class LifecyclePolicyTests(unittest.TestCase):
         cls.reusable = REUSABLE.read_text(encoding="utf-8")
         cls.unfiltered_cancel = UNFILTERED_CANCEL.read_text(encoding="utf-8")
 
+    def test_main_only_push_contract(self) -> None:
+        push = (ROOT / ".github/workflows/validate-on-push.yml").read_text(encoding="utf-8")
+        self.assertEqual(push.count("  push:\n"), 1)
+        self.assertIn("  workflow_dispatch:\n", push)
+        self.assertIn("    paths:\n", push)
+        self.assertIn("uses: ./.github/workflows/reusable-validate-on-push.yml", push)
+        pattern = r"(?m)^  push:\n    branches:\n(?P<rows>(?:      - [^\n]+\n)+)    paths:\n"
+        match = re.search(pattern, push)
+        self.assertIsNotNone(match)
+        self.assertEqual(match["rows"], "      - main\n")
+        for bad in (
+            push.replace("    branches:\n      - main\n", ""),
+            push.replace("      - main\n", "      - develop\n"),
+            push.replace("      - main\n", "      - main\n      - develop\n"),
+        ):
+            with self.subTest(variant=bad[:80]):
+                changed = re.search(pattern, bad)
+                self.assertTrue(changed is None or changed["rows"] != "      - main\n")
+
     def test_current_files_meet_contract(self) -> None:
         self.assertEqual(
             [],
