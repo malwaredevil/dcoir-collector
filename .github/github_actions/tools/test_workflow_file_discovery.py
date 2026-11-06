@@ -182,5 +182,80 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         )
 
 
+    def test_action_metadata_discovery_scopes_directories_and_yaml_suffixes(self) -> None:
+        from lib.audit_reusable_contract_helpers import iter_action_metadata_files
+
+        root = Path(self.temp.name) / "action-discovery-checkout"
+        actions = root / ".github/actions"
+        for name in (
+            "a/action.yml", "b/action.yaml", "c/ACTION.YAML",
+            "a/nested/action.yml", "d/action.yml.bak", "e/action.ymml",
+        ):
+            path = actions / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("name: fixture\n", encoding="utf-8")
+        (actions / "f/action.yml").mkdir(parents=True)
+
+        direct = iter_action_metadata_files(root, top_level_only=True)
+        recursive = iter_action_metadata_files(root)
+        self.assertEqual(
+            [path.relative_to(actions).as_posix() for path in direct],
+            ["a/action.yml", "b/action.yaml", "c/ACTION.YAML"],
+        )
+        self.assertEqual(
+            [path.relative_to(actions).as_posix() for path in recursive],
+            ["a/action.yml", "a/nested/action.yml", "b/action.yaml", "c/ACTION.YAML"],
+        )
+        self.assertEqual(
+            iter_action_metadata_files(root / "missing", top_level_only=True), []
+        )
+
+    def test_inventory_and_version_audit_share_action_metadata_scope(self) -> None:
+        import os
+        from unittest.mock import patch
+        import check_workflow_action_versions as versions
+        from lib.workflow_inventory_core import build_inventory
+
+        root = Path(self.temp.name) / "action-consumer-checkout"
+        actions = root / ".github/actions"
+        sources = {
+            "a/action.yml": "name: A\nruns:\n  using: composite\n  steps:\n    - uses: actions/checkout@v5\n",
+            "b/action.yaml": "name: B\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/a\n",
+            "c/ACTION.YAML": "name: C\nruns:\n  using: composite\n",
+            "a/nested/action.yml": "name: Nested\nruns:\n  using: composite\n",
+            "d/action.ymml": "name: Invalid\n",
+        }
+        for name, content in sources.items():
+            path = actions / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+
+        prior_directory = Path.cwd()
+        try:
+            os.chdir(root)
+            with patch(
+                "lib.workflow_inventory_core.read_contracts",
+                return_value={"governing_issue": 194, "workflow_contracts": []},
+            ):
+                inventory = build_inventory()
+            audited = versions.iter_composite_action_files()
+            version_findings = [
+                finding for path in audited for finding in versions.check_file(path)
+            ]
+        finally:
+            os.chdir(prior_directory)
+
+        self.assertEqual(inventory["workflow_count"], 0)
+        self.assertEqual(inventory["composite_action_count"], 3)
+        self.assertEqual(inventory["local_composite_action_calls"], 1)
+        self.assertEqual(
+            [path.relative_to(root / ".github/actions").as_posix() for path in audited],
+            ["a/action.yml", "b/action.yaml", "c/ACTION.YAML"],
+        )
+        self.assertTrue(
+            any("actions/checkout@v5 is below approved minimum" in finding for finding in version_findings)
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
