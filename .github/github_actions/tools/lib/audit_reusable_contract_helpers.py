@@ -156,12 +156,22 @@ def rel(path: Path, repo_root: Path) -> str:
     return path.as_posix()
 
 
-def iter_action_metadata_files(repo_root: Path) -> list[Path]:
+def iter_action_metadata_files(repo_root: Path, *, top_level_only: bool = False) -> list[Path]:
+    """Find action metadata, optionally limiting discovery to direct action children.
+
+    Reusable-contract audits retain recursive discovery; inventory and version
+    audits use the actual one-directory-deep composite action layout.
+    """
     action_dir = repo_root / ACTION_DIR
     if not action_dir.exists():
         return []
+    candidates = (
+        (file for child in action_dir.iterdir() if child.is_dir() for file in child.iterdir())
+        if top_level_only
+        else action_dir.rglob("*")
+    )
     return sorted(
-        path for path in action_dir.rglob("*")
+        path for path in candidates
         if path.is_file() and path.name.lower() in {"action.yml", "action.yaml"}
     )
 
