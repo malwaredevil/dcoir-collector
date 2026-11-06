@@ -8,6 +8,7 @@ work. It is not a claim that every repository workflow has been migrated.
 | State | Expected behavior | Current scope |
 | --- | --- | --- |
 | Draft created or updated | Run cheap deterministic rejection checks before heavier work | Pull Request Validation runs the Linux draft_fail_fast job; its Windows validate job is skipped on Draft |
+| Draft review and fix loop | Complete code review and fixes while the PR remains Draft, before Ready-stage heavy validation | Internal adversarial review plus operator-approved/manually triggered independent reviews; only fast scoped tests are the default after Draft fixes |
 | Ready for review or updated non-Draft | Run the fast gate first and then the existing full validation on the current head | ready_for_review, opened, reopened, and synchronize trigger the original workflow; validate / validate keeps its historical check identity |
 | Converted back to Draft | Cancel/supersede in-flight PR validation and return to cheap checks | converted_to_draft shares the existing per-PR concurrency group with cancel-in-progress=true |
 | Merge decision | Verify the latest head, required checks, and operator-approved independent review | Manual governed gate; no reviewer is auto-requested |
@@ -24,6 +25,41 @@ check from being accepted via a permissive skipped-check merge rule.
 A trusted default-branch workflow_dispatch remains a review-context baseline,
 not exact evidence for a feature-branch or PR head. Heavy Windows/PowerShell
 coverage and collector harness checks remain in the existing validation job.
+
+## Review and fix before Ready (operator directive 2026-11-06)
+
+The default sequence is **Draft implementation -> cheap fail-fast checks -> internal
+adversarial review -> operator-approved or manually triggered independent review
+and fix loop on Draft -> current-head review/readback -> separately approved Ready
+transition -> full Ready validation -> separately approved merge**.
+
+During Draft, the implementation/fix owner handles findings, runs targeted
+inexpensive tests, resolves actionable review threads, verifies the actual file
+scope against the PR description, and records the reviewed head SHA. Request
+Copilot review during Draft only when the operator explicitly approves or
+manually triggers it. Other independent reviewers and paid review commands
+remain subject to their existing per-invocation approvals or opt-outs. The
+objective is to avoid waiting until expensive Ready checks have started to
+discover straightforward review defects. A reviewer request is **not** an
+automatic side effect of opening a PR or moving it to Ready.
+
+Mark Ready only after relevant Draft checks are green on the current head,
+review findings are dispositioned (or an operator-approved exception is
+recorded), no actionable review threads remain unresolved, and the operator
+explicitly approves the state change. Ready triggers required full PR/Windows
+checks and security checks on that exact head. Do **not** request another
+code review just because Ready validation finished if the reviewed head and
+scope have not changed. If the Ready checks reveal a defect or the head
+changes materially, requalify the affected code and checks, preferably using
+an operator-approved transition back to Draft for substantive fixes.
+Merging and closing the issue remain separate approval gates.
+
+This is the review **sequence**, not a change to executable CI triggers.
+Feature-branch pushes still run `validate-on-push.yml` during Draft.
+The cost of those push runs is not removed by this policy. Changing push
+filters or required checks requires a separately authorized workflow update
+and authoritative branch-protection evidence; do not make required contexts
+unavailable to merging or suppress security scans to reduce run costs.
 
 ## Current boundaries
 

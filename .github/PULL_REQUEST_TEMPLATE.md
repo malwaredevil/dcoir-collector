@@ -76,6 +76,18 @@
 - unresolved finding or validation gap:
 - follow-up issue or operator decision:
 
+## Draft-First Review/Fix Evidence
+
+Complete this work **while Draft**, before paying for full Ready-stage validation:
+
+- [ ] Cheap Draft fail-fast and scoped deterministic tests passed on the current head, or any gap is documented
+- [ ] Prog/Adva or applicable runtime-specific review was completed on the Draft diff, including cross-file/caller checks and finding disposition
+- [ ] Operator manually triggered or separately approved any independent Copilot/external review during Draft; review evidence and any needed re-review are tied to the final head, or an explicit operator-approved exception is recorded
+- [ ] Valid review findings were fixed on Draft, relevant targeted tests rerun, and all actionable review threads dispositioned/resolved
+- [ ] PR description lists the actual changed files/scope and final reviewed head, rather than stale pre-fix scope
+- [ ] No reviewer is being automatically requested merely because the PR moves Ready; heavier full validation/security is expected **after** separately approved undraft
+- [ ] Feature-branch push validation cost and any pending full Ready checks are reported accurately; required checks/security gates are not waived to save cost
+
 ## Ready-To-Undraft Gate
 
 Do not mark ready for review until this checklist is complete.

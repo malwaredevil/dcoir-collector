@@ -33,6 +33,18 @@ Small, bounded work batches are a permanent requirement for work on this reposit
 * If a tool fails, hangs, or gives an ambiguous result, first inspect live state before retrying; prevent duplicated writes, reviews, or charges. Preserve the separate 15-minute long-run checkpoint rule.
 * Small execution batches do **not** require fragmented PRs or weak validation. Combine related changes into a coherent, validated commit/PR when practical, and keep all existing governance, security, and operator-approval controls.
 
+
+## Draft-first code review and validation sequence (operator directive 2026-11-06)
+
+Draft is the implementation, adversarial-review, independent-review, and fix phase. Run inexpensive Draft fail-fast and scoped local tests first. Complete Prog/Adva (or an explicitly applicable runtime adapter) and operator-triggered/approved independent code reviews **while the PR is still Draft**. Prefer the operator's manually triggered Copilot review/fix loop. Never automatically request Copilot, paid internal review, or external agents; the existing per-request approvals and operator opt-outs remain binding.
+
+For each actionable finding, fix it on the Draft branch, rerun the cheapest relevant tests, resolve review threads, update the PR description to match the actual changed-file scope, and record the reviewed head SHA. Re-review substantive fixes or changed scope as warranted by the applicable review gate; every separate reviewer request requires its own approval. Before leaving Draft, verify current-head fast checks, review/finding disposition (or an explicit approved exception), accurate PR scope, no unresolved actionable threads, and **separate operator approval** to mark Ready.
+
+**Ready is the higher-cost validation phase.** Trigger required full PR/Windows, CodeQL/GHAS, security, and other checks against the exact Ready head. Do not reflexively request another code review merely because Ready checks finish when the reviewed head and scope have not changed. A new substantive code change, security finding, or failed validation can require another Draft review/fix loop and renewed exact-head qualification; obtain approval before changing a governed PR back to Draft. Merge and issue closure remain separately operator-approved. Never weaken required checks, fail-closed behavior, or reviewer approvals to reduce cost.
+
+**Known cost boundary:** the feature-branch push workflow still runs while a PR is Draft and can consume Windows CI resources. This process change does not claim complete Draft-cost savings. Any trigger or branch-protection change requires separate explicit workflow approval and authoritative required-check verification. Canonical lifecycle detail: `docs/validation/pr_validation_lifecycle.md`; review-request approvals: `.github/agent-governance/review_request_operator_approval.md`.
+
+
 ## DCOIR architecture maintenance standard
 
 For DCOIR architecture/refactor work, especially issue #550 / PR #553 and follow-on maintenance, use a responsibility-first professional-maintainer standard rather than a history-preservation standard.

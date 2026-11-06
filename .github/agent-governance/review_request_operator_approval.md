@@ -29,6 +29,25 @@ Approval is per invocation. A prior approval does not authorize a later internal
 
 No approval means no DCOIR Review request.
 
+## Draft-first reviewer timing
+
+The normal time to perform independent code review, fix findings, and resolve
+review threads is **while the PR is Draft**, after cheap fail-fast checks and
+the applicable internal adversarial pass, and **before** requesting Ready.
+The operator may manually run the Copilot review/fix loop during Draft, or
+explicitly approve a request. Other review services keep their exact
+operator-approval requirements; a general request to proceed, mark Ready,
+or merge is not permission to trigger a reviewer.
+
+After a reviewer finds a defect, make and validate fixes on Draft, update
+the PR description and current reviewed-head evidence, and obtain any
+necessary separately approved re-review. Do not routinely request another
+code review after marking Ready if there are no subsequent code changes or
+new findings. Ready is for required full validation and security readback,
+not the default start of code review. A substantive Ready-stage fix may require
+an operator-approved return to Draft and renewed exact-head review evidence.
+This sequencing never waives required review gates, checks, or approvals.
+
 ## Sequencing
 
 When another governance rule says that `/dcoir-review`, `/or-review`, or `/openrouter-review` is the next review gate after Prog/Adva or after a finding is fixed, interpret that as **the next gate that may be proposed to the operator**. It is not permission to post the command automatically.
