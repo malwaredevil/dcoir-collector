@@ -224,13 +224,15 @@ def build_inventory() -> dict[str, Any]:
         entry["file"]: entry
         for entry in contracts.get("workflow_contracts", [])
     }
-    workflows = [workflow_entry(path, contract_by_file) for path in iter_workflow_files()]
-    reusable_workflows = sorted(WORKFLOW_DIR.glob("reusable-*.yml")) if WORKFLOW_DIR.exists() else []
+    all_workflow_files = _shared_iter_workflow_files(WORKFLOW_DIR)
+    primary_workflows = [path for path in all_workflow_files if not path.name.startswith("reusable-")]
+    reusable_workflows = [path for path in all_workflow_files if path.name.startswith("reusable-")]
+    workflows = [workflow_entry(path, contract_by_file) for path in primary_workflows]
     composite_actions = sorted(Path(".github/actions").glob("*/action.yml"))
-    action_call_sources = iter_workflow_files() + reusable_workflows + composite_actions
+    action_call_sources = all_workflow_files + composite_actions
     local_reusable_calls = sum(
         1
-        for path in iter_workflow_files() + reusable_workflows
+        for path in all_workflow_files
         for line in path.read_text(encoding="utf-8").splitlines()
         if "uses: ./.github/workflows/reusable-" in line
     )
