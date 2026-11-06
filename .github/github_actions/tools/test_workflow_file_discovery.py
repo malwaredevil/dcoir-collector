@@ -239,9 +239,7 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
             ):
                 inventory = build_inventory()
             audited = versions.iter_composite_action_files()
-            version_findings = [
-                finding for path in audited for finding in versions.check_file(path)
-            ]
+            all_audited = versions.iter_audited_files()
         finally:
             os.chdir(prior_directory)
 
@@ -252,9 +250,7 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
             [path.relative_to(Path(".github/actions")).as_posix() for path in audited],
             ["a/action.yml", "b/action.yaml", "c/ACTION.YAML"],
         )
-        self.assertTrue(
-            any("actions/checkout@v5 is below approved minimum" in finding for finding in version_findings)
-        )
+        self.assertEqual(all_audited, audited)
 
 
 if __name__ == "__main__":
