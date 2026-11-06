@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from build_workflow_inventory import iter_workflow_files
+from lib.workflow_files import iter_workflow_files
 from lib.audit_reusable_contract_checks import (
     check_action_definitions,
     check_local_action_calls,
@@ -20,7 +20,7 @@ from lib.audit_reusable_contract_helpers import (
 
 
 def run_contract_audit(repo_root: Path) -> tuple[list[str], dict[str, int]]:
-    primary_workflow_files = iter_workflow_files()
+    primary_workflow_files = iter_workflow_files(repo_root / WORKFLOW_DIR, include_reusable=False)
     workflow_files = iter_all_workflow_files(repo_root)
     findings: list[str] = []
     if not workflow_files:
