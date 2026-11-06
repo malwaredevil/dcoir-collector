@@ -94,5 +94,46 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         self.assertIn("reusable-child.yml", [path.name for path in actual])
 
 
+    def test_contract_runner_counts_primary_files_in_the_selected_checkout(self) -> None:
+        from unittest.mock import patch
+        from lib.audit_reusable_contract_runner import run_contract_audit
+
+        repo_root = Path(self.temp.name) / "alternate-checkout"
+        workflows = repo_root / ".github/workflows"
+        workflows.mkdir(parents=True)
+        for name, body in (
+            ("main.yml", "name: Main\\non: push\\n"),
+            ("mixed.YmL", "name: Mixed\\non: push\\n"),
+            ("reusable-build.YAML", "name: Reusable\\non:\\n  workflow_call:\\n"),
+            ("nested/hidden.yml", "name: Ignored\\n"),
+            ("backup.yml.bak", "name: Ignored\\n"),
+        ):
+            path = workflows / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body.replace("\\\\n", "\\n"), encoding="utf-8")
+        (workflows / "directory.yaml").mkdir()
+
+        with patch(
+            "lib.audit_reusable_contract_checks.read_contracts",
+            return_value={"existing_workflow_count": 2},
+        ):
+            findings, summary = run_contract_audit(repo_root)
+
+        self.assertEqual(findings, [])
+        self.assertEqual(summary["primary_workflows"], 2)
+        self.assertEqual(summary["reusable_workflows"], 1)
+        self.assertEqual(summary["action_definitions"], 0)
+        self.assertEqual(summary["workflow_refs"], 0)
+
+    def test_contract_runner_missing_checkout_does_not_count_the_current_tree(self) -> None:
+        from lib.audit_reusable_contract_runner import run_contract_audit
+
+        missing_repo = Path(self.temp.name) / "not-a-checkout"
+        findings, summary = run_contract_audit(missing_repo)
+        self.assertEqual(summary["primary_workflows"], 0)
+        self.assertEqual(summary["reusable_workflows"], 0)
+        self.assertTrue(any("no workflow files found" in finding for finding in findings))
+
+
 if __name__ == "__main__":
     unittest.main()
