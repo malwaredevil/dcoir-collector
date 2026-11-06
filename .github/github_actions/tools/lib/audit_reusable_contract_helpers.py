@@ -4,6 +4,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from .workflow_files import iter_workflow_files
+
 WORKFLOW_DIR = Path(".github/workflows")
 ACTION_DIR = Path(".github/actions")
 
@@ -165,13 +167,8 @@ def iter_action_metadata_files(repo_root: Path) -> list[Path]:
 
 
 def iter_all_workflow_files(repo_root: Path) -> list[Path]:
-    workflow_dir = repo_root / WORKFLOW_DIR
-    if not workflow_dir.exists():
-        return []
-    return sorted(
-        path for path in workflow_dir.iterdir()
-        if path.is_file() and path.suffix.lower() in {".yml", ".yaml"}
-    )
+    """Delegate all-workflow discovery to its canonical owner."""
+    return iter_workflow_files(repo_root / WORKFLOW_DIR)
 
 
 def local_uses_refs(source_files: list[Path]) -> tuple[list[tuple[Path, int, str]], list[tuple[Path, int, str]], list[tuple[Path, int, str]]]:

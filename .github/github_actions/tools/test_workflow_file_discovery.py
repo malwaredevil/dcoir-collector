@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 from lib.workflow_files import iter_workflow_files
+from lib.audit_reusable_contract_helpers import iter_all_workflow_files
 
 
 class WorkflowFileDiscoveryTests(unittest.TestCase):
@@ -63,6 +64,34 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         )
         self.assertEqual(iter_workflow_files(self.workflow_dir), legacy_all)
         self.assertEqual(iter_workflow_files(self.workflow_dir, include_reusable=False), legacy_primary)
+
+
+    def test_audit_helper_returns_empty_for_missing_repo_workflows(self) -> None:
+        missing_repo = Path(self.temp.name) / "checkout"
+        self.assertEqual(iter_all_workflow_files(missing_repo), [])
+        (missing_repo / ".github/workflows").mkdir(parents=True)
+        self.assertEqual(iter_all_workflow_files(missing_repo), [])
+
+    def test_audit_helper_matches_shared_discovery_with_hostile_layout(self) -> None:
+        repo_root = Path(self.temp.name) / "checkout"
+        workflows = repo_root / ".github/workflows"
+        workflows.mkdir(parents=True)
+        for name in (
+            "Z.yaml", "alpha.yml", "reusable-child.yml", "mixed.YmL",
+            "ignored.txt", "nested/hidden.yaml", "backup.yml.bak",
+        ):
+            file = workflows / name
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text("name: fixture\n", encoding="utf-8")
+        (workflows / "directory.yml").mkdir()
+
+        actual = iter_all_workflow_files(repo_root)
+        self.assertEqual(actual, iter_workflow_files(workflows))
+        self.assertEqual(
+            [path.name for path in actual],
+            ["Z.yaml", "alpha.yml", "mixed.YmL", "reusable-child.yml"],
+        )
+        self.assertIn("reusable-child.yml", [path.name for path in actual])
 
 
 if __name__ == "__main__":
