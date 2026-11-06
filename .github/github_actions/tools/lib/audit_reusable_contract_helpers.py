@@ -7,7 +7,6 @@ from pathlib import Path
 from .workflow_files import iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
-ACTION_DIR = Path(".github/actions")
 
 USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 COMPOSITE_USING_RE = re.compile(r"^\s*using:\s*['\"]?composite['\"]?\s*$", re.IGNORECASE | re.MULTILINE)
@@ -154,26 +153,6 @@ def rel(path: Path, repo_root: Path) -> str:
     if path.is_absolute():
         return path.relative_to(repo_root).as_posix()
     return path.as_posix()
-
-
-def iter_action_metadata_files(repo_root: Path, *, top_level_only: bool = False) -> list[Path]:
-    """Find action metadata, optionally limiting discovery to direct action children.
-
-    Reusable-contract audits retain recursive discovery; inventory and version
-    audits use the actual one-directory-deep composite action layout.
-    """
-    action_dir = repo_root / ACTION_DIR
-    if not action_dir.exists():
-        return []
-    candidates = (
-        (file for child in action_dir.iterdir() if child.is_dir() for file in child.iterdir())
-        if top_level_only
-        else action_dir.rglob("*")
-    )
-    return sorted(
-        path for path in candidates
-        if path.is_file() and path.name.lower() in {"action.yml", "action.yaml"}
-    )
 
 
 def iter_all_workflow_files(repo_root: Path) -> list[Path]:

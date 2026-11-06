@@ -12,11 +12,10 @@ import sys
 from functools import partial
 from pathlib import Path
 
+from lib.workflow_files import iter_action_metadata_files
 from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
-from lib.audit_reusable_contract_helpers import iter_action_metadata_files
 
 WORKFLOW_DIR = Path(".github/workflows")
-ACTION_DIR = Path(".github/actions")
 
 # Minimum majors selected to avoid GitHub Actions Node.js 20 deprecation warnings
 # and catch unsupported action tags for the actions used in this repository.

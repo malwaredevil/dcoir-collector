@@ -10,9 +10,9 @@ from lib.audit_reusable_contract_checks import (
     check_local_workflow_calls,
     check_reusable_workflows,
 )
+from lib.workflow_files import iter_action_metadata_files
 from lib.audit_reusable_contract_helpers import (
     WORKFLOW_DIR,
-    iter_action_metadata_files,
     iter_all_workflow_files,
     local_uses_refs,
     rel,

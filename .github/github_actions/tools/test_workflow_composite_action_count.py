@@ -73,6 +73,24 @@ class CompositeActionCountTests(unittest.TestCase):
         (nested / "action.yml").write_text("not a top-level action", encoding="utf-8")
         self.assertEqual(self.check(1), [])
 
+    def test_runner_metadata_resolution_matches_inventory(self) -> None:
+        body = "name: sample\nruns:\n  using: composite\n# Compensating evidence: step outputs\n"
+        yaml_only = self.actions / "yaml-only"
+        yaml_only.mkdir()
+        (yaml_only / "action.yaml").write_text(body, encoding="utf-8")
+        both = self.actions / "both"
+        both.mkdir()
+        (both / "action.yml").write_text(body, encoding="utf-8")
+        (both / "action.yaml").write_text("stale shadowed copy", encoding="utf-8")
+        mixed_case = self.actions / "mixed-case"
+        mixed_case.mkdir()
+        (mixed_case / "ACTION.YML").write_text(body, encoding="utf-8")
+        findings = self.check(2)
+        self.assertEqual(
+            [f for f in findings if "mixed-case" not in f], [],
+        )
+        self.assertTrue(any("mixed-case:1: composite action directory missing" in f for f in findings))
+
     def test_existing_safety_checks_are_not_weakend(self) -> None:
         self.add_action(
             "unsafe",

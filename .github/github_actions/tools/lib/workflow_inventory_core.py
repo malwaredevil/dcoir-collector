@@ -7,8 +7,8 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+from .workflow_files import iter_action_metadata_files
 from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
-from .audit_reusable_contract_helpers import iter_action_metadata_files
 
 WORKFLOW_DIR = Path(".github/workflows")
 CONTRACT_PATH = Path(".github/github_actions/workflow_modularization_contracts.json")

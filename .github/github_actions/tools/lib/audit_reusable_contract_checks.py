@@ -12,12 +12,12 @@ from lib.audit_reusable_contract_helpers import (
     collect_mapping_values_after,
     declares_workflow_call_github_token_secret,
     find_mapping_headers,
-    iter_action_metadata_files,
     parse_workflow_call_contract,
     permission_satisfies,
     rel,
     required_permissions_for_text,
 )
+from lib.workflow_files import iter_action_metadata_files
 from lib.workflow_inventory_core import CONTRACT_PATH, read_contracts
 
 

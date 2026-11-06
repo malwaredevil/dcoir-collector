@@ -183,13 +183,14 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
 
 
     def test_action_metadata_discovery_scopes_directories_and_yaml_suffixes(self) -> None:
-        from lib.audit_reusable_contract_helpers import iter_action_metadata_files
+        from lib.workflow_files import iter_action_metadata_files
 
         root = Path(self.temp.name) / "action-discovery-checkout"
         actions = root / ".github/actions"
         for name in (
             "a/action.yml", "b/action.yaml", "c/ACTION.YAML",
             "a/nested/action.yml", "d/action.yml.bak", "e/action.ymml",
+            "g/action.yml", "g/action.yaml",
         ):
             path = actions / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -198,17 +199,32 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
 
         direct = iter_action_metadata_files(root, top_level_only=True)
         recursive = iter_action_metadata_files(root)
+        # Direct mode mirrors the runner: exact-case action.yml, else action.yaml,
+        # at most one file per action directory.
         self.assertEqual(
             [path.relative_to(actions).as_posix() for path in direct],
-            ["a/action.yml", "b/action.yaml", "c/ACTION.YAML"],
+            ["a/action.yml", "b/action.yaml", "g/action.yml"],
         )
+        # Recursive mode stays a deliberately broad superset for contract scans.
         self.assertEqual(
             [path.relative_to(actions).as_posix() for path in recursive],
-            ["a/action.yml", "a/nested/action.yml", "b/action.yaml", "c/ACTION.YAML"],
+            [
+                "a/action.yml", "a/nested/action.yml", "b/action.yaml",
+                "c/ACTION.YAML", "g/action.yaml", "g/action.yml",
+            ],
         )
         self.assertEqual(
             iter_action_metadata_files(root / "missing", top_level_only=True), []
         )
+
+    def test_action_metadata_discovery_tolerates_non_directory_action_root(self) -> None:
+        from lib.workflow_files import iter_action_metadata_files
+
+        root = Path(self.temp.name) / "action-root-is-file"
+        (root / ".github").mkdir(parents=True)
+        (root / ".github/actions").write_text("not a directory\n", encoding="utf-8")
+        self.assertEqual(iter_action_metadata_files(root, top_level_only=True), [])
+        self.assertEqual(iter_action_metadata_files(root), [])
 
     def test_inventory_and_version_audit_share_action_metadata_scope(self) -> None:
         import os
@@ -244,11 +260,11 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
             os.chdir(prior_directory)
 
         self.assertEqual(inventory["workflow_count"], 0)
-        self.assertEqual(inventory["composite_action_count"], 3)
+        self.assertEqual(inventory["composite_action_count"], 2)
         self.assertEqual(inventory["local_composite_action_calls"], 1)
         self.assertEqual(
             [path.relative_to(Path(".github/actions")).as_posix() for path in audited],
-            ["a/action.yml", "b/action.yaml", "c/ACTION.YAML"],
+            ["a/action.yml", "b/action.yaml"],
         )
         self.assertEqual(all_audited, audited)
 
