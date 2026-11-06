@@ -120,6 +120,8 @@ def contract_errors(entry: str, reusable: str, unfiltered_cancel: str) -> list[s
         errors.append("Ready guard must handle failed prerequisite and Draft state")
     if "!cancelled() && needs.draft_fail_fast.result != 'success'" not in heavy:
         errors.append("Ready job is no longer fail-closed on fast gate")
+    if "uses: ./.github/actions/smoke-build-collector-package" not in heavy:
+        errors.append("Ready job must smoke-test the collector runtime package build")
     fail_closed = heavy.find("throw 'Draft fail-fast gate failed")
     checkout = heavy.find("- name: Checkout repository")
     if fail_closed < 0 or checkout < 0 or fail_closed >= checkout:
@@ -133,25 +135,6 @@ class LifecyclePolicyTests(unittest.TestCase):
         cls.entry = ENTRY.read_text(encoding="utf-8")
         cls.reusable = REUSABLE.read_text(encoding="utf-8")
         cls.unfiltered_cancel = UNFILTERED_CANCEL.read_text(encoding="utf-8")
-
-    def test_main_only_push_contract(self) -> None:
-        push = (ROOT / ".github/workflows/validate-on-push.yml").read_text(encoding="utf-8")
-        self.assertEqual(push.count("  push:\n"), 1)
-        self.assertIn("  workflow_dispatch:\n", push)
-        self.assertIn("    paths:\n", push)
-        self.assertIn("uses: ./.github/workflows/reusable-validate-on-push.yml", push)
-        pattern = r"(?m)^  push:\n    branches:\n(?P<rows>(?:      - [^\n]+\n)+)    paths:\n"
-        match = re.search(pattern, push)
-        self.assertIsNotNone(match)
-        self.assertEqual(match["rows"], "      - main\n")
-        for bad in (
-            push.replace("    branches:\n      - main\n", ""),
-            push.replace("      - main\n", "      - develop\n"),
-            push.replace("      - main\n", "      - main\n      - develop\n"),
-        ):
-            with self.subTest(variant=bad[:80]):
-                changed = re.search(pattern, bad)
-                self.assertTrue(changed is None or changed["rows"] != "      - main\n")
 
     def test_current_files_meet_contract(self) -> None:
         self.assertEqual(
@@ -256,6 +239,7 @@ class LifecyclePolicyTests(unittest.TestCase):
             (self.entry, self.reusable.replace("  draft_fail_fast:\n    name: draft_fail_fast\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read", "  draft_fail_fast:\n    name: draft_fail_fast\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: write")),
             (self.entry, self.reusable.replace("          persist-credentials: false\n", "")),
             (self.entry, self.reusable.replace("          persist-credentials: false", "          persist-credentials: true")),
+            (self.entry, self.reusable.replace("uses: ./.github/actions/smoke-build-collector-package", "uses: ./.github/actions/removed-package-smoke")),
         )
         for index, (entry, reusable) in enumerate(variants):
             with self.subTest(mutation=index):

@@ -122,7 +122,7 @@
   "manual_deployment_required": true,
   "schema": "dcoir.agent_runtime.openai_usb_reporting_package.v1",
   "source_base_commit": "3f98f43000a6cf0707e330fba4eb94d35a937bd2",
-  "source_contract_sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae",
+  "source_contract_sha256": "fb798c2c9e694a2993a9c79e9dc842f7aadb0d371c0595c75fa4da1aa2610fe9",
   "source_contracts": {
     "behavioral_cases": {
       "path": "project_sources/agent_runtime/provider_adapters/openai_usb_reporting/Behavioral_Contract_Cases.json",

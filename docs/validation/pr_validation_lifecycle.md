@@ -69,6 +69,20 @@ unavailable to merging or suppress security scans to reduce run costs.
   development rely on Draft PR fail-fast and Ready exact-head full PR checks;
   operator-selected feature-branch smoke testing remains available manually.
   A missing Main Push check on a feature SHA must not be presented as a pass.
+- To keep pre-merge coverage equal, the Ready `validate` job in
+  `reusable-validate-on-pr.yml` now also runs the collector runtime package
+  smoke build (`smoke-build-collector-package`), which previously ran only in
+  push validation.
+- Main Push concurrency gives every `main` push its own per-SHA group with
+  `cancel-in-progress` false, so a later merge neither cancels nor replaces
+  (while pending) an earlier merge's run, and every merged SHA keeps its own
+  post-merge result. Manual feature-ref dispatches still supersede each other. Treat a cancelled or missing post-merge Main Push run
+  as missing evidence: re-dispatch it on that SHA, never present it as a pass.
+- Reporting impact: `chatgpt-workflow-run-reporter.yml` writes repo-workflows
+  reports when `21 Validation - Main Push` completes, so automatic Main Push
+  reports now exist only for `main`. Feature, staging, and exec branches get a
+  Main Push report only after a manual `workflow_dispatch` on that branch; a
+  branch with an open PR can use the validate-on-pr report instead.
 - Pre-change protection evidence: Issue #642 records an authenticated empty
   classic required-check list (2026-11-05). As of 2026-11-06 the two active
   default-branch rulesets (14712753, 23701760) have no required-status-check
@@ -100,12 +114,16 @@ unavailable to merging or suppress security scans to reduce run costs.
 
 The source-level lifecycle regression is
 .github/github_actions/tools/test_pr_validation_lifecycle.py, executed by
-.github/github_actions/tools/run_pr_draft_fail_fast.py. It includes the #649
-main-only push/dispatch trigger guard and hostile unrestricted/non-main
-branch variants, and tests event
+.github/github_actions/tools/run_pr_draft_fail_fast.py. It includes the Ready
+collector package smoke-build guard and tests event
 coverage, Draft/Ready job guards, prerequisite gating, manual dispatch,
 cancellation, and negative controls that remove guards. It also tests
 malformed Python, missing source files, and compiling without executing code.
+The #649 main-only push guard is
+.github/github_actions/tools/test_main_only_push_trigger.py, also executed by
+the Draft fail-fast runner. Its named hostile variants cover unrestricted,
+non-main, extra, wildcard, tags, and branches-ignore filters, missing paths or
+dispatch, cancelled main runs, and a shared (replaceable) main group.
 The Issue #528 publisher regression is
 project_sources/collector/tools/test_chatgpt_report_push_rebase.py; it uses a
 local bare Git remote and requires PowerShell 7.

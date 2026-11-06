@@ -19,6 +19,7 @@
 # - Fast validation artifacts including the agent-runtime JSON receipt, ChatGPT workflow report section artifact, and repo-workflows report.
 # Safety notes:
 # - Keep automatic push limited to main and preserve workflow_dispatch; Draft PR and Ready PR jobs retain their respective validation gates.
+# - Do not cancel in-progress main runs; a superseded merge must keep its own post-merge Main Push result.
 # - Path coverage must be explicit in this file. If a maintained behavior should be validated here, add its watched path or validation logic directly.
 # Maintenance notes:
 # - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
@@ -80,8 +81,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: validate-on-push-${{ github.ref }}
-  cancel-in-progress: true
+  # main: one group per merged SHA, never cancelled or replaced while pending, so each
+  # merge keeps its own post-merge evidence (#649). Other refs: latest run supersedes.
+  group: validate-on-push-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'latest' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read

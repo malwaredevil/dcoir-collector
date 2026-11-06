@@ -43,6 +43,7 @@ def main() -> int:
     print(f"Draft fail-fast: parsed {len(paths)} tracked Python files", flush=True)
     for script in (
         ".github/github_actions/tools/test_pr_validation_lifecycle.py",
+        ".github/github_actions/tools/test_main_only_push_trigger.py",
         ".github/github_actions/tools/check_workflow_modularization_contracts.py",
     ):
         subprocess.run([sys.executable, str(ROOT / script)], cwd=ROOT, check=True)
