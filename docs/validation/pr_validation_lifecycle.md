@@ -12,7 +12,7 @@ work. It is not a claim that every repository workflow has been migrated.
 | Ready for review or updated non-Draft | Run the fast gate first and then the existing full validation on the current head | ready_for_review, opened, reopened, and synchronize trigger the original workflow; validate / validate keeps its historical check identity |
 | Converted back to Draft | Cancel/supersede in-flight PR validation and return to cheap checks | converted_to_draft shares the existing per-PR concurrency group with cancel-in-progress=true |
 | Merge decision | Verify the latest head, required checks, and operator-approved independent review | Manual governed gate; no reviewer is auto-requested |
-| Post-merge | Read back merged main SHA and authoritative push checks | Existing push workflows are unchanged in this increment |
+| Post-merge | Read back merged main SHA and authoritative push checks | Main-only automatic push validation still runs on relevant merged main commits; manual feature-branch dispatch remains available |
 
 The draft_fail_fast job checks all tracked Python syntax without executing
 source, verifies workflow modularization contracts, and runs a lifecycle
@@ -63,11 +63,18 @@ unavailable to merging or suppress security scans to reduce run costs.
 
 ## Current boundaries
 
-- The validate-on-push.yml workflow has broad push path filters but no main-only
-  branch filter. Full push validation can therefore run on feature branches,
-  including Draft development. The first increment does not deliver total
-  Draft-cost savings. Constraining that trigger is deferred until the
-  authoritative required-check/branch-protection set can be verified.
+- The follow-on #649 cost staging restricts automatic `validate-on-push.yml`
+  pushes to `main` without changing its path filters, workflow_dispatch,
+  reusable call, job identity, or post-merge validation. Branches under
+  development rely on Draft PR fail-fast and Ready exact-head full PR checks;
+  operator-selected feature-branch smoke testing remains available manually.
+  A missing Main Push check on a feature SHA must not be presented as a pass.
+- Pre-change protection evidence: Issue #642 records an authenticated empty
+  classic required-check list (2026-11-05). As of 2026-11-06 the two active
+  default-branch rulesets (14712753, 23701760) have no required-status-check
+  rule, and the GitHub branch summary reports required checks off. The detailed
+  classic-protection API still returns 403 through the connector. Recheck
+  required checks before merging this workflow change if protections drift.
 - Other PR workflows (Windows PowerShell 5.1, CodeQL, Gemini replay/harness,
   documentation, dependency review, audit) are not migrated to the
   staged design. Always-required security checks need explicit disposition.
@@ -93,7 +100,9 @@ unavailable to merging or suppress security scans to reduce run costs.
 
 The source-level lifecycle regression is
 .github/github_actions/tools/test_pr_validation_lifecycle.py, executed by
-.github/github_actions/tools/run_pr_draft_fail_fast.py. It tests event
+.github/github_actions/tools/run_pr_draft_fail_fast.py. It includes the #649
+main-only push/dispatch trigger guard and hostile unrestricted/non-main
+branch variants, and tests event
 coverage, Draft/Ready job guards, prerequisite gating, manual dispatch,
 cancellation, and negative controls that remove guards. It also tests
 malformed Python, missing source files, and compiling without executing code.
@@ -101,7 +110,7 @@ The Issue #528 publisher regression is
 project_sources/collector/tools/test_chatgpt_report_push_rebase.py; it uses a
 local bare Git remote and requires PowerShell 7.
 
-Before changing broad push triggers or required check contexts, obtain
+Before changing further push triggers or required-check contexts, obtain
 authoritative branch-protection evidence. Then stage remaining PR validation
 and security workflows without weakening required checks, with current-SHA
 artifact receipts and cancellation tests. Validate the publisher repair on the
