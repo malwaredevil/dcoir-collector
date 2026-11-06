@@ -139,5 +139,5 @@ This inventory is for workflow-reporting ownership only. GitHub workflow files r
 | `.github/workflows/scheduled-health-check.yml` | `scheduled-health-check` | Completed-run summary | No | Yes | No | No | No custom markdown need identified yet. |
 | `.github/workflows/validate-gemini-behavioral-replay.yml` | `validate-gemini-behavioral-replay` | Completed-run summary | No | Yes | Yes | No | Validation-family custom markdown producer. |
 | `.github/workflows/validate-on-pr.yml` | `validate-on-pr` | Completed-run summary | No | Yes | Yes | No | Validation-family custom markdown producer. |
-| `.github/workflows/validate-on-push.yml` | `validate-on-push` | Completed-run summary | No | Yes | Yes | No | Validation-family custom markdown producer. |
+| `.github/workflows/validate-on-push.yml` | `validate-on-push` | Completed-run summary | No | Yes | Yes | No | Validation-family custom markdown producer. Automatic push runs are `main`-only since #649; feature-branch reports need a manual `workflow_dispatch` on that branch. |
 | `.github/workflows/workflow-maintenance-audit.yml` | `Workflow maintenance audit` | Completed-run summary | No | Yes | Yes | No | Current custom markdown producer. |

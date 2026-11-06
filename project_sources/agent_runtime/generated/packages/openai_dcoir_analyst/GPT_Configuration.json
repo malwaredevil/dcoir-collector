@@ -35,11 +35,11 @@
       "sha256": "a274f10b54b9d75aa36af17390204a59148dbc9f450dfd5040fb61e4646fd03c"
     },
     {
-      "bytes": 65954,
+      "bytes": 66010,
       "id": "dcoir_collection",
       "order": 2,
       "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/03-dcoir-collection.md",
-      "sha256": "51fe9cf55d4329037babafc70ea98bb86181df2fbcb13962168a7d828f1ea3a7"
+      "sha256": "9d5b435f75bade6f8830bcc8ebe5abfdb019526d793c4d508c27f8ae5105f580"
     },
     {
       "bytes": 9648,

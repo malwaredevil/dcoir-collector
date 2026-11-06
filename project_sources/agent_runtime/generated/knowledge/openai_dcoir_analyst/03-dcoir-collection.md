@@ -552,7 +552,7 @@ Avoid stronger claims than the source currently supports.
 > Supporting human-readable Knowledge doc. Not part of the DCOIR control plane.
 <!-- DCOIR_SOURCE_END {"id":"knowledge.collector.feature_contract","sha256":"a9ae1a40988d32cafec014c1a4122aada41b6c261ad41763579718b0857c490a"} -->
 
-<!-- DCOIR_SOURCE_BEGIN {"bytes":4625,"git_blob_sha":"5d8ea9049bf70c14e0fc6a888b42ff5c4450de25","id":"knowledge.collector.local_test","path":"knowledge/Knowledge - Collector - Local Test and Regression.md","sha256":"b9429d3382d91ffd2916a70b7f76e08e4b67b85398b7107ea24e1bae63f3daf3"} -->
+<!-- DCOIR_SOURCE_BEGIN {"bytes":4681,"git_blob_sha":"f9a12fca8dae77a6b6f7dc2a7f27870e0fca5a2e","id":"knowledge.collector.local_test","path":"knowledge/Knowledge - Collector - Local Test and Regression.md","sha256":"57f6a71b661f96659eae511718d98508907a7b4460d5445687911119bba38d07"} -->
 # Knowledge - Collector - Local Test and Regression
 
 _How to run and interpret collector validation locally across PS1 and EXE modes_
@@ -615,7 +615,7 @@ Key parameters:
 
 | Workflow | Role | Trigger model |
 | --- | --- | --- |
-| `.github/workflows/validate-on-push.yml` | Targeted automatic Core gate for maintained collector, Gemini, validation, knowledge, and workflow surfaces | `push` path filters plus manual dispatch |
+| `.github/workflows/validate-on-push.yml` | Targeted automatic post-merge Core gate on `main` for maintained collector, Gemini, validation, knowledge, and workflow surfaces | `push` to `main` with path filters, plus manual dispatch for other branches |
 | `.github/workflows/manual-full-validation.yml` | Deeper operator-selected regression lane | Manual dispatch |
 | `.github/workflows/manual-gemini-bundle-build.yml` | Gemini bundle build and attachment validation | Manual dispatch |
 | `.github/workflows/manual-collector-optional-exe-build.yml` | Optional EXE build and selected validation lane | Manual dispatch |
@@ -723,7 +723,7 @@ After every run ask:
 ---
 
 > Supporting human-readable Knowledge doc. Not part of the DCOIR control plane.
-<!-- DCOIR_SOURCE_END {"id":"knowledge.collector.local_test","sha256":"b9429d3382d91ffd2916a70b7f76e08e4b67b85398b7107ea24e1bae63f3daf3"} -->
+<!-- DCOIR_SOURCE_END {"id":"knowledge.collector.local_test","sha256":"57f6a71b661f96659eae511718d98508907a7b4460d5445687911119bba38d07"} -->
 
 <!-- DCOIR_SOURCE_BEGIN {"bytes":13007,"git_blob_sha":"1619a2ec86e347ed668f8258794a8ebef1c36212","id":"knowledge.core.enrichment_actions","path":"knowledge/Knowledge - Core - Enrichment Actions.md","sha256":"e9d0e2f3744c4d21806d875f9ac9ef7cfa28116bd136547d2fab854990edeb01"} -->
 # Knowledge - Core - Enrichment Actions

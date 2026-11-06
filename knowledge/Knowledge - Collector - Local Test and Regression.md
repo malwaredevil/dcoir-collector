@@ -60,7 +60,7 @@ Key parameters:
 
 | Workflow | Role | Trigger model |
 | --- | --- | --- |
-| `.github/workflows/validate-on-push.yml` | Targeted automatic Core gate for maintained collector, Gemini, validation, knowledge, and workflow surfaces | `push` path filters plus manual dispatch |
+| `.github/workflows/validate-on-push.yml` | Targeted automatic post-merge Core gate on `main` for maintained collector, Gemini, validation, knowledge, and workflow surfaces | `push` to `main` with path filters, plus manual dispatch for other branches |
 | `.github/workflows/manual-full-validation.yml` | Deeper operator-selected regression lane | Manual dispatch |
 | `.github/workflows/manual-gemini-bundle-build.yml` | Gemini bundle build and attachment validation | Manual dispatch |
 | `.github/workflows/manual-collector-optional-exe-build.yml` | Optional EXE build and selected validation lane | Manual dispatch |

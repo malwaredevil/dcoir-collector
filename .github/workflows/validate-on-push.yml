@@ -2,13 +2,13 @@
 # Workflow key:
 # - workflow-validation-validate-on-push-0023
 # Purpose:
-# - Automatic fast validation for collector, shared agent-runtime packages, Gemini, validation, maintained knowledge, supporting asset, operator patch tooling, and workflow definition changes.
+# - Automatic default-branch validation for collector, shared agent-runtime packages, Gemini, validation, maintained knowledge, supporting asset, operator patch tooling, and workflow definition changes.
 # Use when:
-# - Use as the normal fast validation gate for relevant push paths and manual smoke validation.
+# - Run automatically on relevant main-branch pushes; use workflow_dispatch for operator-selected smoke validation on other refs.
 # Do not use when:
-# - Do not treat as full regression or pre-merge proof; validate-on-pr owns the heavier PR-focused runtime and harness validation.
+# - Do not run automatically on intermediate feature-branch pushes; Draft PRs use fail-fast and Ready PRs use full PR validation.
 # Trigger model:
-# - push paths: maintained collector, shared agent-runtime, Gemini, knowledge, validation, supporting asset, operator patch tooling, and governed workflow sources; workflow_dispatch
+# - push branches: main only, with existing maintained-source path filters; workflow_dispatch remains available on the selected branch.
 # Required inputs:
 # - none
 # Required secrets/config:
@@ -18,6 +18,8 @@
 # Expected outputs/readback:
 # - Fast validation artifacts including the agent-runtime JSON receipt, ChatGPT workflow report section artifact, and repo-workflows report.
 # Safety notes:
+# - Keep automatic push limited to main and preserve workflow_dispatch; Draft PR and Ready PR jobs retain their respective validation gates.
+# - Do not cancel in-progress main runs; a superseded merge must keep its own post-merge Main Push result.
 # - Path coverage must be explicit in this file. If a maintained behavior should be validated here, add its watched path or validation logic directly.
 # Maintenance notes:
 # - Keep this header aligned with executable behavior whenever triggers, inputs, scripts, reports, artifacts, permissions, or safety checks change.
@@ -35,12 +37,14 @@ run-name: Main Push Validation | ${{ github.ref_name }} | #${{ github.run_number
 #   directly in this workflow file.
 # - Do not rely on adjacent folder changes or implicit coverage.
 #
-# Restored automatic posture (2026-04-30):
-# - Push triggering is enabled only for collector, shared agent-runtime, Gemini, packaging, validation,
+# Default-branch-only push posture (2026-11-06, #649):
+# - Automatic push triggering is main-only for collector, shared agent-runtime, Gemini, packaging, validation,
 #   maintained knowledge, and governed workflow definition paths.
 # - Routine automatic coverage keeps lightweight syntax, governed-surface, harness
 #   assembly parity, Gemini, collector package smoke, validate_DCOIR_Run, and
 #   documentation checks on push.
+# - Feature-branch Draft PRs use the inexpensive draft_fail_fast gate; full PR validation runs after Ready.
+# - This workflow keeps manual dispatch for operator-selected branches and full push readback after merge.
 # - Heavier collector runtime harness validation remains in validate-on-pr and
 #   manual-full-validation at meaningful review checkpoints.
 #
@@ -51,6 +55,8 @@ run-name: Main Push Validation | ${{ github.ref_name }} | #${{ github.run_number
 
 on:
   push:
+    branches:
+      - main
     paths:
       - 'project_sources/collector/source/**'
       - 'project_sources/collector/harness/**'
@@ -75,8 +81,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: validate-on-push-${{ github.ref }}
-  cancel-in-progress: true
+  # main: one group per merged SHA, never cancelled or replaced while pending, so each
+  # merge keeps its own post-merge evidence (#649). Other refs: latest run supersedes.
+  group: validate-on-push-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'latest' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read

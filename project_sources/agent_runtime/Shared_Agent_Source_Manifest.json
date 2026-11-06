@@ -2351,7 +2351,7 @@
     {
       "id": "knowledge.collector.local_test",
       "source_path": "knowledge/Knowledge - Collector - Local Test and Regression.md",
-      "source_git_blob_sha": "5d8ea9049bf70c14e0fc6a888b42ff5c4450de25",
+      "source_git_blob_sha": "f9a12fca8dae77a6b6f7dc2a7f27870e0fca5a2e",
       "content_class": "runtime_reference",
       "canonical": true,
       "split_disposition": null,
