@@ -63,9 +63,10 @@ Merging and closing the issue remain separate approval gates.
   operator-selected feature-branch smoke testing remains available manually.
   A missing Main Push check on a feature SHA must not be presented as a pass.
 - To keep pre-merge coverage equal, the Ready `validate` job in
-  `reusable-validate-on-pr.yml` now also runs the collector runtime package
-  smoke build (`smoke-build-collector-package`), which previously ran only in
-  push validation.
+  `reusable-validate-on-pr.yml` uses the existing
+  `build-collector-runtime-for-harness` action to build the collector runtime
+  package once and prepare the harness runtime zip, preserving pre-merge
+  package-build coverage without a separate duplicate smoke build.
 - Main Push concurrency gives every `main` push its own per-SHA group with
   `cancel-in-progress` false, so a later merge neither cancels nor replaces
   (while pending) an earlier merge's run, and every merged SHA keeps its own
@@ -107,8 +108,8 @@ Merging and closing the issue remain separate approval gates.
 
 The source-level lifecycle regression is
 .github/github_actions/tools/test_pr_validation_lifecycle.py, executed by
-.github/github_actions/tools/run_pr_draft_fail_fast.py. It includes the Ready
-collector package smoke-build guard and tests event
+.github/github_actions/tools/run_pr_draft_fail_fast.py. It guards the Ready
+collector package's single build owner and tests event
 coverage, Draft/Ready job guards, prerequisite gating, manual dispatch,
 cancellation, and negative controls that remove guards. It also tests
 malformed Python, missing source files, and compiling without executing code.
