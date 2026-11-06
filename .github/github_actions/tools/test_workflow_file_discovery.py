@@ -26,6 +26,12 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(iter_workflow_files(self.workflow_dir / "missing"), [])
         self.assertEqual(iter_workflow_files(self.workflow_dir / "missing", include_reusable=False), [])
 
+    def test_non_directory_workflow_path_returns_no_files(self) -> None:
+        not_a_directory = self.workflow_dir / "workflows-file"
+        not_a_directory.write_text("not a directory\n", encoding="utf-8")
+        self.assertEqual(iter_workflow_files(not_a_directory), [])
+        self.assertEqual(iter_workflow_files(not_a_directory, include_reusable=False), [])
+
     def test_empty_directory_returns_no_files(self) -> None:
         self.assertEqual(iter_workflow_files(self.workflow_dir), [])
         self.assertEqual(iter_workflow_files(self.workflow_dir, include_reusable=False), [])
@@ -205,13 +211,11 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
             [path.relative_to(actions).as_posix() for path in direct],
             ["a/action.yml", "b/action.yaml", "g/action.yml"],
         )
-        # Recursive mode stays a deliberately broad superset for contract scans.
+        # Recursive mode applies the same per-directory resolution and only
+        # adds nested action directories.
         self.assertEqual(
             [path.relative_to(actions).as_posix() for path in recursive],
-            [
-                "a/action.yml", "a/nested/action.yml", "b/action.yaml",
-                "c/ACTION.YAML", "g/action.yaml", "g/action.yml",
-            ],
+            ["a/action.yml", "a/nested/action.yml", "b/action.yaml", "g/action.yml"],
         )
         self.assertEqual(
             iter_action_metadata_files(root / "missing", top_level_only=True), []
@@ -225,6 +229,32 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         (root / ".github/actions").write_text("not a directory\n", encoding="utf-8")
         self.assertEqual(iter_action_metadata_files(root, top_level_only=True), [])
         self.assertEqual(iter_action_metadata_files(root), [])
+
+    def test_local_action_call_targets_use_runner_resolution(self) -> None:
+        from lib.audit_reusable_contract_checks import check_local_action_calls
+
+        root = Path(self.temp.name) / "action-call-checkout"
+        actions = root / ".github/actions"
+        for name in ("yml/action.yml", "yaml/action.yaml", "upper/ACTION.YML"):
+            path = actions / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("name: fixture\n", encoding="utf-8")
+        source = root / ".github/workflows/caller.yml"
+        refs = [
+            (source, 1, "./.github/actions/yml"),
+            (source, 2, "./.github/actions/yaml"),
+            (source, 3, "./.github/actions/upper"),
+            (source, 4, "./.github/actions/missing"),
+        ]
+        findings: list[str] = []
+        check_local_action_calls(root, refs, findings)
+        self.assertEqual(
+            findings,
+            [
+                ".github/workflows/caller.yml:3: local action target has no action.yml/action.yaml: ./.github/actions/upper",
+                ".github/workflows/caller.yml:4: local action target has no action.yml/action.yaml: ./.github/actions/missing",
+            ],
+        )
 
     def test_inventory_and_version_audit_share_action_metadata_scope(self) -> None:
         import os

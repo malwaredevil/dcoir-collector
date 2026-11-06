@@ -7,7 +7,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from lib import workflow_files
 from lib import workflow_modularization_contract_rules as rules
+from lib.workflow_files import iter_action_metadata_files
 
 
 class CompositeActionCountTests(unittest.TestCase):
@@ -90,6 +92,14 @@ class CompositeActionCountTests(unittest.TestCase):
             [f for f in findings if "mixed-case" not in f], [],
         )
         self.assertTrue(any("mixed-case:1: composite action directory missing" in f for f in findings))
+        # Inventory and the version audit use iter_action_metadata_files; it must
+        # select exactly the files the contract count accepted.
+        with patch.object(workflow_files, "ACTION_DIR", Path("actions")):
+            discovered = iter_action_metadata_files(self.root, top_level_only=True)
+        self.assertEqual(
+            [path.relative_to(self.actions).as_posix() for path in discovered],
+            ["both/action.yml", "yaml-only/action.yaml"],
+        )
 
     def test_existing_safety_checks_are_not_weakend(self) -> None:
         self.add_action(

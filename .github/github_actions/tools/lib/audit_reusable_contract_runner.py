@@ -3,20 +3,19 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lib.workflow_files import iter_workflow_files
 from lib.audit_reusable_contract_checks import (
     check_action_definitions,
     check_local_action_calls,
     check_local_workflow_calls,
     check_reusable_workflows,
 )
-from lib.workflow_files import iter_action_metadata_files
 from lib.audit_reusable_contract_helpers import (
     WORKFLOW_DIR,
     iter_all_workflow_files,
     local_uses_refs,
     rel,
 )
+from lib.workflow_files import iter_action_metadata_files, iter_workflow_files
 
 
 def run_contract_audit(repo_root: Path) -> tuple[list[str], dict[str, int]]:

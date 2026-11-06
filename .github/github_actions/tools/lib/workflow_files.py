@@ -15,7 +15,7 @@ def iter_workflow_files(workflow_dir: Path, *, include_reusable: bool = True) ->
     consumers: top-level files only, lower-case-sensitive `reusable-` prefix,
     and a case-insensitive YAML extension.
     """
-    if not workflow_dir.exists():
+    if not workflow_dir.is_dir():
         return []
     return sorted(
         path
@@ -44,21 +44,21 @@ def resolve_action_metadata(action_dir: Path) -> Path | None:
 
 
 def iter_action_metadata_files(repo_root: Path, *, top_level_only: bool = False) -> list[Path]:
-    """Find local action metadata under ``repo_root/.github/actions``.
+    """Find the metadata file the runner loads for each local action directory.
 
-    ``top_level_only`` returns exactly the metadata file the runner would load
-    for each direct child action directory; inventory, version and contract
-    audits use it. The default recursive mode is a deliberately broader
-    superset (any ``action.yml``/``action.yaml`` at any depth, any case) for
-    reusable-contract scans.
+    Every directory is resolved through ``resolve_action_metadata``, so shadowed
+    ``action.yaml`` copies and mixed-case names are never returned. The only
+    difference between modes is depth: ``top_level_only`` covers direct children
+    of ``.github/actions`` (inventory and the action-version audit), while the
+    default also covers nested action directories that a ``uses:`` path could
+    reference (reusable-contract audit).
     """
     action_dir = repo_root / ACTION_DIR
     if not action_dir.is_dir():
         return []
     if top_level_only:
-        resolved = (resolve_action_metadata(child) for child in action_dir.iterdir())
-        return sorted(path for path in resolved if path is not None)
-    return sorted(
-        path for path in action_dir.rglob("*")
-        if path.is_file() and path.name.lower() in {"action.yml", "action.yaml"}
-    )
+        directories = [child for child in action_dir.iterdir() if child.is_dir()]
+    else:
+        directories = [action_dir, *(path for path in action_dir.rglob("*") if path.is_dir())]
+    resolved = (resolve_action_metadata(directory) for directory in directories)
+    return sorted(path for path in resolved if path is not None)
