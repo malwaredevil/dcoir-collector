@@ -5,8 +5,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from lib.workflow_files import ACTION_DIR, resolve_action_metadata
 from lib.workflow_modularization_contract_core import (
-    ACTION_DIR,
     CONTRACT_PATH,
     REPORTER_PATH,
     check_contract_registry,
@@ -114,14 +114,14 @@ def check_composite_actions(findings: list[str], contracts: dict[str, Any]) -> N
     for child in sorted(ACTION_DIR.iterdir()):
         if not child.is_dir():
             continue
-        action_file = child / "action.yml"
-        if not action_file.is_file():
-            findings.append(f"{child}:1: composite action directory missing action.yml")
+        action_file = resolve_action_metadata(child)
+        if action_file is None:
+            findings.append(f"{child}:1: composite action directory missing action.yml/action.yaml")
             continue
         actual_count += 1
         text = action_file.read_text(encoding="utf-8")
         if "runs:" not in text or "using: composite" not in text:
-            findings.append(f"{action_file}:1: action.yml must declare runs using composite")
+            findings.append(f"{action_file}:1: {action_file.name} must declare runs using composite")
         if "Compensating evidence" not in text:
             findings.append(f"{action_file}:1: composite action must document compensating evidence for reduced caller log granularity")
         if re.search(r"secrets\.", text):

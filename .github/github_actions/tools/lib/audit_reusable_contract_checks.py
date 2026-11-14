@@ -12,12 +12,12 @@ from lib.audit_reusable_contract_helpers import (
     collect_mapping_values_after,
     declares_workflow_call_github_token_secret,
     find_mapping_headers,
-    iter_action_metadata_files,
     parse_workflow_call_contract,
     permission_satisfies,
     rel,
     required_permissions_for_text,
 )
+from lib.workflow_files import iter_action_metadata_files, resolve_action_metadata
 from lib.workflow_inventory_core import CONTRACT_PATH, read_contracts
 
 
@@ -127,9 +127,7 @@ def check_local_action_calls(
         target_ref = ref.split("@", 1)[0]
         target = repo_root / target_ref.removeprefix("./")
         source_rel = rel(source_path, repo_root)
-        action_file = target / "action.yml"
-        action_file_yaml = target / "action.yaml"
-        if not action_file.is_file() and not action_file_yaml.is_file():
+        if resolve_action_metadata(target) is None:
             findings.append(f"{source_rel}:{line_no}: local action target has no action.yml/action.yaml: {ref}")
 
 
