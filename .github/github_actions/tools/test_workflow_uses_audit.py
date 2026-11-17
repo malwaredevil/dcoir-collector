@@ -23,11 +23,22 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         return path
 
     def test_version_audit_checks_step_shorthand_below_minimum(self) -> None:
-        path = self.fixture("workflow.yml", "steps:\n  - uses: actions/checkout@v5\n")
+        path = self.fixture(
+            "workflow.yml",
+            "jobs:\n  validate:\n    steps:\n      - uses: actions/checkout@v5\n",
+        )
         findings = versions.check_file(path)
         self.assertEqual(len(findings), 1)
-        self.assertIn(":2:", findings[0])
+        self.assertIn(":4:", findings[0])
         self.assertIn("below approved minimum v6", findings[0])
+
+    def test_version_audit_strips_tab_separated_comment(self) -> None:
+        path = self.fixture(
+            "workflow.yml",
+            "jobs:\n  validate:\n    steps:\n"
+            "      - uses: actions/checkout@v6\t# comment\n",
+        )
+        self.assertEqual(versions.check_file(path), [])
 
     def test_version_audit_checks_unpinned_step_shorthand(self) -> None:
         path = self.fixture("action.yml", "runs:\n  steps:\n    - uses: actions/checkout\n")
@@ -81,7 +92,7 @@ class WorkflowUsesAuditTests(unittest.TestCase):
     def test_local_refs_include_composite_step_and_quoted_comment(self) -> None:
         path = self.fixture("action.yml", (
             "runs:\n  using: composite\n  steps:\n"
-            "    - uses: './.github/actions/setup' # comment\n"
+            "    - uses: './.github/actions/setup'\t# comment\n"
             "    - uses: \"./.github/actions/check\"\n"
         ))
         _, actions, _ = local_uses_refs([path])
@@ -92,22 +103,35 @@ class WorkflowUsesAuditTests(unittest.TestCase):
 
     def test_local_refs_ignore_comments_and_block_scalar_body(self) -> None:
         path = self.fixture("workflow.yml", (
-            "steps:\n  # - uses: ./.github/actions/comment\n"
-            "  - run: |+\n"
-            "      echo here\n"
-            "      uses: ./.github/actions/fake\n"
-            "      - uses: ./.github/actions/also-fake\n"
-            "  - uses: ./.github/actions/real\n"
+            "jobs:\n  verify:\n    steps:\n"
+            "      # - uses: ./.github/actions/comment\n"
+            "      - run: |+\n"
+            "          echo here\n"
+            "          uses: ./.github/actions/fake\n"
+            "          - uses: ./.github/actions/also-fake\n"
+            "      - uses: ./.github/actions/real\n"
         ))
         _, actions, _ = local_uses_refs([path])
-        self.assertEqual(actions, [(path, 7, "./.github/actions/real")])
+        self.assertEqual(actions, [(path, 9, "./.github/actions/real")])
+
+    def test_audits_ignore_uses_values_in_matrix_data(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  matrix:\n    strategy:\n      matrix:\n"
+            "        include:\n"
+            "          - uses: actions/checkout@v5\n"
+            "          - uses: ./.github/actions/not-a-step\n"
+            "  validate:\n    steps:\n      - run: echo safe\n"
+        ))
+        self.assertEqual(versions.check_file(path), [])
+        self.assertEqual(local_uses_refs([path]), ([], [], []))
 
     def test_safe_control_empty_and_non_uses_sections(self) -> None:
         path = self.fixture("workflow.yml", (
             "# uses: actions/checkout@v5\n"
-            "strategy:\n  matrix: [ubuntu, windows]\n"
-            "steps:\n  - name: uses: actions/checkout@v5\n"
-            "  - run: echo 'uses: actions/checkout@v5'\n"
+            "jobs:\n  validate:\n    strategy:\n"
+            "      matrix: [ubuntu, windows]\n"
+            "    steps:\n      - name: uses: actions/checkout@v5\n"
+            "      - run: echo 'uses: actions/checkout@v5'\n"
         ))
         self.assertEqual(versions.check_file(path), [])
         self.assertEqual(local_uses_refs([path]), ([], [], []))
