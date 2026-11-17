@@ -1,159 +1,184 @@
-"""Canonical line-oriented uses-reference discovery for workflow and action audits.
+"""YAML-aware discovery of executable GitHub Actions uses references.
 
-This is a bounded reader for conventional GitHub Actions mapping/step syntax,
-not a general YAML parser. YAML block scalar bodies contain scripts or prose,
-not actual uses declarations, and must not contribute audit references.
+Compose PyYAML nodes without constructing Python objects or interpreting
+custom YAML tags. Only job calls and workflow/composite steps are in scope.
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
-ENTRY_RE = re.compile(
-    r"^(?P<indent> *)(?P<sequence>-\s+)?(?P<key>[A-Za-z_][\w.-]*):(?:\s*(?P<value>.*))?$"
-)
-BLOCK_SCALAR_RE = re.compile(
-    r"^[ ]*(?:-\s+)?[A-Za-z_][\w.-]*:\s*[|>][-+1-9]*\s*(?:#.*)?$"
-)
-STANDALONE_STEP_DASH_RE = re.compile(r"^[ ]*-\s*$")
+import yaml
+from yaml.events import AliasEvent
+from yaml.nodes import MappingNode, Node, ScalarNode, SequenceNode
+
+MAX_YAML_BYTES = 1_048_576
+MAX_YAML_NODES = 50_000
+MAX_YAML_DEPTH = 128
+STRING_TAG = "tag:yaml.org,2002:str"
+MAPPING_TAG = "tag:yaml.org,2002:map"
+SEQUENCE_TAG = "tag:yaml.org,2002:seq"
 
 
-def _strip_yaml_comment(line: str) -> str:
-    quote: str | None = None
-    escaped = False
-    for index, char in enumerate(line):
-        if quote == '"' and char == "\\" and not escaped:
-            escaped = True
+class _AuditLoader(yaml.BaseLoader):
+    """Track alias source lines; do not construct arbitrary YAML objects."""
+
+    def __init__(self, stream: str) -> None:
+        super().__init__(stream)
+        self.alias_lines: dict[int, list[int]] = {}
+
+    def compose_node(self, parent: Node | None, index: object) -> Node:
+        if self.check_event(AliasEvent):
+            event = self.peek_event()
+            aliased = self.anchors.get(event.anchor)
+            if aliased is not None:
+                self.alias_lines.setdefault(id(aliased), []).append(
+                    event.start_mark.line + 1
+                )
+        return super().compose_node(parent, index)
+
+
+def _error(
+    path: Path, node: Node | None, message: str, *, line: int | None = None
+) -> ValueError:
+    if line is None:
+        line = node.start_mark.line + 1 if node is not None else 1
+    return ValueError(f"{path}:{line}: {message}")
+
+
+def _bounded_graph(path: Path, root: Node) -> None:
+    seen: set[int] = set()
+    stack: list[tuple[Node, int]] = [(root, 1)]
+    while stack:
+        node, depth = stack.pop()
+        if depth > MAX_YAML_DEPTH:
+            raise _error(path, node, "YAML nesting exceeds audit depth limit")
+        if id(node) in seen:
             continue
-        if char in {"'", '"'} and not escaped:
-            if quote is None:
-                quote = char
-            elif quote == char:
-                quote = None
-        elif char == "#" and quote is None and (index == 0 or line[index - 1].isspace()):
-            return line[:index]
-        escaped = False
-    return line
+        seen.add(id(node))
+        if len(seen) > MAX_YAML_NODES:
+            raise _error(path, node, "YAML node count exceeds audit limit")
+        if isinstance(node, MappingNode):
+            for key, value in node.value:
+                stack.append((key, depth + 1))
+                stack.append((value, depth + 1))
+        elif isinstance(node, SequenceNode):
+            stack.extend((value, depth + 1) for value in node.value)
 
 
 def iter_uses_references(path: Path) -> list[tuple[int, str]]:
-    """Return references from job and executable step uses fields."""
+    """Find executable (key line, reference) pairs, rejecting ambiguity."""
+    raw = path.read_bytes()
+    if len(raw) > MAX_YAML_BYTES:
+        raise _error(path, None, "YAML input exceeds audit byte limit")
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        line = raw[:exc.start].count(b"\n") + 1
+        raise _error(path, None, "invalid UTF-8 YAML input", line=line) from exc
+    loader = _AuditLoader(text)
+    try:
+        try:
+            root = loader.get_single_node()
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None) or getattr(
+                exc, "context_mark", None
+            )
+            line = mark.line + 1 if mark is not None else 1
+            message = str(exc)
+            if "expected a single document" in message:
+                raise _error(
+                    path, None, "multiple YAML documents are unsupported",
+                    line=line,
+                ) from exc
+            problem = getattr(exc, "problem", None) or message.splitlines()[0]
+            raise _error(path, None, f"invalid YAML: {problem}", line=line) from exc
+    finally:
+        loader.dispose()
+
+    if not isinstance(root, MappingNode):
+        raise _error(path, root, "expected YAML mapping root")
+    _bounded_graph(path, root)
+    aliases = loader.alias_lines
+    executable_seen: set[int] = set()
     references: list[tuple[int, str]] = []
-    scalar_indent: int | None = None
-    section: str | None = None
-    job_indent: int | None = None
-    job_field_indent: int | None = None
-    job_steps_indent: int | None = None
-    job_step_indent: int | None = None
-    runs_field_indent: int | None = None
-    runs_steps_indent: int | None = None
-    runs_step_indent: int | None = None
 
-    for line_no, raw_line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        indent = len(raw_line) - len(raw_line.lstrip(" "))
-        if scalar_indent is not None:
-            if not raw_line.strip() or indent > scalar_indent:
-                continue
-            scalar_indent = None
-        line = _strip_yaml_comment(raw_line).rstrip()
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if BLOCK_SCALAR_RE.match(line):
-            scalar_indent = indent + (2 if re.match(r"^[ ]*-\s+", line) else 0)
-            continue
-        match = ENTRY_RE.match(line)
-        if match is None:
-            # A bare sequence marker can begin a valid YAML step mapping,
-            # but this lightweight reader cannot safely classify its child
-            # fields. Reject instead of silently missing a uses reference.
-            if STANDALONE_STEP_DASH_RE.match(line) and (
-                (section == "jobs" and job_steps_indent is not None
-                 and indent >= job_steps_indent)
-                or (section == "runs" and runs_steps_indent is not None
-                    and indent >= runs_steps_indent)
-            ):
-                raise ValueError(
-                    f"{path}:{line_no}: unsupported block-style step "
-                    "(standalone '-'); place the first step key on the dash "
-                    "line or use a YAML-aware audit"
-                )
-            continue
-        indent = len(match.group("indent"))
-        sequence = match.group("sequence") is not None
-        key_indent = indent + (2 if sequence else 0)
-        key = match.group("key")
-        value = (match.group("value") or "").strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
-            value = value[1:-1]
+    def fields(
+        node: Node, name: str, *, parent_line: int = 1
+    ) -> dict[str, tuple[ScalarNode, Node]]:
+        if not isinstance(node, MappingNode) or node.tag != MAPPING_TAG:
+            raise _error(path, node, f"{name} must be a mapping")
+        if id(node) in executable_seen or (
+            id(node) in aliases and node.start_mark.line + 1 < parent_line
+        ):
+            raise _error(
+                path, node, f"unsupported YAML alias in executable {name}",
+                line=aliases.get(id(node), [node.start_mark.line + 1])[0],
+            )
+        executable_seen.add(id(node))
+        result: dict[str, tuple[ScalarNode, Node]] = {}
+        for key, value in node.value:
+            if not isinstance(key, ScalarNode) or key.tag != STRING_TAG:
+                raise _error(path, key, f"unsupported YAML mapping key in {name}")
+            if key.value == "<<":
+                raise _error(path, key, f"unsupported YAML merge key in {name}")
+            if key.value in result:
+                raise _error(path, key, f"duplicate YAML key {key.value} in {name}")
+            result[key.value] = (key, value)
+        return result
 
-        if indent == 0 and not sequence:
-            section = key if key in {"jobs", "runs"} else None
-            job_indent = None
-            job_field_indent = None
-            job_steps_indent = None
-            job_step_indent = None
-            runs_field_indent = None
-            runs_steps_indent = None
-            runs_step_indent = None
-            continue
+    def scalar(node: Node, key: ScalarNode, name: str) -> str:
+        if not isinstance(node, ScalarNode):
+            raise _error(path, key, f"{name} must be a scalar string")
+        if node.tag != STRING_TAG:
+            raise _error(path, key, f"unsupported YAML tag on {name}")
+        value = node.value
+        if not value.strip():
+            raise _error(path, key, f"{name} must be a nonempty scalar")
+        if "${{" in value:
+            raise _error(path, key, f"dynamic uses reference is unsupported: {value}")
+        return value
 
-        if section == "jobs":
-            if (
-                not sequence
-                and not value
-                and indent > 0
-                and (job_indent is None or indent <= job_indent)
-            ):
-                job_indent = indent
-                job_field_indent = None
-                job_steps_indent = None
-                job_step_indent = None
-                continue
-            if job_indent is None:
-                continue
-            if not sequence and indent > job_indent:
-                if job_field_indent is None:
-                    job_field_indent = indent
-                if indent == job_field_indent:
-                    job_step_indent = None
-                    if key == "uses" and value:
-                        references.append((line_no, value))
-                    job_steps_indent = indent if key == "steps" else None
-                    continue
-            if job_steps_indent is not None and indent >= job_steps_indent:
-                if sequence and (job_step_indent is None or indent == job_step_indent):
-                    job_step_indent = indent
-                    if key == "uses" and value:
-                        references.append((line_no, value))
-                elif (
-                    not sequence
-                    and job_step_indent is not None
-                    and key_indent == job_step_indent + 2
-                    and key == "uses"
-                    and value
-                ):
-                    references.append((line_no, value))
-            continue
+    def add_reference(field: tuple[ScalarNode, Node]) -> None:
+        key, value = field
+        references.append((key.start_mark.line + 1, scalar(value, key, "uses value")))
 
-        if section == "runs":
-            if not sequence and indent > 0:
-                if runs_field_indent is None:
-                    runs_field_indent = indent
-                if indent == runs_field_indent:
-                    runs_step_indent = None
-                    runs_steps_indent = indent if key == "steps" else None
-                    continue
-            if runs_steps_indent is not None and indent >= runs_steps_indent:
-                if sequence and (runs_step_indent is None or indent == runs_step_indent):
-                    runs_step_indent = indent
-                    if key == "uses" and value:
-                        references.append((line_no, value))
-                elif (
-                    not sequence
-                    and runs_step_indent is not None
-                    and key_indent == runs_step_indent + 2
-                    and key == "uses"
-                    and value
-                ):
-                    references.append((line_no, value))
-    return references
+    def steps(field: tuple[ScalarNode, Node], name: str) -> None:
+        key, seq = field
+        if not isinstance(seq, SequenceNode) or seq.tag != SEQUENCE_TAG:
+            raise _error(path, key, f"{name} steps must be a sequence")
+        if id(seq) in aliases and seq.start_mark.line + 1 < key.start_mark.line + 1:
+            raise _error(
+                path, seq, f"unsupported YAML alias in executable {name} steps",
+                line=aliases[id(seq)][0],
+            )
+        for step in seq.value:
+            if not isinstance(step, MappingNode):
+                raise _error(path, step, f"{name} step must be a mapping")
+            mapping = fields(
+                step, f"{name} step", parent_line=seq.start_mark.line + 1
+            )
+            if "uses" in mapping:
+                add_reference(mapping["uses"])
+
+    top = fields(root, "root")
+    if "jobs" in top:
+        jobs_key, jobs_node = top["jobs"]
+        jobs = fields(jobs_node, "jobs", parent_line=jobs_key.start_mark.line + 1)
+        for job_id, (job_key, job_node) in jobs.items():
+            job = fields(
+                job_node, f"job {job_id}", parent_line=job_key.start_mark.line + 1
+            )
+            if "uses" in job:
+                add_reference(job["uses"])
+            if "steps" in job:
+                steps(job["steps"], f"job {job_id}")
+    if "runs" in top:
+        runs_key, runs_node = top["runs"]
+        runs = fields(runs_node, "runs", parent_line=runs_key.start_mark.line + 1)
+        if "using" in runs:
+            using_key, using_node = runs["using"]
+            if not isinstance(using_node, ScalarNode) or using_node.tag != STRING_TAG:
+                raise _error(path, using_key, "runs.using must be a scalar")
+            if using_node.value.lower() == "composite" and "steps" in runs:
+                steps(runs["steps"], "composite")
+    return sorted(references, key=lambda pair: pair[0])
