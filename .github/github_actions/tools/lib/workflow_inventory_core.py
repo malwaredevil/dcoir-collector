@@ -7,6 +7,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any
 
+from .workflow_files import iter_action_metadata_files
 from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
@@ -228,7 +229,7 @@ def build_inventory() -> dict[str, Any]:
     primary_workflows = [path for path in all_workflow_files if not path.name.startswith("reusable-")]
     reusable_workflows = [path for path in all_workflow_files if path.name.startswith("reusable-")]
     workflows = [workflow_entry(path, contract_by_file) for path in primary_workflows]
-    composite_actions = sorted(Path(".github/actions").glob("*/action.yml"))
+    composite_actions = iter_action_metadata_files(Path("."), top_level_only=True)
     action_call_sources = all_workflow_files + composite_actions
     local_reusable_calls = sum(
         1

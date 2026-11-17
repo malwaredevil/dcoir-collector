@@ -26,6 +26,12 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
         self.assertEqual(iter_workflow_files(self.workflow_dir / "missing"), [])
         self.assertEqual(iter_workflow_files(self.workflow_dir / "missing", include_reusable=False), [])
 
+    def test_non_directory_workflow_path_returns_no_files(self) -> None:
+        not_a_directory = self.workflow_dir / "workflows-file"
+        not_a_directory.write_text("not a directory\n", encoding="utf-8")
+        self.assertEqual(iter_workflow_files(not_a_directory), [])
+        self.assertEqual(iter_workflow_files(not_a_directory, include_reusable=False), [])
+
     def test_empty_directory_returns_no_files(self) -> None:
         self.assertEqual(iter_workflow_files(self.workflow_dir), [])
         self.assertEqual(iter_workflow_files(self.workflow_dir, include_reusable=False), [])
@@ -180,6 +186,119 @@ class WorkflowFileDiscoveryTests(unittest.TestCase):
             [entry["file"] for entry in inventory["workflows"]],
             [".github/workflows/manual.YmL", ".github/workflows/validate.yml"],
         )
+
+
+    def test_action_metadata_discovery_scopes_directories_and_yaml_suffixes(self) -> None:
+        from lib.workflow_files import iter_action_metadata_files
+
+        root = Path(self.temp.name) / "action-discovery-checkout"
+        actions = root / ".github/actions"
+        actions.mkdir(parents=True, exist_ok=True)
+        (actions / "action.yml").write_text("name: container\n", encoding="utf-8")
+        for name in (
+            "a/action.yml", "b/action.yaml", "c/ACTION.YAML",
+            "a/nested/action.yml", "d/action.yml.bak", "e/action.ymml",
+            "g/action.yml", "g/action.yaml",
+        ):
+            path = actions / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("name: fixture\n", encoding="utf-8")
+        (actions / "f/action.yml").mkdir(parents=True)
+
+        direct = iter_action_metadata_files(root, top_level_only=True)
+        recursive = iter_action_metadata_files(root)
+        # Direct mode mirrors the runner: exact-case action.yml, else action.yaml,
+        # at most one file per action directory.
+        self.assertEqual(
+            [path.relative_to(actions).as_posix() for path in direct],
+            ["a/action.yml", "b/action.yaml", "g/action.yml"],
+        )
+        # Recursive mode applies the same per-directory resolution and only
+        # adds nested action directories.
+        self.assertEqual(
+            [path.relative_to(actions).as_posix() for path in recursive],
+            ["a/action.yml", "a/nested/action.yml", "b/action.yaml", "g/action.yml"],
+        )
+        self.assertEqual(
+            iter_action_metadata_files(root / "missing", top_level_only=True), []
+        )
+
+    def test_action_metadata_discovery_tolerates_non_directory_action_root(self) -> None:
+        from lib.workflow_files import iter_action_metadata_files
+
+        root = Path(self.temp.name) / "action-root-is-file"
+        (root / ".github").mkdir(parents=True)
+        (root / ".github/actions").write_text("not a directory\n", encoding="utf-8")
+        self.assertEqual(iter_action_metadata_files(root, top_level_only=True), [])
+        self.assertEqual(iter_action_metadata_files(root), [])
+
+    def test_local_action_call_targets_use_runner_resolution(self) -> None:
+        from lib.audit_reusable_contract_checks import check_local_action_calls
+
+        root = Path(self.temp.name) / "action-call-checkout"
+        actions = root / ".github/actions"
+        for name in ("yml/action.yml", "yaml/action.yaml", "upper/ACTION.YML"):
+            path = actions / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("name: fixture\n", encoding="utf-8")
+        source = root / ".github/workflows/caller.yml"
+        refs = [
+            (source, 1, "./.github/actions/yml"),
+            (source, 2, "./.github/actions/yaml"),
+            (source, 3, "./.github/actions/upper"),
+            (source, 4, "./.github/actions/missing"),
+        ]
+        findings: list[str] = []
+        check_local_action_calls(root, refs, findings)
+        self.assertEqual(
+            findings,
+            [
+                ".github/workflows/caller.yml:3: local action target has no action.yml/action.yaml: ./.github/actions/upper",
+                ".github/workflows/caller.yml:4: local action target has no action.yml/action.yaml: ./.github/actions/missing",
+            ],
+        )
+
+    def test_inventory_and_version_audit_share_action_metadata_scope(self) -> None:
+        import os
+        from unittest.mock import patch
+        import check_workflow_action_versions as versions
+        from lib.workflow_inventory_core import build_inventory
+
+        root = Path(self.temp.name) / "action-consumer-checkout"
+        actions = root / ".github/actions"
+        sources = {
+            "a/action.yml": "name: A\nruns:\n  using: composite\n  steps:\n    - uses: actions/checkout@v5\n",
+            "b/action.yaml": "name: B\nruns:\n  using: composite\n  steps:\n    - uses: ./.github/actions/a\n",
+            "c/ACTION.YAML": "name: C\nruns:\n  using: composite\n",
+            "a/nested/action.yml": "name: Nested\nruns:\n  using: composite\n",
+            "d/action.ymml": "name: Invalid\n",
+        }
+        for name, content in sources.items():
+            path = actions / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+
+        prior_directory = Path.cwd()
+        try:
+            os.chdir(root)
+            with patch(
+                "lib.workflow_inventory_core.read_contracts",
+                return_value={"governing_issue": 194, "workflow_contracts": []},
+            ):
+                inventory = build_inventory()
+            audited = versions.iter_composite_action_files()
+            all_audited = versions.iter_audited_files()
+        finally:
+            os.chdir(prior_directory)
+
+        self.assertEqual(inventory["workflow_count"], 0)
+        self.assertEqual(inventory["composite_action_count"], 2)
+        self.assertEqual(inventory["local_composite_action_calls"], 1)
+        self.assertEqual(
+            [path.relative_to(Path(".github/actions")).as_posix() for path in audited],
+            ["a/action.yml", "b/action.yaml"],
+        )
+        self.assertEqual(all_audited, audited)
 
 
 if __name__ == "__main__":

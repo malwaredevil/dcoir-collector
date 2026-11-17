@@ -10,7 +10,6 @@ from typing import Any
 from .workflow_files import iter_workflow_files as _shared_iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
-ACTION_DIR = Path(".github/actions")
 CONTRACT_PATH = Path(".github/github_actions/workflow_modularization_contracts.json")
 REPORTER_PATH = Path(".github/workflows/chatgpt-workflow-run-reporter.yml")
 

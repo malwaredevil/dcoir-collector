@@ -7,7 +7,6 @@ from pathlib import Path
 from .workflow_files import iter_workflow_files
 
 WORKFLOW_DIR = Path(".github/workflows")
-ACTION_DIR = Path(".github/actions")
 
 USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 COMPOSITE_USING_RE = re.compile(r"^\s*using:\s*['\"]?composite['\"]?\s*$", re.IGNORECASE | re.MULTILINE)
@@ -154,16 +153,6 @@ def rel(path: Path, repo_root: Path) -> str:
     if path.is_absolute():
         return path.relative_to(repo_root).as_posix()
     return path.as_posix()
-
-
-def iter_action_metadata_files(repo_root: Path) -> list[Path]:
-    action_dir = repo_root / ACTION_DIR
-    if not action_dir.exists():
-        return []
-    return sorted(
-        path for path in action_dir.rglob("*")
-        if path.is_file() and path.name.lower() in {"action.yml", "action.yaml"}
-    )
 
 
 def iter_all_workflow_files(repo_root: Path) -> list[Path]:
