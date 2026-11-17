@@ -66,6 +66,54 @@ class WorkflowUsesAuditTests(unittest.TestCase):
             ([], [(action, 4, "./.github/actions/local")], []),
         )
 
+    def test_overindented_workflow_steps_are_audited(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n"
+            "  scan:\n"
+            "    steps:\n"
+            "        - uses: actions/checkout@v5\n"
+            "        - name: Analyze\n"
+            "          uses: github/codeql-action/analyze@v5\n"
+        ))
+        findings = versions.check_file(path)
+        self.assertEqual(len(findings), 2)
+        self.assertIn(":4:", findings[0])
+        self.assertIn("below approved minimum v6", findings[0])
+        self.assertIn(":6:", findings[1])
+        self.assertIn("above current supported maximum v4", findings[1])
+
+    def test_overindented_composite_steps_are_discovered(self) -> None:
+        path = self.fixture("action.yml", (
+            "runs:\n"
+            "  using: composite\n"
+            "  steps:\n"
+            "        - uses: ./.github/actions/setup\n"
+            "        - name: Verify\n"
+            "          uses: ./.github/actions/check\n"
+        ))
+        self.assertEqual(
+            local_uses_refs([path]),
+            ([], [
+                (path, 4, "./.github/actions/setup"),
+                (path, 6, "./.github/actions/check"),
+            ], []),
+        )
+
+    def test_overindented_steps_ignore_nested_list_data(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n"
+            "  scan:\n"
+            "    steps:\n"
+            "        - uses: actions/checkout@v6\n"
+            "          with:\n"
+            "            custom:\n"
+            "              - uses: actions/checkout@v5\n"
+            "              - uses: ./.github/actions/not-a-step\n"
+            "        - uses: actions/setup-python@v6\n"
+        ))
+        self.assertEqual(versions.check_file(path), [])
+        self.assertEqual(local_uses_refs([path]), ([], [], []))
+
     def test_version_audit_checks_unsupported_future_major(self) -> None:
         path = self.fixture("workflow.yml", "jobs:\n  codeql:\n    steps:\n      - uses: github/codeql-action/analyze@v5\n")
         findings = versions.check_file(path)
