@@ -8,6 +8,7 @@ from pathlib import Path
 from functools import partial
 
 from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
+from lib.workflow_files import resolve_action_metadata
 from lib.workflow_consistency_runtime_contract import AGENT_RUNTIME_TARGETED_WORKFLOWS
 from lib.workflow_consistency_runtime_audit import (
     agent_runtime_contract_findings,
@@ -72,7 +73,7 @@ SHARED_CONTRACT_FILES = [
     Path(".github/github_actions/workflow_inventory.md"),
 ]
 
-LOCAL_USES_RE = re.compile(r"^\s*uses:\s*(\./\.github/(?:workflows/[^@\s#]+|actions/[^@\s#]+))", re.MULTILINE)
+LOCAL_USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?uses:[ \t]*(\./\.github/(?:workflows/[^@\s#]+|actions/[^@\s#]+))", re.MULTILINE)
 
 
 iter_workflow_files = partial(_shared_iter_workflow_files, WORKFLOW_DIR)
@@ -98,7 +99,10 @@ def expanded_local_text(path: Path, seen: set[Path] | None = None) -> str:
         ref = match.group(1)
         target = Path(ref.removeprefix("./"))
         if "/actions/" in ref:
-            target = target / "action.yml"
+            metadata = resolve_action_metadata(target)
+            if metadata is None:
+                continue
+            target = metadata
         chunks.append(expanded_local_text(target, seen))
     return "\n".join(chunks)
 
