@@ -138,7 +138,6 @@ def local_uses_references(text: str, path: Path) -> list[str]:
     runs_field_indent: int | None = None
     runs_steps_indent: int | None = None
     runs_step_indent: int | None = None
-    composite_action = False
     block_scalar_indent: int | None = None
     flow_stack: list[tuple[str, int]] = []
     flow_openers = {"[": "]", "{": "}"}
