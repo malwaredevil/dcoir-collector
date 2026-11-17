@@ -47,6 +47,25 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         self.assertIn(":3:", findings[0])
         self.assertIn("not pinned with @version", findings[0])
 
+    def test_indentless_workflow_and_composite_steps_are_discovered(self) -> None:
+        workflow = self.fixture(
+            "workflow.yml",
+            "jobs:\n  validate:\n    steps:\n"
+            "    - uses: actions/checkout@v5\n",
+        )
+        action = self.fixture(
+            "action.yml",
+            "runs:\n  using: composite\n  steps:\n"
+            "  - uses: ./.github/actions/local\n",
+        )
+        findings = versions.check_file(workflow)
+        self.assertEqual(len(findings), 1)
+        self.assertIn(":4:", findings[0])
+        self.assertEqual(
+            local_uses_refs([action]),
+            ([], [(action, 4, "./.github/actions/local")], []),
+        )
+
     def test_version_audit_checks_unsupported_future_major(self) -> None:
         path = self.fixture("workflow.yml", "jobs:\n  codeql:\n    steps:\n      - uses: github/codeql-action/analyze@v5\n")
         findings = versions.check_file(path)

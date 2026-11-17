@@ -106,7 +106,7 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
                     job_steps_indent = indent if key == "steps" else None
                     continue
             if job_steps_indent is not None and indent >= job_steps_indent:
-                if sequence and indent == job_steps_indent + 2:
+                if sequence and indent in {job_steps_indent, job_steps_indent + 2}:
                     job_step_indent = indent
                     if key == "uses" and value:
                         references.append((line_no, value))
@@ -129,7 +129,7 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
                     runs_steps_indent = indent if key == "steps" else None
                     continue
             if runs_steps_indent is not None and indent >= runs_steps_indent:
-                if sequence and indent == runs_steps_indent + 2:
+                if sequence and indent in {runs_steps_indent, runs_steps_indent + 2}:
                     runs_step_indent = indent
                     if key == "uses" and value:
                         references.append((line_no, value))
