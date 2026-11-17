@@ -245,8 +245,6 @@ def local_uses_references(text: str, path: Path) -> list[str]:
                     runs_field_indent = indent
                 if indent == runs_field_indent:
                     runs_step_indent = None
-                    if key == "using":
-                        composite_action = value == "composite"
                     if key == "steps":
                         runs_steps_indent = indent
                     continue
