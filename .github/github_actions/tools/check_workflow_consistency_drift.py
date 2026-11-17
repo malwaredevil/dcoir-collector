@@ -174,6 +174,10 @@ def local_uses_references(text: str, path: Path) -> list[str]:
             block_scalar_indent = None
         if not line.strip():
             continue
+        if (section in {"jobs", "runs"}
+                and (job_steps_indent is not None or runs_steps_indent is not None)
+                and re.match(r"^\s*-\s*\{", line)):
+            raise WorkflowYamlError(path, f"unsupported flow-style step on line {line_number}")
         match = entry_re.match(line)
         if not match:
             if flow_stack:
@@ -186,6 +190,13 @@ def local_uses_references(text: str, path: Path) -> list[str]:
         key = match.group("key")
         raw_value = match.group("value") or ""
         value = _yaml_scalar(raw_value)
+        if value.startswith(("{", "[")) and (
+            (indent == 0 and key in {"jobs", "runs"})
+            or (key == "steps" and section in {"jobs", "runs"})
+            or (section == "jobs" and indent > 0
+                and (job_indent is None or indent <= job_indent))
+        ):
+            raise WorkflowYamlError(path, f"unsupported flow-style {key} on line {line_number}")
         if block_scalar_re.fullmatch(value):
             block_scalar_indent = key_indent
 
