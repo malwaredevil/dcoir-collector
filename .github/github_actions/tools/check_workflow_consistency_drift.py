@@ -247,17 +247,20 @@ def local_uses_references(text: str, path: Path) -> list[str]:
                     runs_step_indent = None
                     if key == "using":
                         composite_action = value == "composite"
-                    runs_steps_indent = (
-                        indent if key == "steps" and composite_action else None
-                    )
+                    if key == "steps":
+                        runs_steps_indent = indent
                     continue
-            if composite_action and runs_steps_indent is not None and indent >= runs_steps_indent:
+            if runs_steps_indent is not None and indent >= runs_steps_indent:
                 if sequence:
                     runs_step_indent = indent
                     if key == "uses":
                         if value:
                             references.append(value)
-                elif runs_step_indent is not None and key_indent == runs_step_indent + 2 and key == "uses":
+                elif (
+                    runs_step_indent is not None
+                    and key_indent == runs_step_indent + 2
+                    and key == "uses"
+                ):
                     if value:
                         references.append(value)
 

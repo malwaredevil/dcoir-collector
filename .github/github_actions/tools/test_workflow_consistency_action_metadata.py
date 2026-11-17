@@ -123,6 +123,18 @@ class WorkflowConsistencyActionMetadataTests(unittest.TestCase):
             local_uses_references(text, self.workflow),
         )
 
+    def test_composite_steps_are_detected_before_using_is_seen(self) -> None:
+        action = (
+            "runs:\n"
+            "  steps:\n"
+            "    - uses: ./.github/actions/ordered-step\n"
+            "  using: composite\n"
+        )
+        self.assertEqual(
+            ["./.github/actions/ordered-step"],
+            local_uses_references(action, Path(".github/actions/test/action.yaml")),
+        )
+
     def test_indentless_workflow_and_composite_steps_are_discovered(self) -> None:
         workflow = (
             "jobs:\n  scan:\n    steps:\n"
