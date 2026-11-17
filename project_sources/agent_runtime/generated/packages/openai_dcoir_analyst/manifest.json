@@ -296,7 +296,7 @@
     {
       "bytes": 3218,
       "path": "project_sources/agent_runtime/generated/packages/openai_dcoir_analyst/GPT_Configuration.json",
-      "sha256": "2f9e1d44aa5e9c03c36610012109f015700d38825ccaa8bcaf7a77c9fb149698"
+      "sha256": "01469da391515ab99edb3c0f9ffa2fd9c4bd7edb931f64c0ec3ec52e1d2cee84"
     }
   ],
   "generated_outputs_are_canonical": false,
@@ -319,11 +319,11 @@
       "sha256": "a274f10b54b9d75aa36af17390204a59148dbc9f450dfd5040fb61e4646fd03c"
     },
     {
-      "bytes": 65954,
+      "bytes": 66010,
       "id": "dcoir_collection",
       "order": 2,
       "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/03-dcoir-collection.md",
-      "sha256": "51fe9cf55d4329037babafc70ea98bb86181df2fbcb13962168a7d828f1ea3a7"
+      "sha256": "9d5b435f75bade6f8830bcc8ebe5abfdb019526d793c4d508c27f8ae5105f580"
     },
     {
       "bytes": 9648,
@@ -358,7 +358,7 @@
   "manual_deployment_required": true,
   "schema": "dcoir.agent_runtime.openai_dcoir_package.v1",
   "source_base_commit": "bd69c7a5e5f236e03774a0aedf93a3d818650d81",
-  "source_contract_sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae",
+  "source_contract_sha256": "fb798c2c9e694a2993a9c79e9dc842f7aadb0d371c0595c75fa4da1aa2610fe9",
   "source_contracts": {
     "behavior_module_manifest": {
       "path": "project_sources/agent_runtime/Behavior_Module_Manifest.json",
@@ -378,11 +378,11 @@
     },
     "knowledge_target_manifest": {
       "path": "project_sources/agent_runtime/generated/knowledge/openai_dcoir_analyst/manifest.json",
-      "sha256": "cd713750e2a160350a0a0ab1d41f2451b4504e51ef6061c33eca44a9b2cf2d7d"
+      "sha256": "dcd0de43cd32b9412435b0b20fa64d8136bf94dd4c942d0470dc0f9ee2586598"
     },
     "source_contract": {
       "path": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-      "sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae"
+      "sha256": "fb798c2c9e694a2993a9c79e9dc842f7aadb0d371c0595c75fa4da1aa2610fe9"
     }
   },
   "strict_knowledge_file_ceiling": 20,

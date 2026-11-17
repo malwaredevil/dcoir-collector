@@ -24,7 +24,7 @@
   ],
   "schema": "dcoir.agent_runtime.knowledge_projection.target.v1",
   "source_contract": "project_sources/agent_runtime/Shared_Agent_Source_Manifest.json",
-  "source_contract_sha256": "f8a444e54b72c81d02bf43b09191707fd2d2b5407784d378bfebb073c6c5c5ae",
+  "source_contract_sha256": "fb798c2c9e694a2993a9c79e9dc842f7aadb0d371c0595c75fa4da1aa2610fe9",
   "strict_file_count_ceiling": 20,
   "target_id": "openai_usb_reporting"
 }
