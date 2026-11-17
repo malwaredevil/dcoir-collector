@@ -8,6 +8,7 @@ from pathlib import Path
 
 import check_workflow_action_versions as versions
 from lib.audit_reusable_contract_helpers import local_uses_refs
+from lib.workflow_uses import iter_uses_references
 
 
 class WorkflowUsesAuditTests(unittest.TestCase):
@@ -39,6 +40,17 @@ class WorkflowUsesAuditTests(unittest.TestCase):
             "      - uses: actions/checkout@v6\t# comment\n",
         )
         self.assertEqual(versions.check_file(path), [])
+
+    def test_quoted_tab_hash_is_literal_data(self) -> None:
+        path = self.fixture(
+            "workflow.yml",
+            "jobs:\n  scan:\n    steps:\n"
+            "      - uses: \"actions/checkout@v6\t#opaque\"\n",
+        )
+        self.assertEqual(
+            iter_uses_references(path),
+            [(4, "actions/checkout@v6\t#opaque")],
+        )
 
     def test_version_audit_checks_unpinned_step_shorthand(self) -> None:
         path = self.fixture("action.yml", "runs:\n  using: composite\n  steps:\n    - uses: actions/checkout\n")
@@ -364,7 +376,7 @@ class WorkflowUsesAuditTests(unittest.TestCase):
             "jobs:\n  validate:\n    strategy:\n"
             "      matrix: [ubuntu, windows]\n"
             "    steps:\n      - name: \"uses: actions/checkout@v5\"\n"
-            "      - run: echo 'uses: actions/checkout@v5'\n"
+            "      - run: \"echo 'uses: actions/checkout@v5'\"\n"
         ))
         self.assertEqual(versions.check_file(path), [])
         self.assertEqual(local_uses_refs([path]), ([], [], []))
