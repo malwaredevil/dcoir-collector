@@ -66,6 +66,41 @@ class WorkflowUsesAuditTests(unittest.TestCase):
             ([], [(action, 4, "./.github/actions/local")], []),
         )
 
+    def test_block_style_workflow_step_fails_closed(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    steps:\n      -\n"
+            "        uses: actions/checkout@v5\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":4: unsupported block-style step"):
+            versions.check_file(path)
+
+    def test_block_style_composite_step_fails_closed(self) -> None:
+        path = self.fixture("action.yml", (
+            "runs:\n  using: composite\n  steps:\n    -\n"
+            "      uses: ./.github/actions/setup\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":4: unsupported block-style step"):
+            local_uses_refs([path])
+
+    def test_block_style_non_uses_step_also_fails_closed(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    steps:\n      - # unnamed block-style item\n"
+            "        run: echo safe\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":4: unsupported block-style step"):
+            versions.check_file(path)
+
+    def test_nonstep_matrix_and_script_dashes_remain_safe(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    strategy:\n      matrix:\n"
+            "        include:\n          -\n            uses: actions/checkout@v5\n"
+            "    steps:\n      - run: |\n          -\n"
+            "            uses: actions/checkout@v5\n"
+            "      - uses: actions/checkout@v6\n"
+        ))
+        self.assertEqual(versions.check_file(path), [])
+        self.assertEqual(local_uses_refs([path]), ([], [], []))
+
     def test_overindented_workflow_steps_are_audited(self) -> None:
         path = self.fixture("workflow.yml", (
             "jobs:\n"
