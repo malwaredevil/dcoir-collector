@@ -101,6 +101,134 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         self.assertEqual(versions.check_file(path), [])
         self.assertEqual(local_uses_refs([path]), ([], [], []))
 
+    def test_flow_style_step_versions_and_lines(self) -> None:
+        path = self.fixture("flow.yml", (
+            "on: {push: {}}\n"
+            "jobs:\n  scan:\n    steps:\n"
+            "      - {uses: actions/checkout@v5}\n"
+            "      - {name: Analyze, uses: github/codeql-action/analyze@v5}\n"
+        ))
+        findings = versions.check_file(path)
+        self.assertEqual(len(findings), 2)
+        self.assertIn(":5:", findings[0])
+        self.assertIn("below approved minimum v6", findings[0])
+        self.assertIn(":6:", findings[1])
+        self.assertIn("above current supported maximum v4", findings[1])
+
+    def test_flow_style_job_level_reusable_reference(self) -> None:
+        path = self.fixture(
+            "flow.yml", "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml}}\n"
+        )
+        workflows, actions, other = local_uses_refs([path])
+        self.assertEqual(workflows, [(path, 1, "./.github/workflows/reusable-ci.yml")])
+        self.assertEqual(actions, [])
+        self.assertEqual(other, [])
+
+    def test_flow_style_composite_steps(self) -> None:
+        path = self.fixture(
+            "action.yml",
+            "runs: {using: composite, steps: "
+            "[{uses: ./.github/actions/setup}, {uses: ./.github/actions/check}]}\n",
+        )
+        self.assertEqual(
+            local_uses_refs([path]),
+            ([], [(path, 1, "./.github/actions/setup"),
+                  (path, 1, "./.github/actions/check")], []),
+        )
+
+    def test_flow_style_and_scalar_body_controls(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    strategy:\n      matrix:\n"
+            "        include: [{uses: actions/checkout@v5}]\n"
+            "    steps:\n      - run: |\n          - {uses: actions/checkout@v5}\n"
+            "          uses: actions/checkout@v5\n"
+            "      - uses: actions/checkout@v6\n"
+        ))
+        self.assertEqual(versions.check_file(path), [])
+        self.assertEqual(local_uses_refs([path]), ([], [], []))
+
+    def test_duplicate_uses_key_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    steps:\n"
+            "      - uses: actions/checkout@v6\n"
+            "        uses: actions/checkout@v5\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":5:.*duplicate.*uses"):
+            versions.check_file(path)
+
+    def test_malformed_yaml_rejected(self) -> None:
+        path = self.fixture("workflow.yml", "jobs:\n  scan: [oops\n")
+        with self.assertRaisesRegex(ValueError, r":\d+:.*YAML"):
+            versions.check_file(path)
+
+    def test_multiple_documents_rejected(self) -> None:
+        path = self.fixture("workflow.yml", "jobs: {}\n---\njobs: {}\n")
+        with self.assertRaisesRegex(ValueError, r":\d+:.*multiple YAML documents"):
+            versions.check_file(path)
+
+    def test_nonmapping_root_rejected(self) -> None:
+        path = self.fixture("workflow.yml", "- uses: actions/checkout@v5\n")
+        with self.assertRaisesRegex(ValueError, r":1:.*mapping root"):
+            versions.check_file(path)
+
+    def test_nonmapping_step_rejected(self) -> None:
+        path = self.fixture("workflow.yml", "jobs:\n  scan:\n    steps:\n      - echo hi\n")
+        with self.assertRaisesRegex(ValueError, r":4:.*step must be a mapping"):
+            versions.check_file(path)
+
+    def test_nonscalar_uses_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    steps:\n      - uses: [actions/checkout@v5]\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":4:.*uses.*scalar"):
+            versions.check_file(path)
+
+    def test_aliased_executable_mapping_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "x-step: &scan {uses: actions/checkout@v5}\n"
+            "jobs:\n  scan:\n    steps: [*scan]\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":\d+:.*alias"):
+            versions.check_file(path)
+
+    def test_merge_key_in_executable_mapping_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "x-step: &scan {uses: actions/checkout@v5}\n"
+            "jobs:\n  scan:\n    steps:\n      - {<<: *scan}\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":5:.*(merge|alias)"):
+            versions.check_file(path)
+
+    def test_unrelated_aliases_do_not_become_uses(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "x-info: &info {uses: actions/checkout@v5}\n"
+            "jobs:\n  scan:\n    strategy:\n      matrix:\n"
+            "        include: [*info]\n"
+            "    steps:\n      - run: echo safe\n"
+        ))
+        self.assertEqual(versions.check_file(path), [])
+
+    def test_unknown_yaml_tag_on_reference_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    steps:\n"
+            "      - uses: !custom actions/checkout@v5\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":4:.*unsupported YAML tag"):
+            versions.check_file(path)
+
+    def test_excessively_large_input_rejected(self) -> None:
+        path = self.fixture("workflow.yml", "jobs: {}\n# " + "x" * 1050000 + "\n")
+        with self.assertRaisesRegex(ValueError, r":\d+:.*exceeds.*limit"):
+            versions.check_file(path)
+
+    def test_dynamic_action_reference_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "jobs:\n  scan:\n    steps:\n"
+            "      - uses: 'actions/checkout@$" + "{{ inputs.ref }}'\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":4:.*dynamic uses"):
+            versions.check_file(path)
+
     def test_overindented_workflow_steps_are_audited(self) -> None:
         path = self.fixture("workflow.yml", (
             "jobs:\n"
