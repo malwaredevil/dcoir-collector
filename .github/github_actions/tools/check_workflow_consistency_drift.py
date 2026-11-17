@@ -204,7 +204,6 @@ def local_uses_references(text: str, path: Path) -> list[str]:
             runs_field_indent = None
             runs_steps_indent = None
             runs_step_indent = None
-            composite_action = False
             continue
 
         if section == "jobs":
