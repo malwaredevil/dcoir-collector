@@ -5,10 +5,10 @@ import re
 from pathlib import Path
 
 from .workflow_files import iter_workflow_files
+from .workflow_uses import iter_uses_references
 
 WORKFLOW_DIR = Path(".github/workflows")
 
-USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 COMPOSITE_USING_RE = re.compile(r"^\s*using:\s*['\"]?composite['\"]?\s*$", re.IGNORECASE | re.MULTILINE)
 PERMISSION_ORDER = {"none": 0, "read": 1, "write": 2}
 DOUBLE_QUOTED_EXPRESSION_LITERAL_RE = re.compile(r"\$\{\{[^}]*\|\|\s*\"[^\"]*\"[^}]*\}\}")
@@ -165,11 +165,7 @@ def local_uses_refs(source_files: list[Path]) -> tuple[list[tuple[Path, int, str
     action_refs: list[tuple[Path, int, str]] = []
     other_local_refs: list[tuple[Path, int, str]] = []
     for source_file in source_files:
-        for line_no, line in enumerate(source_file.read_text(encoding="utf-8").splitlines(), start=1):
-            match = USES_RE.match(line)
-            if not match:
-                continue
-            ref = strip_quotes(match.group(1))
+        for line_no, ref in iter_uses_references(source_file):
             if ref.startswith("./.github/workflows/"):
                 workflow_refs.append((source_file, line_no, ref))
             elif ref.startswith("./.github/actions/"):
