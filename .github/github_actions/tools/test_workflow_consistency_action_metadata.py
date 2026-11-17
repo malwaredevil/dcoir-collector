@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 
 from check_workflow_consistency_drift import (
+    WorkflowYamlError,
     add_string_findings,
     expanded_local_text,
     expanded_local_text_or_findings,
@@ -189,6 +190,42 @@ class WorkflowConsistencyActionMetadataTests(unittest.TestCase):
         expanded = expanded_local_text(self.workflow)
         self.assertEqual(expanded.count("cycle-a-marker"), 1)
         self.assertEqual(expanded.count("cycle-b-marker"), 1)
+
+    def test_flow_style_job_mapping_fails_closed(self) -> None:
+        yaml = "jobs: {scan: {steps: [{uses: ./.github/actions/hidden}]}}\n"
+        with self.assertRaisesRegex(WorkflowYamlError, "unsupported flow-style"):
+            local_uses_references(yaml, self.workflow)
+
+    def test_flow_style_job_definition_fails_closed(self) -> None:
+        yaml = "jobs:\n  scan: {steps: [{uses: ./.github/actions/hidden}]}\n"
+        with self.assertRaisesRegex(WorkflowYamlError, "unsupported flow-style"):
+            local_uses_references(yaml, self.workflow)
+
+    def test_flow_style_steps_list_fails_closed(self) -> None:
+        yaml = "jobs:\n  scan:\n    steps: [{uses: ./.github/actions/hidden}]\n"
+        with self.assertRaisesRegex(WorkflowYamlError, "unsupported flow-style"):
+            local_uses_references(yaml, self.workflow)
+
+    def test_flow_style_step_mapping_fails_closed(self) -> None:
+        yaml = "jobs:\n  scan:\n    steps:\n      - {uses: ./.github/actions/hidden}\n"
+        with self.assertRaisesRegex(WorkflowYamlError, "unsupported flow-style"):
+            local_uses_references(yaml, self.workflow)
+
+    def test_flow_style_composite_runs_fails_closed(self) -> None:
+        yaml = "runs: {using: composite, steps: [{uses: ./.github/actions/hidden}]}\n"
+        with self.assertRaisesRegex(WorkflowYamlError, "unsupported flow-style"):
+            local_uses_references(yaml, Path(".github/actions/example/action.yaml"))
+
+    def test_unrelated_flow_style_strategy_does_not_fail(self) -> None:
+        yaml = (
+            "jobs:\n  scan:\n    strategy:\n"
+            "      matrix: {os: [ubuntu-latest]}\n"
+            "    steps:\n      - uses: ./.github/actions/real\n"
+        )
+        self.assertEqual(
+            ["./.github/actions/real"],
+            local_uses_references(yaml, self.workflow),
+        )
 
     def test_stale_authority_marker_detection_in_workflow_is_preserved(self) -> None:
         self.write(self.workflow.as_posix(), "name: Example\n# Airtable routing: stale\n")
