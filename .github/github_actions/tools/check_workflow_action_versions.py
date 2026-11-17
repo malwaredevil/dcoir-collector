@@ -14,6 +14,7 @@ from pathlib import Path
 
 from lib.workflow_files import iter_action_metadata_files
 from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
+from lib.workflow_uses import iter_uses_references
 
 WORKFLOW_DIR = Path(".github/workflows")
 
@@ -40,7 +41,6 @@ MAXIMUM_ACTION_MAJORS = {
     "github/codeql-action/upload-sarif": 4,
 }
 
-USES_RE = re.compile(r"^\s*uses:\s*([^\s#]+)", re.IGNORECASE)
 MAJOR_TAG_RE = re.compile(r"^v(\d+)(?:\.|$)")
 
 
@@ -57,11 +57,7 @@ def iter_audited_files() -> list[Path]:
 
 def check_file(path: Path) -> list[str]:
     findings: list[str] = []
-    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-        match = USES_RE.match(line)
-        if not match:
-            continue
-        ref = match.group(1).strip().strip('"\'')
+    for line_no, ref in iter_uses_references(path):
         if ref.startswith("./"):
             continue
         if "@" not in ref:
