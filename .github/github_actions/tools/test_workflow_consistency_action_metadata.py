@@ -11,6 +11,7 @@ from check_workflow_consistency_drift import (
     add_string_findings,
     expanded_local_text,
     expanded_local_text_or_findings,
+    local_uses_references,
 )
 
 REQUIRED_SURFACES_HELPER = ".github/github_actions/tools/check_required_surfaces.py"
@@ -109,6 +110,36 @@ class WorkflowConsistencyActionMetadataTests(unittest.TestCase):
         expanded = expanded_local_text(self.workflow)
         self.assertNotIn(".github/actions/marker/action.yaml", expanded)
         self.assertNotIn(REQUIRED_SURFACES_HELPER, expanded)
+
+    def test_reference_after_run_block_is_not_skipped(self) -> None:
+        text = (
+            "jobs:\n  scan:\n    steps:\n"
+            "      - run: |-\n"
+            "          script contents\n"
+            "        uses: ./.github/actions/following\n"
+        )
+        self.assertEqual(
+            ["./.github/actions/following"],
+            local_uses_references(text, self.workflow),
+        )
+
+    def test_indentless_workflow_and_composite_steps_are_discovered(self) -> None:
+        workflow = (
+            "jobs:\n  scan:\n    steps:\n"
+            "    - uses: ./.github/actions/workflow-step\n"
+        )
+        action = (
+            "runs:\n  using: composite\n  steps:\n"
+            "  - uses: ./.github/actions/composite-step\n"
+        )
+        self.assertEqual(
+            ["./.github/actions/workflow-step"],
+            local_uses_references(workflow, self.workflow),
+        )
+        self.assertEqual(
+            ["./.github/actions/composite-step"],
+            local_uses_references(action, Path(".github/actions/test/action.yaml")),
+        )
 
     def test_invalid_yaml_fails_closed_with_path_context(self) -> None:
         self.write(self.workflow.as_posix(), "jobs:\n  scan: [\n")
