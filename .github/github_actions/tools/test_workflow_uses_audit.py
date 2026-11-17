@@ -41,10 +41,10 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         self.assertEqual(versions.check_file(path), [])
 
     def test_version_audit_checks_unpinned_step_shorthand(self) -> None:
-        path = self.fixture("action.yml", "runs:\n  steps:\n    - uses: actions/checkout\n")
+        path = self.fixture("action.yml", "runs:\n  using: composite\n  steps:\n    - uses: actions/checkout\n")
         findings = versions.check_file(path)
         self.assertEqual(len(findings), 1)
-        self.assertIn(":3:", findings[0])
+        self.assertIn(":4:", findings[0])
         self.assertIn("not pinned with @version", findings[0])
 
     def test_indentless_workflow_and_composite_steps_are_discovered(self) -> None:
@@ -363,7 +363,7 @@ class WorkflowUsesAuditTests(unittest.TestCase):
             "# uses: actions/checkout@v5\n"
             "jobs:\n  validate:\n    strategy:\n"
             "      matrix: [ubuntu, windows]\n"
-            "    steps:\n      - name: uses: actions/checkout@v5\n"
+            "    steps:\n      - name: \"uses: actions/checkout@v5\"\n"
             "      - run: echo 'uses: actions/checkout@v5'\n"
         ))
         self.assertEqual(versions.check_file(path), [])
