@@ -45,6 +45,7 @@ def main() -> int:
         ".github/github_actions/tools/test_pr_validation_lifecycle.py",
         ".github/github_actions/tools/test_main_only_push_trigger.py",
         ".github/github_actions/tools/test_workflow_consistency_action_metadata.py",
+        ".github/github_actions/tools/test_workflow_uses_audit.py",
         ".github/github_actions/tools/check_workflow_modularization_contracts.py",
     ):
         subprocess.run([sys.executable, str(ROOT / script)], cwd=ROOT, check=True)
