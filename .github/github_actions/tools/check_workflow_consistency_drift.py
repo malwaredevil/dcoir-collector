@@ -7,6 +7,8 @@ import sys
 from pathlib import Path
 from functools import partial
 
+import yaml
+
 from lib.workflow_files import iter_workflow_files as _shared_iter_workflow_files
 from lib.workflow_files import resolve_action_metadata
 from lib.workflow_consistency_runtime_contract import AGENT_RUNTIME_TARGETED_WORKFLOWS
@@ -73,7 +75,14 @@ SHARED_CONTRACT_FILES = [
     Path(".github/github_actions/workflow_inventory.md"),
 ]
 
-LOCAL_USES_RE = re.compile(r"^[ \t]*(?:-[ \t]+)?uses:[ \t]*(\./\.github/(?:workflows/[^@\s#]+|actions/[^@\s#]+))", re.MULTILINE)
+LOCAL_USES_RE = re.compile(r"^\./\.github/(workflows/[^@\s#]+|actions/[^@\s#]+)")
+
+
+class WorkflowYamlError(Exception):
+    def __init__(self, path: Path, cause: yaml.YAMLError) -> None:
+        self.path = path
+        self.cause = cause
+        super().__init__(f"{path}: invalid YAML: {cause}")
 
 
 iter_workflow_files = partial(_shared_iter_workflow_files, WORKFLOW_DIR)
@@ -87,6 +96,40 @@ def find_lines_with_substring(path: Path, needle: str) -> list[int]:
     ]
 
 
+def local_uses_references(data: object) -> list[str]:
+    """Return local workflow and composite-action references from executable nodes."""
+    references: list[str] = []
+    if not isinstance(data, dict):
+        return references
+
+    jobs = data.get("jobs")
+    if isinstance(jobs, dict):
+        for job in jobs.values():
+            if not isinstance(job, dict):
+                continue
+            uses = job.get("uses")
+            if isinstance(uses, str):
+                references.append(uses)
+            steps = job.get("steps")
+            if isinstance(steps, list):
+                references.extend(
+                    step["uses"]
+                    for step in steps
+                    if isinstance(step, dict) and isinstance(step.get("uses"), str)
+                )
+
+    runs = data.get("runs")
+    if isinstance(runs, dict) and runs.get("using") == "composite":
+        steps = runs.get("steps")
+        if isinstance(steps, list):
+            references.extend(
+                step["uses"]
+                for step in steps
+                if isinstance(step, dict) and isinstance(step.get("uses"), str)
+            )
+    return references
+
+
 def expanded_local_text(path: Path, seen: set[Path] | None = None) -> str:
     """Return workflow text plus local reusable workflow/action bodies it calls."""
     seen = seen or set()
@@ -95,8 +138,15 @@ def expanded_local_text(path: Path, seen: set[Path] | None = None) -> str:
     seen.add(path)
     text = path.read_text(encoding="utf-8")
     chunks = [text]
-    for match in LOCAL_USES_RE.finditer(text):
-        ref = match.group(1)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise WorkflowYamlError(path, exc) from exc
+    for candidate in local_uses_references(data):
+        match = LOCAL_USES_RE.match(candidate)
+        if not match:
+            continue
+        ref = f"./.github/{match.group(1)}"
         target = Path(ref.removeprefix("./"))
         if "/actions/" in ref:
             metadata = resolve_action_metadata(target)
@@ -105,6 +155,14 @@ def expanded_local_text(path: Path, seen: set[Path] | None = None) -> str:
             target = metadata
         chunks.append(expanded_local_text(target, seen))
     return "\n".join(chunks)
+
+
+def expanded_local_text_or_findings(path: Path, findings: list[str]) -> str:
+    try:
+        return expanded_local_text(path)
+    except WorkflowYamlError as exc:
+        findings.append(f"{exc.path}:1: invalid YAML: {exc.cause}")
+        return ""
 
 
 def add_string_findings(findings: list[str], path: Path, needle: str) -> None:
@@ -139,7 +197,7 @@ def main() -> int:
     for path in TARGETED_WORKFLOWS:
         if not ensure_exists(findings, path):
             continue
-        text = expanded_local_text(path)
+        text = expanded_local_text_or_findings(path, findings)
         if REQUIRED_SURFACES_HELPER not in text:
             findings.append(f"{path}:1: missing required shared required-surface helper call: {REQUIRED_SURFACES_HELPER}")
         add_string_findings(findings, path, INLINE_REQUIRED_MARKER)
@@ -147,7 +205,7 @@ def main() -> int:
     for path in GEMINI_TARGETED_WORKFLOWS:
         if not ensure_exists(findings, path):
             continue
-        text = expanded_local_text(path)
+        text = expanded_local_text_or_findings(path, findings)
         if GEMINI_MANIFEST_HELPER not in text:
             findings.append(f"{path}:1: missing required shared Gemini manifest helper call: {GEMINI_MANIFEST_HELPER}")
         for needle in INLINE_GEMINI_MARKERS:
@@ -157,7 +215,7 @@ def main() -> int:
         if not ensure_exists(findings, path):
             continue
         entry_text = path.read_text(encoding="utf-8")
-        expanded_text = expanded_local_text(path)
+        expanded_text = expanded_local_text_or_findings(path, findings)
         event_name = "push" if path.name == "validate-on-push.yml" else "pull_request"
         findings.extend(
             agent_runtime_contract_findings(

@@ -10,6 +10,7 @@ from pathlib import Path
 from check_workflow_consistency_drift import (
     add_string_findings,
     expanded_local_text,
+    expanded_local_text_or_findings,
 )
 
 REQUIRED_SURFACES_HELPER = ".github/github_actions/tools/check_required_surfaces.py"
@@ -37,18 +38,34 @@ class WorkflowConsistencyActionMetadataTests(unittest.TestCase):
 
     def test_action_yaml_only_expands_required_surface_helper(self) -> None:
         self.call("yaml-only")
-        self.write(".github/actions/yaml-only/action.yaml", REQUIRED_SURFACES_HELPER)
+        self.write(".github/actions/yaml-only/action.yaml", (
+            "name: yaml-only\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            f"      run: python {REQUIRED_SURFACES_HELPER}\n"
+        ))
         self.assertIn(REQUIRED_SURFACES_HELPER, expanded_local_text(self.workflow))
 
     def test_action_yml_only_remains_supported(self) -> None:
         self.call("yml-only")
-        self.write(".github/actions/yml-only/action.yml", "yml-only-metadata")
+        self.write(".github/actions/yml-only/action.yml", (
+            "name: yml-only\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            "      run: echo yml-only-metadata\n"
+        ))
         self.assertIn("yml-only-metadata", expanded_local_text(self.workflow))
 
     def test_action_yml_wins_when_both_names_exist(self) -> None:
         self.call("both")
-        self.write(".github/actions/both/action.yml", "selected-yml-metadata")
-        self.write(".github/actions/both/action.yaml", "shadowed-yaml-metadata")
+        self.write(".github/actions/both/action.yml", (
+            "name: selected-yml\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            "      run: echo selected-yml-metadata\n"
+        ))
+        self.write(".github/actions/both/action.yaml", (
+            "name: shadowed-yaml\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            "      run: echo shadowed-yaml-metadata\n"
+        ))
         expanded = expanded_local_text(self.workflow)
         self.assertIn("selected-yml-metadata", expanded)
         self.assertNotIn("shadowed-yaml-metadata", expanded)
@@ -66,29 +83,65 @@ class WorkflowConsistencyActionMetadataTests(unittest.TestCase):
     def test_nested_yaml_actions_resolve_recursively(self) -> None:
         self.call("outer")
         self.write(".github/actions/outer/action.yaml", (
-            "runs:\n  using: composite\n  steps:\n"
+            "name: outer\nruns:\n  using: composite\n  steps:\n"
             "    - uses: ./.github/actions/outer/deeper\n"
         ))
-        self.write(".github/actions/outer/deeper/action.yaml", REQUIRED_SURFACES_HELPER)
+        self.write(".github/actions/outer/deeper/action.yaml", (
+            "name: deeper\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            f"      run: python {REQUIRED_SURFACES_HELPER}\n"
+        ))
         self.assertIn(REQUIRED_SURFACES_HELPER, expanded_local_text(self.workflow))
+
+    def test_run_block_uses_text_is_not_treated_as_an_action_step(self) -> None:
+        self.call("script")
+        self.write(".github/actions/script/action.yaml", (
+            "name: script\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            "      run: |\n"
+            "        - uses: ./.github/actions/marker\n"
+        ))
+        self.write(".github/actions/marker/action.yaml", (
+            "name: marker\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            f"      run: python {REQUIRED_SURFACES_HELPER}\n"
+        ))
+        expanded = expanded_local_text(self.workflow)
+        self.assertNotIn(".github/actions/marker/action.yaml", expanded)
+        self.assertNotIn(REQUIRED_SURFACES_HELPER, expanded)
+
+    def test_invalid_yaml_fails_closed_with_path_context(self) -> None:
+        self.write(self.workflow.as_posix(), "jobs:\n  scan: [\n")
+        findings: list[str] = []
+        self.assertEqual(expanded_local_text_or_findings(self.workflow, findings), "")
+        self.assertEqual(len(findings), 1)
+        self.assertIn("validate.yml:1: invalid YAML:", findings[0])
 
     def test_local_reusable_workflow_calls_are_preserved(self) -> None:
         self.write(self.workflow.as_posix(), (
-            "jobs:\n  scan:\n    uses: ./.github/workflows/reusable-validation.yml\n"
+            "name: Validation\non: workflow_dispatch\njobs:\n"
+            "  scan:\n    uses: ./.github/workflows/reusable-validation.yml\n"
         ))
         self.write(".github/workflows/reusable-validation.yml", (
-            "jobs:\n  scan:\n    steps:\n      - uses: ./.github/actions/verified\n"
+            "name: Reusable validation\non: workflow_call\njobs:\n"
+            "  scan:\n    steps:\n      - uses: ./.github/actions/verified\n"
         ))
-        self.write(".github/actions/verified/action.yaml", REQUIRED_SURFACES_HELPER)
+        self.write(".github/actions/verified/action.yaml", (
+            "name: verified\nruns:\n  using: composite\n  steps:\n"
+            "    - shell: bash\n"
+            f"      run: python {REQUIRED_SURFACES_HELPER}\n"
+        ))
         self.assertIn(REQUIRED_SURFACES_HELPER, expanded_local_text(self.workflow))
 
     def test_cycles_do_not_expand_forever(self) -> None:
         self.call("cycle-a")
         self.write(".github/actions/cycle-a/action.yaml", (
-            "cycle-a-marker\nruns:\n  steps:\n    - uses: ./.github/actions/cycle-b\n"
+            "name: cycle-a-marker\nruns:\n  using: composite\n"
+            "  steps:\n    - uses: ./.github/actions/cycle-b\n"
         ))
         self.write(".github/actions/cycle-b/action.yaml", (
-            "cycle-b-marker\nruns:\n  steps:\n    - uses: ./.github/actions/cycle-a\n"
+            "name: cycle-b-marker\nruns:\n  using: composite\n"
+            "  steps:\n    - uses: ./.github/actions/cycle-a\n"
         ))
         expanded = expanded_local_text(self.workflow)
         self.assertEqual(expanded.count("cycle-a-marker"), 1)
