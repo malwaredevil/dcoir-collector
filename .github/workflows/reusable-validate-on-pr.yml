@@ -30,6 +30,13 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+      - name: Install pinned YAML audit parser
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/dcoir-workflow-audit-venv"
+          "$RUNNER_TEMP/dcoir-workflow-audit-venv/bin/python" -m pip install --disable-pip-version-check --no-cache-dir --only-binary=:all: -r .github/github_actions/tools/requirements-workflow-audit.txt
+          echo "$RUNNER_TEMP/dcoir-workflow-audit-venv/bin" >> "$GITHUB_PATH"
       - name: Run cheap Draft validation
         shell: bash
         run: python3 .github/github_actions/tools/run_pr_draft_fail_fast.py
