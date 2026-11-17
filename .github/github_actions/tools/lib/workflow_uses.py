@@ -15,6 +15,7 @@ ENTRY_RE = re.compile(
 BLOCK_SCALAR_RE = re.compile(
     r"^[ ]*(?:-\s+)?[A-Za-z_][\w.-]*:\s*[|>][-+1-9]*\s*(?:#.*)?$"
 )
+STANDALONE_STEP_DASH_RE = re.compile(r"^[ ]*-\s*$")
 
 
 def _strip_yaml_comment(line: str) -> str:
@@ -62,6 +63,20 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
             continue
         match = ENTRY_RE.match(line)
         if match is None:
+            # A bare sequence marker can begin a valid YAML step mapping,
+            # but this lightweight reader cannot safely classify its child
+            # fields. Reject instead of silently missing a uses reference.
+            if STANDALONE_STEP_DASH_RE.match(line) and (
+                (section == "jobs" and job_steps_indent is not None
+                 and indent >= job_steps_indent)
+                or (section == "runs" and runs_steps_indent is not None
+                    and indent >= runs_steps_indent)
+            ):
+                raise ValueError(
+                    f"{path}:{line_no}: unsupported block-style step "
+                    "(standalone '-'); place the first step key on the dash "
+                    "line or use a YAML-aware audit"
+                )
             continue
         indent = len(match.group("indent"))
         sequence = match.group("sequence") is not None
