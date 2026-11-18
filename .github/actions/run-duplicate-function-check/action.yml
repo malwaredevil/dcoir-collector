@@ -1,13 +1,9 @@
 name: Check for duplicate PowerShell function definitions
 description: >
-  Parse all collector PS1 source files with the PowerShell AST and fail if any
-  function name is defined more than once across the file set. Duplicate
+  Parse all collector PS1 source files with the PowerShell AST and report any
+  function name defined more than once across the file set. Duplicate
   definitions create silent load-order overrides in dot-sourced scripts.
 inputs:
-  fail-on-duplicates:
-    description: Exit non-zero when duplicates are found.
-    required: false
-    default: 'true'
   output-json:
     description: Repo-relative path for the duplicate-function JSON report.
     required: false
@@ -22,11 +18,10 @@ runs:
     - name: Detect duplicate function definitions across collector source
       shell: pwsh
       env:
-        FAIL_ON_DUPLICATES: ${{ inputs.fail-on-duplicates }}
         DUPLICATE_FUNCTION_OUTPUT_JSON: ${{ inputs.output-json }}
         DUPLICATE_FUNCTION_OUTPUT_MARKDOWN: ${{ inputs.output-markdown }}
         DCOIR_ACTION_SCRIPT: ${{ github.action_path }}/Invoke-DcoirDuplicateFunctionCheck.ps1
       run: |
         $ErrorActionPreference = 'Stop'
         & $env:DCOIR_ACTION_SCRIPT
-# Compensating evidence: step stdout plus JSON/Markdown artifacts list every duplicate name, file, and line number before the step fails.
+# Compensating evidence: step stdout plus JSON/Markdown artifacts list every duplicate name, file, and line number before the central static-analysis gate evaluates the report.

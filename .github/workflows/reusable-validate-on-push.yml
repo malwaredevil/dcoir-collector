@@ -242,13 +242,9 @@ jobs:
 
       - name: Run PSScriptAnalyzer on collector source
         uses: ./.github/actions/run-psscriptanalyzer
-        with:
-          fail-on-error-severity: 'false'
 
       - name: Check for duplicate function definitions
         uses: ./.github/actions/run-duplicate-function-check
-        with:
-          fail-on-duplicates: 'false'
 
       - name: Validate duplicate-function reports
         shell: pwsh
