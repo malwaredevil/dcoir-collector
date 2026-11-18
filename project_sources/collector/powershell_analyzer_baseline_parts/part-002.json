@@ -4,14 +4,14 @@
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "de82fd2995c0f8f4488c4cd4b122c66b42c319090b9365f3880ba0d8fa1b1ac3",
+      "fingerprint": "1a205dd9dedc16f3dbada1c3b6a8ac0e88deec3383a7b9775015a99b87a89e50",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 269. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "e7adfc5f0900128ea8a9bf9456a94a43cb2e90f922976e57907e43ba85de2c8b",
+      "fingerprint": "d8b1cf4018847c7d89381d17207b2be9076e7f567ba7751f9e14fdaf43bc28fe",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 235. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
