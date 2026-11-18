@@ -1,0 +1,12 @@
+{
+  "schema": "dcoir.chatgpt_staging.exec_request.v1",
+  "request_id": "pr653-seeded-static-gate-negative-20261118-001",
+  "operator_approved": true,
+  "approved_at_utc": "2026-11-18T12:32:00Z",
+  "shell": "pwsh",
+  "timeout_seconds": 900,
+  "artifact_retention_days": 7,
+  "cleanup_request_after_run": true,
+  "approved_command_preview": "Operator-approved PR #653 exact-head Windows validation: 13 seeded fail-closed and safe-control tests against unchanged canonical static gate at af6d6540bde5ef0803856721054fa88e07419bcc in isolated temporary checkout. No source/workflow mutation, review-bot request, paid OpenRouter call, merge, or closure.",
+  "command": "& './.github/chatgpt_staging/exec_scripts/pr653-seeded-static-gate-negative-20261118-001.ps1'"
+}
