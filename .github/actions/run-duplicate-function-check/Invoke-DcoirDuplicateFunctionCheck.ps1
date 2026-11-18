@@ -268,10 +268,5 @@ foreach ($entry in $duplicates) {
 
 Write-Host "$($duplicates.Count) duplicate function name(s) found across $($sourceFiles.Count) file(s)."
 
-if ($env:FAIL_ON_DUPLICATES -ne 'false') {
-  Write-Error 'Duplicate function definitions found. Resolve overrides before merging.'
-  exit 1
-} else {
-  Write-Warning 'Duplicate function definitions found (fail-on-duplicates=false; not blocking).'
-  exit 0
-}
+Write-Warning 'Duplicate function definitions found; the central static analysis validation gate enforces blocking policy.'
+exit 0

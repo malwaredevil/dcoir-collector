@@ -17,11 +17,11 @@ reviewed pre-existing Warning exception with a file/rule/fingerprint and reason.
 The baseline is fail-closed: stale entries and attempts to suppress Errors fail.
 Never create wildcard suppression or disable the policy to make CI green.
 
-The legacy `fail-on-error-severity` action input remains for existing callers
-until issue #608 retires dead action inputs. PR/push callers set it to `false`,
-so their shared static-analysis gate enforces counts after review-assist has
-consumed the produced report. Analyzer execution, missing settings or baseline,
-missing target hashes, malformed data, and report errors still fail the action.
+The action is report-only for analyzer findings and exposes no direct severity
+gating input. The shared static-analysis gate enforces all blocking counts
+after review-assist consumes the report. Analyzer execution, missing settings
+or baseline, missing target hashes, malformed data, and report errors still
+fail the action.
 
 The action does not upload artifacts, add triggers, use privileged events,
 mutate Git history, or request independent reviews. Callers retain those
