@@ -307,6 +307,23 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         workflow = self.fixture("callee.yml", "on: [push, pull_request]\n")
         self.assertEqual(workflow_call_definition(workflow), (False, set(), set()))
 
+    def test_empty_workflow_call_null_scalars_are_accepted(self) -> None:
+        for value in ("null", "Null", "NULL", "~"):
+            workflow = self.fixture(
+                "callee.yml", f"on: {{workflow_call: {value}}}\n"
+            )
+            self.assertEqual(workflow_call_definition(workflow), (True, set(), set()))
+
+    def test_quoted_workflow_call_null_strings_are_not_empty_values(self) -> None:
+        for value in ('"null"', "'~'"):
+            workflow = self.fixture(
+                "callee.yml", f"on: {{workflow_call: {value}}}\n"
+            )
+            with self.assertRaisesRegex(
+                ValueError, "on.workflow_call must be a mapping or empty"
+            ):
+                workflow_call_definition(workflow)
+
     def test_reusable_workflow_summary_counts_quoted_call(self) -> None:
         self.fixture(
             ".github/workflows/primary.yml",

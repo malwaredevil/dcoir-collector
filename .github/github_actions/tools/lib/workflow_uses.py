@@ -328,7 +328,13 @@ def workflow_call_definition(path: Path) -> tuple[bool, set[str], set[str]]:
     if call_node is None:
         return False, set(), set()
     if isinstance(call_node, ScalarNode):
-        if call_node.tag == STRING_TAG and call_node.value == "":
+        if call_node.tag == STRING_TAG and (
+            call_node.value == ""
+            or (
+                call_node.style is None
+                and call_node.value.casefold() in {"null", "~"}
+            )
+        ):
             return True, set(), set()
         raise _error(path, call_node, "on.workflow_call must be a mapping or empty")
     call_fields = _contract_mapping_fields(
