@@ -45,6 +45,67 @@ def _error(
     return ValueError(f"{path}:{line}: {message}")
 
 
+def _load_yaml_document(path: Path) -> tuple[Node, dict[int, list[int]]]:
+    raw = path.read_bytes()
+    if len(raw) > MAX_YAML_BYTES:
+        raise _error(path, None, "YAML input exceeds audit byte limit")
+    try:
+        text = _normalize_inline_comment_tabs(raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        line = raw[:exc.start].count(b"\n") + 1
+        raise _error(path, None, "invalid UTF-8 YAML input", line=line) from exc
+    loader = _AuditLoader(text)
+    try:
+        try:
+            root = loader.get_single_node()
+        except yaml.YAMLError as exc:
+            mark = getattr(exc, "problem_mark", None) or getattr(
+                exc, "context_mark", None
+            )
+            line = mark.line + 1 if mark is not None else 1
+            message = str(exc)
+            if "expected a single document" in message:
+                raise _error(
+                    path, None, "multiple YAML documents are unsupported",
+                    line=line,
+                ) from exc
+            problem = getattr(exc, "problem", None) or message.splitlines()[0]
+            raise _error(path, None, f"invalid YAML: {problem}", line=line) from exc
+    finally:
+        aliases = {node_id: list(lines) for node_id, lines in loader.alias_lines.items()}
+        loader.dispose()
+    if root is None:
+        raise _error(path, None, "expected YAML mapping root")
+    return root, aliases
+
+
+def _contract_mapping_fields(
+    path: Path, node: Node, name: str, aliases: dict[int, list[int]]
+) -> dict[str, Node]:
+    if not isinstance(node, MappingNode) or node.tag != MAPPING_TAG:
+        raise _error(path, node, f"{name} must be a mapping")
+    if id(node) in aliases:
+        raise _error(
+            path, node, f"unsupported YAML alias in {name}",
+            line=aliases[id(node)][0],
+        )
+    fields: dict[str, Node] = {}
+    for key, value in node.value:
+        if not isinstance(key, ScalarNode) or key.tag != STRING_TAG:
+            raise _error(path, key, f"unsupported YAML mapping key in {name}")
+        if key.value == "<<":
+            raise _error(path, key, f"unsupported YAML merge key in {name}")
+        if key.value in fields:
+            raise _error(path, key, f"duplicate YAML key {key.value} in {name}")
+        if id(key) in aliases:
+            raise _error(
+                path, key, f"unsupported YAML alias in {name}",
+                line=aliases[id(key)][0],
+            )
+        fields[key.value] = value
+    return fields
+
+
 def _bounded_graph(path: Path, root: Node) -> None:
     seen: set[int] = set()
     stack: list[tuple[Node, int]] = [(root, 1)]
@@ -113,38 +174,11 @@ def _scan_references(
     list[tuple[int, str, frozenset[str], frozenset[str]]],
 ]:
     """Read executable uses and local reusable caller argument names."""
-    raw = path.read_bytes()
-    if len(raw) > MAX_YAML_BYTES:
-        raise _error(path, None, "YAML input exceeds audit byte limit")
-    try:
-        text = _normalize_inline_comment_tabs(raw.decode("utf-8"))
-    except UnicodeDecodeError as exc:
-        line = raw[:exc.start].count(b"\n") + 1
-        raise _error(path, None, "invalid UTF-8 YAML input", line=line) from exc
-    loader = _AuditLoader(text)
-    try:
-        try:
-            root = loader.get_single_node()
-        except yaml.YAMLError as exc:
-            mark = getattr(exc, "problem_mark", None) or getattr(
-                exc, "context_mark", None
-            )
-            line = mark.line + 1 if mark is not None else 1
-            message = str(exc)
-            if "expected a single document" in message:
-                raise _error(
-                    path, None, "multiple YAML documents are unsupported",
-                    line=line,
-                ) from exc
-            problem = getattr(exc, "problem", None) or message.splitlines()[0]
-            raise _error(path, None, f"invalid YAML: {problem}", line=line) from exc
-    finally:
-        loader.dispose()
+    root, aliases = _load_yaml_document(path)
 
     if not isinstance(root, MappingNode):
         raise _error(path, root, "expected YAML mapping root")
     _bounded_graph(path, root)
-    aliases = loader.alias_lines
     executable_seen: set[int] = set()
     references: list[tuple[int, str]] = []
     call_bindings: list[tuple[int, str, frozenset[str], frozenset[str]]] = []
@@ -257,3 +291,35 @@ def iter_workflow_call_bindings(
 ) -> list[tuple[int, str, frozenset[str], frozenset[str]]]:
     """Return local job calls with their YAML-aware with/secrets argument names."""
     return _scan_references(path)[1]
+
+
+def workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
+    """Return declared workflow_call input and secret names from YAML mappings."""
+    root, aliases = _load_yaml_document(path)
+    if not isinstance(root, MappingNode):
+        raise _error(path, root, "expected YAML mapping root")
+    _bounded_graph(path, root)
+    top = _contract_mapping_fields(path, root, "root", aliases)
+    on_node = top.get("on")
+    if on_node is None:
+        return set(), set()
+    on_fields = _contract_mapping_fields(path, on_node, "on", aliases)
+    call_node = on_fields.get("workflow_call")
+    if call_node is None:
+        return set(), set()
+    call_fields = _contract_mapping_fields(
+        path, call_node, "on.workflow_call", aliases
+    )
+    inputs_node = call_fields.get("inputs")
+    secrets_node = call_fields.get("secrets")
+    inputs = (
+        set(_contract_mapping_fields(path, inputs_node, "workflow_call inputs", aliases))
+        if inputs_node is not None
+        else set()
+    )
+    secrets = (
+        set(_contract_mapping_fields(path, secrets_node, "workflow_call secrets", aliases))
+        if secrets_node is not None
+        else set()
+    )
+    return inputs, secrets

@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from .workflow_files import iter_workflow_files
-from .workflow_uses import iter_uses_references
+from .workflow_uses import iter_uses_references, workflow_call_contract
 
 WORKFLOW_DIR = Path(".github/workflows")
 
@@ -23,32 +23,7 @@ def strip_quotes(value: str) -> str:
 
 
 def parse_workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
-    lines = path.read_text(encoding="utf-8").splitlines()
-    inputs: set[str] = set()
-    secrets: set[str] = set()
-    in_workflow_call = False
-    section: str | None = None
-    section_indent = 0
-    for line in lines:
-        stripped = line.strip()
-        indent = len(line) - len(line.lstrip(" "))
-        if stripped == "workflow_call:":
-            in_workflow_call = True
-            section = None
-            continue
-        if not in_workflow_call:
-            continue
-        if stripped in {"inputs:", "secrets:"}:
-            section = stripped[:-1]
-            section_indent = indent
-            continue
-        if section and stripped and indent <= section_indent:
-            section = None
-        if section in {"inputs", "secrets"} and indent == section_indent + 2 and stripped.endswith(":"):
-            name = stripped[:-1].strip().strip("'\"")
-            if name != "{}":
-                (inputs if section == "inputs" else secrets).add(name)
-    return inputs, secrets
+    return workflow_call_contract(path)
 
 
 def collect_mapping_after(lines: list[str], start_index: int, key: str) -> set[str]:

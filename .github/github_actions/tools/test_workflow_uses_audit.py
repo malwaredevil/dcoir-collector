@@ -131,13 +131,17 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         self.assertIn(":6:", findings[1])
         self.assertIn("above current supported maximum v4", findings[1])
 
-    def _contract_findings(self, caller_yaml: str) -> list[str]:
+    def _contract_findings(
+        self, caller_yaml: str, callee_yaml: str | None = None
+    ) -> list[str]:
         caller = self.fixture(".github/workflows/caller.yml", caller_yaml)
         self.fixture(
             ".github/workflows/reusable-ci.yml",
-            "on:\n  workflow_call:\n    inputs:\n"
-            "      declared:\n        type: string\n"
-            "    secrets:\n      declared_secret:\n        required: false\n",
+            callee_yaml or (
+                "on:\n  workflow_call:\n    inputs:\n"
+                "      declared:\n        type: string\n"
+                "    secrets:\n      declared_secret:\n        required: false\n"
+            ),
         )
         workflows, _, _ = local_uses_refs([caller])
         self.assertTrue(workflows, "caller fixture must have a local uses reference")
@@ -167,6 +171,26 @@ class WorkflowUsesAuditTests(unittest.TestCase):
             "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
             "with: {declared: ok}, secrets: {declared_secret: value}}}\n"
         ), [])
+
+    def test_flow_style_reusable_callee_contract_accepts_declared_bindings(self) -> None:
+        self.assertEqual(self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok}, secrets: {declared_secret: value}}}\n",
+            "on: {workflow_call: {inputs: {declared: {type: string}}, "
+            "secrets: {declared_secret: {required: false}}}}\n",
+        ), [])
+
+    def test_flow_style_reusable_callee_rejects_undeclared_bindings(self) -> None:
+        findings = self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok, rogue: no}, "
+            "secrets: {declared_secret: token, rogue_secret: token}}}\n",
+            "on: {workflow_call: {inputs: {declared: {type: string}}, "
+            "secrets: {declared_secret: {required: false}}}}\n",
+        )
+        self.assertEqual(len(findings), 2)
+        self.assertTrue(any("undeclared reusable-workflow input rogue:" in f for f in findings))
+        self.assertTrue(any("undeclared reusable-workflow secret rogue_secret:" in f for f in findings))
 
     def test_same_line_calls_keep_their_own_bindings(self) -> None:
         findings = self._contract_findings(
