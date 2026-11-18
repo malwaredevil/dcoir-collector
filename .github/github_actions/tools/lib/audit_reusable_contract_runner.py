@@ -16,6 +16,7 @@ from lib.audit_reusable_contract_helpers import (
     rel,
 )
 from lib.workflow_files import iter_action_metadata_files, iter_workflow_files
+from lib.workflow_uses import workflow_call_definition
 
 
 def run_contract_audit(repo_root: Path) -> tuple[list[str], dict[str, int]]:
@@ -64,7 +65,9 @@ def run_contract_audit(repo_root: Path) -> tuple[list[str], dict[str, int]]:
                     f"{rel(workflow_file, repo_root)}:{line_no}: local composite action is used before checkout"
                 )
 
-    reusable_count = sum(1 for path in workflow_files if "workflow_call:" in path.read_text(encoding="utf-8"))
+    reusable_count = sum(
+        1 for path in workflow_files if workflow_call_definition(path)[0]
+    )
     _, composite_action_refs, _ = local_uses_refs(action_metadata_files)
     return findings, {
         "primary_workflows": len(primary_workflow_files),

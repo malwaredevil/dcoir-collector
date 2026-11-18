@@ -99,29 +99,9 @@ def required_permissions_for_text(text: str) -> dict[str, str]:
     return required
 
 
-def declares_workflow_call_github_token_secret(text: str) -> bool:
-    in_workflow_call = False
-    in_secrets = False
-    secrets_indent = 0
-    for line in text.splitlines():
-        stripped = line.strip()
-        indent = len(line) - len(line.lstrip(" "))
-        if stripped == "workflow_call:":
-            in_workflow_call = True
-            in_secrets = False
-            continue
-        if not in_workflow_call:
-            continue
-        if stripped == "secrets:":
-            in_secrets = True
-            secrets_indent = indent
-            continue
-        if in_secrets:
-            if stripped and indent <= secrets_indent:
-                in_secrets = False
-            elif indent == secrets_indent + 2 and stripped.startswith("GITHUB_TOKEN:"):
-                return True
-    return False
+def declares_workflow_call_github_token_secret(path: Path) -> bool:
+    """Detect a declared token secret through the canonical YAML mapping."""
+    return "GITHUB_TOKEN" in workflow_call_contract(path)[1]
 
 
 def rel(path: Path, repo_root: Path) -> str:

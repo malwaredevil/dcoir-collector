@@ -293,8 +293,12 @@ def iter_workflow_call_bindings(
     return _scan_references(path)[1]
 
 
-def workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
-    """Return declared workflow_call input and secret names from YAML mappings."""
+def workflow_call_definition(path: Path) -> tuple[bool, set[str], set[str]]:
+    """Read the actual on.workflow_call trigger and declared argument names.
+
+    Quoted and flow-style YAML keys are normalized by BaseLoader. Comment text,
+    job descriptions, and unrelated mappings never create workflow_call events.
+    """
     root, aliases = _load_yaml_document(path)
     if not isinstance(root, MappingNode):
         raise _error(path, root, "expected YAML mapping root")
@@ -302,11 +306,31 @@ def workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
     top = _contract_mapping_fields(path, root, "root", aliases)
     on_node = top.get("on")
     if on_node is None:
-        return set(), set()
+        return False, set(), set()
+    if isinstance(on_node, ScalarNode):
+        if on_node.tag != STRING_TAG:
+            raise _error(path, on_node, "on trigger must be a string")
+        return on_node.value == "workflow_call", set(), set()
+    if isinstance(on_node, SequenceNode):
+        if on_node.tag != SEQUENCE_TAG:
+            raise _error(path, on_node, "on triggers must be a sequence")
+        found = False
+        for event in on_node.value:
+            if not isinstance(event, ScalarNode) or event.tag != STRING_TAG:
+                raise _error(path, event, "on trigger must be a string")
+            if id(event) in aliases:
+                raise _error(path, event, "unsupported YAML alias in on triggers")
+            if event.value == "workflow_call":
+                found = True
+        return found, set(), set()
     on_fields = _contract_mapping_fields(path, on_node, "on", aliases)
     call_node = on_fields.get("workflow_call")
     if call_node is None:
-        return set(), set()
+        return False, set(), set()
+    if isinstance(call_node, ScalarNode):
+        if call_node.tag == STRING_TAG and call_node.value == "":
+            return True, set(), set()
+        raise _error(path, call_node, "on.workflow_call must be a mapping or empty")
     call_fields = _contract_mapping_fields(
         path, call_node, "on.workflow_call", aliases
     )
@@ -322,4 +346,10 @@ def workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
         if secrets_node is not None
         else set()
     )
+    return True, inputs, secrets
+
+
+def workflow_call_contract(path: Path) -> tuple[set[str], set[str]]:
+    """Return declared workflow_call input and secret names from YAML mappings."""
+    _, inputs, secrets = workflow_call_definition(path)
     return inputs, secrets

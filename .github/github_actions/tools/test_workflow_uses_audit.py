@@ -5,10 +5,16 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import check_workflow_action_versions as versions
 from lib.audit_reusable_contract_helpers import local_uses_refs
-from lib.audit_reusable_contract_checks import check_local_workflow_calls
+from lib.audit_reusable_contract_checks import (
+    check_local_workflow_calls,
+    check_reusable_workflows,
+)
+from lib.audit_reusable_contract_runner import run_contract_audit
+from lib.workflow_uses import workflow_call_definition
 from lib.workflow_uses import iter_uses_references
 
 
@@ -215,6 +221,109 @@ class WorkflowUsesAuditTests(unittest.TestCase):
                 "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
                 "with: *args}}\n"
             )
+
+    def test_quoted_flow_callee_trigger_accepts_declared_arguments(self) -> None:
+        self.assertEqual(self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok}, secrets: {declared_secret: token}}}\n",
+            'on: {"workflow_call": {"inputs": {"declared": {"type": string}}, '
+            '"secrets": {"declared_secret": {"required": false}}}}\n',
+        ), [])
+
+    def test_quoted_block_callee_trigger_accepts_declared_arguments(self) -> None:
+        self.assertEqual(self._contract_findings(
+            "jobs:\n  call:\n    uses: ./.github/workflows/reusable-ci.yml\n"
+            "    with: {declared: ok}\n",
+            'on:\n  "workflow_call":\n    inputs:\n'
+            '      "declared":\n        type: string\n',
+        ), [])
+
+    def test_fake_comment_is_not_a_workflow_call_trigger(self) -> None:
+        findings = self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml}}\n",
+            "on: push\n# workflow_call:\n",
+        )
+        self.assertTrue(any("missing workflow_call" in finding for finding in findings))
+
+    def test_quoted_trigger_counts_as_reusable_workflow_definition(self) -> None:
+        workflow = self.fixture(
+            ".github/workflows/reusable-quoted.yml",
+            'on: {"workflow_call": {}}\n',
+        )
+        findings: list[str] = []
+        with patch(
+            "lib.audit_reusable_contract_checks.read_contracts",
+            return_value={"existing_workflow_count": 0},
+        ):
+            check_reusable_workflows(self.root, [workflow], findings)
+        self.assertEqual(findings, [])
+
+    def test_comment_cannot_turn_primary_workflow_into_reusable(self) -> None:
+        workflow = self.fixture(
+            ".github/workflows/primary.yml",
+            "on: push\n# workflow_call:\n",
+        )
+        findings: list[str] = []
+        with patch(
+            "lib.audit_reusable_contract_checks.read_contracts",
+            return_value={"existing_workflow_count": 1},
+        ):
+            check_reusable_workflows(self.root, [workflow], findings)
+        self.assertEqual(findings, [])
+
+    def test_quoted_explicit_github_token_secret_is_rejected(self) -> None:
+        workflow = self.fixture(
+            ".github/workflows/reusable-token.yml",
+            'on: {"workflow_call": {"secrets": '
+            '{"GITHUB_TOKEN": {"required": false}}}}\n',
+        )
+        findings: list[str] = []
+        with patch(
+            "lib.audit_reusable_contract_checks.read_contracts",
+            return_value={"existing_workflow_count": 0},
+        ):
+            check_reusable_workflows(self.root, [workflow], findings)
+        self.assertEqual(len(findings), 1)
+        self.assertIn("must not declare GITHUB_TOKEN", findings[0])
+
+    def test_unrelated_token_comment_does_not_declare_token_secret(self) -> None:
+        workflow = self.fixture(
+            ".github/workflows/reusable-safe.yml",
+            'on: {"workflow_call": {"secrets": {"allowed": {}}}}\n'
+            "# GITHUB_TOKEN:\n",
+        )
+        findings: list[str] = []
+        with patch(
+            "lib.audit_reusable_contract_checks.read_contracts",
+            return_value={"existing_workflow_count": 0},
+        ):
+            check_reusable_workflows(self.root, [workflow], findings)
+        self.assertEqual(findings, [])
+
+    def test_workflow_call_event_scalar_and_sequence_are_detected(self) -> None:
+        for value in ("on: workflow_call\n", "on: [push, workflow_call]\n"):
+            workflow = self.fixture("callee.yml", value)
+            self.assertEqual(workflow_call_definition(workflow), (True, set(), set()))
+        workflow = self.fixture("callee.yml", "on: [push, pull_request]\n")
+        self.assertEqual(workflow_call_definition(workflow), (False, set(), set()))
+
+    def test_reusable_workflow_summary_counts_quoted_call(self) -> None:
+        self.fixture(
+            ".github/workflows/primary.yml",
+            "on: workflow_dispatch\njobs:\n  scan:\n    steps:\n"
+            "      - run: echo safe\n",
+        )
+        self.fixture(
+            ".github/workflows/reusable-quoted.yml",
+            'on: {"workflow_call": {}}\n',
+        )
+        with patch(
+            "lib.audit_reusable_contract_checks.read_contracts",
+            return_value={"existing_workflow_count": 1},
+        ):
+            findings, summary = run_contract_audit(self.root)
+        self.assertEqual(summary["reusable_workflows"], 1)
+        self.assertEqual(findings, [])
 
     def test_flow_style_job_level_reusable_reference(self) -> None:
         path = self.fixture(
