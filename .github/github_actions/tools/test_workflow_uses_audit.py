@@ -206,6 +206,14 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r":\d+:.*alias"):
             versions.check_file(path)
 
+    def test_same_line_flow_alias_executable_mapping_rejected(self) -> None:
+        path = self.fixture("workflow.yml", (
+            "{x: &step {uses: actions/checkout@v5}, "
+            "jobs: {scan: {steps: [*step]}}}\n"
+        ))
+        with self.assertRaisesRegex(ValueError, r":\d+:.*alias"):
+            versions.check_file(path)
+
     def test_merge_key_in_executable_mapping_rejected(self) -> None:
         path = self.fixture("workflow.yml", (
             "x-step: &scan {uses: actions/checkout@v5}\n"

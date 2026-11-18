@@ -143,14 +143,10 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
     executable_seen: set[int] = set()
     references: list[tuple[int, str]] = []
 
-    def fields(
-        node: Node, name: str, *, parent_line: int = 1
-    ) -> dict[str, tuple[ScalarNode, Node]]:
+    def fields(node: Node, name: str) -> dict[str, tuple[ScalarNode, Node]]:
         if not isinstance(node, MappingNode) or node.tag != MAPPING_TAG:
             raise _error(path, node, f"{name} must be a mapping")
-        if id(node) in executable_seen or (
-            id(node) in aliases and node.start_mark.line + 1 < parent_line
-        ):
+        if id(node) in executable_seen or id(node) in aliases:
             raise _error(
                 path, node, f"unsupported YAML alias in executable {name}",
                 line=aliases.get(id(node), [node.start_mark.line + 1])[0],
@@ -187,7 +183,7 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
         key, seq = field
         if not isinstance(seq, SequenceNode) or seq.tag != SEQUENCE_TAG:
             raise _error(path, key, f"{name} steps must be a sequence")
-        if id(seq) in aliases and seq.start_mark.line + 1 < key.start_mark.line + 1:
+        if id(seq) in aliases:
             raise _error(
                 path, seq, f"unsupported YAML alias in executable {name} steps",
                 line=aliases[id(seq)][0],
@@ -195,27 +191,23 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
         for step in seq.value:
             if not isinstance(step, MappingNode):
                 raise _error(path, step, f"{name} step must be a mapping")
-            mapping = fields(
-                step, f"{name} step", parent_line=seq.start_mark.line + 1
-            )
+            mapping = fields(step, f"{name} step")
             if "uses" in mapping:
                 add_reference(mapping["uses"])
 
     top = fields(root, "root")
     if "jobs" in top:
-        jobs_key, jobs_node = top["jobs"]
-        jobs = fields(jobs_node, "jobs", parent_line=jobs_key.start_mark.line + 1)
-        for job_id, (job_key, job_node) in jobs.items():
-            job = fields(
-                job_node, f"job {job_id}", parent_line=job_key.start_mark.line + 1
-            )
+        _, jobs_node = top["jobs"]
+        jobs = fields(jobs_node, "jobs")
+        for job_id, (_, job_node) in jobs.items():
+            job = fields(job_node, f"job {job_id}")
             if "uses" in job:
                 add_reference(job["uses"])
             if "steps" in job:
                 steps(job["steps"], f"job {job_id}")
     if "runs" in top:
-        runs_key, runs_node = top["runs"]
-        runs = fields(runs_node, "runs", parent_line=runs_key.start_mark.line + 1)
+        _, runs_node = top["runs"]
+        runs = fields(runs_node, "runs")
         if "using" in runs:
             using_key, using_node = runs["using"]
             if not isinstance(using_node, ScalarNode) or using_node.tag != STRING_TAG:
