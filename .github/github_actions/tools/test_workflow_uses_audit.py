@@ -8,6 +8,7 @@ from pathlib import Path
 
 import check_workflow_action_versions as versions
 from lib.audit_reusable_contract_helpers import local_uses_refs
+from lib.audit_reusable_contract_checks import check_local_workflow_calls
 from lib.workflow_uses import iter_uses_references
 
 
@@ -129,6 +130,67 @@ class WorkflowUsesAuditTests(unittest.TestCase):
         self.assertIn("below approved minimum v6", findings[0])
         self.assertIn(":6:", findings[1])
         self.assertIn("above current supported maximum v4", findings[1])
+
+    def _contract_findings(self, caller_yaml: str) -> list[str]:
+        caller = self.fixture(".github/workflows/caller.yml", caller_yaml)
+        self.fixture(
+            ".github/workflows/reusable-ci.yml",
+            "on:\n  workflow_call:\n    inputs:\n"
+            "      declared:\n        type: string\n"
+            "    secrets:\n      declared_secret:\n        required: false\n",
+        )
+        workflows, _, _ = local_uses_refs([caller])
+        self.assertTrue(workflows, "caller fixture must have a local uses reference")
+        findings: list[str] = []
+        check_local_workflow_calls(self.root, workflows, findings)
+        return findings
+
+    def test_flow_style_reusable_call_rejects_unknown_inputs_and_secrets(self) -> None:
+        findings = self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok, rogue: no}, "
+            "secrets: {declared_secret: token, rogue_secret: token}}}\n"
+        )
+        self.assertEqual(len(findings), 2)
+        self.assertTrue(any("undeclared reusable-workflow input rogue:" in f for f in findings))
+        self.assertTrue(any("undeclared reusable-workflow secret rogue_secret:" in f for f in findings))
+
+    def test_block_job_flow_bindings_reject_unknown_inputs_and_secrets(self) -> None:
+        findings = self._contract_findings(
+            "jobs:\n  call:\n    uses: ./.github/workflows/reusable-ci.yml\n"
+            "    with: {rogue: value}\n    secrets: {rogue_secret: value}\n"
+        )
+        self.assertEqual(len(findings), 2)
+
+    def test_flow_style_declared_bindings_are_allowed(self) -> None:
+        self.assertEqual(self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok}, secrets: {declared_secret: value}}}\n"
+        ), [])
+
+    def test_same_line_calls_keep_their_own_bindings(self) -> None:
+        findings = self._contract_findings(
+            "jobs: {left: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {rogue: value}}, "
+            "right: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok}}}\n"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("undeclared reusable-workflow input rogue:", findings[0])
+
+    def test_reusable_secrets_inherit_is_supported(self) -> None:
+        self.assertEqual(self._contract_findings(
+            "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+            "with: {declared: ok}, secrets: inherit}}\n"
+        ), [])
+
+    def test_aliased_reusable_with_mapping_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported YAML alias"):
+            self._contract_findings(
+                "shared: &args {rogue: value}\n"
+                "jobs: {call: {uses: ./.github/workflows/reusable-ci.yml, "
+                "with: *args}}\n"
+            )
 
     def test_flow_style_job_level_reusable_reference(self) -> None:
         path = self.fixture(

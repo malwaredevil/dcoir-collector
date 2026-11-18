@@ -8,7 +8,6 @@ from lib.audit_reusable_contract_helpers import (
     COMPOSITE_USING_RE,
     DOUBLE_QUOTED_EXPRESSION_LITERAL_RE,
     WORKFLOW_DIR,
-    collect_mapping_after,
     collect_mapping_values_after,
     declares_workflow_call_github_token_secret,
     find_mapping_headers,
@@ -18,6 +17,7 @@ from lib.audit_reusable_contract_helpers import (
     required_permissions_for_text,
 )
 from lib.workflow_files import iter_action_metadata_files, resolve_action_metadata
+from lib.workflow_uses import iter_workflow_call_bindings
 from lib.workflow_inventory_core import CONTRACT_PATH, read_contracts
 
 
@@ -97,6 +97,10 @@ def check_local_workflow_calls(
     workflow_refs: list[tuple[Path, int, str]],
     findings: list[str],
 ) -> None:
+    # Preserve per-job order even for multiple calls on one flow-style YAML line.
+    pending: dict[
+        Path, dict[tuple[int, str], list[tuple[frozenset[str], frozenset[str]]]]
+    ] = {}
     for source_path, line_no, ref in workflow_refs:
         target_ref = ref.split("@", 1)[0]
         target = repo_root / target_ref.removeprefix("./")
@@ -109,9 +113,20 @@ def check_local_workflow_calls(
         if "workflow_call:" not in target.read_text(encoding="utf-8"):
             findings.append(f"{source_rel}:{line_no}: local workflow call target is missing workflow_call: {ref}")
         declared_inputs, declared_call_keys = parse_workflow_call_contract(target)
-        lines = source_path.read_text(encoding="utf-8").splitlines()
-        passed_inputs = collect_mapping_after(lines, line_no - 1, "with")
-        passed_call_keys = collect_mapping_after(lines, line_no - 1, "secrets")
+        if source_path not in pending:
+            by_call: dict[
+                tuple[int, str], list[tuple[frozenset[str], frozenset[str]]]
+            ] = {}
+            for call_line, call_ref, inputs, secrets in iter_workflow_call_bindings(source_path):
+                by_call.setdefault((call_line, call_ref), []).append((inputs, secrets))
+            pending[source_path] = by_call
+        matches = pending[source_path].get((line_no, ref), [])
+        if not matches:
+            findings.append(
+                f"{source_rel}:{line_no}: local reusable workflow call must be job-level: {ref}"
+            )
+            continue
+        passed_inputs, passed_call_keys = matches.pop(0)
         for input_name in sorted(passed_inputs - declared_inputs):
             findings.append(f"{source_rel}:{line_no}: caller passes undeclared reusable-workflow input {input_name}: {ref}")
         for call_key in sorted(passed_call_keys - declared_call_keys):

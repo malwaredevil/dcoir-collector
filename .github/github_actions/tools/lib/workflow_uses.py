@@ -106,8 +106,13 @@ def _normalize_inline_comment_tabs(text: str) -> str:
     return "".join(lines)
 
 
-def iter_uses_references(path: Path) -> list[tuple[int, str]]:
-    """Find executable (key line, reference) pairs, rejecting ambiguity."""
+def _scan_references(
+    path: Path,
+) -> tuple[
+    list[tuple[int, str]],
+    list[tuple[int, str, frozenset[str], frozenset[str]]],
+]:
+    """Read executable uses and local reusable caller argument names."""
     raw = path.read_bytes()
     if len(raw) > MAX_YAML_BYTES:
         raise _error(path, None, "YAML input exceeds audit byte limit")
@@ -142,6 +147,7 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
     aliases = loader.alias_lines
     executable_seen: set[int] = set()
     references: list[tuple[int, str]] = []
+    call_bindings: list[tuple[int, str, frozenset[str], frozenset[str]]] = []
 
     def fields(node: Node, name: str) -> dict[str, tuple[ScalarNode, Node]]:
         if not isinstance(node, MappingNode) or node.tag != MAPPING_TAG:
@@ -175,9 +181,23 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
             raise _error(path, key, f"dynamic uses reference is unsupported: {value}")
         return value
 
-    def add_reference(field: tuple[ScalarNode, Node]) -> None:
+    def add_reference(field: tuple[ScalarNode, Node]) -> tuple[int, str]:
         key, value = field
-        references.append((key.start_mark.line + 1, scalar(value, key, "uses value")))
+        reference = (key.start_mark.line + 1, scalar(value, key, "uses value"))
+        references.append(reference)
+        return reference
+
+    def binding_names(
+        job: dict[str, tuple[ScalarNode, Node]], key: str, job_name: str
+    ) -> frozenset[str]:
+        if key not in job:
+            return frozenset()
+        _, node = job[key]
+        if key == "secrets" and isinstance(node, ScalarNode):
+            if node.tag == STRING_TAG and node.value == "inherit":
+                return frozenset()
+            raise _error(path, node, f"{job_name} secrets must be a mapping or inherit")
+        return frozenset(fields(node, f"{job_name} {key}"))
 
     def steps(field: tuple[ScalarNode, Node], name: str) -> None:
         key, seq = field
@@ -202,7 +222,14 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
         for job_id, (_, job_node) in jobs.items():
             job = fields(job_node, f"job {job_id}")
             if "uses" in job:
-                add_reference(job["uses"])
+                call_line, call_ref = add_reference(job["uses"])
+                if call_ref.startswith("./.github/workflows/"):
+                    call_bindings.append((
+                        call_line,
+                        call_ref,
+                        binding_names(job, "with", f"job {job_id}"),
+                        binding_names(job, "secrets", f"job {job_id}"),
+                    ))
             if "steps" in job:
                 steps(job["steps"], f"job {job_id}")
     if "runs" in top:
@@ -214,4 +241,19 @@ def iter_uses_references(path: Path) -> list[tuple[int, str]]:
                 raise _error(path, using_key, "runs.using must be a scalar")
             if using_node.value.lower() == "composite" and "steps" in runs:
                 steps(runs["steps"], "composite")
-    return sorted(references, key=lambda pair: pair[0])
+    return (
+        sorted(references, key=lambda pair: pair[0]),
+        sorted(call_bindings, key=lambda call: call[0]),
+    )
+
+
+def iter_uses_references(path: Path) -> list[tuple[int, str]]:
+    """Find executable (key line, reference) pairs, rejecting ambiguity."""
+    return _scan_references(path)[0]
+
+
+def iter_workflow_call_bindings(
+    path: Path,
+) -> list[tuple[int, str, frozenset[str], frozenset[str]]]:
+    """Return local job calls with their YAML-aware with/secrets argument names."""
+    return _scan_references(path)[1]
