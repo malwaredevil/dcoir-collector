@@ -65,13 +65,54 @@ def _bounded_graph(path: Path, root: Node) -> None:
             stack.extend((value, depth + 1) for value in node.value)
 
 
+
+def _normalize_inline_comment_tabs(text: str) -> str:
+    """Allow tab whitespace immediately before a real YAML inline comment.
+
+    Preserve quoted data and reject tabs in non-comment syntax; YAML itself
+    remains the parser and supplies the source line numbers.
+    """
+    lines: list[str] = []
+    for line in text.splitlines(keepends=True):
+        quote: str | None = None
+        escaped = False
+        index = 0
+        while index < len(line):
+            char = line[index]
+            if quote == '"':
+                if char == "\\" and not escaped:
+                    escaped = True
+                    index += 1
+                    continue
+                if char == '"' and not escaped:
+                    quote = None
+                escaped = False
+            elif quote == "'":
+                if char == "'":
+                    if index + 1 < len(line) and line[index + 1] == "'":
+                        index += 2
+                        continue
+                    quote = None
+            elif char in {'"', "'"}:
+                quote = char
+            elif char == "#" and (index == 0 or line[index - 1].isspace()):
+                start = index
+                while start > 0 and line[start - 1] in " \t":
+                    start -= 1
+                line = line[:start] + line[start:index].replace("\t", " ") + line[index:]
+                break
+            index += 1
+        lines.append(line)
+    return "".join(lines)
+
+
 def iter_uses_references(path: Path) -> list[tuple[int, str]]:
     """Find executable (key line, reference) pairs, rejecting ambiguity."""
     raw = path.read_bytes()
     if len(raw) > MAX_YAML_BYTES:
         raise _error(path, None, "YAML input exceeds audit byte limit")
     try:
-        text = raw.decode("utf-8")
+        text = _normalize_inline_comment_tabs(raw.decode("utf-8"))
     except UnicodeDecodeError as exc:
         line = raw[:exc.start].count(b"\n") + 1
         raise _error(path, None, "invalid UTF-8 YAML input", line=line) from exc
