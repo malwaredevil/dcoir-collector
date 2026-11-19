@@ -115,12 +115,14 @@ $selectedPartPaths = @(Get-CollectorSourcePartFiles -RepositoryRoot (Get-Locatio
 
 **Files**
 - Modify: .github/actions/run-collector-documentation-quality/action.yml
-- Test: .github/github_actions/tools/test_report_only_static_gate_actions.py or a dedicated adjacent test
+- Test: .github/github_actions/tools/test_collector_harness_reuse_contract.py (called by run_pr_draft_fail_fast.py)
+- Modify: .github/workflows/reusable-collector-validation.yml (assemble whenever run_documentation_quality is true)
+- Modify: .github/workflows/reusable-collector-runtime-package-build.yml (add a preceding assembler action)
 - Read: .github/workflows/reusable-validate-on-pr.yml, reusable-validate-on-push.yml, reusable-collector-documentation-quality.yml
 
-- [ ] Step 1. Add a failing contract test that finds the existing repeated assembler invocation inside the documentation-quality action, and asserts all three caller workflows first invoke assemble-collector-harness.
+- [ ] Step 1. Add a failing contract test that finds the existing repeated assembler invocation inside the documentation-quality action, and asserts **all five** caller workflows invoke assemble-collector-harness before the quality gate. Two callers not listed in the original issue were discovered during implementation: reusable-collector-validation.yml had conditional assembly and reusable-collector-runtime-package-build.yml had no preceding assembler.
 - [ ] Step 2. Run RED. Change the action to check the existing canonical generated harness path using Test-Path -PathType Leaf. Throw a missing-harness error rather than executing the assembler. Keep step names, input/output paths, validator invocation, errors and artifact behavior consistent.
-- [ ] Step 3. Run positive prebuilt-harness control and negative missing-harness control on Windows; confirm identical canonical generated-harness SHA and unchanged normalized documentation-quality report output.
+- [ ] Step 3. Run positive prebuilt-harness control and negative missing-harness control on Windows; confirm identical canonical generated-harness SHA and unchanged normalized documentation-quality report output. The runtime-package-build and optional validation workflows must assemble on a documentation-only invocation.
 - [ ] Step 4. Run GREEN tests, then commit and read back exact changed files.
 
 Minimal action step:
@@ -148,3 +150,13 @@ if (-not (Test-Path -LiteralPath $generatedHarnessPath -PathType Leaf)) {
 ## Stop conditions and review handoff
 
 Do not claim that tests passed without a real test run on the exact branch head. Do not claim report parity without comparing existing and changed output facts. The user approved written design and governed workflow/action scope; this does not authorize Ready, independent review requests, merge, or closing Issue #608. Governance PR #654 must remain untouched.
+
+## Execution evidence (2026-11-19)
+
+- Operator reviewed and approved the written specification before any executable source changes.
+- Draft PR #656 was opened from the isolated branch with tests first. Windows run #44494287699 recorded the expected RED failure due to the missing helper.
+- The helper's real Windows PowerShell AST assigned CommandExpressionAst directly on the right-hand side. Run #44494679814 diagnosed this; after a targeted fix, run #44494997666 recorded the helper suite and existing composite PowerShell syntax step as SUCCESS.
+- New consumer contract tests failed as expected for both old globbing implementations in Draft run #44495380470 (two failed tests). After both consumers changed, Draft fail-fast run #44495600139 completed SUCCESS.
+- A five-caller harness contract test was written first and failed in Draft run #44495981532 (three expected failures). The docs action and both missing caller preconditions were then updated; Draft fail-fast run #44496182375 completed SUCCESS.
+- GitHub Actions Workflow Audit generated the exact workflow inventory change from 132 to 133 local composite calls, then the committed JSON and Markdown were verified against generator output. PowerShell inventory was regenerated in a **temporary Draft diagnostic** using the canonical build_powershell_surface_inventory.py script; both diff patches were applied to the checked-in files, and the new blob SHA prefixes (6083977 and cbd7d5a) matched the generator's output. The temporary diagnostic hook was removed.
+- Verification after the generated inventories and documentation reconciliation is still required on the final exact branch head. Do not claim full Ready validation or review approval based solely on Draft fast gates.
