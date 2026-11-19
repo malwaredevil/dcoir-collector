@@ -4721,9 +4721,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 8351,
-      "line_count": 175,
-      "sha256": "dfa7dab3f15e674f2c7dc7dfed6b489f241f51f5ec9876f373200111dd8c0d3e"
+      "size_bytes": 10089,
+      "line_count": 215,
+      "sha256": "ad48efab617a1065d026c6e0bf9e7f45492c506c129c7645e46c102e68eaf19e"
     },
     {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
@@ -4805,9 +4805,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 8137,
-      "line_count": 149,
-      "sha256": "bc52051d77be4450a67ce221c65d856770265d46273bf387e2203302e9a01916"
+      "size_bytes": 9624,
+      "line_count": 176,
+      "sha256": "52bfeef09369c8bd19ed113914aff604a3af09a2b42c6fc13fb3c14cce0277cf"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-apply-in.yml",
