@@ -146,7 +146,7 @@ try {
             try {
                 Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $ancestorLink.Root } "reparse ancestor $ancestor"
             } finally {
-                Remove-Item -LiteralPath $linkPath -Force -ErrorAction SilentlyContinue
+                [IO.Directory]::Delete($linkPath)
             }
         }
     }
