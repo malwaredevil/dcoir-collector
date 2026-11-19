@@ -27,18 +27,13 @@ runs:
         if ($LASTEXITCODE -ne 0) {
           throw 'Documentation validator self-tests failed.'
         }
-    - name: Assemble generated collector harness for documentation audit
+    - name: Require preassembled collector harness for documentation audit
       shell: pwsh
       run: |
         $ErrorActionPreference = 'Stop'
-        $assemblerPath = Join-Path (Get-Location) 'project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1'
         $generatedHarnessPath = Join-Path (Get-Location) 'project_sources/collector/harness/run_DCOIR_Tests.generated.ps1'
-        if (-not (Test-Path -LiteralPath $assemblerPath)) {
-          throw "Harness assembler not found: $assemblerPath"
-        }
-        & $assemblerPath -OutputPath $generatedHarnessPath
-        if (-not $? -or -not (Test-Path -LiteralPath $generatedHarnessPath)) {
-          throw "Generated collector harness not produced: $generatedHarnessPath"
+        if (-not (Test-Path -LiteralPath $generatedHarnessPath -PathType Leaf)) {
+          throw "Preassembled collector harness missing: $generatedHarnessPath"
         }
     - name: Run collector documentation quality gate
       shell: pwsh
