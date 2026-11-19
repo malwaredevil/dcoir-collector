@@ -1,7 +1,7 @@
 # Issue #608 Slice 3: Authoritative Collector Part Discovery
 
 **Date:** 2026-11-19
-**Status:** Operator approved the design and workflow/action change scope in chat; written spec awaiting operator review before implementation.
+**Status:** Operator separately approved the conceptual design/workflow scope and reviewed the written specification on 2026-11-19. Implementation is in a Draft PR; no Ready, review-request, or merge authorization is implied.
 **Issue:** https://github.com/malwaredevil/dcoir-collector/issues/608
 **Base commit:** `5ecd3d11cd37c5de205573f5cf70417155e6d79e` (Slice 2 PR #655 merged; five main-push checks passed).
 
@@ -38,8 +38,8 @@ Create `.github/scripts/Get-CollectorSourcePartFiles.ps1`, dot-sourceable withou
 
 ### 3. Harness assembly ownership
 
-- `.github/workflows/reusable-validate-on-pr.yml`, `reusable-validate-on-push.yml`, and `reusable-collector-documentation-quality.yml` already invoke `.github/actions/assemble-collector-harness` before calling `.github/actions/run-collector-documentation-quality`.
-- Remove unconditional reassembly inside `.github/actions/run-collector-documentation-quality/action.yml`. Instead **require** the generated harness at its established canonical output path; error if absent (do not silently regenerate). Check all callers and their ordering before the edit. Preserve standalone documentation-quality workflow behavior, report artifact output, and validator inputs.
+- The initially reviewed callers `.github/workflows/reusable-validate-on-pr.yml`, `reusable-validate-on-push.yml`, and `reusable-collector-documentation-quality.yml` already invoke `.github/actions/assemble-collector-harness` before documentation quality. Canonical source inspection also identified **two additional callers**: `reusable-collector-validation.yml` (assembly was conditional on unrelated harness flags) and `reusable-collector-runtime-package-build.yml` (no preceding assembler). Preserve both flows by extending the former assembler condition to `run_documentation_quality` and adding one assembly step to the latter before documentation quality.
+- Remove unconditional reassembly inside `.github/actions/run-collector-documentation-quality/action.yml`. Instead **require** the generated harness at its established canonical output path; error if absent (do not silently regenerate). Check the ordering and conditional execution for **all five** callers before the edit. Preserve standalone documentation-quality and runtime-package-build workflow behavior, report artifacts, and validator inputs.
 - Avoid changing harness concatenation, generated content, collector source, or package outputs.
 
 ## Validation and test design (Draft first)
@@ -47,7 +47,7 @@ Create `.github/scripts/Get-CollectorSourcePartFiles.ps1`, dot-sourceable withou
 - Baseline: capture the exact 43-part ordered source list, current inventory selected paths, and duplicate-function/docs report outputs for comparison; verify current main-push gate success.
 - TDD red/green: test a missing listed source part, a duplicate entry, a nonliteral expression, traversal, a symlink escape, an extra unlisted root/nested part, and a malformed wrapper AST. Each must fail; an ordinary literal list matching existing files must pass without executing any runtime statements.
 - Test both consumers against the helper, including the `include-collector-parts=false` control; a clean checkout must select the **same 44 validation part paths** (43 runtime-loaded plus one compatibility marker), with the runtime wrapper included where originally scanned. Separately assert that only the 43 literal AST paths are runtime-loaded. Run hostile tests against the **shipped PowerShell helper** on Windows, not a Python-only behavioral mirror.
-- Verify preassembled harness is reused and missing harness fails the docs action; compare generated harness hashes and documentation-quality JSON/Markdown or equivalently normalized reports to baseline. Check all three existing workflows call the assembler before the documentation action.
+- Verify preassembled harness is reused and missing harness fails the docs action; compare generated harness hashes and documentation-quality JSON/Markdown or equivalently normalized reports to baseline. Check all **five** caller workflows invoke the assembler before the documentation action, including the conditional `run_documentation_quality` selection.
 - Regenerate and check repository-owned workflow/action and PowerShell inventory JSON/Markdown as required; **do not** edit inventory facts by hand. Run Workflow Audit, Python tests, PowerShell syntax, analyzer/static gate, docs quality and relevant Windows suites on the same exact head.
 - Internally perform Prog implementation and independent Adva-style hostile review with positive and negative controls, document valid findings and fixes. Create only a **Draft PR**. The operator controls requests for Copilot or other independent review. Separate approvals are mandatory for Ready, merge and Issue #608 closure; paid OpenRouter/DCOIR Review remains opted out.
 
@@ -57,4 +57,4 @@ A failed inventory parity, report difference, missing required part or invalid A
 
 ## Written-spec review gate
 
-The operator approved this conceptual design and the workflow/action-change scope on 2026-11-19. Per the architecture workflow, **implementation waits for operator review of this written spec**; approval of the written specifics is distinct from authorization to request Copilot review or move the PR to Ready.
+The operator approved the conceptual design and workflow/action-change scope on 2026-11-19, then separately **approved the written specification** in the next chat turn. During implementation, source readback identified the two additional documentation-quality callers above; those minimal ordering/precondition changes are required to preserve existing behavior. Independent Copilot review, Ready transition, merge and parent issue closure each still require separate operator authorization.
