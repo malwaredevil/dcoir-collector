@@ -45,6 +45,7 @@ def main() -> int:
         ".github/github_actions/tools/test_pr_validation_lifecycle.py",
         ".github/github_actions/tools/test_main_only_push_trigger.py",
         ".github/github_actions/tools/test_workflow_consistency_action_metadata.py",
+        ".github/github_actions/tools/test_duplicate_function_action_contract.py",
         ".github/github_actions/tools/test_report_only_static_gate_actions.py",
         ".github/github_actions/tools/test_workflow_uses_audit.py",
         ".github/github_actions/tools/check_workflow_modularization_contracts.py",
