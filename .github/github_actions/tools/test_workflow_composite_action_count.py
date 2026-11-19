@@ -112,5 +112,46 @@ class CompositeActionCountTests(unittest.TestCase):
         self.assertTrue(any("secrets.*" in f for f in findings))
 
 
+    def test_issue608_slice2_setup_has_exactly_one_owner(self) -> None:
+        # Production guard: enforce the approved removal and exact Python version.
+        root = Path(__file__).resolve().parents[3]
+        retired_actions = (
+            "setup-python-runtime",
+            "write-chatgpt-report-section",
+            "write-progress-heartbeat",
+        )
+        for action in retired_actions:
+            with self.subTest(retired_action=action):
+                self.assertFalse(
+                    (root / ".github" / "actions" / action).exists(),
+                    "retired composite action unexpectedly exists",
+                )
+
+        expected_setup = (
+            "      - name: Set up workflow runtime\n"
+            "        uses: ./.github/actions/setup-workflow-runtime\n"
+            "        with:\n"
+            "          setup-python: 'true'\n"
+            '          python-version: "3.11"\n'
+        )
+        workflows = (
+            "reusable-collector-runtime-package-build.yml",
+            "reusable-gemini-bundle-build.yml",
+            "reusable-collector-validation.yml",
+        )
+        for name in workflows:
+            with self.subTest(workflow=name):
+                workflow = (root / ".github" / "workflows" / name).read_text(
+                    encoding="utf-8"
+                )
+                self.assertEqual(
+                    workflow.count("uses: ./.github/actions/setup-workflow-runtime"),
+                    1,
+                    "workflow must have one canonical runtime setup call",
+                )
+                self.assertNotIn("uses: ./.github/actions/setup-python-runtime", workflow)
+                self.assertIn(expected_setup, workflow)
+
+
 if __name__ == "__main__":
     unittest.main()
