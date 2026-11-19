@@ -70,7 +70,10 @@ function Get-CollectorSourcePartFiles {
     if ($right -isnot [System.Management.Automation.Language.PipelineAst] -or
         @($right.PipelineElements).Count -ne 1 -or
         $right.PipelineElements[0] -isnot [System.Management.Automation.Language.CommandExpressionAst]) {
-        throw 'collectorPartFiles must be a literal PowerShell array expression.'
+        $rightType = if ($null -eq $right) { '<null>' } else { $right.GetType().Name }
+        $partsOfRight = if ($right -is [System.Management.Automation.Language.PipelineAst]) { @($right.PipelineElements) } else { @() }
+        $firstType = if ($partsOfRight.Count -eq 0) { '<none>' } else { $partsOfRight[0].GetType().Name }
+        throw ("collectorPartFiles must be a literal PowerShell array expression (right={0}; elements={1}; first={2})." -f $rightType, $partsOfRight.Count, $firstType)
     }
     $expression = $right.PipelineElements[0].Expression
     if ($expression -isnot [System.Management.Automation.Language.ArrayExpressionAst]) {
