@@ -52,6 +52,31 @@ def main() -> int:
         ".github/github_actions/tools/check_workflow_modularization_contracts.py",
     ):
         subprocess.run([sys.executable, str(ROOT / script)], cwd=ROOT, check=True)
+    # Diagnostic staging only: emit the canonical generator delta for Slice 3.
+    inventory_paths = (
+        "project_sources/collector/powershell_surface_inventory.json",
+        "project_sources/collector/powershell_surface_inventory.md",
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "project_sources/collector/tools/build_powershell_surface_inventory.py"),
+            "--repo-root",
+            ".",
+        ],
+        cwd=ROOT,
+        check=True,
+    )
+    print("BEGIN_CANONICAL_POWERSHELL_INVENTORY_DIFF", flush=True)
+    subprocess.run(
+        ["git", "--no-pager", "diff", "--unified=1", "--", *inventory_paths],
+        cwd=ROOT,
+        check=True,
+    )
+    print("END_CANONICAL_POWERSHELL_INVENTORY_DIFF", flush=True)
+    if subprocess.run(["git", "diff", "--quiet", "--", *inventory_paths], cwd=ROOT).returncode:
+        raise RuntimeError("Canonical PowerShell inventory differs from committed files.")
+
     print("Draft fail-fast: workflow contracts passed", flush=True)
     return 0
 
