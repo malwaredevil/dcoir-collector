@@ -67,15 +67,15 @@ function Get-CollectorSourcePartFiles {
     }
 
     $right = $assignments[0].Right
-    if ($right -isnot [System.Management.Automation.Language.PipelineAst] -or
-        @($right.PipelineElements).Count -ne 1 -or
-        $right.PipelineElements[0] -isnot [System.Management.Automation.Language.CommandExpressionAst]) {
-        $rightType = if ($null -eq $right) { '<null>' } else { $right.GetType().Name }
-        $partsOfRight = if ($right -is [System.Management.Automation.Language.PipelineAst]) { @($right.PipelineElements) } else { @() }
-        $firstType = if ($partsOfRight.Count -eq 0) { '<none>' } else { $partsOfRight[0].GetType().Name }
-        throw ("collectorPartFiles must be a literal PowerShell array expression (right={0}; elements={1}; first={2})." -f $rightType, $partsOfRight.Count, $firstType)
+    if ($right -is [System.Management.Automation.Language.CommandExpressionAst]) {
+        $expression = $right.Expression
+    } elseif ($right -is [System.Management.Automation.Language.PipelineAst] -and
+              @($right.PipelineElements).Count -eq 1 -and
+              $right.PipelineElements[0] -is [System.Management.Automation.Language.CommandExpressionAst]) {
+        $expression = $right.PipelineElements[0].Expression
+    } else {
+        throw "collectorPartFiles must be a literal PowerShell array expression; received $($right.GetType().Name)."
     }
-    $expression = $right.PipelineElements[0].Expression
     if ($expression -isnot [System.Management.Automation.Language.ArrayExpressionAst]) {
         throw 'collectorPartFiles must use a literal @() array.'
     }
