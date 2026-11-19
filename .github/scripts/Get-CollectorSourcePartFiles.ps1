@@ -81,11 +81,13 @@ function Get-CollectorSourcePartFiles {
         @($node.Left.FindAll({
             param($leftNode)
             $leftNode -is [System.Management.Automation.Language.VariableExpressionAst] -and
-            $leftNode.VariablePath.UserPath -match '(?:^|:)collectorPartFiles$'
+            $leftNode.VariablePath.UserPath -ieq 'collectorPartFiles'
         }, $true)).Count -gt 0
     }, $true))
-    if ($assignments.Count -ne 1 -or $assignments[0].Parent -ne $ast.EndBlock) {
-        throw "Expected exactly one top-level collectorPartFiles assignment; found $($assignments.Count)."
+    if ($assignments.Count -ne 1 -or
+        $assignments[0].Parent -ne $ast.EndBlock -or
+        $assignments[0].Operator -ne [System.Management.Automation.Language.TokenKind]::Equals) {
+        throw "Expected exactly one top-level simple assignment to unscoped collectorPartFiles; found $($assignments.Count)."
     }
 
     $right = $assignments[0].Right
