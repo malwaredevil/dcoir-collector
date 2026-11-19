@@ -21,14 +21,19 @@ function Get-CollectorSourcePartFiles {
     if (-not (Test-Path -LiteralPath $root -PathType Container)) {
         throw "Collector repository root is missing: $root"
     }
+
     $sourceRoot = Join-Path $root 'project_sources/collector/source'
     $partsRoot = Join-Path $sourceRoot 'parts'
-    if (-not (Test-Path -LiteralPath $partsRoot -PathType Container)) {
-        throw "Collector source parts directory is missing: $partsRoot"
-    }
-    $partDirectoryItem = Get-Item -LiteralPath $partsRoot -Force
-    if (($partDirectoryItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        throw "Collector source parts directory must not be a reparse point: $partsRoot"
+    $directory = $root
+    foreach ($segment in @('project_sources', 'collector', 'source', 'parts')) {
+        $directory = Join-Path $directory $segment
+        if (-not (Test-Path -LiteralPath $directory -PathType Container)) {
+            throw "Collector source directory is missing: $directory"
+        }
+        $directoryItem = Get-Item -LiteralPath $directory -Force
+        if (($directoryItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Collector source directory must not be a reparse point: $directory"
+        }
     }
 
     $canonicalWrapper = Join-Path $sourceRoot 'DCOIR_Collector.ps1'
@@ -38,12 +43,25 @@ function Get-CollectorSourcePartFiles {
     if (-not $wrapperFull.StartsWith($rootPrefix, [StringComparison]::OrdinalIgnoreCase)) {
         throw "Collector wrapper path is outside repository root: $wrapper"
     }
-    if (-not (Test-Path -LiteralPath $wrapperFull -PathType Leaf)) {
-        throw "Collector wrapper is missing: $wrapperFull"
-    }
-    $wrapperItem = Get-Item -LiteralPath $wrapperFull -Force
-    if (($wrapperItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-        throw "Collector wrapper must not be a reparse point: $wrapperFull"
+    $wrapperPath = $root
+    $wrapperSegments = $wrapperFull.Substring($rootPrefix.Length).Split(
+        [char[]]@('\', '/'), [StringSplitOptions]::RemoveEmptyEntries
+    )
+    for ($index = 0; $index -lt $wrapperSegments.Length; $index++) {
+        $wrapperPath = Join-Path $wrapperPath $wrapperSegments[$index]
+        $isLeaf = $index -eq ($wrapperSegments.Length - 1)
+        $pathExists = if ($isLeaf) {
+            Test-Path -LiteralPath $wrapperPath -PathType Leaf
+        } else {
+            Test-Path -LiteralPath $wrapperPath -PathType Container
+        }
+        if (-not $pathExists) {
+            throw "Collector wrapper path is missing or invalid: $wrapperPath"
+        }
+        $wrapperItem = Get-Item -LiteralPath $wrapperPath -Force
+        if (($wrapperItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Collector wrapper path must not contain a reparse point: $wrapperPath"
+        }
     }
 
     $tokens = $null
@@ -57,12 +75,16 @@ function Get-CollectorSourcePartFiles {
     if ($null -eq $ast.EndBlock) {
         throw "Collector wrapper has no executable statement block: $wrapperFull"
     }
-    $assignments = @($ast.EndBlock.Statements | Where-Object {
-        $_ -is [System.Management.Automation.Language.AssignmentStatementAst] -and
-        $_.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
-        $_.Left.VariablePath.UserPath -ieq 'collectorPartFiles'
-    })
-    if ($assignments.Count -ne 1) {
+    $assignments = @($ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+        @($node.Left.FindAll({
+            param($leftNode)
+            $leftNode -is [System.Management.Automation.Language.VariableExpressionAst] -and
+            $leftNode.VariablePath.UserPath -match '(?:^|:)collectorPartFiles$'
+        }, $true)).Count -gt 0
+    }, $true))
+    if ($assignments.Count -ne 1 -or $assignments[0].Parent -ne $ast.EndBlock) {
         throw "Expected exactly one top-level collectorPartFiles assignment; found $($assignments.Count)."
     }
 
@@ -151,17 +173,33 @@ function Get-CollectorSourcePartFiles {
     $expected = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($name in $names) { [void]$expected.Add($name) }
     [void]$expected.Add($markerName)
-    $actual = @(Get-ChildItem -LiteralPath $partsRoot -Recurse -File -Filter '*.ps1' -Force)
-    foreach ($part in $actual) {
-        if ([IO.Path]::GetFullPath($part.DirectoryName).TrimEnd([char]'\', [char]'/') -ine
-            [IO.Path]::GetFullPath($partsRoot).TrimEnd([char]'\', [char]'/')) {
-            throw "Unexpected nested collector source part: $($part.FullName)"
-        }
-        if (-not $expected.Contains($part.Name)) {
-            throw "Unexpected unlisted collector source part: $($part.Name)"
-        }
-        if (($part.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-            throw "Collector source part may not be a symlink: $($part.Name)"
+    $actual = [Collections.Generic.List[object]]::new()
+    $directories = [Collections.Generic.Queue[string]]::new()
+    $directories.Enqueue($partsRoot)
+    while ($directories.Count -gt 0) {
+        $currentDirectory = $directories.Dequeue()
+        foreach ($item in @(Get-ChildItem -LiteralPath $currentDirectory -Force)) {
+            $isPowerShellFile = -not $item.PSIsContainer -and
+                [IO.Path]::GetExtension($item.Name) -ieq '.ps1'
+            if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -and
+                ($item.PSIsContainer -or $isPowerShellFile)) {
+                throw "Collector source tree may not contain a reparse point: $($item.FullName)"
+            }
+            if ($item.PSIsContainer) {
+                $directories.Enqueue($item.FullName)
+                continue
+            }
+            if (-not $isPowerShellFile) {
+                continue
+            }
+            if ([IO.Path]::GetFullPath($item.DirectoryName).TrimEnd([char]'\', [char]'/') -ine
+                [IO.Path]::GetFullPath($partsRoot).TrimEnd([char]'\', [char]'/')) {
+                throw "Unexpected nested collector source part: $($item.FullName)"
+            }
+            if (-not $expected.Contains($item.Name)) {
+                throw "Unexpected unlisted collector source part: $($item.Name)"
+            }
+            $actual.Add($item)
         }
     }
     if ($actual.Count -ne $expected.Count) {

@@ -107,6 +107,8 @@ try {
         @{ Label='nonliteral interpolation'; Assign='$collectorPartFiles = @("PartA$env:USERNAME.ps1")' },
         @{ Label='missing assignment'; Assign='$notTheCollectorList = @(''PartA.ps1'', ''PartB.ps1'')' },
         @{ Label='duplicate assignment'; Assign='$collectorPartFiles = @(''PartA.ps1'')' + [Environment]::NewLine + '$collectorPartFiles = @(''PartB.ps1'')' },
+        @{ Label='nested reassignment'; Assign=$validAssignment + [Environment]::NewLine + 'if ($false) { $collectorPartFiles = @(''PartB.ps1'') }' },
+        @{ Label='nested indexed reassignment'; Assign=$validAssignment + [Environment]::NewLine + 'if ($false) { $collectorPartFiles[0] = ''PartB.ps1'' }' },
         @{ Label='invalid wrapper syntax'; Assign='$collectorPartFiles = @(' }
     )
     foreach ($case in $cases) {
@@ -124,6 +126,29 @@ try {
         Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $outside.Root -WrapperPath $outsidePath } 'wrapper outside repo root'
     } finally {
         Remove-Item -LiteralPath $outsidePath -Force -ErrorAction SilentlyContinue
+    }
+
+    foreach ($ancestor in @('project_sources', 'project_sources/collector', 'project_sources/collector/source')) {
+        $ancestorLink = New-Fixture
+        $ancestorTarget = New-Fixture
+        Set-Wrapper $ancestorTarget $validAssignment
+        $linkPath = Join-Path $ancestorLink.Root $ancestor
+        $targetPath = Join-Path $ancestorTarget.Root $ancestor
+        Remove-Item -LiteralPath $linkPath -Force -Recurse
+        $linkCreated = $false
+        try {
+            [void](New-Item -ItemType SymbolicLink -Path $linkPath -Target $targetPath -ErrorAction Stop)
+            $linkCreated = $true
+        } catch {
+            Write-Host "ANCESTOR_SYMLINK_CASE_SKIPPED=$ancestor"
+        }
+        if ($linkCreated) {
+            try {
+                Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $ancestorLink.Root } "reparse ancestor $ancestor"
+            } finally {
+                Remove-Item -LiteralPath $linkPath -Force -ErrorAction SilentlyContinue
+            }
+        }
     }
 
     $link = New-Fixture
