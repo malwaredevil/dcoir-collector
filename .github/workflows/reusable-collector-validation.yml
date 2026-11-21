@@ -211,7 +211,7 @@ jobs:
           use-windows-powershell: "true"
 
       - name: Assemble generated collector harness
-        if: ${{ inputs.run_harness_assembly_parity || inputs.run_harness_suite }}
+        if: ${{ inputs.run_harness_assembly_parity || inputs.run_harness_suite || inputs.run_documentation_quality }}
         uses: ./.github/actions/assemble-collector-harness
 
       - name: Validate generated harness Windows PowerShell 5.1 syntax

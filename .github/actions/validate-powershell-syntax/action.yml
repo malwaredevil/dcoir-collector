@@ -64,8 +64,13 @@ runs:
         } else {
           $psFiles = @($rawPaths -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ })
         }
-        if ($env:INCLUDE_COLLECTOR_PARTS -eq 'true' -and (Test-Path -LiteralPath 'project_sources/collector/source/parts')) {
-          $psFiles += Get-ChildItem -LiteralPath 'project_sources/collector/source/parts' -File -Filter '*.ps1' | ForEach-Object { $_.FullName }
+        if ($env:INCLUDE_COLLECTOR_PARTS -eq 'true') {
+          $discoveryHelper = Join-Path (Get-Location).Path '.github/scripts/Get-CollectorSourcePartFiles.ps1'
+          if (-not (Test-Path -LiteralPath $discoveryHelper -PathType Leaf)) {
+            throw "Collector source discovery helper missing: $discoveryHelper"
+          }
+          . $discoveryHelper
+          $psFiles += @(Get-CollectorSourcePartFiles -RepositoryRoot (Get-Location).Path -ForValidation)
         }
         $psFiles = @($psFiles | Where-Object { Test-Path -LiteralPath $_ } | ForEach-Object { [System.IO.Path]::GetFullPath($_) } | Select-Object -Unique)
         $harnessSourcePartRoot = Get-HarnessSourcePartRoot
