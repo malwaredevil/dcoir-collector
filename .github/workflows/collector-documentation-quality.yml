@@ -49,7 +49,7 @@ permissions:
 
 concurrency:
   group: collector-documentation-quality-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   documentation_quality:
