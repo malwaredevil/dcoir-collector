@@ -20,7 +20,7 @@
   },
   "changed_file_dependency_expansion": null,
   "summary": {
-    "total_surfaces": 384,
+    "total_surfaces": 386,
     "by_category": {
       "archive_temp_vendor_artifact": 0,
       "collector_harness_script": 4,
@@ -30,7 +30,7 @@
       "collector_validation_tooling": 2,
       "fixture_or_example": 23,
       "generated_or_assembled_output": 1,
-      "github_workflow_support_script": 24,
+      "github_workflow_support_script": 26,
       "invalid_workflow_surface": 0,
       "missing_authoritative_surface": 0,
       "missing_changed_powershell_surface": 0,
@@ -42,7 +42,7 @@
       "workflow_embedded_powershell": 30
     },
     "by_source_type": {
-      ".ps1": 335,
+      ".ps1": 337,
       ".ps1.txt": 0,
       ".ps1xml": 0,
       ".psd1": 9,
@@ -55,15 +55,15 @@
       "source_part": 18,
       "staging": 196,
       "superseded_pointer": 1,
-      "tooling": 68,
+      "tooling": 70,
       "workflow_embedded": 30
     },
     "by_inclusion_decision": {
       "exclude": 196,
-      "include": 134,
+      "include": 136,
       "reference": 54
     },
-    "embedded_snippet_count": 130
+    "embedded_snippet_count": 131
   },
   "controls": {
     "collector_manifest": {
@@ -754,7 +754,7 @@
       "marker_lines": [
         24,
         31,
-        44
+        39
       ],
       "embedded_snippets": [
         {
@@ -768,26 +768,26 @@
         },
         {
           "source_file": ".github/actions/run-collector-documentation-quality/action.yml",
-          "step_or_action": "Assemble generated collector harness for documentation audit",
+          "step_or_action": "Require preassembled collector harness for documentation audit",
           "shell": "pwsh",
           "line_start": 31,
-          "line_end": 42,
-          "command_sha256": "e1cc9a27caafda251f87e6dfeaff5d1c90c3a5528cc9718569f42f4a1c38e2e5",
-          "command_preview": "$ErrorActionPreference = 'Stop'\n$assemblerPath = Join-Path (Get-Location) 'project_sources/collector/harness/assemble_run_DCOIR_Tests.ps1'\n$generatedHarnessPath = Join-Path (Get-Location) 'project_sources/collector/harness/run_DCOIR_Tests.g"
+          "line_end": 37,
+          "command_sha256": "26d17da5b910e3430ac8b38c3c15335c739adabfacda574101db253f2fd9a00c",
+          "command_preview": "$ErrorActionPreference = 'Stop'\n$generatedHarnessPath = Join-Path (Get-Location) 'project_sources/collector/harness/run_DCOIR_Tests.generated.ps1'\nif (-not (Test-Path -LiteralPath $generatedHarnessPath -PathType Leaf)) {\n  throw \"Preassembl"
         },
         {
           "source_file": ".github/actions/run-collector-documentation-quality/action.yml",
           "step_or_action": "Run collector documentation quality gate",
           "shell": "pwsh",
-          "line_start": 44,
-          "line_end": 73,
+          "line_start": 39,
+          "line_end": 68,
           "command_sha256": "a5d580ea0383ac77e1926efb0704094615abcca4411182b826c3d436cca06969",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$outputDir = Split-Path -Parent $env:OUTPUT_JSON\nif ([string]::IsNullOrWhiteSpace($outputDir)) {\n  throw 'output-json must include a directory.'\n}\nRemove-Item -Recurse -Force $outputDir -ErrorAction SilentlyC"
         }
       ],
-      "size_bytes": 3254,
-      "line_count": 76,
-      "sha256": "abb908aa7089d5aa338d5892acd3df2d33201e437dbb7a14efb992f17897ee08"
+      "size_bytes": 2951,
+      "line_count": 71,
+      "sha256": "786cc27e240cc72ae660613c5e57e3cdff7bb2f623ed77e4bd09e429fe06792c"
     },
     {
       "path": ".github/actions/run-collector-runtime-package-validation/action.yml",
@@ -871,9 +871,9 @@
       "exists": true,
       "marker_lines": [],
       "embedded_snippets": [],
-      "size_bytes": 10641,
+      "size_bytes": 10783,
       "line_count": 272,
-      "sha256": "81c9af20de835b2bf779f3c2d64f96e8fce35fb2bc1e975866bb43ca285f92da"
+      "sha256": "21fc6714096b1ce928b20d8c0e985c906d85d6839ba66c3286a5181fa614cd38"
     },
     {
       "path": ".github/actions/run-duplicate-function-check/action.yml",
@@ -1136,14 +1136,14 @@
           "step_or_action": "Validate PowerShell syntax",
           "shell": "pwsh",
           "line_start": 24,
-          "line_end": 120,
-          "command_sha256": "d6524a969e36996e8db3ef465c609973d3fa79184d15f0f03180862edd8afb9f",
+          "line_end": 125,
+          "command_sha256": "45f9bc51ebb2fdd899a95b6d52c822c8523a5ba2f150fc97df8bcd07f4df0104",
           "command_preview": "$ErrorActionPreference = 'Stop'\n$validator = @'\n$ErrorActionPreference = 'Stop'\nfunction Get-HarnessSourcePartRoot {\n  $partsRoot = Join-Path (Get-Location).Path 'project_sources/collector/harness/source/parts'\n  if (-not (Test-Path -Litera"
         }
       ],
-      "size_bytes": 5691,
-      "line_count": 123,
-      "sha256": "41322c1cb962532c49ada0fbf16842bf7f7c206363ef5db95b38c838856eeb19"
+      "size_bytes": 5890,
+      "line_count": 128,
+      "sha256": "6a30099fe2463142fa50bb0761cc4cd0d4d9bc1041247374da59626b84d121c0"
     },
     {
       "path": ".github/actions/validate-python-syntax/action.yml",
@@ -4712,6 +4712,20 @@
       "sha256": "d1bcb384e083586181b79f0d62c765e62d1cb794cddf73a1584a36e9d358a741"
     },
     {
+      "path": ".github/scripts/Get-CollectorSourcePartFiles.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10443,
+      "line_count": 220,
+      "sha256": "fe39427ba5b3c2209a7e5e78fecefbb292e54b82839b4a5dc77cf58e716cd0f3"
+    },
+    {
       "path": ".github/scripts/Invoke-ChatGptReportPush.ps1",
       "category": "github_workflow_support_script",
       "source_type": ".ps1",
@@ -4780,6 +4794,20 @@
       "size_bytes": 3172,
       "line_count": 65,
       "sha256": "cb7766ce5ff96386eb3d1c2785301b2853740ffad6699a5c33b70ed6a4d38473"
+    },
+    {
+      "path": ".github/scripts/tests/Test-CollectorSourcePartFiles.ps1",
+      "category": "github_workflow_support_script",
+      "source_type": ".ps1",
+      "status": "tooling",
+      "inclusion_decision": "include",
+      "decision_reason": "GitHub workflow support script is maintained repo PowerShell.",
+      "exists": true,
+      "marker_lines": [],
+      "embedded_snippets": [],
+      "size_bytes": 10114,
+      "line_count": 178,
+      "sha256": "8f6cc1e7f5aded3e9dbff116a97671e369653e26d4fc3ad996805aadcd94e6e3"
     },
     {
       "path": ".github/workflows/reusable-chatgpt-apply-in.yml",
@@ -5051,10 +5079,10 @@
       "exists": true,
       "marker_lines": [
         54,
-        69,
-        87,
-        101,
-        134
+        72,
+        90,
+        104,
+        137
       ],
       "embedded_snippets": [
         {
@@ -5070,8 +5098,8 @@
           "source_file": ".github/workflows/reusable-collector-runtime-package-build.yml",
           "step_or_action": "Build collector runtime package",
           "shell": "pwsh",
-          "line_start": 69,
-          "line_end": 85,
+          "line_start": 72,
+          "line_end": 88,
           "command_sha256": "eb181fc429a859025957be2c1482b70be3492640e7cf9053a18c179ce195a146",
           "command_preview": "$versionOverride = $env:PACKAGE_VERSION_OVERRIDE\n$cmd = @(\n  'python',\n  'project_sources/collector/tools/build_dcoir_collector_runtime_package.py',\n  '--source-dir', '.',\n  '--output-dir', 'project_sources/validation/out'\n)\nif (-not [strin"
         },
@@ -5079,8 +5107,8 @@
           "source_file": ".github/workflows/reusable-collector-runtime-package-build.yml",
           "step_or_action": "Surface collector delivery zip",
           "shell": "pwsh",
-          "line_start": 87,
-          "line_end": 99,
+          "line_start": 90,
+          "line_end": 102,
           "command_sha256": "919a1563154e7d9fad9584c297ae3b3bbac2e605cc8ea6d9348a8aa93b106d84",
           "command_preview": "python .github/github_actions/tools/surface_delivery_zip.py `\n  --build-report project_sources/validation/out/build_dcoir_collector_runtime_package_report.json `\n  --output-dir project_sources/validation/delivery_artifact/collector-runtime "
         },
@@ -5088,8 +5116,8 @@
           "source_file": ".github/workflows/reusable-collector-runtime-package-build.yml",
           "step_or_action": "Set collector delivery artifact name",
           "shell": "pwsh",
-          "line_start": 101,
-          "line_end": 109,
+          "line_start": 104,
+          "line_end": 112,
           "command_sha256": "84def3af3d74568cff141f41d930019fa13340ad01f80bb4c96046f49397d516",
           "command_preview": "$manifest = Get-Content -Raw -Path project_sources/validation/out/delivery_manifest/delivery_manifest.json | ConvertFrom-Json\n$artifactName = [System.IO.Path]::GetFileNameWithoutExtension([string]$manifest.delivery_zip_name)\nif ([string]::I"
         },
@@ -5097,15 +5125,15 @@
           "source_file": ".github/workflows/reusable-collector-runtime-package-build.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "pwsh",
-          "line_start": 134,
-          "line_end": 156,
+          "line_start": 137,
+          "line_end": 159,
           "command_sha256": "ede51c382af006ff748b30bf6ec5747493a08e44b22bb90f8e46c3ece6df12c4",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## Collector runtime package summary\n\n- workflow: manual-collector-runtime-package-build\n- workflow_run_id: $env:GITHUB_RUN_ID\n- workflow_run_attempt: $"
         }
       ],
-      "size_bytes": 7144,
-      "line_count": 164,
-      "sha256": "fc333448841f1836622d5c96ed374a1a49410264027e7f0199faaee96352e803"
+      "size_bytes": 7255,
+      "line_count": 167,
+      "sha256": "590ec879a69432f25ee4743e19bf6aac3ae778d4935005b27bb8cd631eca2f45"
     },
     {
       "path": ".github/workflows/reusable-collector-validation.yml",
@@ -5169,9 +5197,9 @@
           "command_preview": "$ErrorActionPreference = 'Stop'\nNew-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n@\"\n## $env:REPORT_TITLE\n\n- workflow: $env:WORKFLOW_NAME\n- validation_scope: $env:REPORT_SCOPE\n- workflow_run_id: $env:GITHU"
         }
       ],
-      "size_bytes": 13862,
+      "size_bytes": 13898,
       "line_count": 366,
-      "sha256": "531355b363b04f1631e02f3f7ca3ebacc31484dd57397af3352591216fca2c74"
+      "sha256": "1e0fe7f33db3f0e3fe941707841fb67a57f120020fb756c9706c2bb0ebbdcb23"
     },
     {
       "path": ".github/workflows/reusable-gemini-bundle-build.yml",
@@ -6076,7 +6104,8 @@
       "marker_lines": [
         34,
         47,
-        79
+        54,
+        86
       ],
       "embedded_snippets": [
         {
@@ -6090,10 +6119,19 @@
         },
         {
           "source_file": ".github/workflows/reusable-windows-powershell-51.yml",
-          "step_or_action": "Validate Windows PowerShell 5.1 parser compatibility",
+          "step_or_action": "Test authoritative collector source-part discovery",
           "shell": "powershell",
           "line_start": 47,
           "line_end": 52,
+          "command_sha256": "f9722aea402131ecac12021aebcbad8b5b88cc699af627d7cd0c18ab9da15749",
+          "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.github\\scripts\\tests\\Test-CollectorSourcePartFiles.ps1\nif ($LASTEXITCODE -ne 0) {\n  throw 'Collector part discovery behavioral tests failed.'\n}"
+        },
+        {
+          "source_file": ".github/workflows/reusable-windows-powershell-51.yml",
+          "step_or_action": "Validate Windows PowerShell 5.1 parser compatibility",
+          "shell": "powershell",
+          "line_start": 54,
+          "line_end": 59,
           "command_sha256": "edd394a7f354d25daad769e12bc53c366ecfd88f7176bad8a3aa9cbe9d36671c",
           "command_preview": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\.github\\dcoir_review\\scripts\\validate-windows-powershell-51.ps1\nif ($LASTEXITCODE -ne 0) {\n  throw 'Windows PowerShell 5.1 validation failed.'\n}"
         },
@@ -6101,15 +6139,15 @@
           "source_file": ".github/workflows/reusable-windows-powershell-51.yml",
           "step_or_action": "Write ChatGPT workflow report section",
           "shell": "powershell",
-          "line_start": 79,
-          "line_end": 121,
+          "line_start": 86,
+          "line_end": 128,
           "command_sha256": "6307e4ad6109a58910b6dfd4352d7d16669a6fe209cde4590111ce0627cae398",
           "command_preview": "New-Item -ItemType Directory -Force -Path chatgpt_workflow_report_section | Out-Null\n$pesterVersion = '${{ steps.pester.outputs.pester_version }}'\n$pesterTotal = '${{ steps.pester.outputs.total_count }}'\n$pesterPassed = '${{ steps.pester.ou"
         }
       ],
-      "size_bytes": 5771,
-      "line_count": 129,
-      "sha256": "ab352a16ccefb42df1f77c0dbe0dce25b5020fed48b506bee6e044f334dbbde7"
+      "size_bytes": 6095,
+      "line_count": 136,
+      "sha256": "c9400544c8882a4b8ad0784d7bfa151b55fefc460e3707f2dfb4c5b1fd7af350"
     },
     {
       "path": "project_sources/collector/PSScriptAnalyzerSettings.psd1",

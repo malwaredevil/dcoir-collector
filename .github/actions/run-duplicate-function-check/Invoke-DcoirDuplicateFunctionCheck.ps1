@@ -57,17 +57,17 @@ if ($jsonOutput.RelativePath -eq $markdownOutput.RelativePath) {
   throw 'Duplicate-function JSON and Markdown outputs must be different paths.'
 }
 
-# Discover collector PS1 source files (same set as PSScriptAnalyzer).
+# Discover the exact runtime wrapper and the 44-file validation scan set.
+# The PowerShell AST helper is the only owner of the collector part list.
 $sourceFiles = [System.Collections.Generic.List[string]]::new()
 $collectorPs1 = 'project_sources/collector/source/DCOIR_Collector.ps1'
-if (Test-Path -LiteralPath $collectorPs1) {
-  $sourceFiles.Add((Resolve-Path -LiteralPath $collectorPs1).Path)
+if (-not (Test-Path -LiteralPath $collectorPs1 -PathType Leaf)) {
+  throw "Collector wrapper is missing: $collectorPs1"
 }
-$partsDir = 'project_sources/collector/source/parts'
-if (Test-Path -LiteralPath $partsDir -PathType Container) {
-  foreach ($f in Get-ChildItem -LiteralPath $partsDir -Filter '*.ps1' -Recurse) {
-    $sourceFiles.Add($f.FullName)
-  }
+$sourceFiles.Add((Resolve-Path -LiteralPath $collectorPs1).Path)
+. (Join-Path (Get-Location).Path '.github/scripts/Get-CollectorSourcePartFiles.ps1')
+foreach ($filePath in @(Get-CollectorSourcePartFiles -RepositoryRoot (Get-Location).Path -ForValidation)) {
+  $sourceFiles.Add($filePath)
 }
 $sourceFiles = @($sourceFiles | Select-Object -Unique)
 if ($sourceFiles.Count -eq 0) {

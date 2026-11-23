@@ -60,6 +60,9 @@ jobs:
         with:
           output-dir: project_sources/validation/out
 
+      - name: Assemble generated collector harness
+        uses: ./.github/actions/assemble-collector-harness
+
       - name: Run collector documentation quality gate
         uses: ./.github/actions/run-collector-documentation-quality
         with:
