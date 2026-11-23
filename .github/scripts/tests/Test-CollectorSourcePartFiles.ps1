@@ -43,7 +43,7 @@ Assert-True (@($scan | Select-Object -Unique).Count -eq $scan.Count) 'Validation
 
 $tempBase = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) { [IO.Path]::GetTempPath() } else { $env:RUNNER_TEMP }
 $fixtureRoots = [Collections.Generic.List[string]]::new()
-function New-Fixture {
+function Invoke-TestFixtureCreate {
     $root = Join-Path $tempBase ('dcoir-discovery-' + [guid]::NewGuid().ToString('N'))
     $parts = Join-Path $root 'project_sources/collector/source/parts'
     [void](New-Item -ItemType Directory -Path $parts -Force)
@@ -54,7 +54,7 @@ function New-Fixture {
     $fixtureRoots.Add($root)
     return [pscustomobject]@{ Root = $root; Parts = $parts; Wrapper = $wrapper }
 }
-function Set-Wrapper {
+function Invoke-TestWrapperWrite {
     param([object]$Fixture, [string]$Assignment)
     $body = $Assignment + [Environment]::NewLine + "throw 'COLLECTOR_RUNTIME_MUST_NOT_EXECUTE'"
     Set-Content -LiteralPath $Fixture.Wrapper -Value $body -Encoding UTF8
@@ -66,8 +66,8 @@ $collectorPartFiles = @(
 )
 '@
 try {
-    $good = New-Fixture
-    Set-Wrapper $good $validAssignment
+    $good = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $good $validAssignment
     $goodRuntime = @(Get-CollectorSourcePartFiles -RepositoryRoot $good.Root)
     $goodScan = @(Get-CollectorSourcePartFiles -RepositoryRoot $good.Root -ForValidation)
     Assert-True ($goodRuntime.Count -eq 2) 'Synthetic runtime must select exactly the two literal parts.'
@@ -75,23 +75,23 @@ try {
     Assert-True ([IO.Path]::GetFileName($goodRuntime[0]) -ceq 'PartA.ps1') 'Runtime AST file order changed.'
     Assert-True ([IO.Path]::GetFileName($goodRuntime[1]) -ceq 'PartB.ps1') 'Runtime AST file order changed.'
 
-    $missing = New-Fixture
-    Set-Wrapper $missing $validAssignment
+    $missing = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $missing $validAssignment
     Remove-Item -LiteralPath (Join-Path $missing.Parts 'PartB.ps1') -Force
     Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $missing.Root } 'missing runtime part'
 
-    $missingMarker = New-Fixture
-    Set-Wrapper $missingMarker $validAssignment
+    $missingMarker = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $missingMarker $validAssignment
     Remove-Item -LiteralPath (Join-Path $missingMarker.Parts $markerName) -Force
     Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $missingMarker.Root -ForValidation } 'missing compatibility marker'
 
-    $extra = New-Fixture
-    Set-Wrapper $extra $validAssignment
+    $extra = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $extra $validAssignment
     Set-Content -LiteralPath (Join-Path $extra.Parts 'Unexpected.ps1') -Value '# unlisted' -Encoding UTF8
     Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $extra.Root } 'unlisted direct child'
 
-    $nested = New-Fixture
-    Set-Wrapper $nested $validAssignment
+    $nested = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $nested $validAssignment
     $nestedDir = Join-Path $nested.Parts 'nested'
     [void](New-Item -ItemType Directory -Path $nestedDir -Force)
     Set-Content -LiteralPath (Join-Path $nestedDir 'Unexpected.ps1') -Value '# hidden extra' -Encoding UTF8
@@ -114,14 +114,14 @@ try {
         @{ Label='invalid wrapper syntax'; Assign='$collectorPartFiles = @(' }
     )
     foreach ($case in $cases) {
-        $fixture = New-Fixture
-        Set-Wrapper $fixture $case.Assign
+        $fixture = Invoke-TestFixtureCreate
+        Invoke-TestWrapperWrite $fixture $case.Assign
         $fixtureRoot = $fixture.Root
         Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $fixtureRoot } $case.Label
     }
 
-    $outside = New-Fixture
-    Set-Wrapper $outside $validAssignment
+    $outside = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $outside $validAssignment
     $outsidePath = Join-Path $tempBase ('external-collector-' + [guid]::NewGuid().ToString('N') + '.ps1')
     try {
         Set-Content -LiteralPath $outsidePath -Value $validAssignment -Encoding UTF8
@@ -131,9 +131,9 @@ try {
     }
 
     foreach ($ancestor in @('project_sources', 'project_sources/collector', 'project_sources/collector/source')) {
-        $ancestorLink = New-Fixture
-        $ancestorTarget = New-Fixture
-        Set-Wrapper $ancestorTarget $validAssignment
+        $ancestorLink = Invoke-TestFixtureCreate
+        $ancestorTarget = Invoke-TestFixtureCreate
+        Invoke-TestWrapperWrite $ancestorTarget $validAssignment
         $linkPath = Join-Path $ancestorLink.Root $ancestor
         $targetPath = Join-Path $ancestorTarget.Root $ancestor
         Remove-Item -LiteralPath $linkPath -Force -Recurse
@@ -142,7 +142,7 @@ try {
             [void](New-Item -ItemType SymbolicLink -Path $linkPath -Target $targetPath -ErrorAction Stop)
             $linkCreated = $true
         } catch {
-            Write-Host "ANCESTOR_SYMLINK_CASE_SKIPPED=$ancestor"
+            Write-Output "ANCESTOR_SYMLINK_CASE_SKIPPED=$ancestor"
         }
         if ($linkCreated) {
             try {
@@ -153,8 +153,8 @@ try {
         }
     }
 
-    $link = New-Fixture
-    Set-Wrapper $link $validAssignment
+    $link = Invoke-TestFixtureCreate
+    Invoke-TestWrapperWrite $link $validAssignment
     Remove-Item -LiteralPath (Join-Path $link.Parts 'PartB.ps1') -Force
     $outsideTarget = Join-Path $tempBase ('external-target-' + [guid]::NewGuid().ToString('N') + '.ps1')
     try {
@@ -163,12 +163,12 @@ try {
             [void](New-Item -ItemType SymbolicLink -Path (Join-Path $link.Parts 'PartB.ps1') -Target $outsideTarget -ErrorAction Stop)
             Assert-Throws { Get-CollectorSourcePartFiles -RepositoryRoot $link.Root } 'reparse link escaping repo'
         } catch [System.UnauthorizedAccessException] {
-            Write-Host 'SYMLINK_CASE_SKIPPED=permission_not_granted'
+            Write-Output 'SYMLINK_CASE_SKIPPED=permission_not_granted'
         }
     } finally {
         Remove-Item -LiteralPath $outsideTarget -Force -ErrorAction SilentlyContinue
     }
-    Write-Host 'COLLECTOR_PART_DISCOVERY_TESTS=PASS'
+    Write-Output 'COLLECTOR_PART_DISCOVERY_TESTS=PASS'
 } finally {
     foreach ($root in $fixtureRoots) {
         Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue

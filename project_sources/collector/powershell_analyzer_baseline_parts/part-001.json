@@ -4,126 +4,126 @@
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "4a1b142100431e5ddcb2ba34ce3f4aec3fd82fd6a78f532d7e949375a98deea1",
+      "fingerprint": "bd09b5b59db76eebbb334f897519ac752a42f328553df4bf6c4ea3634993a530",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 257. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "a1db9fff71956fdc4a3548dfc07b3887a981944cd8d6829ccc699db5a52d3685",
+      "fingerprint": "daba98b635a5bd82864fe41c53fccd1f67b552dd7587c66067a410e213e063e8",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 234. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "1bc6b25a1d947be5f41449a928f985675120eb5f9ac9af94846097b9ea6347b8",
+      "fingerprint": "9bc856ce20a60e255d8fa72e409aa33e81cb310f5da6140e97abb90d7b03503d",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 244. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "9244173c6b58a0456ec19bd603214f33692d8ef4ae89f8c4660fe04f891f4f87",
+      "fingerprint": "6ee29dc76a199443fbd8fd3c33bce80868589f40502cf3a4bbce55f43681d67c",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 264. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "a419031472a1635926159d8743f09495687149fbf9abf826bf44a35fcca8279d",
+      "fingerprint": "f6268ce189dad360e09e8c885b35209ab68f236ffa71a8a8ec808f902c8fec2a",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 256. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "bab8092826007c85f694c4ede03f944ea32776c86045fadc9cb2854b7ea6c88c",
+      "fingerprint": "3923796c6dd3454922a75096a80d84005ef78c8489c59c9905f42c5841498011",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 259. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "2c63b95c0d6b812966220651d3e1d79615357aaeef0d036059d059f78e8097dc",
+      "fingerprint": "fb81938512b3e5d0d85d5c1a6b8df14c9fa9c25a1feedeaeacb47ff0552f3b62",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 239. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "4b45bcf1ba8499ab444588b12d42d5496419fbbdea0b71d8a3014ddc00a297e5",
+      "fingerprint": "6308a8c0b80e05f2ad460eb1405bd2cf73fcdb9841a1f8e1a8aca77e5d296983",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 233. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "72629f48d151d19788f7a863b65dbc5320827b1df8ef84e70025e3ce985736eb",
+      "fingerprint": "c0953aae6157f13d006a04e5b756e7ff637ca55487980446eeb263ea6d56a5d0",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 242. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "6ba0120310c0e71ae4f68a846029caba8328bb28b6d027933f0a3f2ed54e2d2b",
+      "fingerprint": "801ef33f70c97f764db418735437c60722a9d80ab2702efa79f87c3572e7dd49",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 266. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "1004f4159291fa184fc4dec0af9c9ad9a4bb72fd3c2a3b332ac9d31d2841357c",
+      "fingerprint": "f19dea9d01acb77790e307b4eab93a89a80d96fece8a05d4768915fb2a30de2d",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 262. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "2ab1d9d0620535a1225603be7a0be3b19e4c7c7591a3571ca0ececdc5dc7f133",
+      "fingerprint": "64252f238d232930604abe6febabfdc8ad75c0d346aaa3f3fa6968dfbb951b31",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 254. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "4f0bcdf0c368b25eb449f3f9102f974af9817f5bf7e206917e414581ecc621a0",
+      "fingerprint": "5603fe86cb6be7df1c0427ec4e69a5ceafdaade9517f2f8d94a1899c837751a9",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 240. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "4fdeff2399f340a740591b73c904d291e6c11229cf00df1ec163a590b00044c5",
+      "fingerprint": "88f8db58288ddf06a88fcf03ab1c3cefcef8aa1dd775bea24f1e5a74a88b081a",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 255. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "893f09159c726feffd2ec68030e611433c9059a09a204951d0339d985421c336",
+      "fingerprint": "4cd493a844bb96575ae9ca8a1fd096624ecdca527c6e8b9ea694b10a0f28479f",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 241. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "c43f16848f4d2f377154756e2bb4e827ead3b8d4d272ca627ae57ae1f558e9cd",
+      "fingerprint": "642a3ee0ce80dae8bd6f47c69aa78c2a280456b64850dc25c9b2d983fe76d474",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 250. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "1c2f0bcec64d73a3e9fdb7d95b08e2bb5bf85f97b11d1703f0ab294eca07405f",
+      "fingerprint": "16bb0bd54289c8b1bae33f16c61945b429e2250722d57de02108cbbfbc41120c",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 238. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     },
     {
       "path": ".github/actions/run-duplicate-function-check/Invoke-DcoirDuplicateFunctionCheck.ps1",
       "rule_name": "PSAvoidUsingWriteHost",
-      "fingerprint": "b572468ada1c9330b250687aab55d35a20d5089917714b6de4ed926d99c896df",
+      "fingerprint": "4d429775af08a702ffab32148ab6e9801a5d2e0df53f96452628fdc275bd8c84",
       "expected_match_count": 1,
       "reason": "Observed in approved #606 CI 38041902823; line 258. Legacy interactive/status host emission; conversion requires separate output-contract review. Existing occurrence only; new instances fail."
     }

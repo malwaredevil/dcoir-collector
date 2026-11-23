@@ -77,8 +77,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: chatgpt-workflow-reporting-validation-${{ github.run_id }}
-  cancel-in-progress: false
+  group: chatgpt-workflow-reporting-validation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate-reporting-path:
