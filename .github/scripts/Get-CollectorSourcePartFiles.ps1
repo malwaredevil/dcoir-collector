@@ -75,7 +75,7 @@ function Get-CollectorSourcePartFiles {
     if ($null -eq $ast.EndBlock) {
         throw "Collector wrapper has no executable statement block: $wrapperFull"
     }
-    $assignments = @($ast.FindAll({
+    $collectorPartFileAssignments = @($ast.FindAll({
         param($node)
         $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
         @($node.Left.FindAll({
@@ -84,7 +84,11 @@ function Get-CollectorSourcePartFiles {
             $leftNode.VariablePath.UserPath -ieq 'collectorPartFiles'
         }, $true)).Count -gt 0
     }, $true))
-    if ($assignments.Count -ne 1 -or
+    $assignments = @($collectorPartFileAssignments | Where-Object {
+        $_.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
+        $_.Left.VariablePath.UserPath -ieq 'collectorPartFiles'
+    })
+    if ($collectorPartFileAssignments.Count -ne 1 -or $assignments.Count -ne 1 -or
         $assignments[0].Parent -ne $ast.EndBlock -or
         $assignments[0].Operator -ne [System.Management.Automation.Language.TokenKind]::Equals) {
         throw "Expected exactly one top-level simple assignment to unscoped collectorPartFiles; found $($assignments.Count)."

@@ -108,6 +108,8 @@ try {
         @{ Label='missing assignment'; Assign='$notTheCollectorList = @(''PartA.ps1'', ''PartB.ps1'')' },
         @{ Label='scoped assignment'; Assign='$env:collectorPartFiles = @(''PartA.ps1'', ''PartB.ps1'')' },
         @{ Label='compound assignment'; Assign='$collectorPartFiles += @(''PartA.ps1'')' },
+        @{ Label='top-level indexed assignment'; Assign='$collectorPartFiles[0] = ''PartB.ps1''' },
+        @{ Label='top-level member assignment'; Assign='$object.collectorPartFiles = @(''PartA.ps1'', ''PartB.ps1'')' },
         @{ Label='duplicate assignment'; Assign='$collectorPartFiles = @(''PartA.ps1'')' + [Environment]::NewLine + '$collectorPartFiles = @(''PartB.ps1'')' },
         @{ Label='nested reassignment'; Assign=$validAssignment + [Environment]::NewLine + 'if ($false) { $collectorPartFiles = @(''PartB.ps1'') }' },
         @{ Label='nested indexed reassignment'; Assign=$validAssignment + [Environment]::NewLine + 'if ($false) { $collectorPartFiles[0] = ''PartB.ps1'' }' },
