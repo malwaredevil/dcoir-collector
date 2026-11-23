@@ -5,10 +5,20 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from importlib import util as import_util
 from pathlib import Path
-from required_surface_profile_groups import (
-    validate_repo_relative_path, ensure_repo_local_source, verify_flat,
-)
+
+# Load this shipped sibling by file path, even when this checker is imported
+# through importlib from an unrelated current working directory.
+_group_file = Path(__file__).resolve().with_name("required_surface_profile_groups.py")
+_group_spec = import_util.spec_from_file_location("dcoir_required_surface_profile_groups", _group_file)
+if _group_spec is None or _group_spec.loader is None:
+    raise ImportError(f"Unable to load required-surface group helper: {_group_file}")
+_group_module = import_util.module_from_spec(_group_spec)
+_group_spec.loader.exec_module(_group_module)
+validate_repo_relative_path = _group_module.validate_repo_relative_path
+ensure_repo_local_source = _group_module.ensure_repo_local_source
+verify_flat = _group_module.verify_flat
 
 PROFILE_PATH = Path(".github/github_actions/workflow_required_surface_profiles.json")
 SUPPLEMENT_MANIFEST_PATH = Path(".github/github_actions/workflow_required_surface_profile_supplements.json")

@@ -262,6 +262,21 @@ class RequiredSurfaceSupplementTests(unittest.TestCase):
         self.assert_rejected("Unable to resolve Required surface profile file")
 
 
+    def test_direct_loader_without_tools_on_python_path(self) -> None:
+        command = (
+            "import importlib.util; "
+            f"spec=importlib.util.spec_from_file_location('checker_isolated', {str(HELPER)!r}); "
+            "module=importlib.util.module_from_spec(spec); "
+            "spec.loader.exec_module(module); "
+            "assert callable(module.load_profiles)"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=self.root, capture_output=True, text=True,
+            check=False, timeout=15,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_direct_loaders_accept_relative_repository_root(self) -> None:
         spec = importlib.util.spec_from_file_location("required_surfaces_under_test", HELPER)
         self.assertIsNotNone(spec)
