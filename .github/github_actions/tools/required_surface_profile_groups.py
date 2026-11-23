@@ -36,6 +36,8 @@ def validate_repo_relative_path(path: str, label: str) -> None:
 
 def ensure_repo_local_source(repo_root: Path, source: Path, label: str) -> None:
     """Reject source files whose canonical location escapes the checkout."""
+    if source.is_symlink() and not source.exists():
+        raise ValueError(f"Unable to resolve {label}: dangling or circular symlink: {source}")
     try:
         root = repo_root.resolve()
         resolved = source.resolve()

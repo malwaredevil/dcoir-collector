@@ -172,6 +172,17 @@ class GroupedProfileTests(unittest.TestCase):
         self.assertNotEqual(self.run_cli("--write").returncode, 0)
         self.assertEqual(target.read_text(encoding="utf-8"), "outside")
 
+    def test_group_source_symlink_loop_has_explicit_resolution_error(self):
+        link = self.root / GROUPS_PATH
+        link.unlink()
+        try:
+            link.symlink_to(link)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(str(exc))
+        done = self.run_cli("--check")
+        self.assertEqual(done.returncode, 1)
+        self.assertIn("Unable to resolve Required surface grouped profile source", done.stderr)
+
     def test_reject_unknown_cli_flags(self):
         r = self.run_cli("--write", "--unknown")
         self.assertNotEqual(r.returncode, 0)

@@ -17,6 +17,13 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 CHECKER = REPO_ROOT / ".github/github_actions/tools/check_required_surfaces.py"
 PROFILES = Path(".github/github_actions/workflow_required_surface_profiles.json")
+GROUPS_PATH = Path(".github/github_actions/workflow_required_surface_profile_groups.json")
+EXPECTED_PROFILES = (
+    "validate_on_push", "validate_on_pr", "manual_full_validation",
+    "scheduled_health_check", "manual_gemini_bundle_build",
+    "manual_gemini_model_comparison", "manual_collector_runtime_package_build",
+    "manual_openai_gpt_deployment_package_build",
+)
 MANIFEST = Path(".github/github_actions/workflow_required_surface_profile_supplements.json")
 SUPPLEMENT_DIR = Path(".github/github_actions/workflow_required_surface_profile_supplements")
 SUPPLEMENT = SUPPLEMENT_DIR / "sample.json"
@@ -33,15 +40,25 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
         self.outside.mkdir()
         (self.root / PROFILES).parent.mkdir(parents=True)
         (self.root / SUPPLEMENT).parent.mkdir(parents=True)
-        self.write_json(self.root / PROFILES, {"sample": ["base.txt"]})
+        self.write_base_profiles(["base.txt"])
         self.write_json(self.root / MANIFEST, {"supplements": [SUPPLEMENT.as_posix()]})
-        self.write_json(self.root / SUPPLEMENT, {"sample": ["extra.txt"]})
+        self.write_json(self.root / SUPPLEMENT, {"validate_on_pr": ["extra.txt"]})
         (self.root / "base.txt").write_text("base", encoding="utf-8")
         (self.root / "extra.txt").write_text("extra", encoding="utf-8")
 
     @staticmethod
     def write_json(path: Path, value: object) -> None:
         path.write_text(json.dumps(value), encoding="utf-8")
+
+    def write_base_profiles(self, paths: list[str]) -> None:
+        profiles = {name: list(paths) for name in EXPECTED_PROFILES}
+        grouped = {
+            "schema_version": "dcoir_required_surface_profile_groups_v1",
+            "groups": {"fixture_base": list(paths)},
+            "profiles": {name: [{"group": "fixture_base"}] for name in EXPECTED_PROFILES},
+        }
+        self.write_json(self.root / GROUPS_PATH, grouped)
+        self.write_json(self.root / PROFILES, profiles)
 
     def junction(self, link: Path, target: Path) -> None:
         self.assertFalse(link.exists(), f"Unexpected junction fixture conflict: {link}")
@@ -63,7 +80,7 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
 
     def checker(self) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
-            [sys.executable, str(CHECKER), "--profile", "sample", "--repo-root", str(self.root)],
+            [sys.executable, str(CHECKER), "--profile", "validate_on_pr", "--repo-root", str(self.root)],
             text=True, capture_output=True, check=False, timeout=20,
         )
 
@@ -81,7 +98,7 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
     def test_ntfs_junction_to_outside_required_file_fails_closed(self) -> None:
         (self.outside / "outside.txt").write_text("external", encoding="utf-8")
         self.junction(self.root / "escape", self.outside)
-        self.write_json(self.root / PROFILES, {"sample": ["escape/outside.txt"]})
+        self.write_base_profiles(["escape/outside.txt"])
         self.assert_rejected("resolve outside repository")
 
     def test_ntfs_junction_to_inside_required_file_is_allowed(self) -> None:
@@ -89,13 +106,13 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
         inside.mkdir()
         (inside / "safe.txt").write_text("safe", encoding="utf-8")
         self.junction(self.root / "inside", inside)
-        self.write_json(self.root / PROFILES, {"sample": ["inside/safe.txt"]})
+        self.write_base_profiles(["inside/safe.txt"])
         p = self.checker()
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         self.assertIn("validated: 2 paths present", p.stdout)
 
     def test_ntfs_junction_to_external_supplement_json_fails_closed(self) -> None:
-        self.write_json(self.outside / "supplement.json", {"sample": ["extra.txt"]})
+        self.write_json(self.outside / "supplement.json", {"validate_on_pr": ["extra.txt"]})
         junction = self.root / SUPPLEMENT_DIR / "external-link"
         self.junction(junction, self.outside)
         self.write_json(
@@ -107,7 +124,7 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
     def test_ntfs_junction_to_internal_supplement_json_is_allowed(self) -> None:
         inside = self.root / SUPPLEMENT_DIR / "safe-json"
         inside.mkdir()
-        self.write_json(inside / "supplement.json", {"sample": ["extra.txt"]})
+        self.write_json(inside / "supplement.json", {"validate_on_pr": ["extra.txt"]})
         self.junction(self.root / SUPPLEMENT_DIR / "internal-link", inside)
         self.write_json(
             self.root / MANIFEST,
@@ -127,6 +144,30 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
         self.junction(original, target)
         self.assert_rejected("Required surface profile file resolves outside repository")
 
+    def test_group_source_symlink_outside_checkout_fails_when_supported(self) -> None:
+        target = self.outside / "external-groups.json"
+        target.write_text((self.root / GROUPS_PATH).read_text(encoding="utf-8"), encoding="utf-8")
+        link = self.root / GROUPS_PATH
+        link.unlink()
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Windows runner denies file symlink creation: {exc}")
+        self.assert_rejected("Required surface grouped profile source resolves outside repository")
+
+    def test_group_source_symlink_inside_checkout_is_allowed_when_supported(self) -> None:
+        target = (self.root / GROUPS_PATH).with_name("alternate-groups.json")
+        target.write_text((self.root / GROUPS_PATH).read_text(encoding="utf-8"), encoding="utf-8")
+        link = self.root / GROUPS_PATH
+        link.unlink()
+        try:
+            link.symlink_to(target)
+        except (OSError, NotImplementedError) as exc:
+            self.skipTest(f"Windows runner denies file symlink creation: {exc}")
+        good = self.checker()
+        self.assertEqual(good.returncode, 0, good.stdout + good.stderr)
+        self.assertIn("validated: 2 paths present", good.stdout)
+
     def test_file_symlink_to_external_required_file_fails_when_supported(self) -> None:
         target = self.outside / "external.txt"
         target.write_text("external", encoding="utf-8")
@@ -135,7 +176,7 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
             link.symlink_to(target)
         except (OSError, NotImplementedError) as exc:
             self.skipTest(f"Windows runner denies file symlink creation: {exc}")
-        self.write_json(self.root / PROFILES, {"sample": ["external-file-link.txt"]})
+        self.write_base_profiles(["external-file-link.txt"])
         self.assert_rejected("resolve outside repository")
 
 
