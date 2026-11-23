@@ -58,7 +58,7 @@ class RequiredSurfaceWindowsJunctionTests(unittest.TestCase):
             "profiles": {name: [{"group": "fixture_base"}] for name in EXPECTED_PROFILES},
         }
         self.write_json(self.root / GROUPS_PATH, grouped)
-        self.write_json(self.root / PROFILES, profiles)
+        (self.root / PROFILES).write_text(json.dumps(profiles, indent=2) + "\n", encoding="utf-8")
 
     def junction(self, link: Path, target: Path) -> None:
         self.assertFalse(link.exists(), f"Unexpected junction fixture conflict: {link}")
