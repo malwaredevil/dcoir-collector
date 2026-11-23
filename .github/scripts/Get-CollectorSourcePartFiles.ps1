@@ -86,7 +86,8 @@ function Get-CollectorSourcePartFiles {
     }, $true))
     $assignments = @($collectorPartFileAssignments | Where-Object {
         $_.Left -is [System.Management.Automation.Language.VariableExpressionAst] -and
-        $_.Left.VariablePath.UserPath -ieq 'collectorPartFiles'
+        $_.Left.VariablePath.UserPath -ieq 'collectorPartFiles' -and
+        [string]::IsNullOrEmpty($_.Left.VariablePath.Scope)
     })
     if ($collectorPartFileAssignments.Count -ne 1 -or $assignments.Count -ne 1 -or
         $assignments[0].Parent -ne $ast.EndBlock -or
