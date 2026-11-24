@@ -1,15 +1,15 @@
 {
-  "artifact_name": "",
-  "exit_code": "",
+  "artifact_name": "chatgpt-exec-issue608-slice7-native-baseline-capability-20261124",
+  "exit_code": "0",
   "github_ref": "refs/heads/agent-ops",
   "github_run_attempt": "1",
   "github_run_id": "45393688297",
   "github_sha": "2a9a3c4e5df0694187fccc242347ea345e7ef722",
-  "phase": "running-harness",
+  "phase": "harness-finished",
   "request_id": "issue608-slice7-native-baseline-capability-20261124",
   "request_path": ".github/chatgpt_staging/exec_requests/issue608-slice7-native-baseline-capability-20261124.json",
-  "result": "running",
+  "result": "success",
   "schema": "dcoir.chatgpt_staging.latest_progress_marker.v1",
-  "updated_utc": "2026-11-24T12:27:49Z",
+  "updated_utc": "2026-11-24T12:27:54Z",
   "workflow": "chatgpt-exec"
 }
