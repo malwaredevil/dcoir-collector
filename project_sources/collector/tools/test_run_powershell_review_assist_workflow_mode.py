@@ -234,5 +234,35 @@ class NativeWorkflowModeTests(unittest.TestCase):
                         entry.index("Invoke-PowerShellReviewAssistReportGate"))
 
 
+    def test_missing_required_source_fails_workflow_mode(self):
+        (self.root / review.DEFAULT_RULE_RISK_REPORT).unlink()
+        self.assertEqual(self.run_generator(
+            TARGET_JSON, TARGET_MARKDOWN,
+            "--artifact-behavior", "caller_uploaded_artifact",
+        ), 1)
+        report = json.loads((self.root / TARGET_JSON).read_text(encoding="utf-8"))
+        self.assertFalse(report["validation"]["success"])
+        self.assertFalse(report["summary"]["validation_success"])
+
+    def test_workflow_markdown_write_error_persists_failed_json(self):
+        original_write = Path.write_text
+
+        def reject_markdown(path, text, *args, **kwargs):
+            if path.name == Path(TARGET_MARKDOWN).name:
+                raise OSError("seeded workflow Markdown write failure")
+            return original_write(path, text, *args, **kwargs)
+
+        with patch.object(Path, "write_text", reject_markdown):
+            rc = self.run_generator(
+                TARGET_JSON, TARGET_MARKDOWN,
+                "--artifact-behavior", "caller_uploaded_artifact",
+            )
+        self.assertEqual(rc, 1)
+        failed_report = json.loads((self.root / TARGET_JSON).read_text(encoding="utf-8"))
+        self.assertFalse(failed_report["validation"]["success"])
+        self.assertFalse(failed_report["summary"]["validation_success"])
+        self.assertTrue(any("write failure" in str(item) for item in failed_report["validation"]["errors"]))
+
+
 if __name__ == "__main__":
     unittest.main()
