@@ -5,11 +5,11 @@ from __future__ import annotations
 import contextlib
 from datetime import datetime, timezone
 import hashlib
-import importlib.util
 import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,10 +26,45 @@ TARGET_JSON = "project_sources/collector/.slice6_workflow.json"
 TARGET_MARKDOWN = "project_sources/collector/.slice6_workflow.md"
 SOURCE_JSON = "project_sources/collector/.slice6_legacy_source.json"
 SOURCE_MARKDOWN = "project_sources/collector/.slice6_legacy_source.md"
-LEGACY_WRAPPER = (
-    REPO_ROOT / "project_sources/collector/fixtures/powershell_review_assist/"
-    "issue608_slice6_legacy_wrapper.py"
-)
+LEGACY_FIXTURES = REPO_ROOT / "project_sources/collector/fixtures/powershell_review_assist"
+LEGACY_WRAPPER = LEGACY_FIXTURES / "issue608_slice6_legacy_wrapper.py"
+# Complete pre-Slice-6 implementation archived from c8c76c59; the manifest pins
+# each Git blob so the oracle cannot share code with the modules under review.
+LEGACY_IMPLEMENTATION = LEGACY_FIXTURES / "issue608_slice6_legacy_c8c76c59"
+LEGACY_MANIFEST = json.loads(
+    (LEGACY_FIXTURES / "issue608_slice6_legacy_artifact_manifest.json").read_text(encoding="utf-8"))
+LEGACY_IMPLEMENTATION_BLOBS = LEGACY_MANIFEST["legacy_implementation"]["git_blob_sha1"]
+LEGACY_TOOLS = "project_sources/collector/tools"
+# Isolated (-I) interpreter importing only the archived tools; runs generator then wrapper like the old action.
+LEGACY_DRIVER = r"""
+import importlib.util, os, sys
+from datetime import datetime, timezone
+from pathlib import Path
+tools = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(tools))
+import powershell_review_assist_builder as legacy_builder
+import run_powershell_review_assist_report as legacy_cli
+fixed = datetime.fromisoformat(sys.argv[3])
+class FrozenDatetime:
+    @staticmethod
+    def now(tz=None):
+        return fixed.astimezone(tz or timezone.utc)
+legacy_builder.datetime = FrozenDatetime
+rc = legacy_cli.main(["--repo-root", ".", "--json-output", os.environ["REVIEW_ASSIST_GENERATED_JSON"],
+                      "--markdown-output", sys.argv[4]])
+if rc != 0:
+    raise SystemExit(10 + rc)
+spec = importlib.util.spec_from_file_location("issue608_legacy_wrapper", sys.argv[2])
+wrapper = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(wrapper)
+rc = wrapper.main()
+for name, module in list(sys.modules.items()):
+    if "powershell_review_assist" in name:
+        origin = Path(getattr(module, "__file__", "") or "").resolve()
+        if origin.parent != tools:
+            raise SystemExit(f"non-legacy module loaded: {name} from {origin}")
+raise SystemExit(rc)
+"""
 INPUT_PATHS = (
     review.DEFAULT_SCHEMA_PATH,
     review.DEFAULT_SURFACE_INVENTORY,
@@ -69,11 +104,12 @@ class NativeWorkflowModeTests(unittest.TestCase):
             dest = self.root / item
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dest)
-        # Legacy wrapper imports the CLI by repo-relative CWD. The tool modules
-        # are resolved from the already imported canonical tools package.
-        legacy_cli = self.root / "project_sources/collector/tools/run_powershell_review_assist_report.py"
-        legacy_cli.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(TOOLS / "run_powershell_review_assist_report.py", legacy_cli)
+        # The legacy wrapper imports the CLI by repo-relative CWD, so the
+        # complete archived c8c76c59 implementation is materialized there.
+        legacy_tools = self.root / LEGACY_TOOLS
+        legacy_tools.mkdir(parents=True, exist_ok=True)
+        for name in LEGACY_IMPLEMENTATION_BLOBS:
+            shutil.copy2(LEGACY_IMPLEMENTATION / name, legacy_tools / name)
 
     def run_generator(self, json_name, markdown_name, *flags):
         with patch.object(builder, "datetime", FrozenDatetime):
@@ -88,26 +124,35 @@ class NativeWorkflowModeTests(unittest.TestCase):
         return ((self.root / json_name).read_bytes(),
                 (self.root / markdown_name).read_bytes())
 
-    def legacy_wrapper_pair(self):
-        """Run the actual original wrapper source archived from main SHA c8c76c59."""
-        original = LEGACY_WRAPPER.read_bytes()
+    def assert_git_blob(self, path: Path, expected: str):
+        # Undo a Windows autocrlf checkout so the hash equals the Git blob.
+        original = path.read_bytes().replace(b"\r\n", b"\n")
         blob = b"blob " + str(len(original)).encode() + b"\x00" + original
-        self.assertEqual(hashlib.sha1(blob).hexdigest(),
-                         "85ab09dfefc8a2dfa18313cedd8f96d03f3c4f44")
-        self.assertEqual(self.run_generator(SOURCE_JSON, SOURCE_MARKDOWN), 0)
+        self.assertEqual(hashlib.sha1(blob).hexdigest(), expected, path.name)
 
-        spec = importlib.util.spec_from_file_location("issue608_legacy_wrapper", LEGACY_WRAPPER)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        env = {
+    def legacy_wrapper_pair(self):
+        """Run the complete archived c8c76c59 generator and wrapper in isolation."""
+        self.assert_git_blob(LEGACY_WRAPPER, LEGACY_MANIFEST["legacy_wrapper_git_blob_sha1"])
+        self.assertEqual(
+            sorted(p.name for p in LEGACY_IMPLEMENTATION.glob("*.py")),
+            sorted(LEGACY_IMPLEMENTATION_BLOBS),
+        )
+        for name, blob_sha in LEGACY_IMPLEMENTATION_BLOBS.items():
+            self.assert_git_blob(LEGACY_IMPLEMENTATION / name, blob_sha)
+        env = dict(os.environ)
+        env.pop("PYTHONPATH", None)
+        env.update({
+            "PYTHONDONTWRITEBYTECODE": "1",
             "REVIEW_ASSIST_GENERATED_JSON": SOURCE_JSON,
             "REVIEW_ASSIST_TARGET_JSON": TARGET_JSON,
             "REVIEW_ASSIST_TARGET_MARKDOWN": TARGET_MARKDOWN,
-        }
-        with patch.dict(os.environ, env), changed_directory(self.root):
-            self.assertEqual(module.main(), 0)
+        })
+        result = subprocess.run(
+            [sys.executable, "-I", "-c", LEGACY_DRIVER, LEGACY_TOOLS,
+             str(LEGACY_WRAPPER), FIXED_TIME.isoformat(), SOURCE_MARKDOWN],
+            cwd=self.root, env=env, capture_output=True, text=True, timeout=300, check=False,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return self.read_report_pair(TARGET_JSON, TARGET_MARKDOWN)
 
     def test_original_legacy_wrapper_is_fixed_and_generates_real_bytes(self):
@@ -121,8 +166,6 @@ class NativeWorkflowModeTests(unittest.TestCase):
                          "caller_uploaded_artifact")
         self.assertIn(b"Workflow behavior: ", markdown_bytes)
         self.assertIn(b"Retention scope: ", markdown_bytes)
-        print("SLICE6_FROZEN_LEGACY_SHA256_JSON", hashlib.sha256(json_bytes).hexdigest())
-        print("SLICE6_FROZEN_LEGACY_SHA256_MD", hashlib.sha256(markdown_bytes).hexdigest())
 
     def test_native_mode_equals_all_legacy_json_and_markdown_bytes(self):
         expected_json, expected_md = self.legacy_wrapper_pair()
@@ -144,8 +187,6 @@ class NativeWorkflowModeTests(unittest.TestCase):
         self.assertNotIn(b"Workflow behavior:", markdown_bytes)
         self.assertEqual(report["artifact_contract"]["local_artifacts"]["json"],
                          review.DEFAULT_JSON_OUTPUT.as_posix())
-        print("SLICE6_FROZEN_LOCAL_SHA256_JSON", hashlib.sha256(json_bytes).hexdigest())
-        print("SLICE6_FROZEN_LOCAL_SHA256_MD", hashlib.sha256(markdown_bytes).hexdigest())
 
     def test_cli_accepts_native_behavior_and_retention_override(self):
         args = review.parse_args([
