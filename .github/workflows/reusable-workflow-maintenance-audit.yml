@@ -49,12 +49,6 @@ jobs:
           set -euo pipefail
           python3 .github/github_actions/tools/check_workflow_consistency_drift.py
 
-      - name: Regenerate workflow inventory
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 .github/github_actions/tools/build_workflow_inventory.py
-
       - name: Check workflow inventory freshness
         shell: bash
         run: |
