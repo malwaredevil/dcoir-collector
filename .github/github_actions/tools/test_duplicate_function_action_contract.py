@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -13,59 +18,30 @@ SCRIPT_PATH = REPO_ROOT / ".github/actions/run-duplicate-function-check/Invoke-D
 VALIDATE_ON_PR = REPO_ROOT / ".github/workflows/reusable-validate-on-pr.yml"
 VALIDATE_ON_PUSH = REPO_ROOT / ".github/workflows/reusable-validate-on-push.yml"
 TEST_PATH = ".github/github_actions/tools/test_duplicate_function_action_contract.py"
+NATIVE_TEST = REPO_ROOT / ".github/scripts/Test-DuplicateFunctionCheckPaths.ps1"
+HELPER_PATH = SCRIPT_PATH.with_name("DuplicateFunctionCheck.Paths.ps1")
+PASS_RECORD = "DCOIR_DUPLICATE_PATH_TEST_PASS positive=12 rejected=54 markdown=9"
 
 
-def normalize_report_path(path_value: str, expected_suffix: str) -> str:
-    if not path_value or not path_value.strip():
-        raise ValueError("output path is required")
-    raw_normalized = path_value.replace("\\", "/")
-    if re.search(r"[\x00-\x1f\x7f]", raw_normalized):
-        raise ValueError("control character")
-    normalized = raw_normalized.strip()
-    if normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized):
-        raise ValueError("repo-relative")
-    if re.search(r"(^|/)\.\.($|/)", normalized):
-        raise ValueError("traversal")
-    if not normalized.startswith("project_sources/collector/"):
-        raise ValueError("collector subtree")
-    if not normalized.lower().endswith(expected_suffix.lower()):
-        raise ValueError("suffix")
-    return normalized
-
-
-def markdown_table_cell(value: object | None) -> str:
-    if value is None:
-        return ""
-    text = str(value)
-    text = re.sub(r"\r?\n", " ", text)
-    text = (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace("|", "&#124;")
-        .replace("`", "&#96;")
+def run_native_contract() -> str:
+    for path in (HELPER_PATH, NATIVE_TEST):
+        if not path.is_file():
+            raise AssertionError(f"Missing native contract surface: {path}")
+    exe = shutil.which("pwsh")
+    if not exe:
+        raise AssertionError("pwsh is required for Windows native contract tests")
+    result = subprocess.run(
+        [exe, "-NoProfile", "-NonInteractive", "-File", str(NATIVE_TEST)],
+        cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8",
+        errors="replace", timeout=120, check=False,
     )
-    return text
-
-
-def function_block(text: str, function_name: str) -> str:
-    match = re.search(rf"function {re.escape(function_name)}\b", text)
-    if not match:
-        raise AssertionError(f"{function_name} function not found")
-    start = match.start()
-    open_brace = text.find("{", start)
-    if open_brace < 0:
-        raise AssertionError(f"{function_name} opening brace not found")
-    depth = 0
-    for index in range(open_brace, len(text)):
-        char = text[index]
-        if char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : index + 1]
-    raise AssertionError(f"{function_name} function did not close")
+    if result.returncode:
+        raise AssertionError(f"Native contract failed ({result.returncode}): {result.stdout}\n{result.stderr}")
+    records = [line for line in result.stdout.splitlines()
+               if line.lstrip().startswith("DCOIR_DUPLICATE_PATH_TEST_PASS")]
+    if records != [PASS_RECORD]:
+        raise AssertionError(f"Missing or invalid native evidence: {result.stdout}\n{result.stderr}")
+    return result.stdout
 
 
 class DuplicateFunctionActionContractTests(unittest.TestCase):
@@ -88,69 +64,6 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
             self.action_text,
         )
 
-    def test_path_guard_contract_accepts_only_collector_reports(self) -> None:
-        self.assertEqual(
-            normalize_report_path(
-                "project_sources/collector/powershell_duplicate_function_report.json",
-                ".json",
-            ),
-            "project_sources/collector/powershell_duplicate_function_report.json",
-        )
-        self.assertEqual(
-            normalize_report_path(
-                r"project_sources\collector\powershell_duplicate_function_report.md",
-                ".md",
-            ),
-            "project_sources/collector/powershell_duplicate_function_report.md",
-        )
-
-        rejected = [
-            ("", ".json"),
-            ("/tmp/powershell_duplicate_function_report.json", ".json"),
-            ("C:/tmp/powershell_duplicate_function_report.json", ".json"),
-            ("project_sources/collector/../collector/powershell_duplicate_function_report.json", ".json"),
-            ("project_sources/validation/powershell_duplicate_function_report.json", ".json"),
-            ("project_sources/collector/powershell_duplicate_function_report.txt", ".json"),
-            ("project_sources/collector/powershell_duplicate_function_report.json\nextra", ".json"),
-            ("project_sources/collector/powershell_duplicate_function_report.json\x7f", ".json"),
-        ]
-        for path_value, suffix in rejected:
-            with self.subTest(path_value=path_value):
-                with self.assertRaises(ValueError):
-                    normalize_report_path(path_value, suffix)
-
-    def test_action_contains_required_path_guard_checks(self) -> None:
-        block = function_block(self.script_text, "Resolve-CollectorReportPath")
-        self.assertIn("$rawNormalized = $pathValue.Replace('\\', '/')", block)
-        self.assertIn("$rawNormalized -match '[\\x00-\\x1F\\x7F]'", block)
-        self.assertLess(
-            block.index("$rawNormalized -match '[\\x00-\\x1F\\x7F]'"),
-            block.index("$normalized = $rawNormalized.Trim()"),
-        )
-        self.assertIn("$normalized.StartsWith('/')", block)
-        self.assertIn("$normalized -match '^[A-Za-z]:'", block)
-        self.assertIn("$normalized -match '(^|/)\\.\\.($|/)'", block)
-        self.assertIn("$normalized.StartsWith('project_sources/collector/'", block)
-        self.assertIn("$normalized.EndsWith($expectedSuffix", block)
-        self.assertIn("$resolved.StartsWith($repoRoot", block)
-        self.assertIn("$jsonOutput.RelativePath -eq $markdownOutput.RelativePath", self.script_text)
-
-    def test_markdown_cell_escaping_contract(self) -> None:
-        escaped = markdown_table_cell("name`with|table\n<&>")
-        self.assertEqual(escaped, "name&#96;with&#124;table &lt;&amp;&gt;")
-        self.assertNotIn("`", escaped)
-        self.assertNotIn("|", escaped)
-        self.assertNotIn("\n", escaped)
-
-        block = function_block(self.script_text, "ConvertTo-MarkdownTableCell")
-        for expected in [
-            "Replace('&', '&amp;')",
-            "Replace('<', '&lt;')",
-            "Replace('>', '&gt;')",
-            "Replace('|', '&#124;')",
-            "Replace('`', '&#96;')",
-        ]:
-            self.assertIn(expected, block)
 
     def test_report_schema_markers_are_present(self) -> None:
         for marker in [
@@ -197,6 +110,93 @@ class DuplicateFunctionActionContractTests(unittest.TestCase):
                     text.index(TEST_PATH),
                     text.index("uses: ./.github/actions/run-duplicate-function-check"),
                 )
+
+
+    def test_public_path_functions_have_one_shipped_owner(self) -> None:
+        helper_text = HELPER_PATH.read_text(encoding="utf-8")
+        for name in ("Resolve-CollectorReportPath", "ConvertTo-MarkdownTableCell"):
+            with self.subTest(name=name):
+                pattern = rf"(?im)^\s*function\s+{re.escape(name)}\b"
+                self.assertEqual(len(re.findall(pattern, helper_text)), 1)
+                self.assertEqual(len(re.findall(pattern, self.script_text)), 0)
+
+    def test_action_loads_helper_before_initial_validation(self) -> None:
+        dispatch = ". (Join-Path -Path $PSScriptRoot -ChildPath 'DuplicateFunctionCheck.Paths.ps1')"
+        self.assertEqual(self.script_text.count(dispatch), 1)
+        self.assertLess(self.script_text.index("$repoRoot ="), self.script_text.index(dispatch))
+        for name in ("json", "markdown"):
+            self.assertLess(self.script_text.index(dispatch), self.script_text.index(f"${name}Output = Resolve-CollectorReportPath "))
+
+    def test_action_validates_both_outputs_before_report_writes(self) -> None:
+        scan = self.script_text.index("$sourceFiles =")
+        first_write = self.script_text.index("Set-Content -LiteralPath")
+        for name in ("json", "markdown"):
+            self.assertLess(self.script_text.index(f"${name}Output = Resolve-CollectorReportPath "), scan)
+        distinct = self.script_text.index("$jsonOutput.RelativePath -eq $markdownOutput.RelativePath")
+        self.assertLess(distinct, scan)
+        self.assertLess(scan, first_write)
+
+
+class NativeDriverContractTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.assertTrue(callable(globals().get("run_native_contract")), "Missing native driver implementation")
+
+    def test_missing_surface(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            absent = Path(directory) / "missing.ps1"
+            for field in ("HELPER_PATH", "NATIVE_TEST"):
+                with self.subTest(field=field), patch.object(sys.modules[__name__], field, absent), patch("subprocess.run") as child:
+                    with self.assertRaisesRegex(AssertionError, "Missing native contract surface"):
+                        run_native_contract()
+                    child.assert_not_called()
+
+    def test_missing_executable(self) -> None:
+        with patch("shutil.which", return_value=None), patch("subprocess.run") as child:
+            with self.assertRaisesRegex(AssertionError, "pwsh is required"):
+                run_native_contract()
+            child.assert_not_called()
+
+    def test_native_result_contract(self) -> None:
+        cases = (
+            (1, PASS_RECORD),
+            (0, ""),
+            (0, PASS_RECORD.replace("positive=12", "positive=0")),
+            (0, PASS_RECORD.replace("rejected=54", "rejected=53")),
+            (0, PASS_RECORD.replace("markdown=9", "markdown=0")),
+            (0, PASS_RECORD + " extra"),
+            (0, " " + PASS_RECORD),
+            (0, PASS_RECORD + "\n" + PASS_RECORD),
+            (0, PASS_RECORD + "\n " + PASS_RECORD),
+            (0, PASS_RECORD + "\nDCOIR_DUPLICATE_PATH_TEST_PASS malformed"),
+        )
+        for code, output in cases:
+            with self.subTest(code=code, output=output):
+                result = subprocess.CompletedProcess([], code, output, "")
+                with patch("shutil.which", return_value="pwsh"), patch("subprocess.run", return_value=result):
+                    with self.assertRaises(AssertionError):
+                        run_native_contract()
+
+    def test_native_timeout_is_failure(self) -> None:
+        with patch("shutil.which", return_value="pwsh"), patch("subprocess.run", side_effect=subprocess.TimeoutExpired("pwsh", 120)):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                run_native_contract()
+
+    def test_exact_child_invocation(self) -> None:
+        output = "native fixture evidence\n" + PASS_RECORD + "\n"
+        result = subprocess.CompletedProcess([], 0, output, "")
+        with patch("shutil.which", return_value="pwsh"), patch("subprocess.run", return_value=result) as child:
+            self.assertEqual(run_native_contract(), output)
+            child.assert_called_once_with(
+                ["pwsh", "-NoProfile", "-NonInteractive", "-File", str(NATIVE_TEST)],
+                cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8",
+                errors="replace", timeout=120, check=False,
+            )
+
+
+class NativeWindowsBehaviorTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "win32", "Windows native behavior not executed on this platform")
+    def test_shipped_powershell_behavior(self):
+        print(run_native_contract(), end="", flush=True)
 
 
 if __name__ == "__main__":
